@@ -27,7 +27,7 @@ describe('AgentSettings', () => {
       'true',
     );
     expect(
-      screen.getByRole('button', { name: /Claude Sonnet 4.5/i }),
+      screen.getByRole('button', { name: /Claude Sonnet 5/i }),
     ).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('textbox', { name: 'Agent persona' })).toHaveValue(
       'Write like a pragmatic founder.',

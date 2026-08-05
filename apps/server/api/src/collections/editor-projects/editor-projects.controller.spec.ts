@@ -48,19 +48,19 @@ const makeRequest = (): Request => ({}) as Request;
 
 const makeUser = () =>
   ({
-    id: 'user_authProvider_123',
+    id: 'c07f191e810c19729de860ee',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee',
-      organization: '507f191e810c19729de860ee',
-      user: '507f191e810c19729de860ee',
+      brand: 'c07f191e810c19729de860ee',
+      organization: 'c07f191e810c19729de860ee',
+      user: 'c07f191e810c19729de860ee',
     },
   }) as never;
 
 const makeProject = (overrides: Record<string, unknown> = {}) => ({
-  _id: '507f191e810c19729de860ee',
+  id: 'e07f191e810c19729de860ee',
   isDeleted: false,
   name: 'My Project',
-  organization: '507f191e810c19729de860ee',
+  organizationId: 'c07f191e810c19729de860ee',
   ...overrides,
 });
 
@@ -153,17 +153,17 @@ describe('EditorProjectsController', () => {
       expect(editorProjectsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           config: expect.objectContaining({ name: 'New Project' }),
-          organizationId: '507f191e810c19729de860ee',
-          userId: '507f191e810c19729de860ee',
+          organizationId: 'c07f191e810c19729de860ee',
+          userId: 'c07f191e810c19729de860ee',
         }),
       );
       expect(result).toMatchObject({ data: project });
     });
 
     it('builds video track when sourceVideoId is provided', async () => {
-      const videoId = '507f191e810c19729de860ee';
+      const videoId = 'c07f191e810c19729de860ee';
       const video = {
-        _id: videoId,
+        id: videoId,
         thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
       };
       const meta = { duration: 5, height: 1080, width: 1920 };
@@ -180,7 +180,7 @@ describe('EditorProjectsController', () => {
 
       expect(ingredientsService.findOne).toHaveBeenCalled();
       expect(metadataService.findOne).toHaveBeenCalledWith({
-        ingredient: videoId,
+        ingredients: { some: { id: videoId } },
       });
       expect(editorProjectsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -188,9 +188,9 @@ describe('EditorProjectsController', () => {
             name: 'Video Project',
             sourceVideoId: videoId,
           }),
-          organizationId: '507f191e810c19729de860ee',
+          organizationId: 'c07f191e810c19729de860ee',
           tracks: expect.any(Array),
-          userId: '507f191e810c19729de860ee',
+          userId: 'c07f191e810c19729de860ee',
         }),
       );
       expect(result).toBeDefined();
@@ -199,7 +199,7 @@ describe('EditorProjectsController', () => {
     it('throws NotFoundException when sourceVideoId does not resolve', async () => {
       ingredientsService.findOne.mockResolvedValue(null as never);
 
-      const fakeVideoId = '507f191e810c19729de860ee';
+      const fakeVideoId = 'c07f191e810c19729de860ee';
       await expect(
         controller.create(makeRequest(), makeUser(), {
           name: 'Bad Video',
@@ -229,9 +229,9 @@ describe('EditorProjectsController', () => {
         {
           orderBy: { updatedAt: -1 },
           where: expect.objectContaining({
-            brandId: '507f191e810c19729de860ee',
+            brandId: 'c07f191e810c19729de860ee',
             isDeleted: false,
-            organizationId: '507f191e810c19729de860ee',
+            organizationId: 'c07f191e810c19729de860ee',
           }),
         },
         expect.objectContaining({ limit: 20, page: 1 }),
@@ -256,7 +256,7 @@ describe('EditorProjectsController', () => {
       expect(editorProjectsService.findOne).toHaveBeenCalledWith({
         id: projectId,
         isDeleted: false,
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: 'c07f191e810c19729de860ee',
       });
       expect(result).toMatchObject({ data: project });
     });

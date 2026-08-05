@@ -88,7 +88,7 @@ const createService = () => {
       id: RESOLVED_BRAND,
       description: 'desc',
       label: 'Brand',
-      organization: ORG,
+      organizationId: ORG,
       primaryColor: '#fff',
       secondaryColor: '#000',
       text: 'text',
@@ -136,7 +136,7 @@ const createService = () => {
   };
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
-    findOne: vi.fn().mockResolvedValue({ _id: 'ing-0', status: 'completed' }),
+    findOne: vi.fn().mockResolvedValue({ id: 'ing-0', status: 'completed' }),
     patch: vi.fn().mockResolvedValue(undefined),
   };
   const activitiesService = {
@@ -156,10 +156,10 @@ const createService = () => {
   const pollingService = {
     waitForMultipleIngredientsCompletion: vi
       .fn()
-      .mockResolvedValue([{ _id: 'ing-0', status: 'completed' }]),
+      .mockResolvedValue([{ id: 'ing-0', status: 'completed' }]),
     waitForIngredientCompletion: vi
       .fn()
-      .mockResolvedValue({ _id: 'ing-0', status: 'completed' }),
+      .mockResolvedValue({ id: 'ing-0', status: 'completed' }),
   };
   const filesClientService = {
     uploadToS3: vi.fn().mockResolvedValue({
@@ -247,18 +247,18 @@ describe('ImageGenerationService', () => {
     it('reuses a submitted prompt document instead of creating a duplicate', async () => {
       const { service, promptsService } = createService();
       promptsService.findOne.mockResolvedValue({
-        id: '507f1f77bcf86cd799439015',
+        id: 'p07f1f77bcf86cd799439015',
         original: 'a sunset over the ocean',
       });
       promptsService.patch.mockResolvedValue({
-        id: '507f1f77bcf86cd799439015',
+        id: 'p07f1f77bcf86cd799439015',
         original: 'a sunset over the ocean',
       });
 
       await service.generateImage(
         buildUser(),
         baseDto({
-          prompt: '507f1f77bcf86cd799439015',
+          promptId: 'p07f1f77bcf86cd799439015',
           text: 'a sunset over the ocean',
         }),
         buildRequest(),
@@ -266,7 +266,7 @@ describe('ImageGenerationService', () => {
 
       expect(promptsService.create).not.toHaveBeenCalled();
       expect(promptsService.patch).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
+        'p07f1f77bcf86cd799439015',
         expect.objectContaining({ status: 'processing' }),
       );
     });
@@ -366,6 +366,14 @@ describe('ImageGenerationService', () => {
         metadataService,
       } = createService();
       replicateService.generateTextToImage.mockResolvedValue('rep');
+      replicateService.getPrediction.mockResolvedValue({
+        output: [
+          'https://replicate/generated-0.png',
+          'https://replicate/generated-1.png',
+          'https://replicate/generated-2.png',
+        ],
+        status: 'succeeded',
+      });
 
       await service.generateImage(
         buildUser(),

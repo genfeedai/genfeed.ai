@@ -73,18 +73,17 @@ describe('ImagesController', () => {
 
   const mockRequest = {} as unknown as Request;
   const mockUser = {
-    id: 'authProvider_user_1',
+    id: 'c07f1f77bcf86cd799439013',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439012',
-      organization: '507f1f77bcf86cd799439011',
-      user: '507f1f77bcf86cd799439013',
+      brand: 'c07f1f77bcf86cd799439012',
+      organization: 'c07f1f77bcf86cd799439011',
+      user: 'c07f1f77bcf86cd799439013',
     },
   } as unknown as User;
 
   const mockImage = {
-    _id: '507f191e810c19729de860ee',
     category: 'image',
-    id: 'canonical-image-id',
+    id: 'i07f191e810c19729de860ee',
     metadata: { label: 'Test image' },
   };
 
@@ -250,11 +249,11 @@ describe('ImagesController', () => {
 
   describe('findOne', () => {
     it('tenant-scopes the lookup and serializes the image contract', async () => {
-      await controller.findOne(mockRequest, mockImage._id, mockUser);
+      await controller.findOne(mockRequest, mockImage.id, mockUser);
 
       expect(imagesService.findOne).toHaveBeenCalledWith(
         {
-          _id: mockImage._id,
+          id: mockImage.id,
           category: 'IMAGE',
           isDeleted: false,
           OR: [
@@ -267,7 +266,7 @@ describe('ImagesController', () => {
       expect(serializeSingle).toHaveBeenCalledWith(
         mockRequest,
         IngredientSerializer,
-        expect.objectContaining({ _id: mockImage._id }),
+        expect.objectContaining({ id: mockImage.id }),
       );
     });
 
@@ -275,7 +274,7 @@ describe('ImagesController', () => {
       imagesService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.findOne(mockRequest, mockImage._id, mockUser),
+        controller.findOne(mockRequest, mockImage.id, mockUser),
       ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
       expect(serializeSingle).not.toHaveBeenCalled();
     });
@@ -283,10 +282,10 @@ describe('ImagesController', () => {
 
   describe('remove', () => {
     it('preflights tenant ownership and serializes the soft-deleted image', async () => {
-      await controller.remove(mockRequest, mockImage._id, mockUser);
+      await controller.remove(mockRequest, mockImage.id, mockUser);
 
       expect(imagesService.findOne).toHaveBeenCalledWith({
-        _id: mockImage._id,
+        id: mockImage.id,
         organizationId: mockUser.publicMetadata.organization,
         category: 'IMAGE',
         isDeleted: false,
@@ -303,7 +302,7 @@ describe('ImagesController', () => {
       imagesService.findOne.mockResolvedValueOnce(null);
 
       await expect(
-        controller.remove(mockRequest, mockImage._id, mockUser),
+        controller.remove(mockRequest, mockImage.id, mockUser),
       ).rejects.toMatchObject({ status: HttpStatus.NOT_FOUND });
       expect(imagesService.remove).not.toHaveBeenCalled();
       expect(serializeSingle).not.toHaveBeenCalled();

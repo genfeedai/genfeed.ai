@@ -161,8 +161,9 @@ describe('PinterestService', () => {
       const result = await service.getMediaAnalytics('org', 'brand', 'pin-1');
 
       expect(credentialsServiceMock.findOne).toHaveBeenCalledWith({
-        brand: 'brand',
-        organization: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+        organizationId: 'org',
         platform: 'pinterest',
       });
       expect(httpServiceMock.get).toHaveBeenCalledWith(

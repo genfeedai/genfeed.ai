@@ -392,7 +392,13 @@ describe('PostsService batchSchedule', () => {
     expect(result.missingPostIds).toEqual(['post-foreign']);
     expect(post.update).toHaveBeenCalledTimes(1);
     expect(post.update).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: 'post-1' } }),
+      expect.objectContaining({
+        where: {
+          id: 'post-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      }),
     );
   });
 

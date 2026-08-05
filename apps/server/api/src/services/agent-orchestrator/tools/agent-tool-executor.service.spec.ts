@@ -49,18 +49,18 @@ import { of } from 'rxjs';
 describe('AgentToolExecutorService', () => {
   const scopedContext = (brandId: string): ToolExecutionContext => ({
     brandId,
-    organizationId: '67a123456789012345678901',
-    threadId: '67a123456789012345678999',
-    userId: '67a123456789012345678902',
+    organizationId: 'c7a123456789012345678901',
+    threadId: 'c7a123456789012345678999',
+    userId: 'c7a123456789012345678902',
     validatedScope: {
       brandId,
       contextVersion: 3,
       isLegacyFallback: false,
       isVersionExplicit: true,
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       source: 'explicit',
-      threadId: '67a123456789012345678999',
-      userId: '67a123456789012345678902',
+      threadId: 'c7a123456789012345678999',
+      userId: 'c7a123456789012345678902',
     },
   });
 
@@ -115,7 +115,7 @@ describe('AgentToolExecutorService', () => {
         ),
       publishNow: vi.fn().mockResolvedValue({
         id: 'release-1',
-        organizationId: '67a123456789012345678901',
+        organizationId: 'c7a123456789012345678901',
         status: ReleaseStatus.SCHEDULED,
         targets: [
           {
@@ -132,7 +132,7 @@ describe('AgentToolExecutorService', () => {
       }),
       scheduleTarget: vi.fn().mockResolvedValue({
         id: 'release-1',
-        organizationId: '67a123456789012345678901',
+        organizationId: 'c7a123456789012345678901',
         status: ReleaseStatus.SCHEDULED,
         targets: [
           {
@@ -183,28 +183,28 @@ describe('AgentToolExecutorService', () => {
       }),
       updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     };
-    const livestreamBotId = 'test-object-id';
+    const livestreamBotId = 'l07f191e810c19729de860ee';
     const botsService = {
       create: vi
         .fn()
         .mockImplementation(async (dto: Record<string, unknown>) => ({
           id: livestreamBotId,
-          brand: dto.brand,
+          brandId: dto.brandId,
           category: dto.category,
           label: dto.label,
           livestreamSettings: dto.livestreamSettings,
-          organization: dto.organization,
+          organizationId: dto.organizationId,
           platforms: dto.platforms,
           targets: dto.targets,
-          user: dto.user,
+          userId: dto.userId,
         })),
       findOne: vi.fn().mockResolvedValue({
         id: livestreamBotId,
-        brand: '67a1234567890123456789aa',
+        brandId: 'c7a1234567890123456789aa',
         category: 'livestream_chat',
         label: 'Launch Live Bot',
         livestreamSettings: { automaticPosting: true },
-        organization: '67a123456789012345678901',
+        organizationId: 'c7a123456789012345678901',
         platforms: ['youtube'],
         targets: [
           {
@@ -213,7 +213,7 @@ describe('AgentToolExecutorService', () => {
             platform: 'youtube',
           },
         ],
-        user: '67a123456789012345678902',
+        userId: 'c7a123456789012345678902',
       }),
     };
     const botsLivestreamService = {
@@ -371,7 +371,7 @@ describe('AgentToolExecutorService', () => {
     const batchGenerationService = {
       approveItems: vi.fn(),
       createBatch: vi.fn().mockResolvedValue({
-        id: '67a1234567890123456789ba',
+        id: 'c7a1234567890123456789ba',
         status: 'pending',
         totalCount: 10,
       }),
@@ -491,7 +491,7 @@ describe('AgentToolExecutorService', () => {
     const authProviderService = {
       getUser: vi.fn().mockResolvedValue({
         publicMetadata: {
-          brand: '67a1234567890123456789ab',
+          brand: 'c7a1234567890123456789ab',
         },
       }),
       updateUserPublicMetadata: vi.fn().mockResolvedValue({}),
@@ -748,7 +748,7 @@ describe('AgentToolExecutorService', () => {
         status: 'in_progress',
       }),
       start: vi.fn().mockResolvedValue({
-        brandId: '67a123456789012345678901',
+        brandId: 'c7a123456789012345678901',
         completenessScore: 40,
         creditsCharged: 10,
         currentQuestion: {
@@ -979,8 +979,8 @@ describe('AgentToolExecutorService', () => {
       },
       {
         brandId: 'brand-1',
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1007,8 +1007,8 @@ describe('AgentToolExecutorService', () => {
         surface: 'mcp',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1049,8 +1049,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CHECK_GOAL_PROGRESS,
       { goalId: 'not-an-object-id' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1064,12 +1064,12 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.UPDATE_GOAL,
       {
-        goalId: '67a123456789012345678903',
+        goalId: 'c7a123456789012345678903',
         targetValue: 1000,
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1087,17 +1087,17 @@ describe('AgentToolExecutorService', () => {
     const { credentialsService, ingredientsService, service } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      id: '67a123456789012345678930',
-      brand: '67a123456789012345678931',
+      id: 'c7a123456789012345678930',
+      brandId: 'c7a123456789012345678931',
       category: 'image',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678932',
+        id: 'c7a123456789012345678932',
         platform: 'linkedin',
       },
       {
-        id: '67a123456789012345678933',
+        id: 'c7a123456789012345678933',
         platform: 'twitter',
       },
     ]);
@@ -1106,12 +1106,12 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CREATE_POST,
       {
         caption: 'Ship this now',
-        contentId: '67a123456789012345678930',
+        contentId: 'c7a123456789012345678930',
         scheduledAt: '2026-07-18T09:00',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1119,7 +1119,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.creditsUsed).toBe(0);
     expect(result.nextActions).toEqual([
       expect.objectContaining({
-        contentId: '67a123456789012345678930',
+        contentId: 'c7a123456789012345678930',
         platforms: ['linkedin', 'twitter'],
         scheduledAt: '2026-07-18T09:00',
         textContent: 'Ship this now',
@@ -1131,7 +1131,7 @@ describe('AgentToolExecutorService', () => {
   it('schedules a canonical release target through the approval-backed scheduler', async () => {
     const { postGroupsService, postsService, service } = createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       groupId: 'release-1',
       id: 'target-1',
     });
@@ -1142,7 +1142,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1157,15 +1157,15 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(postGroupsService.scheduleTarget).toHaveBeenCalledWith(
-      '67a123456789012345678901',
-      '67a123456789012345678902',
+      'c7a123456789012345678901',
+      'c7a123456789012345678902',
       'release-1',
       'target-1',
       '2099-07-18T09:00:00.000Z',
       expect.objectContaining({
         agentContextSource: 'explicit',
         agentContextVersion: 3,
-        agentThreadId: '67a123456789012345678999',
+        agentThreadId: 'c7a123456789012345678999',
       }),
     );
     expect(postsService.patch).not.toHaveBeenCalled();
@@ -1174,7 +1174,7 @@ describe('AgentToolExecutorService', () => {
   it('fails closed with a remediation action for a legacy standalone draft', async () => {
     const { postGroupsService, postsService, service } = createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       id: 'legacy-post-1',
     });
 
@@ -1184,7 +1184,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'legacy-post-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1209,7 +1209,7 @@ describe('AgentToolExecutorService', () => {
   it('returns an actionable fail-closed result when canonical scheduling validation rejects', async () => {
     const { postGroupsService, postsService, service } = createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       groupId: 'release-1',
       id: 'target-1',
     });
@@ -1223,7 +1223,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1246,7 +1246,7 @@ describe('AgentToolExecutorService', () => {
     const { loggerService, postGroupsService, postsService, service } =
       createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       groupId: 'release-1',
       id: 'target-1',
     });
@@ -1260,7 +1260,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1280,7 +1280,7 @@ describe('AgentToolExecutorService', () => {
     const { loggerService, postGroupsService, postsService, service } =
       createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       groupId: 'release-1',
       id: 'target-1',
     });
@@ -1294,7 +1294,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1310,13 +1310,13 @@ describe('AgentToolExecutorService', () => {
   it('fails closed when the canonical scheduler omits the scheduled target', async () => {
     const { postGroupsService, postsService, service } = createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       groupId: 'release-1',
       id: 'target-1',
     });
     postGroupsService.scheduleTarget.mockResolvedValue({
       id: 'release-1',
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       status: ReleaseStatus.SCHEDULED,
       targets: [],
     });
@@ -1327,7 +1327,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1342,13 +1342,13 @@ describe('AgentToolExecutorService', () => {
   it('fails closed when the canonical scheduler returns an unscheduled target', async () => {
     const { postGroupsService, postsService, service } = createService();
     postsService.findOne.mockResolvedValue({
-      brandId: '67a123456789012345678931',
+      brandId: 'c7a123456789012345678931',
       groupId: 'release-1',
       id: 'target-1',
     });
     postGroupsService.scheduleTarget.mockResolvedValue({
       id: 'release-1',
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       status: ReleaseStatus.DRAFT,
       targets: [
         {
@@ -1365,7 +1365,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1389,7 +1389,7 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1408,7 +1408,7 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.SCHEDULE_POST,
       { postId: 'target-1', scheduledAt: 'not-a-date' },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1427,7 +1427,7 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.SCHEDULE_POST,
       { postId: 'target-1', scheduledAt: '2099-07-18T09:00:00' },
-      scopedContext('67a123456789012345678931'),
+      scopedContext('c7a123456789012345678931'),
     );
 
     expect(result).toEqual(
@@ -1446,8 +1446,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_CONNECTION_STATUS,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1481,8 +1481,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.INITIATE_OAUTH_CONNECT,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1511,7 +1511,7 @@ describe('AgentToolExecutorService', () => {
     const { organizationsService, service } = createService();
 
     organizationsService.findOne.mockResolvedValueOnce({
-      id: '67a123456789012345678901',
+      id: 'c7a123456789012345678901',
       slug: 'genfeed-ai',
     });
 
@@ -1519,8 +1519,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.INITIATE_OAUTH_CONNECT,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1538,11 +1538,11 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     organizationsService.findOne.mockResolvedValueOnce({
-      id: '67a123456789012345678901',
+      id: 'c7a123456789012345678901',
       slug: 'genfeed-ai',
     });
     brandsService.findOne.mockResolvedValueOnce({
-      id: '67a123456789012345678903',
+      id: 'c7a123456789012345678903',
       slug: 'my-brand',
     });
 
@@ -1550,8 +1550,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_ANALYTICS,
       { period: '30d' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1580,8 +1580,8 @@ describe('AgentToolExecutorService', () => {
         source: 'all',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1606,8 +1606,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.LIST_POSTS,
       { status: PostStatus.DRAFT },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1617,7 +1617,7 @@ describe('AgentToolExecutorService', () => {
         orderBy: { createdAt: -1 },
         where: {
           isDeleted: false,
-          organizationId: '67a123456789012345678901',
+          organizationId: 'c7a123456789012345678901',
           status: PostStatus.DRAFT,
         },
       },
@@ -1637,7 +1637,7 @@ describe('AgentToolExecutorService', () => {
         strategy: { topics: ['creator systems'] },
         voice: { audience: ['founders'], hashtags: ['creatorops'] },
       },
-      id: '67a123456789012345678903',
+      id: 'c7a123456789012345678903',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -1649,8 +1649,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.LIST_INSTAGRAM_INSPIRATION,
       { sort: 'latest' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1658,16 +1658,16 @@ describe('AgentToolExecutorService', () => {
     expect(brandsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
       isSelected: true,
-      organizationId: '67a123456789012345678901',
-      userId: '67a123456789012345678902',
+      organizationId: 'c7a123456789012345678901',
+      userId: 'c7a123456789012345678902',
     });
     expect(
       instagramInspirationService.listInstagramInspiration,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         brand: expect.objectContaining({
-          id: '67a123456789012345678903',
-          organizationId: '67a123456789012345678901',
+          id: 'c7a123456789012345678903',
+          organizationId: 'c7a123456789012345678901',
           ownUsername: 'genfeed',
         }),
         sort: 'latest',
@@ -1682,8 +1682,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW,
       { shortcode: 'ABC123', username: 'peer' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1700,17 +1700,17 @@ describe('AgentToolExecutorService', () => {
 
     const result = await service.executeTool(
       AgentToolName.LIST_INSTAGRAM_INSPIRATION,
-      { brandId: '67a123456789012345678999' },
+      { brandId: 'c7a123456789012345678999' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      id: '67a123456789012345678999',
+      id: 'c7a123456789012345678999',
       isDeleted: false,
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain(
@@ -1725,28 +1725,28 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, instagramInspirationService, service } =
       createService();
     brandsService.findOne.mockResolvedValueOnce({
-      id: '67a123456789012345678903',
+      id: 'c7a123456789012345678903',
       label: 'Genfeed',
     });
 
     const result = await service.executeTool(
       AgentToolName.CREATE_INSTAGRAM_REMIX_WORKFLOW,
       {
-        brandId: '67a123456789012345678903',
+        brandId: 'c7a123456789012345678903',
         mode: 'remix_concept',
         shortcode: 'ABC123',
         username: 'peer',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      id: '67a123456789012345678903',
+      id: 'c7a123456789012345678903',
       isDeleted: false,
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
     });
     expect(
       instagramInspirationService.createInstagramRemixWorkflow,
@@ -1774,8 +1774,8 @@ describe('AgentToolExecutorService', () => {
         source: 'public',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1801,8 +1801,8 @@ describe('AgentToolExecutorService', () => {
         source: 'public',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -1826,17 +1826,17 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      id: '67a123456789012345678940',
-      brand: '67a123456789012345678941',
+      id: 'c7a123456789012345678940',
+      brandId: 'c7a123456789012345678941',
       category: 'video',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678942',
+        id: 'c7a123456789012345678942',
         platform: 'linkedin',
       },
       {
-        id: '67a123456789012345678943',
+        id: 'c7a123456789012345678943',
         platform: 'youtube',
       },
     ]);
@@ -1845,61 +1845,61 @@ describe('AgentToolExecutorService', () => {
       {
         caption: 'Published from chat',
         confirmed: true,
-        contentId: '67a123456789012345678940',
+        contentId: 'c7a123456789012345678940',
         platforms: ['linkedin', 'youtube'],
         sourceActionId: 'publish-card-1',
       },
       {
-        ...scopedContext('67a123456789012345678941'),
-        runId: '67a123456789012345678946',
-        strategyId: '67a123456789012345678947',
+        ...scopedContext('c7a123456789012345678941'),
+        runId: 'c7a123456789012345678946',
+        strategyId: 'c7a123456789012345678947',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(0);
     expect(postGroupsService.create).toHaveBeenCalledWith(
-      '67a123456789012345678901',
-      '67a123456789012345678902',
+      'c7a123456789012345678901',
+      'c7a123456789012345678902',
       expect.objectContaining({
         baseContent: 'Published from chat',
-        brandId: '67a123456789012345678941',
+        brandId: 'c7a123456789012345678941',
         media: [
           {
-            assetId: '67a123456789012345678940',
+            assetId: 'c7a123456789012345678940',
             kind: 'video',
           },
         ],
         status: ReleaseStatus.DRAFT,
         targets: [
           expect.objectContaining({
-            credentialId: '67a123456789012345678942',
+            credentialId: 'c7a123456789012345678942',
             platform: 'linkedin',
           }),
           expect.objectContaining({
-            credentialId: '67a123456789012345678943',
+            credentialId: 'c7a123456789012345678943',
             platform: 'youtube',
           }),
         ],
       }),
       expect.stringMatching(/^agent-publish:[a-f0-9]{64}$/),
       expect.objectContaining({
-        agentRunId: '67a123456789012345678946',
-        agentStrategyId: '67a123456789012345678947',
-        agentThreadId: '67a123456789012345678999',
+        agentRunId: 'c7a123456789012345678946',
+        agentStrategyId: 'c7a123456789012345678947',
+        agentThreadId: 'c7a123456789012345678999',
         source: 'agent',
         sourceActionId: 'publish-card-1',
       }),
     );
     expect(postGroupsService.publishNow).toHaveBeenCalledWith(
-      '67a123456789012345678901',
-      '67a123456789012345678902',
+      'c7a123456789012345678901',
+      'c7a123456789012345678902',
       'release-1',
     );
     expect(postsService.create).not.toHaveBeenCalled();
     expect(postsService.handleYoutubePost).not.toHaveBeenCalled();
     expect(result.data).toMatchObject({
-      contentId: '67a123456789012345678940',
+      contentId: 'c7a123456789012345678940',
       createdPlatforms: ['linkedin', 'youtube'],
       postIds: ['target-1', 'target-2'],
       totalCreated: 2,
@@ -1916,13 +1916,13 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      brand: '67a123456789012345678941',
+      brandId: 'c7a123456789012345678941',
       category: 'image',
-      id: '67a123456789012345678940',
+      id: 'c7a123456789012345678940',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678942',
+        id: 'c7a123456789012345678942',
         platform: 'linkedin',
       },
     ]);
@@ -1932,7 +1932,7 @@ describe('AgentToolExecutorService', () => {
     postGroupsService.publishNow.mockRejectedValue(
       new BadRequestException({
         classification: 'expired_credential',
-        credentialId: '67a123456789012345678942',
+        credentialId: 'c7a123456789012345678942',
         platform: 'linkedin',
         readinessState: 'blocked',
         title: 'Channel not ready to publish',
@@ -1943,11 +1943,11 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CREATE_POST,
       {
         confirmed: true,
-        contentId: '67a123456789012345678940',
+        contentId: 'c7a123456789012345678940',
         platforms: ['linkedin'],
         sourceActionId: 'publish-card-blocked',
       },
-      scopedContext('67a123456789012345678941'),
+      scopedContext('c7a123456789012345678941'),
     );
 
     expect(result.success).toBe(false);
@@ -1975,7 +1975,7 @@ describe('AgentToolExecutorService', () => {
           platforms: ['linkedin'],
         },
         {
-          ...scopedContext('67a123456789012345678941'),
+          ...scopedContext('c7a123456789012345678941'),
           apiKeyContext: {
             isApiKey: true,
             scopes: [ApiKeyScope.POSTS_CREATE],
@@ -2002,19 +2002,19 @@ describe('AgentToolExecutorService', () => {
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
       assetLabel: 'promo',
-      brand: '67a123456789012345678941',
+      brandId: 'c7a123456789012345678941',
       category: 'image',
-      id: '67a123456789012345678940',
+      id: 'c7a123456789012345678940',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678942',
+        id: 'c7a123456789012345678942',
         platform: 'instagram',
       },
     ]);
     postGroupsService.create.mockResolvedValueOnce({
       id: 'release-scheduled',
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       status: ReleaseStatus.SCHEDULED,
       targets: [
         {
@@ -2030,12 +2030,12 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CREATE_POST,
       {
         confirmed: true,
-        contentId: '67a123456789012345678940',
+        contentId: 'c7a123456789012345678940',
         platforms: ['instagram'],
         scheduledAt: '2026-07-18T09:00',
         sourceActionId: 'publish-card-scheduled',
       },
-      scopedContext('67a123456789012345678941'),
+      scopedContext('c7a123456789012345678941'),
     );
 
     expect(result.success).toBe(true);
@@ -2071,19 +2071,19 @@ describe('AgentToolExecutorService', () => {
       service,
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
-      brand: '67a123456789012345678941',
+      brandId: 'c7a123456789012345678941',
       category: 'image',
-      id: '67a123456789012345678940',
+      id: 'c7a123456789012345678940',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678942',
+        id: 'c7a123456789012345678942',
         platform: 'linkedin',
       },
     ]);
     postGroupsService.publishNow.mockResolvedValue({
       id: 'release-1',
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       status: ReleaseStatus.SCHEDULED,
       targets: [
         {
@@ -2096,11 +2096,11 @@ describe('AgentToolExecutorService', () => {
     const parameters = {
       caption: 'Retry-safe caption',
       confirmed: true,
-      contentId: '67a123456789012345678940',
+      contentId: 'c7a123456789012345678940',
       platforms: ['linkedin'],
       sourceActionId: 'publish-card-retry',
     };
-    const context = scopedContext('67a123456789012345678941');
+    const context = scopedContext('c7a123456789012345678941');
 
     await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
     await service.executeTool(AgentToolName.CREATE_POST, parameters, context);
@@ -2126,23 +2126,23 @@ describe('AgentToolExecutorService', () => {
       service,
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
-      brand: '67a123456789012345678941',
+      brandId: 'c7a123456789012345678941',
       category: 'image',
-      id: '67a123456789012345678940',
+      id: 'c7a123456789012345678940',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678942',
+        id: 'c7a123456789012345678942',
         platform: 'linkedin',
       },
     ]);
     const parameters = {
       caption: 'Deterministic fallback',
       confirmed: true,
-      contentId: '67a123456789012345678940',
+      contentId: 'c7a123456789012345678940',
       platforms: ['linkedin'],
     };
-    const context = scopedContext('67a123456789012345678941');
+    const context = scopedContext('c7a123456789012345678941');
 
     const result = await service.executeTool(
       AgentToolName.CREATE_POST,
@@ -2169,13 +2169,13 @@ describe('AgentToolExecutorService', () => {
       service,
     } = createService();
     ingredientsService.findOne.mockResolvedValue({
-      brand: '67a123456789012345678941',
+      brandId: 'c7a123456789012345678941',
       category: 'image',
-      id: '67a123456789012345678940',
+      id: 'c7a123456789012345678940',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678942',
+        id: 'c7a123456789012345678942',
         platform: 'linkedin',
       },
     ]);
@@ -2184,11 +2184,11 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CREATE_POST,
       {
         confirmed: true,
-        contentId: '67a123456789012345678940',
+        contentId: 'c7a123456789012345678940',
         platforms: ['linkedin', 'instagram'],
         sourceActionId: 'publish-card-missing',
       },
-      scopedContext('67a123456789012345678941'),
+      scopedContext('c7a123456789012345678941'),
     );
 
     expect(result).toEqual(
@@ -2215,10 +2215,10 @@ describe('AgentToolExecutorService', () => {
       {
         caption: 'Must not publish',
         confirmed: true,
-        contentId: '67a123456789012345678940',
+        contentId: 'c7a123456789012345678940',
         platforms: ['linkedin'],
       },
-      scopedContext('67a123456789012345678941'),
+      scopedContext('c7a123456789012345678941'),
     );
 
     expect(result).toEqual(
@@ -2235,29 +2235,29 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      id: '67a123456789012345678950',
-      brand: '67a123456789012345678951',
+      id: 'c7a123456789012345678950',
+      brandId: 'c7a123456789012345678951',
       category: 'image',
     });
     postsService.findAll.mockResolvedValue({
-      docs: [{ id: '67a123456789012345678952' }],
+      docs: [{ id: 'c7a123456789012345678952' }],
     });
 
     const result = await service.executeTool(
       AgentToolName.GET_ANALYTICS,
       {
-        contentId: '67a123456789012345678950',
+        contentId: 'c7a123456789012345678950',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(0);
     expect(postAnalyticsService.getPostAnalyticsSummary).toHaveBeenCalledWith(
-      '67a123456789012345678952',
+      'c7a123456789012345678952',
     );
     expect(result.nextActions).toEqual([
       expect.objectContaining({
@@ -2275,12 +2275,12 @@ describe('AgentToolExecutorService', () => {
       service,
     } = createService();
     postsService.findOne.mockResolvedValue({
-      brand: '67a123456789012345678952',
-      id: '67a123456789012345678953',
+      brandId: 'c7a123456789012345678952',
+      id: 'c7a123456789012345678953',
     });
     agentScopeContextService.assertResourceBrand.mockImplementation(
       (_scope: unknown, brandId: string | undefined) => {
-        if (brandId !== '67a123456789012345678951') {
+        if (brandId !== 'c7a123456789012345678951') {
           throw new Error(
             'Selected post is outside the validated brand scope.',
           );
@@ -2288,10 +2288,10 @@ describe('AgentToolExecutorService', () => {
       },
     );
 
-    const context = scopedContext('67a123456789012345678951');
+    const context = scopedContext('c7a123456789012345678951');
     const result = await service.executeTool(
       AgentToolName.GET_ANALYTICS,
-      { postId: '67a123456789012345678953' },
+      { postId: 'c7a123456789012345678953' },
       context,
     );
 
@@ -2303,7 +2303,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(agentScopeContextService.assertResourceBrand).toHaveBeenCalledWith(
       context.validatedScope,
-      '67a123456789012345678952',
+      'c7a123456789012345678952',
       'selected post',
     );
     expect(postAnalyticsService.getPostAnalyticsSummary).not.toHaveBeenCalled();
@@ -2314,13 +2314,13 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     ingredientsService.findOne.mockResolvedValue({
-      id: '67a123456789012345678960',
-      brand: '67a123456789012345678961',
+      id: 'c7a123456789012345678960',
+      brandId: 'c7a123456789012345678961',
       category: 'image',
     });
     credentialsService.find.mockResolvedValue([
       {
-        id: '67a123456789012345678962',
+        id: 'c7a123456789012345678962',
         platform: 'instagram',
       },
     ]);
@@ -2329,24 +2329,24 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.GET_ANALYTICS,
       {
-        contentId: '67a123456789012345678960',
+        contentId: 'c7a123456789012345678960',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.creditsUsed).toBe(0);
     expect(result.data).toMatchObject({
-      contentId: '67a123456789012345678960',
+      contentId: 'c7a123456789012345678960',
       message:
         'This content does not have a published post yet, so analytics are not available.',
     });
     expect(result.nextActions).toEqual([
       expect.objectContaining({
-        contentId: '67a123456789012345678960',
+        contentId: 'c7a123456789012345678960',
         type: 'publish_post_card',
       }),
     ]);
@@ -2359,8 +2359,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_ANALYTICS,
       { period: '30d' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2385,7 +2385,7 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.CAPTURE_MEMORY,
       {
-        brandId: '67a123456789012345678903',
+        brandId: 'c7a123456789012345678903',
         content: 'Use short, curiosity-driven newsletter openings.',
         contentType: 'newsletter',
         kind: 'winner',
@@ -2395,8 +2395,8 @@ describe('AgentToolExecutorService', () => {
         tags: ['newsletter', 'hook'],
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2426,22 +2426,22 @@ describe('AgentToolExecutorService', () => {
         name: 'Fit Creator',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(brandsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
-      organizationId: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       slug: 'fitcreator',
     });
     expect(brandsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        organizationId: '67a123456789012345678901',
+        organizationId: 'c7a123456789012345678901',
         slug: 'fitcreator',
-        userId: '67a123456789012345678902',
+        userId: 'c7a123456789012345678902',
       }),
     );
     expect(brandsService.create).not.toHaveBeenCalledWith(
@@ -2459,8 +2459,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CHECK_ONBOARDING_STATUS,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2481,7 +2481,7 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
         isDeleted: false,
-        organizationId: '67a123456789012345678901',
+        organizationId: 'c7a123456789012345678901',
         status: PostStatus.PUBLIC,
       },
       [],
@@ -2507,8 +2507,8 @@ describe('AgentToolExecutorService', () => {
         url: 'https://genfeed.ai',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2522,7 +2522,7 @@ describe('AgentToolExecutorService', () => {
         targetAudience: 'startup operators',
         url: 'https://genfeed.ai',
       }),
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
     );
     expect(result.nextActions?.[0]).toMatchObject({
       brandId: 'brand-voice-1',
@@ -2599,15 +2599,15 @@ describe('AgentToolExecutorService', () => {
         },
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
       'brand-voice-1',
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       {
         prompting: {
           conversationStarters: [
@@ -2676,8 +2676,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.CHECK_ONBOARDING_STATUS,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2707,7 +2707,7 @@ describe('AgentToolExecutorService', () => {
     expect(
       creditsUtilsService.addOrganizationCreditsWithExpiration,
     ).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       30,
       'onboarding-journey',
       'Onboarding journey reward',
@@ -2722,8 +2722,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.SELECT_INGREDIENT,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2743,13 +2743,13 @@ describe('AgentToolExecutorService', () => {
       {
         category: 'image',
         cdnUrl: 'https://cdn.genfeed.ai/images/test.jpg',
-        id: '507f191e810c19729de860ea',
+        id: 'c07f191e810c19729de860ea',
         metadata: { label: 'Test Image' },
       },
       {
         category: 'video',
         cdnUrl: 'https://cdn.genfeed.ai/videos/test.mp4',
-        id: '507f191e810c19729de860eb',
+        id: 'c07f191e810c19729de860eb',
         metadata: null,
       },
     ]);
@@ -2758,8 +2758,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.SELECT_INGREDIENT,
       { mediaType: 'all' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2770,7 +2770,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0].ingredients).toHaveLength(2);
     expect(result.nextActions?.[0].ingredients?.[0]).toEqual(
       expect.objectContaining({
-        id: '507f191e810c19729de860ea',
+        id: 'c07f191e810c19729de860ea',
         title: 'Test Image',
         type: 'image',
         url: 'https://cdn.genfeed.ai/images/test.jpg',
@@ -2778,7 +2778,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.nextActions?.[0].ingredients?.[1]).toEqual(
       expect.objectContaining({
-        id: '507f191e810c19729de860eb',
+        id: 'c07f191e810c19729de860eb',
         type: 'video',
         url: 'https://cdn.genfeed.ai/videos/test.mp4',
       }),
@@ -2790,7 +2790,7 @@ describe('AgentToolExecutorService', () => {
 
     imagesService.findAllByOrganization.mockResolvedValue([
       {
-        id: '507f191e810c19729de860ec',
+        id: 'c07f191e810c19729de860ec',
         category: 'image',
         cdnUrl: 'https://cdn.genfeed.ai/images/img.jpg',
         metadata: null,
@@ -2801,15 +2801,15 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.SELECT_INGREDIENT,
       { mediaType: 'image' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.nextActions?.[0].ingredients?.[0].type).toBe('image');
     expect(imagesService.findAllByOrganization).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       expect.objectContaining({
         category: expect.objectContaining({ in: ['image'] }),
       }),
@@ -2825,8 +2825,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.COMPLETE_ONBOARDING,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: 'user_authProvider_123',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2846,7 +2846,7 @@ describe('AgentToolExecutorService', () => {
     brandsService.findOne.mockResolvedValue({
       description: 'Brand description',
       handle: 'genfeed',
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isActive: true,
       label: 'Genfeed',
       text: 'Publish content. Now.',
@@ -2856,8 +2856,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_CURRENT_BRAND,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2866,7 +2866,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         currentBrand: expect.objectContaining({
           description: 'Brand description',
-          id: '67a1234567890123456789aa',
+          id: 'c7a1234567890123456789aa',
           isActive: true,
           label: 'Genfeed',
           name: 'Genfeed',
@@ -2878,8 +2878,8 @@ describe('AgentToolExecutorService', () => {
     expect(brandsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
       isSelected: true,
-      organization: expect.any(String),
-      user: expect.any(String),
+      organizationId: 'c7a123456789012345678901',
+      userId: 'c7a123456789012345678902',
     });
   });
 
@@ -2892,8 +2892,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_CURRENT_BRAND,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -2907,7 +2907,7 @@ describe('AgentToolExecutorService', () => {
     brandsService.findOne.mockResolvedValue({
       description: 'Brand description',
       handle: 'genfeed',
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isActive: true,
       isSelected: true,
       label: 'Genfeed',
@@ -2922,27 +2922,27 @@ describe('AgentToolExecutorService', () => {
         topics: ['AI content creation'],
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(batchGenerationService.createBatch).toHaveBeenCalledWith(
       expect.objectContaining({
-        brandId: '67a1234567890123456789aa',
+        brandId: 'c7a1234567890123456789aa',
         count: 20,
         platforms: ['instagram', 'twitter', 'linkedin'],
         topics: ['AI content creation'],
       }),
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'c7a123456789012345678901',
     );
     expect(brandsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
       isSelected: true,
-      organization: expect.any(String),
-      user: expect.any(String),
+      organizationId: 'c7a123456789012345678901',
+      userId: 'c7a123456789012345678902',
     });
   });
 
@@ -2953,7 +2953,7 @@ describe('AgentToolExecutorService', () => {
     brandsService.findOne.mockResolvedValue({
       description: 'Brand description',
       handle: 'genfeed',
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isActive: true,
       isSelected: true,
       label: 'Genfeed',
@@ -2979,44 +2979,44 @@ describe('AgentToolExecutorService', () => {
         topics: ['launch day'],
       },
       {
-        organizationId: '67a123456789012345678901',
+        organizationId: 'c7a123456789012345678901',
         runId: 'run-1',
         threadId: 'thread-1',
-        userId: '67a123456789012345678902',
+        userId: 'c7a123456789012345678902',
         validatedScope: {
           brandId: 'brand-1',
           contextVersion: 1,
           isLegacyFallback: false,
           isVersionExplicit: true,
-          organizationId: '67a123456789012345678901',
+          organizationId: 'c7a123456789012345678901',
           source: 'explicit',
           threadId: 'thread-1',
-          userId: '67a123456789012345678902',
+          userId: 'c7a123456789012345678902',
         },
       },
     );
 
     expect(result.success).toBe(true);
     expect(batchGenerationService.processBatch).toHaveBeenCalledWith(
-      '67a1234567890123456789ba',
-      '67a123456789012345678901',
+      'c7a1234567890123456789ba',
+      'c7a123456789012345678901',
       expect.any(Object),
     );
     expect(capturedOptions).toBeDefined();
 
-    const itemId = '67a1234567890123456789bb';
+    const itemId = 'c7a1234567890123456789bb';
 
     await capturedOptions?.onBatchStarted?.({
-      batchId: '67a1234567890123456789ba',
+      batchId: 'c7a1234567890123456789ba',
       totalCount: 2,
     });
     await capturedOptions?.onItemStarted?.({
-      batchId: '67a1234567890123456789ba',
+      batchId: 'c7a1234567890123456789ba',
       completedCount: 0,
       failedCount: 0,
       index: 0,
       item: {
-        _id: itemId,
+        id: itemId,
         format: 'image',
         platform: 'instagram',
         status: 'generating',
@@ -3025,12 +3025,12 @@ describe('AgentToolExecutorService', () => {
       totalCount: 2,
     });
     await capturedOptions?.onItemCompleted?.({
-      batchId: '67a1234567890123456789ba',
+      batchId: 'c7a1234567890123456789ba',
       completedCount: 1,
       failedCount: 0,
       index: 0,
       item: {
-        _id: itemId,
+        id: itemId,
         format: 'image',
         platform: 'instagram',
         status: 'completed',
@@ -3044,7 +3044,7 @@ describe('AgentToolExecutorService', () => {
     expect(streamPublisher.publishWorkEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         label: 'Batch generation started',
-        toolCallId: 'batch:67a1234567890123456789ba',
+        toolCallId: 'batch:c7a1234567890123456789ba',
         toolName: AgentToolName.GENERATE_CONTENT_BATCH,
       }),
     );
@@ -3052,7 +3052,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         label: 'Generating post 1',
         toolCallId:
-          'batch:67a1234567890123456789ba:item:67a1234567890123456789bb',
+          'batch:c7a1234567890123456789ba:item:c7a1234567890123456789bb',
         toolName: AgentToolName.GENERATE_CONTENT_BATCH,
       }),
     );
@@ -3060,7 +3060,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         label: 'Generated post 1',
         toolCallId:
-          'batch:67a1234567890123456789ba:item:67a1234567890123456789bb',
+          'batch:c7a1234567890123456789ba:item:c7a1234567890123456789bb',
         toolName: AgentToolName.GENERATE_CONTENT_BATCH,
       }),
     );
@@ -3073,7 +3073,7 @@ describe('AgentToolExecutorService', () => {
       docs: [
         {
           description: 'Main clip workflow',
-          id: '507f191e810c19729de860ff',
+          id: 'c07f191e810c19729de860ff',
           name: 'Clip Workflow',
           status: 'active',
         },
@@ -3088,15 +3088,15 @@ describe('AgentToolExecutorService', () => {
         prompt: 'Generate a 30-second landscape clip for X',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.nextActions).toHaveLength(1);
     expect(result.nextActions?.[0].type).toBe('clip_workflow_run_card');
-    expect(result.nextActions?.[0].workflowId).toBe('507f191e810c19729de860ff');
+    expect(result.nextActions?.[0].workflowId).toBe('c07f191e810c19729de860ff');
     expect(result.nextActions?.[0].clipRun).toEqual(
       expect.objectContaining({
         durationSeconds: 30,
@@ -3110,7 +3110,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       agentConfig: {
         heygenAvatarId: 'brand-avatar-1',
         heygenVoiceId: 'brand-voice-1',
@@ -3124,8 +3124,8 @@ describe('AgentToolExecutorService', () => {
         prompt: 'Generate a defaulted clip',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3167,7 +3167,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       agentConfig: {
         heygenAvatarId: 'brand-avatar-2',
       },
@@ -3188,8 +3188,8 @@ describe('AgentToolExecutorService', () => {
         prompt: 'Generate a mixed-default clip',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3216,8 +3216,8 @@ describe('AgentToolExecutorService', () => {
         prompt: 'Generate a clip without defaults',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3243,17 +3243,17 @@ describe('AgentToolExecutorService', () => {
   it('should sanitize colon-prefixed batch ids for list_review_queue and return a conversation card', async () => {
     const { batchGenerationService, service } = createService();
     batchGenerationService.getBatch = vi.fn().mockResolvedValue({
-      id: '69c2d469368c4314a3cfff32',
+      id: 'c9c2d469368c4314a3cfff32',
       items: [
         {
-          _id: '69c2d469368c4314a3cfff40',
+          id: 'c9c2d469368c4314a3cfff40',
           format: 'image',
           platform: 'instagram',
           reviewDecision: undefined,
           status: 'pending',
         },
         {
-          _id: '69c2d469368c4314a3cfff41',
+          id: 'c9c2d469368c4314a3cfff41',
           format: 'image',
           platform: 'linkedin',
           reviewDecision: 'approved',
@@ -3267,29 +3267,29 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.LIST_REVIEW_QUEUE,
       {
-        batchId: ':69c2d469368c4314a3cfff32',
+        batchId: ':c9c2d469368c4314a3cfff32',
         limit: 25,
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(batchGenerationService.getBatch).toHaveBeenCalledWith(
-      '69c2d469368c4314a3cfff32',
-      '67a123456789012345678901',
+      'c9c2d469368c4314a3cfff32',
+      'c7a123456789012345678901',
     );
     expect(result.nextActions).toEqual([
       expect.objectContaining({
-        id: 'review-queue-69c2d469368c4314a3cfff32',
+        id: 'review-queue-c9c2d469368c4314a3cfff32',
         outcomeBullets: [
           'Instagram · image · pending',
           'LinkedIn · image · approved',
         ],
         primaryCta: {
-          href: '/publish/review?batch=69c2d469368c4314a3cfff32&filter=ready',
+          href: '/publish/review?batch=c9c2d469368c4314a3cfff32&filter=ready',
           label: 'Open review queue',
         },
         status: 'completed',
@@ -3308,12 +3308,12 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.BATCH_APPROVE_REJECT,
       {
         action: 'approve',
-        batchId: 'batch-1',
-        itemIds: ['item-1'],
+        batchId: 'b07f191e810c19729de860ee',
+        itemIds: ['i07f191e810c19729de860ee'],
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3321,7 +3321,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.error).toContain('cannot grant publish approval');
     expect(batchGenerationService.approveItems).not.toHaveBeenCalled();
     expect(result.nextActions?.[0]?.primaryCta).toEqual({
-      href: '/publish/review?batch=batch-1&filter=ready',
+      href: '/publish/review?batch=b07f191e810c19729de860ee&filter=ready',
       label: 'Review exact versions',
     });
   });
@@ -3331,7 +3331,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -3345,15 +3345,15 @@ describe('AgentToolExecutorService', () => {
         timezone: 'Europe/Malta',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'c7a123456789012345678901',
       expect.objectContaining({
         brandId: expect.any(String),
         isScheduleEnabled: true,
@@ -3368,7 +3368,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual(
       expect.objectContaining({
-        brandId: '67a1234567890123456789aa',
+        brandId: 'c7a1234567890123456789aa',
         editorUrl: `/automations/editor/${recurringWorkflowId}`,
         schedule: '0 17 * * *',
         timezone: 'Europe/Malta',
@@ -3406,14 +3406,14 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_TRENDS,
       { platform: 'tiktok' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(trendsService.getTrends).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       undefined,
       'tiktok',
       { allowFetchIfMissing: false },
@@ -3472,22 +3472,22 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_TRENDS,
       { platform: 'youtube' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(trendsService.getTrends).toHaveBeenNthCalledWith(
       1,
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       undefined,
       'youtube',
       { allowFetchIfMissing: false },
     );
     expect(trendsService.getTrends).toHaveBeenNthCalledWith(
       2,
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       undefined,
       'youtube',
       { allowFetchIfMissing: true },
@@ -3524,22 +3524,22 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GET_TRENDS,
       { platform: 'tiktok' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(trendsService.getTrends).toHaveBeenNthCalledWith(
       1,
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       undefined,
       'tiktok',
       { allowFetchIfMissing: false },
     );
     expect(trendsService.getTrends).toHaveBeenNthCalledWith(
       2,
-      '67a123456789012345678901',
+      'c7a123456789012345678901',
       undefined,
       'tiktok',
       { allowFetchIfMissing: true },
@@ -3578,13 +3578,13 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
       slug: 'genfeed',
     });
     organizationsService.findOne.mockResolvedValueOnce({
-      id: '67a123456789012345678901',
+      id: 'c7a123456789012345678901',
       slug: 'genfeed-ai',
     });
 
@@ -3639,15 +3639,15 @@ describe('AgentToolExecutorService', () => {
         timezone: ' Europe/Malta ',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'c7a123456789012345678901',
       expect.objectContaining({
         brandId: expect.any(String),
         edges: [
@@ -3705,7 +3705,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -3718,21 +3718,21 @@ describe('AgentToolExecutorService', () => {
         schedule: '0 9 * * *',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'c7a123456789012345678901',
       expect.objectContaining({
         nodes: [
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({
-                brandId: '67a1234567890123456789aa',
+                brandId: 'c7a1234567890123456789aa',
                 brandLabel: 'Genfeed',
                 prompt: 'Create one daily post draft about product learnings',
               }),
@@ -3748,7 +3748,7 @@ describe('AgentToolExecutorService', () => {
     const { brandsService, service, workflowsService } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -3762,21 +3762,21 @@ describe('AgentToolExecutorService', () => {
         schedule: '0 10 * * *',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'c7a123456789012345678901',
       expect.objectContaining({
         nodes: [
           expect.objectContaining({
             data: expect.objectContaining({
               config: expect.objectContaining({
-                brandId: '67a1234567890123456789aa',
+                brandId: 'c7a1234567890123456789aa',
                 brandLabel: 'Genfeed',
                 instructions: 'Keep the issue practical and operator-focused.',
                 prompt: 'Draft the next daily newsletter issue',
@@ -3799,7 +3799,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -3814,8 +3814,8 @@ describe('AgentToolExecutorService', () => {
         timezone: 'Europe/Malta',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3829,15 +3829,15 @@ describe('AgentToolExecutorService', () => {
     expect(workflowsService.createWorkflow).toHaveBeenCalledTimes(1);
     const [userId, organizationId, workflowPayload] =
       workflowsService.createWorkflow.mock.calls[0];
-    expect(userId).toBe('67a123456789012345678902');
-    expect(organizationId).toBe('67a123456789012345678901');
-    expect(workflowPayload.brandId.toString()).toBe('67a1234567890123456789aa');
+    expect(userId).toBe('c7a123456789012345678902');
+    expect(organizationId).toBe('c7a123456789012345678901');
+    expect(workflowPayload.brandId.toString()).toBe('c7a1234567890123456789aa');
     expect(workflowPayload.description).toBe('Generated workflow description');
     expect(workflowPayload.edges[0]?.id).toBe('edge-1');
     expect(workflowPayload.isScheduleEnabled).toBe(true);
     expect(workflowPayload.label).toBe('Generated Workflow');
     expect(workflowPayload.metadata).toMatchObject({
-      brandId: '67a1234567890123456789aa',
+      brandId: 'c7a1234567890123456789aa',
       createdFrom: 'agent',
       originatingTool: AgentToolName.CREATE_WORKFLOW,
     });
@@ -3859,7 +3859,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
-      id: '67a1234567890123456789ab',
+      id: 'c7a1234567890123456789ab',
       label: 'Fallback Brand',
     });
 
@@ -3872,14 +3872,14 @@ describe('AgentToolExecutorService', () => {
         schedule: '0 8 * * 1-5',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'c7a123456789012345678901',
       expect.objectContaining({
         brandId: expect.any(String),
       }),
@@ -3887,7 +3887,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual(
       expect.objectContaining({
-        brandId: '67a1234567890123456789ab',
+        brandId: 'c7a1234567890123456789ab',
         editorUrl: `/automations/editor/${recurringWorkflowId}`,
       }),
     );
@@ -3903,7 +3903,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -3917,8 +3917,8 @@ describe('AgentToolExecutorService', () => {
         platform: 'youtube',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3954,7 +3954,7 @@ describe('AgentToolExecutorService', () => {
     const { botsService, brandsService, service } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -3968,8 +3968,8 @@ describe('AgentToolExecutorService', () => {
         senderId: 'sender-42',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -3994,7 +3994,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -4006,8 +4006,8 @@ describe('AgentToolExecutorService', () => {
         botId: livestreamBotId,
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4025,7 +4025,7 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       isSelected: true,
       label: 'Genfeed',
     });
@@ -4039,8 +4039,8 @@ describe('AgentToolExecutorService', () => {
         platform: 'youtube',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4063,17 +4063,17 @@ describe('AgentToolExecutorService', () => {
       createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789ab',
+      id: 'c7a1234567890123456789ab',
       isSelected: true,
       label: 'Other Brand',
     });
     botsService.findOne.mockResolvedValue({
       id: livestreamBotId,
-      brand: '67a1234567890123456789aa',
+      brandId: 'c7a1234567890123456789aa',
       category: 'livestream_chat',
       label: 'Launch Live Bot',
       livestreamSettings: { automaticPosting: true },
-      organization: '67a123456789012345678901',
+      organizationId: 'c7a123456789012345678901',
       platforms: ['youtube'],
       targets: [
         {
@@ -4082,7 +4082,7 @@ describe('AgentToolExecutorService', () => {
           platform: 'youtube',
         },
       ],
-      user: '67a123456789012345678902',
+      userId: 'c7a123456789012345678902',
     });
 
     const result = await service.executeTool(
@@ -4092,8 +4092,8 @@ describe('AgentToolExecutorService', () => {
         botId: livestreamBotId,
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4114,8 +4114,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { prompt: 'podcast host portrait' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4142,8 +4142,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { description: 'podcast host portrait' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4175,8 +4175,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_IMAGE,
       { prompt: 'product photo' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4206,8 +4206,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.GENERATE_VOICE,
       { text: 'Read this in the brand voice', voiceId: 'voice-default' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4231,14 +4231,14 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.AI_ACTION,
       { action: 'hashtags', text: 'launch post copy' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(aiActionsService.execute).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'd7a123456789012345678901',
       expect.objectContaining({
         action: AiActionType.ADD_HASHTAGS,
         content: 'launch post copy',
@@ -4253,14 +4253,14 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.AI_ACTION,
       { action: 'enhance-prompt', content: 'improve this' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(aiActionsService.execute).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'd7a123456789012345678901',
       expect.objectContaining({
         action: AiActionType.ENHANCE_PROMPT,
         content: 'improve this',
@@ -4274,12 +4274,12 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       AgentToolName.RATE_CONTENT,
       {
-        contentId: '507f191e810c19729de860ea',
+        contentId: 'c07f191e810c19729de860ea',
         contentType: 'image',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4291,10 +4291,10 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(contentQualityScorerService.scoreContent).toHaveBeenCalledWith(
-      '507f191e810c19729de860ea',
+      'c07f191e810c19729de860ea',
       'image',
       undefined,
-      '67a123456789012345678901',
+      'd7a123456789012345678901',
     );
   });
 
@@ -4310,18 +4310,18 @@ describe('AgentToolExecutorService', () => {
       { count: 2, platforms: ['instagram'] },
       {
         brandId: 'brand-1',
-        organizationId: '67a123456789012345678901',
+        organizationId: 'd7a123456789012345678901',
         threadId: 'thread-1',
-        userId: '67a123456789012345678902',
+        userId: 'c7a123456789012345678902',
         validatedScope: {
           brandId: 'brand-1',
           contextVersion: 2,
           isLegacyFallback: false,
           isVersionExplicit: true,
-          organizationId: '67a123456789012345678901',
+          organizationId: 'd7a123456789012345678901',
           source: 'explicit',
           threadId: 'thread-1',
-          userId: '67a123456789012345678902',
+          userId: 'c7a123456789012345678902',
         },
       },
     );
@@ -4342,8 +4342,8 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.RATE_CONTENT,
       { contentType: 'image' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4487,10 +4487,10 @@ describe('AgentToolExecutorService', () => {
 
     const result = await serviceWithoutScorer.executeTool(
       AgentToolName.RATE_CONTENT,
-      { contentId: '507f191e810c19729de860ea' },
+      { contentId: 'c07f191e810c19729de860ea' },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4521,8 +4521,8 @@ describe('AgentToolExecutorService', () => {
         timezone: 'Europe/Malta',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4564,7 +4564,7 @@ describe('AgentToolExecutorService', () => {
       isDeleted: false,
       label: 'Social Media Video Series',
       metadata: {},
-      organization: '67a123456789012345678901',
+      organizationId: 'd7a123456789012345678901',
     });
 
     const result = await service.executeTool(
@@ -4580,14 +4580,14 @@ describe('AgentToolExecutorService', () => {
         timezone: 'Europe/Malta',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(workflowsService.createWorkflow).toHaveBeenCalledWith(
-      '67a123456789012345678902',
-      '67a123456789012345678901',
+      'c7a123456789012345678902',
+      'd7a123456789012345678901',
       expect.objectContaining({
         isScheduleEnabled: true,
         schedule: '0 9 * * 1',
@@ -4617,22 +4617,22 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       agentConfig: {
-        defaultVoiceId: '67a1234567890123456789dd',
+        defaultVoiceId: 'c7a1234567890123456789dd',
       },
       isSelected: true,
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
       id: 'settings-1',
-      defaultVoiceId: '67a1234567890123456789ee',
+      defaultVoiceId: 'c7a1234567890123456789ee',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          id: '67a1234567890123456789ff',
+          id: 'c7a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -4644,15 +4644,15 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.PREPARE_VOICE_CLONE,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.nextActions?.[0]).toMatchObject({
       id: 'voice-clone-1700000000000',
-      recommendedVoiceId: '67a1234567890123456789dd',
+      recommendedVoiceId: 'c7a1234567890123456789dd',
       type: 'voice_clone_card',
     });
 
@@ -4668,20 +4668,20 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       agentConfig: {},
       isSelected: true,
       label: 'Genfeed',
     });
     organizationSettingsService.findOne.mockResolvedValue({
       id: 'settings-1',
-      defaultVoiceId: '67a1234567890123456789ee',
+      defaultVoiceId: 'c7a1234567890123456789ee',
       onboardingJourneyMissions: [],
     });
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          id: '67a1234567890123456789ff',
+          id: 'c7a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -4693,14 +4693,14 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.PREPARE_VOICE_CLONE,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.nextActions?.[0]).toMatchObject({
-      recommendedVoiceId: '67a1234567890123456789ee',
+      recommendedVoiceId: 'c7a1234567890123456789ee',
       type: 'voice_clone_card',
     });
   });
@@ -4714,7 +4714,7 @@ describe('AgentToolExecutorService', () => {
     } = createService();
 
     brandsService.findOne.mockResolvedValue({
-      id: '67a1234567890123456789aa',
+      id: 'c7a1234567890123456789aa',
       agentConfig: {},
       isSelected: true,
       label: 'Genfeed',
@@ -4726,13 +4726,13 @@ describe('AgentToolExecutorService', () => {
     voicesService.findAll.mockResolvedValue({
       docs: [
         {
-          id: '67a1234567890123456789ab',
+          id: 'c7a1234567890123456789ab',
           cloneStatus: 'processing',
           metadataLabel: 'Still Processing',
           provider: 'elevenlabs',
         },
         {
-          id: '67a1234567890123456789ff',
+          id: 'c7a1234567890123456789ff',
           cloneStatus: 'ready',
           metadataLabel: 'Fallback Voice',
           provider: 'elevenlabs',
@@ -4744,14 +4744,14 @@ describe('AgentToolExecutorService', () => {
       AgentToolName.PREPARE_VOICE_CLONE,
       {},
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
     expect(result.success).toBe(true);
     expect(result.nextActions?.[0]).toMatchObject({
-      recommendedVoiceId: '67a1234567890123456789ff',
+      recommendedVoiceId: 'c7a1234567890123456789ff',
       type: 'voice_clone_card',
     });
   });
@@ -4760,7 +4760,7 @@ describe('AgentToolExecutorService', () => {
     const { marketplaceApiClient, service } = createService();
 
     marketplaceApiClient.getListing.mockResolvedValue({
-      _id: 'listing-1',
+      id: 'listing-1',
       isDeleted: false,
       price: 49,
       pricingTier: 'premium',
@@ -4783,8 +4783,8 @@ describe('AgentToolExecutorService', () => {
         sourceType: 'marketplace-listing',
       },
       {
-        organizationId: '67a123456789012345678901',
-        userId: '67a123456789012345678902',
+        organizationId: 'd7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
       },
     );
 
@@ -4810,8 +4810,8 @@ describe('AgentToolExecutorService', () => {
   // ──────────────────────────────────────────────
 
   const CTX = {
-    organizationId: '67a123456789012345678901',
-    userId: '67a123456789012345678902',
+    organizationId: 'd7a123456789012345678901',
+    userId: 'c7a123456789012345678902',
   };
 
   it('render_dashboard preserves an explicit replace operation', async () => {
@@ -4858,7 +4858,7 @@ describe('AgentToolExecutorService', () => {
     workflowsService.findAll.mockResolvedValue({
       docs: [
         {
-          id: '507f191e810c19729de860ea',
+          id: 'c07f191e810c19729de860ea',
           description: 'Weekly posts',
           name: 'Content Pipeline',
           status: 'active',
@@ -4877,7 +4877,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data.count).toBe(1);
     expect(result.data.workflows[0]).toEqual(
       expect.objectContaining({
-        id: '507f191e810c19729de860ea',
+        id: 'c07f191e810c19729de860ea',
         name: 'Content Pipeline',
         status: 'active',
       }),
@@ -4910,7 +4910,7 @@ describe('AgentToolExecutorService', () => {
       label: 'System Workflow',
       metadata: { systemWorkflow: true },
       nodes: [{ id: 'node-1' }, { id: 'node-2' }],
-      organization: CTX.organizationId,
+      organizationId: CTX.organizationId,
       schedule: '0 9 * * *',
       status: 'draft',
       timezone: 'UTC',
@@ -4967,7 +4967,7 @@ describe('AgentToolExecutorService', () => {
       id: 'wf-1',
       inputVariables: [],
       isDeleted: false,
-      organization: CTX.organizationId,
+      organizationId: CTX.organizationId,
     });
 
     const result = await service.executeTool(
@@ -5011,7 +5011,7 @@ describe('AgentToolExecutorService', () => {
         { key: 'style', label: 'Style', required: false, type: 'select' },
       ],
       isDeleted: false,
-      organization: CTX.organizationId,
+      organizationId: CTX.organizationId,
     });
 
     const result = await service.executeTool(
@@ -5034,7 +5034,7 @@ describe('AgentToolExecutorService', () => {
         { key: 'topic', label: 'Topic', required: true, type: 'text' },
       ],
       isDeleted: false,
-      organization: CTX.organizationId,
+      organizationId: CTX.organizationId,
     });
 
     const result = await service.executeTool(
@@ -5122,7 +5122,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.data.count).toBe(1);
     expect(httpService.get).toHaveBeenCalledWith(
-      'http://localhost:3010/v1/workflow-executions?limit=5&offset=0&workflow=wf-1&status=completed',
+      'http://localhost:3010/v1/workflow-executions?limit=5&offset=0&workflowId=wf-1&status=completed',
       {
         headers: {
           'Content-Type': 'application/json',
@@ -5232,13 +5232,13 @@ describe('AgentToolExecutorService', () => {
 
     const result = await service.executeTool(
       AgentToolName.START_BRAND_INTERVIEW,
-      { brandId: '67a123456789012345678901' },
+      { brandId: 'd7a123456789012345678901' },
       CTX,
     );
 
     expect(result.success).toBe(true);
     expect(brandInterviewService.start).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'd7a123456789012345678901',
       CTX.organizationId,
       CTX.userId,
     );
@@ -5319,13 +5319,13 @@ describe('AgentToolExecutorService', () => {
 
     const result = await service.executeTool(
       AgentToolName.GET_BRAND_COMPLETENESS,
-      { brandId: '67a123456789012345678901' },
+      { brandId: 'd7a123456789012345678901' },
       CTX,
     );
 
     expect(result.success).toBe(true);
     expect(brandInterviewService.getCompleteness).toHaveBeenCalledWith(
-      '67a123456789012345678901',
+      'd7a123456789012345678901',
       CTX.organizationId,
     );
     expect(result.data).toEqual(

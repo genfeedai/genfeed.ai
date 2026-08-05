@@ -624,7 +624,7 @@ describe('useIngredientActions', () => {
       expect(mockAssetsService.postFromIngredient).toHaveBeenCalledWith({
         category: AssetCategory.LOGO,
         ingredientId: 'ingredient-2',
-        parent: 'brand-1',
+        parentId: 'brand-1',
       });
       expect(onRefresh).toHaveBeenCalled();
     });
@@ -657,7 +657,7 @@ describe('useIngredientActions', () => {
       expect(mockAssetsService.postFromIngredient).toHaveBeenCalledWith({
         category: AssetCategory.BANNER,
         ingredientId: 'ingredient-2',
-        parent: 'brand-1',
+        parentId: 'brand-1',
       });
       expect(onRefresh).toHaveBeenCalled();
     });

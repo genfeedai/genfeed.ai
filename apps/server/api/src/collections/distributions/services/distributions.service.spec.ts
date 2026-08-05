@@ -72,7 +72,7 @@ describe('DistributionsService', () => {
           }),
         }),
       );
-      expect(result).toMatchObject({ _id: 'dist-id', id: 'dist-id' });
+      expect(result).toMatchObject({ id: 'dist-id' });
     });
   });
 });

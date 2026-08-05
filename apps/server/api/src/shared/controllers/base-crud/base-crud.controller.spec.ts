@@ -9,9 +9,9 @@ import { HttpException, Injectable } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
 
-const MOCK_USER_ID = '507f1f77bcf86cd799439011';
-const MOCK_ORG_ID = '507f1f77bcf86cd799439012';
-const MOCK_BRAND_ID = '507f1f77bcf86cd799439013';
+const MOCK_USER_ID = 'u07f1f77bcf86cd799439011';
+const MOCK_ORG_ID = 'o07f1f77bcf86cd799439012';
+const MOCK_BRAND_ID = 'b07f1f77bcf86cd799439013';
 
 // Mock concrete implementation for testing
 @Injectable()
@@ -26,7 +26,7 @@ class TestController extends BaseCRUDController<
       {
         match: {
           isDeleted: query.isDeleted ?? false,
-          user: user.publicMetadata.user as string,
+          userId: user.publicMetadata.user as string,
         },
       },
     ];
@@ -144,8 +144,8 @@ describe('BaseCRUDController', () => {
     it('should return paginated results', async () => {
       const mockData = {
         docs: [
-          { _id: '1', name: 'Test 1' },
-          { _id: '2', name: 'Test 2' },
+          { id: 'entity-1', name: 'Test 1' },
+          { id: 'entity-2', name: 'Test 2' },
         ],
         hasNextPage: false,
         hasPrevPage: false,
@@ -168,7 +168,7 @@ describe('BaseCRUDController', () => {
           expect.objectContaining({
             match: expect.objectContaining({
               isDeleted: false,
-              user: MOCK_USER_ID,
+              userId: MOCK_USER_ID,
             }),
           }),
         ]),
@@ -206,7 +206,7 @@ describe('BaseCRUDController', () => {
 
     it('should handle pagination parameters', async () => {
       const mockData = {
-        docs: [{ _id: '1', name: 'Test 1' }],
+        docs: [{ id: 'entity-1', name: 'Test 1' }],
         hasNextPage: true,
         hasPrevPage: true,
         limit: 20,
@@ -235,11 +235,11 @@ describe('BaseCRUDController', () => {
 
   describe('findOne', () => {
     it('should return entity by valid ID', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = 'e07f1f77bcf86cd799439014';
       const mockEntity = {
-        _id: id,
+        id,
         name: 'Test Entity',
-        user: mockUser.publicMetadata.user,
+        userId: mockUser.publicMetadata.user,
       };
 
       service.findOne.mockResolvedValue(mockEntity);
@@ -247,13 +247,13 @@ describe('BaseCRUDController', () => {
       const result = await controller.findOne(mockRequest, mockUser, id);
 
       expect(service.findOne).toHaveBeenCalledWith(
-        { _id: id, isDeleted: false },
+        { id, isDeleted: false },
         controller.getPopulateFields(),
       );
       expect(result).toEqual({ data: mockEntity });
     });
 
-    it('should throw not found for invalid ObjectId', async () => {
+    it('should throw not found for an invalid entity ID', async () => {
       const invalidId = 'invalid-id';
 
       await expect(
@@ -264,7 +264,7 @@ describe('BaseCRUDController', () => {
     });
 
     it('should throw not found when entity does not exist', async () => {
-      const id = '507f1f77bcf86cd799439015';
+      const id = 'e07f1f77bcf86cd799439015';
       service.findOne.mockResolvedValue(null);
 
       await expect(
@@ -273,14 +273,14 @@ describe('BaseCRUDController', () => {
     });
 
     // Regression: the inherited single-read used to run an unscoped
-    // `{ _id: id }` lookup and serialize whatever came back, so any
+    // unscoped id lookup and serialize whatever came back, so any
     // authenticated user could read another organization's record by id.
     it('should throw not found for an entity owned by another organization', async () => {
-      const id = '507f1f77bcf86cd799439020';
+      const id = 'e07f1f77bcf86cd799439020';
       service.findOne.mockResolvedValue({
-        _id: id,
+        id,
         name: 'Foreign Entity',
-        organizationId: '507f1f77bcf86cd7994390aa',
+        organizationId: 'c07f1f77bcf86cd7994390aa',
       });
 
       await expect(
@@ -289,9 +289,9 @@ describe('BaseCRUDController', () => {
     });
 
     it('should return an entity owned by the caller organization', async () => {
-      const id = '507f1f77bcf86cd799439021';
+      const id = 'e07f1f77bcf86cd799439021';
       const mockEntity = {
-        _id: id,
+        id,
         name: 'Own Entity',
         organizationId: MOCK_ORG_ID,
       };
@@ -304,11 +304,11 @@ describe('BaseCRUDController', () => {
     });
 
     it('should let a super admin read a foreign organization entity', async () => {
-      const id = '507f1f77bcf86cd799439022';
+      const id = 'e07f1f77bcf86cd799439022';
       const mockEntity = {
-        _id: id,
+        id,
         name: 'Foreign Entity',
-        organizationId: '507f1f77bcf86cd7994390aa',
+        organizationId: 'c07f1f77bcf86cd7994390aa',
       };
 
       service.findOne.mockResolvedValue(mockEntity);
@@ -327,10 +327,10 @@ describe('BaseCRUDController', () => {
       };
 
       const mockCreatedEntity = {
-        _id: '507f1f77bcf86cd799439016',
+        id: 'e07f1f77bcf86cd799439016',
         ...createDto,
         createdAt: new Date(),
-        user: mockUser.publicMetadata.user,
+        userId: mockUser.publicMetadata.user,
       };
 
       service.create.mockResolvedValue(mockCreatedEntity);
@@ -351,9 +351,9 @@ describe('BaseCRUDController', () => {
     it('should handle organization in metadata', async () => {
       const createDto = { name: 'New Entity' };
       const mockCreatedEntity = {
-        _id: '507f1f77bcf86cd799439017',
+        id: 'e07f1f77bcf86cd799439017',
         ...createDto,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       service.create.mockResolvedValue(mockCreatedEntity);
@@ -389,14 +389,14 @@ describe('BaseCRUDController', () => {
 
   describe('patch', () => {
     it('should update entity when user owns it', async () => {
-      const id = '507f1f77bcf86cd799439018';
+      const id = 'e07f1f77bcf86cd799439018';
       const updateDto = {
         description: 'Updated description',
         name: 'Updated Name',
       };
 
       const existingEntity = {
-        _id: id,
+        id,
         userId: MOCK_USER_ID,
       };
 
@@ -416,7 +416,7 @@ describe('BaseCRUDController', () => {
       );
 
       expect(service.findOne).toHaveBeenCalledWith(
-        { _id: id },
+        { id },
         controller.getPopulateForOwnershipCheck(),
       );
       expect(service.patch).toHaveBeenCalledWith(
@@ -442,7 +442,7 @@ describe('BaseCRUDController', () => {
     });
 
     it('strips tenant and user ownership changes from patch input', async () => {
-      const id = '507f1f77bcf86cd799439018';
+      const id = 'e07f1f77bcf86cd799439018';
       const existingEntity = { id, userId: MOCK_USER_ID };
       service.findOne.mockResolvedValue(existingEntity);
       service.patch.mockResolvedValue(existingEntity);
@@ -461,12 +461,12 @@ describe('BaseCRUDController', () => {
     });
 
     it('preserves the target organization for a cross-organization super-admin patch', async () => {
-      const id = '507f1f77bcf86cd799439020';
-      const targetOrganizationId = '507f1f77bcf86cd799439099';
+      const id = 'e07f1f77bcf86cd799439020';
+      const targetOrganizationId = 'c07f1f77bcf86cd799439099';
       const existingEntity = {
-        _id: id,
+        id,
         organizationId: targetOrganizationId,
-        userId: '507f1f77bcf86cd799439088',
+        userId: 'c07f1f77bcf86cd799439088',
       };
       service.findOne.mockResolvedValue(existingEntity);
       service.patch.mockResolvedValue({
@@ -496,10 +496,9 @@ describe('BaseCRUDController', () => {
 
   describe('remove', () => {
     it('should soft delete entity when user owns it', async () => {
-      const id = '507f1f77bcf86cd799439019';
+      const id = 'e07f1f77bcf86cd799439019';
       const mockDeletedEntity = {
-        _id: id,
-        id: 'canonical-entity-id',
+        id,
         isDeleted: true,
         name: 'Deleted Entity',
         userId: MOCK_USER_ID,
@@ -511,10 +510,10 @@ describe('BaseCRUDController', () => {
       const result = await controller.remove(mockRequest, mockUser, id);
 
       expect(service.findOne).toHaveBeenCalledWith({
-        _id: id,
+        id,
         isDeleted: false,
       });
-      expect(service.remove).toHaveBeenCalledWith(mockDeletedEntity.id);
+      expect(service.remove).toHaveBeenCalledWith(id);
       expect(result).toEqual({ data: mockDeletedEntity });
     });
 
@@ -538,7 +537,7 @@ describe('BaseCRUDController', () => {
         {
           match: {
             isDeleted: false,
-            user: MOCK_USER_ID,
+            userId: MOCK_USER_ID,
           },
         },
       ]);
@@ -551,33 +550,33 @@ describe('BaseCRUDController', () => {
     // (getPopulateForOwnershipCheck() returns []), so ownership must resolve
     // from the scalar FK — see docs/identity-resolution.md.
     it('allows the owner identified by the scalar userId FK', () => {
-      const entity = { _id: '507f1f77bcf86cd79943901a', userId: MOCK_USER_ID };
+      const entity = { id: 'e07f1f77bcf86cd79943901a', userId: MOCK_USER_ID };
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
     });
 
     it('denies a non-owner identified by the scalar userId FK', () => {
       const entity = {
-        _id: '507f1f77bcf86cd79943901b',
-        userId: '507f1f77bcf86cd7994390ff',
+        id: 'e07f1f77bcf86cd79943901b',
+        userId: 'c07f1f77bcf86cd7994390ff',
       };
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
     });
 
     it('denies when the entity carries no user pointer', () => {
-      const entity = { _id: '507f1f77bcf86cd79943901c' };
+      const entity = { id: 'e07f1f77bcf86cd79943901c' };
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
     });
 
-    it('allows the owner via a populated user relation object (compat)', () => {
+    it('denies a row that only carries a populated user relation', () => {
       const entity = {
-        _id: '507f1f77bcf86cd79943901d',
+        id: 'e07f1f77bcf86cd79943901d',
         user: { id: MOCK_USER_ID },
       };
 
-      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
+      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
     });
   });
 
@@ -587,9 +586,9 @@ describe('BaseCRUDController', () => {
     // another tenant must not.
     it('allows a row whose organizationId matches the caller', () => {
       const entity = {
-        _id: '507f1f77bcf86cd79943901e',
+        id: 'e07f1f77bcf86cd79943901e',
         organizationId: MOCK_ORG_ID,
-        userId: '507f1f77bcf86cd7994390ff',
+        userId: 'c07f1f77bcf86cd7994390ff',
       };
 
       expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
@@ -597,17 +596,18 @@ describe('BaseCRUDController', () => {
 
     it('denies a row whose organizationId belongs to another tenant', () => {
       const entity = {
-        _id: '507f1f77bcf86cd79943901f',
-        organizationId: '507f1f77bcf86cd7994390aa',
+        id: 'e07f1f77bcf86cd79943901f',
+        organizationId: 'c07f1f77bcf86cd7994390aa',
       };
 
       expect(controller.canUserReadEntity(mockUser, entity)).toBe(false);
     });
 
-    it('allows a row via a populated organization relation object (compat)', () => {
+    it('prefers the canonical organizationId when a relation is populated', () => {
       const entity = {
-        _id: '507f1f77bcf86cd799439023',
-        organization: { id: MOCK_ORG_ID },
+        id: 'e07f1f77bcf86cd799439023',
+        organization: { id: 'other-organization' },
+        organizationId: MOCK_ORG_ID,
       };
 
       expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
@@ -615,7 +615,7 @@ describe('BaseCRUDController', () => {
 
     it('denies an organization-scoped row when the caller has no organization', () => {
       const entity = {
-        _id: '507f1f77bcf86cd799439024',
+        id: 'e07f1f77bcf86cd799439024',
         organizationId: MOCK_ORG_ID,
       };
       const orglessUser = {
@@ -628,7 +628,7 @@ describe('BaseCRUDController', () => {
     // Shared/default catalog rows (e.g. `organizationId: null` presets and
     // elements) carry no tenancy pointer and stay readable by everyone.
     it('allows a row that carries no organization or brand pointer', () => {
-      const entity = { _id: '507f1f77bcf86cd799439025', organizationId: null };
+      const entity = { id: 'e07f1f77bcf86cd799439025', organizationId: null };
 
       expect(controller.canUserReadEntity(mockUser, entity)).toBe(true);
     });
@@ -636,7 +636,7 @@ describe('BaseCRUDController', () => {
     // Link is the only model with brandId and no organizationId.
     it('falls back to brandId when the row carries no organizationId', () => {
       const entity = {
-        _id: '507f1f77bcf86cd799439026',
+        id: 'e07f1f77bcf86cd799439026',
         brandId: MOCK_BRAND_ID,
       };
 
@@ -645,8 +645,8 @@ describe('BaseCRUDController', () => {
 
     it('denies a row whose brandId belongs to another brand', () => {
       const entity = {
-        _id: '507f1f77bcf86cd799439027',
-        brandId: '507f1f77bcf86cd7994390bb',
+        id: 'e07f1f77bcf86cd799439027',
+        brandId: 'c07f1f77bcf86cd7994390bb',
       };
 
       expect(controller.canUserReadEntity(mockUser, entity)).toBe(false);
@@ -654,9 +654,9 @@ describe('BaseCRUDController', () => {
 
     it('prefers organizationId over brandId when both are present', () => {
       const entity = {
-        _id: '507f1f77bcf86cd799439028',
+        id: 'e07f1f77bcf86cd799439028',
         brandId: MOCK_BRAND_ID,
-        organizationId: '507f1f77bcf86cd7994390aa',
+        organizationId: 'c07f1f77bcf86cd7994390aa',
       };
 
       expect(controller.canUserReadEntity(mockUser, entity)).toBe(false);
