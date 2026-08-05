@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import LoginBetterAuth from '../login-better-auth';
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function PasswordLoginPage() {
-  return <LoginBetterAuth mode="password" />;
+  return (
+    <Suspense fallback={null}>
+      <LoginBetterAuth mode="password" />
+    </Suspense>
+  );
 }
