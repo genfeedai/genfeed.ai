@@ -128,14 +128,7 @@ describe('BrandProvider', () => {
     },
     organizationId: 'org_123',
     settings: {
-      enabledModelIds: [
-        {
-          buffer: [
-            0x50, 0x7f, 0x1f, 0x77, 0xbc, 0xf8, 0x6c, 0xd7, 0x99, 0x43, 0x90,
-            0x11,
-          ],
-        },
-      ],
+      enabledModelIds: ['507f1f77bcf86cd799439011'],
       organization: 'org_123',
     },
     streak: null,

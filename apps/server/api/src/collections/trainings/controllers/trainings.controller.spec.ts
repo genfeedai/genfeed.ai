@@ -48,9 +48,9 @@ describe('TrainingsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      brand: 'c07f191e810c19729de860ee'.toString(),
+      organization: 'c07f191e810c19729de860ee'.toString(),
+      user: 'c07f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -125,17 +125,17 @@ describe('TrainingsController', () => {
       const mockTrainings = {
         docs: [
           {
-            _id: '1',
+            id: 'training-1',
             category: 'subject',
             isActive: true,
             isDeleted: false,
             label: 'Training 1',
             model: 'replicate/fast-flux-trainer:test',
-            organization: mockUser.publicMetadata.organization as string,
+            organizationId: mockUser.publicMetadata.organization as string,
             sources: [],
             steps: 1000,
             trigger: 'TOK1',
-            user: mockUser.publicMetadata.user as string,
+            userId: mockUser.publicMetadata.user as string,
           },
         ],
         hasNextPage: false,
@@ -200,7 +200,7 @@ describe('TrainingsController', () => {
       label: 'New Training',
       sources: Array(10)
         .fill(null)
-        .map(() => '507f191e810c19729de860ee'.toString()),
+        .map(() => 'c07f191e810c19729de860ee'.toString()),
       steps: 1000,
       trigger: 'NEWTOK',
       type: 'subject',
@@ -208,7 +208,7 @@ describe('TrainingsController', () => {
 
     const mockSourceImages = [{ id: 'img-1', metadata: { extension: 'jpg' } }];
     const mockTraining = {
-      id: '507f191e810c19729de860ee',
+      id: 'c07f191e810c19729de860ee',
       label: 'New Training',
     };
 
@@ -243,16 +243,16 @@ describe('TrainingsController', () => {
   });
 
   describe('findOne', () => {
-    it('accepts a cuid id (not just a Mongo ObjectId) and returns the training', async () => {
+    it('accepts a canonical cuid id and returns the training', async () => {
       const cuid = 'clz1a2b3c4d5e6f7g8h9i0j1k';
       trainingsService.findOne.mockResolvedValueOnce({ id: cuid } as never);
 
       const result = await controller.findOne(mockRequest, mockUser, cuid);
 
       expect(trainingsService.findOne).toHaveBeenCalledWith({
-        _id: cuid,
+        id: cuid,
         isDeleted: false,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       });
       expect(result).toBeDefined();
     });
@@ -267,8 +267,8 @@ describe('TrainingsController', () => {
 
   describe('processAndLaunchTrainingAsync (failure handling)', () => {
     const training = {
-      id: '507f191e810c19729de860ee',
-      user: '507f191e810c19729de860ee',
+      id: 't07f191e810c19729de860ee',
+      userId: 'u07f191e810c19729de860ee',
     } as never;
     const sourceImages = [
       { id: 'img-1', metadata: { extension: 'jpg' } },
@@ -319,7 +319,7 @@ describe('TrainingsController', () => {
   describe('canUserModifyEntity', () => {
     it('should return true when user owns the entity', () => {
       const entity = {
-        user: mockUser.publicMetadata.user,
+        userId: mockUser.publicMetadata.user,
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);
@@ -328,7 +328,7 @@ describe('TrainingsController', () => {
 
     it('should return true when user organization owns the entity', () => {
       const entity = {
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);
@@ -337,17 +337,18 @@ describe('TrainingsController', () => {
 
     it('should return false when user does not own the entity', () => {
       const entity = {
-        organization: '507f191e810c19729de860ff'.toString(),
-        user: '507f191e810c19729de860aa'.toString(),
+        organizationId: 'c07f191e810c19729de860ff'.toString(),
+        userId: 'c07f191e810c19729de860aa'.toString(),
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);
       expect(result).toBe(false);
     });
 
-    it('should handle ObjectId instances correctly', () => {
+    it('should prefer the canonical scalar owner over a populated relation', () => {
       const entity = {
-        user: { id: mockUser.publicMetadata.user },
+        user: { id: 'different-user' },
+        userId: mockUser.publicMetadata.user,
       };
 
       const result = controller.canUserModifyEntity(mockUser, entity);

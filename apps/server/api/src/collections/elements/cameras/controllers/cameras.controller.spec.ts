@@ -48,10 +48,10 @@ describe('ElementsCamerasController', () => {
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: 'c07f191e810c19729de860ee'.toString(),
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'c07f191e810c19729de860ee'.toString(),
+      user: 'c07f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -116,7 +116,7 @@ describe('ElementsCamerasController', () => {
       } as unknown as CreateElementCameraDto;
 
       const mockCreatedCamera = {
-        _id: '507f191e810c19729de860ee',
+        id: 'c07f191e810c19729de860ee',
         ...createDto,
       };
 
@@ -135,13 +135,13 @@ describe('ElementsCamerasController', () => {
 
   describe('update', () => {
     it('should update a camera for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'c07f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementCameraDto = {
         label: 'Updated Camera',
       } as unknown as UpdateElementCameraDto;
 
       const mockExistingCamera = {
-        _id: id,
+        id: id,
         key: 'old-camera',
         label: 'Old Camera',
       };
@@ -162,7 +162,7 @@ describe('ElementsCamerasController', () => {
       );
 
       expect(camerasService.findOne).toHaveBeenCalledWith(
-        { _id: id },
+        { id: id },
         expect.anything(),
       );
       expect(camerasService.patch).toHaveBeenCalled();
@@ -170,7 +170,7 @@ describe('ElementsCamerasController', () => {
     });
 
     it('should throw error if camera not found', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'c07f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementCameraDto = {
         label: 'Updated Camera',
       } as unknown as UpdateElementCameraDto;
@@ -185,12 +185,12 @@ describe('ElementsCamerasController', () => {
 
   describe('remove', () => {
     it('should remove a camera for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'c07f191e810c19729de860ee'.toString();
       const mockCamera = {
-        _id: id,
+        id: id,
         key: 'delete-camera',
         label: 'Camera to Delete',
-        user: mockSuperAdminUser.publicMetadata.user as string,
+        userId: mockSuperAdminUser.publicMetadata.user as string,
       };
 
       camerasService.findOne.mockResolvedValue(mockCamera as never);
@@ -203,7 +203,7 @@ describe('ElementsCamerasController', () => {
       );
 
       expect(camerasService.findOne).toHaveBeenCalledWith({
-        _id: id,
+        id: id,
         isDeleted: false,
       });
       expect(camerasService.remove).toHaveBeenCalledWith(id);
@@ -215,8 +215,8 @@ describe('ElementsCamerasController', () => {
     it('should return paginated cameras', async () => {
       const mockCameras = {
         docs: [
-          { _id: '1', key: 'camera-1', label: 'Camera 1' },
-          { _id: '2', key: 'camera-2', label: 'Camera 2' },
+          { id: '1', key: 'camera-1', label: 'Camera 1' },
+          { id: '2', key: 'camera-2', label: 'Camera 2' },
         ],
         hasNextPage: false,
         hasPrevPage: false,
