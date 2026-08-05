@@ -49,4 +49,17 @@ describe('AgentOutputsPanel', () => {
       'thread-1',
     );
   });
+
+  it('opens the selected image output in an expanded viewer', () => {
+    render(<AgentOutputsPanel />);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open Launch variants preview',
+      }),
+    );
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Image preview')).toBeInTheDocument();
+  });
 });

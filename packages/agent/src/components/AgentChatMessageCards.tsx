@@ -1,3 +1,4 @@
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -124,31 +125,6 @@ export function OAuthConnectCard({
   );
 }
 
-export function ImageWithSkeleton({
-  src,
-  alt,
-}: {
-  src: string;
-  alt: string;
-}): ReactElement {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const handleLoad = useCallback(() => setIsLoaded(true), []);
-
-  return (
-    <div className="relative overflow-hidden rounded-lg border border-border">
-      {!isLoaded && (
-        <div className="aspect-square w-full animate-pulse bg-muted" />
-      )}
-      <img
-        src={src}
-        alt={alt}
-        className={`aspect-square w-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'absolute inset-0 opacity-0'}`}
-        onLoad={handleLoad}
-      />
-    </div>
-  );
-}
-
 export function ContentPreviewCard({
   action,
   onCopy,
@@ -204,15 +180,15 @@ export function ContentPreviewCard({
         ))
       )}
       {action.images && action.images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {action.images.map((url, i) => (
-            <ImageWithSkeleton
-              key={url}
-              src={url}
-              alt={`Generated content ${i + 1}`}
-            />
-          ))}
-        </div>
+        <AgentMediaArtifactPreview
+          assets={action.images.map((url, index) => ({
+            alt: `Generated content ${index + 1}`,
+            kind: 'image',
+            title: `${action.title} ${index + 1}`,
+            url,
+          }))}
+          title={action.title}
+        />
       )}
       {/* Skeleton placeholder when card has no media yet (processing state) */}
       {hasNoMedia && action.title?.toLowerCase().includes('processing') && (
@@ -221,38 +197,24 @@ export function ContentPreviewCard({
         </div>
       )}
       {action.videos && action.videos.length > 0 && (
-        <div className="grid grid-cols-2 gap-2">
-          {action.videos.map((url) => (
-            <div
-              key={url}
-              className="overflow-hidden rounded-lg border border-border"
-            >
-              <video
-                src={url}
-                controls
-                aria-label="Generated video"
-                className="w-full"
-              >
-                <track kind="captions" />
-              </video>
-            </div>
-          ))}
-        </div>
+        <AgentMediaArtifactPreview
+          assets={action.videos.map((url, index) => ({
+            kind: 'video',
+            title: `${action.title} ${index + 1}`,
+            url,
+          }))}
+          title={action.title}
+        />
       )}
       {action.audio && action.audio.length > 0 && (
-        <div className="space-y-2">
-          {action.audio.map((url) => (
-            <audio
-              key={url}
-              src={url}
-              controls
-              aria-label="Generated audio"
-              className="w-full"
-            >
-              <track kind="captions" />
-            </audio>
-          ))}
-        </div>
+        <AgentMediaArtifactPreview
+          assets={action.audio.map((url, index) => ({
+            kind: 'audio',
+            title: `${action.title} ${index + 1}`,
+            url,
+          }))}
+          title={action.title}
+        />
       )}
       {action.ctas && action.ctas.length > 0 && (
         <div className="flex flex-wrap gap-2">

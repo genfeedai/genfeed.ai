@@ -1,6 +1,9 @@
-import { OAuthConnectCard } from '@genfeedai/agent/components/AgentChatMessageCards';
+import {
+  ContentPreviewCard,
+  OAuthConnectCard,
+} from '@genfeedai/agent/components/AgentChatMessageCards';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -25,5 +28,32 @@ describe('OAuthConnectCard', () => {
       'Could not start the connection. Please try again.',
     );
     expect(connectButton).toBeEnabled();
+  });
+});
+
+describe('ContentPreviewCard', () => {
+  it('opens generated image variants from the conversation card', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          id: 'image-output',
+          images: [
+            'https://cdn.test/image-1.png',
+            'https://cdn.test/image-2.png',
+          ],
+          title: 'Campaign image',
+          type: 'content_preview_card',
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open Campaign image 2 preview',
+      }),
+    );
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Image preview · 2 of 2')).toBeInTheDocument();
   });
 });

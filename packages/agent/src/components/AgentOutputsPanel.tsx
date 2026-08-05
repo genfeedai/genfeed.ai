@@ -1,3 +1,4 @@
+import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import type {
@@ -55,38 +56,6 @@ function renderVariantPreview(
   group: ThreadOutputGroup,
   variant: ThreadOutputVariant,
 ): ReactElement {
-  if (variant.kind === 'video' && variant.url) {
-    return (
-      <video
-        src={variant.url}
-        controls
-        aria-label={variant.title ?? group.title}
-        className="gen-shell-surface aspect-[4/5] w-full rounded-[1.25rem] object-cover"
-      >
-        <track kind="captions" />
-      </video>
-    );
-  }
-
-  if (variant.kind === 'audio' && variant.url) {
-    return (
-      <div className="gen-shell-surface rounded-[1.25rem] p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Music className="size-4 text-primary/80" />
-          {variant.title ?? group.title}
-        </div>
-        <audio
-          src={variant.url}
-          controls
-          aria-label={variant.title ?? group.title}
-          className="w-full"
-        >
-          <track kind="captions" />
-        </audio>
-      </div>
-    );
-  }
-
   if (variant.kind === 'text') {
     return (
       <AgentTextArtifactPreview
@@ -104,10 +73,16 @@ function renderVariantPreview(
 
   if (variant.url) {
     return (
-      <img
-        src={variant.url}
-        alt={variant.title ?? group.title}
-        className="gen-shell-surface aspect-[4/5] w-full rounded-[1.25rem] object-cover"
+      <AgentMediaArtifactPreview
+        assets={[
+          {
+            kind: variant.kind,
+            title: variant.title ?? group.title,
+            url: variant.url,
+          },
+        ]}
+        displayMode="featured"
+        title={variant.title ?? group.title}
       />
     );
   }
