@@ -22,12 +22,11 @@ import { PostAnalyticsProjection } from '@api/collections/posts/services/post-an
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AnalyticsMetric, parsePlatform } from '@genfeedai/enums';
 import {
-  AnalyticsMetric,
-  type CredentialPlatform,
-  parsePlatform,
-} from '@genfeedai/enums';
-import { Prisma } from '@genfeedai/prisma';
+  Prisma,
+  CredentialPlatform as PrismaCredentialPlatform,
+} from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -63,7 +62,7 @@ export class AnalyticsAggregationService {
     brandId?: string;
     endDate: Date;
     organizationId: string;
-    platform?: CredentialPlatform;
+    platform?: PrismaCredentialPlatform;
     startDate: Date;
   }): Prisma.PostAnalyticsWhereInput {
     return {
@@ -72,6 +71,22 @@ export class AnalyticsAggregationService {
       organizationId: options.organizationId,
       ...(options.platform ? { platform: options.platform } : {}),
     };
+  }
+
+  private parseAnalyticsPlatform(platform: string): PrismaCredentialPlatform {
+    const normalized = parsePlatform(platform);
+    const key = normalized?.toUpperCase() as
+      | keyof typeof PrismaCredentialPlatform
+      | undefined;
+    const prismaPlatform = key ? PrismaCredentialPlatform[key] : undefined;
+
+    if (!prismaPlatform) {
+      throw new BadRequestException(
+        `Unsupported analytics platform: ${platform}`,
+      );
+    }
+
+    return prismaPlatform;
   }
 
   /**
@@ -467,12 +482,7 @@ export class AnalyticsAggregationService {
       previousEndDate,
     } = DateRangeUtil.parseDateRange(startDate, endDate);
 
-    const normalizedPlatform = parsePlatform(platform);
-    if (!normalizedPlatform) {
-      throw new BadRequestException(
-        `Unsupported analytics platform: ${platform}`,
-      );
-    }
+    const normalizedPlatform = this.parseAnalyticsPlatform(platform);
 
     const where = this.buildPostAnalyticsWhere({
       brandId,
