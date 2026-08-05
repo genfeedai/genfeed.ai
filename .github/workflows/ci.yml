@@ -204,6 +204,8 @@ jobs:
         run: bun run check:di-value-imports
       - name: Relation Alias Reads
         run: bun run check:relation-alias-reads
+      - name: Relation Alias Writes
+        run: bun run check:relation-alias-writes
       - name: Controller Route Shadowing
         run: bun run check:route-shadowing
       - name: Product Route Inventory

@@ -19,6 +19,7 @@ const WRITE_METHOD_DATA_ARGUMENT = new Map([
 ]);
 const SERVICE_FILTER_ARGUMENT = new Map([
   ['count', 0],
+  ['find', 0],
   ['findAll', 0],
   ['findFirst', 0],
   ['findMany', 0],
@@ -89,7 +90,7 @@ type ModelMetadata = {
   relations: ReadonlyMap<string, string>;
 };
 
-type Violation = {
+export type RelationAliasWriteViolation = {
   alias: string;
   end: number;
   file: string;
@@ -100,6 +101,20 @@ type Violation = {
   start: number;
   type: 'relation-alias' | 'unknown-field' | 'unknown-projection';
 };
+
+export type RelationAliasWriteCheckOptions = {
+  ignoreGlobs?: string[];
+  includeGlobs?: string[];
+  schemaPath?: string;
+};
+
+export type RelationAliasWriteCheckResult = {
+  filesScanned: number;
+  serviceCount: number;
+  violations: RelationAliasWriteViolation[];
+};
+
+type Violation = RelationAliasWriteViolation;
 
 function toPascalCase(value: string): string {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
@@ -176,7 +191,7 @@ function inspectProjectionExpression(
   sourceFile: ts.SourceFile,
   violations: Violation[],
 ): void {
-  const projection = unwrapExpression(expression);
+  const projection = resolveExpression(expression, sourceFile);
   if (!ts.isObjectLiteralExpression(projection)) {
     return;
   }
@@ -232,7 +247,7 @@ function inspectPopulateExpression(
   sourceFile: ts.SourceFile,
   violations: Violation[],
 ): void {
-  const populate = unwrapExpression(expression);
+  const populate = resolveExpression(expression, sourceFile);
   if (!ts.isArrayLiteralExpression(populate)) {
     return;
   }
@@ -247,8 +262,8 @@ function inspectPopulateExpression(
         ? value
         : null;
     if (ts.isObjectLiteralExpression(value)) {
-      const path = objectProperty(value, 'path');
-      const unwrappedPath = path ? unwrapExpression(path) : null;
+      const path = objectProperty(value, 'path', sourceFile);
+      const unwrappedPath = path ? resolveExpression(path, sourceFile) : null;
       pathNode =
         unwrappedPath &&
         (ts.isStringLiteral(unwrappedPath) ||
@@ -289,6 +304,81 @@ function unwrapExpression(expression: ts.Expression): ts.Expression {
   return current;
 }
 
+type ExpressionBindings = ReadonlyMap<string, ts.Expression | null>;
+
+const expressionBindingsByFile = new WeakMap<
+  ts.SourceFile,
+  ExpressionBindings
+>();
+
+/**
+ * Resolve only identifiers with one initialized declaration and no direct
+ * reassignment. Duplicate/shadowed names are deliberately left unresolved so
+ * the guard stays conservative without a TypeScript type checker.
+ */
+function collectExpressionBindings(
+  sourceFile: ts.SourceFile,
+): ExpressionBindings {
+  const bindings = new Map<string, ts.Expression | null>();
+
+  const invalidate = (name: string): void => {
+    bindings.set(name, null);
+  };
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      const name = node.name.text;
+      if (bindings.has(name)) {
+        invalidate(name);
+      } else {
+        bindings.set(name, node.initializer);
+      }
+    }
+
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isIdentifier(node.left)
+    ) {
+      invalidate(node.left.text);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return bindings;
+}
+
+function resolveExpression(
+  expression: ts.Expression,
+  sourceFile: ts.SourceFile,
+  seen: ReadonlySet<string> = new Set(),
+): ts.Expression {
+  const value = unwrapExpression(expression);
+  if (!ts.isIdentifier(value) || seen.has(value.text)) {
+    return value;
+  }
+
+  let bindings = expressionBindingsByFile.get(sourceFile);
+  if (!bindings) {
+    bindings = collectExpressionBindings(sourceFile);
+    expressionBindingsByFile.set(sourceFile, bindings);
+  }
+  const initializer = bindings.get(value.text);
+  if (!initializer) {
+    return value;
+  }
+
+  return resolveExpression(
+    initializer,
+    sourceFile,
+    new Set([...seen, value.text]),
+  );
+}
+
 function propertyName(node: ts.PropertyName): string | null {
   if (ts.isIdentifier(node) || ts.isStringLiteral(node)) {
     return node.text;
@@ -296,8 +386,11 @@ function propertyName(node: ts.PropertyName): string | null {
   return null;
 }
 
-function isNestedRelationOperation(expression: ts.Expression): boolean {
-  const value = unwrapExpression(expression);
+function isNestedRelationOperation(
+  expression: ts.Expression,
+  sourceFile: ts.SourceFile,
+): boolean {
+  const value = resolveExpression(expression, sourceFile);
   if (!ts.isObjectLiteralExpression(value)) {
     return false;
   }
@@ -320,7 +413,28 @@ function inspectDataExpression(
   violations: Violation[],
   checkUnknownFields: boolean,
 ): void {
-  const data = unwrapExpression(expression);
+  const data = resolveExpression(expression, sourceFile);
+  if (ts.isConditionalExpression(data)) {
+    inspectDataExpression(
+      data.whenTrue,
+      file,
+      model,
+      metadata,
+      sourceFile,
+      violations,
+      checkUnknownFields,
+    );
+    inspectDataExpression(
+      data.whenFalse,
+      file,
+      model,
+      metadata,
+      sourceFile,
+      violations,
+      checkUnknownFields,
+    );
+    return;
+  }
   if (ts.isArrayLiteralExpression(data)) {
     for (const element of data.elements) {
       if (ts.isExpression(element)) {
@@ -342,6 +456,19 @@ function inspectDataExpression(
   }
 
   for (const property of data.properties) {
+    if (ts.isSpreadAssignment(property)) {
+      inspectDataExpression(
+        property.expression,
+        file,
+        model,
+        metadata,
+        sourceFile,
+        violations,
+        checkUnknownFields,
+      );
+      continue;
+    }
+
     let alias: string | null = null;
     let value: ts.Expression | null = null;
     if (ts.isPropertyAssignment(property)) {
@@ -355,7 +482,10 @@ function inspectDataExpression(
       continue;
     }
 
-    if (checkUnknownFields && !metadata.fields.has(alias)) {
+    if (
+      (checkUnknownFields || alias === '_id') &&
+      !metadata.fields.has(alias)
+    ) {
       violations.push({
         alias,
         end: property.name.getEnd(),
@@ -375,7 +505,7 @@ function inspectDataExpression(
     }
 
     const scalar = metadata.relations.get(alias);
-    if (!scalar || isNestedRelationOperation(value)) {
+    if (!scalar || isNestedRelationOperation(value, sourceFile)) {
       continue;
     }
 
@@ -407,6 +537,28 @@ const PRISMA_ARGUMENT_FIELDS = new Set([
   'take',
 ]);
 const SCALAR_FILTER_FIELDS = new Set(['equals', 'in', 'not', 'notIn']);
+const RELATION_FILTER_FIELDS = new Set([
+  'every',
+  'is',
+  'isNot',
+  'none',
+  'some',
+]);
+
+function isRelationFilter(
+  expression: ts.Expression,
+  sourceFile: ts.SourceFile,
+): boolean {
+  const value = resolveExpression(expression, sourceFile);
+  return (
+    ts.isObjectLiteralExpression(value) &&
+    value.properties.some(
+      (property) =>
+        ts.isPropertyAssignment(property) &&
+        RELATION_FILTER_FIELDS.has(propertyName(property.name) ?? ''),
+    )
+  );
+}
 
 function relationFilterReplacement(
   property: ts.ObjectLiteralElementLike,
@@ -423,7 +575,7 @@ function relationFilterReplacement(
     };
   }
 
-  const unwrapped = unwrapExpression(value);
+  const unwrapped = resolveExpression(value, sourceFile);
   if (!ts.isObjectLiteralExpression(unwrapped)) {
     return {
       end: property.name.getEnd(),
@@ -469,7 +621,26 @@ function inspectFilterExpression(
   sourceFile: ts.SourceFile,
   violations: Violation[],
 ): void {
-  const filter = unwrapExpression(expression);
+  const filter = resolveExpression(expression, sourceFile);
+  if (ts.isConditionalExpression(filter)) {
+    inspectFilterExpression(
+      filter.whenTrue,
+      file,
+      model,
+      metadata,
+      sourceFile,
+      violations,
+    );
+    inspectFilterExpression(
+      filter.whenFalse,
+      file,
+      model,
+      metadata,
+      sourceFile,
+      violations,
+    );
+    return;
+  }
   if (ts.isArrayLiteralExpression(filter)) {
     for (const element of filter.elements) {
       if (ts.isExpression(element)) {
@@ -491,7 +662,7 @@ function inspectFilterExpression(
 
   for (const property of filter.properties) {
     if (ts.isSpreadAssignment(property)) {
-      const spread = unwrapExpression(property.expression);
+      const spread = resolveExpression(property.expression, sourceFile);
       if (ts.isConditionalExpression(spread)) {
         inspectFilterExpression(
           spread.whenTrue,
@@ -593,7 +764,7 @@ function inspectFilterExpression(
       continue;
     }
 
-    if (!scalar) {
+    if (!scalar || isRelationFilter(value, sourceFile)) {
       continue;
     }
 
@@ -625,7 +796,7 @@ function inspectGenericFilterExpression(
   sourceFile: ts.SourceFile,
   violations: Violation[],
 ): void {
-  const filter = unwrapExpression(expression);
+  const filter = resolveExpression(expression, sourceFile);
   if (ts.isConditionalExpression(filter)) {
     inspectGenericFilterExpression(
       filter.whenTrue,
@@ -833,8 +1004,9 @@ function directPrismaTarget(
 function objectProperty(
   expression: ts.Expression,
   name: string,
+  sourceFile: ts.SourceFile,
 ): ts.Expression | null {
-  const object = unwrapExpression(expression);
+  const object = resolveExpression(expression, sourceFile);
   if (!ts.isObjectLiteralExpression(object)) {
     return null;
   }
@@ -849,217 +1021,35 @@ function objectProperty(
   return null;
 }
 
-const files = globSync(INCLUDE_GLOBS, {
-  ignore: IGNORE_GLOBS,
-  nodir: true,
-}).sort();
-const sourceFiles = files.map((file) =>
-  ts.createSourceFile(
-    file,
-    readFileSync(file, 'utf8'),
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  ),
-);
-const models = collectModelMetadata(readFileSync(SCHEMA_PATH, 'utf8'));
-const serviceModels = collectServiceModels(sourceFiles);
-const violations: Violation[] = [];
-
-for (const sourceFile of sourceFiles) {
-  const receiverTypes = collectReceiverTypes(sourceFile);
-  let currentClass: string | null = null;
-
-  const visit = (node: ts.Node): void => {
-    if (ts.isClassDeclaration(node)) {
-      const previousClass = currentClass;
-      currentClass = node.name?.text ?? null;
-      ts.forEachChild(node, visit);
-      currentClass = previousClass;
+function collectFilterBindingNames(sourceFile: ts.SourceFile): Set<string> {
+  const names = new Set(FILTER_VARIABLE_NAMES);
+  const addIdentifier = (expression: ts.Expression | undefined): void => {
+    if (!expression) {
       return;
     }
-
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      FILTER_VARIABLE_NAMES.has(node.name.text) &&
-      node.initializer
-    ) {
-      inspectGenericFilterExpression(
-        node.initializer,
-        sourceFile.fileName,
-        sourceFile,
-        violations,
-      );
+    const value = unwrapExpression(expression);
+    if (ts.isIdentifier(value)) {
+      names.add(value.text);
     }
+  };
 
-    if (
-      ts.isBinaryExpression(node) &&
-      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
-      ts.isPropertyAccessExpression(node.left) &&
-      ts.isIdentifier(node.left.expression) &&
-      FILTER_VARIABLE_NAMES.has(node.left.expression.text)
-    ) {
-      const alias = node.left.name.text;
-      const scalar = GENERIC_RELATION_ID_FIELDS.get(alias);
-      if (scalar) {
-        violations.push({
-          alias,
-          end: node.left.name.getEnd(),
-          file: sourceFile.fileName,
-          line:
-            sourceFile.getLineAndCharacterOfPosition(node.left.getStart())
-              .line + 1,
-          model: 'PrismaFilter',
-          replacement: scalar,
-          scalar,
-          start: node.left.name.getStart(sourceFile),
-          type: 'relation-alias',
-        });
-      }
-    }
-
+  const visit = (node: ts.Node): void => {
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression)
     ) {
-      const callee = node.expression;
-      const direct = directPrismaTarget(callee);
-      if (direct && node.arguments[0]) {
-        const metadata = models.get(direct.model);
-        if (metadata) {
-          for (const kind of ['include', 'select'] as const) {
-            const projection = objectProperty(node.arguments[0], kind);
-            if (projection) {
-              inspectProjectionExpression(
-                projection,
-                kind,
-                sourceFile.fileName,
-                direct.model,
-                metadata,
-                sourceFile,
-                violations,
-              );
-            }
-          }
-        }
-      }
-
-      if (direct && PRISMA_WRITE_METHODS.has(direct.method)) {
-        const metadata = models.get(direct.model);
-        const args = node.arguments[0];
-        if (metadata && args) {
-          const fields =
-            direct.method === 'upsert' ? ['create', 'update'] : ['data'];
-          for (const field of fields) {
-            const data = objectProperty(args, field);
-            if (data) {
-              inspectDataExpression(
-                data,
-                sourceFile.fileName,
-                direct.model,
-                metadata,
-                sourceFile,
-                violations,
-                true,
-              );
-            }
-          }
-        }
-      }
-
+      const direct = directPrismaTarget(node.expression);
       if (direct && PRISMA_FILTER_METHODS.has(direct.method)) {
-        const metadata = models.get(direct.model);
         const args = node.arguments[0];
-        const where = args ? objectProperty(args, 'where') : null;
-        if (metadata && where) {
-          inspectFilterExpression(
-            where,
-            sourceFile.fileName,
-            direct.model,
-            metadata,
-            sourceFile,
-            violations,
-          );
+        if (args) {
+          addIdentifier(objectProperty(args, 'where', sourceFile) ?? undefined);
         }
-      }
-
-      if (!direct) {
-        const model = resolveServiceModel(
-          callee.expression,
-          currentClass,
-          receiverTypes,
-          serviceModels,
+      } else {
+        const filterIndex = SERVICE_FILTER_ARGUMENT.get(
+          node.expression.name.text,
         );
-        const metadata = model ? models.get(model) : undefined;
-        const dataIndex = WRITE_METHOD_DATA_ARGUMENT.get(callee.name.text);
-        if (dataIndex !== undefined && node.arguments[dataIndex]) {
-          if (model && metadata) {
-            inspectDataExpression(
-              node.arguments[dataIndex],
-              sourceFile.fileName,
-              model,
-              metadata,
-              sourceFile,
-              violations,
-              false,
-            );
-          }
-        }
-
-        const filterIndex = SERVICE_FILTER_ARGUMENT.get(callee.name.text);
-        if (filterIndex !== undefined && node.arguments[filterIndex]) {
-          if (model && metadata) {
-            inspectFilterExpression(
-              node.arguments[filterIndex],
-              sourceFile.fileName,
-              model,
-              metadata,
-              sourceFile,
-              violations,
-            );
-          } else {
-            inspectGenericFilterExpression(
-              node.arguments[filterIndex],
-              sourceFile.fileName,
-              sourceFile,
-              violations,
-            );
-          }
-        }
-
-        const populateIndex = SERVICE_POPULATE_ARGUMENT.get(callee.name.text);
-        if (
-          populateIndex !== undefined &&
-          node.arguments[populateIndex] &&
-          model &&
-          metadata
-        ) {
-          inspectPopulateExpression(
-            node.arguments[populateIndex],
-            sourceFile.fileName,
-            model,
-            metadata,
-            sourceFile,
-            violations,
-          );
-        }
-
-        if (callee.name.text === 'findAll' && node.arguments[0] && metadata) {
-          for (const kind of ['include', 'select'] as const) {
-            const projection = objectProperty(node.arguments[0], kind);
-            if (projection && model) {
-              inspectProjectionExpression(
-                projection,
-                kind,
-                sourceFile.fileName,
-                model,
-                metadata,
-                sourceFile,
-                violations,
-              );
-            }
-          }
+        if (filterIndex !== undefined) {
+          addIdentifier(node.arguments[filterIndex]);
         }
       }
     }
@@ -1067,71 +1057,364 @@ for (const sourceFile of sourceFiles) {
     if (
       ts.isCallExpression(node) &&
       ts.isIdentifier(node.expression) &&
-      node.expression.text === 'scopedWhere' &&
-      node.arguments[1]
+      node.expression.text === 'scopedWhere'
     ) {
-      inspectGenericFilterExpression(
-        node.arguments[1],
-        sourceFile.fileName,
-        sourceFile,
-        violations,
-      );
+      addIdentifier(node.arguments[1]);
     }
 
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
+  return names;
 }
 
-if (process.argv.includes('--fix')) {
-  const replacementsByFile = new Map<string, Violation[]>();
-  for (const violation of violations) {
-    if (violation.replacement === undefined) {
-      continue;
-    }
-    const replacements = replacementsByFile.get(violation.file) ?? [];
-    replacements.push(violation);
-    replacementsByFile.set(violation.file, replacements);
+function assignedMember(
+  expression: ts.Expression,
+): { name: string; nameNode: ts.Node; objectName: string } | null {
+  if (
+    ts.isPropertyAccessExpression(expression) &&
+    ts.isIdentifier(expression.expression)
+  ) {
+    return {
+      name: expression.name.text,
+      nameNode: expression.name,
+      objectName: expression.expression.text,
+    };
   }
-
-  for (const [file, replacements] of replacementsByFile) {
-    let source = readFileSync(file, 'utf8');
-    for (const replacement of replacements.sort((a, b) => b.start - a.start)) {
-      source = `${source.slice(0, replacement.start)}${replacement.replacement}${source.slice(replacement.end)}`;
-    }
-    writeFileSync(file, source);
+  if (
+    ts.isElementAccessExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    expression.argumentExpression &&
+    ts.isStringLiteral(expression.argumentExpression)
+  ) {
+    return {
+      name: expression.argumentExpression.text,
+      nameNode: expression.argumentExpression,
+      objectName: expression.expression.text,
+    };
   }
-
-  const fixedCount = [...replacementsByFile.values()].reduce(
-    (total, replacements) => total + replacements.length,
-    0,
-  );
-  console.log(
-    `Fixed ${fixedCount} relation alias persistence/filter violations.`,
-  );
-  process.exit(violations.length === fixedCount ? 0 : 1);
+  return null;
 }
 
-if (violations.length > 0) {
-  console.error(
-    `Found ${violations.length} invalid Prisma persistence/filter/projection violation${violations.length === 1 ? '' : 's'}:`,
+export function runCheckRelationAliasWrites(
+  options: RelationAliasWriteCheckOptions = {},
+): RelationAliasWriteCheckResult {
+  const files = globSync(options.includeGlobs ?? INCLUDE_GLOBS, {
+    ignore: options.ignoreGlobs ?? IGNORE_GLOBS,
+    nodir: true,
+  }).sort();
+  const sourceFiles = files.map((file) =>
+    ts.createSourceFile(
+      file,
+      readFileSync(file, 'utf8'),
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TS,
+    ),
   );
-  for (const violation of violations) {
-    const fix =
-      violation.type === 'relation-alias'
-        ? `use ${violation.scalar}`
-        : violation.type === 'unknown-projection'
-          ? 'projection relation/field is not present in schema.prisma'
-          : 'field is not present in schema.prisma';
-    const suffix =
-      violation.replacement === undefined ? ' (manual fix required)' : '';
-    console.error(
-      `${violation.file}:${violation.line} ${violation.model}.${violation.alias} -> ${fix}${suffix}`,
+  const models = collectModelMetadata(
+    readFileSync(options.schemaPath ?? SCHEMA_PATH, 'utf8'),
+  );
+  const serviceModels = collectServiceModels(sourceFiles);
+  const violations: Violation[] = [];
+
+  for (const sourceFile of sourceFiles) {
+    const receiverTypes = collectReceiverTypes(sourceFile);
+    const filterBindingNames = collectFilterBindingNames(sourceFile);
+    let currentClass: string | null = null;
+
+    const visit = (node: ts.Node): void => {
+      if (ts.isClassDeclaration(node)) {
+        const previousClass = currentClass;
+        currentClass = node.name?.text ?? null;
+        ts.forEachChild(node, visit);
+        currentClass = previousClass;
+        return;
+      }
+
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        FILTER_VARIABLE_NAMES.has(node.name.text) &&
+        node.initializer
+      ) {
+        inspectGenericFilterExpression(
+          node.initializer,
+          sourceFile.fileName,
+          sourceFile,
+          violations,
+        );
+      }
+
+      if (
+        ts.isBinaryExpression(node) &&
+        node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+        assignedMember(node.left) !== null
+      ) {
+        const target = assignedMember(node.left);
+        if (!target || !filterBindingNames.has(target.objectName)) {
+          ts.forEachChild(node, visit);
+          return;
+        }
+        const alias = target.name;
+        const scalar =
+          alias === '_id' ? 'id' : GENERIC_RELATION_ID_FIELDS.get(alias);
+        if (scalar) {
+          violations.push({
+            alias,
+            end: target.nameNode.getEnd(),
+            file: sourceFile.fileName,
+            line:
+              sourceFile.getLineAndCharacterOfPosition(node.left.getStart())
+                .line + 1,
+            model: 'PrismaFilter',
+            replacement: scalar,
+            scalar: alias === '_id' ? undefined : scalar,
+            start: target.nameNode.getStart(sourceFile),
+            type: alias === '_id' ? 'unknown-field' : 'relation-alias',
+          });
+        }
+      }
+
+      if (
+        ts.isCallExpression(node) &&
+        ts.isPropertyAccessExpression(node.expression)
+      ) {
+        const callee = node.expression;
+        const direct = directPrismaTarget(callee);
+        if (direct && node.arguments[0]) {
+          const metadata = models.get(direct.model);
+          if (metadata) {
+            for (const kind of ['include', 'select'] as const) {
+              const projection = objectProperty(
+                node.arguments[0],
+                kind,
+                sourceFile,
+              );
+              if (projection) {
+                inspectProjectionExpression(
+                  projection,
+                  kind,
+                  sourceFile.fileName,
+                  direct.model,
+                  metadata,
+                  sourceFile,
+                  violations,
+                );
+              }
+            }
+          }
+        }
+
+        if (direct && PRISMA_WRITE_METHODS.has(direct.method)) {
+          const metadata = models.get(direct.model);
+          const args = node.arguments[0];
+          if (metadata && args) {
+            const fields =
+              direct.method === 'upsert' ? ['create', 'update'] : ['data'];
+            for (const field of fields) {
+              const data = objectProperty(args, field, sourceFile);
+              if (data) {
+                inspectDataExpression(
+                  data,
+                  sourceFile.fileName,
+                  direct.model,
+                  metadata,
+                  sourceFile,
+                  violations,
+                  true,
+                );
+              }
+            }
+          }
+        }
+
+        if (direct && PRISMA_FILTER_METHODS.has(direct.method)) {
+          const metadata = models.get(direct.model);
+          const args = node.arguments[0];
+          const where = args ? objectProperty(args, 'where', sourceFile) : null;
+          if (metadata && where) {
+            inspectFilterExpression(
+              where,
+              sourceFile.fileName,
+              direct.model,
+              metadata,
+              sourceFile,
+              violations,
+            );
+          }
+        }
+
+        if (!direct) {
+          const model = resolveServiceModel(
+            callee.expression,
+            currentClass,
+            receiverTypes,
+            serviceModels,
+          );
+          const metadata = model ? models.get(model) : undefined;
+          const dataIndex = WRITE_METHOD_DATA_ARGUMENT.get(callee.name.text);
+          if (dataIndex !== undefined && node.arguments[dataIndex]) {
+            if (model && metadata) {
+              inspectDataExpression(
+                node.arguments[dataIndex],
+                sourceFile.fileName,
+                model,
+                metadata,
+                sourceFile,
+                violations,
+                false,
+              );
+            }
+          }
+
+          const filterIndex = SERVICE_FILTER_ARGUMENT.get(callee.name.text);
+          if (filterIndex !== undefined && node.arguments[filterIndex]) {
+            if (model && metadata) {
+              inspectFilterExpression(
+                node.arguments[filterIndex],
+                sourceFile.fileName,
+                model,
+                metadata,
+                sourceFile,
+                violations,
+              );
+            } else {
+              inspectGenericFilterExpression(
+                node.arguments[filterIndex],
+                sourceFile.fileName,
+                sourceFile,
+                violations,
+              );
+            }
+          }
+
+          const populateIndex = SERVICE_POPULATE_ARGUMENT.get(callee.name.text);
+          if (
+            populateIndex !== undefined &&
+            node.arguments[populateIndex] &&
+            model &&
+            metadata
+          ) {
+            inspectPopulateExpression(
+              node.arguments[populateIndex],
+              sourceFile.fileName,
+              model,
+              metadata,
+              sourceFile,
+              violations,
+            );
+          }
+
+          if (callee.name.text === 'findAll' && node.arguments[0] && metadata) {
+            for (const kind of ['include', 'select'] as const) {
+              const projection = objectProperty(
+                node.arguments[0],
+                kind,
+                sourceFile,
+              );
+              if (projection && model) {
+                inspectProjectionExpression(
+                  projection,
+                  kind,
+                  sourceFile.fileName,
+                  model,
+                  metadata,
+                  sourceFile,
+                  violations,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === 'scopedWhere' &&
+        node.arguments[1]
+      ) {
+        inspectGenericFilterExpression(
+          node.arguments[1],
+          sourceFile.fileName,
+          sourceFile,
+          violations,
+        );
+      }
+
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+
+  return {
+    filesScanned: files.length,
+    serviceCount: serviceModels.size,
+    violations,
+  };
+}
+
+function main(): void {
+  const { filesScanned, serviceCount, violations } =
+    runCheckRelationAliasWrites();
+
+  if (process.argv.includes('--fix')) {
+    const replacementsByFile = new Map<string, Violation[]>();
+    for (const violation of violations) {
+      if (violation.replacement === undefined) {
+        continue;
+      }
+      const replacements = replacementsByFile.get(violation.file) ?? [];
+      replacements.push(violation);
+      replacementsByFile.set(violation.file, replacements);
+    }
+
+    for (const [file, replacements] of replacementsByFile) {
+      let source = readFileSync(file, 'utf8');
+      for (const replacement of replacements.sort(
+        (a, b) => b.start - a.start,
+      )) {
+        source = `${source.slice(0, replacement.start)}${replacement.replacement}${source.slice(replacement.end)}`;
+      }
+      writeFileSync(file, source);
+    }
+
+    const fixedCount = [...replacementsByFile.values()].reduce(
+      (total, replacements) => total + replacements.length,
+      0,
     );
+    console.log(
+      `Fixed ${fixedCount} relation alias persistence/filter violations.`,
+    );
+    process.exit(violations.length === fixedCount ? 0 : 1);
   }
-  process.exit(1);
+
+  if (violations.length > 0) {
+    console.error(
+      `Found ${violations.length} invalid Prisma persistence/filter/projection violation${violations.length === 1 ? '' : 's'}:`,
+    );
+    for (const violation of violations) {
+      const fix =
+        violation.type === 'relation-alias'
+          ? `use ${violation.scalar}`
+          : violation.type === 'unknown-projection'
+            ? 'projection relation/field is not present in schema.prisma'
+            : 'field is not present in schema.prisma';
+      const suffix =
+        violation.replacement === undefined ? ' (manual fix required)' : '';
+      console.error(
+        `${violation.file}:${violation.line} ${violation.model}.${violation.alias} -> ${fix}${suffix}`,
+      );
+    }
+    process.exit(1);
+  }
+
+  console.log(
+    `Prisma persistence/filter/projection guard passed (${filesScanned} files, ${serviceCount} services).`,
+  );
 }
 
-console.log(
-  `Prisma persistence/filter/projection guard passed (${files.length} files, ${serviceModels.size} services).`,
-);
+if (import.meta.main) {
+  main();
+}
