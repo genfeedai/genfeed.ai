@@ -22,14 +22,24 @@ function formatArticleDate(publishedAt: string): string {
 }
 
 export default function ArticlesList({ articles }: ArticlesListProps) {
+  // The empty state used to short-circuit the whole Container, which owns the
+  // page's <h1>. With no articles published the index shipped headingless.
   if (articles.length === 0) {
-    return <CardEmpty label="No articles published yet" />;
+    return (
+      <Container
+        label="Articles"
+        description="Insights, tutorials, and case studies on AI-powered content creation"
+        className="min-h-screen pt-24"
+      >
+        <CardEmpty label="No articles published yet" />
+      </Container>
+    );
   }
 
   return (
     <Container
       label="Articles"
-      description="Read our latest articles"
+      description="Insights, tutorials, and case studies on AI-powered content creation"
       className="min-h-screen pt-24"
     >
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">

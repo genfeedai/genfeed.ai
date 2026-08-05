@@ -200,24 +200,41 @@ describe('structured data', () => {
     );
   }
 
-  it('flags SoftwareApplication without aggregateRating', () => {
-    // Regression guard: 28 pages emitted this shape and earned no rich result.
+  it('accepts SoftwareApplication carrying offers but no rating', () => {
+    // Google asks for one of offers/aggregateRating/review, not all three. The
+    // old rule demanded aggregateRating outright, which would have pushed 28
+    // product pages toward inventing ratings.
+    expect(
+      checkStructuredData(
+        withJsonLd({
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          applicationCategory: 'BusinessApplication',
+          name: 'Genfeed',
+          offers: {
+            '@type': 'AggregateOffer',
+            lowPrice: '0',
+            priceCurrency: 'USD',
+          },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it('flags SoftwareApplication with no offers, rating, or review', () => {
     const findings = checkStructuredData(
       withJsonLd({
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
         applicationCategory: 'BusinessApplication',
         name: 'Genfeed',
-        offers: {
-          '@type': 'AggregateOffer',
-          lowPrice: '0',
-          priceCurrency: 'USD',
-        },
       }),
     );
 
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.detail).toContain('aggregateRating');
+    expect(findings[0]?.detail).toContain(
+      'one of offers/aggregateRating/review',
+    );
   });
 
   it('validates types nested inside another node', () => {
@@ -254,7 +271,7 @@ describe('structured data', () => {
     );
   });
 
-  it('accepts a complete SoftwareApplication', () => {
+  it('accepts a SoftwareApplication carrying a rating but no offers', () => {
     expect(
       checkStructuredData(
         withJsonLd({
@@ -263,7 +280,6 @@ describe('structured data', () => {
           aggregateRating: { ratingCount: 128, ratingValue: '4.8' },
           applicationCategory: 'BusinessApplication',
           name: 'Genfeed',
-          offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
         }),
       ),
     ).toEqual([]);

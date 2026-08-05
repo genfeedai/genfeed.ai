@@ -114,7 +114,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'You bring the expertise, context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently, without another internal function to manage.',
     metaDescription:
       'High-touch content retainer for founders and high-end SMBs. $5,000 setup, then $2,000/month. Strategy, production, and publishing run for you on Genfeed.',
-    metaTitle: 'Content Retainer | Genfeed.ai',
+    metaTitle: 'Content Retainer for Founders and SMBs | Genfeed.ai',
     outcomes: [
       {
         description:
@@ -406,7 +406,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'Generic models drift and credits meter every frame. A fleet is different: your own trained models, consistent identities, and dedicated capacity, built and run so you can produce at scale without touching infrastructure.',
     metaDescription:
       'Managed model fleet: custom LoRAs, AI influencers, and dedicated inference, trained and operated for you on GPU infrastructure. Custom scope.',
-    metaTitle: 'Model Fleet | Genfeed.ai',
+    metaTitle: 'Managed Model Fleet: Custom LoRAs | Genfeed.ai',
     outcomes: [
       {
         description:

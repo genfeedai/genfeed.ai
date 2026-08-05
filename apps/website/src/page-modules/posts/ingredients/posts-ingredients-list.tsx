@@ -70,17 +70,18 @@ export default function PostsIngredientsList({
     };
   }, [findAllIngredients]);
 
-  if (isLoading) {
-    return <Loading isFullSize={false} />;
-  }
-
   return (
     <Container
       label="Posts by Ingredient"
-      description="Content organized by ingredient."
+      description="Browse published Genfeed posts grouped by the ingredient they were generated from."
       icon={ImageIcon}
     >
-      {ingredients.length === 0 ? (
+      {/* The loading state used to short-circuit the Container, which owns the
+          page's <h1>. Crawlers see the pre-fetch render, so /posts shipped
+          headingless. Keep the spinner inside the Container. */}
+      {isLoading ? (
+        <Loading isFullSize={false} />
+      ) : ingredients.length === 0 ? (
         <CardEmpty label="No ingredients available" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

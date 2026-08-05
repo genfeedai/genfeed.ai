@@ -276,13 +276,17 @@ const REQUIRED_SCHEMA_FIELDS: Record<string, readonly string[]> = {
   Offer: ['price', 'priceCurrency'],
   Organization: ['name', 'url', 'logo'],
   Product: ['name', 'image', 'offers'],
-  SoftwareApplication: [
-    'name',
-    'applicationCategory',
-    'offers',
-    'aggregateRating',
-  ],
+  SoftwareApplication: ['name', 'applicationCategory'],
   WebSite: ['name', 'url'],
+};
+
+/**
+ * Fields where Google asks for at least one of a set, not all of them. Listing
+ * `aggregateRating` as unconditionally required pushed 28 pages toward inventing
+ * ratings, which is a policy violation — `offers` alone earns the rich result.
+ */
+const ONE_OF_SCHEMA_FIELDS: Record<string, readonly (readonly string[])[]> = {
+  SoftwareApplication: [['offers', 'aggregateRating', 'review']],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -342,19 +346,25 @@ export function checkStructuredData(input: PageInput): Finding[] {
 
     for (const node of collectTypedNodes(block.value)) {
       for (const type of typesOf(node)) {
-        const required = REQUIRED_SCHEMA_FIELDS[type];
-        if (required === undefined) {
-          continue;
-        }
-        const missing = required.filter((field) => {
+        const isPresent = (field: string): boolean => {
           const value = node[field];
-          return (
+          return !(
             value === undefined ||
             value === null ||
             value === '' ||
             (Array.isArray(value) && value.length === 0)
           );
-        });
+        };
+
+        const missing = (REQUIRED_SCHEMA_FIELDS[type] ?? []).filter(
+          (field) => !isPresent(field),
+        );
+        for (const group of ONE_OF_SCHEMA_FIELDS[type] ?? []) {
+          if (!group.some(isPresent)) {
+            missing.push(`one of ${group.join('/')}`);
+          }
+        }
+
         if (missing.length > 0) {
           findings.push(
             finding(

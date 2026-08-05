@@ -160,7 +160,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     intro:
       'You bring the expertise, raw ideas, customer context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently without creating another layer of internal coordination.',
     metaDescription:
-      'Done-for-you content retainer for high-end SMBs. Strategy, production, and publishing handled for you.',
+      'Done-for-you content retainer for high-end SMBs. We handle strategy, production, and publishing so your brand ships consistently.',
     metaTitle: 'Done-For-You Content | Genfeed.ai',
     outcomes: [
       {

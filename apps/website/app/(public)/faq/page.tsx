@@ -37,16 +37,16 @@ export async function generateMetadata(
       description: faqDescription,
       images: [...previousImages],
       siteName: metadata.name,
-      title: `FAQ | ${metadata.name}`,
+      title: `FAQ: Pricing, Features and Access | ${metadata.name}`,
       type: 'website',
       url: `${metadata.url}/faq`,
     },
-    title: `FAQ | ${metadata.name}`,
+    title: `FAQ: Pricing, Features and Access | ${metadata.name}`,
     twitter: {
       card: 'summary_large_image',
       description: faqDescription,
       images: [...previousImages],
-      title: `FAQ | ${metadata.name}`,
+      title: `FAQ: Pricing, Features and Access | ${metadata.name}`,
     },
   };
 }

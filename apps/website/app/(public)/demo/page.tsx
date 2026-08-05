@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import DemoContent from '@public/demo/demo-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Demo',
+  'Product Demo: AI Content in Minutes',
   'See Genfeed in action. Watch how AI agents create professional videos, images, and marketing content in minutes, not hours.',
   '/demo',
 );

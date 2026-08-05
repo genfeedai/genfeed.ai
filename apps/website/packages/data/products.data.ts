@@ -5,6 +5,11 @@ export interface Product {
   slug: string;
   name: string;
   tagline: string;
+  /**
+   * SERP title, brand suffix excluded. `name | tagline` blew past the 60-char
+   * budget on the longer taglines, so those products spell the title out here.
+   */
+  seoTitle?: string;
   headline: string;
   description: string;
   icon: string;
@@ -391,6 +396,7 @@ export const products: Product[] = [
       why: 'Includes ChatGPT integration, unlimited commands, and advanced workflow automation.',
     },
     relatedProducts: ['mcp', 'studio', 'publisher'],
+    seoTitle: 'ChatGPT Integration for Genfeed',
     slug: 'chatgpt',
     tagline: 'Access Genfeed data from ChatGPT',
     targetAudience: [
@@ -485,6 +491,7 @@ export const products: Product[] = [
       why: 'Includes MCP server access, unlimited API calls, and priority support for developers.',
     },
     relatedProducts: ['chatgpt', 'agents', 'studio'],
+    seoTitle: 'MCP Server for AI Content Tools',
     slug: 'mcp',
     status: 'alpha',
     tagline: 'AI Model Context Protocol integration',
@@ -788,6 +795,7 @@ export const products: Product[] = [
       why: 'Includes trend monitoring, performance analytics, and insights across all platforms.',
     },
     relatedProducts: ['studio', 'publisher', 'agents'],
+    seoTitle: 'Analytics: Trends & Content Performance',
     slug: 'intelligence',
     tagline: 'Track trends, analyze performance, optimize content',
     targetAudience: [
@@ -883,6 +891,7 @@ export const products: Product[] = [
       why: 'Open-source extension available for free. Requires Genfeed account for AI generation.',
     },
     relatedProducts: ['studio', 'extension', 'docs'],
+    seoTitle: 'Cursor Extension: Generate in Your IDE',
     slug: 'cursor',
     status: 'alpha',
     tagline: 'Use Genfeed Studio directly in Cursor',
@@ -978,6 +987,7 @@ export const products: Product[] = [
       why: 'Open-source mobile app. Free to use with any Genfeed account.',
     },
     relatedProducts: ['publisher', 'studio', 'extension'],
+    seoTitle: 'Mobile App: Approve & Publish On the Go',
     slug: 'mobile',
     status: 'alpha',
     tagline: 'Manage Genfeed from your mobile device',
@@ -1034,7 +1044,7 @@ export const products: Product[] = [
     category: 'Documentation',
     cta: 'View on GitHub',
     description:
-      'API references, integration guides, and tutorials. Open source and community-driven.',
+      'API references, integration guides, self-hosting instructions, and step-by-step tutorials for every Genfeed product. Open source and community-driven.',
     features: [
       {
         description:
@@ -1071,6 +1081,7 @@ export const products: Product[] = [
       why: 'Documentation is free and open source. Community contributions welcome.',
     },
     relatedProducts: ['mcp', 'cursor', 'extension'],
+    seoTitle: 'Documentation: Guides & API Reference',
     slug: 'docs',
     tagline: 'Complete documentation for Genfeed.ai',
     targetAudience: [

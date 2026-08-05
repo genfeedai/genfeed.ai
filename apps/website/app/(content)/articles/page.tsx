@@ -38,16 +38,16 @@ export async function generateMetadata(
       description: articlesDescription,
       images,
       siteName: metadata.name,
-      title: `${metadata.name} | Articles & Blog`,
+      title: `Articles and Blog: AI Content Insights | ${metadata.name}`,
       type: 'website',
       url: `${metadata.url}/articles`,
     },
-    title: `${metadata.name} | Articles & Blog`,
+    title: `Articles and Blog: AI Content Insights | ${metadata.name}`,
     twitter: {
       card: 'summary_large_image',
       description: articlesDescription,
       images,
-      title: `${metadata.name} | Articles & Blog`,
+      title: `Articles and Blog: AI Content Insights | ${metadata.name}`,
     },
   };
 }

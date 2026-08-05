@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import FeaturesPageContent from '@public/features/features-page';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Features',
+  'Features: The AI Content Platform',
   'AI video generation, image creation, voice synthesis, multi-platform publishing, analytics, and brand kits. Everything you need to create content at scale.',
   '/features',
 );

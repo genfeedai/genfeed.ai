@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import ResearchContent from '@public/research/research-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Research',
+  'Content Research: Trends and Hooks',
   'Discover trending content and hooks, track competitor social accounts, and study winning ad creative. Turn any trend into a ready brief in one click.',
   '/research',
 );
