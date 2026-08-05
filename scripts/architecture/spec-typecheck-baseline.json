@@ -5410,14 +5410,6 @@
     },
     {
       "code": 2345,
-      "count": 1,
-      "file": "apps/server/files/src/controllers/files.controller.spec.ts",
-      "fingerprint": "0d57b1d7226f46fe4cd4",
-      "message": "Argument of type '{ params: { assetManifest: never[]; rendererVersion: \"remotion@4.0.504\"; snapshot: { projectId: string; settings: { backgroundColor: string; format: \"landscape\"; fps: number; height: number; width: number; }; totalDurationFrames: number; tracks: never[]; version: 1; }; }; ... 5 more ...; userId: string; }' is not assignable to parameter of type 'ProcessVideoRequestBody'.   The types of 'params.snapshot.settings.format' are incompatible between these types.     Type '\"landscape\"' is not assignable to type 'IngredientFormat'.",
-      "workspace": "files"
-    },
-    {
-      "code": 2345,
       "count": 6,
       "file": "apps/server/files/src/controllers/files.controller.spec.ts",
       "fingerprint": "5a142c571eb11cecca08",
