@@ -317,9 +317,10 @@ jobs:
   # that hole. This job typechecks them against the same compiler options via
   # tsconfig.typecheck.specs.json and ratchets the pre-existing debt.
   #
-  # It runs unconditionally rather than through turbo's --affected: the ratchet
-  # diffs one repo-wide baseline, so a partial scan would report every unscanned
-  # workspace's entries as stale.
+  # It runs unconditionally rather than through turbo's --affected. Each
+  # workspace is checked in a fresh Bun process so TypeScript can release the
+  # previous program's memory before loading the next workspace; the CLI scopes
+  # the repo-wide baseline to the requested workspace on each invocation.
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
@@ -342,7 +343,12 @@ jobs:
       - name: Build packages
         run: bunx turbo run build --filter='./packages/*' --filter='./ee/packages/*'
       - name: Spec Typecheck Ratchet
-        run: bun run check:spec-typecheck
+        run: |
+          for config in apps/server/*/tsconfig.typecheck.specs.json; do
+            workspace="${config#apps/server/}"
+            workspace="${workspace%%/*}"
+            bun run check:spec-typecheck --workspace "$workspace"
+          done
 
   # Heavy test jobs run only on the on-demand full-suite path. full-suite.yml
   # invokes this workflow via `uses:` (workflow_call), so the gate must check for
