@@ -23,7 +23,19 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { type ChangeEvent, useEffect } from 'react';
+import { type ChangeEvent, useCallback, useEffect, useMemo } from 'react';
+
+function buildFolderDefaultValues(
+  propBrandId: string | undefined,
+  scope: PageScope,
+): FolderSchema {
+  return {
+    brandId: scope === PageScope.BRAND && propBrandId ? propBrandId : '',
+    description: '',
+    label: '',
+    tags: [],
+  };
+}
 
 export default function ModalFolder({
   item,
@@ -34,16 +46,16 @@ export default function ModalFolder({
   const { brands } = useBrand();
   const isManagerApp = EnvironmentService.currentApp === 'app';
 
+  const defaultValues = useMemo(
+    () => buildFolderDefaultValues(propBrandId, scope),
+    [propBrandId, scope],
+  );
+
   const { form, formRef, isSubmitting, onSubmit, closeModal } = useCrudModal<
     IFolder,
     FolderSchema
   >({
-    defaultValues: {
-      brandId: '',
-      description: '',
-      label: '',
-      tags: [],
-    },
+    defaultValues,
     entity: item || null,
     modalId: ModalEnum.FOLDER,
     onConfirm: (isRefreshing) => {
@@ -51,7 +63,15 @@ export default function ModalFolder({
     },
     schema: folderSchema,
     serviceFactory: (token) => FoldersService.getInstance(token),
-    transformSubmitData: (formData) => formData,
+    // Empty tags arrays are not a Prisma M2M write — drop them so create/update
+    // does not send `tags: []` and 500.
+    transformSubmitData: (formData) => {
+      const { tags, ...rest } = formData;
+      if (!Array.isArray(tags) || tags.length === 0) {
+        return rest;
+      }
+      return formData;
+    },
   });
 
   // Ensure brand field stores the brand id (not the entire brand object)
@@ -89,12 +109,18 @@ export default function ModalFolder({
     form.setValue(name as keyof FolderSchema, value, { shouldValidate: true });
   };
 
-  const cancelModalFolder = () => {
+  // Cancel, backdrop, and the header X all land here so the form never keeps
+  // stale label/description values for the next open.
+  const handleModalClose = useCallback(() => {
     closeModal();
-  };
+  }, [closeModal]);
 
   return (
-    <Modal id={ModalEnum.FOLDER} title={item ? 'Edit Folder' : 'Create Folder'}>
+    <Modal
+      id={ModalEnum.FOLDER}
+      title={item ? 'Edit Folder' : 'Create Folder'}
+      onClose={handleModalClose}
+    >
       <form ref={formRef} className="flex flex-col gap-4" onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR}>
@@ -150,7 +176,7 @@ export default function ModalFolder({
           <Button
             label="Cancel"
             variant={ButtonVariant.SECONDARY}
-            onClick={cancelModalFolder}
+            onClick={handleModalClose}
             isLoading={isSubmitting}
           />
 
