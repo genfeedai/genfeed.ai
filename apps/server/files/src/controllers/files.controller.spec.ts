@@ -17,6 +17,7 @@ import { ImagesSplitService } from '@files/services/images/images-split.service'
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { HttpException, StreamableFile } from '@nestjs/common';
@@ -609,7 +610,7 @@ describe('FilesController', () => {
         ...baseBody,
         params: {
           assetManifest: [],
-          rendererVersion: 'remotion@4.0.502' as const,
+          rendererVersion: EDITOR_RENDERER_VERSION,
           snapshot: {
             projectId: 'project-123',
             settings: {
