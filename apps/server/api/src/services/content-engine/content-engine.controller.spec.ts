@@ -11,8 +11,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn().mockReturnValue({
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    organization: 'c07f1f77bcf86cd799439012',
+    user: 'c07f1f77bcf86cd799439011',
   }),
 }));
 
@@ -51,8 +51,8 @@ describe('ContentEngineController', () => {
     rejectDraft: ReturnType<typeof vi.fn>;
   };
 
-  const orgId = '507f1f77bcf86cd799439012';
-  const userId = '507f1f77bcf86cd799439011';
+  const orgId = 'c07f1f77bcf86cd799439012';
+  const userId = 'c07f1f77bcf86cd799439011';
 
   const mockUser = {
     id: 'user_123',
@@ -73,7 +73,7 @@ describe('ContentEngineController', () => {
           useValue: {
             generatePlan: vi
               .fn()
-              .mockResolvedValue({ _id: 'plan-1', status: 'draft' }),
+              .mockResolvedValue({ id: 'plan-1', status: 'draft' }),
           },
         },
         {
@@ -81,13 +81,13 @@ describe('ContentEngineController', () => {
           useValue: {
             getByIdOrFail: vi
               .fn()
-              .mockResolvedValue({ _id: 'plan-1', status: 'draft' }),
+              .mockResolvedValue({ id: 'plan-1', status: 'draft' }),
             listByBrand: vi
               .fn()
-              .mockResolvedValue([{ _id: 'plan-1' }, { _id: 'plan-2' }]),
+              .mockResolvedValue([{ id: 'plan-1' }, { id: 'plan-2' }]),
             patch: vi
               .fn()
-              .mockResolvedValue({ _id: 'plan-1', status: 'updated' }),
+              .mockResolvedValue({ id: 'plan-1', status: 'updated' }),
             softDelete: vi.fn().mockResolvedValue({ acknowledged: true }),
           },
         },
@@ -96,7 +96,7 @@ describe('ContentEngineController', () => {
           useValue: {
             listByPlan: vi
               .fn()
-              .mockResolvedValue([{ _id: 'item-1' }, { _id: 'item-2' }]),
+              .mockResolvedValue([{ id: 'item-1' }, { id: 'item-2' }]),
             softDeleteByPlan: vi.fn().mockResolvedValue({ acknowledged: true }),
           },
         },
@@ -116,17 +116,17 @@ describe('ContentEngineController', () => {
           useValue: {
             approveDraft: vi
               .fn()
-              .mockResolvedValue({ _id: 'draft-1', status: 'approved' }),
+              .mockResolvedValue({ id: 'draft-1', status: 'approved' }),
             bulkApprove: vi.fn().mockResolvedValue([
-              { _id: 'draft-1', status: 'approved' },
-              { _id: 'draft-2', status: 'approved' },
+              { id: 'draft-1', status: 'approved' },
+              { id: 'draft-2', status: 'approved' },
             ]),
             getQueue: vi
               .fn()
-              .mockResolvedValue([{ _id: 'draft-1' }, { _id: 'draft-2' }]),
+              .mockResolvedValue([{ id: 'draft-1' }, { id: 'draft-2' }]),
             rejectDraft: vi
               .fn()
-              .mockResolvedValue({ _id: 'draft-1', status: 'rejected' }),
+              .mockResolvedValue({ id: 'draft-1', status: 'rejected' }),
           },
         },
       ],
@@ -166,7 +166,7 @@ describe('ContentEngineController', () => {
         userId,
         dto,
       );
-      expect(result).toEqual({ data: { _id: 'plan-1', status: 'draft' } });
+      expect(result).toEqual({ data: { id: 'plan-1', status: 'draft' } });
     });
   });
 
@@ -179,7 +179,7 @@ describe('ContentEngineController', () => {
         'brand-1',
       );
       expect(result).toEqual({
-        data: [{ _id: 'plan-1' }, { _id: 'plan-2' }],
+        data: [{ id: 'plan-1' }, { id: 'plan-2' }],
       });
     });
   });
@@ -213,10 +213,10 @@ describe('ContentEngineController', () => {
 
       expect(contentPlansService.patch).toHaveBeenCalledWith('plan-1', {
         ...dto,
-        organization: orgId,
+        organizationId: orgId,
       });
       expect(result).toEqual({
-        data: { _id: 'plan-1', status: 'updated' },
+        data: { id: 'plan-1', status: 'updated' },
       });
     });
   });
@@ -277,7 +277,7 @@ describe('ContentEngineController', () => {
         'brand-1',
       );
       expect(result).toEqual({
-        data: [{ _id: 'draft-1' }, { _id: 'draft-2' }],
+        data: [{ id: 'draft-1' }, { id: 'draft-2' }],
       });
     });
   });
@@ -296,7 +296,7 @@ describe('ContentEngineController', () => {
         userId,
       );
       expect(result).toEqual({
-        data: { _id: 'draft-1', status: 'approved' },
+        data: { id: 'draft-1', status: 'approved' },
       });
     });
   });
@@ -317,7 +317,7 @@ describe('ContentEngineController', () => {
         'Off-brand',
       );
       expect(result).toEqual({
-        data: { _id: 'draft-1', status: 'rejected' },
+        data: { id: 'draft-1', status: 'rejected' },
       });
     });
   });
@@ -325,11 +325,7 @@ describe('ContentEngineController', () => {
   describe('bulkApproveDrafts', () => {
     it('should bulk approve multiple drafts', async () => {
       const dto = { ids: ['draft-1', 'draft-2'] };
-      const result = await controller.bulkApproveDrafts(
-        mockReq,
-        mockUser,
-        dto as never,
-      );
+      const result = await controller.bulkApproveDrafts(mockUser, dto as never);
 
       expect(contentReviewService.bulkApprove).toHaveBeenCalledWith(
         orgId,
@@ -337,8 +333,8 @@ describe('ContentEngineController', () => {
         userId,
       );
       expect(result).toEqual([
-        { _id: 'draft-1', status: 'approved' },
-        { _id: 'draft-2', status: 'approved' },
+        { id: 'draft-1', status: 'approved' },
+        { id: 'draft-2', status: 'approved' },
       ]);
     });
   });

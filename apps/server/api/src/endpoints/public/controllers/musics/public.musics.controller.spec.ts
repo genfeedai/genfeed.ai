@@ -3,11 +3,7 @@ import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  AssetScope,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
+import { AssetScope, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
@@ -108,8 +104,8 @@ describe('PublicMusicsController', () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
       const mockMusics = {
         docs: [
-          { _id: 'music1', title: 'Song 1' },
-          { _id: 'music2', title: 'Song 2' },
+          { id: 'music1', title: 'Song 1' },
+          { id: 'music2', title: 'Song 2' },
         ],
         page: 1,
         totalDocs: 2,
@@ -132,9 +128,9 @@ describe('PublicMusicsController', () => {
 
     it('should filter by brand when provided', async () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const mockMusics = {
-        docs: [{ _id: 'music1', brand: brandId }],
+        docs: [{ brandId, id: 'music1' }],
         page: 1,
         totalDocs: 1,
       };
@@ -153,7 +149,7 @@ describe('PublicMusicsController', () => {
       const query: BaseQueryDto = { limit: 10, page: 1 };
       const tag = 'electronic';
       const mockMusics = {
-        docs: [{ _id: 'music1', metadata: { tags: ['electronic'] } }],
+        docs: [{ id: 'music1', metadata: { tags: ['electronic'] } }],
         page: 1,
         totalDocs: 1,
       };
@@ -173,9 +169,9 @@ describe('PublicMusicsController', () => {
 
   describe('getMusicMetadata', () => {
     it('should return music metadata for valid id', async () => {
-      const musicId = '507f191e810c19729de860ee'.toString();
+      const musicId = 'c07f191e810c19729de860ee'.toString();
       const mockMusic = {
-        _id: musicId,
+        id: musicId,
         status: IngredientStatus.GENERATED,
         title: 'Test Song',
       };
@@ -187,7 +183,7 @@ describe('PublicMusicsController', () => {
 
       expect(musicsService.findOne).toHaveBeenCalledWith(
         {
-          _id: musicId,
+          id: musicId,
           category: 'MUSIC',
           isDeleted: false,
           scope: AssetScope.PUBLIC,
@@ -224,7 +220,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should return not found when music does not exist', async () => {
-      const musicId = '507f191e810c19729de860ee'.toString();
+      const musicId = 'c07f191e810c19729de860ee'.toString();
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -243,9 +239,9 @@ describe('PublicMusicsController', () => {
 
   describe('getMusic', () => {
     it('should stream music file successfully', async () => {
-      const musicId = '507f191e810c19729de860ee'.toString();
+      const musicId = 'c07f191e810c19729de860ee'.toString();
       const mockMusic = {
-        _id: musicId,
+        id: musicId,
         status: IngredientStatus.GENERATED,
       };
 
@@ -256,7 +252,7 @@ describe('PublicMusicsController', () => {
       await controller.getMusic(musicId, mockResponse);
 
       expect(musicsService.findOne).toHaveBeenCalledWith({
-        _id: musicId,
+        id: musicId,
         category: 'MUSIC',
         isDeleted: false,
         scope: AssetScope.PUBLIC,
@@ -275,7 +271,7 @@ describe('PublicMusicsController', () => {
     });
 
     it('should return 404 when music not found', async () => {
-      const musicId = '507f191e810c19729de860ee'.toString();
+      const musicId = 'c07f191e810c19729de860ee'.toString();
 
       musicsService.findOne.mockResolvedValue(null);
 
@@ -288,9 +284,9 @@ describe('PublicMusicsController', () => {
     });
 
     it('should handle S3 file retrieval error', async () => {
-      const musicId = '507f191e810c19729de860ee'.toString();
+      const musicId = 'c07f191e810c19729de860ee'.toString();
       const mockMusic = {
-        _id: musicId,
+        id: musicId,
         status: IngredientStatus.GENERATED,
       };
 

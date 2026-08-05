@@ -159,9 +159,10 @@ describe('ModelsService', () => {
 
   it('rejects bulk updates without an explicit organization scope', async () => {
     await expect(
-      service.updateMany(
-        { category: ModelCategory.IMAGE },
-        { isDefault: false },
+      service.clearOtherDefaults(
+        ModelCategory.IMAGE,
+        undefined as never,
+        'selected-model',
       ),
     ).rejects.toThrow('organizationId is required for bulk model updates');
 
