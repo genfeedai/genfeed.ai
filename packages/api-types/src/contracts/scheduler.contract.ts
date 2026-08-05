@@ -52,10 +52,7 @@ import { publishingProviderReadinessSchema } from './publishing-readiness.contra
 // Primitives
 // ============================================================================
 
-/**
- * Entity identifier. Postgres/Prisma ids are CUIDs, so this is a non-empty
- * string rather than the legacy 24-char Mongo ObjectId shape.
- */
+/** Entity identifier accepted by scheduler contracts. */
 const idSchema = nonEmptyStringSchema({ max: 255 });
 
 /** Idempotency key bounded to a safe header/column length. */
