@@ -5,11 +5,15 @@ import { describe, expect, it, vi } from 'vitest';
 import BrandDetailPage, { generateMetadata } from './page';
 
 vi.mock('./brand-detail', () => ({
-  default: () => <div>Brand detail surface</div>,
+  default: function BrandDetailMock() {
+    return 'Brand detail surface';
+  },
 }));
 
 vi.mock('@ui/loading/fallback/LazyLoadingFallback', () => ({
-  default: () => <div>Loading brand profile</div>,
+  default: function LazyLoadingFallbackMock() {
+    return 'Loading brand profile';
+  },
 }));
 
 describe('BrandDetailPage', () => {

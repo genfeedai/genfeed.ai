@@ -52,8 +52,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
     <CommandItem
       value={`${familyLabel} ${brandLabel}`}
       onSelect={onToggle}
-      aria-expanded={isExpanded}
-      aria-label={familyLabel}
+      aria-label={`${familyLabel}, ${brandLabel}, ${isExpanded ? 'expanded' : 'collapsed'}`}
       className={cn(
         'group flex min-h-11 w-full cursor-pointer items-center gap-2.5 rounded px-2 py-2 text-left transition-colors lg:min-h-0',
       )}

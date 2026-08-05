@@ -73,6 +73,15 @@ describe('AgentSetupPanel', () => {
     // (see OAUTH_CONNECT_PLATFORMS) until they expose a live connect route.
     expect(screen.getByText('Twitter')).toBeInTheDocument();
     expect(screen.getByText('Reddit')).toBeInTheDocument();
+    for (const unsupportedPlatform of [
+      'Shopify',
+      'Mastodon',
+      'Snapchat',
+      'Pinterest',
+      'WordPress',
+    ]) {
+      expect(screen.queryByText(unsupportedPlatform)).not.toBeInTheDocument();
+    }
   });
 
   it('invokes onOAuthConnect with the platform when a connect button is clicked', () => {

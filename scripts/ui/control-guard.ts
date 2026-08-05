@@ -22,6 +22,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
+import ts from 'typescript';
 
 const logger = {
   error: (message: string) => console.error(`[control-guard] ${message}`),
@@ -250,44 +251,37 @@ function isButtonLikeClassName(className: string): boolean {
   return hasInlineLayout && hasButtonBox && (hasInteraction || hasButtonWeight);
 }
 
-/**
- * Per-line comment filter for raw-element scanners, evaluated at the match
- * position rather than across the whole line.
- *
- * The predecessor tested the entire line for `{/*` and `* /` substrings, so a
- * real violation escaped the guard whenever any comment shared its line —
- * `<input type="text" /> {/* TODO * /}` scanned clean. Only text to the LEFT of
- * the match can comment it out, so the scan is bounded to that prefix.
- *
- * Still not a full parser (no multi-line block tracking beyond the leading-`*`
- * heuristic, no string-literal awareness) — deliberate parity with the shell
- * guard it replaced, minus the false-negative.
- */
+const NON_CODE_TOKEN_KINDS = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.MultiLineCommentTrivia,
+  ts.SyntaxKind.SingleLineCommentTrivia,
+  ts.SyntaxKind.StringLiteral,
+  ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+  ts.SyntaxKind.TemplateHead,
+  ts.SyntaxKind.TemplateMiddle,
+  ts.SyntaxKind.TemplateTail,
+]);
+
+/** Return whether a regex match is inside a comment or string token. */
 function isCommentedMatch(content: string, index: number): boolean {
-  const lineStart = content.lastIndexOf('\n', index - 1) + 1;
-  const lineEnd = content.indexOf('\n', index);
-  const line = content.slice(
-    lineStart,
-    lineEnd === -1 ? content.length : lineEnd,
+  const scanner = ts.createScanner(
+    ts.ScriptTarget.Latest,
+    false,
+    ts.LanguageVariant.JSX,
+    content,
   );
-  const trimmed = line.trim();
-
-  // Block-comment body / opener lines, and JSDoc continuation lines.
-  if (trimmed.startsWith('*') || trimmed.startsWith('/*')) {
-    return true;
+  let token = scanner.scan();
+  while (token !== ts.SyntaxKind.EndOfFileToken) {
+    const tokenStart = scanner.getTokenPos();
+    const tokenEnd = scanner.getTextPos();
+    if (index >= tokenStart && index < tokenEnd) {
+      return NON_CODE_TOKEN_KINDS.has(token);
+    }
+    if (tokenStart > index) {
+      return false;
+    }
+    token = scanner.scan();
   }
-
-  const prefix = content.slice(lineStart, index);
-
-  // A `//` before the match comments out the rest of the line.
-  if (prefix.includes('//')) {
-    return true;
-  }
-
-  // An unclosed `{/*` or `/*` before the match means we are inside a comment.
-  const openers = (prefix.match(/\/\*/g) ?? []).length;
-  const closers = (prefix.match(/\*\//g) ?? []).length;
-  return openers > closers;
+  return false;
 }
 
 function isButtonAllowed(rel: string): boolean {

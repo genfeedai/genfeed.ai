@@ -210,10 +210,8 @@ export abstract class BaseCRUDController<
     }
 
     // Return 404 instead of 403 for security
-    if (
-      !this.canUserModifyEntity(user, existing) &&
-      !getIsSuperAdmin(user, request)
-    ) {
+    const canModifyEntity = this.canUserModifyEntity(user, existing);
+    if (!canModifyEntity && !getIsSuperAdmin(user, request)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -221,6 +219,18 @@ export abstract class BaseCRUDController<
 
     // Add user context to create data
     const enrichedDto = await this.enrichUpdateDto(updateDto, user);
+    if (!canModifyEntity) {
+      const existingRecord = existing as Record<string, unknown>;
+      const existingOrganizationId = resolveScopeId(
+        existingRecord.organizationId ?? existingRecord.organization,
+      );
+      const enrichedRecord = enrichedDto as Record<string, unknown>;
+      if (existingOrganizationId) {
+        enrichedRecord.organization = existingOrganizationId;
+      } else {
+        delete enrichedRecord.organization;
+      }
+    }
     const data = await this.service.patch(
       id,
       enrichedDto,

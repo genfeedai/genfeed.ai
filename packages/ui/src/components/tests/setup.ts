@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { UseAnimatedCounterOptions } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import * as React from 'react';
 import { afterAll, beforeAll, vi } from 'vitest';
 
@@ -187,11 +188,7 @@ vi.mock(
       decimals = 0,
       end,
       suffix = '',
-    }: {
-      decimals?: number;
-      end: number;
-      suffix?: string;
-    }) => ({
+    }: UseAnimatedCounterOptions) => ({
       ref: { current: null },
       value: `${end.toFixed(decimals)}${suffix}`,
     }),
