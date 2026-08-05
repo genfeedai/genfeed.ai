@@ -5,6 +5,16 @@ import type {
 } from '@genfeedai/agent/models/conversation-composer.model';
 import { APP_ROUTES } from '@genfeedai/constants';
 
+/**
+ * Preferred product surface for each slash command.
+ *
+ * Routing is NOT "brand-only or fail". Shell resolution is always:
+ * - brand selected (route slug or selected brand) → brand URL
+ * - otherwise → org (`~/`) URL
+ *
+ * `requiredScope` documents the preferred scope for authorization/copy; it
+ * must not force a silent brand drop when a brand is already selected.
+ */
 export const CONVERSATION_COMPOSER_ACTIONS = [
   {
     description: 'Open a trusted creation surface',
@@ -55,12 +65,12 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.PUBLISH.REVIEW,
   },
   {
-    description: 'Open content analytics',
+    description: 'Open content analytics overview',
     isConsequentialProposal: false,
     label: 'Analyze',
     name: 'analyze',
-    requiredScope: 'organization',
-    route: APP_ROUTES.ANALYTICS.ROOT,
+    requiredScope: 'brand',
+    route: APP_ROUTES.ANALYTICS.OVERVIEW,
   },
   {
     description: 'Open the messaging reply surface',
@@ -71,6 +81,31 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.MESSAGES.ROOT,
   },
 ] as const satisfies readonly ConversationComposerActionDefinition[];
+
+export interface ResolveConversationComposerDestinationParams {
+  activeHref: (path: string) => string;
+  orgHref: (path: string) => string;
+  route: string;
+  /** Brand slug from the URL (`/:org/:brand/...`). */
+  routeBrandSlug?: string | null;
+  /** Brand slug from the operator's selected brand context. */
+  selectedBrandSlug?: string | null;
+}
+
+/**
+ * Single routing rule for every trusted slash action:
+ * brand selected → brand URL; otherwise org (`~/`) URL.
+ */
+export function resolveConversationComposerDestinationHref(
+  params: ResolveConversationComposerDestinationParams,
+): string {
+  const hasBrandTarget = Boolean(
+    params.routeBrandSlug?.trim() || params.selectedBrandSlug?.trim(),
+  );
+  return hasBrandTarget
+    ? params.activeHref(params.route)
+    : params.orgHref(params.route);
+}
 
 const ACTIONS_BY_NAME = new Map<
   ConversationComposerActionName,

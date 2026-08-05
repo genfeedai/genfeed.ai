@@ -11,9 +11,9 @@ import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
-import Script from 'next/script';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
+import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
 import DeploymentVersionWatcher from '@/components/version/DeploymentVersionWatcher';
 
 const { name, description } = metadataHelper;
@@ -61,14 +61,8 @@ export default async function RootLayout({ children }: LayoutProps) {
       fontVariables={fontVariables}
       bodyClassName={bodyClassName}
     >
+      <RuntimeConfigScript source={createRuntimeConfigScript()} />
       <AppProviders initialTheme={initialTheme} storageKey={THEME_STORAGE_KEY}>
-        <Script
-          id="genfeed-runtime-config"
-          strategy="beforeInteractive"
-          suppressHydrationWarning
-        >
-          {createRuntimeConfigScript()}
-        </Script>
         <DesktopDragStrip />
         {/* Desktop ships as a bundled app with its own update path and offline
             story; the deploy skew watcher and the service worker both only

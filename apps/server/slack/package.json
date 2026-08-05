@@ -7,7 +7,7 @@
   },
   "description": "Genfeed Slack Service",
   "devDependencies": {
-    "unplugin-swc": "1.5.9"
+    "unplugin-swc": "1.5.10"
   },
   "main": "../dist/apps/slack/main.js",
   "name": "@genfeedai/slack",

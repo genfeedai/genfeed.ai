@@ -403,6 +403,63 @@ function enrichWorkEvents(
   }
 }
 
+/**
+ * Keep only the latest analytics_snapshot_card per stable key so re-runs of
+ * get_analytics do not stack three identical zeros cards in the transcript.
+ */
+export function collapseSupersededSnapshotCards(
+  messages: readonly AgentChatMessage[],
+): AgentChatMessage[] {
+  const latestMessageIdByKey = new Map<string, string>();
+
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (!message) {
+      continue;
+    }
+    for (const action of message.metadata?.uiActions ?? []) {
+      if (action.type !== 'analytics_snapshot_card') {
+        continue;
+      }
+      const key = action.id || `${action.type}:${action.title ?? ''}`;
+      if (!latestMessageIdByKey.has(key)) {
+        latestMessageIdByKey.set(key, message.id);
+      }
+    }
+  }
+
+  if (latestMessageIdByKey.size === 0) {
+    return [...messages];
+  }
+
+  return messages.map((message) => {
+    const actions = message.metadata?.uiActions;
+    if (!actions?.length) {
+      return message;
+    }
+
+    const nextActions = actions.filter((action) => {
+      if (action.type !== 'analytics_snapshot_card') {
+        return true;
+      }
+      const key = action.id || `${action.type}:${action.title ?? ''}`;
+      return latestMessageIdByKey.get(key) === message.id;
+    });
+
+    if (nextActions.length === actions.length) {
+      return message;
+    }
+
+    return {
+      ...message,
+      metadata: {
+        ...message.metadata,
+        uiActions: nextActions,
+      },
+    };
+  });
+}
+
 export function deriveTimeline(
   messages: AgentChatMessage[],
   workEvents: AgentWorkEvent[],
@@ -410,12 +467,13 @@ export function deriveTimeline(
   runDurationLabel: string | null,
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
-  const assistantMessages = messages.filter(
+  const displayMessages = collapseSupersededSnapshotCards(messages);
+  const assistantMessages = displayMessages.filter(
     (message) => message.role === 'assistant',
   );
 
   // 1. Create message entries
-  for (const msg of messages) {
+  for (const msg of displayMessages) {
     if (msg.role === 'user') {
       entries.push({
         createdAt: msg.createdAt,

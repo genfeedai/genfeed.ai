@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ANALYTICS_LOGO_HREF,
   ANALYTICS_MENU_ITEMS,
+  getAnalyticsMenuItemsForScope,
+  isOrgAnalyticsRouteScope,
 } from './analytics-menu-items.config';
 
 const ANALYTICS_APP_DIRECTORY =
@@ -157,5 +159,25 @@ describe('ANALYTICS_MENU_ITEMS', () => {
       expect.arrayContaining(['/analytics', '/analytics/overview']),
     );
     expect(ANALYTICS_LOGO_HREF).toBe('/analytics/overview');
+  });
+
+  it('treats empty and tilde brand slugs as org analytics scope', () => {
+    expect(isOrgAnalyticsRouteScope('')).toBe(true);
+    expect(isOrgAnalyticsRouteScope('~')).toBe(true);
+    expect(isOrgAnalyticsRouteScope('default')).toBe(false);
+  });
+
+  it('hides brand-only analytics destinations on org scope', () => {
+    const orgItems = getAnalyticsMenuItemsForScope('~');
+    expect(orgItems.map((item) => item.label)).toEqual(['Overview']);
+    expect(orgItems.some((item) => item.href === '/analytics/posts')).toBe(
+      false,
+    );
+    // Flat under shell "Analytics" — no redundant Performance group header.
+    expect(orgItems.every((item) => item.group === undefined)).toBe(true);
+
+    const brandItems = getAnalyticsMenuItemsForScope('default');
+    expect(brandItems.length).toBe(ANALYTICS_MENU_ITEMS.length);
+    expect(brandItems.some((item) => item.group === 'Performance')).toBe(true);
   });
 });

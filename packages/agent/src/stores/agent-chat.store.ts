@@ -408,16 +408,41 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
     }),
   addWorkEvent: (event) =>
     set((state) => {
-      const existingIndex = state.workEvents.findIndex(
-        (item) => item.id === event.id,
-      );
+      const existingIndex = state.workEvents.findIndex((item) => {
+        if (item.id === event.id) {
+          return true;
+        }
+        // Prefer toolCallId / inputRequestId matches so lifecycle updates
+        // (started → progress → completed) collapse onto one event even if an
+        // older client still minted event-prefixed ids.
+        if (
+          event.toolCallId &&
+          item.toolCallId &&
+          item.toolCallId === event.toolCallId
+        ) {
+          return true;
+        }
+        if (
+          event.inputRequestId &&
+          item.inputRequestId &&
+          item.inputRequestId === event.inputRequestId
+        ) {
+          return true;
+        }
+        return false;
+      });
 
       if (existingIndex === -1) {
         return { workEvents: [...state.workEvents, event] };
       }
 
       const next = [...state.workEvents];
-      next[existingIndex] = event;
+      next[existingIndex] = {
+        ...next[existingIndex],
+        ...event,
+        // Keep the original id so selectors stay stable across updates.
+        id: next[existingIndex].id,
+      };
       return { workEvents: next };
     }),
   appendStreamToken: (token) =>
@@ -515,9 +540,24 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         ...(message.metadata?.uiActions ?? []),
         ...state.stream.pendingUiActions,
       ].filter((action, index, actions) => {
-        return (
-          actions.findIndex((candidate) => candidate.id === action.id) === index
-        );
+        // Prefer later copies so tool_complete pending + done metadata with the
+        // same semantic key collapse to one card.
+        const firstWithKey = actions.findIndex((candidate) => {
+          if (candidate.id && action.id && candidate.id === action.id) {
+            return true;
+          }
+          // Snapshot cards re-minted with Date.now() ids still share type+title.
+          if (
+            candidate.type === action.type &&
+            (action.type === 'analytics_snapshot_card' ||
+              action.type === 'completion_summary_card') &&
+            candidate.title === action.title
+          ) {
+            return true;
+          }
+          return false;
+        });
+        return firstWithKey === index;
       });
 
       return {
@@ -538,7 +578,10 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
           },
         ],
         pendingInputRequest: null,
+        // Clear tool lifecycle rows so sticky "Running get_analytics 15%" cannot
+        // outlive the completed turn.
         stream: { ...DEFAULT_STREAM_STATE },
+        workEvents: [],
       };
     }),
   isGenerating: false,
@@ -580,6 +623,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunStatus:
         state.activeRunStatus === 'cancelling' ? 'cancelling' : 'idle',
       stream: { ...DEFAULT_STREAM_STATE },
+      workEvents: [],
     })),
   runStartedAt: null,
   seedComposer: (content, threadId = null) =>

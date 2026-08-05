@@ -273,54 +273,68 @@ export function useAgentChatInput({
         renderText({ node }) {
           return `#${node.attrs.label ?? node.attrs.brandName}`;
         },
-        suggestion: buildMentionSuggestion({
-          component: BrandMentionList,
-          getItems: (query) =>
-            brandMentions.filter((item) =>
-              item.brandName.toLowerCase().includes(query.toLowerCase()),
-            ),
-        }),
+        suggestion: {
+          char: '#',
+          ...buildMentionSuggestion({
+            component: BrandMentionList,
+            getItems: (query) =>
+              brandMentions.filter((item) =>
+                item.brandName.toLowerCase().includes(query.toLowerCase()),
+              ),
+          }),
+        },
       }),
       TeamMention.configure({
         HTMLAttributes: { class: 'mention mention-team' },
         renderText({ node }) {
           return `@${node.attrs.label ?? node.attrs.displayName}`;
         },
-        suggestion: buildMentionSuggestion({
-          component: TeamMentionList,
-          getItems: (query) =>
-            teamMentions.filter((item) =>
-              item.displayName.toLowerCase().includes(query.toLowerCase()),
-            ),
-        }),
+        suggestion: {
+          char: '@',
+          ...buildMentionSuggestion({
+            component: TeamMentionList,
+            getItems: (query) =>
+              teamMentions.filter((item) =>
+                item.displayName.toLowerCase().includes(query.toLowerCase()),
+              ),
+          }),
+        },
       }),
       CredentialMention.configure({
         HTMLAttributes: { class: 'mention mention-credential' },
         renderText({ node }) {
           return `!${node.attrs.label ?? node.attrs.handle}`;
         },
-        suggestion: buildMentionSuggestion({
-          component: CredentialMentionList,
-          getItems: (query) =>
-            credentialMentions.filter(
-              (item) =>
-                item.handle.toLowerCase().includes(query.toLowerCase()) ||
-                item.name.toLowerCase().includes(query.toLowerCase()),
-            ),
-        }),
+        suggestion: {
+          char: '!',
+          ...buildMentionSuggestion({
+            component: CredentialMentionList,
+            getItems: (query) =>
+              credentialMentions.filter(
+                (item) =>
+                  item.handle.toLowerCase().includes(query.toLowerCase()) ||
+                  item.name.toLowerCase().includes(query.toLowerCase()),
+              ),
+          }),
+        },
       }),
       ContentMention.configure({
         HTMLAttributes: { class: 'mention mention-content' },
         renderText({ node }) {
           return `^${node.attrs.label ?? node.attrs.contentTitle}`;
         },
-        suggestion: buildMentionSuggestion({
-          component: ContentMentionList,
-          getItems: (query) =>
-            contentMentions.filter((item) =>
-              item.contentTitle.toLowerCase().includes(query.toLowerCase()),
-            ),
-        }),
+        suggestion: {
+          // Chain toolbar inserts "^" — without this char the picker never opens
+          // and the operator only sees a bare caret in the draft.
+          char: '^',
+          ...buildMentionSuggestion({
+            component: ContentMentionList,
+            getItems: (query) =>
+              contentMentions.filter((item) =>
+                item.contentTitle.toLowerCase().includes(query.toLowerCase()),
+              ),
+          }),
+        },
       }),
       SlashCommands,
     ],

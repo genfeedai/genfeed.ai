@@ -6,6 +6,7 @@ export class OrganizationSettingEntity extends BaseEntity {
   declare readonly isVoiceControlEnabled: boolean;
 
   declare readonly isNotificationsDiscordEnabled: boolean;
+  declare readonly isNotificationsTelegramEnabled: boolean;
   declare readonly isNotificationsEmailEnabled: boolean;
   declare readonly isWatermarkEnabled: boolean;
   declare readonly isVerifyScriptEnabled: boolean;

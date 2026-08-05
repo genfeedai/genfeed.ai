@@ -283,7 +283,9 @@ export class AgentAnalyticsToolHandler {
             },
           ],
           data: { overview, period },
-          id: `analytics-${Date.now()}`,
+          // Stable per org+period so tool_complete + done metadata dedupe, and
+          // re-runs replace the prior snapshot instead of stacking clones.
+          id: `analytics-snapshot:${ctx.organizationId}:${period}`,
           metrics: this.buildMetricItems([
             {
               change: overview.growth?.views,

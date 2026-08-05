@@ -91,6 +91,11 @@ const SETTING_GROUPS: SettingGroup[] = [
         label: 'Discord Notifications',
         type: 'boolean',
       },
+      {
+        key: 'isNotificationsTelegramEnabled',
+        label: 'Telegram Notifications',
+        type: 'boolean',
+      },
     ],
   },
   {
