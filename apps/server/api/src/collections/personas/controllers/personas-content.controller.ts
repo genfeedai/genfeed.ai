@@ -39,6 +39,20 @@ export class PersonasContentController {
     private readonly postsService: PostsService,
   ) {}
 
+  private resolvePersonaContext(user: User, personaId: string) {
+    const publicMetadata = getPublicMetadata(user);
+
+    return {
+      organizationId: EntityIdUtil.validate(
+        publicMetadata.organization,
+        'organizationId',
+      ),
+      personaId: EntityIdUtil.validate(personaId, 'personaId'),
+      publicMetadata,
+      userId: EntityIdUtil.validate(publicMetadata.user, 'userId'),
+    };
+  }
+
   @Post(':id/generate/photo')
   @HttpCode(HttpStatus.OK)
   async generatePhoto(
@@ -47,12 +61,12 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const context = this.resolvePersonaContext(user, id);
       const result = await this.personaContentService.generatePhoto({
-        organizationId: EntityIdUtil.toValidId(organization)!,
-        personaId: EntityIdUtil.toValidId(id)!,
+        organizationId: context.organizationId,
+        personaId: context.personaId,
         prompt: body.prompt,
-        userId: EntityIdUtil.toValidId(dbUserId)!,
+        userId: context.userId,
       });
 
       return { data: result };
@@ -69,13 +83,13 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const context = this.resolvePersonaContext(user, id);
       const result = await this.personaContentService.generateVideo({
         aspectRatio: body.aspectRatio,
-        organizationId: EntityIdUtil.toValidId(organization)!,
-        personaId: EntityIdUtil.toValidId(id)!,
+        organizationId: context.organizationId,
+        personaId: context.personaId,
         script: body.script,
-        userId: EntityIdUtil.toValidId(dbUserId)!,
+        userId: context.userId,
       });
 
       return { data: result };
@@ -92,15 +106,15 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, user: dbUserId } = getPublicMetadata(user);
+      const context = this.resolvePersonaContext(user, id);
       const result = await this.personaContentService.generateVoice({
         ingredientId: body.ingredientId
-          ? EntityIdUtil.toValidId(body.ingredientId)!
+          ? EntityIdUtil.validate(body.ingredientId, 'ingredientId')
           : undefined,
-        organizationId: EntityIdUtil.toValidId(organization)!,
-        personaId: EntityIdUtil.toValidId(id)!,
+        organizationId: context.organizationId,
+        personaId: context.personaId,
         text: body.text,
-        userId: EntityIdUtil.toValidId(dbUserId)!,
+        userId: context.userId,
       });
 
       return { data: result };
@@ -112,7 +126,7 @@ export class PersonasContentController {
   @Post(':id/generate/caption')
   @HttpCode(HttpStatus.OK)
   generateCaption(
-    @Param('id') _id: string,
+    @Param('id') _personaId: string,
     @Body() body: { topic?: string; platform?: string },
     @CurrentUser() _user: User,
   ) {
@@ -137,7 +151,7 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+      const context = this.resolvePersonaContext(user, id);
 
       // Clamp days to safe range [1, 90]
       const days = Math.max(
@@ -146,14 +160,14 @@ export class PersonasContentController {
       );
 
       const input = {
-        brandId: EntityIdUtil.toValidId(brand)!,
+        brandId: EntityIdUtil.validate(context.publicMetadata.brand, 'brandId'),
         credentialId: body.credentialId
-          ? EntityIdUtil.toValidId(body.credentialId)!
+          ? EntityIdUtil.validate(body.credentialId, 'credentialId')
           : undefined,
         days,
-        organizationId: EntityIdUtil.toValidId(organization)!,
-        personaId: EntityIdUtil.toValidId(id)!,
-        userId: EntityIdUtil.toValidId(dbUserId)!,
+        organizationId: context.organizationId,
+        personaId: context.personaId,
+        userId: context.userId,
       };
 
       const plan =
@@ -194,20 +208,20 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization, brand, user: dbUserId } = getPublicMetadata(user);
+      const context = this.resolvePersonaContext(user, id);
       const result = await this.personaPublisherService.publishToAll({
-        brandId: EntityIdUtil.toValidId(brand)!,
+        brandId: EntityIdUtil.validate(context.publicMetadata.brand, 'brandId'),
         category: body.category,
         description: body.description,
-        ingredientIds: body.ingredientIds?.map(
-          (iid) => EntityIdUtil.toValidId(iid)!,
-        ),
-        organizationId: EntityIdUtil.toValidId(organization)!,
-        personaId: EntityIdUtil.toValidId(id)!,
+        ingredientIds: body.ingredientIds
+          ? EntityIdUtil.validateMany(body.ingredientIds, 'ingredientIds')
+          : undefined,
+        organizationId: context.organizationId,
+        personaId: context.personaId,
         scheduledDate: body.scheduledDate
           ? new Date(body.scheduledDate)
           : undefined,
-        userId: EntityIdUtil.toValidId(dbUserId)!,
+        userId: context.userId,
       });
 
       return { data: result };
@@ -225,12 +239,12 @@ export class PersonasContentController {
     @CurrentUser() user: User,
   ) {
     try {
-      const { organization } = getPublicMetadata(user);
+      const context = this.resolvePersonaContext(user, id);
       const posts = await this.postsService.findAll(
         {
           isDeleted: false,
-          organizationId: EntityIdUtil.toValidId(organization)!,
-          personaId: EntityIdUtil.toValidId(id)!,
+          organizationId: context.organizationId,
+          personaId: context.personaId,
         },
         { limit: Number(limit), page: Number(page) },
       );
