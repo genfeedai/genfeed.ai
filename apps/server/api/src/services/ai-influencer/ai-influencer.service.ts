@@ -110,21 +110,12 @@ export class AiInfluencerService {
     return entries.length > 0 ? entries : undefined;
   }
 
-  private readReferenceId(value: unknown): string | undefined {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-
-    const record = this.readObjectRecord(value);
-    return this.readString(record?.id ?? record?.id);
-  }
-
-  private readRequiredPersonaReference(
+  private readRequiredPersonaId(
     persona: PersonaDocument,
-    field: 'brand' | 'organization' | 'user',
+    field: 'brandId' | 'organizationId' | 'userId',
   ): string {
     const personaRecord = persona as Record<string, unknown>;
-    const value = this.readReferenceId(personaRecord[field]);
+    const value = this.readString(personaRecord[field]);
 
     if (!value) {
       throw new Error(`Persona ${field} is missing`);
@@ -626,11 +617,11 @@ export class AiInfluencerService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const organizationId = this.readRequiredPersonaReference(
+      const organizationId = this.readRequiredPersonaId(
         persona,
-        'organization',
+        'organizationId',
       );
-      const brandId = this.readRequiredPersonaReference(persona, 'brand');
+      const brandId = this.readRequiredPersonaId(persona, 'brandId');
 
       switch (platform) {
         case 'instagram': {
@@ -745,26 +736,26 @@ export class AiInfluencerService {
     voiceResult: GenerationResult;
     videoResult: GenerationResult;
   }> {
-    const organizationId = this.readRequiredPersonaReference(
+    const organizationId = this.readRequiredPersonaId(
       persona,
-      'organization',
+      'organizationId',
     );
-    const userId = this.readRequiredPersonaReference(persona, 'user');
+    const userId = this.readRequiredPersonaId(persona, 'userId');
 
     const voiceResult = await this.personaContentService.generateVoice({
       ingredientId,
-      organization: organizationId,
+      organizationId,
       personaId: persona.id,
       text: script,
-      user: userId,
+      userId,
     });
 
     const videoResult = await this.personaContentService.generateVideo({
       aspectRatio: '9:16',
-      organization: organizationId,
+      organizationId,
       personaId: persona.id,
       script,
-      user: userId,
+      userId,
     });
 
     return { videoResult, voiceResult };

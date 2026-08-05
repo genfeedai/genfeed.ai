@@ -189,7 +189,10 @@ describe('ContentOrchestrationService', () => {
 
       expect(mockPublisherService.publishToAll).toHaveBeenCalledWith(
         expect.objectContaining({
+          brandId: baseConfig.brandId,
           ingredientIds: expect.arrayContaining([ingredientId]),
+          organizationId: baseConfig.organizationId,
+          userId: baseConfig.userId,
         }),
       );
     });

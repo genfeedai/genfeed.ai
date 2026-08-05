@@ -276,15 +276,15 @@ export class ContentOrchestrationService {
           },
           () =>
             this.personaPublisherService.publishToAll({
-              brand: config.brandId,
+              brandId: config.brandId,
               category: PostCategory.POST,
               description: config.prompt ?? '',
               ingredientIds: ingredientIdsToPublish,
-              organization: config.organizationId,
+              organizationId: config.organizationId,
               personaId: config.personaId,
               platforms: config.platforms,
               scheduledDate: config.scheduledDate,
-              user: config.userId,
+              userId: config.userId,
             }),
         );
         postIds = publishResult.postIds;

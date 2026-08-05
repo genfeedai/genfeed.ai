@@ -60,30 +60,30 @@ describe('PersonaPublisherService', () => {
     });
     credentialsService.findOne
       .mockResolvedValueOnce({
-        _id: instagramCredentialId,
+        id: instagramCredentialId,
         platform: 'instagram',
       })
       .mockResolvedValueOnce({
-        _id: tiktokCredentialId,
+        id: tiktokCredentialId,
         platform: 'tiktok',
       });
-    postsService.create.mockResolvedValueOnce({ _id: 'test-object-id' });
+    postsService.create.mockResolvedValueOnce({ id: 'test-object-id' });
 
     const result = await service.publishToAll({
-      brand: brandId,
+      brandId,
       category: PostCategory.POST,
       description: 'Test post',
       ingredientIds: [ingredientId],
-      organization: organizationId,
+      organizationId,
       personaId,
       platforms: ['tiktok'],
-      user: userId,
+      userId,
     });
 
     expect(postsService.create).toHaveBeenCalledTimes(1);
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        credential: tiktokCredentialId,
+        credentialId: tiktokCredentialId,
         platform: 'tiktok',
       }),
     );
@@ -96,11 +96,11 @@ describe('PersonaPublisherService', () => {
 
     await expect(
       service.publishToAll({
-        brand: 'test-object-id',
+        brandId: 'test-object-id',
         description: 'Test post',
-        organization: 'test-object-id',
+        organizationId: 'test-object-id',
         personaId: 'test-object-id',
-        user: 'test-object-id',
+        userId: 'test-object-id',
       }),
     ).rejects.toThrow(NotFoundException);
   });
@@ -114,18 +114,18 @@ describe('PersonaPublisherService', () => {
       label: 'All Platforms',
     });
     credentialsService.findOne
-      .mockResolvedValueOnce({ _id: credId1, platform: 'instagram' })
-      .mockResolvedValueOnce({ _id: credId2, platform: 'twitter' });
+      .mockResolvedValueOnce({ id: credId1, platform: 'instagram' })
+      .mockResolvedValueOnce({ id: credId2, platform: 'twitter' });
     postsService.create
-      .mockResolvedValueOnce({ _id: 'test-object-id' })
-      .mockResolvedValueOnce({ _id: 'test-object-id' });
+      .mockResolvedValueOnce({ id: 'test-object-id' })
+      .mockResolvedValueOnce({ id: 'test-object-id' });
 
     const result = await service.publishToAll({
-      brand: 'test-object-id',
+      brandId: 'test-object-id',
       description: 'Post everywhere',
-      organization: 'test-object-id',
+      organizationId: 'test-object-id',
       personaId: 'test-object-id',
-      user: 'test-object-id',
+      userId: 'test-object-id',
     });
 
     expect(result.totalCreated).toBe(2);
@@ -140,17 +140,17 @@ describe('PersonaPublisherService', () => {
       label: 'Fail Persona',
     });
     credentialsService.findOne.mockResolvedValue({
-      _id: credId,
+      id: credId,
       platform: 'twitter',
     });
     postsService.create.mockRejectedValue(new Error('DB error'));
 
     const result = await service.publishToAll({
-      brand: 'test-object-id',
+      brandId: 'test-object-id',
       description: 'Will fail',
-      organization: 'test-object-id',
+      organizationId: 'test-object-id',
       personaId: 'test-object-id',
-      user: 'test-object-id',
+      userId: 'test-object-id',
     });
 
     expect(result.failedCredentials).toContain(String(credId));
@@ -167,11 +167,11 @@ describe('PersonaPublisherService', () => {
     credentialsService.findOne.mockResolvedValue(null);
 
     const result = await service.publishToAll({
-      brand: 'test-object-id',
+      brandId: 'test-object-id',
       description: 'No cred',
-      organization: 'test-object-id',
+      organizationId: 'test-object-id',
       personaId: 'test-object-id',
-      user: 'test-object-id',
+      userId: 'test-object-id',
     });
 
     expect(result.failedCredentials).toContain(String(credId));
@@ -188,18 +188,18 @@ describe('PersonaPublisherService', () => {
       label: 'Scheduled',
     });
     credentialsService.findOne.mockResolvedValue({
-      _id: credId,
+      id: credId,
       platform: 'instagram',
     });
-    postsService.create.mockResolvedValue({ _id: 'test-object-id' });
+    postsService.create.mockResolvedValue({ id: 'test-object-id' });
 
     await service.publishToAll({
-      brand: 'test-object-id',
+      brandId: 'test-object-id',
       description: 'Scheduled post',
-      organization: 'test-object-id',
+      organizationId: 'test-object-id',
       personaId: 'test-object-id',
       scheduledDate: futureDate,
-      user: 'test-object-id',
+      userId: 'test-object-id',
     });
 
     expect(postsService.create).toHaveBeenCalledWith(

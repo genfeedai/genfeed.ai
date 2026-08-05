@@ -16,12 +16,12 @@ const objectId = () => 'test-object-id';
 const makeInput = (
   overrides: Partial<ContentPlanInput> = {},
 ): ContentPlanInput => ({
-  brand: objectId(),
+  brandId: objectId(),
   credentialId: objectId(),
   days: 7,
-  organization: objectId(),
+  organizationId: objectId(),
   personaId: objectId(),
-  user: objectId(),
+  userId: objectId(),
   ...overrides,
 });
 
@@ -29,7 +29,7 @@ const makePersona = (
   overrides: Partial<PersonaDocument> = {},
 ): PersonaDocument =>
   ({
-    _id: objectId(),
+    id: objectId(),
     contentStrategy: {
       formats: [PersonaContentFormat.PHOTO],
       frequency: 'daily',

@@ -21,7 +21,7 @@ const makePersona = (
   overrides: Partial<PersonaDocument> = {},
 ): PersonaDocument =>
   ({
-    _id: objectId(),
+    id: objectId(),
     avatarExternalId: 'avatar-ext-id',
     avatarProvider: AvatarProvider.HEYGEN,
     label: 'TestPersona',
@@ -31,9 +31,9 @@ const makePersona = (
   }) as unknown as PersonaDocument;
 
 const baseInput = () => ({
-  organization: objectId(),
+  organizationId: objectId(),
   personaId: objectId(),
-  user: objectId(),
+  userId: objectId(),
 });
 
 describe('PersonaContentService', () => {

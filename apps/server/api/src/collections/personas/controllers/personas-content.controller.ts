@@ -49,10 +49,10 @@ export class PersonasContentController {
     try {
       const { organization, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaContentService.generatePhoto({
-        organization: EntityIdUtil.toValidId(organization)!,
+        organizationId: EntityIdUtil.toValidId(organization)!,
         personaId: EntityIdUtil.toValidId(id)!,
         prompt: body.prompt,
-        user: EntityIdUtil.toValidId(dbUserId)!,
+        userId: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -72,10 +72,10 @@ export class PersonasContentController {
       const { organization, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaContentService.generateVideo({
         aspectRatio: body.aspectRatio,
-        organization: EntityIdUtil.toValidId(organization)!,
+        organizationId: EntityIdUtil.toValidId(organization)!,
         personaId: EntityIdUtil.toValidId(id)!,
         script: body.script,
-        user: EntityIdUtil.toValidId(dbUserId)!,
+        userId: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -97,10 +97,10 @@ export class PersonasContentController {
         ingredientId: body.ingredientId
           ? EntityIdUtil.toValidId(body.ingredientId)!
           : undefined,
-        organization: EntityIdUtil.toValidId(organization)!,
+        organizationId: EntityIdUtil.toValidId(organization)!,
         personaId: EntityIdUtil.toValidId(id)!,
         text: body.text,
-        user: EntityIdUtil.toValidId(dbUserId)!,
+        userId: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };
@@ -146,14 +146,14 @@ export class PersonasContentController {
       );
 
       const input = {
-        brand: EntityIdUtil.toValidId(brand)!,
+        brandId: EntityIdUtil.toValidId(brand)!,
         credentialId: body.credentialId
           ? EntityIdUtil.toValidId(body.credentialId)!
           : undefined,
         days,
-        organization: EntityIdUtil.toValidId(organization)!,
+        organizationId: EntityIdUtil.toValidId(organization)!,
         personaId: EntityIdUtil.toValidId(id)!,
-        user: EntityIdUtil.toValidId(dbUserId)!,
+        userId: EntityIdUtil.toValidId(dbUserId)!,
       };
 
       const plan =
@@ -196,18 +196,18 @@ export class PersonasContentController {
     try {
       const { organization, brand, user: dbUserId } = getPublicMetadata(user);
       const result = await this.personaPublisherService.publishToAll({
-        brand: EntityIdUtil.toValidId(brand)!,
+        brandId: EntityIdUtil.toValidId(brand)!,
         category: body.category,
         description: body.description,
         ingredientIds: body.ingredientIds?.map(
           (iid) => EntityIdUtil.toValidId(iid)!,
         ),
-        organization: EntityIdUtil.toValidId(organization)!,
+        organizationId: EntityIdUtil.toValidId(organization)!,
         personaId: EntityIdUtil.toValidId(id)!,
         scheduledDate: body.scheduledDate
           ? new Date(body.scheduledDate)
           : undefined,
-        user: EntityIdUtil.toValidId(dbUserId)!,
+        userId: EntityIdUtil.toValidId(dbUserId)!,
       });
 
       return { data: result };

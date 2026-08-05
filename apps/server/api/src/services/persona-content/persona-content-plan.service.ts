@@ -14,9 +14,9 @@ import { Injectable } from '@nestjs/common';
 
 export interface ContentPlanInput {
   personaId: string;
-  organization: string;
-  user: string;
-  brand: string;
+  organizationId: string;
+  userId: string;
+  brandId: string;
   days: number;
   credentialId?: string;
 }
@@ -66,7 +66,7 @@ export class PersonaContentPlanService {
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
-      input.organization,
+      input.organizationId,
     );
 
     const strategy = (persona.contentStrategy ?? {}) as PersonaContentStrategy;
@@ -131,18 +131,18 @@ export class PersonaContentPlanService {
     for (const entry of entries) {
       try {
         await this.postsService.create({
-          brandId: input.brand,
+          brandId: input.brandId,
           category: entry.category,
           credentialId: input.credentialId,
           description: entry.description,
           ingredients: [],
           label: `${entry.topic} - ${entry.format}`,
-          organizationId: input.organization,
+          organizationId: input.organizationId,
           personaId: input.personaId,
           platform: CredentialPlatform.INSTAGRAM,
           scheduledDate: entry.scheduledDate,
           status: PostStatus.DRAFT,
-          userId: input.user,
+          userId: input.userId,
         } as unknown as Parameters<PostsService['create']>[0]);
 
         created++;
@@ -176,12 +176,12 @@ export class PersonaContentPlanService {
 
   private async getPersonaOrFail(
     personaId: string,
-    organization: string,
+    organizationId: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       id: personaId,
       isDeleted: false,
-      organizationId: organization,
+      organizationId,
     });
 
     if (!persona) {

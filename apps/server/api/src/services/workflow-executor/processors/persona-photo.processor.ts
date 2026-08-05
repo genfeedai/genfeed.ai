@@ -69,10 +69,10 @@ export class PersonaPhotoProcessor {
 
     for (let i = 0; i < count; i++) {
       const result = await this.personaContentService.generatePhoto({
-        organization: input.organizationId,
+        organizationId: input.organizationId,
         personaId: input.personaId,
         prompt: input.prompt,
-        user: input.userId,
+        userId: input.userId,
       });
 
       // Generate a unique generationId for closed-loop attribution

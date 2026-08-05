@@ -71,7 +71,9 @@ describe('PersonaVideoProcessor', () => {
       expect(personaContentService.generateVideo).toHaveBeenCalledWith(
         expect.objectContaining({
           aspectRatio: '16:9',
+          organizationId: validInput.organizationId,
           script: validInput.script,
+          userId: validInput.userId,
         }),
       );
     });
