@@ -294,6 +294,12 @@ export function useGenerationActionCard({
     setThreadUiBusy,
   ]);
 
+  const handleCopyPrompt = useCallback(() => {
+    if (prompt.trim()) {
+      navigator.clipboard.writeText(prompt);
+    }
+  }, [prompt]);
+
   const handleRetry = useCallback(async () => {
     clearGenerationOutcome();
     setStatus('idle');
@@ -358,6 +364,7 @@ export function useGenerationActionCard({
     durationOptions,
     textareaRef: textareaRef as RefObject<HTMLTextAreaElement | null>,
     onRegenerateProp,
+    handleCopyPrompt,
     handleRetryVoid,
     handleGenerateVoid,
     handleModelChange,
