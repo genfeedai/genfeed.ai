@@ -10,7 +10,7 @@ import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
-import { PopulateBuilder } from '@api/shared/utils/populate/populate-builder.util';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
 import type {
   IOnboardingAccessPreference,
