@@ -17,6 +17,7 @@ import { ImagesSplitService } from '@files/services/images/images-split.service'
 import { S3Service } from '@files/services/s3/s3.service';
 import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnail.service';
 import { UploadService } from '@files/services/upload/upload.service';
+import { IngredientFormat } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -615,7 +616,7 @@ describe('FilesController', () => {
             projectId: 'project-123',
             settings: {
               backgroundColor: '#000000',
-              format: 'landscape' as const,
+              format: IngredientFormat.LANDSCAPE,
               fps: 30,
               height: 1080,
               width: 1920,
