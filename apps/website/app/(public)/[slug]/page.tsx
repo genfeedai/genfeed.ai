@@ -48,7 +48,7 @@ export async function generateMetadata(
     };
   }
 
-  const title = `${product.name} | ${product.tagline} | ${metadata.name}`;
+  const title = `${product.seoTitle ?? `${product.name} | ${product.tagline}`} | ${metadata.name}`;
   const description = product.description;
   const url = `${EnvironmentService.apps.website}/${product.slug}`;
 

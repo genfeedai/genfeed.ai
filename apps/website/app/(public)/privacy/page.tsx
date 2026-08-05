@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import PrivacyContent from '@public/privacy/privacy-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Privacy Policy',
+  'Privacy Policy: Data and Content',
   'Learn how Genfeed.ai handles your data, privacy protections, content ownership rights, and our commitment to keeping your information secure.',
   '/privacy',
 );

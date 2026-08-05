@@ -4,7 +4,7 @@ import VsHubContent from '@public/vs/vs-hub-content';
 import type { Metadata, ResolvingMetadata } from 'next';
 
 const vsDescription =
-  'Compare Genfeed with popular AI content creation tools. Side-by-side feature comparisons, pricing breakdowns, and honest assessments to help you choose the right platform.';
+  'Compare Genfeed with popular AI content tools: side-by-side features, pricing breakdowns, and honest assessments to help you pick the right platform.';
 
 const vsJsonLd = {
   '@context': 'https://schema.org',
@@ -25,7 +25,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const previousImages = (await parent).openGraph?.images || [];
   const images = [...previousImages];
-  const title = `Genfeed vs Alternatives (2026): AI Content Platform Comparisons | ${metadata.name}`;
+  const title = `Genfeed vs Alternatives: AI Tool Comparisons | ${metadata.name}`;
 
   return {
     alternates: {

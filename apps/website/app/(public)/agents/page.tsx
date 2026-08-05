@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import AgentsContent from '@public/agents/agents-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Agents',
+  'AI Agents That Create and Publish',
   'Hire autonomous AI agents that research, generate, and publish content on a schedule. Set goals and guardrails, then run campaigns on autopilot.',
   '/agents',
 );

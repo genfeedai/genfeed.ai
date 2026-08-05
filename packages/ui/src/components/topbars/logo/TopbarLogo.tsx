@@ -11,7 +11,14 @@ export default function TopbarLogo({ logoHref }: TopbarLogoProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <Link href={logoHref} className="py-2">
+      {/* useThemeLogo() returns '' until the client mounts, so the served HTML
+          is an anchor with no text and no image. Label the link itself rather
+          than relying on the logo alt, which is absent in that first render. */}
+      <Link
+        href={logoHref}
+        className="py-2"
+        aria-label={`${EnvironmentService.LOGO_ALT} home`}
+      >
         {logoUrl && (
           <Image
             src={logoUrl}

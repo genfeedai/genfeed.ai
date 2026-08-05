@@ -2,7 +2,7 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import WorkflowsContent from '@public/workflows/workflows-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'Workflows',
+  'Workflows: Deterministic AI Runs',
   'Deterministic workflow control for agentic execution. Define triggers, author exact steps, inspect outputs, and let agents trigger workflows when needed.',
   '/workflows',
 );

@@ -90,6 +90,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.8,
+      url: 'https://genfeed.ai/use-cases',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.8,
       url: 'https://genfeed.ai/use-cases/creators',
     },
     {

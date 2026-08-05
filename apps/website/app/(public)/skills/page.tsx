@@ -4,8 +4,8 @@ import SkillsContent from '@public/skills/skills-content';
 import { getSkillsRegistry } from '@public/skills/skills-loader';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'AI Skills for Content Creation, SEO, GTM & Advertising',
-  `${FREE_SKILL_COUNT} open-source Claude Code skills for content creation, SEO optimization, advertising, image prompting, GTM strategy, and platform development. Install with one command: bunx skills add genfeedai/skills`,
+  'AI Skills for Content, SEO and GTM',
+  `${FREE_SKILL_COUNT} open-source Claude Code skills for content, SEO, advertising, image prompting, and GTM strategy. Install with: bunx skills add genfeedai/skills`,
   '/skills',
 );
 

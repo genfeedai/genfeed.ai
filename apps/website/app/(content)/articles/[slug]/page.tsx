@@ -4,6 +4,7 @@ import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { PublicService } from '@services/external/public.service';
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import ArticleDetailContent from './article-detail';
 import { getPublicArticleBySlugCached } from './article-loader';
 
@@ -101,49 +102,49 @@ export default async function ArticleDetail({
   const { previewToken } = await searchParams;
   const article = await getPublicArticleBySlugCached(slug, previewToken);
 
+  // generateMetadata already titles this "Article not found", but the page used
+  // to render a null article with a 200 — a soft 404 that lets crawlers index
+  // an empty shell. Answer with a real 404 instead.
+  if (!article || article.id === 'undefined') {
+    notFound();
+  }
+
   // The API only hands back an unpublished article when it accepted the token,
   // so the article itself — not the query string — decides whether to warn the
   // reader that this is not live yet.
-  const isPreview = Boolean(article && !article.publishedAt);
+  const isPreview = !article.publishedAt;
 
-  const articleJsonLd =
-    article && article.id !== 'undefined'
-      ? buildArticleJsonLd({
-          author:
-            typeof article.author === 'string' &&
-            article.author.trim().length > 0
-              ? article.author.trim()
-              : {
-                  name: 'Genfeed',
-                  url: 'https://genfeed.ai',
-                },
-          body:
-            typeof article.content === 'string' ? article.content : undefined,
-          dateModified: article.updatedAt || article.createdAt,
-          datePublished: article.createdAt,
-          description:
-            typeof article.summary === 'string' ? article.summary : undefined,
-          headline:
-            typeof article.label === 'string' && article.label.trim().length > 0
-              ? article.label.trim()
-              : 'Article',
-          imageUrls: [article.bannerUrl || metadata.cards.default],
-          inLanguage: 'en-US',
-          keywords: article.tags
-            ?.map((tag) =>
-              typeof tag?.label === 'string' ? tag.label : undefined,
-            )
-            .filter((label): label is string => Boolean(label)),
-          mainEntityUrl: `${EnvironmentService.apps.website}/articles/${slug}`,
-          publisher: {
-            logoUrl: 'https://cdn.genfeed.ai/assets/logo.png',
+  const articleJsonLd = buildArticleJsonLd({
+    author:
+      typeof article.author === 'string' && article.author.trim().length > 0
+        ? article.author.trim()
+        : {
             name: 'Genfeed',
             url: 'https://genfeed.ai',
           },
-          url: `${EnvironmentService.apps.website}/articles/${slug}`,
-          wordCount: article.wordCount || undefined,
-        })
-      : null;
+    body: typeof article.content === 'string' ? article.content : undefined,
+    dateModified: article.updatedAt || article.createdAt,
+    datePublished: article.createdAt,
+    description:
+      typeof article.summary === 'string' ? article.summary : undefined,
+    headline:
+      typeof article.label === 'string' && article.label.trim().length > 0
+        ? article.label.trim()
+        : 'Article',
+    imageUrls: [article.bannerUrl || metadata.cards.default],
+    inLanguage: 'en-US',
+    keywords: article.tags
+      ?.map((tag) => (typeof tag?.label === 'string' ? tag.label : undefined))
+      .filter((label): label is string => Boolean(label)),
+    mainEntityUrl: `${EnvironmentService.apps.website}/articles/${slug}`,
+    publisher: {
+      logoUrl: 'https://cdn.genfeed.ai/assets/logo.png',
+      name: 'Genfeed',
+      url: 'https://genfeed.ai',
+    },
+    url: `${EnvironmentService.apps.website}/articles/${slug}`,
+    wordCount: article.wordCount || undefined,
+  });
 
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -161,43 +162,33 @@ export default async function ArticleDetail({
         name: 'Articles',
         position: 2,
       },
-      ...(article && article.id !== 'undefined'
-        ? [
-            {
-              '@type': 'ListItem',
-              item: `${EnvironmentService.apps.website}/articles/${slug}`,
-              name: article.label,
-              position: 3,
-            },
-          ]
-        : []),
+      {
+        '@type': 'ListItem',
+        item: `${EnvironmentService.apps.website}/articles/${slug}`,
+        name: article.label,
+        position: 3,
+      },
     ],
   };
 
   return (
     <>
-      {articleJsonLd ? (
-        <script type="application/ld+json">
-          {stringifyJsonLd(articleJsonLd)}
-        </script>
-      ) : null}
+      <script type="application/ld+json">
+        {stringifyJsonLd(articleJsonLd)}
+      </script>
       <script type="application/ld+json">
         {stringifyJsonLd(breadcrumbJsonLd)}
       </script>
       <ArticleDetailContent
-        article={
-          article
-            ? JSON.parse(
-                JSON.stringify({
-                  ...article,
-                  author: article.author,
-                  bannerUrl: article.bannerUrl,
-                  readingTime: article.readingTime,
-                  wordCount: article.wordCount,
-                }),
-              )
-            : null
-        }
+        article={JSON.parse(
+          JSON.stringify({
+            ...article,
+            author: article.author,
+            bannerUrl: article.bannerUrl,
+            readingTime: article.readingTime,
+            wordCount: article.wordCount,
+          }),
+        )}
         isPreview={isPreview}
       />
     </>
