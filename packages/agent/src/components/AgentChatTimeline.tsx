@@ -126,19 +126,21 @@ export function AgentChatTimeline({
       ) : null}
 
       {pendingUiActions.length > 0 &&
-        pendingUiActions.map((action) => (
-          <UiActionRenderer
-            key={`pending-ui-action-${action.id}`}
-            action={action}
-            apiService={apiService}
-            onCopy={onCopy}
-            onOAuthConnect={onOAuthConnect}
-            onBrandCreate={onBrandCreate}
-            onSelectCreditPack={onSelectCreditPack}
-            onSelectIngredient={onSelectIngredient}
-            onUiAction={onUiAction}
-          />
-        ))}
+        pendingUiActions
+          .filter((action) => action.type !== 'generation_action_card')
+          .map((action) => (
+            <UiActionRenderer
+              key={`pending-ui-action-${action.id}`}
+              action={action}
+              apiService={apiService}
+              onCopy={onCopy}
+              onOAuthConnect={onOAuthConnect}
+              onBrandCreate={onBrandCreate}
+              onSelectCreditPack={onSelectCreditPack}
+              onSelectIngredient={onSelectIngredient}
+              onUiAction={onUiAction}
+            />
+          ))}
 
       {isGenerating &&
         !isStreamingActive &&

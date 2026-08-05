@@ -396,4 +396,41 @@ describe('GenerationActionCard', () => {
 
     expect(await screen.findByText('Open in Library')).toBeInTheDocument();
   });
+
+  it('routes composer generation through the persisted thread UI action', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            aspectRatio: '9:16',
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-7',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(onUiAction).toHaveBeenCalledWith(
+        'confirm_generate_media',
+        expect.objectContaining({
+          aspectRatio: '9:16',
+          generationType: 'image',
+          prompt: 'Editorial portrait with restrained studio lighting.',
+          sourceActionId: 'action-7',
+        }),
+      );
+    });
+  });
 });

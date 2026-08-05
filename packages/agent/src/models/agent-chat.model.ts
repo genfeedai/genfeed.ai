@@ -162,7 +162,15 @@ export interface AgentUiAction {
     | 'brand_interview_complete_card';
   title: string;
   description?: string;
+  contentFormat?:
+    | 'article'
+    | 'generic'
+    | 'newsletter'
+    | 'social_post'
+    | 'thread';
   platform?: string;
+  subject?: string;
+  preheader?: string;
   tweets?: string[];
   images?: string[];
   videos?: string[];

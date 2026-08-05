@@ -1,3 +1,4 @@
+import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import type {
   ThreadOutputGroup,
@@ -5,7 +6,6 @@ import type {
 } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { ButtonVariant } from '@genfeedai/enums';
-import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -89,19 +89,16 @@ function renderVariantPreview(
 
   if (variant.kind === 'text') {
     return (
-      <div className="gen-shell-surface rounded-[1.25rem] p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-          <FileText className="size-4 text-primary/80" />
-          {variant.title ?? group.title}
-        </div>
-        <Pre
-          variant="ghost"
-          size="md"
-          className="max-h-[18rem] overflow-y-auto text-foreground/75"
-        >
-          {variant.textContent}
-        </Pre>
-      </div>
+      <AgentTextArtifactPreview
+        data={{
+          content: variant.textContent ?? '',
+          contentFormat: variant.contentFormat,
+          platform: variant.platform,
+          preheader: variant.preheader,
+          subject: variant.subject,
+          title: variant.title ?? group.title,
+        }}
+      />
     );
   }
 

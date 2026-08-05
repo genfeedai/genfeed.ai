@@ -59,4 +59,71 @@ describe('extractThreadOutputs', () => {
       url: 'https://cdn.test/output-2.mp4',
     });
   });
+
+  it('preserves format metadata for newsletter and social preview renderers', () => {
+    const outputs = extractThreadOutputs([
+      {
+        content: 'assistant',
+        createdAt: '2026-08-05T10:00:00.000Z',
+        id: 'message-3',
+        metadata: {
+          uiActions: [
+            {
+              contentFormat: 'newsletter',
+              id: 'newsletter-1',
+              platform: 'newsletter',
+              preheader: 'Three useful signals',
+              subject: 'The weekly briefing',
+              textContent: 'Newsletter body',
+              title: 'Newsletter draft',
+              type: 'content_preview_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ]);
+
+    expect(outputs[0].variants[0]).toMatchObject({
+      contentFormat: 'newsletter',
+      platform: 'newsletter',
+      preheader: 'Three useful signals',
+      subject: 'The weekly briefing',
+    });
+  });
+
+  it('uses completion summary output variants only when detailed outputs are absent', () => {
+    const outputs = extractThreadOutputs([
+      {
+        content: 'assistant',
+        createdAt: '2026-08-05T10:00:00.000Z',
+        id: 'message-4',
+        metadata: {
+          uiActions: [
+            {
+              id: 'summary-1',
+              outputVariants: [
+                {
+                  id: 'summary-image',
+                  kind: 'image',
+                  url: 'https://cdn.test/summary.png',
+                },
+              ],
+              title: 'Done',
+              type: 'completion_summary_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ]);
+
+    expect(outputs).toHaveLength(1);
+    expect(outputs[0].variants[0]).toMatchObject({
+      kind: 'image',
+      url: 'https://cdn.test/summary.png',
+    });
+  });
 });

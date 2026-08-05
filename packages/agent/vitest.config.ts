@@ -14,6 +14,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../api-types/src/$1'),
+      },
+      {
         find: /^@genfeedai\/config$/,
         replacement: path.resolve(__dirname, '../config/src/index.ts'),
       },

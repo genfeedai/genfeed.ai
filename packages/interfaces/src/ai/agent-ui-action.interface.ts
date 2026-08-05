@@ -83,7 +83,15 @@ export interface AgentClipRunIdentity {
 export interface AgentUiAction extends AgentUiActionBase {
   ctas?: AgentUiActionCta[];
   data?: Record<string, unknown>;
+  contentFormat?:
+    | 'article'
+    | 'generic'
+    | 'newsletter'
+    | 'social_post'
+    | 'thread';
   platform?: string;
+  subject?: string;
+  preheader?: string;
   images?: string[];
   videos?: string[];
   audio?: string[];

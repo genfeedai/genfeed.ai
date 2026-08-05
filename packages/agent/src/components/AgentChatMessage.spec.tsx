@@ -341,6 +341,31 @@ describe('AgentChatMessage', () => {
     ).toHaveAttribute('src', ONE_PIXEL_IMAGE);
   });
 
+  it('keeps generation configuration out of the transcript card stack', () => {
+    render(
+      <AgentChatMessage
+        message={{
+          ...buildMessage('assistant', 'Configure this image.'),
+          metadata: {
+            uiActions: [
+              {
+                generationType: 'image',
+                id: 'generation-action-1',
+                title: 'Generate image ingredient',
+                type: 'generation_action_card',
+              },
+            ],
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Configure this image.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Generate image ingredient'),
+    ).not.toBeInTheDocument();
+  });
+
   it('renders a completion summary card with quick actions and inline outputs', () => {
     const onRetry = vi.fn();
 

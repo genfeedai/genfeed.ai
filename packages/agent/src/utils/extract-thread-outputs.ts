@@ -11,7 +11,11 @@ export interface ThreadOutputVariant {
   ctas?: AgentUiActionCta[];
   id: string;
   kind: ThreadOutputKind;
+  contentFormat?: AgentUiAction['contentFormat'];
   messageId: string;
+  platform?: string;
+  preheader?: string;
+  subject?: string;
   textContent?: string;
   thumbnailUrl?: string;
   title?: string;
@@ -60,9 +64,13 @@ function buildTextVariants(
 
     variants.push({
       ctas: action.ctas,
+      contentFormat: action.contentFormat,
       id: `${messageId}:${action.id}:tweet:${index}`,
       kind: 'text',
       messageId,
+      platform: action.platform,
+      preheader: action.preheader,
+      subject: action.subject,
       textContent: text,
       title: `Text ${index + 1}`,
     });
@@ -71,9 +79,13 @@ function buildTextVariants(
   if (action.textContent?.trim()) {
     variants.push({
       ctas: action.ctas,
+      contentFormat: action.contentFormat,
       id: `${messageId}:${action.id}:text-content`,
       kind: 'text',
       messageId,
+      platform: action.platform,
+      preheader: action.preheader,
+      subject: action.subject,
       textContent: action.textContent,
       title: action.title,
     });
@@ -156,10 +168,38 @@ function buildActionGroup(
   action: AgentUiAction,
   messageId: string,
 ): ThreadOutputGroup | null {
-  const variants = [
+  const directVariants = [
     ...buildMediaVariants(action, messageId),
     ...buildTextVariants(action, messageId),
   ];
+  const variants =
+    directVariants.length > 0
+      ? directVariants
+      : (action.outputVariants ?? []).flatMap((variant) => {
+          if (variant.kind === 'text' && !variant.textContent?.trim()) {
+            return [];
+          }
+          if (variant.kind !== 'text' && !variant.url) {
+            return [];
+          }
+
+          return [
+            {
+              ctas: action.ctas,
+              contentFormat: action.contentFormat,
+              id: `${messageId}:${action.id}:output:${variant.id}`,
+              kind: variant.kind,
+              messageId,
+              platform: action.platform,
+              preheader: action.preheader,
+              subject: action.subject,
+              textContent: variant.textContent,
+              thumbnailUrl: variant.thumbnailUrl,
+              title: variant.title,
+              url: variant.url,
+            } satisfies ThreadOutputVariant,
+          ];
+        });
 
   if (variants.length === 0) {
     return null;
@@ -213,12 +253,23 @@ export function extractThreadOutputs(
   const groups: ThreadOutputGroup[] = [];
 
   messages.forEach((message) => {
-    message.metadata?.uiActions?.forEach((action) => {
-      const group = buildActionGroup(action, message.id);
-      if (group) {
-        groups.push(group);
-      }
-    });
+    const actionGroups = (message.metadata?.uiActions ?? []).flatMap(
+      (action) => {
+        const group = buildActionGroup(action, message.id);
+        return group ? [group] : [];
+      },
+    );
+    const hasDetailedOutput = actionGroups.some(
+      (group) => group.sourceActionType !== 'completion_summary_card',
+    );
+
+    groups.push(
+      ...actionGroups.filter(
+        (group) =>
+          !hasDetailedOutput ||
+          group.sourceActionType !== 'completion_summary_card',
+      ),
+    );
 
     const mediaGroup = buildMessageMediaGroup(message);
     if (mediaGroup) {

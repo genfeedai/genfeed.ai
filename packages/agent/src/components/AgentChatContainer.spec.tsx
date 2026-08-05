@@ -259,6 +259,16 @@ vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
   },
 }));
 
+vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
+  GenerationActionCard: function MockGenerationActionCard(props: {
+    action: { title: string };
+  }) {
+    return (
+      <div data-testid="composer-generation-card">{props.action.title}</div>
+    );
+  },
+}));
+
 type StoreState = {
   activeThreadId: string | null;
   activeRunId: string | null;
@@ -541,6 +551,39 @@ describe('AgentChatContainer', () => {
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
       'true',
+    );
+  });
+
+  it('anchors an unresolved generation request above the prompt bar', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [
+      {
+        content: 'Configure the image before generation.',
+        createdAt: '2026-08-05T12:00:00.000Z',
+        id: 'generation-message-1',
+        metadata: {
+          uiActions: [
+            {
+              generationType: 'image',
+              id: 'generation-action-1',
+              title: 'Generate image ingredient',
+              type: 'generation_action_card',
+            },
+          ],
+        },
+        role: 'assistant',
+        threadId: 'thread-1',
+      },
+    ];
+
+    render(<AgentChatContainer apiService={apiService as never} />);
+
+    const card = screen.getByTestId('composer-generation-card');
+    const input = screen.getByTestId('chat-input');
+    expect(card.compareDocumentPosition(input)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
     );
   });
 

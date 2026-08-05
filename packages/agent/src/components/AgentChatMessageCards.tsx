@@ -1,4 +1,4 @@
-import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
+import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -160,18 +160,49 @@ export function ContentPreviewCard({
     (!action.images || action.images.length === 0) &&
     (!action.videos || action.videos.length === 0) &&
     (!action.audio || action.audio.length === 0) &&
-    (!action.tweets || action.tweets.length === 0);
+    (!action.tweets || action.tweets.length === 0) &&
+    !action.textContent?.trim();
+  const textOutputs = action.tweets?.length
+    ? action.tweets
+    : action.textContent?.trim()
+      ? [action.textContent]
+      : [];
+  const isThreadPreview =
+    action.contentFormat === 'thread' && textOutputs.length > 1;
 
   return (
     <div className="mt-2 space-y-2">
-      {action.tweets?.map((tweet, i) => (
-        <AgentGeneratedTextCard
-          key={tweet}
-          title={`Tweet ${i + 1}`}
-          content={tweet}
+      {isThreadPreview ? (
+        <AgentTextArtifactPreview
+          data={{
+            content: textOutputs[0],
+            contentFormat: action.contentFormat,
+            platform: action.platform ?? 'twitter',
+            threadSegments: textOutputs,
+            title: action.title,
+          }}
           onCopy={onCopy}
         />
-      ))}
+      ) : (
+        textOutputs.map((text, index) => (
+          <div key={`${action.id}-text-${index}`} className="space-y-2">
+            <AgentTextArtifactPreview
+              data={{
+                content: text,
+                contentFormat: action.contentFormat,
+                platform: action.platform,
+                preheader: action.preheader,
+                subject: action.subject,
+                title:
+                  textOutputs.length > 1
+                    ? `${action.title} ${index + 1}`
+                    : action.title,
+              }}
+              onCopy={onCopy}
+            />
+          </div>
+        ))
+      )}
       {action.images && action.images.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {action.images.map((url, i) => (

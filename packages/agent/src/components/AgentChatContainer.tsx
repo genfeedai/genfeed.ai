@@ -10,6 +10,8 @@ import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { AlertCategory } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -44,6 +46,7 @@ export function AgentChatContainer({
   workspacePlanningTaskId = null,
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
+  const messages = useAgentChatStore((state) => state.messages);
   const [selectedModel, setSelectedModel] = useState(
     () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
   );
@@ -113,6 +116,14 @@ export function AgentChatContainer({
       onSend={handleSuggestionSend}
     />
   ) : null;
+  const pendingGenerationAction = useMemo(
+    () =>
+      [...container.streamState.pendingUiActions]
+        .reverse()
+        .find((action) => action.type === 'generation_action_card') ??
+      findPendingGenerationAction(messages),
+    [container.streamState.pendingUiActions, messages],
+  );
   const shouldRenderInlineComposerFeedback =
     !composerShell || composerShell.isComposerVisible === false;
 
@@ -247,6 +258,7 @@ export function AgentChatContainer({
         onboardingMode ||
         composerShell?.placement === 'inspector') ? (
         <AgentChatPromptBar
+          activeGenerationAction={pendingGenerationAction}
           activeWorkEvent={activeWorkEvent}
           addFiles={container.addFiles}
           apiService={apiService}
@@ -276,6 +288,7 @@ export function AgentChatContainer({
           onSend={container.handleSend}
           onStop={container.handleStopRun}
           onSubmitInputRequest={container.handleSubmitInputRequest}
+          onUiAction={container.handleUiAction}
           pendingInputRequest={
             composerShell && !onboardingMode
               ? container.pendingInputRequest

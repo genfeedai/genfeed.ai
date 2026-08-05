@@ -69,12 +69,17 @@ interface UseGenerationActionCardParams {
   action: AgentUiAction;
   apiService: AgentApiService;
   onRegenerate?: () => void;
+  onUiAction?: (
+    action: string,
+    payload?: Record<string, unknown>,
+  ) => void | Promise<void>;
 }
 
 export function useGenerationActionCard({
   action,
   apiService,
   onRegenerate: onRegenerateProp,
+  onUiAction,
 }: UseGenerationActionCardParams) {
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
@@ -207,6 +212,20 @@ export function useGenerationActionCard({
     }
 
     try {
+      if (onUiAction) {
+        await onUiAction('confirm_generate_media', {
+          aspectRatio,
+          duration: generationType === 'video' ? duration : undefined,
+          generationType,
+          model: !isAutoMode && modelKey ? modelKey : undefined,
+          prioritize,
+          prompt,
+          sourceActionId: action.id,
+        });
+        setStatus('done');
+        return;
+      }
+
       const promptDoc = await runAgentApiEffect(
         apiService.createPromptEffect(
           {
@@ -262,6 +281,7 @@ export function useGenerationActionCard({
     }
   }, [
     activeThreadId,
+    action.id,
     prompt,
     status,
     isAutoMode,
@@ -272,6 +292,7 @@ export function useGenerationActionCard({
     apiService,
     clearGenerationOutcome,
     prioritize,
+    onUiAction,
     setThreadUiBusy,
   ]);
 
