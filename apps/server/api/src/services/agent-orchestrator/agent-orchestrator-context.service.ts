@@ -36,6 +36,7 @@ import {
 import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import {
   AgentMessageRole,
   AgentType,
@@ -172,14 +173,20 @@ export class AgentOrchestratorContextService {
           platform: policy.platform,
         })
       : null;
-    const resolveModel = (brandDefaultModel?: string): string | undefined =>
-      request.model ||
-      strategyModel ||
-      policy.thinkingModelOverride ||
-      subscriptionDefaultModel ||
-      brandDefaultModel ||
-      agentTypeConfig?.defaultModel ||
-      DEFAULT_AGENT_CHAT_MODEL;
+    // Every candidate here can be a key persisted months ago — an org default, a
+    // brand default, a strategy pin. Retired keys map forward to their catalogue
+    // successor so the model we call is always one the picker offers and the
+    // biller has a real price for.
+    const resolveModel = (brandDefaultModel?: string): string =>
+      resolveAgentChatModelKey(
+        request.model ||
+          strategyModel ||
+          policy.thinkingModelOverride ||
+          subscriptionDefaultModel ||
+          brandDefaultModel ||
+          agentTypeConfig?.defaultModel ||
+          DEFAULT_AGENT_CHAT_MODEL,
+      );
 
     const resolvedSkills =
       this.skillRuntimeService && policy.brandId

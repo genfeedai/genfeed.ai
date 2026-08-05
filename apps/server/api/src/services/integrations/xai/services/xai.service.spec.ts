@@ -358,7 +358,7 @@ describe('XaiService', () => {
 
       expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
-          model: 'x-ai/grok-4-fast',
+          model: 'x-ai/grok-4.5',
         }),
       );
     });

@@ -30,7 +30,7 @@ const RUN: IAgentRun = {
   label: 'Fresh trend scan',
   metadata: {
     actualModel: 'google/gemini-2.5-flash',
-    requestedModel: 'openrouter/auto',
+    requestedModel: 'openai/gpt-5.6-terra',
     routingPolicy: 'fresh-live-data',
   },
   objective: 'Find current creator economy trends',
@@ -53,7 +53,9 @@ describe('AgentRunCard', () => {
     render(<AgentRunCard run={RUN} />);
 
     expect(
-      screen.getByText('Model: google/gemini-2.5-flash via openrouter/auto'),
+      screen.getByText(
+        'Model: google/gemini-2.5-flash via openai/gpt-5.6-terra',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText('Routing: fresh-live-data')).toBeInTheDocument();
   });

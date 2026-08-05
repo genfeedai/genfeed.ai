@@ -247,7 +247,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
         data: {
           config: {
             maxTokens: 1400,
-            model: 'openai/gpt-4o-mini',
+            model: 'openai/gpt-5.6-luna',
             temperature: 0.8,
           },
           label: 'Draft Launch Assets',
@@ -331,7 +331,7 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
       {
         category: WorkflowStepCategory.GENERATE_ARTICLE,
         config: {
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           temperature: 0.8,
         },
         id: 'draft-launch-assets',

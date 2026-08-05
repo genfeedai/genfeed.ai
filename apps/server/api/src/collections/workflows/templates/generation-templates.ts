@@ -702,7 +702,7 @@ const FOUNDER_X_POST_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           outputFormat: 'text',
           temperature: 0.5,
         },
@@ -873,7 +873,7 @@ const FOUNDER_X_THREAD_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           outputFormat: 'text',
           temperature: 0.45,
         },
@@ -1044,7 +1044,7 @@ const FOUNDER_NEWSLETTER_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         config: {
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           outputFormat: 'text',
           temperature: 0.4,
         },
@@ -1576,7 +1576,7 @@ const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
       data: {
         config: {
           maxTokens: 1600,
-          model: 'openai/gpt-4o-mini',
+          model: 'openai/gpt-5.6-luna',
           temperature: 0.7,
         },
         label: 'Script Brief',

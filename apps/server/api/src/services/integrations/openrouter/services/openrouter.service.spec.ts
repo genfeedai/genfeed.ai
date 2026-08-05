@@ -20,7 +20,7 @@ describe('OpenRouterService', () => {
 
   const defaultParams: OpenRouterChatCompletionParams = {
     messages: [{ content: 'Hello', role: 'user' }],
-    model: 'anthropic/claude-sonnet-4-5-20250929',
+    model: 'anthropic/claude-sonnet-5',
   };
 
   const mockResponse: OpenRouterChatCompletionResponse = {
@@ -31,7 +31,7 @@ describe('OpenRouterService', () => {
       },
     ],
     id: 'gen-123',
-    model: 'anthropic/claude-sonnet-4-5-20250929',
+    model: 'anthropic/claude-sonnet-5',
     usage: { completion_tokens: 5, prompt_tokens: 10, total_tokens: 15 },
   };
 

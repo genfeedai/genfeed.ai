@@ -607,7 +607,7 @@ export class CronJobsService {
       .filter(Boolean)
       .join('\n\n');
 
-    const model = payload.model ?? 'openai/gpt-4o-mini';
+    const model = payload.model ?? 'openai/gpt-5.6-luna';
 
     try {
       const completion = await this.openRouterService.chatCompletion({

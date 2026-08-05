@@ -17,9 +17,9 @@ const PLATFORM_CHAR_LIMITS: Record<string, number> = {
 };
 
 const TRUSTED_TREND_REMIX_MODELS = new Set([
-  'anthropic/claude-sonnet-4.5',
-  'openai/gpt-4o',
-  'openai/gpt-4o-mini',
+  'anthropic/claude-sonnet-5',
+  'openai/gpt-5.6-terra',
+  'openai/gpt-5.6-luna',
 ]);
 
 type RemixPackVariantDefinition = {
@@ -204,7 +204,7 @@ export class TrendRemixHandler implements SkillHandler {
       return value.trim();
     }
 
-    return 'openai/gpt-4o-mini';
+    return 'openai/gpt-5.6-luna';
   }
 
   private buildRemixPackVariants(

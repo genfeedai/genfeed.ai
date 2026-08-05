@@ -350,7 +350,7 @@ export class NewslettersService extends BaseService<
           },
           { content: prompt, role: 'user' },
         ],
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-5.6-luna',
         temperature: 0.5,
       });
 
@@ -390,7 +390,7 @@ export class NewslettersService extends BaseService<
           },
           { content: prompt, role: 'user' },
         ],
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-5.6-luna',
         temperature: 0.55,
       });
       generatedContent =

@@ -102,7 +102,7 @@ describe('InsightsService', () => {
       expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: [expect.objectContaining({ role: 'user' })],
-          model: 'anthropic/claude-sonnet-4-5',
+          model: 'anthropic/claude-sonnet-5',
         }),
         'org-1',
       );

@@ -49,7 +49,7 @@ vi.mock('@hooks/data/agent-runs/use-agent-runs', () => ({
         label: 'Trend scan',
         metadata: {
           actualModel: 'google/gemini-2.5-flash',
-          requestedModel: 'openrouter/auto',
+          requestedModel: 'openai/gpt-5.6-terra',
           routingPolicy: 'fresh-live-data',
           webSearchEnabled: true,
         },
@@ -159,7 +159,7 @@ describe('AgentDetailPage', () => {
 
     expect(screen.getByText('Model')).toBeInTheDocument();
     expect(
-      screen.getByText('google/gemini-2.5-flash via openrouter/auto'),
+      screen.getByText('google/gemini-2.5-flash via openai/gpt-5.6-terra'),
     ).toBeInTheDocument();
   });
 });

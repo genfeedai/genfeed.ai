@@ -2385,7 +2385,7 @@ export async function mockAutomationData(page: Page): Promise<void> {
       label: 'Trend scan',
       metadata: {
         actualModel: 'google/gemini-2.5-flash',
-        requestedModel: 'openrouter/auto',
+        requestedModel: 'openai/gpt-5.6-terra',
         routingPolicy: 'fresh-live-data',
         webSearchEnabled: true,
       },
@@ -2408,8 +2408,8 @@ export async function mockAutomationData(page: Page): Promise<void> {
       id: 'run-2',
       label: 'Caption draft',
       metadata: {
-        actualModel: 'anthropic/claude-sonnet-4-5',
-        requestedModel: 'anthropic/claude-sonnet-4-5',
+        actualModel: 'anthropic/claude-sonnet-5',
+        requestedModel: 'anthropic/claude-sonnet-5',
       },
       objective: 'Write captions',
       organization: 'mock-org-id-e2e-test',
@@ -2491,13 +2491,13 @@ export async function mockAutomationData(page: Page): Promise<void> {
           {
             actualModel: 'google/gemini-2.5-flash',
             count: 1,
-            requestedModel: 'openrouter/auto',
+            requestedModel: 'openai/gpt-5.6-terra',
           },
         ],
         timeRange:
           new URL(route.request().url()).searchParams.get('timeRange') ?? '7d',
         topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-        topRequestedModels: [{ count: 1, model: 'openrouter/auto' }],
+        topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
         totalCreditsToday: 9,
         totalRuns: 2,
         trends: [

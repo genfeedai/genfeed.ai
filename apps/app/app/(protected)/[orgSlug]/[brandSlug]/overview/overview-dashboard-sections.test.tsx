@@ -107,7 +107,7 @@ const RUNS: IAgentRun[] = [
     label: 'Creator autopilot',
     metadata: {
       actualModel: 'google/gemini-2.5-flash',
-      requestedModel: 'openrouter/auto',
+      requestedModel: 'openai/gpt-5.6-terra',
     },
     objective: 'Publish today',
     organization: 'org-1',
@@ -133,7 +133,7 @@ const RUNS: IAgentRun[] = [
     id: 'run-2',
     label: 'Reply bot recovery',
     metadata: {
-      requestedModel: 'anthropic/claude-sonnet-4-5',
+      requestedModel: 'anthropic/claude-sonnet-5',
     },
     objective: 'Handle mentions',
     organization: 'org-1',
@@ -251,10 +251,10 @@ describe('Overview dashboard sections', () => {
 
     const runRows = screen.getAllByRole('row');
     expect(runRows[1]).toHaveTextContent('Reply bot recovery');
-    expect(runRows[1]).toHaveTextContent('anthropic/claude-sonnet-4-5');
+    expect(runRows[1]).toHaveTextContent('anthropic/claude-sonnet-5');
     expect(runRows[2]).toHaveTextContent('Creator autopilot');
     expect(runRows[2]).toHaveTextContent(
-      'google/gemini-2.5-flash via openrouter/auto',
+      'google/gemini-2.5-flash via openai/gpt-5.6-terra',
     );
     expect(runRows[3]).toHaveTextContent('Campaign publish batch');
   });

@@ -26,12 +26,16 @@ const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
     requestedModel: DEFAULT_RUNTIME_AGENT_MODEL,
   },
   {
+    // Same model as the Genfeed runtime on purpose — these two options differ
+    // by provider, not by model, and `openrouter/auto` is retired. `key` is the
+    // discriminator; `requestedModel` is only a fallback for legacy threads
+    // stored before runtimeKey existed, which belong on the platform default.
     category: 'hosted',
-    description: 'OpenRouter auto routing',
+    description: 'OpenRouter-routed inference',
     key: 'hosted/openrouter',
     label: 'OpenRouter',
     provider: 'openrouter',
-    requestedModel: 'openrouter/auto',
+    requestedModel: DEFAULT_RUNTIME_AGENT_MODEL,
   },
   {
     category: 'hosted',
@@ -49,7 +53,7 @@ const LOCAL_CLAUDE_OPTION: AgentRuntimeOption = {
   key: 'local/claude-cli',
   label: 'Claude CLI',
   provider: 'claude',
-  requestedModel: 'anthropic/claude-sonnet-4-5-20250929',
+  requestedModel: 'anthropic/claude-sonnet-5',
 };
 
 const LOCAL_CODEX_OPTION: AgentRuntimeOption = {
@@ -58,7 +62,7 @@ const LOCAL_CODEX_OPTION: AgentRuntimeOption = {
   key: 'local/codex-cli',
   label: 'Codex CLI',
   provider: 'codex',
-  requestedModel: 'openai/o4-mini',
+  requestedModel: 'openai/gpt-5.6-luna',
 };
 
 function getLocalToolSummary(readiness?: AgentInstallReadiness | null): string {

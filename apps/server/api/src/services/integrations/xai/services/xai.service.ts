@@ -29,8 +29,7 @@ export class XaiService {
     private readonly loggerService: LoggerService,
     private readonly openRouterService: OpenRouterService,
   ) {
-    this.defaultModel =
-      this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
+    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
 
   /**

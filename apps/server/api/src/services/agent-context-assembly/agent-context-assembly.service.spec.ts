@@ -23,7 +23,7 @@ function createCacheService() {
 function createCompleteBrand() {
   return {
     agentConfig: {
-      defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+      defaultModel: 'anthropic/claude-sonnet-5',
       persona: 'Prefer decisive operator copy.',
       strategy: {
         contentTypes: ['launch-post'],
@@ -153,7 +153,7 @@ describe('AgentContextAssemblyService', () => {
         status: 'complete',
       },
       brandName: 'Acme',
-      defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+      defaultModel: 'anthropic/claude-sonnet-5',
       promptGuidelines: 'Use short, grounded copy with explicit proof.',
       strategy: {
         contentTypes: ['launch-post'],

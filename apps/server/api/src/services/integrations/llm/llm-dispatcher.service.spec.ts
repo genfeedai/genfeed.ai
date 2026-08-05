@@ -130,7 +130,7 @@ describe('LlmDispatcherService', () => {
   describe('chatCompletion — provider routing', () => {
     it('should route anthropic/ models to AnthropicService', async () => {
       const result = await service.chatCompletion(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
       );
 
       expect(anthropicService.chatCompletion).toHaveBeenCalled();
@@ -138,13 +138,15 @@ describe('LlmDispatcherService', () => {
     });
 
     it('should route openai/ models to OpenAiLlmService', async () => {
-      await service.chatCompletion(makeParams('openai/gpt-4o'));
+      await service.chatCompletion(makeParams('openai/gpt-5.6-terra'));
 
       expect(openAiLlmService.chatCompletion).toHaveBeenCalled();
     });
 
     it('should route deepseek/ models to OpenRouterService', async () => {
-      await service.chatCompletion(makeParams('deepseek/deepseek-chat'));
+      await service.chatCompletion(
+        makeParams('deepseek/deepseek-v4-flash-0731'),
+      );
 
       expect(openRouterService.chatCompletion).toHaveBeenCalled();
     });
@@ -169,7 +171,7 @@ describe('LlmDispatcherService', () => {
       await service.chatCompletion(makeParams('local/my-model'));
 
       expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-chat' }),
+        expect.objectContaining({ model: 'deepseek/deepseek-v4-flash-0731' }),
       );
       expect(loggerService.warn).toHaveBeenCalled();
     });
@@ -193,7 +195,7 @@ describe('LlmDispatcherService', () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
 
       await service.chatCompletion(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
         orgId,
       );
 
@@ -210,7 +212,7 @@ describe('LlmDispatcherService', () => {
     it('should resolve OpenAI BYOK provider for openai/ models', async () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'oai-key' });
 
-      await service.chatCompletion(makeParams('openai/gpt-4o'), orgId);
+      await service.chatCompletion(makeParams('openai/gpt-5.6-terra'), orgId);
 
       expect(byokService.resolveApiKey).toHaveBeenCalledWith(
         orgId,
@@ -221,7 +223,10 @@ describe('LlmDispatcherService', () => {
     it('should resolve OpenRouter BYOK provider for other models', async () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'or-key' });
 
-      await service.chatCompletion(makeParams('deepseek/deepseek-chat'), orgId);
+      await service.chatCompletion(
+        makeParams('deepseek/deepseek-v4-flash-0731'),
+        orgId,
+      );
 
       expect(byokService.resolveApiKey).toHaveBeenCalledWith(
         orgId,
@@ -230,9 +235,7 @@ describe('LlmDispatcherService', () => {
     });
 
     it('should not resolve BYOK when no organizationId', async () => {
-      await service.chatCompletion(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
-      );
+      await service.chatCompletion(makeParams('anthropic/claude-sonnet-5'));
 
       expect(byokService.resolveApiKey).not.toHaveBeenCalled();
     });
@@ -241,7 +244,7 @@ describe('LlmDispatcherService', () => {
       byokService.resolveApiKey.mockResolvedValue(null);
 
       await service.chatCompletion(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
         orgId,
       );
 
@@ -273,7 +276,7 @@ describe('LlmDispatcherService', () => {
       });
 
       const result = await service.chatCompletion(
-        makeParams('openai/gpt-4o'),
+        makeParams('openai/gpt-5.6-terra'),
         orgId,
       );
 
@@ -287,10 +290,7 @@ describe('LlmDispatcherService', () => {
       anthropicService.chatCompletion.mockRejectedValue({ status: 401 });
 
       await expect(
-        service.chatCompletion(
-          makeParams('anthropic/claude-sonnet-4-5-20250929'),
-          orgId,
-        ),
+        service.chatCompletion(makeParams('anthropic/claude-sonnet-5'), orgId),
       ).rejects.toEqual({ status: 401 });
 
       expect(openAiOAuthService.refreshAccessToken).not.toHaveBeenCalled();
@@ -309,7 +309,7 @@ describe('LlmDispatcherService', () => {
       );
 
       await expect(
-        service.chatCompletion(makeParams('openai/gpt-4o'), orgId),
+        service.chatCompletion(makeParams('openai/gpt-5.6-terra'), orgId),
       ).rejects.toEqual({ status: 401 });
 
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -322,20 +322,22 @@ describe('LlmDispatcherService', () => {
   describe('streamChatCompletion', () => {
     it('should route anthropic/ models to AnthropicService for streaming', async () => {
       await service.streamChatCompletion(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
       );
 
       expect(anthropicService.streamChatCompletion).toHaveBeenCalled();
     });
 
     it('should route openai/ models to OpenAiLlmService for streaming', async () => {
-      await service.streamChatCompletion(makeParams('openai/gpt-4o'));
+      await service.streamChatCompletion(makeParams('openai/gpt-5.6-terra'));
 
       expect(openAiLlmService.streamChatCompletion).toHaveBeenCalled();
     });
 
     it('should route other models to OpenRouterService for streaming', async () => {
-      await service.streamChatCompletion(makeParams('deepseek/deepseek-chat'));
+      await service.streamChatCompletion(
+        makeParams('deepseek/deepseek-v4-flash-0731'),
+      );
 
       expect(openRouterService.streamChatCompletion).toHaveBeenCalled();
     });
@@ -356,7 +358,7 @@ describe('LlmDispatcherService', () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
 
       await service.streamChatCompletion(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
         orgId,
       );
 
@@ -370,7 +372,7 @@ describe('LlmDispatcherService', () => {
   describe('streamChatCompletionAggregated', () => {
     it('should route anthropic/ models to AnthropicService', async () => {
       const result = await service.streamChatCompletionAggregated(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
       );
 
       expect(
@@ -380,7 +382,9 @@ describe('LlmDispatcherService', () => {
     });
 
     it('should route openai/ models to OpenAiLlmService', async () => {
-      await service.streamChatCompletionAggregated(makeParams('openai/gpt-4o'));
+      await service.streamChatCompletionAggregated(
+        makeParams('openai/gpt-5.6-terra'),
+      );
 
       expect(
         openAiLlmService.streamChatCompletionAggregated,
@@ -389,7 +393,7 @@ describe('LlmDispatcherService', () => {
 
     it('should route other models to OpenRouterService', async () => {
       await service.streamChatCompletionAggregated(
-        makeParams('deepseek/deepseek-chat'),
+        makeParams('deepseek/deepseek-v4-flash-0731'),
       );
 
       expect(
@@ -401,7 +405,7 @@ describe('LlmDispatcherService', () => {
       const onToken = vi.fn();
 
       await service.streamChatCompletionAggregated(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
         undefined,
         onToken,
       );
@@ -442,7 +446,7 @@ describe('LlmDispatcherService', () => {
       expect(
         openRouterService.streamChatCompletionAggregated,
       ).toHaveBeenCalledWith(
-        expect.objectContaining({ model: 'deepseek/deepseek-chat' }),
+        expect.objectContaining({ model: 'deepseek/deepseek-v4-flash-0731' }),
         undefined,
         undefined,
       );
@@ -453,7 +457,7 @@ describe('LlmDispatcherService', () => {
       byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
 
       await service.streamChatCompletionAggregated(
-        makeParams('anthropic/claude-sonnet-4-5-20250929'),
+        makeParams('anthropic/claude-sonnet-5'),
         orgId,
       );
 

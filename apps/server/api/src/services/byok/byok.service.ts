@@ -541,7 +541,7 @@ export class ByokService {
           {
             max_tokens: 1,
             messages: [{ content: 'hi', role: 'user' }],
-            model: 'deepseek/deepseek-chat',
+            model: 'deepseek/deepseek-v4-flash-0731',
           },
           { headers: { Authorization: `Bearer ${apiKey}` } },
         ),

@@ -9,8 +9,10 @@ export const generalAiSchema = {
   AGENT_CONTEXT_COMPRESSION_ENABLED: Joi.string()
     .valid('true', 'false')
     .default('true'),
+  // Cheapest catalogued model in @genfeedai/constants — compression is a
+  // mechanical summarisation pass, not a reasoning one.
   AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().default(
-    'deepseek/deepseek-chat',
+    'deepseek/deepseek-v4-flash-0731',
   ),
   AGENT_CONTEXT_WINDOW_SIZE: Joi.number().integer().min(1).default(5),
   // Feature flag: real token-by-token LLM streaming for agent chat. When

@@ -51,7 +51,7 @@ describe('ClipHighlightDetector', () => {
       const [url, body, options] = httpService.post.mock.calls[0];
 
       expect(url).toBe('https://openrouter.ai/api/v1/chat/completions');
-      expect(body.model).toBe('openai/gpt-4o');
+      expect(body.model).toBe('openai/gpt-5.6-terra');
       expect(body.temperature).toBe(0.3);
       expect(body.stream).toBe(false);
       expect(body.max_tokens).toBe(4096);

@@ -41,7 +41,7 @@ describe('ContentEngineService', () => {
       displayRole: 'Engagement responder',
       isEnabled: true,
       label: 'Engagement responder',
-      model: 'openrouter/auto',
+      model: 'openai/gpt-5.6-terra',
       platforms: ['twitter'],
       topics: ['ai marketing'],
       ...overrides,

@@ -21,7 +21,7 @@ const runs: IAgentRun[] = [
     label: 'Trend scan',
     metadata: {
       actualModel: 'google/gemini-2.5-flash',
-      requestedModel: 'openrouter/auto',
+      requestedModel: 'openai/gpt-5.6-terra',
       routingPolicy: 'fresh-live-data',
       webSearchEnabled: true,
     },
@@ -48,8 +48,8 @@ const runs: IAgentRun[] = [
     id: 'run-2',
     label: 'Caption draft',
     metadata: {
-      actualModel: 'anthropic/claude-sonnet-4-5',
-      requestedModel: 'anthropic/claude-sonnet-4-5',
+      actualModel: 'anthropic/claude-sonnet-5',
+      requestedModel: 'anthropic/claude-sonnet-5',
     },
     objective: 'Write captions',
     organization: 'org-1',
@@ -85,12 +85,12 @@ const stats = {
     {
       actualModel: 'google/gemini-2.5-flash',
       count: 1,
-      requestedModel: 'openrouter/auto',
+      requestedModel: 'openai/gpt-5.6-terra',
     },
   ],
   timeRange: '7d' as const,
   topActualModels: [{ count: 1, model: 'google/gemini-2.5-flash' }],
-  topRequestedModels: [{ count: 1, model: 'openrouter/auto' }],
+  topRequestedModels: [{ count: 1, model: 'openai/gpt-5.6-terra' }],
   totalCreditsToday: 9,
   totalRuns: 2,
   trends: [
@@ -267,7 +267,7 @@ describe('MissionControl', () => {
       screen.getAllByText('google/gemini-2.5-flash').length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByText('openrouter/auto -> google/gemini-2.5-flash'),
+      screen.getByText('openai/gpt-5.6-terra -> google/gemini-2.5-flash'),
     ).toBeInTheDocument();
   });
 
@@ -277,7 +277,7 @@ describe('MissionControl', () => {
     fireEvent.change(
       container.querySelector('select[name="model"]') as HTMLSelectElement,
       {
-        target: { value: 'anthropic/claude-sonnet-4-5' },
+        target: { value: 'anthropic/claude-sonnet-5' },
       },
     );
     fireEvent.change(
@@ -290,7 +290,7 @@ describe('MissionControl', () => {
     const latestCall = useAgentRunsMock.mock.calls.at(-1)?.[0];
     expect(latestCall).toMatchObject({
       historyOnly: true,
-      model: 'anthropic/claude-sonnet-4-5',
+      model: 'anthropic/claude-sonnet-5',
       sortMode: 'latest',
       timeRange: '30d',
     });

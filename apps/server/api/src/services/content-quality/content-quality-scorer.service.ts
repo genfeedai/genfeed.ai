@@ -87,8 +87,7 @@ export class ContentQualityScorerService {
     @Optional()
     private readonly postsService: PostsService,
   ) {
-    this.defaultModel =
-      this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
+    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
 
   /**
@@ -309,7 +308,7 @@ export class ContentQualityScorerService {
             role: 'user',
           },
         ],
-        model: 'openai/gpt-4o-mini',
+        model: 'openai/gpt-5.6-luna',
         temperature: 0.3,
       };
 

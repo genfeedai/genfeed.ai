@@ -39,7 +39,10 @@ import {
   buildToolDefinitions,
   mergeAllowedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
-import { settleAgentTurnCredits } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
+import {
+  resolveAgentRoundCreditCost,
+  settleAgentTurnCredits,
+} from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
@@ -163,6 +166,9 @@ export class AgentOrchestratorSyncLoopService {
       const messages = [...history];
       let round = 0;
       const actualModels = new Set<string>();
+      // Credits accrue per completed round, not per turn: a turn that burns
+      // five tool rounds costs five rounds of inference and has to bill like it.
+      let roundCredits = 0;
 
       while (round < AGENT_MAX_TOOL_ROUNDS) {
         round++;
@@ -190,6 +196,7 @@ export class AgentOrchestratorSyncLoopService {
           },
         );
         actualModels.add(actualModel);
+        roundCredits += resolveAgentRoundCreditCost({ actualModel, turnCost });
 
         const choice = response.choices[0];
         if (!choice) {
@@ -215,11 +222,12 @@ export class AgentOrchestratorSyncLoopService {
           const content = normalizedContent.content;
 
           toolRoundState.totalCreditsUsed += await settleAgentTurnCredits({
+            actualModels: Array.from(actualModels),
             creditsUtilsService: this.creditsUtilsService,
             model,
             organizationId: context.organizationId,
+            roundCredits,
             toolCalls: toolRoundState.toolCalls,
-            turnCost,
             userId: context.userId,
           });
 
@@ -393,6 +401,19 @@ export class AgentOrchestratorSyncLoopService {
           toolCalls,
         });
       }
+
+      // Overflowing the round budget still consumed every one of those rounds
+      // at the provider — settle them before surfacing the failure, or a turn
+      // that runs away is the cheapest turn on the platform.
+      await settleAgentTurnCredits({
+        actualModels: Array.from(actualModels),
+        creditsUtilsService: this.creditsUtilsService,
+        model,
+        organizationId: context.organizationId,
+        roundCredits,
+        toolCalls: toolRoundState.toolCalls,
+        userId: context.userId,
+      });
 
       throw new Error(
         `Agent exceeded maximum tool-calling rounds (${AGENT_MAX_TOOL_ROUNDS})`,

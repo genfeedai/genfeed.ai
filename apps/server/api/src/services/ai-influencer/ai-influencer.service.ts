@@ -67,7 +67,7 @@ const SUPPORTED_PLATFORMS: readonly AiInfluencerPlatform[] = [
 
 const DEFAULT_IMAGE_WIDTH = 1024;
 const DEFAULT_IMAGE_HEIGHT = 1024;
-const CAPTION_MODEL = 'anthropic/claude-sonnet-4-5-20250929';
+const CAPTION_MODEL = 'anthropic/claude-sonnet-5';
 const IMAGE_MODEL = 'fal-ai/flux-lora';
 const MAX_CAPTION_LENGTH = 2200; // Instagram caption limit
 const CAPTION_TEMPERATURE = 0.8;

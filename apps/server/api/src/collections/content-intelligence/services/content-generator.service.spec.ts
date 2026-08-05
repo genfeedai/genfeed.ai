@@ -60,7 +60,7 @@ describe('ContentGeneratorService', () => {
   };
 
   beforeEach(async () => {
-    configService = { get: vi.fn().mockReturnValue('x-ai/grok-4-fast') };
+    configService = { get: vi.fn().mockReturnValue('x-ai/grok-4.5') };
     contextAssemblyService = {
       assembleContext: vi.fn().mockResolvedValue(null),
       buildSystemPrompt: vi

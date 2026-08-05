@@ -12,7 +12,7 @@ import {
   type WorkflowEngine,
 } from '@genfeedai/workflows/engine';
 
-const POST_GEN_MODEL = 'openai/gpt-4o-mini';
+const POST_GEN_MODEL = 'openai/gpt-5.6-luna';
 const POST_GEN_TEMPERATURE = 0.6;
 
 export class WorkflowContentExecutorRegistrarService {
@@ -74,7 +74,7 @@ export class WorkflowContentExecutorRegistrarService {
         messages: [{ content: prompt, role: 'user' }],
         model:
           this.helper.readConfigString(node.config, 'model') ??
-          'openai/gpt-4o-mini',
+          'openai/gpt-5.6-luna',
         temperature: this.helper.getOptionalNumberConfig(
           node.config,
           'temperature',

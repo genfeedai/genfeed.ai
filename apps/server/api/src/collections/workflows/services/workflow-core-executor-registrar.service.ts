@@ -365,7 +365,7 @@ export class WorkflowCoreExecutorRegistrarService {
           targetKeyword: targetKeyword ?? undefined,
           title: title ?? undefined,
         }),
-        model: model ?? 'openai/gpt-4o-mini',
+        model: model ?? 'openai/gpt-5.6-luna',
         temperature: 0.4,
       });
 

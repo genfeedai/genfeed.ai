@@ -28,6 +28,7 @@ import { AgentRuntimeSessionService } from '@api/services/agent-threading/servic
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
 import { AgentAutonomyMode, AgentType, ApiKeyScope } from '@genfeedai/enums';
 import {
   type AgentArtifactReference,
@@ -833,7 +834,7 @@ describe('AgentOrchestratorService', () => {
     contextAssemblyService = module.get(AgentContextAssemblyService);
   });
 
-  it('defaults normal agent chat to openrouter/auto when no higher-precedence override is set', async () => {
+  it('defaults normal agent chat to the catalogue default when no higher-precedence override is set', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -860,14 +861,14 @@ describe('AgentOrchestratorService', () => {
       expect.any(Object),
     );
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'openrouter/auto' }),
+      expect.objectContaining({ model: DEFAULT_AGENT_CHAT_MODEL_KEY }),
       ORG_ID,
     );
     expect(result.message.metadata).toEqual(
       expect.objectContaining({
         actualModel: 'google/gemini-2.5-flash',
         model: 'google/gemini-2.5-flash',
-        requestedModel: 'openrouter/auto',
+        requestedModel: DEFAULT_AGENT_CHAT_MODEL_KEY,
       }),
     );
   });
@@ -1095,7 +1096,7 @@ describe('AgentOrchestratorService', () => {
     } as never);
     llmDispatcher.chatCompletion.mockResolvedValueOnce({
       choices: [{ message: { content: 'Here are the latest results.' } }],
-      model: 'openai/gpt-4o-mini-search-preview',
+      model: 'openai/gpt-5.6-luna-search-preview',
       usage: {
         completion_tokens: 10,
         prompt_tokens: 10,
@@ -1110,14 +1111,14 @@ describe('AgentOrchestratorService', () => {
 
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'openrouter/auto',
+        model: DEFAULT_AGENT_CHAT_MODEL_KEY,
         plugins: [{ id: 'web' }],
       }),
       ORG_ID,
     );
   });
 
-  it('adds the web plugin for fresh live-data prompts on the auto router', async () => {
+  it('adds the web plugin for fresh live-data prompts on the default model', async () => {
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -1138,7 +1139,7 @@ describe('AgentOrchestratorService', () => {
 
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'openrouter/auto',
+        model: DEFAULT_AGENT_CHAT_MODEL_KEY,
         plugins: [{ id: 'web' }],
       }),
       ORG_ID,
@@ -1250,7 +1251,7 @@ describe('AgentOrchestratorService', () => {
     } as never);
     llmDispatcher.chatCompletion.mockResolvedValueOnce({
       choices: [{ message: { content: 'Tracked reply' } }],
-      model: 'anthropic/claude-sonnet-4-5-20250929',
+      model: 'anthropic/claude-sonnet-5',
       usage: {
         completion_tokens: 10,
         prompt_tokens: 10,
@@ -1271,8 +1272,8 @@ describe('AgentOrchestratorService', () => {
       RUN_ID,
       ORG_ID,
       expect.objectContaining({
-        actualModel: 'anthropic/claude-sonnet-4-5-20250929',
-        requestedModel: 'openrouter/auto',
+        actualModel: 'anthropic/claude-sonnet-5',
+        requestedModel: DEFAULT_AGENT_CHAT_MODEL_KEY,
       }),
     );
     expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
@@ -1749,10 +1750,10 @@ describe('AgentOrchestratorService', () => {
           brandDailyCreditCap: 480,
           useOrganizationPool: true,
         },
-        generationModelOverride: 'openai/gpt-4o',
+        generationModelOverride: 'openai/gpt-5.6-terra',
         qualityTierDefault: 'high_quality',
-        reviewModelOverride: 'openai/o4-mini',
-        thinkingModelOverride: 'anthropic/claude-opus-4-6',
+        reviewModelOverride: 'openai/gpt-5.6-luna',
+        thinkingModelOverride: 'anthropic/claude-opus-5',
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
@@ -1765,7 +1766,7 @@ describe('AgentOrchestratorService', () => {
       assembledAt: new Date(),
       brandId: String(strategyBrandId),
       brandName: 'Brand',
-      defaultModel: 'x-ai/grok-4-fast',
+      defaultModel: 'x-ai/grok-4.5',
       layersUsed: ['brandIdentity'],
     } as never);
 
@@ -1825,7 +1826,7 @@ describe('AgentOrchestratorService', () => {
     );
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'anthropic/claude-opus-4-6',
+        model: 'anthropic/claude-opus-5',
       }),
       ORG_ID,
     );
@@ -1839,12 +1840,12 @@ describe('AgentOrchestratorService', () => {
           brandDailyCreditCap: 480,
           useOrganizationPool: true,
         },
-        generationModelOverride: 'openai/gpt-4o',
+        generationModelOverride: 'openai/gpt-5.6-terra',
         generationPriority: 'quality',
         platform: 'linkedin',
         qualityTier: 'high_quality',
-        reviewModelOverride: 'openai/o4-mini',
-        thinkingModel: 'anthropic/claude-opus-4-6',
+        reviewModelOverride: 'openai/gpt-5.6-luna',
+        thinkingModel: 'anthropic/claude-opus-5',
       }),
     );
   });
@@ -1856,13 +1857,13 @@ describe('AgentOrchestratorService', () => {
     organizationSettingsService.findOne.mockResolvedValue({
       agentPolicy: {
         qualityTierDefault: 'high_quality',
-        thinkingModelOverride: 'anthropic/claude-opus-4-6',
+        thinkingModelOverride: 'anthropic/claude-opus-5',
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
       _id: 'test-object-id',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
-      model: 'deepseek/deepseek-chat',
+      model: 'deepseek/deepseek-v4-flash-0731',
       platforms: ['twitter'],
       qualityTier: 'budget',
     } as never);
@@ -1916,7 +1917,7 @@ describe('AgentOrchestratorService', () => {
 
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'deepseek/deepseek-chat',
+        model: 'deepseek/deepseek-v4-flash-0731',
       }),
       ORG_ID,
     );
@@ -2882,7 +2883,7 @@ describe('AgentOrchestratorService', () => {
 
   it('resumes recurring draft from input and creates exactly one workflow', async () => {
     agentRuntimeSessionService.getBinding.mockResolvedValue({
-      model: 'deepseek/deepseek-chat',
+      model: 'deepseek/deepseek-v4-flash-0731',
       resumeCursor: {
         awaitingField: 'variationBrief',
         draft: {

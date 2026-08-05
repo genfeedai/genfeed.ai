@@ -14,7 +14,7 @@ describe('AgentSettings', () => {
     render(
       <AgentSettings
         initialSettings={{
-          defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
+          defaultModel: 'anthropic/claude-sonnet-5',
           generationPriority: 'speed',
           persona: 'Write like a pragmatic founder.',
         }}

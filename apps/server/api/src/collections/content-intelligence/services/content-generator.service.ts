@@ -59,8 +59,7 @@ export class ContentGeneratorService {
     @Optional()
     private readonly harnessProfilesService?: HarnessProfilesService,
   ) {
-    this.defaultModel =
-      this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
+    this.defaultModel = this.configService.get('XAI_MODEL') || 'x-ai/grok-4.5';
   }
 
   async generateContent(

@@ -90,7 +90,7 @@ export class ContentPlannerService {
           { content: systemPrompt, role: 'system' },
           { content: userPrompt, role: 'user' },
         ],
-        model: 'anthropic/claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-5',
         temperature: 0.7,
       },
       organizationId,
