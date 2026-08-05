@@ -155,7 +155,7 @@ export class CronPostsService {
         await this.postRepeatSchedulerService.materializeRecurrence(post);
         return {
           externalId: readPostString(post, ['externalId']) ?? null,
-          platform: post.platform,
+          platform: post.platform ?? '',
           status: PostStatus.PUBLIC,
           success: true,
           url: readPostString(post, ['url']) ?? '',
@@ -214,13 +214,13 @@ export class CronPostsService {
     if (result.success) {
       await this.activitiesService.create(
         new ActivityEntity({
-          brandId: readPostString(post, ['brandId']) ?? null,
+          brandId: readPostString(post, ['brandId']) ?? undefined,
           entityId: post.id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.POST_PUBLISHED,
-          organizationId: readPostString(post, ['organizationId']) ?? null,
+          organizationId: readPostString(post, ['organizationId']) ?? undefined,
           source: ActivitySource.POST,
-          userId: readPostString(post, ['userId']) ?? null,
+          userId: readPostString(post, ['userId']) ?? undefined,
           value: `Published to ${result.platform}: ${result.url}`,
         }),
       );
@@ -949,13 +949,13 @@ export class CronPostsService {
   ): Promise<void> {
     await this.activitiesService.create(
       new ActivityEntity({
-        brandId: readPostString(post, ['brandId']) ?? null,
+        brandId: readPostString(post, ['brandId']) ?? undefined,
         entityId: post.id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
-        organizationId: readPostString(post, ['organizationId']) ?? null,
+        organizationId: readPostString(post, ['organizationId']) ?? undefined,
         source: ActivitySource.POST,
-        userId: readPostString(post, ['userId']) ?? null,
+        userId: readPostString(post, ['userId']) ?? undefined,
         value: `Quota exceeded: ${quotaCheck.currentCount}/${quotaCheck.dailyLimit} posts for ${platform}`,
       }),
     );
@@ -996,13 +996,13 @@ export class CronPostsService {
   ): Promise<void> {
     await this.activitiesService.create(
       new ActivityEntity({
-        brandId: readPostString(post, ['brandId']) ?? null,
+        brandId: readPostString(post, ['brandId']) ?? undefined,
         entityId: post.id,
         entityModel: ActivityEntityModel.POST,
         key: ActivityKey.POST_FAILED,
-        organizationId: readPostString(post, ['organizationId']) ?? null,
+        organizationId: readPostString(post, ['organizationId']) ?? undefined,
         source: ActivitySource.POST,
-        userId: readPostString(post, ['userId']) ?? null,
+        userId: readPostString(post, ['userId']) ?? undefined,
         value: errorMessage,
       }),
     );

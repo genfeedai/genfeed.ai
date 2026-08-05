@@ -82,7 +82,7 @@ type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentStrategyId?: string;
   agentThreadId?: string;
   brandId?: string;
-  credentialId?: string;
+  credentialId?: string | null;
   organizationId?: string;
   originalPostId?: string;
   platform?: CredentialPlatform;

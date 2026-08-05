@@ -390,6 +390,20 @@ export class ModelsService extends BaseService<
     });
   }
 
+  async touchDiscoveredModels(
+    keys: string[],
+    lastSyncedAt: Date,
+  ): Promise<void> {
+    await this.prisma.model.updateMany({
+      data: { lastSyncedAt },
+      where: {
+        isDeleted: false,
+        isDiscovered: true,
+        key: { in: keys },
+      },
+    });
+  }
+
   async count(filter: Record<string, unknown>): Promise<number> {
     return this.prisma.model.count({
       where: this.normalizeWhereForModel(filter) as never,

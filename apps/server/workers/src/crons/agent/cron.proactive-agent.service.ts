@@ -4,7 +4,11 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { AgentExecutionTrigger, AgentRunFrequency } from '@genfeedai/enums';
+import {
+  AgentAutonomyMode,
+  AgentExecutionTrigger,
+  AgentRunFrequency,
+} from '@genfeedai/enums';
 import type { AgentStrategy } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -17,6 +21,7 @@ const FAILURE_RETRY_MINUTES = 30;
 
 type AgentStrategyConfig = {
   agentType?: string;
+  autonomyMode?: AgentAutonomyMode;
   topics?: string[];
   voice?: string;
   platforms?: string[];
