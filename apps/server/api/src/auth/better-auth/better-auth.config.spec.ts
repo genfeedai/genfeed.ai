@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   DESKTOP_SHELL_TRUSTED_ORIGINS,
   parseCommaSeparated,
-  parseTrustedOrigins,
   resolveBetterAuthBaseUrl,
   resolveBooleanFlag,
   resolveCookieDomain,
@@ -23,8 +22,9 @@ describe('Better Auth config', () => {
 
   it('accepts console.genfeed.ai as a trusted post-auth callback origin', () => {
     expect(
-      parseTrustedOrigins(
+      resolveTrustedOrigins(
         'https://genfeed.ai, https://app.genfeed.ai, https://console.genfeed.ai',
+        'production',
       ),
     ).toContain('https://console.genfeed.ai');
   });
