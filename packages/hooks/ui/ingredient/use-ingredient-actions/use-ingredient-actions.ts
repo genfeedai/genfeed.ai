@@ -717,7 +717,7 @@ export function useIngredientActions({
         const response = await assetsService.postFromIngredient({
           category: AssetCategory.LOGO,
           ingredientId: ingredient.id,
-          parent: brandId,
+          parentId: brandId,
         });
 
         logger.info(`${url} success`);
@@ -766,7 +766,7 @@ export function useIngredientActions({
         const data = await service.postFromIngredient({
           category: AssetCategory.BANNER,
           ingredientId: ingredient.id,
-          parent: brandId,
+          parentId: brandId,
         });
 
         logger.info(`${url} success`);

@@ -43,6 +43,7 @@ export default function MenuShared({
   const { push } = useRouter();
 
   const {
+    activeHref,
     href,
     brandSlug,
     orgHref,
@@ -267,7 +268,7 @@ export default function MenuShared({
                     afterNavigationContent={afterNavigationContent}
                     conversationActions={conversationActions}
                     isConversationsCollapsed={isConversationsCollapsed}
-                    newAgentThreadHref={orgHref(APP_ROUTES.AGENT.NEW)}
+                    newAgentThreadHref={activeHref(APP_ROUTES.AGENT.NEW)}
                     onCollapsedChange={setIsConversationsCollapsed}
                   />
                 )}

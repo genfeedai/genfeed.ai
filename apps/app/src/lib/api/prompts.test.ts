@@ -23,7 +23,7 @@ vi.mock('./client', () => ({
 
 describe('promptsApi', () => {
   const mockPromptItem: IPrompt = {
-    _id: 'prompt-1',
+    id: 'prompt-1',
     category: 'landscape',
     createdAt: '2026-01-15T00:00:00.000Z',
     description: 'A test prompt',
@@ -150,7 +150,7 @@ describe('promptsApi', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/prompts/prompt-1', {
         signal: undefined,
       });
-      expect(result._id).toBe('prompt-1');
+      expect(result.id).toBe('prompt-1');
     });
   });
 
@@ -203,7 +203,7 @@ describe('promptsApi', () => {
     it('should duplicate a prompt item', async () => {
       const duplicatedItem = {
         ...mockPromptItem,
-        _id: 'prompt-2',
+        id: 'prompt-2',
         name: 'Test Prompt (Copy)',
       };
       (apiClient.post as Mock).mockResolvedValueOnce(duplicatedItem);
@@ -217,7 +217,7 @@ describe('promptsApi', () => {
           signal: undefined,
         },
       );
-      expect(result._id).toBe('prompt-2');
+      expect(result.id).toBe('prompt-2');
       expect(result.name).toBe('Test Prompt (Copy)');
     });
   });

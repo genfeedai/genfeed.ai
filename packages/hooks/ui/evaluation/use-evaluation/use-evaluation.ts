@@ -158,7 +158,7 @@ export function useEvaluation({
     try {
       const service = await getEvaluationsService();
 
-      let result;
+      let result: IEvaluation;
       switch (contentType) {
         case IngredientCategory.IMAGE:
           result = await service.evaluateImage(contentId);
@@ -189,7 +189,7 @@ export function useEvaluation({
       );
 
       // If already completed (fast path), handle immediately
-      if (result.status === Status.COMPLETED) {
+      if (result.data.status === Status.COMPLETED) {
         setIsEvaluating(false);
         notificationsService.success('Content evaluated successfully');
         currentEvaluationIdRef.current = null;

@@ -71,17 +71,17 @@ export default function ModalPreset({
     schema: presetElementSchema,
     serviceFactory: (token) => PresetsService.getInstance(token),
     transformSubmitData: (formData) => {
-      // Include organization and brand if provided (for admin use)
+      // Include canonical scope identifiers when provided (for admin use).
       const data = {
         ...formData,
       };
 
       if (organizationId) {
-        data.organization = organizationId;
+        data.organizationId = organizationId;
       }
 
       if (brandId) {
-        data.brand = brandId;
+        data.brandId = brandId;
       }
 
       return data;

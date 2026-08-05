@@ -33,7 +33,7 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
     refresh: vi.fn(),
     settings: {
       agentReplyStyle: 'CONCISE',
-      enabledModels: ['anthropic/claude-sonnet-4-5-20250929'],
+      enabledModelIds: ['anthropic/claude-sonnet-4-5-20250929'],
     },
     updateSettings: vi.fn(),
   })),

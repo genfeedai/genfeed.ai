@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
   useAgentChatStore,
@@ -43,7 +44,8 @@ function AgentWorkspaceLayoutClientContent({
     [rawPathname],
   );
   const { replace } = useRouter();
-  const { orgHref } = useOrgUrl();
+  const { brandId } = useBrand();
+  const { activeHref } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
@@ -142,6 +144,7 @@ function AgentWorkspaceLayoutClientContent({
     lastBootstrapKeyRef.current = bootstrapKey;
 
     void sendMessage(prefillPrompt, {
+      ...(brandId ? { brandId } : {}),
       forceNewThread: true,
       signal: controller.signal,
       source: isOnboarding ? 'onboarding' : 'agent',
@@ -150,6 +153,7 @@ function AgentWorkspaceLayoutClientContent({
     return () => controller.abort();
   }, [
     isJourneyRoute,
+    brandId,
     effectiveIsLoaded,
     isOnboarding,
     isUnthreadedRoute,
@@ -183,8 +187,8 @@ function AgentWorkspaceLayoutClientContent({
       pendingNavigationThreadRef.current !== activeThreadId
     ) {
       const nextRoute = isOnboarding
-        ? orgHref(`${APP_ROUTES.AGENT.ONBOARDING}/${activeThreadId}`)
-        : orgHref(`${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`);
+        ? activeHref(`${APP_ROUTES.AGENT.ONBOARDING}/${activeThreadId}`)
+        : activeHref(`${APP_ROUTES.AGENT.ROOT}/${activeThreadId}`);
       newRouteBaselineThreadRef.current = activeThreadId;
       pendingNavigationThreadRef.current = activeThreadId;
       captureAnalyticsEvent(ANALYTICS_EVENTS.AGENT_THREAD_CREATED, {
@@ -197,7 +201,7 @@ function AgentWorkspaceLayoutClientContent({
     isJourneyRoute,
     isOnboarding,
     isUnthreadedRoute,
-    orgHref,
+    activeHref,
     replace,
   ]);
 

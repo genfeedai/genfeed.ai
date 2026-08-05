@@ -36,7 +36,7 @@ export default function BrandDetailAgentProfileCard({
 }: BrandDetailAgentProfileCardProps) {
   const {
     AUTO_MODEL_SELECT_VALUE,
-    enabledModels,
+    enabledModelIds,
     form,
     handleCanonicalSourceChange,
     handleDefaultModelChange,
@@ -142,7 +142,7 @@ export default function BrandDetailAgentProfileCard({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                {enabledModels.map((model) => (
+                {enabledModelIds.map((model) => (
                   <SelectItem key={model} value={model}>
                     {model}
                   </SelectItem>
@@ -332,7 +332,7 @@ export default function BrandDetailAgentProfileCard({
             {selectedPlatformOption ? (
               <AgentProfilePlatformOverride
                 key={selectedPlatformOption.value}
-                enabledModels={enabledModels}
+                enabledModelIds={enabledModelIds}
                 label={selectedPlatformOption.label}
                 override={selectedOverride}
                 platformValue={selectedPlatformOption.value}

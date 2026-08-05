@@ -630,7 +630,7 @@ describe('AppProtectedLayout', () => {
 
     expect(
       screen.getByRole('link', { name: 'New agent thread' }),
-    ).toBeInTheDocument();
+    ).toHaveAttribute('href', '/org-123/brand-123/agent/new');
     expect(
       screen.getByRole('button', { name: 'Conversation header action' }),
     ).toBeInTheDocument();

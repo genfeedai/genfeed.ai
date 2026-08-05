@@ -133,7 +133,7 @@ const SETTING_GROUPS: SettingGroup[] = [
     label: 'Configuration',
     settings: [
       { key: 'timezone', label: 'Timezone', type: 'string' },
-      { key: 'enabledModels', label: 'Enabled Models', type: 'array' },
+      { key: 'enabledModelIds', label: 'Enabled Models', type: 'array' },
     ],
   },
 ];

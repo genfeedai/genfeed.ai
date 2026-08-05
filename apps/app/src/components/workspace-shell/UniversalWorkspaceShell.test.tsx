@@ -220,6 +220,7 @@ vi.mock(
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    activeHref: (href: string) => `/acme/moonrise${href}`,
     brandSlug: navigation.pathname.includes('/moonrise/') ? 'moonrise' : '',
     href: (href: string) => `/acme/moonrise${href}`,
     orgHref: (href: string) => `/acme/~${href}`,
@@ -533,6 +534,21 @@ describe('UniversalWorkspaceShell', () => {
       'data-composer-target',
       'workspace-inspector-composer-slot',
     );
+  });
+
+  it('passes the selected brand to a new conversation composer', () => {
+    navigation.pathname = '/acme/moonrise/agent/new';
+    agentState.activeThreadId = null;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>New conversation</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(
+      screen.getByText('New conversation').closest('[data-composer-brand]'),
+    ).toHaveAttribute('data-composer-brand', 'brand-1');
   });
 
   it('keeps a conversation created from Studio out of the canonical URL', () => {

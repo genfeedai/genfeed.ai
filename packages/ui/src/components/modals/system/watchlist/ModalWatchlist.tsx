@@ -45,10 +45,10 @@ export default function ModalWatchlist({
     handleDelete: deleteModalWatchlist,
   } = useCrudModal<IWatchlist, WatchlistSchema>({
     defaultValues: {
-      brand: scope === PageScope.BRAND ? propBrandId || brandId : '',
+      brandId: scope === PageScope.BRAND ? propBrandId || brandId : '',
       category: '',
       handle: '',
-      name: '',
+      label: '',
       notes: '',
       platform: Platform.INSTAGRAM,
     },
@@ -64,19 +64,16 @@ export default function ModalWatchlist({
   // Populate form when editing
   useEffect(() => {
     if (item) {
-      form.setValue('name', item.name);
+      form.setValue('label', item.label);
       form.setValue('platform', item.platform);
       form.setValue('handle', item.handle);
       form.setValue('category', item.category ?? '');
       form.setValue('notes', item.notes ?? '');
-      form.setValue(
-        'brand',
-        typeof item.brand === 'string' ? item.brand : item.brand.id,
-      );
+      form.setValue('brandId', item.brandId);
     } else {
       // Set default brand for new item
       if (scope === PageScope.BRAND && brandId) {
-        form.setValue('brand', brandId);
+        form.setValue('brandId', brandId);
       }
     }
   }, [item, form, scope, brandId]);
@@ -121,7 +118,7 @@ export default function ModalWatchlist({
         <FormControl label="Creator/Brand Name">
           <Input
             type="text"
-            name="name"
+            name="label"
             control={form.control}
             onChange={updateModalWatchlist}
             placeholder="Enter name (e.g., MrBeast, Nike)"
@@ -184,7 +181,7 @@ export default function ModalWatchlist({
         {scope === PageScope.BRAND && brands.length > 0 && (
           <FormControl label="Brand">
             <SelectField
-              name="brand"
+              name="brandId"
               control={form.control}
               onChange={updateModalWatchlist}
               isDisabled={isSubmitting}

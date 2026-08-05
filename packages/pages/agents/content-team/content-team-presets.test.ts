@@ -56,7 +56,7 @@ describe('content-team-presets', () => {
       startDate: '2026-03-29T10:00:00.000Z',
     });
 
-    expect(campaign.agents).toEqual(['strategy-1', 'strategy-2']);
+    expect(campaign.agentStrategyIds).toEqual(['strategy-1', 'strategy-2']);
     expect(campaign.campaignLeadStrategyId).toBe('strategy-1');
     expect(campaign.creditsAllocated).toBe(900);
     expect(campaign.status).toBe('draft');
@@ -70,7 +70,7 @@ describe('content-team-presets', () => {
       targetValue: 250000,
     });
 
-    expect(goal.brand).toBe('brand-1');
+    expect(goal.brandId).toBe('brand-1');
     expect(goal.metric).toBe('views');
     expect(goal.isActive).toBe(true);
     expect(goal.targetValue).toBe(250000);

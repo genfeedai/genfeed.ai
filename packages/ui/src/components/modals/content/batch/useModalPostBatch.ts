@@ -150,8 +150,7 @@ export function useModalPostBatch(props: ModalPostProps) {
         return false;
       }
 
-      const expiryValue =
-        credential.accessTokenExpiry ?? credential.tokenExpiry;
+      const expiryValue = credential.accessTokenExpiry;
       if (!expiryValue) {
         return false;
       }

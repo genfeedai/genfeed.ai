@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => ({
     defaultModelUpdate: 'gpt-4o-mini',
     defaultMusicModel: 'suno',
     defaultVideoModel: 'runway',
-    enabledModels: ['gpt-4o', 'gpt-4o-mini', 'claude-3-5'],
+    enabledModelIds: ['gpt-4o', 'gpt-4o-mini', 'claude-3-5'],
   } as Record<string, unknown>,
 }));
 
@@ -156,7 +156,7 @@ describe('OrganizationGenerationDefaultsCard', () => {
       defaultModelUpdate: 'gpt-4o-mini',
       defaultMusicModel: 'suno',
       defaultVideoModel: 'runway',
-      enabledModels: ['gpt-4o', 'gpt-4o-mini', 'claude-3-5'],
+      enabledModelIds: ['gpt-4o', 'gpt-4o-mini', 'claude-3-5'],
     };
     mocks.getOrganizationsService.mockResolvedValue({
       patchSettings: mocks.patchSettings,

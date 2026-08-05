@@ -207,7 +207,7 @@ export function buildRoleStrategyInput(
   return {
     agentType: preset.type,
     autonomyMode: AgentAutonomyMode.SUPERVISED,
-    brand: options.brandId,
+    brandId: options.brandId,
     dailyCreditBudget: resolvedBudget,
     displayRole: preset.displayRole,
     goalId: options.goalId,
@@ -260,7 +260,7 @@ export function buildContentTeamCampaignInput(options: {
   startDate?: string;
 }): CreateAgentCampaignInput {
   return {
-    agents: options.agentIds,
+    agentStrategyIds: options.agentIds,
     brief: options.brief?.trim() || undefined,
     campaignLeadStrategyId: options.campaignLeadStrategyId,
     creditsAllocated: options.creditsAllocated ?? 0,
@@ -278,7 +278,7 @@ export function buildContentTeamGoalInput(options: {
   targetValue: number;
 }): CreateAgentGoalInput {
   return {
-    brand: options.brandId,
+    brandId: options.brandId,
     description: options.description?.trim() || undefined,
     isActive: true,
     label: options.label.trim(),

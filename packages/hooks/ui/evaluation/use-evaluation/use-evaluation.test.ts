@@ -334,9 +334,9 @@ describe('useEvaluation', () => {
   describe('Evaluate', () => {
     it('evaluates image content', async () => {
       const mockResult = {
+        data: { status: Status.COMPLETED },
         id: 'new-eval',
         score: 88,
-        status: Status.COMPLETED,
       };
       mockEvaluateImage.mockResolvedValue(mockResult);
 
@@ -361,9 +361,9 @@ describe('useEvaluation', () => {
 
     it('evaluates video content', async () => {
       const mockResult = {
+        data: { status: Status.COMPLETED },
         id: 'new-eval',
         score: 92,
-        status: Status.COMPLETED,
       };
       mockEvaluateVideo.mockResolvedValue(mockResult);
 
@@ -385,9 +385,9 @@ describe('useEvaluation', () => {
 
     it('evaluates article content', async () => {
       const mockResult = {
+        data: { status: Status.COMPLETED },
         id: 'new-eval',
         score: 78,
-        status: Status.COMPLETED,
       };
       mockEvaluateArticle.mockResolvedValue(mockResult);
 
@@ -409,9 +409,9 @@ describe('useEvaluation', () => {
 
     it('evaluates post content', async () => {
       const mockResult = {
+        data: { status: Status.COMPLETED },
         id: 'new-eval',
         score: 85,
-        status: Status.COMPLETED,
       };
       mockEvaluatePost.mockResolvedValue(mockResult);
 
@@ -457,7 +457,10 @@ describe('useEvaluation', () => {
       });
 
       await act(async () => {
-        resolvePromise?.({ id: 'eval', status: Status.COMPLETED });
+        resolvePromise?.({
+          data: { status: Status.COMPLETED },
+          id: 'eval',
+        });
       });
 
       await waitFor(() => {

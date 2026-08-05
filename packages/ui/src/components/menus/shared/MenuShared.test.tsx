@@ -719,7 +719,7 @@ describe('MenuShared', () => {
     });
   });
 
-  it('routes the conversations new agent thread CTA directly to /agent/new', () => {
+  it('routes the conversations new-thread CTA through the selected brand', () => {
     render(
       <MenuShared
         config={config}
@@ -729,7 +729,7 @@ describe('MenuShared', () => {
 
     expect(screen.getByRole('link', { name: /New Thread/i })).toHaveAttribute(
       'href',
-      '/acme/~/agent/new',
+      '/acme/moonrise-studio/agent/new',
     );
   });
 

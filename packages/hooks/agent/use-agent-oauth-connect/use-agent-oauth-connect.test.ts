@@ -58,13 +58,16 @@ describe('useAgentOAuthConnect', () => {
   });
 
   it('connects and redirects with a standard-agent return_to', async () => {
+    selectedBrand = { id: 'brand-1' };
     const { result } = renderHook(() => useAgentOAuthConnect());
 
     await act(async () => {
       await result.current('twitter');
     });
 
-    expect(mockPostConnect).toHaveBeenCalledWith('twitter', 'token-abc', {});
+    expect(mockPostConnect).toHaveBeenCalledWith('twitter', 'token-abc', {
+      brandId: 'brand-1',
+    });
     expect(openSpy).toHaveBeenCalledWith(
       `https://provider.test/oauth?return_to=${encodeURIComponent('/o/agent/new')}`,
       '_self',
@@ -83,7 +86,7 @@ describe('useAgentOAuthConnect', () => {
     });
 
     expect(mockPostConnect).toHaveBeenCalledWith('linkedin', 'token-abc', {
-      brand: 'brand-9',
+      brandId: 'brand-9',
     });
     expect(openSpy).toHaveBeenCalledWith(
       `https://provider.test/oauth?return_to=${encodeURIComponent('/o/agent/onboarding/thread-5')}`,
@@ -104,6 +107,7 @@ describe('useAgentOAuthConnect', () => {
   });
 
   it('logs and propagates connect failures to the invoking surface', async () => {
+    selectedBrand = { id: 'brand-1' };
     const error = new Error('OAuth unavailable');
     mockPostConnect.mockRejectedValue(error);
     const { result } = renderHook(() => useAgentOAuthConnect());
@@ -114,5 +118,15 @@ describe('useAgentOAuthConnect', () => {
 
     expect(mockLoggerError).toHaveBeenCalledWith('OAuth connect failed', error);
     expect(openSpy).not.toHaveBeenCalled();
+  });
+
+  it('rejects before the API call when no brand is selected', async () => {
+    const { result } = renderHook(() => useAgentOAuthConnect());
+
+    await expect(result.current('twitter')).rejects.toThrow(
+      'Select a brand before connecting an account',
+    );
+
+    expect(mockPostConnect).not.toHaveBeenCalled();
   });
 });

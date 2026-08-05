@@ -247,7 +247,7 @@ export default function BrandDetailSocialMediaCard({
       setConnectingPlatform(platform);
       const token = (await resolveAuthToken(getToken)) ?? '';
       const service = new ServicesService(item.servicePath ?? platform, token);
-      const credentialOAuth = await service.postConnect({ brand: brandId });
+      const credentialOAuth = await service.postConnect({ brandId });
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
       logger.error(`Failed to initiate ${platform} OAuth:`, error);

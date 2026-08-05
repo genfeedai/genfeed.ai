@@ -52,6 +52,9 @@ export function usePlatformOAuthConnect(
         const brandId =
           options.brandId ??
           (selectedBrand ? getBrandEntityId(selectedBrand) : undefined);
+        if (!brandId) {
+          throw new Error('Select a brand before connecting an account');
+        }
         const returnTo = options.returnTo ?? defaultReturnTo;
 
         try {
@@ -61,9 +64,7 @@ export function usePlatformOAuthConnect(
         }
 
         const service = new ServicesService(platform, token);
-        const credential = await service.postConnect({
-          ...(brandId ? { brand: brandId } : {}),
-        });
+        const credential = await service.postConnect({ brandId });
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(
           `${credential.url}${separator}return_to=${encodeURIComponent(returnTo)}`,

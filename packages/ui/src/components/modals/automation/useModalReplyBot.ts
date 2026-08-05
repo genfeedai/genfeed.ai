@@ -32,9 +32,10 @@ export function useModalReplyBot({
   } = useCrudModal<IReplyBotConfig, ReplyBotConfigSchema>({
     defaultValues: {
       actionType: ReplyBotActionType.REPLY_ONLY,
+      credentialId: undefined,
       description: '',
       isActive: false,
-      monitoredAccounts: [],
+      monitoredAccountIds: [],
       name: '',
       platform: ReplyBotPlatform.TWITTER,
       rateLimits: {
@@ -59,6 +60,7 @@ export function useModalReplyBot({
   useEffect(() => {
     if (replyBot) {
       form.setValue('name', replyBot.name ?? '');
+      form.setValue('credentialId', replyBot.credentialId);
       form.setValue('description', replyBot.description ?? '');
       form.setValue('type', replyBot.type);
       form.setValue('platform', replyBot.platform);
@@ -91,14 +93,22 @@ export function useModalReplyBot({
       if (replyBot.schedule) {
         const schedule = replyBot.schedule as {
           timezone?: string;
-          activeHoursStart?: number;
-          activeHoursEnd?: number;
-          activeDays?: number[];
+          activeHoursStart?: string;
+          activeHoursEnd?: string;
+          activeDays?: string[];
+          enabled?: boolean;
         };
         form.setValue('schedule', {
-          activeDays: schedule.activeDays ?? [1, 2, 3, 4, 5],
-          activeHoursEnd: schedule.activeHoursEnd ?? 17,
-          activeHoursStart: schedule.activeHoursStart ?? 9,
+          activeDays: schedule.activeDays ?? [
+            'monday',
+            'tuesday',
+            'wednesday',
+            'thursday',
+            'friday',
+          ],
+          activeHoursEnd: schedule.activeHoursEnd ?? '17:00',
+          activeHoursStart: schedule.activeHoursStart ?? '09:00',
+          enabled: schedule.enabled ?? false,
           timezone: schedule.timezone ?? 'UTC',
         });
       }
@@ -130,7 +140,7 @@ export function useModalReplyBot({
           mustHaveBio: filters.mustHaveBio ?? false,
         });
       }
-      form.setValue('monitoredAccounts', replyBot.monitoredAccounts ?? []);
+      form.setValue('monitoredAccountIds', replyBot.monitoredAccountIds ?? []);
     }
   }, [replyBot, form]);
 

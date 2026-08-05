@@ -21,7 +21,7 @@ type ExtendedOrganizationSettings = {
   defaultImageToVideoModel?: string;
   defaultMusicModel?: string;
   defaultVideoModel?: string;
-  enabledModels?: string[];
+  enabledModelIds?: string[];
 };
 
 type GenerationDefaultsState = {
@@ -42,7 +42,7 @@ export default function OrganizationGenerationDefaultsCard() {
     | (typeof settings & ExtendedOrganizationSettings)
     | undefined;
   const { imageModels, musicModels, videoModels } = useElements();
-  const enabledModels = settingsWithContentDefaults?.enabledModels ?? [];
+  const enabledModelIds = settingsWithContentDefaults?.enabledModelIds ?? [];
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
@@ -122,7 +122,7 @@ export default function OrganizationGenerationDefaultsCard() {
     >
       <div className="space-y-4">
         <OrganizationGenerationDefaultsTextSection
-          enabledModels={enabledModels}
+          enabledModelIds={enabledModelIds}
           defaultModel={defaults.defaultModel}
           defaultModelReview={defaults.defaultModelReview}
           defaultModelUpdate={defaults.defaultModelUpdate}

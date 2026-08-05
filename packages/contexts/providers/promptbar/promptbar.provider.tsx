@@ -149,7 +149,7 @@ function PromptBarProviderContent({
       const tagsData = results[4] as ITag[];
 
       logger.info('PromptBar data loaded', {
-        enabledModels: orgSettings?.enabledModels?.length ?? 'N/A',
+        enabledModelIds: orgSettings?.enabledModelIds?.length ?? 'N/A',
         fontFamilies: fontFamiliesData.length,
         models: modelsData.length,
         presets: presetsData.length,
@@ -291,16 +291,16 @@ function PromptBarProviderContent({
       return allModels;
     }
 
-    const enabledModels = orgSettings?.enabledModels;
-    if (!enabledModels || enabledModels.length === 0) {
+    const enabledModelIds = orgSettings?.enabledModelIds;
+    if (!enabledModelIds || enabledModelIds.length === 0) {
       return [];
     }
 
     return allModels.filter(
       (model) =>
         model.isTraining ||
-        enabledModels.includes(model.id) ||
-        enabledModels.includes(model.key),
+        enabledModelIds.includes(model.id) ||
+        enabledModelIds.includes(model.key),
     );
   }, [
     allModels,

@@ -128,7 +128,7 @@ describe('BrandProvider', () => {
     },
     organizationId: 'org_123',
     settings: {
-      enabledModels: [
+      enabledModelIds: [
         {
           buffer: [
             0x50, 0x7f, 0x1f, 0x77, 0xbc, 0xf8, 0x6c, 0xd7, 0x99, 0x43, 0x90,
@@ -175,10 +175,10 @@ describe('BrandProvider', () => {
           <span data-testid="organization-id">{organizationId}</span>
           <span data-testid="brand-count">{String(brands.length)}</span>
           <span data-testid="enabled-models">
-            {String(settings?.enabledModels?.length ?? 0)}
+            {String(settings?.enabledModelIds?.length ?? 0)}
           </span>
           <span data-testid="enabled-model-id">
-            {String(settings?.enabledModels?.[0] ?? '')}
+            {String(settings?.enabledModelIds?.[0] ?? '')}
           </span>
           <span data-testid="fleet-brand-enabled">
             {String(fleetCapabilities?.brandEnabled)}

@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
       reviewModelOverride: 'gpt-5.4-mini',
       thinkingModelOverride: 'gpt-5.5',
     },
-    enabledModels: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
+    enabledModelIds: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
   } as Record<string, unknown>,
 }));
 
@@ -156,7 +156,7 @@ describe('SettingsAgentsPage', () => {
         reviewModelOverride: 'gpt-5.4-mini',
         thinkingModelOverride: 'gpt-5.5',
       },
-      enabledModels: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
+      enabledModelIds: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
     };
     mocks.patchSettings.mockResolvedValue({});
     mocks.refresh.mockResolvedValue(undefined);
@@ -245,7 +245,7 @@ describe('SettingsAgentsPage', () => {
   it('patches simple tier controls, skips missing organization, and logs failures', async () => {
     mocks.settings = {
       agentPolicy: undefined,
-      enabledModels: ['gpt-5.5'],
+      enabledModelIds: ['gpt-5.5'],
     };
     const { rerender } = render(<SettingsAgentsPage />);
 

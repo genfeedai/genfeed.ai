@@ -116,7 +116,7 @@ export default function ModalBrandInstagram({
       const service = await getServicesService();
 
       const credentialOAuth = await service.postConnect({
-        brand: brand.id,
+        brandId: brand.id,
       });
 
       // Redirect to Instagram OAuth

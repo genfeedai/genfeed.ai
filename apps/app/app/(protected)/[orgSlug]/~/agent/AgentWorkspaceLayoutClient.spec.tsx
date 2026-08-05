@@ -44,8 +44,11 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
+    brandId: 'brand-1',
     selectedBrand: {
       id: 'brand-1',
+      organization: { slug: 'acme-org' },
+      slug: 'acme-creator',
     },
   }),
 }));
@@ -170,7 +173,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/~/agent/thread-new',
+        '/acme-org/acme-creator/agent/thread-new',
       );
     });
   });
@@ -187,6 +190,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(sendMessage).toHaveBeenCalledWith('hello', {
+        brandId: 'brand-1',
         forceNewThread: true,
         signal: expect.any(AbortSignal),
         source: 'agent',
@@ -214,6 +218,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect(sendMessage).toHaveBeenCalledWith(
         'Continue the workspace task "Draft the weekly update". Task id: task-42. Requested output: newsletter. Execution path: caption_generation.',
         {
+          brandId: 'brand-1',
           forceNewThread: true,
           signal: expect.any(AbortSignal),
           source: 'agent',
@@ -244,7 +249,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(routerReplace).toHaveBeenCalledWith(
-        '/acme-org/~/agent/onboarding/thread-new',
+        '/acme-org/acme-creator/agent/onboarding/thread-new',
       );
     });
   });
@@ -259,6 +264,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     await waitFor(() => {
       expect(sendMessage).toHaveBeenCalledWith('hello', {
+        brandId: 'brand-1',
         forceNewThread: true,
         signal: expect.any(AbortSignal),
         source: 'agent',
@@ -290,6 +296,7 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect(sendMessage).toHaveBeenCalledWith(
         'help me define my brand voice',
         {
+          brandId: 'brand-1',
           forceNewThread: true,
           signal: expect.any(AbortSignal),
           source: 'onboarding',

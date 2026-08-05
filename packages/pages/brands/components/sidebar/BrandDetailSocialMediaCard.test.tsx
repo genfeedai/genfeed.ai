@@ -293,7 +293,7 @@ describe('BrandDetailSocialMediaCard', () => {
 
     await waitFor(() => {
       expect(getToken).toHaveBeenCalled();
-      expect(postConnect).toHaveBeenCalledWith({ brand: 'brand-1' });
+      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
       expect(openSpy).toHaveBeenCalledWith(
         'https://oauth.example/connect',
         '_self',
@@ -315,7 +315,7 @@ describe('BrandDetailSocialMediaCard', () => {
 
     await waitFor(() => {
       expect(servicesPlatform).toHaveBeenCalledWith('google-ads');
-      expect(postConnect).toHaveBeenCalledWith({ brand: 'brand-1' });
+      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
     });
   });
 

@@ -150,7 +150,7 @@ export default function SettingsConversationPage({
     );
   }
 
-  const enabledModels = settings?.enabledModels ?? [];
+  const enabledModelIds = settings?.enabledModelIds ?? [];
   const selectedModel = defaultAgentModel || AUTO_MODEL_SELECT_VALUE;
 
   return (
@@ -241,7 +241,7 @@ export default function SettingsConversationPage({
                 <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
                   OpenRouter Auto (default)
                 </SelectItem>
-                {enabledModels.map((model) => (
+                {enabledModelIds.map((model) => (
                   <SelectItem key={model} value={model}>
                     {model}
                   </SelectItem>

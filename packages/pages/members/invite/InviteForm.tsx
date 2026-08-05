@@ -73,7 +73,7 @@ export default function InviteForm({
 
       <FormControl label="Role">
         <SelectField
-          name="role"
+          name="roleId"
           control={control}
           onChange={(e) => onSetRole(e.target.value)}
           isDisabled={isLoadingRoles}
