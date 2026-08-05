@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
+import type { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { mockGetIsSuperAdmin, mockGetPublicMetadata } = vi.hoisted(() => ({
@@ -14,12 +16,20 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: mockGetPublicMetadata,
 }));
 
+vi.mock('@api/auth/better-auth/better-auth.service', () => ({
+  BetterAuthService: class BetterAuthService {},
+}));
+
 vi.mock('@api/collections/api-keys/services/api-keys.service', () => ({
   ApiKeysService: class ApiKeysService {},
 }));
 
 vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
   PrismaService: class PrismaService {},
+}));
+
+vi.mock('@libs/logger/logger.service', () => ({
+  LoggerService: class LoggerService {},
 }));
 
 vi.mock('@genfeedai/enums', () => ({
@@ -54,6 +64,23 @@ const { AuthDesktopService } = await import('./auth-desktop.service.ts');
 
 const userId = '507f191e810c19729de860ee';
 const organizationId = '607f191e810c19729de860ee';
+const codeVerifier = 'desktop-code-verifier-desktop-code-verifier-desktop-code';
+const state = 'desktop-state-desktop-state';
+
+const desktopCookie = {
+  cookieName: 'better-auth.session_token',
+  cookieValue: 'better-auth-session-token.signature',
+  expiresAt: '2026-11-03T12:00:00.000Z',
+  httpOnly: true,
+  path: '/',
+  sameSite: 'lax' as const,
+  secure: false,
+};
+
+interface BuildServiceOptions {
+  apiKeyError?: Error;
+  isBetterAuthDisabled?: boolean;
+}
 
 const toBase64Url = (input: Buffer): string =>
   input
@@ -79,11 +106,36 @@ const makeUser = (): User =>
 
 const makeRequest = () => ({ context: {} }) as never;
 
-function buildService() {
+function buildService(options: BuildServiceOptions = {}) {
   const records = new Map<string, Record<string, unknown>>();
+  const issuedSessionTokens = new Set<string>();
   const apiKeysService = {
-    createWithKey: vi.fn().mockResolvedValue({ plainKey: 'gf_desktop_key' }),
+    createWithKey: options.apiKeyError
+      ? vi.fn().mockRejectedValue(options.apiKeyError)
+      : vi.fn().mockResolvedValue({ plainKey: 'gf_desktop_key' }),
   } as unknown as ApiKeysService;
+  let sessionSequence = 0;
+  const betterAuthService = {
+    createDesktopSessionCookie: vi.fn(async () => {
+      if (options.isBetterAuthDisabled) {
+        return null;
+      }
+      sessionSequence += 1;
+      const token = `better-auth-session-token-${sessionSequence}`;
+      issuedSessionTokens.add(token);
+      return {
+        cookie: desktopCookie,
+        token,
+      };
+    }),
+    revokeDesktopSession: vi.fn(async (token: string) => {
+      issuedSessionTokens.delete(token);
+    }),
+  } as unknown as BetterAuthService;
+  const logger = {
+    error: vi.fn(),
+    warn: vi.fn(),
+  } as unknown as LoggerService;
   const prisma = {
     desktopAuthCode: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
@@ -126,8 +178,26 @@ function buildService() {
 
   return {
     apiKeysService,
-    service: new AuthDesktopService(apiKeysService, prisma),
+    betterAuthService,
+    issuedSessionTokens,
+    logger,
+    service: new AuthDesktopService(
+      apiKeysService,
+      betterAuthService,
+      logger,
+      prisma,
+    ),
   };
+}
+
+async function createAuthorization(
+  service: InstanceType<typeof AuthDesktopService>,
+) {
+  return service.createCode(makeUser(), makeRequest(), {
+    codeChallenge: buildCodeChallenge(codeVerifier),
+    codeChallengeMethod: 'S256',
+    state,
+  });
 }
 
 describe('AuthDesktopService', () => {
@@ -140,31 +210,19 @@ describe('AuthDesktopService', () => {
     });
   });
 
-  it('stores the browser auth code without creating an API key early', async () => {
-    const { apiKeysService, service } = buildService();
-    const codeVerifier =
-      'desktop-code-verifier-desktop-code-verifier-desktop-code';
+  it('stores the browser auth code without creating credentials early', async () => {
+    const { apiKeysService, betterAuthService, service } = buildService();
 
-    const result = await service.createCode(makeUser(), makeRequest(), {
-      codeChallenge: buildCodeChallenge(codeVerifier),
-      codeChallengeMethod: 'S256',
-      state: 'desktop-state-desktop-state',
-    });
+    const result = await createAuthorization(service);
 
     expect(result.code).toBeTypeOf('string');
     expect(apiKeysService.createWithKey).not.toHaveBeenCalled();
+    expect(betterAuthService.createDesktopSessionCookie).not.toHaveBeenCalled();
   });
 
-  it('creates the desktop API key only after a valid PKCE exchange', async () => {
-    const { apiKeysService, service } = buildService();
-    const codeVerifier =
-      'desktop-code-verifier-desktop-code-verifier-desktop-code';
-    const state = 'desktop-state-desktop-state';
-    const authorization = await service.createCode(makeUser(), makeRequest(), {
-      codeChallenge: buildCodeChallenge(codeVerifier),
-      codeChallengeMethod: 'S256',
-      state,
-    });
+  it('returns the API token and signed Better Auth session after a valid exchange', async () => {
+    const { apiKeysService, betterAuthService, service } = buildService();
+    const authorization = await createAuthorization(service);
 
     const result = await service.exchangeCode({
       code: authorization.code,
@@ -173,6 +231,10 @@ describe('AuthDesktopService', () => {
     });
 
     expect(result.token).toBe('gf_desktop_key');
+    expect(result.session).toEqual(desktopCookie);
+    expect(betterAuthService.createDesktopSessionCookie).toHaveBeenCalledWith(
+      userId,
+    );
     expect(apiKeysService.createWithKey).toHaveBeenCalledWith(
       expect.objectContaining({
         expiresAt: expect.any(String),
@@ -184,22 +246,62 @@ describe('AuthDesktopService', () => {
     );
   });
 
-  it('consumes desktop auth codes once', async () => {
-    const { service } = buildService();
-    const codeVerifier =
-      'desktop-code-verifier-desktop-code-verifier-desktop-code';
-    const state = 'desktop-state-desktop-state';
-    const authorization = await service.createCode(makeUser(), makeRequest(), {
-      codeChallenge: buildCodeChallenge(codeVerifier),
-      codeChallengeMethod: 'S256',
-      state,
-    });
-
-    await service.exchangeCode({
+  it('rejects a replay without minting a second API key or session', async () => {
+    const { apiKeysService, betterAuthService, service } = buildService();
+    const authorization = await createAuthorization(service);
+    const exchange = {
       code: authorization.code,
       codeVerifier,
       state,
-    });
+    };
+
+    await service.exchangeCode(exchange);
+    await expect(service.exchangeCode(exchange)).rejects.toThrow(
+      'Invalid desktop authorization code',
+    );
+
+    expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
+    expect(betterAuthService.createDesktopSessionCookie).toHaveBeenCalledTimes(
+      1,
+    );
+  });
+
+  it('allows exactly one concurrent exchange to mint credentials', async () => {
+    const { apiKeysService, betterAuthService, service } = buildService();
+    const authorization = await createAuthorization(service);
+    const exchange = {
+      code: authorization.code,
+      codeVerifier,
+      state,
+    };
+
+    const results = await Promise.allSettled([
+      service.exchangeCode(exchange),
+      service.exchangeCode(exchange),
+    ]);
+
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
+    expect(betterAuthService.createDesktopSessionCookie).toHaveBeenCalledTimes(
+      1,
+    );
+  });
+
+  it('revokes the Better Auth session when API-key creation fails', async () => {
+    const apiKeyError = new Error('API key store unavailable');
+    const {
+      apiKeysService,
+      betterAuthService,
+      issuedSessionTokens,
+      logger,
+      service,
+    } = buildService({ apiKeyError });
+    const authorization = await createAuthorization(service);
 
     await expect(
       service.exchangeCode({
@@ -207,6 +309,34 @@ describe('AuthDesktopService', () => {
         codeVerifier,
         state,
       }),
-    ).rejects.toThrow('Invalid desktop authorization code');
+    ).rejects.toBe(apiKeyError);
+
+    expect(apiKeysService.createWithKey).toHaveBeenCalledTimes(1);
+    expect(betterAuthService.revokeDesktopSession).toHaveBeenCalledWith(
+      'better-auth-session-token-1',
+    );
+    expect(issuedSessionTokens.size).toBe(0);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Revoked Better Auth desktop session after API key creation failed',
+      expect.objectContaining({ userId }),
+    );
+  });
+
+  it('fails cleanly when Better Auth is disabled', async () => {
+    const { apiKeysService, betterAuthService, service } = buildService({
+      isBetterAuthDisabled: true,
+    });
+    const authorization = await createAuthorization(service);
+
+    await expect(
+      service.exchangeCode({
+        code: authorization.code,
+        codeVerifier,
+        state,
+      }),
+    ).rejects.toThrow('Better Auth is required to create a desktop session');
+
+    expect(apiKeysService.createWithKey).not.toHaveBeenCalled();
+    expect(betterAuthService.revokeDesktopSession).not.toHaveBeenCalled();
   });
 });

@@ -42,9 +42,9 @@ function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee',
-      organization: '507f191e810c19729de860ee',
-      user: '507f191e810c19729de860ee',
+      brand: 'c07f191e810c19729de860ee',
+      organization: 'c07f191e810c19729de860ee',
+      user: 'c07f191e810c19729de860ee',
       ...overrides,
     },
   };
@@ -55,10 +55,10 @@ describe('MusicsController', () => {
   let musicsService: ReturnType<typeof createMockMusicsService>;
   let logger: ReturnType<typeof createMockLogger>;
   const request = {} as Request;
-  const musicId = '507f191e810c19729de860ea';
-  const organizationId = '507f191e810c19729de860eb';
-  const brandId = '507f191e810c19729de860ec';
-  const userId = '507f191e810c19729de860ed';
+  const musicId = 'm07f191e810c19729de860ea';
+  const organizationId = 'o07f191e810c19729de860eb';
+  const brandId = 'b07f191e810c19729de860ec';
+  const userId = 'u07f191e810c19729de860ed';
   const music = {
     brandId,
     category: 'music',
@@ -100,11 +100,11 @@ describe('MusicsController', () => {
         where: {
           OR: expect.arrayContaining([
             expect.objectContaining({
-              brandId: '507f191e810c19729de860ee',
+              brandId: 'c07f191e810c19729de860ee',
               category: 'MUSIC',
               isDeleted: false,
-              organizationId: '507f191e810c19729de860ee',
-              userId: '507f191e810c19729de860ee',
+              organizationId: 'c07f191e810c19729de860ee',
+              userId: 'c07f191e810c19729de860ee',
             }),
             expect.objectContaining({
               category: 'MUSIC',
@@ -179,7 +179,7 @@ describe('MusicsController', () => {
     });
 
     it('should filter by canonical brand ID when provided', () => {
-      const brandId = '507f191e810c19729de860ee';
+      const brandId = 'b07f191e810c19729de860ee';
       const user = createMockUser();
       const inputQuery = { brandId };
       const query = controller.buildFindAllQuery(
@@ -330,8 +330,8 @@ describe('MusicsController', () => {
     it('rejects another tenant record before deletion', async () => {
       musicsService.findOne.mockResolvedValue({
         ...music,
-        organizationId: '507f191e810c19729de860ff',
-        userId: '507f191e810c19729de860fe',
+        organizationId: 'c07f191e810c19729de860ff',
+        userId: 'c07f191e810c19729de860fe',
       });
 
       await expect(controller.remove(request, user, musicId)).rejects.toThrow();

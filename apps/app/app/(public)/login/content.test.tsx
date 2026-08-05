@@ -1,21 +1,47 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LoginPage from './content';
 import LoginBetterAuth from './login-better-auth';
+import MagicLinkLoginPage from './magic-link/page';
+import AppLoginPage from './page';
+import PasswordLoginPage from './password/page';
 
 const authClientMocks = vi.hoisted(() => ({
   email: vi.fn(),
+  getSession: vi.fn(),
   magicLink: vi.fn(),
   social: vi.fn(),
 }));
 
+const desktopRuntimeMocks = vi.hoisted(() => ({
+  eventOrder: [] as string[],
+  getDesktopBridge: vi.fn(),
+  login: vi.fn(),
+  onDidChangeSession: vi.fn(),
+  unsubscribe: vi.fn(),
+}));
+
+let desktopSessionChangeCallback: ((session: object | null) => void) | null =
+  null;
+
 vi.mock('@genfeedai/auth-client', () => ({
+  getSession: authClientMocks.getSession,
   signIn: {
     email: authClientMocks.email,
     magicLink: authClientMocks.magicLink,
     social: authClientMocks.social,
   },
+}));
+
+vi.mock('@/lib/desktop/runtime', () => ({
+  getDesktopBridge: desktopRuntimeMocks.getDesktopBridge,
 }));
 
 vi.mock('next/navigation', () => ({
@@ -50,14 +76,53 @@ const getEmailInput = () => screen.getByRole('textbox', { name: /^Email/ });
 const absoluteCallback = (path: string) => `${window.location.origin}${path}`;
 
 describe('LoginPage', () => {
+  const originalLocation = window.location;
+
   beforeEach(() => {
     authClientMocks.email.mockReset();
     authClientMocks.email.mockResolvedValue({});
+    authClientMocks.getSession.mockReset();
+    authClientMocks.getSession.mockResolvedValue({
+      data: { session: { id: 'browser-session' } },
+      error: null,
+    });
     authClientMocks.magicLink.mockReset();
     authClientMocks.magicLink.mockResolvedValue({});
     authClientMocks.social.mockReset();
     authClientMocks.social.mockResolvedValue({});
+    desktopRuntimeMocks.eventOrder.length = 0;
+    desktopRuntimeMocks.getDesktopBridge.mockReset();
+    desktopRuntimeMocks.login.mockReset();
+    desktopRuntimeMocks.login.mockImplementation(async () => {
+      desktopRuntimeMocks.eventOrder.push('login');
+    });
+    desktopRuntimeMocks.onDidChangeSession.mockReset();
+    desktopRuntimeMocks.onDidChangeSession.mockImplementation(
+      (callback: (session: object | null) => void) => {
+        desktopRuntimeMocks.eventOrder.push('subscribe');
+        desktopSessionChangeCallback = callback;
+        return desktopRuntimeMocks.unsubscribe;
+      },
+    );
+    desktopRuntimeMocks.unsubscribe.mockReset();
+    desktopSessionChangeCallback = null;
+    desktopRuntimeMocks.getDesktopBridge.mockReturnValue({
+      auth: {
+        login: desktopRuntimeMocks.login,
+        onDidChangeSession: desktopRuntimeMocks.onDidChangeSession,
+      },
+    });
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     window.history.replaceState({}, '', '/login');
+  });
+
+  afterEach(() => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: originalLocation,
+      writable: true,
+    });
+    vi.unstubAllEnvs();
   });
 
   it('renders the Better Auth sign-in chooser', () => {
@@ -85,6 +150,169 @@ describe('LoginPage', () => {
         name: 'Email / Password',
       }),
     ).toHaveAttribute('href', '/login/password');
+    expect(desktopRuntimeMocks.getDesktopBridge).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { Page: AppLoginPage, pathname: '/login' },
+    { Page: PasswordLoginPage, pathname: '/login/password' },
+    { Page: MagicLinkLoginPage, pathname: '/login/magic-link' },
+  ])(
+    'renders the desktop sign-in surface for $pathname',
+    ({ Page, pathname }) => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+      window.history.replaceState({}, '', pathname);
+
+      render(<Page />);
+
+      expect(
+        screen.getByRole('heading', { name: 'Connect to Genfeed' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole('button', { name: 'Work offline — coming soon' }),
+      ).toBeDisabled();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/Password/)).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Send link' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Google' }),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it('subscribes before opening the system browser and can return to idle', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    render(<LoginPage />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+
+    await waitFor(() => {
+      expect(desktopRuntimeMocks.login).toHaveBeenCalledOnce();
+    });
+    expect(desktopRuntimeMocks.eventOrder).toEqual(['subscribe', 'login']);
+    expect(screen.getByText('Waiting for the browser...')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeEnabled();
+  });
+
+  it('unsubscribes from desktop session changes on unmount', () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    const { unmount } = render(<LoginPage />);
+
+    expect(desktopRuntimeMocks.onDidChangeSession).toHaveBeenCalledOnce();
+
+    unmount();
+
+    expect(desktopRuntimeMocks.unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('navigates only after the Better Auth browser session is confirmed', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    window.history.replaceState(
+      {},
+      '',
+      '/login?callbackUrl=%2Fsettings%2Fcredits',
+    );
+    const locationAssignMock = vi.fn(() => {
+      desktopRuntimeMocks.eventOrder.push('navigate');
+    });
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: {
+        ...originalLocation,
+        assign: locationAssignMock,
+        origin: originalLocation.origin,
+        search: originalLocation.search,
+      },
+      writable: true,
+    });
+    let resolveSessionConfirmation:
+      | ((value: { data: { session: { id: string } }; error: null }) => void)
+      | undefined;
+    authClientMocks.getSession.mockImplementation(
+      () =>
+        new Promise<{
+          data: { session: { id: string } };
+          error: null;
+        }>((resolve) => {
+          resolveSessionConfirmation = resolve;
+        }),
+    );
+    desktopRuntimeMocks.unsubscribe.mockImplementation(() => {
+      desktopRuntimeMocks.eventOrder.push('unsubscribe');
+    });
+    render(<LoginPage />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+
+    act(() => {
+      desktopSessionChangeCallback?.({ id: 'desktop-session' });
+    });
+
+    expect(locationAssignMock).not.toHaveBeenCalled();
+
+    resolveSessionConfirmation?.({
+      data: { session: { id: 'browser-session' } },
+      error: null,
+    });
+
+    await waitFor(() => {
+      expect(locationAssignMock).toHaveBeenCalledWith(
+        `${originalLocation.origin}/settings/credits`,
+      );
+    });
+    expect(desktopRuntimeMocks.eventOrder).toEqual([
+      'subscribe',
+      'login',
+      'unsubscribe',
+      'navigate',
+    ]);
+  });
+
+  it('returns to idle with an error when browser session confirmation fails', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    authClientMocks.getSession.mockResolvedValue({ data: null, error: null });
+    render(<LoginPage />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    );
+
+    act(() => {
+      desktopSessionChangeCallback?.({ id: 'desktop-session' });
+    });
+
+    expect(
+      await screen.findByText(/browser session could not be confirmed/i),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeEnabled();
+  });
+
+  it('renders a disabled desktop state when the bridge is unavailable', () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    desktopRuntimeMocks.getDesktopBridge.mockReturnValue(null);
+
+    render(<LoginPage />);
+
+    expect(
+      screen.getByRole('button', { name: 'Sign in with Genfeed' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/desktop bridge could not be loaded/i),
+    ).toBeVisible();
   });
 
   it('preserves callbackUrl across chooser links', () => {

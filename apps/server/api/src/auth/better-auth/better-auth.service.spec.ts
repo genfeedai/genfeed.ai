@@ -12,6 +12,15 @@ const makeInstance = (
     handler: () => new Response(null),
   }) as unknown as BetterAuthInstance;
 
+const makeDesktopInstance = (
+  createDesktopSession: ReturnType<typeof vi.fn>,
+  revokeDesktopSession: ReturnType<typeof vi.fn> = vi.fn(),
+): BetterAuthInstance =>
+  ({
+    api: { createDesktopSession, revokeDesktopSession },
+    handler: () => new Response(null),
+  }) as unknown as BetterAuthInstance;
+
 describe('BetterAuthService', () => {
   describe('when the instance is null (flag off / unconfigured)', () => {
     let service: BetterAuthService;
@@ -32,6 +41,64 @@ describe('BetterAuthService', () => {
       await expect(service.verifyToken('tok')).rejects.toBeInstanceOf(
         UnauthorizedException,
       );
+    });
+
+    it('does not create a desktop session cookie', async () => {
+      await expect(
+        service.createDesktopSessionCookie('user_1'),
+      ).resolves.toBeNull();
+    });
+  });
+
+  describe('desktop session cookie issuance', () => {
+    it('returns the exact signed cookie emitted by the plugin endpoint', async () => {
+      const headers = new Headers();
+      headers.append(
+        'set-cookie',
+        '__Secure-better-auth.session_token=database-token.signature; Max-Age=604800; Path=/; HttpOnly; Secure; SameSite=Lax',
+      );
+      const createDesktopSession = vi.fn().mockResolvedValue({
+        headers,
+        response: {
+          expiresAt: new Date('2026-08-12T12:00:00.000Z'),
+          token: 'database-token',
+        },
+      });
+      const service = new BetterAuthService(
+        makeDesktopInstance(createDesktopSession),
+      );
+
+      const result = await service.createDesktopSessionCookie('user_1');
+
+      expect(createDesktopSession).toHaveBeenCalledWith({
+        body: { userId: 'user_1' },
+        returnHeaders: true,
+      });
+      expect(result).toEqual({
+        cookie: {
+          cookieName: '__Secure-better-auth.session_token',
+          cookieValue: 'database-token.signature',
+          expiresAt: expect.any(String),
+          httpOnly: true,
+          path: '/',
+          sameSite: 'lax',
+          secure: true,
+        },
+        token: 'database-token',
+      });
+    });
+
+    it('uses the plugin revoke endpoint for compensation', async () => {
+      const revokeDesktopSession = vi.fn().mockResolvedValue({ status: true });
+      const service = new BetterAuthService(
+        makeDesktopInstance(vi.fn(), revokeDesktopSession),
+      );
+
+      await service.revokeDesktopSession('database-token');
+
+      expect(revokeDesktopSession).toHaveBeenCalledWith({
+        body: { token: 'database-token' },
+      });
     });
   });
 

@@ -28,6 +28,23 @@ export interface IBetterAuthJwtClaims {
   iat?: number;
 }
 
+/** Exact Better Auth session cookie installed by the desktop shell. */
+export interface IDesktopSessionCookie {
+  cookieName: string;
+  cookieValue: string;
+  expiresAt: string;
+  httpOnly: boolean;
+  path: string;
+  sameSite: 'lax' | 'none' | 'strict';
+  secure: boolean;
+}
+
+/** Server-only issuance result; the raw token exists solely for compensation. */
+export interface IDesktopSessionCookieResult {
+  cookie: IDesktopSessionCookie;
+  token: string;
+}
+
 /**
  * Genfeed identity resolved from a verified Better Auth JWT. Mirrors the subset
  * of `IAuthPublicMetadata` that `RequestContextMiddleware` reads. The

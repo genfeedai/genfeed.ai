@@ -25,6 +25,8 @@ import {
   app,
   BrowserWindow,
   dialog,
+  session as electronSession,
+  type IpcMainInvokeEvent,
   ipcMain,
   Notification,
   shell,
@@ -52,7 +54,10 @@ import { LocalIdentityService } from './main/local-identity.service';
 import { buildDesktopMenu } from './main/menu.service';
 import { DesktopPgliteService } from './main/pglite.service';
 import { DesktopPrismaService } from './main/prisma.service';
-import { DesktopSessionService } from './main/session.service';
+import {
+  DesktopSessionService,
+  type IDesktopSession,
+} from './main/session.service';
 import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
 import {
@@ -97,6 +102,17 @@ const telemetryService = new DesktopTelemetryService(environment);
 
 const trayService = new DesktopTrayService();
 const shortcutsService = new DesktopShortcutsService();
+
+const EXTERNAL_NAVIGATION_HOSTS = new Set([
+  'app.genfeed.ai',
+  'genfeed.ai',
+  'www.genfeed.ai',
+  new URL(environment.authEndpoint).hostname,
+]);
+const ALLOWED_PERMISSIONS = new Set([
+  'clipboard-sanitized-write',
+  'notifications',
+]);
 
 let isQuitting = false;
 const isSmokeTest =
@@ -246,7 +262,8 @@ const emitQuickGenerate = (): void => {
 const emitSession = async (): Promise<void> => {
   const session = sessionService.getSession();
   telemetryService.setUser(session);
-  mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.authChanged, session);
+  // The API key is a main-process credential and never crosses into the page.
+  mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.authChanged, null);
 };
 
 const emitBootstrap = async (): Promise<void> => {
@@ -293,7 +310,9 @@ const getBootstrap = (): IDesktopBootstrap => {
     },
     brands: syncService.listBrands(),
     recents: workspaceService.listRecents(),
-    session,
+    // Better Auth state is carried by the HttpOnly shell cookie. The API key
+    // stays in main for request-header injection and is never serialized here.
+    session: null,
     syncConsent: syncConsentService.getConsent(session),
     syncState: syncService.getState(),
     workspaces,
@@ -324,6 +343,152 @@ if (!acquiredSingleInstanceLock) {
   app.quit();
 }
 
+const getAllowedExternalUrl = (rawUrl: string): URL | null => {
+  try {
+    const url = new URL(rawUrl);
+
+    if (
+      url.password ||
+      url.protocol !== 'https:' ||
+      url.username ||
+      !EXTERNAL_NAVIGATION_HOSTS.has(url.hostname)
+    ) {
+      return null;
+    }
+
+    return url;
+  } catch {
+    return null;
+  }
+};
+
+const openAllowedExternalUrl = (rawUrl: string): boolean => {
+  const url = getAllowedExternalUrl(rawUrl);
+
+  if (!url) {
+    return false;
+  }
+
+  void shell.openExternal(url.toString());
+  return true;
+};
+
+const openValidatedExternalUrl = async (rawUrl: string): Promise<void> => {
+  const url = getAllowedExternalUrl(rawUrl);
+
+  if (!url) {
+    throw new Error('Desktop refused to open an untrusted external URL.');
+  }
+
+  await shell.openExternal(url.toString());
+};
+
+const isShellOrigin = (rawUrl: string): boolean => {
+  try {
+    return new URL(rawUrl).origin === appShellService.appOrigin;
+  } catch {
+    return false;
+  }
+};
+
+const assertTrustedIpcSender = (event: IpcMainInvokeEvent): void => {
+  const senderFrame = event.senderFrame;
+
+  if (
+    !senderFrame ||
+    senderFrame !== event.sender.mainFrame ||
+    !isShellOrigin(senderFrame.url)
+  ) {
+    throw new Error('Desktop IPC rejected an untrusted sender.');
+  }
+};
+
+const registerPrivilegedIpcHandler = <TArguments extends unknown[], TResult>(
+  channel: string,
+  handler: (
+    event: IpcMainInvokeEvent,
+    ...args: TArguments
+  ) => Promise<TResult> | TResult,
+): void => {
+  ipcMain.handle(channel, (event, ...args: unknown[]) => {
+    assertTrustedIpcSender(event);
+    return handler(event, ...(args as TArguments));
+  });
+};
+
+const waitForCanonicalAppReady = async (
+  window: BrowserWindow,
+  timeoutMs = 15_000,
+): Promise<void> => {
+  await window.webContents.executeJavaScript(`
+    new Promise((resolve, reject) => {
+      const deadline = Date.now() + ${String(timeoutMs)};
+      const check = () => {
+        if (document.body?.classList.contains('gf-desktop-shell')) {
+          resolve(true);
+          return;
+        }
+        if (Date.now() >= deadline) {
+          reject(new Error('Timed out waiting for gf-desktop-shell.'));
+          return;
+        }
+        setTimeout(check, 100);
+      };
+      check();
+    });
+  `);
+};
+
+const loadCanonicalApp = async (
+  window: BrowserWindow,
+  targetUrl: string,
+): Promise<void> => {
+  const didFinishLoad = new Promise<void>((resolve, reject) => {
+    const handleFinished = (): void => {
+      window.webContents.off('did-fail-load', handleFailed);
+      resolve();
+    };
+    const handleFailed = (
+      _event: unknown,
+      errorCode: number,
+      errorDescription: string,
+    ): void => {
+      window.webContents.off('did-finish-load', handleFinished);
+      reject(
+        new Error(
+          `Canonical app failed to load (${String(errorCode)}): ${errorDescription}`,
+        ),
+      );
+    };
+
+    window.webContents.once('did-fail-load', handleFailed);
+    window.webContents.once('did-finish-load', handleFinished);
+  });
+
+  await Promise.all([window.loadURL(targetUrl), didFinishLoad]);
+  await waitForCanonicalAppReady(window);
+};
+
+const configureSessionPermissions = (): void => {
+  const isAllowedPermission = (
+    permission: string,
+    requestingOrigin: string,
+  ): boolean =>
+    ALLOWED_PERMISSIONS.has(permission) && isShellOrigin(requestingOrigin);
+
+  // The product only needs notification delivery and sanitized clipboard writes.
+  // Camera, microphone, geolocation, MIDI, USB, and all other grants stay denied.
+  electronSession.defaultSession.setPermissionRequestHandler(
+    (_webContents, permission, callback, details) => {
+      callback(isAllowedPermission(permission, details.requestingUrl));
+    },
+  );
+  electronSession.defaultSession.setPermissionCheckHandler(
+    (_webContents, permission, requestingOrigin) =>
+      isAllowedPermission(permission, requestingOrigin),
+  );
+};
+
 const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
     backgroundColor: getDesktopBootBackground(),
@@ -334,10 +499,13 @@ const createWindow = async (): Promise<void> => {
     title: 'GenFeed',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     webPreferences: {
+      additionalArguments: [
+        `--genfeed-app-origin=${appShellService.appOrigin}`,
+      ],
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(mainDir, 'preload.js'),
-      sandbox: false,
+      sandbox: true,
     },
     width: 1560,
   });
@@ -347,6 +515,25 @@ const createWindow = async (): Promise<void> => {
   });
 
   const isDev = !app.isPackaged;
+
+  const guardNavigation = (
+    event: { preventDefault(): void },
+    targetUrl: string,
+  ): void => {
+    if (isShellOrigin(targetUrl)) {
+      return;
+    }
+
+    event.preventDefault();
+    openAllowedExternalUrl(targetUrl);
+  };
+
+  mainWindow.webContents.on('will-navigate', guardNavigation);
+  mainWindow.webContents.on('will-redirect', guardNavigation);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    openAllowedExternalUrl(url);
+    return { action: 'deny' };
+  });
 
   mainWindow.webContents.on('before-input-event', (_event, input) => {
     if (input.type !== 'keyDown') {
@@ -384,6 +571,12 @@ const createWindow = async (): Promise<void> => {
         reason: details.reason,
       },
     );
+    if (isSmokeTest) {
+      process.stderr.write(
+        `[desktop] smoke readiness failed: renderer exited (${details.reason}).\n`,
+      );
+      app.exit(1);
+    }
   });
 
   mainWindow.on('close', (event) => {
@@ -402,7 +595,8 @@ const createWindow = async (): Promise<void> => {
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
     await appShellService.start();
-    await mainWindow.loadURL(
+    await loadCanonicalApp(
+      mainWindow,
       appShellService.buildInitialUrl(sessionService.getSession()),
     );
 
@@ -411,7 +605,11 @@ const createWindow = async (): Promise<void> => {
     }
 
     if (isSmokeTest) {
-      setTimeout(() => app.exit(0), 250);
+      process.stdout.write(
+        '[desktop] smoke readiness confirmed: canonical shell marker rendered.\n',
+      );
+      app.exit(0);
+      return;
     }
   } catch (error) {
     process.stderr.write(
@@ -459,19 +657,19 @@ const waitForVisualQaPaint = async (): Promise<void> => {
 const captureVisualQaScreenshot = async (
   outputDirectory: string,
   filename: string,
-  expectedText: string,
+  expectedState: string,
+  predicate: string,
 ): Promise<void> => {
   if (!mainWindow) {
     throw new Error('Desktop visual QA window is unavailable.');
   }
 
   await waitForVisualQaPaint();
-  const hasExpectedState = await mainWindow.webContents.executeJavaScript(
-    `document.body?.innerText.includes(${JSON.stringify(expectedText)}) === true`,
-  );
+  const hasExpectedState =
+    await mainWindow.webContents.executeJavaScript(predicate);
   if (!hasExpectedState) {
     throw new Error(
-      `Desktop visual QA state "${expectedText}" was not visible for ${filename}.`,
+      `Desktop visual QA state "${expectedState}" was not visible for ${filename}.`,
     );
   }
   const image = await mainWindow.webContents.capturePage();
@@ -479,38 +677,72 @@ const captureVisualQaScreenshot = async (
   fs.writeFileSync(path.join(outputDirectory, filename), image.toPNG());
 };
 
-const reloadVisualQaWindow = async (): Promise<void> => {
+const loadVisualQaRoute = async (pathname: string): Promise<void> => {
   if (!mainWindow) {
     throw new Error('Desktop visual QA window is unavailable.');
   }
 
-  await new Promise<void>((resolve, reject) => {
-    const webContents = mainWindow?.webContents;
-    if (!webContents) {
-      reject(new Error('Desktop visual QA web contents are unavailable.'));
-      return;
-    }
+  await loadCanonicalApp(
+    mainWindow,
+    new URL(pathname, appShellService.appOrigin).toString(),
+  );
+};
 
-    const handleFinished = () => {
-      webContents.off('did-fail-load', handleFailed);
-      resolve();
-    };
-    const handleFailed = (
-      _event: unknown,
-      code: number,
-      description: string,
-    ) => {
-      webContents.off('did-finish-load', handleFinished);
-      reject(
-        new Error(
-          `Desktop visual QA reload failed (${String(code)}): ${description}`,
-        ),
-      );
-    };
-    webContents.once('did-finish-load', handleFinished);
-    webContents.once('did-fail-load', handleFailed);
-    webContents.reload();
-  });
+const isVisualQaSession = (value: unknown): value is IDesktopSession => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const sessionCookie = candidate.sessionCookie;
+
+  if (typeof sessionCookie !== 'object' || sessionCookie === null) {
+    return false;
+  }
+
+  const cookie = sessionCookie as Record<string, unknown>;
+
+  return (
+    typeof candidate.issuedAt === 'string' &&
+    Number.isFinite(Date.parse(candidate.issuedAt)) &&
+    typeof candidate.token === 'string' &&
+    candidate.token.startsWith('gf_') &&
+    (candidate.userEmail === undefined ||
+      typeof candidate.userEmail === 'string') &&
+    typeof candidate.userId === 'string' &&
+    (candidate.userName === undefined ||
+      typeof candidate.userName === 'string') &&
+    (cookie.cookieName === 'better-auth.session_token' ||
+      cookie.cookieName === '__Secure-better-auth.session_token') &&
+    typeof cookie.cookieValue === 'string' &&
+    cookie.cookieValue.length > 0 &&
+    typeof cookie.expiresAt === 'string' &&
+    Number.isFinite(Date.parse(cookie.expiresAt)) &&
+    typeof cookie.httpOnly === 'boolean' &&
+    cookie.path === '/' &&
+    (cookie.sameSite === 'lax' ||
+      cookie.sameSite === 'none' ||
+      cookie.sameSite === 'strict') &&
+    typeof cookie.secure === 'boolean'
+  );
+};
+
+const getVisualQaSession = (): IDesktopSession => {
+  const rawSession = process.env.GENFEED_DESKTOP_VISUAL_QA_SESSION;
+
+  if (!rawSession) {
+    throw new Error(
+      'GENFEED_DESKTOP_VISUAL_QA_SESSION is required for authenticated visual QA states.',
+    );
+  }
+
+  const session = JSON.parse(rawSession) as unknown;
+
+  if (!isVisualQaSession(session)) {
+    throw new Error('GENFEED_DESKTOP_VISUAL_QA_SESSION is invalid.');
+  }
+
+  return session;
 };
 
 const captureVisualQa = async (): Promise<void> => {
@@ -519,74 +751,119 @@ const captureVisualQa = async (): Promise<void> => {
     throw new Error('GENFEED_DESKTOP_VISUAL_QA_DIR is required.');
   }
 
+  await sessionService.clearSession();
+  await loadVisualQaRoute('/login');
   await captureVisualQaScreenshot(
     outputDirectory,
-    'first-run.png',
-    'Continue without an account',
+    'desktop-login.png',
+    'desktop login surface',
+    `document.body?.innerText.includes('Sign in to Genfeed') === true`,
   );
 
-  isOfflineMode = true;
-  kvService.setValueSync(OFFLINE_MODE_KEY, '1');
-  await emitBootstrap();
-  await captureVisualQaScreenshot(
-    outputDirectory,
-    'account-less-workspace.png',
-    'Connect Genfeed Cloud',
-  );
-
-  await reloadVisualQaWindow();
-  await captureVisualQaScreenshot(
-    outputDirectory,
-    'returning-account-less.png',
-    'Connect Genfeed Cloud',
-  );
-
-  const session: IDesktopBootstrap['session'] = {
-    issuedAt: new Date().toISOString(),
-    token: 'visual-qa-session-token',
-    userEmail: 'desktop-visual-qa@genfeed.local',
-    userId: 'desktop-visual-qa-user',
-    userName: 'Desktop Visual QA',
-  };
-  await sessionService.setSession(session);
-  await localIdentityService.setBetterAuthId(session.userId);
-  await persistDeviceIdentity(session);
-  isOfflineMode = false;
-  kvService.setValueSync(OFFLINE_MODE_KEY, '0');
+  const visualQaSession = getVisualQaSession();
+  await sessionService.setSession(visualQaSession);
+  await localIdentityService.setBetterAuthId(visualQaSession.userId);
+  await persistDeviceIdentity(visualQaSession);
   await emitSession();
-  await emitBootstrap();
+  await loadVisualQaRoute('/');
   await captureVisualQaScreenshot(
     outputDirectory,
-    'reconnect-consent.png',
-    'Choose what leaves this device',
+    'pkce-callback.png',
+    'post-PKCE authenticated root',
+    `location.pathname !== '/login' && document.body?.classList.contains('gf-desktop-shell') === true`,
+  );
+
+  await loadVisualQaRoute(
+    process.env.GENFEED_DESKTOP_VISUAL_QA_AUTHENTICATED_ROUTE || '/home',
+  );
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'authenticated-route.png',
+    'protected canonical route',
+    `location.pathname !== '/login' && document.body?.classList.contains('gf-desktop-shell') === true`,
+  );
+
+  await sessionService.clearSession();
+  await emitSession();
+  await loadVisualQaRoute('/login');
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'logout.png',
+    'login surface after sign-out',
+    `document.body?.innerText.includes('Sign in to Genfeed') === true`,
+  );
+
+  await sessionService.setSession(visualQaSession);
+  sessionService = new DesktopSessionService(
+    kvService,
+    environment,
+    appShellService.appOrigin,
+    electronSession.defaultSession.cookies,
+  );
+  const restoredSession = await sessionService.validateStoredSession();
+  if (!restoredSession) {
+    throw new Error(
+      'Desktop visual QA could not restore the persisted session.',
+    );
+  }
+  await emitSession();
+  await loadVisualQaRoute('/home');
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'restart-persistence.png',
+    'protected route restored after restart',
+    `location.pathname !== '/login' && document.body?.classList.contains('gf-desktop-shell') === true`,
+  );
+
+  await sessionService.setSession({
+    ...restoredSession,
+    sessionCookie: {
+      ...restoredSession.sessionCookie,
+      expiresAt: new Date(Date.now() + 250).toISOString(),
+    },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await sessionService.validateStoredSession();
+  await emitSession();
+  await loadVisualQaRoute('/login');
+  await captureVisualQaScreenshot(
+    outputDirectory,
+    'expired-credential-recovery.png',
+    'login surface after credential expiry',
+    `document.body?.innerText.includes('Sign in to Genfeed') === true`,
   );
 };
 
 const handleAuthCallback = async (rawUrl: string): Promise<void> => {
-  const session = await sessionService.handleCallback(rawUrl);
+  const result = await sessionService.handleCallback(rawUrl);
 
-  if (!session) {
-    telemetryService.captureException(
-      new Error('Desktop auth callback failed'),
-      {
-        surface: 'auth-callback',
-      },
-    );
+  if (!result.isOk) {
+    telemetryService.captureException(new Error(result.error.message), {
+      code: result.error.code,
+      surface: 'auth-callback',
+    });
     await emitSession();
     await emitBootstrap();
     if (Notification.isSupported()) {
       void new Notification({
-        body: 'The browser returned an invalid or expired desktop sign-in key. Start sign-in again from the desktop app.',
+        body: result.error.message,
         title: 'Desktop authentication failed',
       }).show();
     }
     return;
   }
 
+  const { session } = result;
   await localIdentityService.setBetterAuthId(session.userId);
   await persistDeviceIdentity(session);
   await emitSession();
   await emitBootstrap();
+  if (mainWindow) {
+    await loadCanonicalApp(
+      mainWindow,
+      appShellService.buildInitialUrl(session),
+    );
+  }
   void new Notification({
     body: session.userEmail || 'Authenticated successfully.',
     title: 'GenFeed',
@@ -603,47 +880,73 @@ const registerProtocolHandling = (): void => {
 };
 
 const registerIpcHandlers = (): void => {
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.appBootstrap, async () => getBootstrap());
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.appEnableOfflineMode, async () => {
-    isOfflineMode = true;
-    kvService.setValueSync(OFFLINE_MODE_KEY, '1');
-    await emitBootstrap();
-  });
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.appGetDiagnostics, async () => ({
-    isPackaged: app.isPackaged,
-    platform: process.platform,
-    releaseChannel: app.isPackaged ? 'production' : 'development',
-    version: app.getVersion(),
-  }));
-  ipcMain.handle(
+  // Canonical apps/app consumers:
+  // Active — auth.login; cloud.generateContent; generation.getProviderConfig,
+  // generation.saveProviderConfig, generation.testProviderConfig.
+  // Dormant Phase-2 backends — app.*, auth.getSession/logout/onDidChangeSession,
+  // cache.*, all other cloud.*, drafts.*, files.*, all other generation.*,
+  // notifications.notify, onQuickGenerate, platform, sync.* except triggerThreads,
+  // terminal.*, and workspace.*. Their services and bridge contracts stay intact.
+  // Removed renderer-owned behavior — getPlatform's unused IPC handler and
+  // sync.triggerThreads dispatch/onSyncThreadsRequested delivery. The trigger
+  // contract remains callable but reports unavailable instead of false success.
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.appBootstrap, async () =>
+    getBootstrap(),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.appEnableOfflineMode,
+    async () => {
+      isOfflineMode = true;
+      kvService.setValueSync(OFFLINE_MODE_KEY, '1');
+      await emitBootstrap();
+    },
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.appGetDiagnostics,
+    async () => ({
+      isPackaged: app.isPackaged,
+      platform: process.platform,
+      releaseChannel: app.isPackaged ? 'production' : 'development',
+      version: app.getVersion(),
+    }),
+  );
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.appOpenExternalPath,
     async (_event: unknown, pathname: string) => {
-      await shell.openExternal(
+      await openValidatedExternalUrl(
         buildExternalAppUrl(pathname, environment.authEndpoint),
       );
     },
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.authGetSession, async () =>
-    sessionService.getSession(),
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.authGetSession,
+    async () => null,
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.authLogin, async () => {
-    await shell.openExternal(sessionService.getLoginUrl());
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.authLogin, async () => {
+    await openValidatedExternalUrl(sessionService.getLoginUrl());
   });
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.authLogout, async () => {
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.authLogout, async () => {
     await sessionService.clearSession();
     await persistDeviceIdentity(null);
     await emitSession();
     await emitBootstrap();
+    if (mainWindow) {
+      await loadCanonicalApp(
+        mainWindow,
+        new URL('/login', appShellService.appOrigin).toString(),
+      );
+    }
   });
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListProjects, async () =>
-    runDataService((service) => service.listProjects()),
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.cloudListProjects,
+    async () => runDataService((service) => service.listProjects()),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGenerateHooks,
     async (_event: unknown, topic: string) =>
       runDataService((service) => service.generateHooks(topic)),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGenerateContent,
     async (_event: unknown, params: IDesktopGenerationOptions) => {
       try {
@@ -655,58 +958,59 @@ const registerIpcHandlers = (): void => {
       }
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGetTrends,
     async (_event: unknown, platform: string) =>
       runDataService((service) => service.getTrends(platform)),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGetIngredients,
     async (_event: unknown, filter?: { limit?: number; platform?: string }) =>
       runDataService((service) => service.getIngredients(filter)),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudPublishPost,
     async (
       _event: unknown,
       params: { content: string; draftId?: string; platform: string },
     ) => runDataService((service) => service.publishPost(params)),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudGetAnalytics,
     async (_event: unknown, params: { days: number }) =>
       runDataService((service) => service.getAnalytics(params)),
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListAgents, async () =>
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.cloudListAgents, async () =>
     runDataService((service) => service.listAgents()),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudRunAgent,
     async (_event: unknown, agentId: string) =>
       runDataService((service) => service.runAgent(agentId)),
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.cloudListWorkflows, async () =>
-    runDataService((service) => service.listWorkflows()),
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.cloudListWorkflows,
+    async () => runDataService((service) => service.listWorkflows()),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cloudRunWorkflow,
     async (_event: unknown, params: { batch?: boolean; workflowId: string }) =>
       runDataService((service) => service.runWorkflow(params)),
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceOpen, async () => {
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.workspaceOpen, async () => {
     const workspace = await openAndActivateWorkspace();
     await emitBootstrap();
     return workspace;
   });
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.workspaceRecent, async () =>
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.workspaceRecent, async () =>
     workspaceService.listRecentWorkspaces(),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceRead,
     async (_event: unknown, workspaceId: string) =>
       workspaceService.getWorkspace(workspaceId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceLinkProject,
     async (_event: unknown, workspaceId: string, projectId: string) => {
       const workspace = await workspaceService.linkProject(
@@ -718,7 +1022,7 @@ const registerIpcHandlers = (): void => {
       return workspace;
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext,
     async (
       _event: unknown,
@@ -734,13 +1038,13 @@ const registerIpcHandlers = (): void => {
       return workspace;
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceReveal,
     async (_event: unknown, workspaceId: string) => {
       await workspaceService.revealInFinder(workspaceId);
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.workspaceSelect,
     async (_event: unknown, workspaceId: string) => {
       await setActiveWorkspaceId(workspaceId);
@@ -748,17 +1052,17 @@ const registerIpcHandlers = (): void => {
       return workspaceService.getWorkspace(workspaceId);
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsList,
     async (_event: unknown, workspaceId: string) =>
       draftsService.listDrafts(workspaceId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsGet,
     async (_event: unknown, workspaceId: string, draftId: string) =>
       draftsService.getDraft(workspaceId, draftId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsSave,
     async (
       _event: unknown,
@@ -766,19 +1070,19 @@ const registerIpcHandlers = (): void => {
       draft: IDesktopContentRunDraft,
     ) => draftsService.saveDraft(workspaceId, draft),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.draftsDelete,
     async (_event: unknown, workspaceId: string, draftId: string) => {
       await draftsService.deleteDraft(workspaceId, draftId);
       await emitBootstrap();
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesRead,
     async (_event: unknown, workspaceId: string, relativePath: string) =>
       filesService.readFile(workspaceId, relativePath),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesWrite,
     async (
       _event: unknown,
@@ -790,7 +1094,7 @@ const registerIpcHandlers = (): void => {
       await emitBootstrap();
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesImportAssets,
     async (_event: unknown, workspaceId: string, filePaths?: string[]) => {
       const importedAssets = await filesService.importAssets(
@@ -801,23 +1105,23 @@ const registerIpcHandlers = (): void => {
       return importedAssets;
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesListAssets,
     async (_event: unknown, workspaceId?: string) =>
       filesService.listAssets(workspaceId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesGetAssetUrl,
     async (_event: unknown, assetId: string) =>
       filesService.getAssetUrl(assetId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.filesRevealAsset,
     async (_event: unknown, assetId: string) => {
       await filesService.revealAsset(assetId);
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationEnqueueAssetGeneration,
     async (_event: unknown, request: IDesktopAssetGenerationRequest) => {
       const job = await generationService.enqueueAssetGeneration(request);
@@ -825,17 +1129,17 @@ const registerIpcHandlers = (): void => {
       return job;
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationGetGenerationJob,
     async (_event: unknown, jobId: string) =>
       generationService.getGenerationJob(jobId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationListGenerationJobs,
     async (_event: unknown, workspaceId?: string) =>
       generationService.listGenerationJobs(workspaceId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationCancelAssetGeneration,
     async (_event: unknown, jobId: string) => {
       const job = await generationService.cancelGenerationJob(jobId);
@@ -843,31 +1147,32 @@ const registerIpcHandlers = (): void => {
       return job;
     },
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.generationGetProviderConfig, async () =>
-    generationService.getPublicProviderConfig(),
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.generationGetProviderConfig,
+    async () => generationService.getPublicProviderConfig(),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationGenerateWorkflow,
     async (_event: unknown, params: IDesktopWorkflowGenerationOptions) =>
       generationService.generateWorkflow(params),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationSaveProviderConfig,
     async (_event: unknown, config: IDesktopGenerationProviderConfig) =>
       generationService.saveProviderConfig(config),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationClearProviderConfig,
     async () => {
       await generationService.clearProviderConfig();
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.generationTestProviderConfig,
     async (_event: unknown, config?: IDesktopGenerationProviderConfig) =>
       generationService.testProviderConfig(config),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.notify,
     async (_event: unknown, title: string, body: string) => {
       if (Notification.isSupported()) {
@@ -875,12 +1180,12 @@ const registerIpcHandlers = (): void => {
       }
     },
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.cacheGetPath, async () => {
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.cacheGetPath, async () => {
     const cachePath = path.join(app.getPath('userData'), 'cache');
     fs.mkdirSync(cachePath, { recursive: true });
     return cachePath;
   });
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.cacheWriteAsset,
     async (_event: unknown, filename: string, data: ArrayBuffer) => {
       const cachePath = path.join(app.getPath('userData'), 'cache');
@@ -890,20 +1195,18 @@ const registerIpcHandlers = (): void => {
       return filePath;
     },
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.openFileDialog, async () => {
-    if (!mainWindow) {
-      return { canceled: true, filePaths: [] };
-    }
-    return dialog.showOpenDialog(mainWindow, {
-      properties: ['openFile', 'multiSelections'],
-    });
-  });
-  ipcMain.handle(
-    DESKTOP_IPC_CHANNELS.getPlatform,
-    async () => process.platform,
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.openFileDialog,
+    async () => {
+      if (!mainWindow) {
+        return { canceled: true, filePaths: [] };
+      }
+      return dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile', 'multiSelections'],
+      });
+    },
   );
-
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncAckOps,
     async (_event: unknown, cloudUserId: string, ops: IDesktopSyncOpAck[]) => {
       assertActiveSyncAccount(sessionService.getSession(), cloudUserId);
@@ -911,7 +1214,7 @@ const registerIpcHandlers = (): void => {
       await emitBootstrap();
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncApplyBrandManifest,
     async (
       _event: unknown,
@@ -923,20 +1226,20 @@ const registerIpcHandlers = (): void => {
       await emitBootstrap();
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncGetJobs,
     async (_event: unknown, workspaceId?: string) =>
       syncService.listJobs(workspaceId),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncGetOps,
     async (_event: unknown, workspaceId?: string) =>
       syncService.listOps(workspaceId),
   );
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.syncGetState, async () =>
     syncService.getState(),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncQueueOp,
     async (
       _event: unknown,
@@ -959,7 +1262,7 @@ const registerIpcHandlers = (): void => {
       return op;
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
     async (
       _event: unknown,
@@ -973,10 +1276,10 @@ const registerIpcHandlers = (): void => {
   );
 
   // Sync cursor (durable storage in main-process KV)
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncGetConsent, async () =>
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.syncGetConsent, async () =>
     syncConsentService.getConsent(sessionService.getSession()),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncSetConsent,
     async (
       _event: unknown,
@@ -989,13 +1292,11 @@ const registerIpcHandlers = (): void => {
       );
       const consent = await syncConsentService.setConsent(session, input);
       await emitBootstrap();
-      if (consent.status === 'granted') {
-        mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
-      }
+      // The canonical app has no renderer-side PGlite sync engine yet.
       return consent;
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncGetCursor,
     async (
       _event: unknown,
@@ -1003,7 +1304,7 @@ const registerIpcHandlers = (): void => {
       scope?: DesktopSyncCursorScope,
     ) => kvService.getValueSync(getSyncCursorKey(cloudUserId, scope)),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.syncSetCursor,
     async (
       _event: unknown,
@@ -1015,13 +1316,17 @@ const registerIpcHandlers = (): void => {
     },
   );
 
-  // Sync trigger — pushes an event to the renderer which owns PGlite
-  ipcMain.handle(DESKTOP_IPC_CHANNELS.syncTriggerThreads, async () => {
-    mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.syncThreadsRequested);
-    return { ok: true };
-  });
+  // The deleted renderer owned thread sync; keep the contract recoverable.
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.syncTriggerThreads,
+    async () => ({
+      error:
+        'Desktop thread sync is unavailable until the Phase-2 adapter lands.',
+      ok: false,
+    }),
+  );
 
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalCreate,
     async (event, options?: IDesktopTerminalCreateOptions) =>
       terminalService.createSession(
@@ -1034,19 +1339,19 @@ const registerIpcHandlers = (): void => {
         },
       ),
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalWrite,
     async (_event: unknown, sessionId: string, data: string) => {
       terminalService.writeSession(sessionId, data);
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalResize,
     async (_event: unknown, sessionId: string, cols: number, rows: number) => {
       terminalService.resizeSession(sessionId, cols, rows);
     },
   );
-  ipcMain.handle(
+  registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalKill,
     async (_event: unknown, sessionId: string) => {
       terminalService.killSession(sessionId);
@@ -1098,7 +1403,19 @@ app.whenReady().then(async () => {
   await prismaService.bootstrapLocalIdentity(
     localIdentityService.getLocalUserId(),
   );
-  sessionService = new DesktopSessionService(kvService, environment);
+  appShellService = new DesktopAppShellService(
+    environment,
+    () => sessionService.getSession(),
+    // Spawned server processes carve their own storage directories out of the
+    // Electron data root; using PGlite's directory would nest them under the DB.
+    () => app.getPath('userData'),
+  );
+  sessionService = new DesktopSessionService(
+    kvService,
+    environment,
+    appShellService.appOrigin,
+    electronSession.defaultSession.cookies,
+  );
   const session = await sessionService.validateStoredSession();
   if (session) {
     await localIdentityService.setBetterAuthId(session.userId);
@@ -1150,14 +1467,6 @@ app.whenReady().then(async () => {
   );
   localService = new DesktopLocalService(prismaClient, generationService);
   draftsService = new DesktopDraftsService(workspaceService);
-  appShellService = new DesktopAppShellService(
-    environment,
-    () => sessionService.getSession(),
-    // The data root, not one store inside it: spawned server processes carve
-    // their own subdirectories out of it (pglite-db, files, …), so handing them
-    // pglite's directory would nest every other store under the database.
-    () => app.getPath('userData'),
-  );
   isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
   telemetryService.setUser(sessionService.getSession());
   process.on('uncaughtException', (error) => {
@@ -1167,6 +1476,7 @@ app.whenReady().then(async () => {
     telemetryService.captureException(error, { source: 'unhandledRejection' });
   });
   registerProtocolHandling();
+  configureSessionPermissions();
   registerIpcHandlers();
   await createWindow();
 

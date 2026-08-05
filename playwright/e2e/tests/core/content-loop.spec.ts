@@ -5,7 +5,6 @@ import {
   mockAnalyticsData,
   mockBrandIdentityDefaults,
   mockCalendarPosts,
-  mockImageGenerationSuccess,
   mockPostDetail,
   mockPostsList,
   mockReviewQueue,
@@ -63,7 +62,7 @@ test.describe('Core Content Loop', () => {
       name: 'Breadcrumb',
     });
     await expect(breadcrumb).toContainText('Workspace');
-    await expect(breadcrumb).toContainText('Overview');
+    await expect(breadcrumb).toContainText('Dashboard');
 
     const sidebar = authenticatedPage.getByTestId('sidebar-shell').first();
     await expect(sidebar).toHaveAttribute(
@@ -84,34 +83,28 @@ test.describe('Core Content Loop', () => {
     );
   });
 
-  test('studio storyboard accepts inline prompt entry', async ({
+  test('studio storyboard exposes the canonical production modes', async ({
     authenticatedPage,
   }) => {
     const studioPage = new StudioPage(authenticatedPage);
 
-    await mockImageGenerationSuccess(authenticatedPage, {
-      delay: 0,
-      finalStatus: 'completed',
-    });
-
-    // The standalone one-off tabs are retired — Studio's production surfaces
-    // each carry their own in-context prompt bar.
     await studioPage.gotoSurface('storyboard');
 
     await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard/);
+    const breadcrumb = authenticatedPage.getByRole('navigation', {
+      name: 'Breadcrumb',
+    });
+    await expect(breadcrumb).toContainText('Studio');
+    await expect(breadcrumb).toContainText('Storyboard');
     await expect(
-      studioPage.promptInput.or(studioPage.promptTextarea),
+      authenticatedPage.getByRole('button', { name: /Frame sequence/i }),
     ).toBeVisible();
-
-    await studioPage.enterPrompt(
-      'Create a launch-ready product still with soft shadows.',
-    );
-
-    await expect(authenticatedPage).toHaveURL(/\/studio\/storyboard/);
     await expect(
-      studioPage.promptInput.or(studioPage.promptTextarea),
-    ).toHaveValue('Create a launch-ready product still with soft shadows.');
-    await expect(studioPage.generateButton.first()).toBeVisible();
+      authenticatedPage.getByRole('button', { name: /Scenes/i }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: /Merge videos/i }),
+    ).toBeVisible();
   });
 
   test('post detail keeps failed publishing state visible and reviewable', async ({
@@ -122,7 +115,9 @@ test.describe('Core Content Loop', () => {
     await mockPostDetail(authenticatedPage, failedPost);
     await postsPage.gotoPostDetail(String(failedPost.id));
 
-    await expect(authenticatedPage).toHaveURL(/\/posts\/post-core-loop-failed/);
+    await expect(authenticatedPage).toHaveURL(
+      /\/publish\/post-core-loop-failed/,
+    );
     await expect(
       authenticatedPage.getByText('Publication Failed'),
     ).toBeVisible();

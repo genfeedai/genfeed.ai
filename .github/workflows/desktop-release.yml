@@ -74,17 +74,21 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "${DEVELOPER_ID_P12_PASSWORD}" "$KEYCHAIN_PATH"
 
+      # These four are turbo tasks and must run through turbo so their
+      # `^build` dependency resolves; `bun run --filter` skips it and leaves
+      # the workspace packages unbuilt. `smoke` and `release:mac` below are
+      # not turbo tasks and stay on `bun run`.
       - name: Desktop lint
-        run: bun run --filter=@genfeedai/desktop lint
+        run: bunx turbo run lint --filter=@genfeedai/desktop
 
       - name: Desktop type-check
-        run: bun run --filter=@genfeedai/desktop type-check
+        run: bunx turbo run type-check --filter=@genfeedai/desktop
 
       - name: Desktop tests
-        run: bun run --filter=@genfeedai/desktop test
+        run: bunx turbo run test --filter=@genfeedai/desktop
 
       - name: Desktop build
-        run: bun run --filter=@genfeedai/desktop build
+        run: bunx turbo run build --filter=@genfeedai/desktop
 
       - name: Desktop smoke test
         run: bun run --filter=@genfeedai/desktop smoke

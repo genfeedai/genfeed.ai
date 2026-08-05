@@ -84,6 +84,30 @@ Detailed docs: `.agents/README.md`
 - Do not use `develop` or `staging` as promotion branches.
 - `staging` and `production` are deploy environments, not branch names.
 
+## Claiming Work — search open PRs before you start
+
+Many agent sessions run against this repo at once. Git shows nothing until push, so
+two sessions routinely fix the same bug in parallel without either one knowing.
+
+Before creating a branch, starting remediation, or spawning a background fix task:
+
+```bash
+gh pr list --state open --search "<file-or-symptom>"
+gh pr list --state open --json number,headRefName,title
+git fetch origin && git branch -r --sort=-committerdate | head -20
+```
+
+- **Red CI on `master` and broad audit reports are the most duplicated work here** —
+  every session sees them at the same moment. Search before touching them. If a
+  hotfix PR is already open, extend it; do not open a second one.
+- Push your branch early. A local commit claims nothing.
+- On a collision: keep the **older** PR, port anything the newer one has that it
+  lacks, and close the newer one. Never merge both.
+
+This mirrors the existing rule for issues (`gh issue list --search` before opening
+one). Full rationale and the measured incidents:
+`.agents/memory/claim_work_before_starting.md`.
+
 ## Documentation
 
 - `.agents/README.md` — Navigation hub for all project docs

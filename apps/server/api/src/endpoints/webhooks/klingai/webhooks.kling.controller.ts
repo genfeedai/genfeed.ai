@@ -49,7 +49,11 @@ export class KlingWebhookController {
       url,
     });
 
-    if (payload == null || typeof payload !== 'object') {
+    if (
+      payload == null ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload)
+    ) {
       throw new BadRequestException('Webhook body is required');
     }
 

@@ -1,8 +1,8 @@
 import PostsIngredientsList from '@pages/posts/ingredients/posts-ingredients-list';
 import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import type { ImgHTMLAttributes } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import type { ImgHTMLAttributes, ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findPublicIngredientsMock = vi.fn();
 
@@ -39,7 +39,33 @@ vi.mock('@ui/navigation/pagination/auto-pagination/AutoPagination', () => ({
   default: () => <div data-testid="auto-pagination" />,
 }));
 
+vi.mock('@ui/layout/container/Container', () => ({
+  default: ({ children, label }: { children: ReactNode; label: string }) => (
+    <main>
+      <h1>{label}</h1>
+      {children}
+    </main>
+  ),
+}));
+
 describe('PostsIngredientsList', () => {
+  beforeEach(() => {
+    findPublicIngredientsMock.mockReset();
+  });
+
+  it('renders the page H1 while ingredients are loading', () => {
+    findPublicIngredientsMock.mockReturnValue(new Promise<never>(() => {}));
+
+    render(<PostsIngredientsList page={1} />);
+
+    expect(
+      screen.getByRole('heading', {
+        level: 1,
+        name: 'Posts by Ingredient',
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('keeps the public gallery route-based and links to the public ingredient page', async () => {
     findPublicIngredientsMock.mockResolvedValue([
       {

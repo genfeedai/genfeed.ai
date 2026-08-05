@@ -832,6 +832,176 @@ function isServiceWorkerRoute(pathname: string): boolean {
   return pathname === '/~offline' || pathname.startsWith('/serwist/');
 }
 
+interface BetterAuthRoutingOptions {
+  isDesktopSurface?: boolean;
+  preferredBearerToken?: string | null;
+}
+
+async function routeBetterAuthRequest(
+  req: NextRequest,
+  options: BetterAuthRoutingOptions = {},
+): Promise<NextResponse> {
+  const { pathname } = req.nextUrl;
+  const sessionCookie = getBetterAuthSessionCookie(req);
+  const hasSession = Boolean(sessionCookie);
+  const isDesktopOnboardingRoute =
+    options.isDesktopSurface === true && pathname.startsWith('/onboarding');
+
+  if (pathname.startsWith('/logout')) {
+    const response = NextResponse.next();
+    deleteSlugCookie(response);
+    return response;
+  }
+
+  if (isDesktopOnboardingRoute) {
+    return hasSession
+      ? NextResponse.next()
+      : redirectToLoginPreservingDestination(req);
+  }
+
+  if (isBetterAuthPublicRoute(pathname)) {
+    if (hasSession && pathname.startsWith('/login')) {
+      const token =
+        options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
+      let response = token
+        ? await redirectSignedInUserToDefaultRoute(req, token, sessionCookie)
+        : null;
+
+      if (!response && options.preferredBearerToken) {
+        const fallbackToken = await getBetterAuthBearerToken(req);
+        response = fallbackToken
+          ? await redirectSignedInUserToDefaultRoute(
+              req,
+              fallbackToken,
+              sessionCookie,
+            )
+          : null;
+      }
+
+      if (response) {
+        return response;
+      }
+    }
+    return NextResponse.next();
+  }
+
+  if (!hasSession) {
+    return redirectToLoginPreservingDestination(req);
+  }
+
+  const token =
+    options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
+  if (!token) {
+    return redirectToLoginPreservingDestination(req);
+  }
+
+  if (
+    // Desktop stays exempt from proxy-driven onboarding redirects: a
+    // cloud-connected desktop user is not routed into web onboarding, and
+    // `isSaaS()` is false on this surface so the branch below would otherwise
+    // bounce them into the form wizard. Onboarding on desktop is reached
+    // through `/onboarding`, which the session gate above already protects.
+    options.isDesktopSurface !== true &&
+    (await shouldRedirectSignedInUserToOnboarding(token))
+  ) {
+    // Community keeps the form wizard until its local/BYOK onboarding path
+    // reaches parity. SaaS always uses agent-first onboarding; there is no
+    // rollout flag or legacy-shell kill switch.
+    if (!isSaaS()) {
+      return redirectPreservingSearch(req, ONBOARDING_PATH);
+    }
+
+    // The agent onboarding surface is itself a protected route — let it
+    // render instead of bouncing the user back to the wizard (redirect loop).
+    if (isAgentOnboardingPath(pathname)) {
+      return NextResponse.next();
+    }
+
+    const agentOnboarding = await resolveAgentOnboardingRedirect(
+      token,
+      sessionCookie,
+      req,
+    );
+    if (agentOnboarding) {
+      const response = redirectPreservingSearch(req, agentOnboarding.path);
+      if (agentOnboarding.cookieValue) {
+        setSlugCookie(response, agentOnboarding.cookieValue);
+      }
+      return response;
+    }
+
+    return pathname === '/'
+      ? NextResponse.next()
+      : redirectPreservingSearch(req, '/');
+  }
+
+  if (pathname === '/') {
+    let resolved = await resolveCanonicalProtectedPath(
+      '/workspace',
+      token,
+      sessionCookie,
+      req,
+      { preferAvailableBrand: true },
+    );
+
+    if (!resolved && options.preferredBearerToken) {
+      const fallbackToken = await getBetterAuthBearerToken(req);
+      resolved = fallbackToken
+        ? await resolveCanonicalProtectedPath(
+            '/workspace',
+            fallbackToken,
+            sessionCookie,
+            req,
+            { preferAvailableBrand: true },
+          )
+        : null;
+    }
+
+    if (!resolved) {
+      return NextResponse.next();
+    }
+
+    const response = redirectDroppingSearch(req, resolved.path);
+    if (resolved.cookieValue) {
+      setSlugCookie(response, resolved.cookieValue);
+    }
+    return response;
+  }
+
+  if (isBareProtectedPath(pathname)) {
+    let resolved = await resolveCanonicalProtectedPath(
+      pathname,
+      token,
+      sessionCookie,
+      req,
+    );
+
+    if (!resolved && options.preferredBearerToken) {
+      const fallbackToken = await getBetterAuthBearerToken(req);
+      resolved = fallbackToken
+        ? await resolveCanonicalProtectedPath(
+            pathname,
+            fallbackToken,
+            sessionCookie,
+            req,
+          )
+        : null;
+    }
+
+    if (resolved) {
+      const response = redirectPreservingSearch(req, resolved.path);
+      if (resolved.cookieValue) {
+        setSlugCookie(response, resolved.cookieValue);
+      }
+      return response;
+    }
+
+    return NextResponse.next();
+  }
+
+  return NextResponse.next();
+}
+
 export async function proxy(req: NextRequest) {
   // `/v1` is the same-origin API/auth proxy used by local Portless routes.
   // It must reach the Next.js rewrite without entering app-page auth routing.
@@ -877,92 +1047,13 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isDesktopClient()) {
-    const { pathname } = req.nextUrl;
-    const desktopToken = req.headers.get('x-genfeed-desktop-token')?.trim();
-    const hasDesktopToken = Boolean(desktopToken);
-    const isAuthRoute =
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/sign-in') ||
-      pathname.startsWith('/sign-up') ||
-      pathname.startsWith('/forgot-password') ||
-      pathname.startsWith('/reset-password') ||
-      pathname.startsWith('/logout') ||
-      pathname.startsWith('/onboarding');
-    const resolveDesktopWorkspace =
-      async (): Promise<CanonicalResolution | null> => {
-        if (!desktopToken) {
-          return null;
-        }
+    const desktopToken =
+      req.headers.get('x-genfeed-desktop-token')?.trim() || null;
 
-        return await resolveCanonicalProtectedPath(
-          '/workspace',
-          desktopToken,
-          undefined,
-          req,
-          { preferAvailableBrand: true },
-        );
-      };
-
-    if (!hasDesktopToken) {
-      if (isSeededWorkspaceEntrypoint(pathname)) {
-        return redirectPreservingSearch(req, SEEDED_WORKSPACE_PATH);
-      }
-      return NextResponse.next();
-    }
-
-    if (pathname === '/') {
-      const resolved = await resolveDesktopWorkspace();
-      if (!resolved) {
-        return redirectPreservingSearch(req, '/login');
-      }
-
-      const response = redirectDroppingSearch(req, resolved.path);
-      if (resolved.cookieValue) {
-        setSlugCookie(response, resolved.cookieValue);
-      }
-      return response;
-    }
-
-    if (pathname === '/logout') {
-      const response = NextResponse.next();
-      deleteSlugCookie(response);
-      return response;
-    }
-
-    if (isAuthRoute) {
-      const resolved = await resolveDesktopWorkspace();
-
-      if (resolved) {
-        const response = redirectPreservingSearch(req, resolved.path);
-        if (resolved.cookieValue) {
-          setSlugCookie(response, resolved.cookieValue);
-        }
-        return response;
-      }
-
-      return NextResponse.next();
-    }
-
-    if (hasDesktopToken && isBareProtectedPath(pathname) && desktopToken) {
-      const resolved = await resolveCanonicalProtectedPath(
-        pathname,
-        desktopToken,
-        undefined,
-        req,
-      );
-
-      if (resolved) {
-        const response = redirectPreservingSearch(req, resolved.path);
-        if (resolved.cookieValue) {
-          setSlugCookie(response, resolved.cookieValue);
-        }
-        return response;
-      }
-
-      return redirectToLoginPreservingDestination(req);
-    }
-
-    return NextResponse.next();
+    return routeBetterAuthRequest(req, {
+      isDesktopSurface: true,
+      preferredBearerToken: desktopToken,
+    });
   }
 
   if (!isBetterAuthEnabled()) {
@@ -980,111 +1071,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isBetterAuthEnabled()) {
-    const { pathname } = req.nextUrl;
-    const sessionCookie = getBetterAuthSessionCookie(req);
-    const hasSession = Boolean(sessionCookie);
-
-    if (pathname.startsWith('/logout')) {
-      const response = NextResponse.next();
-      deleteSlugCookie(response);
-      return response;
-    }
-
-    if (isBetterAuthPublicRoute(pathname)) {
-      if (hasSession && pathname.startsWith('/login')) {
-        const token = await getBetterAuthBearerToken(req);
-        const response = token
-          ? await redirectSignedInUserToDefaultRoute(req, token, sessionCookie)
-          : null;
-
-        if (response) {
-          return response;
-        }
-      }
-      return NextResponse.next();
-    }
-
-    if (!hasSession) {
-      return redirectToLoginPreservingDestination(req);
-    }
-
-    const token = await getBetterAuthBearerToken(req);
-    if (!token) {
-      return redirectToLoginPreservingDestination(req);
-    }
-
-    if (await shouldRedirectSignedInUserToOnboarding(token)) {
-      // Community/Desktop keep the form wizard until their local/BYOK
-      // onboarding path reaches parity. SaaS always uses agent-first
-      // onboarding; there is no rollout flag or legacy-shell kill switch.
-      if (!isSaaS()) {
-        return redirectPreservingSearch(req, ONBOARDING_PATH);
-      }
-
-      // The agent onboarding surface is itself a protected route — let it
-      // render instead of bouncing the user back to the wizard (redirect loop).
-      if (isAgentOnboardingPath(pathname)) {
-        return NextResponse.next();
-      }
-
-      const agentOnboarding = await resolveAgentOnboardingRedirect(
-        token,
-        sessionCookie,
-        req,
-      );
-      if (agentOnboarding) {
-        const response = redirectPreservingSearch(req, agentOnboarding.path);
-        if (agentOnboarding.cookieValue) {
-          setSlugCookie(response, agentOnboarding.cookieValue);
-        }
-        return response;
-      }
-
-      return pathname === '/'
-        ? NextResponse.next()
-        : redirectPreservingSearch(req, '/');
-    }
-
-    if (pathname === '/') {
-      const resolved = await resolveCanonicalProtectedPath(
-        '/workspace',
-        token,
-        sessionCookie,
-        req,
-        { preferAvailableBrand: true },
-      );
-
-      if (!resolved) {
-        return NextResponse.next();
-      }
-
-      const response = redirectDroppingSearch(req, resolved.path);
-      if (resolved.cookieValue) {
-        setSlugCookie(response, resolved.cookieValue);
-      }
-      return response;
-    }
-
-    if (isBareProtectedPath(pathname)) {
-      const resolved = await resolveCanonicalProtectedPath(
-        pathname,
-        token,
-        sessionCookie,
-        req,
-      );
-
-      if (resolved) {
-        const response = redirectPreservingSearch(req, resolved.path);
-        if (resolved.cookieValue) {
-          setSlugCookie(response, resolved.cookieValue);
-        }
-        return response;
-      }
-
-      return NextResponse.next();
-    }
-
-    return NextResponse.next();
+    return routeBetterAuthRequest(req);
   }
 
   return NextResponse.next();

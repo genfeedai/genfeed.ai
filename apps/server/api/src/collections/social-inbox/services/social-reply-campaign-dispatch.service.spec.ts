@@ -790,6 +790,17 @@ describe('SocialReplyCampaignDispatchService', () => {
   });
 
   describe('stale dispatch reclaim', () => {
+    const now = new Date('2026-08-05T12:00:00.000Z');
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(now);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     function staleAt(): Date {
       return new Date(
         Date.now() - SOCIAL_REPLY_CAMPAIGN_DISPATCH_STALE_MS - 60_000,

@@ -29,7 +29,7 @@ describe('desktop release QA', () => {
     );
     expect(scripts?.smoke).toContain('run-smoke.cjs');
     expect(smokeRunner).toContain("'--smoke-test'");
-    expect(smokeRunner).toContain('60_000');
+    expect(smokeRunner).toContain('90_000');
     expect(smokeRunner).toContain("child.kill('SIGTERM')");
     expect(scripts?.['release:mac']).toContain('bun run release:manifest');
   });
@@ -42,23 +42,30 @@ describe('desktop release QA', () => {
     expect(workflow).toContain('workflow_call:');
     expect(workflow).toContain('runs-on: macos-latest');
     expect(workflow).toContain('Setup Bun environment');
+    // The gate must run through turbo so `qa:release` picks up its `^build`
+    // dependency; `bun run --filter` executes the script directly and leaves
+    // the workspace packages unbuilt.
     expect(workflow).toContain(
+      'bunx turbo run qa:release --filter=@genfeedai/desktop',
+    );
+    expect(workflow).not.toContain(
       'bun run --filter=@genfeedai/desktop qa:release',
     );
   });
 
-  it('packages the implemented Desktop renderer instead of the SaaS shell', () => {
+  it('packages the canonical app instead of a desktop-local renderer', () => {
     const buildShell = readText('apps/desktop/app/scripts/build-app-shell.cjs');
     const copyShell = readText('apps/desktop/app/scripts/copy-app-shell.cjs');
     const devShell = readText('apps/desktop/app/scripts/dev.cjs');
 
     for (const shellScript of [buildShell, copyShell, devShell]) {
-      expect(shellScript).toContain('const appRoot = desktopRoot;');
-      expect(shellScript).not.toContain("'../../app'");
+      expect(shellScript).toContain(
+        "const appRoot = path.resolve(desktopRoot, '../../app');",
+      );
     }
   });
 
-  it('requires distinct screenshots with visible first-run state markers', () => {
+  it('requires distinct screenshots across canonical auth lifecycle states', () => {
     const captureScript = readText(
       'apps/desktop/app/scripts/capture-visual-qa.cjs',
     );
@@ -68,9 +75,12 @@ describe('desktop release QA', () => {
     expect(captureScript).toContain("'SIGKILL'");
     expect(captureScript).toContain('screenshot.byteLength < 10_000');
     expect(captureScript).toContain('hashes.size < 3');
-    expect(mainProcess).toContain("'Continue without an account'");
-    expect(mainProcess).toContain("'Connect Genfeed Cloud'");
-    expect(mainProcess).toContain("'Choose what leaves this device'");
+    expect(mainProcess).toContain("'desktop-login.png'");
+    expect(mainProcess).toContain("'pkce-callback.png'");
+    expect(mainProcess).toContain("'authenticated-route.png'");
+    expect(mainProcess).toContain("'logout.png'");
+    expect(mainProcess).toContain("'restart-persistence.png'");
+    expect(mainProcess).toContain("'expired-credential-recovery.png'");
     expect(releaseWorkflow).toContain('apps/desktop/app/visual-qa/*.png');
     expect(releaseWorkflow).not.toContain(
       'apps/desktop/app/release/visual-qa/*.png',

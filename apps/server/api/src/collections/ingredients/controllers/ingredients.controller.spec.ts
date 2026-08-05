@@ -25,9 +25,9 @@ describe('IngredientsController (cloneIngredient)', () => {
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: 'c07f1f77bcf86cd799439013',
+      organization: 'c07f1f77bcf86cd799439012',
+      user: 'c07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
@@ -106,7 +106,7 @@ describe('IngredientsController (cloneIngredient)', () => {
     it('creates a copy and uploads file', async () => {
       const serviceFindOneSpy = vi.spyOn(service, 'findOne').mockResolvedValue({
         id: '1',
-        brand: 'acc',
+        brandId: 'acc',
         category: IngredientCategory.IMAGE,
         metadata: {
           id: 'meta',
@@ -120,7 +120,7 @@ describe('IngredientsController (cloneIngredient)', () => {
           style: '',
           width: 100,
         },
-        organization: 'org',
+        organizationId: 'org',
       });
 
       const sharedServiceSaveDocumentsSpy = vi
@@ -141,14 +141,14 @@ describe('IngredientsController (cloneIngredient)', () => {
       const result = await controller.cloneIngredient(
         mockRequest,
         mockUser,
-        '507f191e810c19729de860ea',
+        'c07f191e810c19729de860ea',
       );
 
       expect(serviceFindOneSpy).toHaveBeenCalledWith(
         {
-          _id: '507f191e810c19729de860ea',
+          id: 'c07f191e810c19729de860ea',
           isDeleted: false,
-          organization: '507f1f77bcf86cd799439012',
+          organizationId: 'c07f1f77bcf86cd799439012',
         },
         [PopulatePatterns.metadataFull],
       );
@@ -164,7 +164,7 @@ describe('IngredientsController (cloneIngredient)', () => {
         'images',
         {
           type: 'url',
-          url: 'http://cdn/images/507f191e810c19729de860ea',
+          url: 'http://cdn/images/c07f191e810c19729de860ea',
         },
       );
 

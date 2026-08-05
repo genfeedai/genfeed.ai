@@ -15,6 +15,7 @@ import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpException,
@@ -84,6 +85,7 @@ export class PostsAnalyticsController {
     // Verify publication ownership
     const post = await this.postsService.findOne({
       id: postId,
+      isDeleted: false,
       OR: [
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
@@ -140,6 +142,7 @@ export class PostsAnalyticsController {
     // Verify publication ownership
     const post = await this.postsService.findOne({
       id: postId,
+      isDeleted: false,
       OR: [
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
@@ -173,14 +176,26 @@ export class PostsAnalyticsController {
     }
 
     // Get credential for the post.
-    //
     const credentialId = post.credentialId;
     const brandId = post.brandId;
     const organizationId = post.organizationId;
 
+    if (!organizationId) {
+      throw new BadRequestException(
+        'organizationId is required to refresh analytics',
+      );
+    }
+
+    if (!credentialId) {
+      throw new BadRequestException(
+        'credentialId is required to refresh analytics',
+      );
+    }
+
     const credential = await this.credentialsService.findOne({
       id: credentialId,
       brandId,
+      isDeleted: false,
       organizationId,
     });
 
@@ -302,6 +317,7 @@ export class PostsAnalyticsController {
           if (credential === undefined) {
             credential = (await this.credentialsService.findOne({
               id: credentialId,
+              isDeleted: false,
               organizationId: publicMetadata.organization,
             })) as unknown as CredentialEntity | null;
             credentialCache.set(credentialId, credential);

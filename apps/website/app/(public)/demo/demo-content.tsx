@@ -25,7 +25,7 @@ export default function DemoContent() {
       >
         {/* Hero */}
         <section className="gsap-hero max-w-4xl mx-auto py-20 text-center">
-          <h1 className="text-5xl font-semibold mb-4">Demo</h1>
+          <h2 className="text-5xl font-semibold mb-4">Demo</h2>
           <p className="text-xl text-muted-foreground">
             See how Genfeed works.
           </p>

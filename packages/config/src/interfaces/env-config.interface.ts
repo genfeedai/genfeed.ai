@@ -38,6 +38,10 @@ export interface IEnvConfig {
   DATABASE_URL?: string;
 
   // === Redis ===
+  // Which implementation backs the RedisService token (#2382). 'redis'
+  // (default) connects to a real broker; 'in-process' serves pub/sub from
+  // memory and is only valid for single-process deployments (desktop).
+  REDIS_DRIVER?: string;
   REDIS_URL?: string;
   REDIS_PASSWORD?: string;
   REDIS_TLS?: boolean;

@@ -91,6 +91,53 @@ function makeSignedOutRequest(pathname: string, search?: string) {
   } as never;
 }
 
+interface DesktopRequestOptions {
+  desktopToken?: string;
+  hasSession: boolean;
+  search?: string;
+}
+
+function makeDesktopRequest(
+  pathname: string,
+  { desktopToken, hasSession, search = '' }: DesktopRequestOptions,
+) {
+  const cookieMap: Record<string, string> = hasSession
+    ? { [SESSION_COOKIE_NAME]: SESSION_TOKEN }
+    : {};
+  const rawCookieHeader = Object.entries(cookieMap)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('; ');
+
+  return {
+    cookies: {
+      get: vi.fn((name: string) => {
+        const value = cookieMap[name];
+        return value !== undefined ? { value } : undefined;
+      }),
+    },
+    headers: {
+      get: vi.fn((name: string) => {
+        const normalizedName = name.toLowerCase();
+        if (normalizedName === 'cookie') {
+          return rawCookieHeader || null;
+        }
+        if (normalizedName === 'x-genfeed-desktop-token') {
+          return desktopToken ?? null;
+        }
+        return null;
+      }),
+    },
+    nextUrl: {
+      pathname,
+      search,
+      searchParams: new URLSearchParams(
+        search.startsWith('?') ? search.slice(1) : search,
+      ),
+    },
+    url: `http://localhost:3000${pathname}${search}`,
+  } as never;
+}
+
 describe('proxy', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1156,53 +1203,193 @@ describe('proxy', () => {
     expect(response.status).toBe(200);
   });
 
-  it('redirects desktop shell bare settings to seeded workspace without a desktop token', async () => {
-    const previousDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    const previousBetterAuthEnabled =
-      process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-    const previousSecretKey = process.env.BETTER_AUTH_SECRET;
-
-    try {
-      delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-      delete process.env.BETTER_AUTH_SECRET;
-      process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-
+  describe.each([
+    {
+      desktopToken: 'gf_valid_desktop_token',
+      hasSession: true,
+      label: 'valid desktop key and valid Better Auth cookie',
+    },
+    {
+      desktopToken: 'gf_valid_desktop_token',
+      hasSession: false,
+      label: 'valid desktop key and no Better Auth cookie',
+    },
+    {
+      desktopToken: undefined,
+      hasSession: true,
+      label: 'no desktop key and valid Better Auth cookie',
+    },
+    {
+      desktopToken: undefined,
+      hasSession: false,
+      label: 'no desktop key and no Better Auth cookie',
+    },
+  ])('desktop credential matrix: $label', ({ desktopToken, hasSession }) => {
+    beforeEach(() => {
+      vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
       vi.resetModules();
-      const { default: proxy } = await import('./proxy');
+    });
 
+    it('routes a protected entrypoint using the session as authority', async () => {
+      const { default: proxy } = await import('./proxy');
       const response = await proxy(
-        {
-          cookies: { get: vi.fn() },
-          headers: { get: vi.fn(() => null) },
-          nextUrl: { pathname: '/settings', search: '' },
-          url: 'http://localhost:3000/settings',
-        } as never,
+        makeDesktopRequest('/workspace', { desktopToken, hasSession }),
+        {} as never,
+      );
+
+      expect(response.status).toBe(307);
+      const location = new URL(response.headers.get('location') ?? '');
+
+      if (hasSession) {
+        expect(location.pathname).toBe(
+          '/acme/moonrise-studio/workspace/overview',
+        );
+      } else {
+        expect(location.pathname).toBe('/login');
+        expect(location.searchParams.get('callbackUrl')).toBe('/workspace');
+      }
+
+      const didExchangeSessionCookie = fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/auth/token'),
+      );
+      expect(didExchangeSessionCookie).toBe(hasSession && !desktopToken);
+    });
+
+    it('renders or leaves login according to the Better Auth session', async () => {
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeDesktopRequest('/login', { desktopToken, hasSession }),
+        {} as never,
+      );
+
+      if (hasSession) {
+        expect(response.status).toBe(307);
+        expect(response.headers.get('location')).toBe(
+          'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+        );
+      } else {
+        expect(response.status).toBe(200);
+        expect(response.headers.get('location')).toBeNull();
+      }
+    });
+
+    it('keeps logout reachable and clears the desktop slug cookie', async () => {
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeDesktopRequest('/logout', { desktopToken, hasSession }),
+        {} as never,
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('location')).toBeNull();
+      const setCookieHeader = response.headers.get('set-cookie') ?? '';
+      expect(setCookieHeader).toContain('gf_ws');
+      expect(setCookieHeader).toMatch(/Max-Age=0|expires=Thu, 01 Jan 1970/i);
+    });
+
+    it('routes root using the session as authority', async () => {
+      const { default: proxy } = await import('./proxy');
+      const response = await proxy(
+        makeDesktopRequest('/', { desktopToken, hasSession }),
         {} as never,
       );
 
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
-        'http://localhost:3000/default/default/workspace/overview',
+        hasSession
+          ? 'http://localhost:3000/acme/moonrise-studio/workspace/overview'
+          : 'http://localhost:3000/login',
       );
-    } finally {
-      if (previousDesktopShell === undefined) {
-        delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-      } else {
-        process.env.NEXT_PUBLIC_DESKTOP_SHELL = previousDesktopShell;
-      }
+    });
+  });
 
-      if (previousBetterAuthEnabled === undefined) {
-        delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-      } else {
-        process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = previousBetterAuthEnabled;
-      }
+  it('redirects signed-out desktop onboarding to the desktop login surface', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
 
-      if (previousSecretKey === undefined) {
-        delete process.env.BETTER_AUTH_SECRET;
-      } else {
-        process.env.BETTER_AUTH_SECRET = previousSecretKey;
-      }
-    }
+    const response = await proxy(
+      makeDesktopRequest('/onboarding/brand', { hasSession: false }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    const location = new URL(response.headers.get('location') ?? '');
+    expect(location.pathname).toBe('/login');
+    expect(location.searchParams.get('callbackUrl')).toBe('/onboarding/brand');
+  });
+
+  it('lets signed-in desktop onboarding render', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeDesktopRequest('/onboarding/brand', { hasSession: true }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('falls back to the Better Auth bearer when the desktop key is stale', async () => {
+    vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', '1');
+    fetchMock.mockImplementation(
+      async (input: string | URL, init?: RequestInit) => {
+        const url = String(input);
+        const headers = init?.headers as Record<string, string> | undefined;
+
+        if (url.endsWith('/auth/token')) {
+          return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+            status: 200,
+          });
+        }
+
+        if (headers?.Authorization === 'Bearer stale_desktop_token') {
+          return new Response('unauthorized', { status: 401 });
+        }
+
+        if (url.endsWith('/auth/bootstrap')) {
+          return new Response(
+            JSON.stringify({
+              access: { brandId: 'brand_1' },
+              brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith('/organizations?mine=true')) {
+          return new Response(
+            JSON.stringify([{ isActive: true, slug: 'acme' }]),
+            { status: 200 },
+          );
+        }
+
+        return new Response('not found', { status: 404 });
+      },
+    );
+    vi.resetModules();
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeDesktopRequest('/', {
+        desktopToken: 'stale_desktop_token',
+        hasSession: true,
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).endsWith('/auth/token'),
+      ),
+    ).toBe(true);
   });
 
   it('does not preserve legacy org settings detail routes as a compatibility layer', async () => {
@@ -1322,104 +1509,6 @@ describe('proxy', () => {
     );
   });
 
-  it('canonicalizes bare protected routes in desktop shell mode when a desktop token is present', async () => {
-    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-    delete process.env.BETTER_AUTH_SECRET;
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        headers: {
-          get: vi.fn((name: string) => {
-            return name === 'x-genfeed-desktop-token' ? 'token_1' : null;
-          }),
-        },
-        nextUrl: { pathname: '/workspace', search: '' },
-        url: 'http://localhost:3000/workspace',
-      } as never,
-      {} as never,
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
-    process.env.BETTER_AUTH_SECRET = 'sk_test';
-  });
-
-  it('redirects an authenticated desktop shell to its workspace overview', async () => {
-    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-    delete process.env.BETTER_AUTH_SECRET;
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        headers: {
-          get: vi.fn((name: string) => {
-            return name === 'x-genfeed-desktop-token' ? 'token_1' : null;
-          }),
-        },
-        nextUrl: { pathname: '/', search: '' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
-    );
-
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
-    process.env.BETTER_AUTH_SECRET = 'sk_test';
-  });
-
-  it('redirects desktop shell root to login when the injected desktop token is stale', async () => {
-    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-    delete process.env.BETTER_AUTH_SECRET;
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-    fetchMock.mockImplementation(
-      async () => new Response('error', { status: 500 }),
-    );
-
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        headers: {
-          get: vi.fn((name: string) => {
-            return name === 'x-genfeed-desktop-token' ? 'stale_token' : null;
-          }),
-        },
-        nextUrl: { pathname: '/', search: '' },
-        url: 'http://localhost:3000/',
-      } as never,
-      {} as never,
-    );
-
-    expect(response.status).toBe(307);
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/login',
-    );
-
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
-    process.env.BETTER_AUTH_SECRET = 'sk_test';
-  });
-
   it('skips API call when valid slug cookie is present', async () => {
     process.env.COOKIE_SECRET = 'test-secret-at-least-32-chars-long!!';
 
@@ -1506,37 +1595,5 @@ describe('proxy', () => {
     const setCookieHeader = response.headers.get('set-cookie') ?? '';
     expect(setCookieHeader).toContain('gf_ws');
     expect(setCookieHeader).toMatch(/Max-Age=0|expires=Thu, 01 Jan 1970/i);
-  });
-
-  it('lets desktop shell login render when the injected desktop token is stale', async () => {
-    delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
-    delete process.env.BETTER_AUTH_SECRET;
-    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
-    fetchMock.mockImplementation(
-      async () => new Response('error', { status: 500 }),
-    );
-
-    vi.resetModules();
-    const { default: proxy } = await import('./proxy');
-
-    const response = await proxy(
-      {
-        cookies: { get: vi.fn() },
-        headers: {
-          get: vi.fn((name: string) => {
-            return name === 'x-genfeed-desktop-token' ? 'stale_token' : null;
-          }),
-        },
-        nextUrl: { pathname: '/login', search: '' },
-        url: 'http://localhost:3000/login',
-      } as never,
-      {} as never,
-    );
-
-    expect(response.status).toBe(200);
-
-    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
-    process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED = 'pk_test';
-    process.env.BETTER_AUTH_SECRET = 'sk_test';
   });
 });
