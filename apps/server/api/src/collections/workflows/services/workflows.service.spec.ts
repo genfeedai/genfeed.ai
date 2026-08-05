@@ -23,7 +23,6 @@ describe('WorkflowsService template creation', () => {
       logger as never,
     );
     vi.spyOn(service, 'create').mockResolvedValue({
-      _id: { toString: () => 'workflow-1' },
       id: 'workflow-1',
       label: 'Workflow: release-loop',
       metadata: {},
@@ -136,7 +135,7 @@ describe('WorkflowsService template creation', () => {
     });
   });
 
-  it('drops non-column create fields before delegating to Prisma', async () => {
+  it('drops non-column create fields while preserving persisted trigger data', async () => {
     await service.createWorkflow(
       'user-1',
       'org-1',
@@ -173,7 +172,7 @@ describe('WorkflowsService template creation', () => {
     expect(createInput.scheduledFor).toBeUndefined();
     expect(createInput.sourceAsset).toBeUndefined();
     expect(createInput.templateId).toBeUndefined();
-    expect(createInput.trigger).toBeUndefined();
+    expect(createInput.trigger).toBe('manual');
     expect(createInput.user).toBeUndefined();
   });
 
@@ -279,8 +278,8 @@ describe('WorkflowsService system workflow guardrails', () => {
 
     await expect(
       service.findMutableOwnedOrThrow('workflow-1', {
-        organization: 'org-1',
-        user: 'user-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
       }),
     ).rejects.toThrow('System workflows are immutable');
   });
@@ -326,7 +325,6 @@ describe('WorkflowsService system workflow guardrails', () => {
 
   it('duplicates protected system workflows as editable user drafts', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
-      _id: 'system-workflow-1',
       edges: [],
       id: 'system-workflow-1',
       inputVariables: [],
@@ -344,14 +342,13 @@ describe('WorkflowsService system workflow guardrails', () => {
         }),
       },
       nodes: [],
-      organization: 'org-1',
+      organizationId: 'org-1',
       brandId: 'source-brand',
       schedule: '0 7 * * *',
       steps: [],
-      user: 'owner-user',
+      userId: 'owner-user',
     } as never);
     vi.spyOn(service, 'create').mockResolvedValue({
-      _id: 'copy-workflow-1',
       id: 'copy-workflow-1',
       label: 'Daily Trends Digest (Copy)',
       metadata: {},
@@ -403,7 +400,6 @@ describe('WorkflowsService system workflow guardrails', () => {
 
   it('duplicates editable workflows into the target brand without carrying source ownership state', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
-      _id: 'workflow-1',
       brandId: 'source-brand',
       edges: [],
       executionCount: 3,
@@ -414,13 +410,12 @@ describe('WorkflowsService system workflow guardrails', () => {
       lockedNodeIds: ['review-node'],
       metadata: { createdFrom: 'user' },
       nodes: [],
-      organization: 'org-1',
+      organizationId: 'org-1',
       schedule: '0 9 * * *',
       steps: [],
-      user: 'owner-user',
+      userId: 'owner-user',
     } as never);
     vi.spyOn(service, 'create').mockResolvedValue({
-      _id: 'copy-workflow-1',
       id: 'copy-workflow-1',
       label: 'Launch Workflow (Copy)',
       metadata: {},
@@ -551,7 +546,6 @@ describe('WorkflowsService.publishToMarketplace', () => {
       nodes: [],
     } as never);
     vi.spyOn(service, 'patch').mockResolvedValue({
-      _id: 'workflow-1',
       id: 'workflow-1',
       isPublic: true,
       isTemplate: true,
@@ -565,8 +559,8 @@ describe('WorkflowsService.publishToMarketplace', () => {
     );
 
     expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith('workflow-1', {
-      organization: 'org-1',
-      user: 'user-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
     });
     expect(service.patch).toHaveBeenCalledWith('workflow-1', {
       isPublic: true,

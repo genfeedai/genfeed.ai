@@ -32,14 +32,19 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('PlaybooksController', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+  const brandId = '550e8400-e29b-41d4-a716-446655440003';
+  const playbookId = '550e8400-e29b-41d4-a716-446655440004';
+  const creatorId = '550e8400-e29b-41d4-a716-446655440005';
   let controller: PlaybooksController;
 
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: brandId,
+      organization: organizationId,
+      user: userId,
     },
   } as unknown as User;
 
@@ -53,9 +58,9 @@ describe('PlaybooksController', () => {
       name: 'Test Playbook',
       platform: ContentIntelligencePlatform.TWITTER,
     },
-    id: '507f1f77bcf86cd799439015',
-    organizationId: '507f1f77bcf86cd799439012',
-    sourceCreators: ['507f1f77bcf86cd799439016'],
+    id: playbookId,
+    organizationId,
+    sourceCreators: [creatorId],
   };
 
   const mockPlaybookBuilderService = {
@@ -112,7 +117,7 @@ describe('PlaybooksController', () => {
           orderBy: { createdAt: -1 },
           where: {
             isDeleted: false,
-            organizationId: '507f1f77bcf86cd799439012',
+            organizationId,
           },
         },
         expect.objectContaining({ limit: 100, page: 1 }),
@@ -127,16 +132,16 @@ describe('PlaybooksController', () => {
       const result = await controller.findOne(
         mockRequest,
         mockUser,
-        '507f1f77bcf86cd799439015',
+        playbookId,
       );
 
       expect(mockPlaybookBuilderService.findOne).toHaveBeenCalled();
       expect(result).toEqual({
         data: expect.objectContaining({
           attributes: expect.objectContaining({
-            sourceCreators: ['507f1f77bcf86cd799439016'],
+            sourceCreators: [creatorId],
           }),
-          id: '507f1f77bcf86cd799439015',
+          id: playbookId,
         }),
       });
     });
@@ -145,11 +150,11 @@ describe('PlaybooksController', () => {
       mockPlaybookBuilderService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.findOne(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.findOne(mockRequest, mockUser, playbookId),
       ).rejects.toThrow(HttpException);
     });
 
-    it('should throw for invalid ObjectId', async () => {
+    it('should throw for an invalid entity ID', async () => {
       await expect(
         controller.findOne(mockRequest, mockUser, 'invalid'),
       ).rejects.toThrow(HttpException);
@@ -166,8 +171,8 @@ describe('PlaybooksController', () => {
       } satisfies CreatePlaybookDto);
 
       expect(mockPlaybookBuilderService.createPlaybook).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439011',
+        organizationId,
+        userId,
         expect.any(Object),
       );
     });
@@ -181,12 +186,9 @@ describe('PlaybooksController', () => {
         data: { ...mockPlaybook.data, name: 'Updated' },
       });
 
-      await controller.update(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439015',
-        { name: 'Updated' } satisfies UpdatePlaybookDto,
-      );
+      await controller.update(mockRequest, mockUser, playbookId, {
+        name: 'Updated',
+      } satisfies UpdatePlaybookDto);
 
       expect(mockPlaybookBuilderService.updatePlaybook).toHaveBeenCalledWith(
         mockPlaybook,
@@ -201,7 +203,7 @@ describe('PlaybooksController', () => {
         controller.update(
           mockRequest,
           mockUser,
-          '507f1f77bcf86cd799439015',
+          playbookId,
           {} satisfies UpdatePlaybookDto,
         ),
       ).rejects.toThrow(HttpException);
@@ -216,15 +218,11 @@ describe('PlaybooksController', () => {
         insights: ['insight1'],
       });
 
-      await controller.buildInsights(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439015',
-      );
+      await controller.buildInsights(mockRequest, mockUser, playbookId);
 
       expect(mockPlaybookBuilderService.buildInsights).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
-        '507f1f77bcf86cd799439012',
+        playbookId,
+        organizationId,
       );
     });
 
@@ -232,11 +230,7 @@ describe('PlaybooksController', () => {
       mockPlaybookBuilderService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.buildInsights(
-          mockRequest,
-          mockUser,
-          '507f1f77bcf86cd799439015',
-        ),
+        controller.buildInsights(mockRequest, mockUser, playbookId),
       ).rejects.toThrow(HttpException);
     });
   });
@@ -249,14 +243,10 @@ describe('PlaybooksController', () => {
         isDeleted: true,
       });
 
-      await controller.remove(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439015',
-      );
+      await controller.remove(mockRequest, mockUser, playbookId);
 
       expect(mockPlaybookBuilderService.remove).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
+        playbookId,
       );
     });
 
@@ -264,7 +254,7 @@ describe('PlaybooksController', () => {
       mockPlaybookBuilderService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.remove(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.remove(mockRequest, mockUser, playbookId),
       ).rejects.toThrow(HttpException);
     });
   });

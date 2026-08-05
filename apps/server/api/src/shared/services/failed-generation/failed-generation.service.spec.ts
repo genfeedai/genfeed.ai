@@ -16,9 +16,9 @@ describe('FailedGenerationService', () => {
   let activitiesService: vi.Mocked<ActivitiesService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
 
-  const mockIngredientId = '507f1f77bcf86cd799439011';
-  const mockUserId = '507f1f77bcf86cd799439012';
-  const mockOrganizationId = '507f1f77bcf86cd799439013';
+  const mockIngredientId = '550e8400-e29b-41d4-a716-446655440001';
+  const mockUserId = '550e8400-e29b-41d4-a716-446655440002';
+  const mockOrganizationId = '550e8400-e29b-41d4-a716-446655440003';
   const mockWebsocketUrl = 'ws://genfeed.localhost:3111';
 
   const mockService = {
@@ -33,6 +33,7 @@ describe('FailedGenerationService', () => {
           provide: ActivitiesService,
           useValue: {
             create: vi.fn(),
+            findByActionValue: vi.fn().mockResolvedValue(null),
             findOne: vi.fn().mockResolvedValue(null),
             patch: vi.fn(),
           },

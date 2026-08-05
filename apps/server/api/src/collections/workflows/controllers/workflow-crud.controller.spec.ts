@@ -13,6 +13,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('WorkflowCrudController', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+  const workflowId = '550e8400-e29b-41d4-a716-446655440003';
+  const brandId = '550e8400-e29b-41d4-a716-446655440004';
   let controller: WorkflowCrudController;
   let service: WorkflowsService;
 
@@ -20,22 +24,23 @@ describe('WorkflowCrudController', () => {
 
   const mockUser: User = {
     publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: brandId,
+      organization: organizationId,
+      user: userId,
     },
   } as unknown as User;
 
   const mockWorkflow = {
-    _id: '507f1f77bcf86cd799439014',
+    id: workflowId,
     createdAt: new Date(),
     description: 'Automated content workflow',
     isDeleted: false,
     label: 'Test Workflow',
-    organization: '507f1f77bcf86cd799439012',
+    organizationId,
     status: WorkflowStatus.DRAFT,
     steps: [],
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439011',
+    userId,
   };
 
   const mockWorkflowsService = {
@@ -135,7 +140,7 @@ describe('WorkflowCrudController', () => {
         ];
       expect(aggregateArg.where).toMatchObject({
         isDeleted: false,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       });
       expect(aggregateArg.where.OR).toBeUndefined();
     });
@@ -157,7 +162,7 @@ describe('WorkflowCrudController', () => {
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
       expect(aggregateArg.where.OR).toEqual([
-        { user: mockUser.publicMetadata.user },
+        { userId: mockUser.publicMetadata.user },
         {
           metadata: {
             equals: 'organization',
@@ -169,7 +174,6 @@ describe('WorkflowCrudController', () => {
     });
 
     it('should restrict the visible list to the requested brand', async () => {
-      const brandId = '507f1f77bcf86cd799439099';
       mockWorkflowsService.findAll.mockResolvedValue({
         docs: [],
         totalDocs: 0,
@@ -183,7 +187,7 @@ describe('WorkflowCrudController', () => {
         ];
       expect(aggregateArg.where).toMatchObject({
         brandId,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       });
     });
   });
@@ -231,14 +235,14 @@ describe('WorkflowCrudController', () => {
 
   describe('findOne', () => {
     it('should return a workflow by id via the ownership guard', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       mockWorkflowsService.findVisibleOrThrow.mockResolvedValue(mockWorkflow);
 
       const result = await controller.findOne(mockRequest, id, mockUser);
 
       expect(service.findVisibleOrThrow).toHaveBeenCalledWith(id, {
-        organization: mockUser.publicMetadata.organization,
-        user: mockUser.publicMetadata.user,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       });
       expect(result).toBeDefined();
     });
@@ -246,10 +250,10 @@ describe('WorkflowCrudController', () => {
 
   describe('create with sourceWorkflowId', () => {
     it('should clone via create body', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       mockWorkflowsService.createWorkflow.mockResolvedValue({
         ...mockWorkflow,
-        _id: '507f1f77bcf86cd799439015',
+        id: '550e8400-e29b-41d4-a716-446655440005',
         label: 'Test Workflow (Copy)',
       });
 
@@ -271,7 +275,7 @@ describe('WorkflowCrudController', () => {
 
   describe('update', () => {
     it('should update a workflow', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       const updateDto: UpdateWorkflowDto = { label: 'Updated Workflow' };
 
       mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
@@ -290,15 +294,15 @@ describe('WorkflowCrudController', () => {
       );
 
       expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organization: mockUser.publicMetadata.organization,
-        user: mockUser.publicMetadata.user,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       });
       expect(service.patch).toHaveBeenCalledWith(id, updateDto);
       expect(result).toBeDefined();
     });
 
     it('should call workflowSchedulerService.updateSchedule and not a plain patch for schedule fields', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       const updateDto: UpdateWorkflowDto = {
         isScheduleEnabled: true,
         schedule: '0 9 * * *',
@@ -328,14 +332,14 @@ describe('WorkflowCrudController', () => {
       );
       expect(mockWorkflowsService.patch).not.toHaveBeenCalled();
       expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organization: mockUser.publicMetadata.organization,
-        user: mockUser.publicMetadata.user,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       });
       expect(result).toBeDefined();
     });
 
     it('should call publishToMarketplace when isPublic and isTemplate are both true', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       const updateDto: UpdateWorkflowDto = {
         isPublic: true,
         isTemplate: true,
@@ -368,7 +372,7 @@ describe('WorkflowCrudController', () => {
 
   describe('remove', () => {
     it('should remove a workflow', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue(
         mockWorkflow,
       );
@@ -377,15 +381,15 @@ describe('WorkflowCrudController', () => {
       const result = await controller.remove(mockRequest, id, mockUser);
 
       expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organization: mockUser.publicMetadata.organization,
-        user: mockUser.publicMetadata.user,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       });
       expect(service.remove).toHaveBeenCalledWith(id);
       expect(result).toBeDefined();
     });
 
     it('should reject deleting immutable system workflows', async () => {
-      const id = '507f1f77bcf86cd799439014';
+      const id = workflowId;
       mockWorkflowsService.findMutableOwnedOrThrow.mockRejectedValue(
         new ForbiddenException(
           'System workflows are immutable. Duplicate the workflow before editing or deleting it.',
@@ -397,8 +401,8 @@ describe('WorkflowCrudController', () => {
       ).rejects.toThrow('System workflows are immutable');
 
       expect(service.findMutableOwnedOrThrow).toHaveBeenCalledWith(id, {
-        organization: mockUser.publicMetadata.organization,
-        user: mockUser.publicMetadata.user,
+        organizationId: mockUser.publicMetadata.organization,
+        userId: mockUser.publicMetadata.user,
       });
       expect(service.remove).not.toHaveBeenCalled();
     });

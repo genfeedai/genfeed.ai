@@ -3,9 +3,12 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { IAuthPublicMetadata } from '@libs/interfaces/auth-public-metadata.interface';
 
 describe('EntityIdUtil', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+
   describe('validate', () => {
     it('should validate a supported entity id', () => {
-      const validId = '507f1f77bcf86cd799439011';
+      const validId = userId;
       const result = EntityIdUtil.validate(validId);
 
       expect(result).toEqual(expect.any(String));
@@ -40,9 +43,9 @@ describe('EntityIdUtil', () => {
   describe('validateMany', () => {
     it('should validate an array of supported entity ids', () => {
       const validIds = [
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439013',
+        userId,
+        organizationId,
+        '550e8400-e29b-41d4-a716-446655440003',
       ];
 
       const result = EntityIdUtil.validateMany(validIds);
@@ -66,11 +69,7 @@ describe('EntityIdUtil', () => {
     });
 
     it('should throw error with the index for an invalid entity id', () => {
-      const mixedIds = [
-        '507f1f77bcf86cd799439011',
-        'invalid-id',
-        '507f1f77bcf86cd799439013',
-      ];
+      const mixedIds = [userId, 'invalid-id', organizationId];
 
       expect(() => EntityIdUtil.validateMany(mixedIds, 'ids')).toThrow(
         ValidationException,
@@ -80,7 +79,7 @@ describe('EntityIdUtil', () => {
 
   describe('isValid', () => {
     it('should return true for a supported entity id', () => {
-      expect(EntityIdUtil.isValid('507f1f77bcf86cd799439011')).toBe(true);
+      expect(EntityIdUtil.isValid(userId)).toBe(true);
     });
 
     it('should return false for an invalid entity id', () => {
@@ -97,7 +96,7 @@ describe('EntityIdUtil', () => {
 
   describe('toValidId', () => {
     it('should return valid id string', () => {
-      const result = EntityIdUtil.toValidId('507f1f77bcf86cd799439011');
+      const result = EntityIdUtil.toValidId(userId);
 
       expect(result).toEqual(expect.any(String));
     });
@@ -124,17 +123,12 @@ describe('EntityIdUtil', () => {
   describe('resolveCanonicalId', () => {
     it('returns the canonical Prisma id from a lookup result', () => {
       expect(
-        EntityIdUtil.resolveCanonicalId(
-          { id: 'canonical-cuid' },
-          '507f1f77bcf86cd799439011',
-        ),
+        EntityIdUtil.resolveCanonicalId({ id: 'canonical-cuid' }, userId),
       ).toBe('canonical-cuid');
     });
 
     it('falls back to the requested id when the record has no canonical id', () => {
-      expect(
-        EntityIdUtil.resolveCanonicalId({}, '507f1f77bcf86cd799439011'),
-      ).toBe('507f1f77bcf86cd799439011');
+      expect(EntityIdUtil.resolveCanonicalId({}, userId)).toBe(userId);
     });
   });
 
@@ -142,8 +136,8 @@ describe('EntityIdUtil', () => {
     it('should enrich DTO with user and organization', () => {
       const dto = { name: 'Test' };
       const publicMetadata = {
-        organization: '507f1f77bcf86cd799439012',
-        user: '507f1f77bcf86cd799439011',
+        organization: organizationId,
+        user: userId,
       };
 
       const result = EntityIdUtil.enrichWithUserContext(
@@ -159,7 +153,7 @@ describe('EntityIdUtil', () => {
     it('should enrich DTO without organization', () => {
       const dto = { name: 'Test' };
       const publicMetadata = {
-        user: '507f1f77bcf86cd799439011',
+        user: userId,
       };
 
       const result = EntityIdUtil.enrichWithUserContext(
@@ -184,7 +178,7 @@ describe('EntityIdUtil', () => {
   describe('convertRelationshipField', () => {
     it('should accept a supported entity id string', async () => {
       const result = await EntityIdUtil.convertRelationshipField(
-        '507f1f77bcf86cd799439011',
+        userId,
         'parent',
       );
 

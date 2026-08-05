@@ -89,18 +89,17 @@ describe('Validation Utils', () => {
 
   describe('validateEntityId', () => {
     it('should return true for valid entity IDs', () => {
-      expect(validateEntityId('507f1f77bcf86cd799439011')).toBe(true);
-      expect(validateEntityId('507f191e810c19729de860ea')).toBe(true);
-      expect(validateEntityId('000000000000000000000000')).toBe(true);
       expect(validateEntityId('clv2f9w8d000008l4h9a1b2c3')).toBe(true);
       expect(validateEntityId('b13yktd0f1e38me3f55swu0n')).toBe(true);
       expect(validateEntityId('550e8400-e29b-41d4-a716-446655440000')).toBe(
         true,
       );
+      expect(validateEntityId('01ARZ3NDEKTSV4RRFFQ69G5FAV')).toBe(true);
     });
 
     it('should return false for invalid entity IDs', () => {
       expect(validateEntityId('invalid-id')).toBe(false);
+      expect(validateEntityId('507f1f77bcf86cd799439011')).toBe(false);
       expect(validateEntityId('507f1f77bcf86cd79943901')).toBe(false);
       expect(validateEntityId('507f1f77bcf86cd7994390111')).toBe(false);
       expect(validateEntityId('')).toBe(false);

@@ -9,7 +9,8 @@ describe('ContentIntelligenceService Prisma boundary', () => {
   const findFirst = vi.fn();
   const findUnique = vi.fn();
   const update = vi.fn();
-  const organizationId = 'organization-1';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440001';
+  const userId = '550e8400-e29b-41d4-a716-446655440002';
   let service: ContentIntelligenceService;
 
   beforeEach(() => {
@@ -30,14 +31,14 @@ describe('ContentIntelligenceService Prisma boundary', () => {
   });
 
   it('stores creator domain fields in data and ownership in scalar columns', async () => {
-    const result = await service.addCreator(organizationId, 'user-1', {
+    const result = await service.addCreator(organizationId, userId, {
       handle: '@creator',
       platform: ContentIntelligencePlatform.TWITTER,
     });
 
     expect(create).toHaveBeenCalledWith({
       data: {
-        createdById: 'user-1',
+        createdById: userId,
         data: expect.objectContaining({
           handle: '@creator',
           platform: ContentIntelligencePlatform.TWITTER,

@@ -13,6 +13,9 @@ import { PollUntilService } from '@server/shared/services/poll-until/poll-until.
  * timeout translation) are verified end-to-end, not against a mocked loop.
  */
 describe('IngredientCompletionService', () => {
+  const ingredientA = '550e8400-e29b-41d4-a716-446655440001';
+  const ingredientB = '550e8400-e29b-41d4-a716-446655440002';
+  const ingredientC = '550e8400-e29b-41d4-a716-446655440003';
   let service: IngredientCompletionService;
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
 
@@ -50,11 +53,19 @@ describe('IngredientCompletionService', () => {
   describe('waitForIngredientCompletion()', () => {
     it('resolves once the ingredient reaches a terminal status', async () => {
       ingredientsService.findOne
-        .mockResolvedValueOnce(ingredient('ing-1', IngredientStatus.PROCESSING))
-        .mockResolvedValueOnce(ingredient('ing-1', IngredientStatus.PROCESSING))
-        .mockResolvedValue(ingredient('ing-1', IngredientStatus.GENERATED));
+        .mockResolvedValueOnce(
+          ingredient(ingredientA, IngredientStatus.PROCESSING),
+        )
+        .mockResolvedValueOnce(
+          ingredient(ingredientA, IngredientStatus.PROCESSING),
+        )
+        .mockResolvedValue(ingredient(ingredientA, IngredientStatus.GENERATED));
 
-      const promise = service.waitForIngredientCompletion('ing-1', 60_000, 100);
+      const promise = service.waitForIngredientCompletion(
+        ingredientA,
+        60_000,
+        100,
+      );
       await vi.runAllTimersAsync();
       const result = await promise;
 
@@ -64,10 +75,14 @@ describe('IngredientCompletionService', () => {
 
     it('treats FAILED as a terminal status and returns the ingredient', async () => {
       ingredientsService.findOne.mockResolvedValue(
-        ingredient('ing-1', IngredientStatus.FAILED),
+        ingredient(ingredientA, IngredientStatus.FAILED),
       );
 
-      const promise = service.waitForIngredientCompletion('ing-1', 60_000, 100);
+      const promise = service.waitForIngredientCompletion(
+        ingredientA,
+        60_000,
+        100,
+      );
       await vi.runAllTimersAsync();
 
       await expect(promise).resolves.toMatchObject({
@@ -77,10 +92,14 @@ describe('IngredientCompletionService', () => {
 
     it('throws PollTimeoutException when the ingredient never completes', async () => {
       ingredientsService.findOne.mockResolvedValue(
-        ingredient('ing-1', IngredientStatus.PROCESSING),
+        ingredient(ingredientA, IngredientStatus.PROCESSING),
       );
 
-      const promise = service.waitForIngredientCompletion('ing-1', 300, 100);
+      const promise = service.waitForIngredientCompletion(
+        ingredientA,
+        300,
+        100,
+      );
       const expectation =
         expect(promise).rejects.toBeInstanceOf(PollTimeoutException);
       await vi.runAllTimersAsync();
@@ -90,7 +109,11 @@ describe('IngredientCompletionService', () => {
     it('throws NotFound when the ingredient disappears mid-poll', async () => {
       ingredientsService.findOne.mockResolvedValue(null);
 
-      const promise = service.waitForIngredientCompletion('ing-1', 60_000, 100);
+      const promise = service.waitForIngredientCompletion(
+        ingredientA,
+        60_000,
+        100,
+      );
       const expectation = expect(promise).rejects.toBeInstanceOf(HttpException);
       await vi.runAllTimersAsync();
       await expectation;
@@ -98,12 +121,12 @@ describe('IngredientCompletionService', () => {
 
     it('forwards the populate options to the ingredient read', async () => {
       ingredientsService.findOne.mockResolvedValue(
-        ingredient('ing-1', IngredientStatus.GENERATED),
+        ingredient(ingredientA, IngredientStatus.GENERATED),
       );
       const populate = [{ path: 'prompt' }] as never;
 
       const promise = service.waitForIngredientCompletion(
-        'ing-1',
+        ingredientA,
         60_000,
         100,
         populate,
@@ -112,7 +135,7 @@ describe('IngredientCompletionService', () => {
       await promise;
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
-        { _id: 'ing-1' },
+        { id: ingredientA },
         populate,
       );
     });
@@ -120,45 +143,47 @@ describe('IngredientCompletionService', () => {
 
   describe('waitForMultipleIngredientsCompletion()', () => {
     it('resolves once every ingredient is terminal, in input order', async () => {
-      ingredientsService.findOne.mockImplementation((query: { _id: string }) =>
-        Promise.resolve(ingredient(query._id, IngredientStatus.GENERATED)),
+      ingredientsService.findOne.mockImplementation((query: { id: string }) =>
+        Promise.resolve(ingredient(query.id, IngredientStatus.GENERATED)),
       );
 
       const promise = service.waitForMultipleIngredientsCompletion(
-        ['a', 'b', 'c'],
+        [ingredientA, ingredientB, ingredientC],
         60_000,
         100,
       );
       await vi.runAllTimersAsync();
       const result = await promise;
 
-      expect(result.map((r) => r.id)).toEqual(['a', 'b', 'c']);
+      expect(result.map((r) => r.id)).toEqual([
+        ingredientA,
+        ingredientB,
+        ingredientC,
+      ]);
     });
 
     it('keeps polling until the slowest ingredient completes', async () => {
       let attempts = 0;
-      ingredientsService.findOne.mockImplementation(
-        (query: { _id: string }) => {
-          // 'b' stays processing for the first two rounds, then completes.
-          if (query._id === 'b') {
-            attempts++;
-            return Promise.resolve(
-              ingredient(
-                'b',
-                attempts >= 3
-                  ? IngredientStatus.GENERATED
-                  : IngredientStatus.PROCESSING,
-              ),
-            );
-          }
+      ingredientsService.findOne.mockImplementation((query: { id: string }) => {
+        // ingredient B stays processing for the first two rounds, then completes.
+        if (query.id === ingredientB) {
+          attempts++;
           return Promise.resolve(
-            ingredient(query._id, IngredientStatus.GENERATED),
+            ingredient(
+              ingredientB,
+              attempts >= 3
+                ? IngredientStatus.GENERATED
+                : IngredientStatus.PROCESSING,
+            ),
           );
-        },
-      );
+        }
+        return Promise.resolve(
+          ingredient(query.id, IngredientStatus.GENERATED),
+        );
+      });
 
       const promise = service.waitForMultipleIngredientsCompletion(
-        ['a', 'b'],
+        [ingredientA, ingredientB],
         60_000,
         100,
       );
@@ -172,17 +197,17 @@ describe('IngredientCompletionService', () => {
       expect(attempts).toBeGreaterThanOrEqual(3);
       expect(
         ingredientsService.findOne.mock.calls.filter(
-          ([query]) => query._id === 'a',
+          ([query]) => query.id === ingredientA,
         ),
       ).toHaveLength(1);
     });
 
     it('throws PollTimeoutException if any ingredient never completes', async () => {
-      ingredientsService.findOne.mockImplementation((query: { _id: string }) =>
+      ingredientsService.findOne.mockImplementation((query: { id: string }) =>
         Promise.resolve(
           ingredient(
-            query._id,
-            query._id === 'b'
+            query.id,
+            query.id === ingredientB
               ? IngredientStatus.PROCESSING
               : IngredientStatus.GENERATED,
           ),
@@ -190,7 +215,7 @@ describe('IngredientCompletionService', () => {
       );
 
       const promise = service.waitForMultipleIngredientsCompletion(
-        ['a', 'b'],
+        [ingredientA, ingredientB],
         300,
         100,
       );

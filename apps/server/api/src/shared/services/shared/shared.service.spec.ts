@@ -24,9 +24,9 @@ describe('SharedService', () => {
   let promptsService: Pick<PromptsService, 'patch'>;
 
   const owner = {
-    brandId: '507f1f77bcf86cd799439016',
-    organizationId: '507f1f77bcf86cd799439012',
-    userId: '507f1f77bcf86cd799439011',
+    brandId: '550e8400-e29b-41d4-a716-446655440003',
+    organizationId: '550e8400-e29b-41d4-a716-446655440002',
+    userId: '550e8400-e29b-41d4-a716-446655440001',
   };
   const mockUser = {
     publicMetadata: {
@@ -35,9 +35,9 @@ describe('SharedService', () => {
       user: owner.userId,
     },
   } as unknown as User;
-  const mockMetadata = { id: '507f1f77bcf86cd799439013' };
+  const mockMetadata = { id: '550e8400-e29b-41d4-a716-446655440004' };
   const mockIngredient = {
-    id: '507f1f77bcf86cd799439014',
+    id: '550e8400-e29b-41d4-a716-446655440005',
     metadataId: mockMetadata.id,
     status: IngredientStatus.PROCESSING,
     version: 1,
@@ -83,10 +83,10 @@ describe('SharedService', () => {
 
   describe('createMediaDocuments', () => {
     it('persists a canonical metadata and ingredient pair', async () => {
-      const promptId = '507f1f77bcf86cd799439015';
+      const promptId = '550e8400-e29b-41d4-a716-446655440006';
       const sourceIds = [
-        '507f1f77bcf86cd799439021',
-        '507f1f77bcf86cd799439022',
+        '550e8400-e29b-41d4-a716-446655440007',
+        '550e8400-e29b-41d4-a716-446655440008',
       ];
 
       const result = await service.createMediaDocuments(mockUser, {
@@ -142,7 +142,7 @@ describe('SharedService', () => {
     });
 
     it('increments the version from the canonical parent row', async () => {
-      const parentId = '507f1f77bcf86cd799439020';
+      const parentId = '550e8400-e29b-41d4-a716-446655440009';
       vi.mocked(ingredientsService.findOne).mockResolvedValue({
         id: parentId,
         version: 5,
@@ -214,7 +214,7 @@ describe('SharedService', () => {
 
   describe('updateDocuments', () => {
     it('completes both documents and links the prompt bidirectionally', async () => {
-      const promptId = '507f1f77bcf86cd799439015';
+      const promptId = '550e8400-e29b-41d4-a716-446655440006';
       const metadata = new MetadataEntity({ id: mockMetadata.id });
       const ingredient = new IngredientEntity({ id: mockIngredient.id });
 

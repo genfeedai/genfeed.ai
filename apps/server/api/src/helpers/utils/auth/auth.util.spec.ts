@@ -36,8 +36,8 @@ describe('resolveRequiredBrandRequestContext', () => {
 
     expect(
       resolveRequiredBrandRequestContext(user, {
-        brand: 'brand-2',
-        organization: 'org-2',
+        brandId: 'brand-2',
+        organizationId: 'org-2',
       }),
     ).toEqual({
       brandId: 'brand-1',
@@ -59,8 +59,8 @@ describe('resolveRequiredBrandRequestContext', () => {
 
     expect(
       resolveRequiredBrandRequestContext(user, {
-        brand: 'brand-2',
-        organization: 'org-2',
+        brandId: 'brand-2',
+        organizationId: 'org-2',
       }),
     ).toEqual({
       brandId: 'brand-2',

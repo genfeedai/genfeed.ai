@@ -37,6 +37,9 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => {
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreatorsController } from '@api/collections/content-intelligence/controllers/creators.controller';
+import type { AddCreatorDto } from '@api/collections/content-intelligence/dto/add-creator.dto';
+import type { ImportCreatorsDto } from '@api/collections/content-intelligence/dto/import-creators.dto';
+import type { CreatorsQueryDto } from '@api/collections/content-intelligence/dto/patterns-query.dto';
 import { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
@@ -46,14 +49,18 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('CreatorsController', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+  const brandId = '550e8400-e29b-41d4-a716-446655440003';
+  const creatorId = '550e8400-e29b-41d4-a716-446655440004';
   let controller: CreatorsController;
 
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: brandId,
+      organization: organizationId,
+      user: userId,
     },
   } as unknown as User;
 
@@ -63,9 +70,9 @@ describe('CreatorsController', () => {
   } as Request;
 
   const mockCreator = {
-    id: '507f1f77bcf86cd799439015',
+    id: creatorId,
     handle: '@testcreator',
-    organizationId: '507f1f77bcf86cd799439012',
+    organizationId,
     platform: 'twitter',
     status: 'active',
   };
@@ -127,12 +134,13 @@ describe('CreatorsController', () => {
       const mockData = { docs: [mockCreator], totalDocs: 1 };
       mockContentIntelligenceService.findAll.mockResolvedValue(mockData);
 
-      await controller.findAll(mockRequest, mockUser, {} as any);
+      await controller.findAll(mockRequest, mockUser, {} as CreatorsQueryDto);
 
       expect(mockContentIntelligenceService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            AND: [{ data: { equals: 'twitter', path: ['platform'] } }],
+            isDeleted: false,
+            organizationId,
           }),
         }),
         expect.anything(),
@@ -144,9 +152,16 @@ describe('CreatorsController', () => {
 
       await controller.findAll(mockRequest, mockUser, {
         platform: 'twitter',
-      } as any);
+      } as unknown as CreatorsQueryDto);
 
-      expect(mockContentIntelligenceService.findAll).toHaveBeenCalled();
+      expect(mockContentIntelligenceService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: [{ data: { equals: 'twitter', path: ['platform'] } }],
+          }),
+        }),
+        expect.anything(),
+      );
     });
   });
 
@@ -154,15 +169,11 @@ describe('CreatorsController', () => {
     it('should return a single creator', async () => {
       mockContentIntelligenceService.findOne.mockResolvedValue(mockCreator);
 
-      await controller.findOne(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439015',
-      );
+      await controller.findOne(mockRequest, mockUser, creatorId);
 
       expect(mockContentIntelligenceService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          id: '507f1f77bcf86cd799439015',
+          id: creatorId,
           isDeleted: false,
         }),
       );
@@ -172,11 +183,11 @@ describe('CreatorsController', () => {
       mockContentIntelligenceService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.findOne(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.findOne(mockRequest, mockUser, creatorId),
       ).rejects.toThrow(HttpException);
     });
 
-    it('should throw for invalid ObjectId', async () => {
+    it('should throw for an invalid entity ID', async () => {
       await expect(
         controller.findOne(mockRequest, mockUser, 'invalid-id'),
       ).rejects.toThrow(HttpException);
@@ -192,7 +203,7 @@ describe('CreatorsController', () => {
       await controller.create(mockRequest, mockUser, {
         handle: '@testcreator',
         platform: 'twitter',
-      } as any);
+      } as unknown as AddCreatorDto);
 
       expect(mockContentIntelligenceService.addCreator).not.toHaveBeenCalled();
     });
@@ -204,7 +215,7 @@ describe('CreatorsController', () => {
       await controller.create(mockRequest, mockUser, {
         handle: '@newcreator',
         platform: 'twitter',
-      } as any);
+      } as unknown as AddCreatorDto);
 
       expect(mockContentIntelligenceService.addCreator).toHaveBeenCalled();
     });
@@ -220,7 +231,7 @@ describe('CreatorsController', () => {
           { handle: '@creator1', platform: 'twitter' },
           { handle: '@creator2', platform: 'instagram' },
         ],
-      } as any);
+      } as unknown as ImportCreatorsDto);
 
       expect(mockContentIntelligenceService.addCreator).toHaveBeenCalledTimes(
         2,
@@ -238,7 +249,7 @@ describe('CreatorsController', () => {
           { handle: '@existing', platform: 'twitter' },
           { handle: '@new', platform: 'twitter' },
         ],
-      } as any);
+      } as unknown as ImportCreatorsDto);
 
       expect(mockContentIntelligenceService.addCreator).toHaveBeenCalledTimes(
         1,
@@ -253,14 +264,10 @@ describe('CreatorsController', () => {
         .mockResolvedValueOnce({ ...mockCreator, status: 'analyzed' });
       mockPatternAnalyzerService.analyzeCreator.mockResolvedValue(undefined);
 
-      await controller.analyze(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439015',
-      );
+      await controller.analyze(mockRequest, mockUser, creatorId);
 
       expect(mockPatternAnalyzerService.analyzeCreator).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
+        creatorId,
       );
     });
 
@@ -268,7 +275,7 @@ describe('CreatorsController', () => {
       mockContentIntelligenceService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.analyze(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.analyze(mockRequest, mockUser, creatorId),
       ).rejects.toThrow(HttpException);
     });
   });
@@ -282,18 +289,14 @@ describe('CreatorsController', () => {
         isDeleted: true,
       });
 
-      await controller.remove(
-        mockRequest,
-        mockUser,
-        '507f1f77bcf86cd799439015',
-      );
+      await controller.remove(mockRequest, mockUser, creatorId);
 
       expect(mockPatternStoreService.deleteByCreator).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
-        '507f1f77bcf86cd799439012',
+        creatorId,
+        organizationId,
       );
       expect(mockContentIntelligenceService.remove).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
+        creatorId,
       );
     });
 
@@ -301,7 +304,7 @@ describe('CreatorsController', () => {
       mockContentIntelligenceService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.remove(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.remove(mockRequest, mockUser, creatorId),
       ).rejects.toThrow(HttpException);
     });
   });
