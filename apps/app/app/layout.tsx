@@ -7,7 +7,6 @@ import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
@@ -55,9 +54,6 @@ export default async function RootLayout({ children }: LayoutProps) {
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
     : 'gf-app gf-studio-app';
-  const googleAnalyticsId = isDesktopShell
-    ? undefined
-    : EnvironmentService.GA_ID;
 
   return (
     <AppHtmlDocument
@@ -65,11 +61,7 @@ export default async function RootLayout({ children }: LayoutProps) {
       fontVariables={fontVariables}
       bodyClassName={bodyClassName}
     >
-      <AppProviders
-        initialTheme={initialTheme}
-        storageKey={THEME_STORAGE_KEY}
-        googleAnalyticsId={googleAnalyticsId}
-      >
+      <AppProviders initialTheme={initialTheme} storageKey={THEME_STORAGE_KEY}>
         <Script
           id="genfeed-runtime-config"
           strategy="beforeInteractive"

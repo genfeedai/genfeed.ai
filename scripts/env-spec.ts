@@ -80,7 +80,7 @@ export const ENV_TARGETS: EnvTarget[] = [
     },
     localLegacyFile: 'apps/app/.env',
     sharedKeys: [...frontendSharedKeys],
-    directKeys: ['NEXT_PUBLIC_GA_ID', 'NEXT_PUBLIC_TTS_ENABLED'],
+    directKeys: ['NEXT_PUBLIC_TTS_ENABLED'],
     mappedKeys: {
       APP_BETTER_AUTH_SIGN_UP_FORCE_REDIRECT_URL:
         'BETTER_AUTH_SIGN_UP_FORCE_REDIRECT_URL',
@@ -514,7 +514,6 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'APP_NEXT_PUBLIC_BETTER_AUTH_SIGN_UP_FALLBACK_REDIRECT_URL',
       'APP_BETTER_AUTH_SIGN_UP_FORCE_REDIRECT_URL',
       'APP_MEDIUM_REDIRECT_URI',
-      'NEXT_PUBLIC_GA_ID',
       'NEXT_PUBLIC_TTS_ENABLED',
     ],
   },

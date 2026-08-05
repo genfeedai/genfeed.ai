@@ -2,7 +2,6 @@
 
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import type { AppProvidersProps } from '@genfeedai/props/providers/app-providers.props';
-import { GoogleAnalytics } from '@next/third-parties/google';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { makeQueryClient } from '@ui/providers/query-client';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
@@ -33,7 +32,6 @@ export default function AppProviders({
   initialTheme,
   disableTransitionOnChange = true,
   enableSystem = false,
-  googleAnalyticsId,
   includeLazyModalErrorDebug = true,
   includeToaster = true,
   storageKey = THEME_STORAGE_KEY,
@@ -55,9 +53,6 @@ export default function AppProviders({
           <Toaster richColors closeButton position="top-right" />
         ) : null}
         {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
-        {googleAnalyticsId ? (
-          <GoogleAnalytics gaId={googleAnalyticsId} />
-        ) : null}
       </ThemeProvider>
       <LazyReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

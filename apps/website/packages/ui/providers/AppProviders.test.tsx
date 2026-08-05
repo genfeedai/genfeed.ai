@@ -3,8 +3,6 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import AppProviders from './AppProviders';
 
-const marketingProviderSpy = vi.fn();
-
 vi.mock('@genfeedai/auth-client/react', () => ({
   BetterAuthProvider: ({ children }: { children: ReactNode }) => (
     <>{children}</>
@@ -24,45 +22,18 @@ vi.mock('next-themes', () => ({
   useTheme: () => ({ resolvedTheme: 'dark' }),
 }));
 
-vi.mock('../../marketing/MarketingTrackingProvider', () => ({
-  default: ({
-    children,
-    config,
-    consentDefault,
-  }: {
-    children: ReactNode;
-    config: Record<string, unknown>;
-    consentDefault: string;
-  }) => {
-    marketingProviderSpy({ config, consentDefault });
-    return <>{children}</>;
-  },
-}));
-
 describe('website AppProviders', () => {
-  it('passes marketing tracking config through one provider', () => {
+  it('renders children through the theme and auth providers', () => {
     render(
       <AppProviders
         initialTheme="dark"
         includeLazyModalErrorDebug={false}
         includeToaster={false}
-        marketingConsentDefault="denied"
-        marketingGtmContainerId="GTM-123"
-        marketingRetargetingProviders={[
-          { pixelId: 'meta-pixel', provider: 'meta' },
-        ]}
       >
         <div>Website child</div>
       </AppProviders>,
     );
 
     expect(screen.getByText('Website child')).toBeInTheDocument();
-    expect(marketingProviderSpy).toHaveBeenCalledWith({
-      config: {
-        gtmContainerId: 'GTM-123',
-        retargetingProviders: [{ pixelId: 'meta-pixel', provider: 'meta' }],
-      },
-      consentDefault: 'denied',
-    });
   });
 });
