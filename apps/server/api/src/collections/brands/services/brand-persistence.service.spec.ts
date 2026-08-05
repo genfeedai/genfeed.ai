@@ -143,7 +143,7 @@ describe('BrandPersistenceService', () => {
       await service.upsertBrandWebsiteLink('brand_1', 'https://acme.com');
 
       expect(linksService.create).toHaveBeenCalledWith({
-        brand: 'brand_1',
+        brandId: 'brand_1',
         category: LinkCategory.WEBSITE,
         label: 'Website',
         url: 'https://acme.com',
@@ -253,7 +253,7 @@ describe('BrandPersistenceService', () => {
 
     it('merges the extracted voice into the agent config patch', async () => {
       brandsService.findOne.mockResolvedValue({
-        _id: 'brand_1',
+        id: 'brand_1',
         agentConfig: { persona: 'friendly' },
       });
 

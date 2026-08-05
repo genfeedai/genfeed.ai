@@ -263,9 +263,14 @@ describe('SocialSourcesService', () => {
         userId: 'user-1',
       },
     ]);
-    socialMonitorService.getUserTimeline
+    sourceCollector.collectTimeline
       .mockRejectedValueOnce(new Error('first failed'))
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce({
+        handle: 'second',
+        platform: SocialSourcePlatform.TWITTER,
+        posts: [],
+        provider: 'app-bearer',
+      });
     sourcePostsService.upsertCollectedPosts.mockResolvedValue([]);
     socialSource.update.mockResolvedValue({ id: 'source-updated' });
 
@@ -274,9 +279,9 @@ describe('SocialSourcesService', () => {
       organizationId: 'org-1',
     });
 
-    expect(socialMonitorService.getUserTimeline).toHaveBeenCalledTimes(2);
+    expect(sourceCollector.collectTimeline).toHaveBeenCalledTimes(2);
     expect(result.failures).toEqual([
-      { error: 'Source sync failed', sourceId: 'source-1' },
+      { error: 'first failed', sourceId: 'source-1' },
     ]);
     expect(result.results).toHaveLength(1);
   });

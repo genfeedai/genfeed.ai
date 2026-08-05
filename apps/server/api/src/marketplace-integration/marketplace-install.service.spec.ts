@@ -146,7 +146,7 @@ describe('MarketplaceInstallService', () => {
       expect(promptsService.create).toHaveBeenCalledWith({
         category: PromptCategory.PRESET_DESCRIPTION_VIDEO,
         isFavorite: true,
-        organization: orgId,
+        organizationId: orgId,
         original: 'Make a video',
       });
     });

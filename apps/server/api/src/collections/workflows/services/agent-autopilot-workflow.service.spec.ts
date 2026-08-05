@@ -125,10 +125,10 @@ describe('AgentAutopilotWorkflowService', () => {
       creditBudget: 100,
       label: 'Proactive: Growth strategy',
       objective: expect.stringContaining('Run proactive session'),
-      organization: 'org-1',
-      strategy: 'strategy-1',
+      organizationId: 'org-1',
+      strategyId: 'strategy-1',
       trigger: 'cron',
-      user: 'user-1',
+      userId: 'user-1',
     });
     expect(agentRunQueueService.queueRun).toHaveBeenCalledWith(
       expect.objectContaining({

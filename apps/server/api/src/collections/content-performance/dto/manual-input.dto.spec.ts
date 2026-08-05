@@ -13,7 +13,7 @@ const metadata: ArgumentMetadata = {
 
 function buildBody(entryCount: number) {
   return {
-    brandId: '507f1f77bcf86cd799439011',
+    brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
     entries: Array.from({ length: entryCount }, () => ({
       contentType: ContentType.IMAGE,
       measuredAt: '2026-07-01T00:00:00.000Z',

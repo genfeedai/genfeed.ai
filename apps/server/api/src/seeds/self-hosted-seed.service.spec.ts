@@ -1,4 +1,5 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SELF_HOSTED_MODELS } from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 
@@ -86,7 +87,9 @@ describe('SelfHostedSeedService', () => {
         userId,
       },
     });
-    expect(prisma.model.upsert).toHaveBeenCalledTimes(3);
+    expect(prisma.model.upsert).toHaveBeenCalledTimes(
+      SELF_HOSTED_MODELS.length,
+    );
   });
 
   it('does not duplicate an existing default workspace member', async () => {

@@ -4,7 +4,7 @@ import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', () => {
-  const sourceIngredientId = 'aaaaaaaaaaaaaaaaaaaaaaaa';
+  const sourceIngredientId = 'cling1a2b3c4d5e6f7g8h9i0j';
   const organizationId = 'org-1';
 
   const findOne = vi.fn();
@@ -50,7 +50,7 @@ describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', ()
 
     expect(brandId).toBe('brand-from-ingredient');
     expect(findOne).toHaveBeenCalledWith({
-      _id: sourceIngredientId,
+      id: sourceIngredientId,
       isDeleted: false,
       organizationId,
     });
@@ -83,7 +83,7 @@ describe('WorkflowEngineExecutorHelperService.resolveBrandIdFromInputOrFail', ()
     ).rejects.toThrow('lipSync requires a brandId or source ingredient brand');
 
     expect(findOne).toHaveBeenCalledWith({
-      _id: sourceIngredientId,
+      id: sourceIngredientId,
       isDeleted: false,
       organizationId,
     });

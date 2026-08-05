@@ -149,8 +149,9 @@ describe('GoogleSearchConsoleService', () => {
 
     expect(credentialsService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: 'brand-id',
-        organization: 'org-id',
+        brandId: 'brand-id',
+        isDeleted: false,
+        organizationId: 'org-id',
         platform: 'google_search_console',
       }),
     );

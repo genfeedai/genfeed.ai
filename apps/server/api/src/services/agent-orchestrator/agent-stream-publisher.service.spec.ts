@@ -91,14 +91,14 @@ describe('AgentStreamPublisherService', () => {
 
     it('persists a thread event when the thread is valid', async () => {
       mockAgentThreadsService.findOne.mockResolvedValue({
-        organization: '65f08f2a82e7b4f12e4db001',
+        organizationId: 'cmptu23g70001zixnzwbzwp2e',
       });
 
       await service.publishToolStart({
         runId: 'run-1',
-        threadId: '65f08f2a82e7b4f12e4db002',
+        threadId: 'cmry35boo0000e7xnk6s5fq2q',
         toolName: 'search',
-        userId: '65f08f2a82e7b4f12e4db003',
+        userId: 'cmptu23g10000zixnc652bwom',
       } as any);
 
       expect(
@@ -109,11 +109,11 @@ describe('AgentStreamPublisherService', () => {
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: { origin: 'stream-publisher' },
-          organizationId: '65f08f2a82e7b4f12e4db001',
+          organizationId: 'cmptu23g70001zixnzwbzwp2e',
           runId: 'run-1',
-          threadId: '65f08f2a82e7b4f12e4db002',
+          threadId: 'cmry35boo0000e7xnk6s5fq2q',
           type: 'tool.started',
-          userId: '65f08f2a82e7b4f12e4db003',
+          userId: 'cmptu23g10000zixnc652bwom',
         }),
       );
     });

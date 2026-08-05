@@ -95,16 +95,14 @@ describe('DmCampaignExecutorService', () => {
     username: 'bot',
   };
 
-  // Shaped like a real outreach-campaign row: scalar FKs are the source of truth
-  // and `organization` is the only Mongo-era alias `OutreachCampaignsService`
-  // back-fills (it never sets `brand` or `user`).
+  // Shaped like a real outreach-campaign row: scalar FKs are the source of truth.
   const makeCampaign = (
     overrides: Partial<OutreachCampaignDocument> = {},
   ): OutreachCampaignDocument =>
     ({
       id: campaignId,
       brandId,
-      credential: credentialId,
+      credentialId,
       dmConfig: {
         context: 'outreach',
         ctaLink: 'https://example.com',
@@ -112,7 +110,6 @@ describe('DmCampaignExecutorService', () => {
         offer: 'free trial',
         useAiGeneration: true,
       } as CampaignDmConfig,
-      organization: orgId,
       organizationId: orgId,
       platform: CampaignPlatform.TWITTER,
       rateLimits: { delayBetweenRepliesSeconds: 0 },
@@ -229,8 +226,8 @@ describe('DmCampaignExecutorService', () => {
       await service.processPendingDmTargets(campaign, 10);
 
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: credentialId,
         brandId,
+        id: credentialId,
         isDeleted: false,
         organizationId: orgId,
       });
@@ -264,14 +261,14 @@ describe('DmCampaignExecutorService', () => {
       await service.processPendingDmTargets(campaign, 10);
 
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: credentialId,
+        id: credentialId,
         isDeleted: false,
         organizationId: orgId,
       });
     });
 
     it('should not query credentials at all when the campaign has no credential', async () => {
-      const campaign = makeCampaign({ credential: undefined });
+      const campaign = makeCampaign({ credentialId: undefined });
       const target = makeTarget();
       mockCampaignTargetsService.getPendingTargets.mockResolvedValue([target]);
       mockOutreachCampaignsService.canReply.mockResolvedValue(true);
@@ -288,7 +285,6 @@ describe('DmCampaignExecutorService', () => {
 
     it('should fail closed without querying credentials when the organization cannot be resolved', async () => {
       const campaign = makeCampaign({
-        organization: undefined,
         organizationId: undefined,
       } as Partial<OutreachCampaignDocument>);
       const target = makeTarget();

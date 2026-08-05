@@ -17,6 +17,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('PublicBrandsController', () => {
+  const brandId = 'clz1a2b3c4d5e6f7g8h9i0j1k';
   let controller: PublicBrandsController;
   let articlesService: vi.Mocked<ArticlesService>;
   let brandsService: vi.Mocked<BrandsService>;
@@ -32,11 +33,11 @@ describe('PublicBrandsController', () => {
   const PRISMA_SCOPE_USER = 'USER';
 
   const mockBrand = {
-    id: '507f191e810c19729de860ee',
+    id: brandId,
     description: 'A public test brand',
     handle: 'test-brand',
     isDeleted: false,
-    logo: '507f191e810c19729de860ee',
+    logo: brandId,
     name: 'Test Brand',
     scope: PRISMA_SCOPE_PUBLIC,
   };
@@ -156,13 +157,10 @@ describe('PublicBrandsController', () => {
         mockBrand as unknown as BrandEntity,
       );
 
-      const result = await controller.findOne(
-        mockReq,
-        '507f191e810c19729de860ee',
-      );
+      const result = await controller.findOne(mockReq, brandId);
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        id: '507f191e810c19729de860ee',
+        id: brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       });
@@ -174,10 +172,7 @@ describe('PublicBrandsController', () => {
         scopeFilteringFindOne(PRISMA_SCOPE_USER),
       );
 
-      const result = await controller.findOne(
-        mockReq,
-        '507f191e810c19729de860ee',
-      );
+      const result = await controller.findOne(mockReq, brandId);
 
       expect(result).toMatchObject({ data: null });
     });
@@ -200,12 +195,12 @@ describe('PublicBrandsController', () => {
         totalDocs: 0,
       } as never);
 
-      await controller.findBrandArticles('507f191e810c19729de860ee', mockReq);
+      await controller.findBrandArticles(brandId, mockReq);
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            brandId: '507f191e810c19729de860ee',
+            brandId,
             isDeleted: false,
             scope: AssetScope.PUBLIC,
             status: 'PUBLISHED',
@@ -218,7 +213,6 @@ describe('PublicBrandsController', () => {
 
   describe('public brand asset filters', () => {
     it('uses brandId for links, videos, images, and articles', async () => {
-      const brandId = '507f191e810c19729de860ee';
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
       );

@@ -7,12 +7,12 @@ describe('TagResolutionService', () => {
   let service: TagResolutionService;
   let tagsService: vi.Mocked<TagsService>;
 
-  const mockTagId1 = '507f1f77bcf86cd799439011';
-  const mockTagId2 = '507f1f77bcf86cd799439012';
-  const mockTagId3 = '507f1f77bcf86cd799439013';
+  const mockTagId1 = 'cltag1a2b3c4d5e6f7g8h9i0j';
+  const mockTagId2 = 'cltag2a2b3c4d5e6f7g8h9i0j';
+  const mockTagId3 = 'cltag3a2b3c4d5e6f7g8h9i0j';
 
   const createFindAllResult = (
-    docs: Array<{ _id: string; label: string | null }>,
+    docs: Array<{ id: string; label: string | null }>,
   ) =>
     ({
       docs,
@@ -58,9 +58,9 @@ describe('TagResolutionService', () => {
       const tagIds = [mockTagId1, mockTagId2, mockTagId3];
 
       const mockTags = createFindAllResult([
-        { _id: mockTagId1, label: 'Technology' },
-        { _id: mockTagId2, label: 'AI' },
-        { _id: mockTagId3, label: 'Tutorial' },
+        { id: mockTagId1, label: 'Technology' },
+        { id: mockTagId2, label: 'AI' },
+        { id: mockTagId3, label: 'Tutorial' },
       ]);
 
       tagsService.findAll.mockResolvedValue(mockTags);
@@ -71,7 +71,7 @@ describe('TagResolutionService', () => {
       expect(tagsService.findAll).toHaveBeenCalledWith(
         {
           where: {
-            _id: { in: tagIds },
+            id: { in: tagIds },
             isDeleted: false,
           },
         },
@@ -102,9 +102,9 @@ describe('TagResolutionService', () => {
       const tagIds = [mockTagId1, mockTagId2, mockTagId3];
 
       const mockTags = createFindAllResult([
-        { _id: mockTagId1, label: 'Technology' },
+        { id: mockTagId1, label: 'Technology' },
         // mockTagId2 not found
-        { _id: mockTagId3, label: 'Tutorial' },
+        { id: mockTagId3, label: 'Tutorial' },
       ]);
 
       tagsService.findAll.mockResolvedValue(mockTags);
@@ -118,7 +118,7 @@ describe('TagResolutionService', () => {
       const tagIds = [mockTagId1];
 
       const mockTags = createFindAllResult([
-        { _id: mockTagId1, label: 'Technology' },
+        { id: mockTagId1, label: 'Technology' },
       ]);
 
       tagsService.findAll.mockResolvedValue(mockTags);
@@ -141,7 +141,7 @@ describe('TagResolutionService', () => {
   describe('resolveTagLabel', () => {
     it('should resolve single tag ID to label', async () => {
       const mockTag = {
-        _id: mockTagId1,
+        id: mockTagId1,
         category: 'general',
         isActive: true,
         isDeleted: false,
@@ -153,7 +153,7 @@ describe('TagResolutionService', () => {
       const result = await service.resolveTagLabel(mockTagId1);
 
       expect(result).toBe('Technology');
-      expect(tagsService.findOne).toHaveBeenCalledWith({ _id: mockTagId1 });
+      expect(tagsService.findOne).toHaveBeenCalledWith({ id: mockTagId1 });
     });
 
     it('should return null for non-existent tag', async () => {
@@ -182,7 +182,7 @@ describe('TagResolutionService', () => {
 
     it('should return null when tag exists but has no label', async () => {
       const mockTag = {
-        _id: mockTagId1,
+        id: mockTagId1,
         category: 'general',
         isActive: true,
         isDeleted: false,
