@@ -29,7 +29,10 @@ import {
   IngredientCategory,
   Status,
 } from '@genfeedai/enums';
-import type { IEvaluationComparisonResult } from '@genfeedai/interfaces';
+import type {
+  IEvaluationComparisonResult,
+  IEvaluationTrend,
+} from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -742,16 +745,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   async getEvaluationTrends(
     organizationId: string,
     filters: EvaluationFiltersDto,
-  ): Promise<
-    Array<{
-      _id: string;
-      count: number;
-      avgScore: number;
-      avgBrandScore: number;
-      avgEngagementScore: number;
-      avgTechnicalScore: number;
-    }>
-  > {
+  ): Promise<IEvaluationTrend[]> {
     this.logger.log('Getting evaluation trends', this.constructorName);
 
     const where: Record<string, unknown> = scopedWhere(organizationId, {});

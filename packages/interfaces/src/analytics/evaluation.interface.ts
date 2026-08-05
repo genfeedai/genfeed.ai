@@ -145,3 +145,12 @@ export interface IEvaluationComparisonResult {
   winnerEvaluationId?: string;
   rankings: IEvaluationComparisonRanking[];
 }
+
+export interface IEvaluationTrend {
+  date: string;
+  avgBrandScore: number;
+  avgEngagementScore: number;
+  avgScore: number;
+  avgTechnicalScore: number;
+  count: number;
+}

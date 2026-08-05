@@ -1,6 +1,7 @@
 import { Evaluation } from '@genfeedai/client/models';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import type { IEvaluationTrend } from '@genfeedai/interfaces';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
@@ -145,9 +146,11 @@ export class EvaluationsService extends BaseService<Evaluation> {
   /**
    * Get evaluation trends and analytics
    */
-  public async getTrends(filters?: EvaluationTrendsFilters): Promise<unknown> {
+  public async getTrends(
+    filters?: EvaluationTrendsFilters,
+  ): Promise<IEvaluationTrend[]> {
     return await this.instance
-      .get('analytics/trends', { params: filters })
+      .get<IEvaluationTrend[]>('analytics/trends', { params: filters })
       .then((res) => res.data);
   }
 
