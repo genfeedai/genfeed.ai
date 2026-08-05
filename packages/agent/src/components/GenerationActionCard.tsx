@@ -7,7 +7,6 @@ import type { ReactElement } from 'react';
 
 import { GenerationActionCardControls } from './GenerationActionCardControls';
 import { GenerationActionCardHeader } from './GenerationActionCardHeader';
-import { GenerationActionCardHoverActions } from './GenerationActionCardHoverActions';
 import { GenerationActionCardStatusPanel } from './GenerationActionCardStatusPanel';
 import { useGenerationActionCard } from './useGenerationActionCard';
 
@@ -52,7 +51,6 @@ export function GenerationActionCard({
     durationOptions,
     textareaRef,
     onRegenerateProp,
-    handleCopyPrompt,
     handleRetryVoid,
     handleGenerateVoid,
     handleModelChange,
@@ -75,12 +73,6 @@ export function GenerationActionCard({
         className,
       )}
     >
-      <GenerationActionCardHoverActions
-        canCopy={!!prompt.trim()}
-        onCopy={handleCopyPrompt}
-        onRetry={handleRetryVoid}
-      />
-
       <GenerationActionCardHeader Icon={Icon} title={action.title} />
 
       <div className="space-y-3 p-3">
