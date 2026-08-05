@@ -75,8 +75,8 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_backend_typecheck](project_backend_typecheck.md) — `tsconfig.typecheck.json` per backend workspace
 - [project_bullmq](project_bullmq.md) — new processors go to workers or the owning service, not API
 - [project_settings_routing](project_settings_routing.md) — personal/org/brand settings URL shapes
-- [project_desktop_byok_generation](project_desktop_byok_generation.md) — desktop generation is local-first
-- [project_desktop_first_run](project_desktop_first_run.md) — first run, workspaces, per-account sync consent
+- [project_desktop_byok_generation](project_desktop_byok_generation.md) — BYOK generation runs in Electron main behind the canonical app UI
+- [project_desktop_first_run](project_desktop_first_run.md) — desktop boots `apps/app` with Genfeed Connect sign-in; sync consent per cloud user
 - [project_ts6_prisma7_build_regression](project_ts6_prisma7_build_regression.md) — resolved 2026-06-03; stage 4 + migration-apply pending
 - [project_soft_delete_is_deleted](project_soft_delete_is_deleted.md) — soft-delete is `isDeleted` only; tombstone instant is `updatedAt`
 - [project_repo_audit_2026-07-28](project_repo_audit_2026-07-28.md) — full-repo audit map; remaining P1–P3 linked to existing GH issues (no new epic)
