@@ -17,11 +17,12 @@ export class OpusProWebhookService {
 
   async handleCallback(body: OpusProWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`, { body });
 
-    if (body == null || typeof body !== 'object') {
+    if (body == null || typeof body !== 'object' || Array.isArray(body)) {
       throw new BadRequestException('Webhook body is required');
     }
+
+    this.loggerService.log(`${url} started`, { body });
 
     try {
       const { callback_id, status, videoUrl, video_url, error } = body;

@@ -8,10 +8,11 @@ describe('app robots', () => {
         disallow: '/',
         userAgent: '*',
       },
+      sitemap: 'https://app.genfeed.ai/sitemap.xml',
     });
   });
 
-  it('publishes no sitemap for the studio', () => {
-    expect(robots().sitemap).toBeUndefined();
+  it('declares the empty product sitemap', () => {
+    expect(robots().sitemap).toBe('https://app.genfeed.ai/sitemap.xml');
   });
 });

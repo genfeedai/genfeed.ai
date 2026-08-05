@@ -16,6 +16,30 @@ export function generateStaticParams() {
   return getAllUseCaseSlugs().map((slug) => ({ slug }));
 }
 
+export function buildUseCaseBreadcrumbJsonLd(
+  audienceName: string,
+  url: string,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        item: 'https://genfeed.ai',
+        name: 'Home',
+        position: 1,
+      },
+      {
+        '@type': 'ListItem',
+        item: url,
+        name: `For ${audienceName}`,
+        position: 2,
+      },
+    ],
+  };
+}
+
 export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> },
   parent: ResolvingMetadata,
@@ -78,30 +102,7 @@ export default async function UseCasesPage({
     url,
   };
 
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        item: 'https://genfeed.ai',
-        name: 'Home',
-        position: 1,
-      },
-      {
-        '@type': 'ListItem',
-        item: `${EnvironmentService.apps.website}/use-cases`,
-        name: 'Use Cases',
-        position: 2,
-      },
-      {
-        '@type': 'ListItem',
-        item: url,
-        name: `For ${audienceName}`,
-        position: 3,
-      },
-    ],
-  };
+  const breadcrumbJsonLd = buildUseCaseBreadcrumbJsonLd(audienceName, url);
 
   return (
     <>

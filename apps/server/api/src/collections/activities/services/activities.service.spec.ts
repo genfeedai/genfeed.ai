@@ -50,14 +50,14 @@ describe('ActivitiesService action origin', () => {
       },
       () =>
         service.create({
-          brand: 'brand-1',
+          brandId: 'brand-1',
           data: {
             origin: ActionOrigin.UI,
           },
           key: ActivityKey.IMAGE_GENERATED,
-          organization: 'org-1',
+          organizationId: 'org-1',
           source: ActivitySource.IMAGE_GENERATION,
-          user: 'user-1',
+          userId: 'user-1',
         } as never),
     );
 
@@ -319,14 +319,14 @@ describe('ActivitiesService batched writes', () => {
         {
           entityId: 'post-1',
           key: ActivityKey.POST_PUBLISHED,
-          organization: 'org-1',
-          user: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
         },
         {
           entityId: 'post-2',
           key: ActivityKey.POST_PUBLISHED,
-          organization: 'org-1',
-          user: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
         },
       ] as never);
 
@@ -355,18 +355,18 @@ describe('ActivitiesService batched writes', () => {
       await service.createMany([
         {
           key: ActivityKey.POST_PUBLISHED,
-          organization: 'org-1',
-          user: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
         },
         {
           key: ActivityKey.POST_PUBLISHED,
-          organization: 'org-1',
-          user: 'user-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
         },
         {
           key: ActivityKey.POST_PUBLISHED,
-          organization: 'org-1',
-          user: 'user-2',
+          organizationId: 'org-1',
+          userId: 'user-2',
         },
       ] as never);
 
@@ -403,8 +403,8 @@ describe('ActivitiesService batched writes', () => {
         service.createMany([
           {
             key: ActivityKey.POST_PUBLISHED,
-            organization: 'org-1',
-            user: 'user-1',
+            organizationId: 'org-1',
+            userId: 'user-1',
           },
         ] as never),
       ).resolves.toBe(1);

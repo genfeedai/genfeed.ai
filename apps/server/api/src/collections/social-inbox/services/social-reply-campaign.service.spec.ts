@@ -519,6 +519,30 @@ describe('SocialReplyCampaignService', () => {
         status: SocialReplyCampaignStatus.RUNNING,
       });
     });
+
+    it('identifies resume when a concurrent resume loses the activation claim', async () => {
+      const context = createContext();
+      const campaign = await seedCampaign(context);
+      await context.service.transition(SCOPE, campaign.id, 'start');
+      await context.service.transition(SCOPE, campaign.id, 'pause');
+
+      const results = await Promise.allSettled([
+        context.service.transition(SCOPE, campaign.id, 'resume'),
+        context.service.transition(SCOPE, campaign.id, 'resume'),
+      ]);
+      const rejected = results.find(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected',
+      );
+      if (!rejected) {
+        throw new Error('Expected one concurrent resume to be rejected');
+      }
+
+      expect(rejected.reason).toBeInstanceOf(BadRequestException);
+      expect((rejected.reason as BadRequestException).message).toBe(
+        'Cannot resume a paused campaign',
+      );
+    });
   });
 
   describe('create atomicity', () => {

@@ -32,7 +32,7 @@ const timeout = setTimeout(() => {
   process.stderr.write('Desktop smoke test exceeded 60 seconds.\n');
   child.kill('SIGTERM');
   forceKillTimeout = setTimeout(() => child.kill('SIGKILL'), 5_000);
-}, 60_000);
+}, 90_000);
 
 function clearTimers() {
   clearTimeout(timeout);

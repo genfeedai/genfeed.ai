@@ -1,3 +1,4 @@
+import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
 import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.controller';
 import { AuthCliController } from '@api/auth/controllers/auth-cli.controller';
 import { AuthDesktopController } from '@api/auth/controllers/auth-desktop.controller';
@@ -36,6 +37,7 @@ import { PassportModule } from '@nestjs/passport';
     forwardRef(() => AgentRunsModule),
     forwardRef(() => ApiKeysModule),
     forwardRef(() => BatchGenerationModule),
+    forwardRef(() => BetterAuthModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CommonModule),
     forwardRef(() => ConfigModule),

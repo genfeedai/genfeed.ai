@@ -596,6 +596,12 @@ describe('ClipProjectsService', () => {
       { status: 'completed' },
       { status: 'extracting' },
     ]);
+    prisma.clipProject.update.mockImplementation(async ({ data }) => ({
+      config: {},
+      id: 'project-1',
+      organizationId: 'org-1',
+      ...data,
+    }));
 
     await service.reconcileTerminalState('project-1', 'org-1');
 

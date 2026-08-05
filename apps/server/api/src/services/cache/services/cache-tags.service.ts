@@ -16,8 +16,19 @@ export class CacheTagsService {
     return this.cacheClientService.instance;
   }
 
+  /**
+   * Whether the cache client can accept a command right now.
+   *
+   * Mirrors the gate in `CacheService`: a command issued while ioredis is
+   * disconnected sits in its offline queue and never settles, so the `try/catch`
+   * below cannot degrade it — only a rejection is catchable, and a hang is not.
+   */
+  private get isAvailable(): boolean {
+    return this.cacheClientService.isReady;
+  }
+
   async setTags(key: string, tags: string[]): Promise<void> {
-    if (!tags.length) {
+    if (!tags.length || !this.isAvailable) {
       return;
     }
 
@@ -37,6 +48,10 @@ export class CacheTagsService {
   }
 
   async invalidateByTags(tags: string[]): Promise<number> {
+    if (!this.isAvailable) {
+      return 0;
+    }
+
     try {
       let invalidatedCount = 0;
 

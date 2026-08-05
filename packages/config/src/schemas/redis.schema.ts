@@ -21,6 +21,12 @@ export const redisSchema = {
     .description(
       'Dedicated Redis endpoint for the HTTP cache. Falls back to REDIS_URL.',
     ),
+  REDIS_DRIVER: Joi.string()
+    .valid('redis', 'in-process')
+    .default('redis')
+    .description(
+      'Which Redis implementation to use. "redis" (default) connects to a real broker — required for cloud and community, where multiple processes must share state. "in-process" serves pub/sub from memory and is only valid for single-process deployments (desktop, #2382).',
+    ),
   REDIS_PASSWORD: Joi.string()
     .optional()
     .description('Redis authentication password. Recommended for production.'),

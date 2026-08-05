@@ -45,9 +45,9 @@ export default function ComparisonPage({
       description={`Why Genfeed tracks revenue and ${competitor.name} doesn't. Compare features and pricing.`}
     >
       <section className="max-w-4xl mx-auto py-20 text-center">
-        <h1 className="text-5xl font-semibold mb-4">
+        <h2 className="text-5xl font-semibold mb-4">
           Genfeed vs {competitor.name}
-        </h1>
+        </h2>
         <p className="text-xl text-muted-foreground">{competitor.tagline}</p>
       </section>
 

@@ -3,6 +3,7 @@ import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
 import type { OpusProWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('OpusProWebhookService', () => {
@@ -89,6 +90,20 @@ describe('OpusProWebhookService', () => {
   });
 
   describe('handleCallback', () => {
+    it.each([
+      ['array', []],
+      ['null', null],
+      ['string', 'invalid'],
+      ['number', 42],
+      ['boolean', false],
+    ])('should reject a %s body', async (_type, body) => {
+      await expect(
+        service.handleCallback(body as unknown as OpusProWebhookPayload),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(microservicesService.notifyWebhook).not.toHaveBeenCalled();
+    });
+
     it('should notify the microservice for every payload', async () => {
       const mockId = '507f191e810c19729de860ee';
       const payload: OpusProWebhookPayload = {

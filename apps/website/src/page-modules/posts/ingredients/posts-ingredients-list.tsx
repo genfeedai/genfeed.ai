@@ -71,7 +71,15 @@ export default function PostsIngredientsList({
   }, [findAllIngredients]);
 
   if (isLoading) {
-    return <Loading isFullSize={false} />;
+    return (
+      <Container
+        label="Posts by Ingredient"
+        description="Content organized by ingredient."
+        icon={ImageIcon}
+      >
+        <Loading isFullSize={false} />
+      </Container>
+    );
   }
 
   return (

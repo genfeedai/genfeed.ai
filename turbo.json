@@ -53,6 +53,15 @@
       "dependsOn": ["//#env:check", "^build"],
       "env": ["TZ"]
     },
+    // Composite gate (lint + type-check + test + smoke). It must declare
+    // `^build` itself: invoked outside turbo, the inner `tsc` sees no built
+    // `dist/*.d.ts` for the workspace packages it resolves through, and every
+    // one of them fails with TS2307.
+    "qa:release": {
+      "cache": false,
+      "dependsOn": ["//#env:check", "^build"],
+      "env": ["GENFEED_DESKTOP_RELEASE", "TZ"]
+    },
     "clean": {
       "cache": false
     },

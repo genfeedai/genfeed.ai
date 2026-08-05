@@ -34,9 +34,9 @@ describe('PatternsController', () => {
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: 'b07f1f77bcf86cd799439013',
+      organization: 'o07f1f77bcf86cd799439012',
+      user: 'u07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
@@ -51,9 +51,9 @@ describe('PatternsController', () => {
       patternType: ContentPatternType.HOOK,
       platform: 'twitter',
     },
-    id: '507f1f77bcf86cd799439015',
-    organizationId: '507f1f77bcf86cd799439012',
-    sourceCreatorId: '507f1f77bcf86cd799439016',
+    id: 'p07f1f77bcf86cd799439015',
+    organizationId: 'o07f1f77bcf86cd799439012',
+    sourceCreatorId: 'c07f1f77bcf86cd799439016',
   };
 
   const mockPatternStoreService = {
@@ -149,13 +149,13 @@ describe('PatternsController', () => {
       mockPatternStoreService.findAll.mockResolvedValue({ docs: [] });
 
       await controller.findAll(mockRequest, mockUser, {
-        sourceCreatorId: '507f1f77bcf86cd799439016',
+        sourceCreatorId: 'c07f1f77bcf86cd799439016',
       } satisfies PatternsQueryDto);
 
       expect(mockPatternStoreService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            sourceCreatorId: '507f1f77bcf86cd799439016',
+            sourceCreatorId: 'c07f1f77bcf86cd799439016',
           }),
         }),
         expect.anything(),
@@ -170,7 +170,7 @@ describe('PatternsController', () => {
       const result = await controller.findOne(
         mockRequest,
         mockUser,
-        '507f1f77bcf86cd799439015',
+        'p07f1f77bcf86cd799439015',
       );
 
       expect(mockPatternStoreService.findOne).toHaveBeenCalled();
@@ -178,9 +178,9 @@ describe('PatternsController', () => {
         data: expect.objectContaining({
           attributes: expect.objectContaining({
             description: 'Test pattern',
-            sourceCreatorId: '507f1f77bcf86cd799439016',
+            sourceCreatorId: 'c07f1f77bcf86cd799439016',
           }),
-          id: '507f1f77bcf86cd799439015',
+          id: 'p07f1f77bcf86cd799439015',
         }),
       });
     });
@@ -189,11 +189,11 @@ describe('PatternsController', () => {
       mockPatternStoreService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.findOne(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.findOne(mockRequest, mockUser, 'c07f1f77bcf86cd799439015'),
       ).rejects.toThrow(HttpException);
     });
 
-    it('should throw for invalid ObjectId', async () => {
+    it('should throw for an invalid entity ID', async () => {
       await expect(
         controller.findOne(mockRequest, mockUser, 'invalid'),
       ).rejects.toThrow(HttpException);
@@ -211,11 +211,11 @@ describe('PatternsController', () => {
       await controller.remove(
         mockRequest,
         mockUser,
-        '507f1f77bcf86cd799439015',
+        'p07f1f77bcf86cd799439015',
       );
 
       expect(mockPatternStoreService.remove).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
+        'p07f1f77bcf86cd799439015',
       );
     });
 
@@ -223,7 +223,7 @@ describe('PatternsController', () => {
       mockPatternStoreService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.remove(mockRequest, mockUser, '507f1f77bcf86cd799439015'),
+        controller.remove(mockRequest, mockUser, 'c07f1f77bcf86cd799439015'),
       ).rejects.toThrow(HttpException);
     });
   });

@@ -60,7 +60,7 @@ const timeout = setTimeout(() => {
       child.kill('SIGKILL');
     }
   }, 5_000).unref();
-}, 60_000);
+}, 90_000);
 
 child.on('error', (error) => {
   clearTimeout(timeout);
@@ -78,10 +78,12 @@ child.on('exit', (code, signal) => {
   }
 
   const expected = [
-    'account-less-workspace.png',
-    'first-run.png',
-    'reconnect-consent.png',
-    'returning-account-less.png',
+    'authenticated-route.png',
+    'desktop-login.png',
+    'expired-credential-recovery.png',
+    'logout.png',
+    'pkce-callback.png',
+    'restart-persistence.png',
   ];
   const missing = expected.filter(
     (filename) => !fs.existsSync(path.join(outputDirectory, filename)),

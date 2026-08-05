@@ -10,6 +10,7 @@
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
+import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
 import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
@@ -303,6 +304,7 @@ import { Module } from '@nestjs/common';
       },
     ),
   ],
+  controllers: [QueueDiagnosticsController],
   providers: [
     QueueService,
     ReplyBotQueueService,

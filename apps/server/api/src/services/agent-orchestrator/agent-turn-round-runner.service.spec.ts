@@ -43,11 +43,11 @@ describe('AgentTurnRoundRunnerService.recordAgentResponseModel', () => {
       threadId: 'thread-1',
     });
 
-    expect(actualModel).toBe('openai/gpt-5.6-terra');
+    expect(actualModel).toBe('openai/gpt-4o');
     expect(loggerService.log).toHaveBeenCalledWith(
       'AgentTurnRoundRunnerService resolved agent response',
       expect.objectContaining({
-        actualModel: 'openai/gpt-5.6-terra',
+        actualModel: 'openai/gpt-4o',
         organizationId: 'org-1',
         requestedModel: 'openai/gpt-5.6-terra',
         runId: 'run-1',
@@ -58,9 +58,9 @@ describe('AgentTurnRoundRunnerService.recordAgentResponseModel', () => {
       'run-1',
       'org-1',
       expect.objectContaining({
-        actualModel: 'openai/gpt-5.6-terra',
-        actualModels: ['openai/gpt-5.6-luna', 'openai/gpt-5.6-terra'],
-        model: 'openai/gpt-5.6-terra',
+        actualModel: 'openai/gpt-4o',
+        actualModels: ['openai/gpt-5.6-luna', 'openai/gpt-4o'],
+        model: 'openai/gpt-4o',
         requestedModel: 'openai/gpt-5.6-terra',
       }),
     );

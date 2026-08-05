@@ -29,11 +29,12 @@ export class HeygenWebhookService {
 
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`, { body });
 
-    if (body == null || typeof body !== 'object') {
+    if (body == null || typeof body !== 'object' || Array.isArray(body)) {
       throw new BadRequestException('Webhook body is required');
     }
+
+    this.loggerService.log(`${url} started`, { body });
 
     try {
       const { event_data, event_type } = body;

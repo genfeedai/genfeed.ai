@@ -1,8 +1,8 @@
 vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getPublicMetadata: vi.fn(() => ({
-    brand: '507f1f77bcf86cd799439015',
-    organization: '507f1f77bcf86cd799439011',
-    user: '507f1f77bcf86cd799439013',
+    brand: 'c07f1f77bcf86cd799439015',
+    organization: 'c07f1f77bcf86cd799439011',
+    user: 'c07f1f77bcf86cd799439013',
   })),
 }));
 
@@ -49,7 +49,7 @@ describe('AvatarVideoController', () => {
         ingredientId: 'ingredient-123',
         status: 'processing',
       });
-      mockVideosService.findOne.mockResolvedValue({ _id: 'ingredient-123' });
+      mockVideosService.findOne.mockResolvedValue({ id: 'ingredient-123' });
 
       const result = await controller.createAvatarVideo(mockRequest, mockUser, {
         audioUrl: 'https://example.com/audio.mp3',
@@ -61,11 +61,11 @@ describe('AvatarVideoController', () => {
         mockAvatarVideoGenerationService.generateAvatarVideo,
       ).toHaveBeenCalled();
       expect(mockVideosService.findOne).toHaveBeenCalledWith({
-        _id: 'ingredient-123',
+        id: 'ingredient-123',
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439011',
+        organizationId: 'c07f1f77bcf86cd799439011',
       });
-      expect(result).toEqual({ _id: 'ingredient-123' });
+      expect(result).toEqual({ id: 'ingredient-123' });
     });
 
     it('throws when the ingredient cannot be reloaded for serialization', async () => {
