@@ -295,7 +295,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const displayedModels = selectedModels;
 
-  const shouldShowManualCatalog = !isAutoSelected;
+  // Always surface the real catalog when models exist — Auto mode used to hide
+  // it (`!isAutoSelected`), which left a tall empty popover of priority-only
+  // rows and made it impossible to pick a concrete model once Auto was on.
+  const shouldShowManualCatalog = allOptions.length > 0;
 
   const shouldShowAuto = useMemo(() => {
     if (activeBrand === 'favorites') {
