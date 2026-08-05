@@ -44,9 +44,7 @@ export class GoalsController extends BaseCRUDController<
 
     const doc = await this.goalsService.create({
       ...createDto,
-      organizationId: organizationId,
-    } as CreateGoalDto & {
-      organization: string;
+      organizationId,
     });
 
     return serializeSingle(request, GoalSerializer, doc);

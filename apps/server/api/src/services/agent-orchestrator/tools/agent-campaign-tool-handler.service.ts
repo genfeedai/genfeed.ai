@@ -23,13 +23,11 @@ export class AgentCampaignToolHandler {
 
     const createDto: CreateOutreachCampaignDto = {
       campaignType: campaignType as CampaignType,
-      credential: String(params.credential),
+      credentialId: String(params.credentialId),
       description: (params.description as string) || '',
       isActive: true,
       label: String(params.label || 'Agent Campaign'),
-      organization: ctx.organizationId,
       platform: platform as CampaignPlatform,
-      user: ctx.userId,
     };
 
     const campaign = await this.campaignsService.createScoped(createDto, {

@@ -27,7 +27,7 @@ export class CreateOrganizationDto {
     description: 'The user ID who owns this organization',
     required: true,
   })
-  readonly user!: string;
+  readonly userId!: string;
 
   @IsString()
   @IsNotEmpty()

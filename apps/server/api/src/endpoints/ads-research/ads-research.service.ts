@@ -221,11 +221,9 @@ export class AdsResearchService {
           sourceChannel: ad.channel,
           sourcePlatform: ad.platform,
         },
-        organization: input.organizationId,
         status: WorkflowStatus.DRAFT,
         templateId: 'ad-remix-review',
         trigger: WorkflowTrigger.SCHEDULED,
-        user: input.userId,
       },
     );
 

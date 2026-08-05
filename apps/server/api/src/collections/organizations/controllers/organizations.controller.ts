@@ -462,7 +462,7 @@ export class OrganizationsController extends BaseCRUDController<
       label: body.label.trim(),
       slug: orgSlug,
       userId,
-    } as unknown as Parameters<typeof this.organizationsService.create>[0]);
+    });
 
     const orgId = org.id;
 

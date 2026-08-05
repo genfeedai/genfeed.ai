@@ -58,7 +58,7 @@ export class PublicArticlesController {
       search,
       category,
       tag,
-      brand,
+      brandId,
       sortBy = 'publishedAt',
       sortOrder = 'desc',
     } = query;
@@ -89,8 +89,8 @@ export class PublicArticlesController {
     }
 
     // Filter by brand if provided
-    if (brand) {
-      matchQuery.brandId = brand;
+    if (brandId) {
+      matchQuery.brandId = brandId;
     }
 
     const aggregate = {

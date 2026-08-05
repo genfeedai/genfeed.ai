@@ -316,8 +316,6 @@ export class SyncService {
         edges: cloudFormat.workflow.edges,
         label: cloudFormat.workflow.name ?? 'Pulled Workflow',
         nodes: cloudFormat.workflow.nodes,
-        organization,
-        user: userId,
       },
     );
 

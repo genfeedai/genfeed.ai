@@ -44,9 +44,7 @@ export class ProjectsController extends BaseCRUDController<
 
     const doc = await this.projectsService.create({
       ...createDto,
-      organizationId: organizationId,
-    } as CreateProjectDto & {
-      organization: string;
+      organizationId,
     });
 
     return serializeSingle(request, ProjectSerializer, doc);

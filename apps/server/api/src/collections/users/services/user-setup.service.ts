@@ -218,7 +218,7 @@ export class UserSetupService {
       label,
       slug,
       userId,
-    } as unknown as Parameters<typeof this.organizationsService.create>[0]);
+    });
 
     if (!organization?.id) {
       throw new Error(
