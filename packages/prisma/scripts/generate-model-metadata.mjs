@@ -20,6 +20,8 @@
  *   - listFields: every list field (`Type[]`), including scalar lists.
  *   - enumFields: fields whose (non-list) type is a Prisma enum, with the
  *     enum type name and whether the column is required (no `?`).
+ *   - relationIdFields: relation field -> canonical scalar FK for relations
+ *     whose field list contains the conventional `<relation>Id` scalar.
  *   - Keys (models + fields) sorted alphabetically for a stable diff.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -65,6 +67,8 @@ export interface ModelFieldMeta {
    * Only fields whose type is a Prisma enum appear here.
    */
   enumFields: Readonly<Record<string, EnumFieldMeta>>;
+  /** Relation alias -> canonical scalar foreign-key field. */
+  relationIdFields: Readonly<Record<string, string>>;
 }
 
 /**
@@ -97,6 +101,7 @@ function build() {
     const allFields = new Set();
     const listFields = new Set();
     const enumFields = {};
+    const relationIdFields = {};
     for (const rawLine of body.split('\n')) {
       const line = rawLine.trim();
       if (
@@ -119,18 +124,33 @@ function build() {
       if (enumNames.has(baseType)) {
         enumFields[fname] = { enumType: baseType, isRequired: suffix !== '?' };
       }
+
+      const relationFields = line.match(
+        /@relation\([^)]*fields:\s*\[([^\]]+)\]/,
+      );
+      if (relationFields) {
+        const scalarFields = relationFields[1]
+          .split(',')
+          .map((field) => field.trim());
+        const conventionalScalar = `${fname}Id`;
+        if (scalarFields.includes(conventionalScalar)) {
+          relationIdFields[fname] = conventionalScalar;
+        }
+      }
     }
     models[name] = {
       allFields: [...allFields].sort(),
       enumFields,
       listFields: [...listFields].sort(),
+      relationIdFields,
     };
   }
 
   const entries = Object.keys(models)
     .sort()
     .map((name) => {
-      const { allFields, enumFields, listFields } = models[name];
+      const { allFields, enumFields, listFields, relationIdFields } =
+        models[name];
       const af = allFields.map((f) => `      '${f}',`).join('\n');
       const lf = listFields.map((f) => `      '${f}',`).join('\n');
       const enumKeys = Object.keys(enumFields).sort();
@@ -143,7 +163,14 @@ function build() {
                   `      ${k}: { enumType: '${enumFields[k].enumType}', isRequired: ${enumFields[k].isRequired} },`,
               )
               .join('\n')}\n    },`;
-      return `  ${name}: {\n    allFields: [\n${af}\n    ],\n    listFields: [\n${lf}\n    ],\n${ef}\n  },`;
+      const relationKeys = Object.keys(relationIdFields).sort();
+      const rf =
+        relationKeys.length === 0
+          ? '    relationIdFields: {},'
+          : `    relationIdFields: {\n${relationKeys
+              .map((key) => `      ${key}: '${relationIdFields[key]}',`)
+              .join('\n')}\n    },`;
+      return `  ${name}: {\n    allFields: [\n${af}\n    ],\n    listFields: [\n${lf}\n    ],\n${ef}\n${rf}\n  },`;
     })
     .join('\n');
 

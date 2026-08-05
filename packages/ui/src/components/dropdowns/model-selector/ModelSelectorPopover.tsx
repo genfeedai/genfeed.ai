@@ -372,6 +372,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         <ModelSelectorTrigger
           ref={buttonRef}
           selectedModels={displayedModels}
+          isAutoSelected={isAutoSelected}
           isOpen={isOpen}
           shouldFlash={shouldFlash}
           className={className}

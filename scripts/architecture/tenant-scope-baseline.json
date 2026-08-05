@@ -1355,26 +1355,10 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
-      "fingerprint": "169935638c662bdeab17",
-      "method": "findFirst",
-      "model": "Model",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
       "fingerprint": "8bcc81d5d6eb90707cb6",
       "method": "findFirst",
       "model": "Model",
       "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
-      "fingerprint": "47baf3fa1d82d66f4e5a",
-      "method": "findFirst",
-      "model": "Model",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "model",
@@ -1385,20 +1369,28 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
-      "fingerprint": "a0fabcac128e4216c72f",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "training",
       "file": "apps/server/api/src/collections/models/services/model-registration.service.ts",
       "fingerprint": "5263b4df190798f0a809",
       "method": "findMany",
       "model": "Training",
       "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "4ada0e706b624ab4b412",
+      "method": "count",
+      "model": "Model",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "c2ab4540e59f1bd750ad",
+      "method": "count",
+      "model": "Model",
+      "reason": "unresolved-where"
     },
     {
       "delegate": "model",
@@ -1419,6 +1411,14 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "ecc01286a09284900651",
+      "method": "findFirst",
+      "model": "Model",
+      "reason": "unresolved-where"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
       "fingerprint": "2c1ffffd225620bc5576",
       "method": "findMany",
       "model": "Model",
@@ -1427,7 +1427,7 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "48621dfda5a3bbf72bde",
+      "fingerprint": "63e9c678bf7581418cec",
       "method": "findMany",
       "model": "Model",
       "reason": "unresolved-where"
@@ -1435,15 +1435,7 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "57b64c9a1012674dd785",
-      "method": "findMany",
-      "model": "Model",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "80b695460589436f7fd3",
+      "fingerprint": "adca4fc7569853e2292b",
       "method": "findMany",
       "model": "Model",
       "reason": "unresolved-where"
@@ -1459,15 +1451,23 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "ec0bf2f4cf2c9cb58077",
-      "method": "findMany",
+      "fingerprint": "4d6504e114eaa53e29cb",
+      "method": "findUnique",
       "model": "Model",
-      "reason": "unresolved-where"
+      "reason": "missing-is-deleted"
     },
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "9da1f96c9c8d9dce35c7",
+      "fingerprint": "eea5a65c811cd21720f5",
+      "method": "findUnique",
+      "model": "Model",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "56054f0ab67e7e7f5561",
       "method": "update",
       "model": "Model",
       "reason": "missing-is-deleted"
@@ -1475,10 +1475,34 @@
     {
       "delegate": "model",
       "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "c12b3a92366ea82d633f",
+      "fingerprint": "bddb03c58c493e0fd69f",
+      "method": "update",
+      "model": "Model",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "30d783d771ca75f049cd",
       "method": "update",
       "model": "Model",
       "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "fdf784d19267db410987",
+      "method": "update",
+      "model": "Model",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/collections/models/services/models.service.ts",
+      "fingerprint": "8ba0ab70f1a94d224bd9",
+      "method": "updateMany",
+      "model": "Model",
+      "reason": "unresolved-where"
     },
     {
       "delegate": "monitoredAccount",
@@ -3830,6 +3854,22 @@
       "fingerprint": "f12d2f6717ba0eaaaa2f",
       "method": "update",
       "model": "Member",
+      "reason": "missing-organization-id"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/seeds/self-hosted-seed.service.ts",
+      "fingerprint": "4e4d638b6698ea90f8c5",
+      "method": "upsert",
+      "model": "Model",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "model",
+      "file": "apps/server/api/src/seeds/self-hosted-seed.service.ts",
+      "fingerprint": "379792aa2834a365e1d0",
+      "method": "upsert",
+      "model": "Model",
       "reason": "missing-organization-id"
     },
     {

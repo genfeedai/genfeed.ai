@@ -317,6 +317,10 @@ export abstract class BaseService<
     return undefined;
   }
 
+  private getRelationIdField(fieldName: string): string | undefined {
+    return this.staticModelMeta?.relationIdFields[fieldName];
+  }
+
   /**
    * Stage-4 runtime guard: warn (never throw) when a normalized `where`
    * references a top-level field the Prisma model does not have. Catches the
@@ -429,14 +433,30 @@ export abstract class BaseService<
 
     // Prisma stores OrganizationSetting model allowlist as enabledModelIds;
     // domain/API surface remains enabledModels.
-    if (
-      normalized.enabledModels === undefined &&
-      Array.isArray(normalized.enabledModelIds)
-    ) {
-      normalized.enabledModels = normalized.enabledModelIds;
+    this.applyEnabledModelsAlias(normalized);
+
+    // A populated relation is a raw Prisma row — normalizeDocument never runs on
+    // it, so the alias above would only land on the parent. `GET /organizations/:id`
+    // serializes `settings` as a nested relationship, and without this the org
+    // allowlist reached every consumer (models settings page, promptbar, brand
+    // context) as `undefined` — every model read as disabled and no toggle stuck.
+    if (this.isPlainObject(normalized.settings)) {
+      normalized.settings = this.applyEnabledModelsAlias({
+        ...normalized.settings,
+      });
     }
 
     return normalized as T;
+  }
+
+  private applyEnabledModelsAlias(
+    row: Record<string, unknown>,
+  ): Record<string, unknown> {
+    if (row.enabledModels === undefined && Array.isArray(row.enabledModelIds)) {
+      row.enabledModels = row.enabledModelIds;
+    }
+
+    return row;
   }
 
   protected normalizeDocuments(documents: unknown[]): T[] {
@@ -669,17 +689,19 @@ export abstract class BaseService<
         continue;
       }
 
-      // Belt-and-suspenders remap: legacy call sites on the ingredient↔metadata
-      // relation write `{ metadata: someId }` (Mongo-style). The Prisma column is
-      // `metadataId` (scalar FK). We remap ONLY the exact key `"metadata"` when
-      // its value is a non-empty string to avoid Prisma silently dropping the
-      // relation key and writing NULL. All other keys — including `organization`,
-      // `user`, `brand`, `prompt`, `parent`, `folder` — are intentionally left
-      // untouched; their callers either already use the correct scalar FK or pass
-      // Prisma connect objects. Scoped narrowly to prevent tenancy/ownership side-
-      // effects from a broad remap.
-      if (key === 'metadata' && typeof value === 'string' && value.length > 0) {
-        result.metadataId = value;
+      // Canonicalize Mongo-era relation-id aliases at the persistence boundary.
+      // The mapping is generated from the Prisma schema, so this only applies to
+      // real relations backed by a conventional `<relation>Id` scalar. Nested
+      // Prisma relation objects (`connect`, `create`, ...) remain untouched.
+      const relationIdField = this.getRelationIdField(key);
+      if (relationIdField && (typeof value === 'string' || value === null)) {
+        // Explicit canonical input always wins when both forms are present.
+        if (data[relationIdField] === undefined && value !== '') {
+          result[relationIdField] = this.normalizeOperatorValue(
+            relationIdField,
+            value,
+          );
+        }
         continue;
       }
 

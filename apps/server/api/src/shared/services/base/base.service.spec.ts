@@ -10,6 +10,7 @@ const { getModelMetaMock } = vi.hoisted(() => {
     allFields: ['id', 'isDeleted', 'organizationId'],
     enumFields: {},
     listFields: [],
+    relationIdFields: {},
   };
   return {
     getModelMetaMock: vi.fn<[string], ModelFieldMeta | undefined>(
@@ -26,6 +27,7 @@ const BASE_META: ModelFieldMeta = {
   allFields: ['id', 'isDeleted', 'organizationId'],
   enumFields: {},
   listFields: [],
+  relationIdFields: {},
 };
 
 // ---------------------------------------------------------------------------
@@ -86,7 +88,14 @@ function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
     }
   }
 
-  return { allFields, enumFields, listFields };
+  return { allFields, enumFields, listFields, relationIdFields: {} };
+}
+
+function withRelationIds(
+  meta: ModelFieldMeta,
+  relationIdFields: Record<string, string>,
+): ModelFieldMeta {
+  return { ...meta, relationIdFields };
 }
 
 describe('BaseService', () => {
@@ -810,6 +819,40 @@ describe('BaseService', () => {
       });
     });
 
+    it('aliases enabledModelIds on a populated settings relation', async () => {
+      // A populated relation is a raw Prisma row, so the enabledModelIds →
+      // enabledModels alias has to be applied to it explicitly. Without this,
+      // GET /organizations/:id served the org model allowlist as undefined and
+      // every model toggle rendered (and stayed) off.
+      delegate.findFirst.mockResolvedValue({
+        id: 'org_1',
+        settings: { enabledModelIds: ['model_1', 'model_2'], id: 'set_1' },
+      });
+
+      const result = (await service.findOne({ id: 'org_1' }, ['settings'])) as {
+        settings: { enabledModels?: string[] };
+      };
+
+      expect(result.settings.enabledModels).toEqual(['model_1', 'model_2']);
+    });
+
+    it('keeps an explicit enabledModels on a populated settings relation', async () => {
+      delegate.findFirst.mockResolvedValue({
+        id: 'org_1',
+        settings: {
+          enabledModelIds: ['model_1'],
+          enabledModels: ['model_2'],
+          id: 'set_1',
+        },
+      });
+
+      const result = (await service.findOne({ id: 'org_1' }, ['settings'])) as {
+        settings: { enabledModels?: string[] };
+      };
+
+      expect(result.settings.enabledModels).toEqual(['model_2']);
+    });
+
     it('throws ValidationException when params is null', async () => {
       await expect(
         service.findOne(null as unknown as Record<string, unknown>),
@@ -1269,8 +1312,14 @@ describe('BaseService', () => {
     });
   });
 
-  describe('normalizeData — metadata→metadataId remap', () => {
+  describe('normalizeData — relation aliases to scalar foreign keys', () => {
     it('remaps metadata string to metadataId on create', async () => {
+      getModelMetaMock.mockReturnValue(
+        withRelationIds(
+          makeModelMeta('id', 'isDeleted', 'metadata', 'metadataId'),
+          { metadata: 'metadataId' },
+        ),
+      );
       const created = { id: 'ing_1', metadataId: 'meta_1' };
       delegate.create.mockResolvedValue(created);
 
@@ -1302,7 +1351,13 @@ describe('BaseService', () => {
       );
     });
 
-    it('leaves organization untouched on create (no tenancy side-effect)', async () => {
+    it('remaps organization to organizationId from generated schema metadata', async () => {
+      getModelMetaMock.mockReturnValue(
+        withRelationIds(
+          makeModelMeta('id', 'isDeleted', 'organization', 'organizationId'),
+          { organization: 'organizationId' },
+        ),
+      );
       const created = { id: 'ing_3', organizationId: 'org_1' };
       delegate.create.mockResolvedValue(created);
 
@@ -1310,7 +1365,36 @@ describe('BaseService', () => {
 
       expect(delegate.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          data: expect.objectContaining({ organizationId: 'org_1' }),
+        }),
+      );
+      expect(delegate.create).not.toHaveBeenCalledWith(
+        expect.objectContaining({
           data: expect.objectContaining({ organization: 'org_1' }),
+        }),
+      );
+    });
+
+    it('prefers an explicit canonical scalar over the legacy alias', async () => {
+      getModelMetaMock.mockReturnValue(
+        withRelationIds(
+          makeModelMeta('id', 'isDeleted', 'organization', 'organizationId'),
+          { organization: 'organizationId' },
+        ),
+      );
+      delegate.create.mockResolvedValue({
+        id: 'ing_canonical',
+        organizationId: 'org_canonical',
+      });
+
+      await service.create({
+        organization: 'org_legacy',
+        organizationId: 'org_canonical',
+      } as TestDocument);
+
+      expect(delegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ organizationId: 'org_canonical' }),
         }),
       );
     });
@@ -1334,7 +1418,10 @@ describe('BaseService', () => {
 
     it('remaps metadata string to metadataId on patch', async () => {
       getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'metadataId'),
+        withRelationIds(
+          makeModelMeta('id', 'isDeleted', 'metadata', 'metadataId'),
+          { metadata: 'metadataId' },
+        ),
       );
       const updated = { id: 'ing_4', metadataId: 'meta_2' };
       delegate.update.mockResolvedValue(updated);

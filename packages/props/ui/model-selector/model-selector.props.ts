@@ -70,6 +70,8 @@ export interface ModelSelectorFamilyItemProps {
 
 export interface ModelSelectorTriggerProps {
   selectedModels: IModel[];
+  /** Auto is a pseudo-option with no IModel row — the trigger labels it itself. */
+  isAutoSelected?: boolean;
   isOpen: boolean;
   shouldFlash?: boolean;
   className?: string;

@@ -65,31 +65,34 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   /**
-   * Existing organizations created before the Prisma allowlist migration can
-   * have an empty enabledModelIds array. Restore the same latest-model
-   * baseline used during organization creation before returning settings.
+   * Seed the allowlist for organizations created before the Prisma allowlist
+   * migration, which have an empty enabledModelIds array.
+   *
+   * Seeding only — never a merge. This runs on every settings read, so folding
+   * in "missing" models would re-enable everything an org deliberately turned
+   * off before the next request could observe the change, making the model
+   * toggles impossible to switch off. A non-empty allowlist is an explicit
+   * choice and is returned untouched; deliberate additions go through
+   * `addEnabledModel` or a settings PATCH.
    */
   async ensureEnabledModelIds(
     setting: OrganizationSettingDocument,
   ): Promise<OrganizationSettingDocument> {
+    const currentEnabledModelIds = Array.isArray(setting.enabledModelIds)
+      ? setting.enabledModelIds
+      : [];
+
+    if (currentEnabledModelIds.length > 0) {
+      return setting;
+    }
+
     const enabledModelIds = await this.getLatestMajorVersionModelIds();
     if (enabledModelIds.length === 0) {
       return setting;
     }
 
-    const currentEnabledModelIds = Array.isArray(setting.enabledModelIds)
-      ? setting.enabledModelIds
-      : [];
-    const missingModelIds = enabledModelIds.filter(
-      (modelId) => !currentEnabledModelIds.includes(modelId),
-    );
-
-    if (missingModelIds.length === 0) {
-      return setting;
-    }
-
     return this.patch(setting.id, {
-      enabledModels: [...currentEnabledModelIds, ...missingModelIds],
+      enabledModels: enabledModelIds,
     } as UpdateOrganizationSettingDto);
   }
 

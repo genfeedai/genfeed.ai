@@ -5,6 +5,8 @@ import {
   DropdownDirection,
   type RouterPriority,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
@@ -98,13 +100,16 @@ export function GenerationActionCardControls({
 
       {/* Model & Aspect Ratio row */}
       <div className="flex items-end gap-3">
-        <div className="min-w-0 flex-1">
+        {/* Every control in this row sizes to its own content — flex-1 here let
+            the model picker eat ~80% of the row and stretched its label away
+            from the chevron while the siblings stayed compact. */}
+        <div className="min-w-0 shrink-0">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Model
           </span>
           {modelsLoading ? (
             <Select disabled value="loading-models">
-              <SelectTrigger className="w-full">
+              <SelectTrigger className={cn('w-44', SHELL_CONTROL_HEIGHT_CLASS)}>
                 <SelectValue placeholder="Loading Genfeed models…" />
               </SelectTrigger>
               <SelectContent>
@@ -117,7 +122,7 @@ export function GenerationActionCardControls({
             <div className={isDisabled ? 'pointer-events-none opacity-50' : ''}>
               <ModelSelectorPopover
                 name="models"
-                className="w-full justify-between border border-border bg-background hover:bg-accent/50"
+                className="border border-border bg-background hover:bg-accent/50"
                 models={filteredModels}
                 values={
                   isAutoMode
@@ -145,7 +150,7 @@ export function GenerationActionCardControls({
             value={aspectRatio}
             ratios={availableAspectRatios}
             onChange={onAspectRatioChange}
-            className="w-full justify-between border border-border bg-background hover:bg-accent/50"
+            className="border border-border bg-background hover:bg-accent/50"
             isDisabled={isDisabled}
             direction={DropdownDirection.UP}
             placeholder="Aspect ratio"
@@ -165,7 +170,10 @@ export function GenerationActionCardControls({
               onValueChange={(value) => onDurationChange(Number(value))}
               disabled={isDisabled}
             >
-              <SelectTrigger id="gen-action-duration" className="w-full">
+              <SelectTrigger
+                id="gen-action-duration"
+                className={cn('w-28', SHELL_CONTROL_HEIGHT_CLASS)}
+              >
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
               <SelectContent>
@@ -181,7 +189,7 @@ export function GenerationActionCardControls({
 
         {showGenerate ? (
           <Button
-            className="shrink-0 px-3 text-xs"
+            className={cn('shrink-0 px-3 text-xs', SHELL_CONTROL_HEIGHT_CLASS)}
             isDisabled={isPromptEmpty}
             onClick={onGenerate}
             size={ButtonSize.SM}

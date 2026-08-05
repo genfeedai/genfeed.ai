@@ -33,6 +33,8 @@ export interface ModelFieldMeta {
    * Only fields whose type is a Prisma enum appear here.
    */
   enumFields: Readonly<Record<string, EnumFieldMeta>>;
+  /** Relation alias -> canonical scalar foreign-key field. */
+  relationIdFields: Readonly<Record<string, string>>;
 }
 
 /**
@@ -59,6 +61,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   Activity: {
     allFields: [
@@ -79,6 +84,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   AdBulkUploadJob: {
     allFields: [
@@ -97,6 +106,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      credential: 'credentialId',
+      organization: 'organizationId',
+    },
   },
   AdCreativeMapping: {
     allFields: [
@@ -113,6 +127,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   AdOptimizationAuditLog: {
     allFields: [
@@ -127,6 +145,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   AdOptimizationConfig: {
     allFields: [
@@ -141,6 +162,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   AdOptimizationRecommendation: {
     allFields: [
@@ -155,6 +179,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   AdPerformance: {
     allFields: [
@@ -187,6 +214,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['ctaPatternCategories', 'headlinePatternCategories'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      credential: 'credentialId',
+      organization: 'organizationId',
+    },
   },
   AgentCampaign: {
     allFields: [
@@ -210,6 +242,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['agents', 'memories'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      campaignLeadStrategy: 'campaignLeadStrategyId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   AgentGoal: {
     allFields: [
@@ -230,6 +268,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['strategies'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   AgentMemory: {
     allFields: [
@@ -263,6 +306,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['tags'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      campaign: 'campaignId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   AgentMessage: {
     allFields: [
@@ -293,6 +342,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['artifactVersionPinIds'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      thread: 'threadId',
+      user: 'userId',
+    },
   },
   AgentRun: {
     allFields: [
@@ -346,6 +401,14 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'AgentRunStatus', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      parentRun: 'parentRunId',
+      strategy: 'strategyId',
+      thread: 'threadId',
+      user: 'userId',
+    },
   },
   AgentStrategy: {
     allFields: [
@@ -381,6 +444,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'runs',
     ],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      goal: 'goalId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   AgentStrategyOpportunity: {
     allFields: [
@@ -399,6 +468,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      strategy: 'strategyId',
+    },
   },
   AgentStrategyReport: {
     allFields: [
@@ -417,6 +491,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      strategy: 'strategyId',
+    },
   },
   AgentThread: {
     allFields: [
@@ -460,6 +539,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'tasks',
     ],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   AgentThreadEvent: {
     allFields: [
@@ -480,6 +564,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      thread: 'threadId',
+    },
   },
   AgentThreadSnapshot: {
     allFields: [
@@ -496,6 +584,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      thread: 'threadId',
+    },
   },
   AgentWorkflow: {
     allFields: [
@@ -514,11 +606,16 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Analytic: {
     allFields: ['createdAt', 'data', 'id', 'mongoId', 'updatedAt'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Announcement: {
     allFields: [
@@ -535,6 +632,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   ApiKey: {
     allFields: [
@@ -563,6 +663,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['allowedIps', 'scopes'],
     enumFields: {
       category: { enumType: 'ApiKeyCategory', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
     },
   },
   Article: {
@@ -601,6 +705,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'ArticleStatus', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   ArticleAnalytics: {
     allFields: [
@@ -626,6 +735,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      article: 'articleId',
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Asset: {
     allFields: [
@@ -660,6 +775,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       category: { enumType: 'AssetCategory', isRequired: true },
       parentType: { enumType: 'AssetParent', isRequired: true },
     },
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   Batch: {
     allFields: [
@@ -684,6 +802,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'BatchStatus', isRequired: true },
     },
+    relationIdFields: {
+      agentStrategy: 'agentStrategyId',
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   BatchWorkflowJob: {
     allFields: [
@@ -703,6 +827,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {
       status: { enumType: 'BatchStatus', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
+      workflow: 'workflowId',
     },
   },
   Bookmark: {
@@ -746,6 +874,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       intent: { enumType: 'BookmarkIntent', isRequired: true },
       platform: { enumType: 'BookmarkPlatform', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      folder: 'folderId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Bot: {
     allFields: [
@@ -770,6 +904,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'BotStatus', isRequired: true },
     },
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   BotActivity: {
     allFields: [
@@ -792,6 +930,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      monitoredAccount: 'monitoredAccountId',
+      organization: 'organizationId',
+      replyBotConfig: 'replyBotConfigId',
+      user: 'userId',
+    },
   },
   Brand: {
     allFields: [
@@ -902,6 +1047,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       fontFamily: { enumType: 'FontFamily', isRequired: true },
       scope: { enumType: 'AssetScope', isRequired: true },
     },
+    relationIdFields: {
+      musicIngredient: 'musicIngredientId',
+      organization: 'organizationId',
+      user: 'userId',
+      voiceIngredient: 'voiceIngredientId',
+    },
   },
   BrandInterview: {
     allFields: [
@@ -926,6 +1077,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'BrandInterviewStatus', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   BrandMemory: {
     allFields: [
@@ -945,6 +1101,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   CampaignTarget: {
     allFields: [
@@ -971,6 +1131,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      campaign: 'campaignId',
+      organization: 'organizationId',
+    },
   },
   Caption: {
     allFields: [
@@ -991,6 +1155,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      agentRun: 'agentRunId',
+      ingredient: 'ingredientId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   ClipProject: {
     allFields: [
@@ -1015,6 +1185,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   ClipResult: {
     allFields: [
@@ -1037,6 +1211,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   ContentDraft: {
     allFields: [
@@ -1066,6 +1243,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['mediaUrls', 'platforms', 'trendRemixLineages'],
     enumFields: {},
+    relationIdFields: {
+      approvedBy: 'approvedById',
+      approvedVersionPin: 'approvedVersionPinId',
+      brand: 'brandId',
+      contentRun: 'contentRunId',
+      organization: 'organizationId',
+    },
   },
   ContentPattern: {
     allFields: [
@@ -1082,6 +1266,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      sourceCreator: 'sourceCreatorId',
+    },
   },
   ContentPerformance: {
     allFields: [
@@ -1120,6 +1308,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      contentRun: 'contentRunId',
+      organization: 'organizationId',
+      post: 'postId',
+    },
   },
   ContentPlan: {
     allFields: [
@@ -1139,6 +1333,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['items'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      createdBy: 'createdById',
+      organization: 'organizationId',
+    },
   },
   ContentPlanItem: {
     allFields: [
@@ -1157,6 +1356,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      plan: 'planId',
+    },
   },
   ContentRun: {
     allFields: [
@@ -1174,6 +1378,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['contentDrafts', 'contentPerformances', 'posts'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   ContentSchedule: {
     allFields: [
@@ -1198,6 +1406,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['skillSlugs'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   ContentScore: {
     allFields: [
@@ -1212,6 +1424,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['optimizations'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   ContentVersionPin: {
     allFields: [
@@ -1237,6 +1452,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'reviewedPosts',
     ],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      createdByUser: 'createdByUserId',
+      organization: 'organizationId',
+    },
   },
   ContextBase: {
     allFields: [
@@ -1255,6 +1475,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['entries'],
     enumFields: {},
+    relationIdFields: {
+      createdBy: 'createdById',
+      organization: 'organizationId',
+      sourceBrand: 'sourceBrandId',
+    },
   },
   ContextEntry: {
     allFields: [
@@ -1271,6 +1496,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      contextBase: 'contextBaseId',
+      organization: 'organizationId',
+    },
   },
   CreativePattern: {
     allFields: [
@@ -1287,6 +1516,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   CreatorAnalysis: {
     allFields: [
@@ -1303,6 +1536,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['contentPatterns', 'patternPlaybooks'],
     enumFields: {},
+    relationIdFields: {
+      createdBy: 'createdById',
+      organization: 'organizationId',
+    },
   },
   Credential: {
     allFields: [
@@ -1362,6 +1599,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       platform: { enumType: 'CredentialPlatform', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   CreditBalance: {
     allFields: [
@@ -1376,6 +1618,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   CreditTransaction: {
     allFields: [
@@ -1397,6 +1642,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   CronJob: {
     allFields: [
@@ -1419,6 +1667,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['runs'],
     enumFields: {
       status: { enumType: 'CronJobStatus', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
     },
   },
   CronRun: {
@@ -1444,6 +1696,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'CronRunStatus', isRequired: true },
     },
+    relationIdFields: {
+      cronJob: 'cronJobId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Customer: {
     allFields: [
@@ -1458,6 +1715,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['subscriptions'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   CustomerInstance: {
     allFields: [
@@ -1472,6 +1732,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   DashboardLayout: {
     allFields: [
@@ -1489,6 +1750,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   DesktopAuthCode: {
     allFields: [
@@ -1507,6 +1772,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['scopes'],
     enumFields: {},
+    relationIdFields: {},
   },
   DesktopMessage: {
     allFields: [
@@ -1521,6 +1787,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      thread: 'threadId',
+    },
   },
   DesktopThread: {
     allFields: [
@@ -1536,6 +1805,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['messages'],
     enumFields: {},
+    relationIdFields: {},
   },
   Distribution: {
     allFields: [
@@ -1556,6 +1826,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   EditorProject: {
     allFields: [
@@ -1577,6 +1852,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      renderedVideo: 'renderedVideoId',
+      user: 'userId',
+    },
   },
   ElementBlacklist: {
     allFields: [
@@ -1593,6 +1874,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementCamera: {
     allFields: [
@@ -1608,6 +1890,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementCameraMovement: {
     allFields: [
@@ -1623,6 +1906,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementLens: {
     allFields: [
@@ -1638,6 +1922,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementLighting: {
     allFields: [
@@ -1653,6 +1938,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementMood: {
     allFields: [
@@ -1668,6 +1954,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementScene: {
     allFields: [
@@ -1684,6 +1971,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementSound: {
     allFields: [
@@ -1700,6 +1988,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   ElementStyle: {
     allFields: [
@@ -1715,6 +2004,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Evaluation: {
     allFields: [
@@ -1733,6 +2023,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   ExternalVoice: {
     allFields: [
@@ -1753,6 +2047,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       externalProvider: { enumType: 'VoiceProvider', isRequired: true },
     },
+    relationIdFields: {},
   },
   FanvueContent: {
     allFields: [
@@ -1769,6 +2064,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['schedules'],
     enumFields: {},
+    relationIdFields: {},
   },
   FanvueEarnings: {
     allFields: [
@@ -1785,6 +2081,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   FanvueSchedule: {
     allFields: [
@@ -1803,6 +2100,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      content: 'contentId',
+    },
   },
   FanvueSubscriber: {
     allFields: [
@@ -1819,6 +2119,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Folder: {
     allFields: [
@@ -1839,6 +2140,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['bookmarks', 'ingredients', 'tags'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   FontFamilyRecord: {
     allFields: [
@@ -1854,6 +2160,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Forecast: {
     allFields: [
@@ -1870,6 +2177,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Goal: {
     allFields: [
@@ -1889,6 +2200,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['children'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      parent: 'parentId',
+    },
   },
   Ingredient: {
     allFields: [
@@ -2010,6 +2325,21 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       status: { enumType: 'IngredientStatus', isRequired: true },
       voiceProvider: { enumType: 'VoiceProvider', isRequired: false },
     },
+    relationIdFields: {
+      agentRun: 'agentRunId',
+      agentStrategy: 'agentStrategyId',
+      bookmark: 'bookmarkId',
+      brand: 'brandId',
+      externalVoiceCatalog: 'externalVoiceCatalogId',
+      folder: 'folderId',
+      metadata: 'metadataId',
+      organization: 'organizationId',
+      parent: 'parentId',
+      persona: 'personaId',
+      prompt: 'promptId',
+      training: 'trainingId',
+      user: 'userId',
+    },
   },
   Insight: {
     allFields: [
@@ -2024,6 +2354,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   Invitation: {
     allFields: [
@@ -2053,11 +2386,18 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['warmupAccounts'],
     enumFields: {},
+    relationIdFields: {
+      acceptedByUser: 'acceptedByUserId',
+      invitedByUser: 'invitedByUserId',
+      organization: 'organizationId',
+      role: 'roleId',
+    },
   },
   Jwks: {
     allFields: ['createdAt', 'expiresAt', 'id', 'privateKey', 'publicKey'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Lead: {
     allFields: [
@@ -2081,6 +2421,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'LeadStatus', isRequired: true },
     },
+    relationIdFields: {
+      organization: 'organizationId',
+      proactiveBrand: 'proactiveBrandId',
+      proactiveOrganization: 'proactiveOrganizationId',
+      user: 'userId',
+    },
   },
   LifecycleEmailDelivery: {
     allFields: [
@@ -2103,6 +2449,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   LifecycleEmailPreference: {
     allFields: [
@@ -2116,6 +2465,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   Link: {
     allFields: [
@@ -2133,6 +2485,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {
       category: { enumType: 'LinkCategory', isRequired: true },
+    },
+    relationIdFields: {
+      brand: 'brandId',
     },
   },
   LinkClick: {
@@ -2154,6 +2509,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      link: 'linkId',
+    },
   },
   ListeningEvidence: {
     allFields: [
@@ -2187,6 +2545,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      sourcePost: 'sourcePostId',
+      topic: 'topicId',
+      topicSource: 'topicSourceId',
+    },
   },
   ListeningTopic: {
     allFields: [
@@ -2217,6 +2582,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'sources',
     ],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   ListeningTopicSource: {
     allFields: [
@@ -2236,11 +2606,18 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['evidence'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      source: 'sourceId',
+      topic: 'topicId',
+    },
   },
   LivestreamBotSession: {
     allFields: ['createdAt', 'data', 'id', 'isDeleted', 'mongoId', 'updatedAt'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   McpApproval: {
     allFields: [
@@ -2262,6 +2639,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: [],
     enumFields: {
       status: { enumType: 'McpApprovalStatus', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
     },
   },
   McpOAuthAuthCode: {
@@ -2286,6 +2667,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['scopes'],
     enumFields: {},
+    relationIdFields: {
+      client: 'clientId',
+    },
   },
   Member: {
     allFields: [
@@ -2308,6 +2692,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['brands'],
     enumFields: {},
+    relationIdFields: {
+      lastUsedBrand: 'lastUsedBrandId',
+      organization: 'organizationId',
+      role: 'roleId',
+      user: 'userId',
+    },
   },
   Metadata: {
     allFields: [
@@ -2342,6 +2732,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['ingredients', 'tags'],
     enumFields: {
       extension: { enumType: 'MetadataExtension', isRequired: true },
+    },
+    relationIdFields: {
+      prompt: 'promptId',
     },
   },
   Model: {
@@ -2419,6 +2812,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'supportsFeatures',
     ],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      parentModel: 'parentModelId',
+      training: 'trainingId',
+    },
   },
   MonitoredAccount: {
     allFields: [
@@ -2442,6 +2840,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['botActivities', 'processedTweets'],
     enumFields: {},
+    relationIdFields: {
+      botConfig: 'botConfigId',
+      brand: 'brandId',
+      credential: 'credentialId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   MoodBoard: {
     allFields: [
@@ -2458,6 +2863,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   Newsletter: {
     allFields: [
@@ -2499,6 +2908,15 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'contextOf',
     ],
     enumFields: {},
+    relationIdFields: {
+      agentRun: 'agentRunId',
+      approvedByUser: 'approvedByUserId',
+      approvedVersionPin: 'approvedVersionPinId',
+      brand: 'brandId',
+      organization: 'organizationId',
+      publishedByUser: 'publishedByUserId',
+      user: 'userId',
+    },
   },
   OAuthClient: {
     allFields: [
@@ -2511,6 +2929,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['authCodes', 'grantTypes', 'redirectUris', 'responseTypes'],
     enumFields: {},
+    relationIdFields: {},
   },
   Optimization: {
     allFields: [
@@ -2529,6 +2948,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      score: 'scoreId',
+      user: 'userId',
+    },
   },
   OrgIntegration: {
     allFields: [
@@ -2550,6 +2974,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       platform: { enumType: 'IntegrationPlatform', isRequired: true },
       status: { enumType: 'IntegrationStatus', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
     },
   },
   Organization: {
@@ -2699,6 +3126,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       accountType: { enumType: 'OrganizationCategory', isRequired: false },
       category: { enumType: 'OrganizationCategory', isRequired: true },
     },
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   OrganizationSetting: {
     allFields: [
@@ -2767,6 +3197,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       agentReplyStyle: { enumType: 'AgentReplyStyle', isRequired: true },
       byokBillingStatus: { enumType: 'ByokBillingStatus', isRequired: true },
     },
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   OutreachCampaign: {
     allFields: [
@@ -2788,6 +3221,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['targets'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   PatternPlaybook: {
     allFields: [
@@ -2803,6 +3240,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['sourceCreators'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   Persona: {
     allFields: [
@@ -2846,6 +3286,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'PersonaStatus', isRequired: true },
     },
+    relationIdFields: {
+      avatarIngredient: 'avatarIngredientId',
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+      voiceIngredient: 'voiceIngredientId',
+    },
   },
   PlatformSetting: {
     allFields: [
@@ -2859,6 +3306,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Post: {
     allFields: [
@@ -2981,6 +3429,24 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       entityModel: { enumType: 'PostEntityModel', isRequired: false },
       reviewDecision: { enumType: 'ReviewDecision', isRequired: false },
     },
+    relationIdFields: {
+      agentRun: 'agentRunId',
+      agentStrategy: 'agentStrategyId',
+      agentThread: 'agentThreadId',
+      brand: 'brandId',
+      contentRun: 'contentRunId',
+      credential: 'credentialId',
+      entityArticle: 'entityArticleId',
+      entityIngredient: 'entityIngredientId',
+      organization: 'organizationId',
+      originalPost: 'originalPostId',
+      parent: 'parentId',
+      persona: 'personaId',
+      publishApproval: 'publishApprovalId',
+      reviewVersionPin: 'reviewVersionPinId',
+      user: 'userId',
+      workflowExecution: 'workflowExecutionId',
+    },
   },
   PostAnalytics: {
     allFields: [
@@ -3014,6 +3480,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       platform: { enumType: 'CredentialPlatform', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      post: 'postId',
+      user: 'userId',
+    },
   },
   PostGroup: {
     allFields: [
@@ -3041,6 +3513,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      owner: 'ownerId',
+    },
   },
   Preset: {
     allFields: [
@@ -3060,6 +3537,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   ProcessedTweet: {
     allFields: [
@@ -3080,6 +3561,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      monitoredAccount: 'monitoredAccountId',
+      organization: 'organizationId',
+      replyBotConfig: 'replyBotConfigId',
+    },
   },
   Profile: {
     allFields: [
@@ -3096,6 +3582,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      createdBy: 'createdById',
+      organization: 'organizationId',
+    },
   },
   Project: {
     allFields: [
@@ -3112,6 +3602,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   Prompt: {
     allFields: [
@@ -3155,6 +3648,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       scope: { enumType: 'AssetScope', isRequired: true },
       status: { enumType: 'PromptStatus', isRequired: true },
     },
+    relationIdFields: {
+      article: 'articleId',
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   PublishApproval: {
     allFields: [
@@ -3188,6 +3687,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      actorUser: 'actorUserId',
+      artifactVersionPin: 'artifactVersionPinId',
+      brand: 'brandId',
+      organization: 'organizationId',
+      post: 'postId',
+    },
   },
   ReplyBotConfig: {
     allFields: [
@@ -3208,6 +3714,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['botActivities', 'monitoredAccounts', 'processedTweets'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   RepurposingJob: {
     allFields: [
@@ -3230,6 +3740,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Role: {
     allFields: [
@@ -3244,6 +3758,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['invitations', 'members'],
     enumFields: {},
+    relationIdFields: {},
   },
   Run: {
     allFields: [
@@ -3276,6 +3791,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Schedule: {
     allFields: [
@@ -3301,6 +3817,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   Session: {
     allFields: [
@@ -3317,6 +3837,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   Setting: {
     allFields: [
@@ -3356,6 +3879,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
         isRequired: true,
       },
     },
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   Skill: {
     allFields: [
@@ -3371,11 +3897,15 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   SkillReceipt: {
     allFields: ['createdAt', 'data', 'id', 'isDeleted', 'mongoId', 'updatedAt'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   SocialConversation: {
     allFields: [
@@ -3425,6 +3955,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['messages', 'tags'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      credential: 'credentialId',
+      organization: 'organizationId',
+      post: 'postId',
+      user: 'userId',
+    },
   },
   SocialMessage: {
     allFields: [
@@ -3472,6 +4009,14 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      conversation: 'conversationId',
+      credential: 'credentialId',
+      organization: 'organizationId',
+      post: 'postId',
+      user: 'userId',
+    },
   },
   SocialReplyCampaign: {
     allFields: [
@@ -3508,6 +4053,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['recipients'],
     enumFields: {},
+    relationIdFields: {},
   },
   SocialReplyCampaignRecipient: {
     allFields: [
@@ -3533,6 +4079,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      campaign: 'campaignId',
+    },
   },
   SocialSource: {
     allFields: [
@@ -3567,6 +4116,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['listeningTopicSources', 'posts'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      credential: 'credentialId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   SourcePost: {
     allFields: [
@@ -3601,6 +4156,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['hashtags', 'listeningEvidence', 'mediaUrls'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      source: 'sourceId',
+      user: 'userId',
+    },
   },
   Streak: {
     allFields: [
@@ -3617,6 +4178,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Subscription: {
     allFields: [
@@ -3643,6 +4208,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'SubscriptionStatus', isRequired: true },
     },
+    relationIdFields: {
+      customer: 'customerId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   SubscriptionAttribution: {
     allFields: [
@@ -3664,6 +4234,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      sourceContent: 'sourceContentId',
+      sourceLink: 'sourceLinkId',
+      user: 'userId',
+    },
   },
   Tag: {
     allFields: [
@@ -3699,6 +4275,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     enumFields: {
       category: { enumType: 'TagCategory', isRequired: false },
+    },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
     },
   },
   Task: {
@@ -3749,6 +4329,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       priority: { enumType: 'TaskPriority', isRequired: true },
     },
+    relationIdFields: {
+      organization: 'organizationId',
+      parent: 'parentId',
+      planningThread: 'planningThreadId',
+      user: 'userId',
+    },
   },
   TaskComment: {
     allFields: [
@@ -3766,6 +4352,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      task: 'taskId',
+    },
   },
   TaskCounter: {
     allFields: [
@@ -3780,6 +4370,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   Template: {
     allFields: [
@@ -3806,6 +4399,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['categories', 'industries', 'platforms', 'usages'],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+    },
   },
   TemplateMetadata: {
     allFields: [
@@ -3827,6 +4423,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['compatiblePlatforms'],
     enumFields: {},
+    relationIdFields: {
+      template: 'templateId',
+    },
   },
   TemplateUsage: {
     allFields: [
@@ -3842,6 +4441,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      template: 'templateId',
+    },
   },
   ThreadContextState: {
     allFields: [
@@ -3858,6 +4461,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      thread: 'threadId',
+    },
   },
   TrackedLink: {
     allFields: [
@@ -3887,6 +4494,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['linkClicks', 'subscriptionAttributions'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      content: 'contentId',
+      organization: 'organizationId',
+    },
   },
   Training: {
     allFields: [
@@ -3913,6 +4525,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       stage: { enumType: 'TrainingStage', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      persona: 'personaId',
+      user: 'userId',
+    },
   },
   Transcript: {
     allFields: [
@@ -3932,6 +4550,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      article: 'articleId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Trend: {
     allFields: [
@@ -3954,6 +4577,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['remixLineages', 'sourceReferenceLinks'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   TrendPreferences: {
     allFields: [
@@ -3970,6 +4597,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+    },
   },
   TrendRemixLineage: {
     allFields: [
@@ -3990,6 +4621,12 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['sourceReferences', 'trends'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      contentDraft: 'contentDraftId',
+      organization: 'organizationId',
+      post: 'postId',
+    },
   },
   TrendSourceReference: {
     allFields: [
@@ -4008,6 +4645,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['links', 'remixLineages', 'snapshots'],
     enumFields: {},
+    relationIdFields: {},
   },
   TrendSourceReferenceLink: {
     allFields: [
@@ -4023,6 +4661,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      sourceReference: 'sourceReferenceId',
+      trend: 'trendId',
+    },
   },
   TrendSourceReferenceSnapshot: {
     allFields: [
@@ -4038,21 +4680,27 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      sourceReference: 'sourceReferenceId',
+    },
   },
   TrendingHashtag: {
     allFields: ['createdAt', 'data', 'id', 'isDeleted', 'mongoId', 'updatedAt'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   TrendingSound: {
     allFields: ['createdAt', 'data', 'id', 'isDeleted', 'mongoId', 'updatedAt'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   TrendingVideo: {
     allFields: ['createdAt', 'data', 'id', 'isDeleted', 'mongoId', 'updatedAt'],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   User: {
     allFields: [
@@ -4166,6 +4814,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       onboardingType: { enumType: 'OnboardingType', isRequired: false },
       platformRole: { enumType: 'PlatformRole', isRequired: true },
     },
+    relationIdFields: {},
   },
   UserSubscription: {
     allFields: [
@@ -4188,6 +4837,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'SubscriptionStatus', isRequired: true },
     },
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   Verification: {
     allFields: [
@@ -4200,6 +4852,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {},
   },
   Vote: {
     allFields: [
@@ -4217,6 +4870,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   WarmupAccount: {
     allFields: [
@@ -4249,6 +4906,13 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     enumFields: {
       status: { enumType: 'WarmupAccountStatus', isRequired: true },
     },
+    relationIdFields: {
+      brand: 'brandId',
+      customerUser: 'customerUserId',
+      invitation: 'invitationId',
+      operatorUser: 'operatorUserId',
+      organization: 'organizationId',
+    },
   },
   Watchlist: {
     allFields: [
@@ -4269,6 +4933,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: [],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   Workflow: {
     allFields: [
@@ -4309,6 +4978,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     listFields: ['batchJobs', 'executions', 'tags'],
     enumFields: {},
+    relationIdFields: {
+      brand: 'brandId',
+      organization: 'organizationId',
+      user: 'userId',
+    },
   },
   WorkflowExecution: {
     allFields: [
@@ -4333,6 +5007,11 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     listFields: ['posts'],
     enumFields: {
       status: { enumType: 'WorkflowExecutionStatus', isRequired: true },
+    },
+    relationIdFields: {
+      organization: 'organizationId',
+      user: 'userId',
+      workflow: 'workflowId',
     },
   },
 };
