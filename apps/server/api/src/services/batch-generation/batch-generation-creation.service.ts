@@ -270,7 +270,7 @@ export class BatchGenerationCreationService {
         const postId = String((post as Record<string, unknown>).id ?? post.id);
 
         batchItems.push({
-          _id: crypto.randomUUID(),
+          id: crypto.randomUUID(),
           caption: reviewItem.caption,
           contentRunId,
           creativeVersion: reviewItem.creativeVersion,
@@ -313,7 +313,7 @@ export class BatchGenerationCreationService {
         return this.prisma.post.updateMany({
           data: {
             reviewBatchId: batchId,
-            reviewItemId: item._id,
+            reviewItemId: item.id,
           },
           where: scopedWhere(orgId, { id: item.postId }),
         });
@@ -379,7 +379,7 @@ export class BatchGenerationCreationService {
     for (const [format, formatCount] of Object.entries(formatCounts)) {
       for (let i = 0; i < formatCount; i++) {
         items.push({
-          _id: crypto.randomUUID(),
+          id: crypto.randomUUID(),
           createdAt: now,
           format: format as ContentFormat,
           platform: platforms[index % platforms.length],

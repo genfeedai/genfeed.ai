@@ -66,7 +66,7 @@ export class BatchGenerationReviewService {
             batchId: batch.id,
             createdAt: item.createdAt ?? batch.createdAt.toISOString(),
             format: item.format,
-            id: item._id,
+            id: item.id,
             mediaUrl: item.mediaUrl,
             platform: item.platform,
             postId: item.postId,
@@ -174,7 +174,7 @@ export class BatchGenerationReviewService {
               postId,
               provenance: {
                 batchId,
-                reviewItemId: item._id,
+                reviewItemId: item.id,
                 surface: 'review-queue',
               },
               transaction,
@@ -204,7 +204,7 @@ export class BatchGenerationReviewService {
 
       for (const item of batchItems) {
         if (
-          itemIdSet.has(item._id) &&
+          itemIdSet.has(item.id) &&
           item.status === BatchItemStatus.COMPLETED
         ) {
           const versionPinId = item.postId
@@ -307,7 +307,7 @@ export class BatchGenerationReviewService {
         batchItems
           .filter(
             (item) =>
-              itemIdSet.has(item._id) &&
+              itemIdSet.has(item.id) &&
               item.status === BatchItemStatus.COMPLETED &&
               Boolean(item.postId),
           )
@@ -337,7 +337,7 @@ export class BatchGenerationReviewService {
     const batchItems = cloneBatchItems(batchRecord.items);
 
     for (const item of batchItems) {
-      if (itemIdSet.has(item._id)) {
+      if (itemIdSet.has(item.id)) {
         item.status = BatchItemStatus.SKIPPED;
         item.reviewDecision = 'rejected';
         item.reviewFeedback = feedback;
@@ -423,10 +423,7 @@ export class BatchGenerationReviewService {
     const batchItems = cloneBatchItems(batchRecord.items);
 
     for (const item of batchItems) {
-      if (
-        itemIdSet.has(item._id) &&
-        item.status === BatchItemStatus.COMPLETED
-      ) {
+      if (itemIdSet.has(item.id) && item.status === BatchItemStatus.COMPLETED) {
         item.reviewDecision = 'request_changes';
         item.reviewFeedback = feedback;
         item.reviewedAt = reviewedAt;

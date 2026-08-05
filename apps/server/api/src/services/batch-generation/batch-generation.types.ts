@@ -11,7 +11,7 @@ export interface BatchItem {
 }
 
 export interface BatchItemFull extends BatchItem {
-  _id: string;
+  id: string;
   caption?: string;
   prompt?: string;
   postId?: string;

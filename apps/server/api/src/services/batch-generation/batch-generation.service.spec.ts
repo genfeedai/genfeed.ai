@@ -140,7 +140,7 @@ describe('BatchGenerationService approval version pins', () => {
 
   it('pins the canonical Post before recording approval', async () => {
     const item = {
-      _id: 'item-1',
+      id: 'item-1',
       format: ContentFormat.IMAGE,
       postId: 'post-1',
       scheduledDate: '2026-07-14T10:00:00.000Z',
@@ -210,7 +210,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           status: BatchItemStatus.COMPLETED,
         },
@@ -252,7 +252,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           status: BatchItemStatus.COMPLETED,
         },
@@ -294,7 +294,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           postId: 'post-1',
           scheduledDate: '2026-07-14T10:00:00.000Z',
@@ -316,7 +316,7 @@ describe('BatchGenerationService approval version pins', () => {
 
   it('rolls back Post reference state when the batch approval write fails', async () => {
     const item = {
-      _id: 'item-1',
+      id: 'item-1',
       format: ContentFormat.IMAGE,
       postId: 'post-1',
       status: BatchItemStatus.COMPLETED,
@@ -378,7 +378,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           postId: 'post-1',
           status: BatchItemStatus.COMPLETED,
@@ -403,7 +403,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           status: BatchItemStatus.COMPLETED,
         },
@@ -442,7 +442,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           postId: 'post-1',
           status: BatchItemStatus.COMPLETED,
@@ -472,7 +472,7 @@ describe('BatchGenerationService approval version pins', () => {
     batchDelegate.findFirst.mockResolvedValue(
       createBatchRecord([
         {
-          _id: 'item-1',
+          id: 'item-1',
           format: ContentFormat.IMAGE,
           reviewEvents: [
             {
