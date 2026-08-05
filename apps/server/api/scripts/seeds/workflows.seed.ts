@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { isEntityId } from '@api-types/helpers/entity-id';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import { PrismaClient } from '@genfeedai/prisma';
 import { Logger } from '@nestjs/common';
@@ -111,7 +112,12 @@ function getSpawnArgsForCluster(cluster: SupportedCluster): string[] {
     return !arg.startsWith('--env=') && arg !== '--all-clusters';
   });
 
-  return [process.argv[1]!, `--env=${cluster}`, ...forwardedArgs];
+  const scriptPath = process.argv[1];
+  if (!scriptPath) {
+    throw new Error('Unable to resolve workflow seed script path');
+  }
+
+  return [scriptPath, `--env=${cluster}`, ...forwardedArgs];
 }
 
 function runAllClusters(): void {
@@ -141,15 +147,13 @@ function runAllClusters(): void {
   }
 }
 
-const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
-
 function parseOptionalId(value?: string): string | null {
   if (!value) {
     return null;
   }
 
-  if (!OBJECT_ID_REGEX.test(value)) {
-    throw new Error(`Invalid ObjectId: ${value}`);
+  if (!isEntityId(value)) {
+    throw new Error(`Invalid entity id: ${value}`);
   }
 
   return value;
@@ -195,7 +199,6 @@ function buildWorkflowLabel(
       return `Daily posts for ${brandLabel}`;
     case 'newsletter':
       return `Daily newsletter for ${brandLabel}`;
-    case 'image':
     default:
       return `Daily images for ${brandLabel}`;
   }
@@ -219,7 +222,6 @@ function buildNodeLabel(contentType: DefaultRecurringContentType): string {
       return 'Generate Post';
     case 'newsletter':
       return 'Generate Newsletter';
-    case 'image':
     default:
       return 'Generate Image';
   }
@@ -231,7 +233,6 @@ function buildNodeType(contentType: DefaultRecurringContentType): string {
       return 'ai-generate-post';
     case 'newsletter':
       return 'ai-generate-newsletter';
-    case 'image':
     default:
       return 'ai-generate-image';
   }
@@ -264,7 +265,6 @@ function buildNodeConfig(params: {
         instructions: `Prepare the next review-ready newsletter draft for ${params.brandLabel}. Preserve continuity, avoid repetition, and keep the structure clear.`,
         prompt: `Create the next daily newsletter issue for ${params.brandLabel}.`,
       };
-    case 'image':
     default:
       return {
         ...sharedConfig,
