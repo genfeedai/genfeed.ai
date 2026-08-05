@@ -1087,7 +1087,6 @@ app.whenReady().then(async () => {
   pgliteService = new DesktopPgliteService(
     path.join(app.getPath('userData'), 'pglite-db'),
   );
-  const desktopPgliteService = pgliteService;
   const pglite = await pgliteService.init();
   prismaService = new DesktopPrismaService(pglite);
   const prismaClient = prismaService.getClient();
@@ -1154,7 +1153,10 @@ app.whenReady().then(async () => {
   appShellService = new DesktopAppShellService(
     environment,
     () => sessionService.getSession(),
-    () => desktopPgliteService.getDataDir(),
+    // The data root, not one store inside it: spawned server processes carve
+    // their own subdirectories out of it (pglite-db, files, …), so handing them
+    // pglite's directory would nest every other store under the database.
+    () => app.getPath('userData'),
   );
   isOfflineMode = kvService.getValueSync(OFFLINE_MODE_KEY) === '1';
   telemetryService.setUser(sessionService.getSession());

@@ -9,19 +9,23 @@ import {
 bootstrap({ app: 'files' });
 
 import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 import process from 'node:process';
 import { AppModule } from '@files/app.module';
 import { ConfigService } from '@files/config/config.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
+  resolveContainedPathWithoutSymlinks,
+  resolveLocalStorageBaseDir,
+} from '@genfeedai/storage';
+import {
   GENFEED_CORS_ALLOWED_METHODS,
   GENFEED_CORS_PREFLIGHT_MAX_AGE_SECONDS,
 } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpStatus } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
 
 async function main() {
@@ -62,15 +66,43 @@ async function main() {
     app.use(express.urlencoded({ extended: false, limit: '100mb' }));
     app.use(express.json({ limit: '100mb' }));
 
-    // Serve local files in self-hosted mode (LOCAL + HYBRID)
+    // Serve local files in self-hosted mode (LOCAL + HYBRID). The same resolver
+    // backs LocalStorageProvider, so the served root is the written root — on
+    // desktop that is Electron's userData directory, reachable over loopback
+    // only, which is why direct reads need no signed URL.
     if (isSelfHostedDeployment()) {
-      const localStorageDir =
-        configService.get('GENFEED_STORAGE_PATH') ??
-        path.join(os.homedir(), '.genfeed', 'data', 'files');
+      const localStorageDir = resolveLocalStorageBaseDir(
+        configService.get('GENFEED_STORAGE_PATH'),
+      );
 
       if (!fs.existsSync(localStorageDir)) {
         fs.mkdirSync(localStorageDir, { recursive: true });
       }
+
+      // `express.static` normalizes `../` but still reads through symlinks, and
+      // the root here is the operator's real disk. Reuse the driver's guard so
+      // the read path rejects exactly what the write path rejects.
+      app.use(
+        '/local',
+        (request: Request, response: Response, next: NextFunction) => {
+          let requestedPath: string;
+
+          try {
+            requestedPath = decodeURIComponent(request.path);
+          } catch {
+            response.sendStatus(HttpStatus.BAD_REQUEST);
+            return;
+          }
+
+          resolveContainedPathWithoutSymlinks(
+            localStorageDir,
+            `.${requestedPath}`,
+            (message) => new Error(message),
+          )
+            .then(() => next())
+            .catch(() => response.sendStatus(HttpStatus.FORBIDDEN));
+        },
+      );
 
       app.use(
         '/local',
