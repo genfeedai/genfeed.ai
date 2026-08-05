@@ -103,7 +103,7 @@ export class PostRepeatSchedulerService {
         label: post.label,
         maxRepeats: post.maxRepeats,
         organizationId,
-        platform: post.platform,
+        platform: post.platform ?? undefined,
         repeatCount: nextRepeatCount,
         repeatDaysOfWeek: post.repeatDaysOfWeek,
         repeatEndDate: post.repeatEndDate,
