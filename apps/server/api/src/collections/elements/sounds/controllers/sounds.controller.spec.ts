@@ -46,9 +46,9 @@ describe('ElementsSoundsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      brand: 'c07f191e810c19729de860ee'.toString(),
+      organization: 'c07f191e810c19729de860ee'.toString(),
+      user: 'c07f191e810c19729de860ee'.toString(),
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -100,9 +100,9 @@ describe('ElementsSoundsController', () => {
 
   describe('findOne', () => {
     it('should return a sound by id', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
       const mockSound = {
-        _id: soundId,
+        id: soundId,
         isActive: true,
         isDefault: false,
         isDeleted: false,
@@ -121,7 +121,7 @@ describe('ElementsSoundsController', () => {
 
       expect(soundsService.findOne).toHaveBeenCalledWith(
         {
-          _id: soundId,
+          id: soundId,
           isDeleted: false,
         },
         [],
@@ -130,7 +130,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should handle sound not found', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
       soundsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
@@ -150,7 +150,7 @@ describe('ElementsSoundsController', () => {
       } as unknown as CreateElementSoundDto;
 
       const mockCreatedSound = {
-        _id: '507f191e810c19729de860ee'.toString(),
+        id: 'c07f191e810c19729de860ee'.toString(),
         ...createDto,
         isActive: true,
         isDefault: false,
@@ -178,7 +178,7 @@ describe('ElementsSoundsController', () => {
       } as unknown as CreateElementSoundDto;
 
       const mockCreatedSound = {
-        _id: '507f191e810c19729de860ee'.toString(),
+        id: 'c07f191e810c19729de860ee'.toString(),
         ...createDto,
         isActive: true,
         isDefault: false,
@@ -200,14 +200,14 @@ describe('ElementsSoundsController', () => {
 
   describe('update', () => {
     it('should update an existing sound', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementSoundDto = {
         duration: 240,
         name: 'Updated Sound',
       } as unknown as UpdateElementSoundDto;
 
       const mockExistingSound = {
-        _id: soundId,
+        id: soundId,
         isActive: true,
         isDefault: false,
         isDeleted: false,
@@ -238,7 +238,7 @@ describe('ElementsSoundsController', () => {
       );
 
       expect(soundsService.findOne).toHaveBeenCalledWith(
-        { _id: soundId },
+        { id: soundId },
         expect.anything(),
       );
       expect(soundsService.patch).toHaveBeenCalled();
@@ -246,7 +246,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should throw error when sound not found', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementSoundDto = {
         name: 'Updated',
       } as unknown as UpdateElementSoundDto;
@@ -261,9 +261,9 @@ describe('ElementsSoundsController', () => {
 
   describe('remove', () => {
     it('should delete a sound', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
       const mockSound = {
-        _id: soundId,
+        id: soundId,
         isActive: true,
         isDefault: false,
         isDeleted: false,
@@ -282,7 +282,7 @@ describe('ElementsSoundsController', () => {
       const result = await controller.remove(mockRequest, mockUser, soundId);
 
       expect(soundsService.findOne).toHaveBeenCalledWith({
-        _id: soundId,
+        id: soundId,
         isDeleted: false,
       });
       expect(soundsService.remove).toHaveBeenCalledWith(soundId);
@@ -290,7 +290,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should return error when sound not found', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
 
       soundsService.findOne.mockResolvedValueOnce(null);
 
@@ -317,7 +317,7 @@ describe('ElementsSoundsController', () => {
       const mockSounds = {
         docs: [
           {
-            _id: '1',
+            id: '1',
             duration: 120,
             isActive: true,
             isDefault: false,
@@ -328,7 +328,7 @@ describe('ElementsSoundsController', () => {
             type: SoundCategory.MUSIC,
           },
           {
-            _id: '2',
+            id: '2',
             duration: 180,
             isActive: true,
             isDefault: false,
@@ -363,7 +363,7 @@ describe('ElementsSoundsController', () => {
       const mockSounds = {
         docs: [
           {
-            _id: '1',
+            id: '1',
             isActive: true,
             isDefault: false,
             isDeleted: false,
@@ -405,7 +405,7 @@ describe('ElementsSoundsController', () => {
       const mockSounds = {
         docs: [
           {
-            _id: '1',
+            id: '1',
             isActive: true,
             isDefault: false,
             isDeleted: false,
@@ -437,16 +437,16 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should serialize single sound', async () => {
-      const soundId = '507f191e810c19729de860ee'.toString();
+      const soundId = 'c07f191e810c19729de860ee'.toString();
       const mockSound = {
-        _id: soundId,
+        id: soundId,
         isActive: true,
         isDefault: false,
         isDeleted: false,
         key: 'sound-1',
         label: 'Sound 1',
         name: 'Sound 1',
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: 'c07f191e810c19729de860ee',
         type: SoundCategory.MUSIC,
       };
       soundsService.findOne.mockResolvedValueOnce(

@@ -9,7 +9,7 @@ import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-resu
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 const PAGINATION_OPTION_KEYS = new Set([
   'allowDiskUse',
@@ -378,13 +378,13 @@ export class ModelsService extends BaseService<
     organizationId: string | null,
     exceptModelId: string,
   ): Promise<void> {
-    if (!('organizationId' in filter)) {
-      throw new ValidationException(
+    if (organizationId === undefined) {
+      throw new BadRequestException(
         'organizationId is required for bulk model updates',
       );
     }
 
-    // sql-risk-audit: ignore bulk-write-tenant-review -- The explicit guard above rejects every bulk write without an organizationId scope, including the null scope used by the global registry.
+    // sql-risk-audit: ignore bulk-write-tenant-review -- The guard above rejects bulk writes without an explicit organization scope; null targets only global registry rows.
     await this.prisma.model.updateMany({
       data: { isDefault: false },
       where: {

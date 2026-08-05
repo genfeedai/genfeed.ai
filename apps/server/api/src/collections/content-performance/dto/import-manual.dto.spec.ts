@@ -7,7 +7,7 @@ describe('ImportManualDto', () => {
     const dto = plainToInstance(ImportManualDto, {
       likes: 25,
       platform: 'instagram',
-      postId: '507f1f77bcf86cd799439011',
+      postId: 'c07f1f77bcf86cd799439011',
       views: 500,
     });
 
@@ -30,7 +30,7 @@ describe('ImportManualDto', () => {
 
   it('should require platform', async () => {
     const dto = plainToInstance(ImportManualDto, {
-      postId: '507f1f77bcf86cd799439011',
+      postId: 'c07f1f77bcf86cd799439011',
       views: 100,
     });
 
@@ -41,7 +41,7 @@ describe('ImportManualDto', () => {
   it('should reject negative metric values', async () => {
     const dto = plainToInstance(ImportManualDto, {
       platform: 'instagram',
-      postId: '507f1f77bcf86cd799439011',
+      postId: 'c07f1f77bcf86cd799439011',
       views: -100,
     });
 
@@ -53,7 +53,7 @@ describe('ImportManualDto', () => {
     const dto = plainToInstance(ImportManualDto, {
       notes: 'Extracted from screenshot',
       platform: 'instagram',
-      postId: '507f1f77bcf86cd799439011',
+      postId: 'c07f1f77bcf86cd799439011',
       views: 100,
     });
 

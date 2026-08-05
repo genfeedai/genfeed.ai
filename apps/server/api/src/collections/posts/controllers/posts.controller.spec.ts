@@ -32,7 +32,7 @@ describe('PostsController.buildFindAllQuery', () => {
     } as unknown as PostsController;
   });
 
-  it('uses parentId (scalar FK) not parent (relation alias) in OR filter', () => {
+  it('uses parentId (scalar FK) not parent (relation alias)', () => {
     const query: PostsQueryDto = {} as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
@@ -43,26 +43,18 @@ describe('PostsController.buildFindAllQuery', () => {
 
     expect(orFilter).toBeDefined();
 
-    const keys = orFilter.flatMap((branch) => Object.keys(branch));
-    expect(keys).not.toContain('parent');
-    expect(keys.filter((k) => k === 'parentId').length).toBeGreaterThanOrEqual(
-      1,
-    );
+    expect(result.where).not.toHaveProperty('parent');
+    expect(result.where).toHaveProperty('parentId', null);
   });
 
   it('includes { parentId: null } branch for top-level posts', () => {
     const query: PostsQueryDto = {} as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
-    const orFilter = (result.where as Record<string, unknown>).OR as Record<
-      string,
-      unknown
-    >[];
-
-    expect(orFilter).toContainEqual({ parentId: null });
+    expect(result.where).toMatchObject({ parentId: null });
   });
 
-  it('includes { parentId: { not: null } } branch (has parent)', () => {
+  it('keeps ownership branches on canonical scalar FKs', () => {
     const query: PostsQueryDto = {} as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
@@ -71,7 +63,12 @@ describe('PostsController.buildFindAllQuery', () => {
       unknown
     >[];
 
-    expect(orFilter).toContainEqual({ parentId: { not: null } });
+    expect(orFilter).toEqual(
+      expect.arrayContaining([
+        { userId: 'user-1' },
+        { organizationId: 'org-1' },
+      ]),
+    );
   });
 });
 

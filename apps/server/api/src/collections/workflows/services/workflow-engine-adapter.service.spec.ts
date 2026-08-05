@@ -80,8 +80,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'upscale',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -98,9 +98,9 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should handle empty nodes and edges', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        id: 'wf-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -111,7 +111,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should extract config from node.data.config', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: { model: 'flux', steps: 20 }, label: 'Gen' },
@@ -119,8 +119,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'imageGen',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -130,7 +130,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should fallback to node.config when data.config is missing', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             config: { scale: 2 },
@@ -138,8 +138,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'upscale',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -149,7 +149,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('injects the workflow primary brand into avatar and media processing nodes', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         brandId: 'brand-1',
         nodes: [
           {
@@ -173,8 +173,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'soundOverlay',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -266,7 +266,7 @@ describe('WorkflowEngineAdapterService', () => {
   describe('executeWorkflow', () => {
     it('should execute workflows with fallback node types', async () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-unsupported' },
+        id: 'wf-unsupported',
         nodes: [
           {
             data: { config: {}, label: 'AI Enhance' },
@@ -274,8 +274,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'ai-enhance',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const workflow = service.convertToExecutableWorkflow(workflowDoc);
@@ -294,7 +294,7 @@ describe('WorkflowEngineAdapterService', () => {
       const socialAdapter = createAdapterWithSocialInbox(socialInboxService);
 
       const workflow = socialAdapter.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-social-reply' },
+        id: 'wf-social-reply',
         nodes: [
           {
             data: {
@@ -311,8 +311,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'postReply',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await socialAdapter.executeWorkflow(workflow);
@@ -349,7 +349,7 @@ describe('WorkflowEngineAdapterService', () => {
       const socialAdapter = createAdapterWithSocialInbox(socialInboxService);
 
       const workflow = socialAdapter.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-social-dm' },
+        id: 'wf-social-dm',
         nodes: [
           {
             data: {
@@ -366,8 +366,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'sendDm',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await socialAdapter.executeWorkflow(workflow);
@@ -410,7 +410,7 @@ describe('WorkflowEngineAdapterService', () => {
       const socialAdapter = new WorkflowEngineAdapterService(...args);
 
       const workflow = socialAdapter.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-social-reply-no-inbox' },
+        id: 'wf-social-reply-no-inbox',
         nodes: [
           {
             data: {
@@ -427,8 +427,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'postReply',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await socialAdapter.executeWorkflow(workflow);
@@ -457,7 +457,7 @@ describe('WorkflowEngineAdapterService', () => {
       const livestreamAdapter = new WorkflowEngineAdapterService(...args);
 
       const workflow = livestreamAdapter.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-livestream' },
+        id: 'wf-livestream',
         nodes: [
           {
             data: { config: {}, label: 'Process Livestream Sessions' },
@@ -465,8 +465,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'livestreamBotSessionProcessing',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await livestreamAdapter.executeWorkflow(workflow);
@@ -479,7 +479,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('executes image inputs from picker-backed config', async () => {
       const workflow = service.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-image-input' },
+        id: 'wf-image-input',
         nodes: [
           {
             data: {
@@ -496,8 +496,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'input-image',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await service.executeWorkflow(workflow);
@@ -510,7 +510,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('executes video inputs from picker-backed config', async () => {
       const workflow = service.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-video-input' },
+        id: 'wf-video-input',
         nodes: [
           {
             data: {
@@ -527,8 +527,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'input-video',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await service.executeWorkflow(workflow);
@@ -541,7 +541,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('executes analytics feedback without a performance summary service', async () => {
       const workflow = service.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-analytics-feedback' },
+        id: 'wf-analytics-feedback',
         brandId: 'brand-1',
         nodes: [
           {
@@ -550,8 +550,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'analytics-feedback',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await service.executeWorkflow(workflow);
@@ -568,7 +568,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('executes hook generator without invoking fallback behavior', async () => {
       const workflow = service.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-hook-generator' },
+        id: 'wf-hook-generator',
         nodes: [
           {
             data: {
@@ -584,8 +584,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'hookGenerator',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await service.executeWorkflow(workflow);
@@ -629,8 +629,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'proactiveAgentStrategies',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await adapter.executeWorkflow(workflow, {
@@ -654,7 +654,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('executes trend trigger with analytics keywords when no social trend adapter is available', async () => {
       const workflow = service.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-trend' },
+        id: 'wf-trend',
         nodes: [
           {
             cachedOutput: ['ai tools'],
@@ -684,8 +684,8 @@ describe('WorkflowEngineAdapterService', () => {
           },
         ],
         lockedNodeIds: ['topics'],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await service.executeWorkflow(workflow);
@@ -702,7 +702,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('executes text-only publish when brand and caption inputs are present', async () => {
       const workflow = service.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-publish' },
+        id: 'wf-publish',
         edges: [
           {
             id: 'brand-publish',
@@ -743,8 +743,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'output-publish',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await service.executeWorkflow(workflow);
@@ -778,7 +778,7 @@ describe('WorkflowEngineAdapterService', () => {
       );
 
       const workflow = avatarService.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         brandId: 'brand-1',
         edges: [],
         nodes: [
@@ -791,8 +791,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'ai-avatar-video',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       workflow.lockedNodeIds = ['script'];
@@ -830,12 +830,12 @@ describe('WorkflowEngineAdapterService', () => {
     });
 
     it('executes captions, music source, and sound overlay nodes without fallback', async () => {
-      const brandId = '507f1f77bcf86cd799439011';
-      const organizationId = '507f1f77bcf86cd799439012';
-      const userId = '507f1f77bcf86cd799439013';
-      const avatarId = '507f1f77bcf86cd799439014';
-      const musicId = '507f1f77bcf86cd799439015';
-      const captionedId = '507f1f77bcf86cd799439016';
+      const brandId = 'c07f1f77bcf86cd799439011';
+      const organizationId = 'c07f1f77bcf86cd799439012';
+      const userId = 'c07f1f77bcf86cd799439013';
+      const avatarId = 'c07f1f77bcf86cd799439014';
+      const musicId = 'c07f1f77bcf86cd799439015';
+      const captionedId = 'c07f1f77bcf86cd799439016';
       const captionsService = { create: vi.fn().mockResolvedValue({}) };
       const fileQueueService = {
         processVideo: vi.fn().mockResolvedValue({ jobId: 'job-1' }),
@@ -884,7 +884,7 @@ describe('WorkflowEngineAdapterService', () => {
       );
 
       const captionsWorkflow = executionService.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-caption' },
+        id: 'wf-caption',
         brandId,
         edges: [
           {
@@ -907,8 +907,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'effect-captions',
           },
         ],
-        organization: { toString: () => organizationId },
-        user: { toString: () => userId },
+        organizationId,
+        userId,
       });
       captionsWorkflow.lockedNodeIds = ['avatar'];
       captionsWorkflow.nodes[0].isLocked = true;
@@ -927,7 +927,7 @@ describe('WorkflowEngineAdapterService', () => {
       );
 
       const musicWorkflow = executionService.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-music' },
+        id: 'wf-music',
         brandId,
         edges: [],
         nodes: [
@@ -937,8 +937,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'musicSource',
           },
         ],
-        organization: { toString: () => organizationId },
-        user: { toString: () => userId },
+        organizationId,
+        userId,
       });
 
       const musicResult = await executionService.executeWorkflow(musicWorkflow);
@@ -947,7 +947,7 @@ describe('WorkflowEngineAdapterService', () => {
       expect(musicsService.findOne).toHaveBeenCalled();
 
       const overlayWorkflow = executionService.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-overlay' },
+        id: 'wf-overlay',
         brandId,
         edges: [
           {
@@ -982,8 +982,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'soundOverlay',
           },
         ],
-        organization: { toString: () => organizationId },
-        user: { toString: () => userId },
+        organizationId,
+        userId,
       });
       overlayWorkflow.lockedNodeIds = ['captioned', 'music'];
       overlayWorkflow.nodes[0].isLocked = true;
@@ -1066,13 +1066,13 @@ describe('WorkflowEngineAdapterService', () => {
       const template = GENERATION_WORKFLOW_TEMPLATES['virtual-staging-rescue'];
 
       const workflowDoc = {
-        _id: { toString: () => 'wf-real-estate' },
-        brandId: '507f1f77bcf86cd799439011',
+        id: 'wf-real-estate',
+        brandId: 'c07f1f77bcf86cd799439011',
         edges: template.edges,
         inputVariables: template.inputVariables,
         nodes: template.nodes,
-        organization: { toString: () => '507f1f77bcf86cd799439012' },
-        user: { toString: () => '507f1f77bcf86cd799439013' },
+        organizationId: 'c07f1f77bcf86cd799439012',
+        userId: 'c07f1f77bcf86cd799439013',
       };
 
       const executableWorkflow =
@@ -1146,7 +1146,7 @@ describe('WorkflowEngineAdapterService', () => {
       );
 
       const workflow = imageWorkflowService.convertToExecutableWorkflow({
-        _id: { toString: () => 'wf-missing-brand' },
+        id: 'wf-missing-brand',
         edges: [],
         nodes: [
           {
@@ -1161,8 +1161,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'imageGen',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const result = await imageWorkflowService.executeWorkflow(workflow);
@@ -1178,7 +1178,7 @@ describe('WorkflowEngineAdapterService', () => {
   describe('node type to executor mapping', () => {
     it('should map brandAsset to brandAsset executor', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: { assetType: 'logo', brandId: 'brand-1' } },
@@ -1186,8 +1186,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'brandAsset',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1197,7 +1197,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should map social-post-reply to postReply executor', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {}, label: 'Post Reply' },
@@ -1205,8 +1205,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'social-post-reply',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1216,7 +1216,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should map social-send-dm to sendDm executor', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {}, label: 'Send DM' },
@@ -1224,8 +1224,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'social-send-dm',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1235,7 +1235,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should map trigger nodes to corresponding executors', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1263,8 +1263,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'trigger-comment',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1278,7 +1278,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should map control nodes', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1291,8 +1291,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'control-delay',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1303,7 +1303,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should map fallback types to dedicated fallback executors', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1316,8 +1316,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'control-loop',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1328,7 +1328,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should map input-video to the dedicated input-video executor', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1336,8 +1336,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'input-video',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1347,7 +1347,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should pass through unknown types unchanged', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1355,8 +1355,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'customType',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1368,7 +1368,7 @@ describe('WorkflowEngineAdapterService', () => {
   describe('node configuration handling', () => {
     it('should handle node.inputs array', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1377,8 +1377,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'imageGen',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1389,7 +1389,7 @@ describe('WorkflowEngineAdapterService', () => {
     it('should handle node.cachedOutput', () => {
       const cachedOutput = { result: 'cached' };
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             cachedOutput,
@@ -1398,8 +1398,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'imageGen',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1409,7 +1409,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should extract label from node.data.label', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {}, label: 'Custom Label' },
@@ -1417,8 +1417,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'imageGen',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1428,7 +1428,7 @@ describe('WorkflowEngineAdapterService', () => {
 
     it('should fallback to node type when label is missing', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         nodes: [
           {
             data: { config: {} },
@@ -1436,8 +1436,8 @@ describe('WorkflowEngineAdapterService', () => {
             type: 'imageGen',
           },
         ],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
@@ -1511,19 +1511,19 @@ describe('WorkflowEngineAdapterService', () => {
 
       const runNode = async (assetType: 'logo' | 'banner' | 'references') => {
         const workflow = brandAssetService.convertToExecutableWorkflow({
-          _id: { toString: () => `wf-${assetType}` },
+          id: `wf-${assetType}`,
           nodes: [
             {
               data: {
-                config: { assetType, brandId: '507f1f77bcf86cd799439011' },
+                config: { assetType, brandId: 'b07f1f77bcf86cd799439011' },
                 label: 'Brand Asset',
               },
               id: `brand-${assetType}`,
               type: 'brandAsset',
             },
           ],
-          organization: { toString: () => '507f1f77bcf86cd799439012' },
-          user: { toString: () => '507f1f77bcf86cd799439013' },
+          organizationId: 'o07f1f77bcf86cd799439012',
+          userId: 'u07f1f77bcf86cd799439013',
         });
 
         const result = await brandAssetService.executeWorkflow(workflow);
@@ -1546,7 +1546,7 @@ describe('WorkflowEngineAdapterService', () => {
   describe('edges handling', () => {
     it('should preserve sourceHandle and targetHandle', () => {
       const workflowDoc = {
-        _id: { toString: () => 'wf-1' },
+        id: 'wf-1',
         edges: [
           {
             id: 'e1',
@@ -1557,8 +1557,8 @@ describe('WorkflowEngineAdapterService', () => {
           },
         ],
         nodes: [],
-        organization: { toString: () => 'org-1' },
-        user: { toString: () => 'user-1' },
+        organizationId: 'org-1',
+        userId: 'user-1',
       };
 
       const result = service.convertToExecutableWorkflow(workflowDoc);
