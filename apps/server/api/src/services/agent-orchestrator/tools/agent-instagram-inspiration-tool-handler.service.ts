@@ -201,6 +201,7 @@ export class AgentInstagramInspirationToolHandler {
     if (!brandId) {
       throw new BadRequestException('The selected brand has no stable ID.');
     }
+    const brandRecord = brand as unknown as Record<string, unknown>;
 
     const effectiveConfig = resolveEffectiveBrandAgentConfig({
       brand: brand as Parameters<

@@ -147,7 +147,7 @@ export class IngredientsOperationsController {
         model: metadata.model,
         organizationId: callerOrganizationId,
         parentId: ingredientId,
-        promptId: metadata.promptId,
+        promptId: metadata.promptId ?? undefined,
         result: metadata.result,
         size: metadata.size,
         status: IngredientStatus.PROCESSING,

@@ -152,9 +152,7 @@ export class VideosReframeController {
     }
 
     const promptText =
-      createVideoDto.text ||
-      createVideoDto.prompt ||
-      `Reframe video to ${format} format`;
+      createVideoDto.text || `Reframe video to ${format} format`;
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
@@ -248,10 +246,15 @@ export class VideosReframeController {
                     description:
                       typeof (ingredientData.brand as { description?: unknown })
                         .description === 'string'
-                        ? (ingredientData.brand as { description: string })
-                            .description
+                        ? (
+                            ingredientData.brand as unknown as {
+                              description: string;
+                            }
+                          ).description
                         : undefined,
-                    label: (ingredientData.brand as { label: string }).label,
+                    label: (
+                      ingredientData.brand as unknown as { label: string }
+                    ).label,
                   }
                 : undefined,
             camera: createVideoDto.camera,

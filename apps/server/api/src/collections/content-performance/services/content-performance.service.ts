@@ -72,7 +72,10 @@ export class ContentPerformanceService extends BaseService<
   protected override normalizeDocument(
     document: unknown,
   ): ContentPerformanceDocument {
-    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const record = super.normalizeDocument(document) as unknown as Record<
+      string,
+      unknown
+    >;
     const persistedData = this.readRecord(record.data);
     const domainData = pickDefinedFields(
       persistedData,

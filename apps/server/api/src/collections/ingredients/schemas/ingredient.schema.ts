@@ -4,7 +4,11 @@ import type { Ingredient } from '@genfeedai/prisma';
 export type { Ingredient } from '@genfeedai/prisma';
 
 export interface IngredientRefDocument {
+  description?: string;
   id: string;
+  label?: string;
+  name?: string;
+  original?: string;
   [key: string]: unknown;
 }
 
@@ -12,6 +16,7 @@ export interface IngredientMetadataDocument {
   id?: string;
   duration?: number;
   extension?: string;
+  externalProvider?: string;
   height?: number;
   model?: string;
   promptId?: string | null;

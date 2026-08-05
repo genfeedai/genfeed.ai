@@ -2,7 +2,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
@@ -75,7 +75,7 @@ export class AgentOrchestratorRecurringTaskService {
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
-    private readonly organizationsService: OrganizationsService,
+    private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly streamPublisher: AgentStreamPublisherService,
     private readonly streamEffects: AgentStreamEffectsService,
     private readonly agentRunsService: AgentRunsService,
@@ -554,7 +554,7 @@ export class AgentOrchestratorRecurringTaskService {
   private readRecurringTaskResumeCursor(
     resumeCursor: Record<string, unknown> | undefined,
   ): RecurringTaskResumeCursor | null {
-    if (!resumeCursor || resumeCursor.kind !== 'recurring_workflow_setup') {
+    if (resumeCursor?.kind !== 'recurring_workflow_setup') {
       return null;
     }
 
@@ -841,13 +841,9 @@ export class AgentOrchestratorRecurringTaskService {
   private async resolveOrganizationTimezone(
     organizationId: string,
   ): Promise<string> {
-    const organization = await this.organizationsService.findOne({
-      id: organizationId,
-      isDeleted: false,
+    const settings = await this.organizationSettingsService.findOne({
+      organizationId,
     });
-    const settings = organization?.settings as
-      | { timezone?: string }
-      | undefined;
 
     return settings?.timezone?.trim() || 'UTC';
   }

@@ -183,7 +183,7 @@ export class AgentAnalyticsToolHandler {
       }
 
       // Scalar FK — `assertResourceScope` rejects an undefined resource brand.
-      const brandId = ingredient.brandId ?? undefined;
+      const brandId = readOptionalString(ingredient.brandId);
       this.assertResourceScope(ctx, brandId, 'selected content');
 
       const publishedPost = await this.resolveLatestPublishedPostForIngredient(

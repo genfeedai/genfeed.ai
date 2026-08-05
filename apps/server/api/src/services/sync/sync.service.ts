@@ -175,7 +175,7 @@ export class SyncService {
     // 2. Convert to portable cloud format
     const cloudFormat = this.formatConverterService.ensureCloudFormat({
       edges: workflow.edges ?? [],
-      name: workflow.name ?? workflow.label ?? undefined,
+      name: workflow.label ?? undefined,
       nodes: workflow.nodes ?? [],
     });
 

@@ -202,7 +202,7 @@ export class WebhooksService {
         dbUserId,
         ingredientId: ingredient.id.toString(),
         metadataExtension: metadata?.extension,
-        organizationId: ingredient.organizationId,
+        organizationId: ingredient.organizationId ?? undefined,
         transformations: ingredient.transformations || [],
         userId,
         userRoom,
@@ -301,7 +301,7 @@ export class WebhooksService {
           dbUserId,
           errorMessage,
           ingredientId: ingredient.id.toString(),
-          organizationId: ingredient.organizationId,
+          organizationId: ingredient.organizationId ?? undefined,
           userId,
           userRoom,
         });

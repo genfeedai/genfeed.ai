@@ -96,11 +96,11 @@ export class DevController {
           cdnUrl,
           ingredient: {
             _id: ingredient.id.toString(),
-            metadata: ingredient.metadata,
+            metadata: ingredient.metadata ?? undefined,
             // The Discord card renders `prompt.original`, so it needs the
             // populated object, not the id.
             // relation-alias-ok: explicitly populated in the query above.
-            prompt: ingredient.prompt,
+            prompt: ingredient.prompt ?? undefined,
           },
         },
         type: 'discord',

@@ -36,7 +36,7 @@ const CHECKOUT_SESSION_PROCESSED_TTL_SECONDS = 60 * 60 * 24 * 30;
 const CHECKOUT_SESSION_LOCK_TTL_SECONDS = 60 * 5;
 
 type CreditsActivity = {
-  brandId: string;
+  brandId?: string;
   key?: ActivityKey;
   organizationId: string;
   source: ActivitySource;
@@ -337,7 +337,7 @@ export class StripeWebhookSupportService {
   /** Record the credits-added/reset activity entry. */
   async recordCreditsActivity(activity: CreditsActivity): Promise<void> {
     await this.activitiesService.create({
-      brandId: activity.brandId,
+      ...(activity.brandId ? { brandId: activity.brandId } : {}),
       key: activity.key ?? ActivityKey.CREDITS_ADD,
       organizationId: activity.organizationId,
       source: activity.source,

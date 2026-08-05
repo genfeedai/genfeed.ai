@@ -58,7 +58,10 @@ export class WatchlistsService extends BaseService<
   }
 
   protected override normalizeDocument(document: unknown): WatchlistDocument {
-    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const record = super.normalizeDocument(document) as unknown as Record<
+      string,
+      unknown
+    >;
     const config =
       record.config !== null &&
       typeof record.config === 'object' &&
@@ -66,7 +69,7 @@ export class WatchlistsService extends BaseService<
         ? (record.config as Record<string, unknown>)
         : {};
 
-    return { ...config, ...record } as WatchlistDocument;
+    return { ...config, ...record } as unknown as WatchlistDocument;
   }
 
   override create(

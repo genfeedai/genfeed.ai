@@ -567,7 +567,7 @@ export class AgentPublishToolHandler {
         };
       }
 
-      const brandId = ingredient.brandId ?? undefined;
+      const brandId = readOptionalString(ingredient.brandId);
       await this.assertPublishingScope(ctx, brandId, 'selected content');
 
       if (platforms.length === 0) {

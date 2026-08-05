@@ -4,11 +4,13 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { UserDocument } from '@api/collections/users/schemas/user.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import type {
   InstallReadinessResponse,
   OnboardingWorkspaceContext,
 } from '@api/endpoints/onboarding/onboarding.interfaces';
+import { PopulateBuilder } from '@api/shared/utils/populate/populate-builder.util';
 import { hasOrganizationBilling, isCloudDeployment } from '@genfeedai/config';
 import type {
   IOnboardingAccessPreference,
@@ -172,14 +174,20 @@ export class OnboardingReadinessService {
     > | null = null;
 
     if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
-      const dbUser = await this.usersService.findOne({
-        id: userId,
-        isDeleted: false,
-      });
+      const dbUser = (await this.usersService.findOne(
+        {
+          id: userId,
+          isDeleted: false,
+        },
+        [PopulateBuilder.withFields('settings', ['dashboardPreferences'])],
+      )) as
+        | (UserDocument & {
+            settings?: { dashboardPreferences?: unknown } | null;
+          })
+        | null;
 
       selectedMode = this.getSelectedAccessMode(
-        (dbUser?.settings as { dashboardPreferences?: unknown } | undefined)
-          ?.dashboardPreferences,
+        dbUser?.settings?.dashboardPreferences,
       );
     }
 

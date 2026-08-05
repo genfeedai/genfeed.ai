@@ -92,33 +92,34 @@ export class MetadataLookupService {
       }
 
       const userId = ingredient.userId;
-      const userRoom = getUserRoomName(userId);
-
-      if (userId) {
-        const websocketUrl = `/${categoryToPlural(category)}/${ingredient.id}`;
-        const errorMessage =
-          'Generation failed: Metadata not found. Please contact support if this persists.';
-
-        await this.websocketService.publishMediaFailed(
-          websocketUrl,
-          errorMessage,
-          userId,
-          userRoom,
-        );
-
-        await this.ingredientsService.patch(ingredient.id.toString(), {
-          status: IngredientStatus.FAILED,
-        });
-
-        this.loggerService.log(
-          `${this.logContext} published websocket error for metadata not found`,
-          {
-            externalId,
-            ingredientId: ingredient.id,
-            userId,
-          },
-        );
+      if (!userId) {
+        return;
       }
+
+      const userRoom = getUserRoomName(userId);
+      const websocketUrl = `/${categoryToPlural(category)}/${ingredient.id}`;
+      const errorMessage =
+        'Generation failed: Metadata not found. Please contact support if this persists.';
+
+      await this.websocketService.publishMediaFailed(
+        websocketUrl,
+        errorMessage,
+        userId,
+        userRoom,
+      );
+
+      await this.ingredientsService.patch(ingredient.id.toString(), {
+        status: IngredientStatus.FAILED,
+      });
+
+      this.loggerService.log(
+        `${this.logContext} published websocket error for metadata not found`,
+        {
+          externalId,
+          ingredientId: ingredient.id,
+          userId,
+        },
+      );
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.logContext} failed to publish websocket error`,

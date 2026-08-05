@@ -11,7 +11,7 @@ export interface DistributionDocument extends Distribution {
   chatId?: string;
   contentType?: DistributionContentType | string;
   mediaUrl?: string;
-  platform?: DistributionPlatform | string;
+  platform: DistributionPlatform | string | null;
   scheduledAt?: string | null;
   telegramMessageId?: string;
   text?: string;

@@ -21,7 +21,7 @@ type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =
   | Pick<
       AgentStrategy,
-      'autonomyMode' | 'brand' | 'model' | 'platforms' | 'qualityTier'
+      'autonomyMode' | 'brandId' | 'model' | 'platforms' | 'qualityTier'
     >
   | null
   | undefined;
@@ -252,7 +252,7 @@ export const resolveEffectiveAgentExecutionConfig = ({
         strategy?.autonomyMode ??
           organizationSettings?.agentPolicy?.autonomyDefault,
       ),
-      brandId: asOptionalString(strategy?.brand),
+      brandId: asOptionalString(strategy?.brandId),
       creditGovernance: {
         agentDailyCreditCap:
           organizationSettings?.agentPolicy?.creditGovernance

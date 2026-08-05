@@ -103,7 +103,7 @@ export class VideosEditsController {
           brandId: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          organizationId: video.organizationId,
+          organizationId: video.organizationId ?? undefined,
           parentId: videoId,
           status: IngredientStatus.PROCESSING,
         });
@@ -241,7 +241,7 @@ export class VideosEditsController {
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: originalMetadata.height,
-          organizationId: video.organizationId,
+          organizationId: video.organizationId ?? undefined,
           parentId: videoId,
           status: IngredientStatus.PROCESSING,
           width: originalMetadata.width,

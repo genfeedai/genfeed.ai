@@ -83,7 +83,7 @@ export class VideosEffectsController {
         brandId: video.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organizationId: video.organizationId,
+        organizationId: video.organizationId ?? undefined,
         parentId: videoId,
         status: IngredientStatus.PROCESSING,
       });
@@ -164,7 +164,7 @@ export class VideosEffectsController {
           brandId: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          organizationId: video.organizationId,
+          organizationId: video.organizationId ?? undefined,
           parentId: videoId,
           status: IngredientStatus.PROCESSING,
         });
