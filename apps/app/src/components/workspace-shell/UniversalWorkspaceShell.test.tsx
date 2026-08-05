@@ -361,13 +361,13 @@ vi.mock('@/features/workflows/workspace/WorkflowPickerOverlay', () => ({
   WorkflowPickerOverlay: ({
     onAttachWorkflow,
   }: {
-    onAttachWorkflow: (workflow: { _id: string; name: string }) => void;
+    onAttachWorkflow: (workflow: { id: string; label: string }) => void;
   }) => (
     <div>
       <p>Authorized workflow picker</p>
       <button
         onClick={() =>
-          onAttachWorkflow({ _id: 'workflow-1', name: 'Launch brief' })
+          onAttachWorkflow({ id: 'workflow-1', label: 'Launch brief' })
         }
         type="button"
       >

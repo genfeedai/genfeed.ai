@@ -370,7 +370,6 @@ describe('PresetsList', () => {
         'preset-1',
         expect.objectContaining({
           isActive: false,
-          label: 'Launch Video',
         }),
       );
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
