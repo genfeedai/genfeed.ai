@@ -77,19 +77,15 @@ const seedOrganizationBrandFixture = async (
   const organizationId = generateIdString();
   const brandId = generateIdString();
 
-  // No direct `users` seed here — `normalizeDocument`'s organization branch
-  // auto-upserts a schema-valid User row (`{id, handle, email}`) via
-  // `ensureUser()` for whatever `userId` the organization document carries.
-  // Mirrors the passing stripe-webhook-credit-grant spec's pattern, which
-  // never seeds `users` directly either.
+  // Organization seeding ensures its canonical user dependency exists.
   await dbHelper.seedCollection('organizations', [
-    createTestOrganization({ id: organizationId, user: userId }),
+    createTestOrganization({ id: organizationId, userId }),
   ]);
   await dbHelper.seedCollection('brands', [
     createTestBrand({
       id: brandId,
-      organization: organizationId,
-      user: userId,
+      organizationId,
+      userId,
     }),
   ]);
 

@@ -126,13 +126,13 @@ describe('Tasks E2E Tests', () => {
     testOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Tasks Test Organization',
-      user: testUser.id,
+      userId: testUser.id,
     });
 
     otherOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Other Tasks Organization',
-      user: generateIdString(),
+      userId: generateIdString(),
     });
 
     scopedTaskId = generateIdString();

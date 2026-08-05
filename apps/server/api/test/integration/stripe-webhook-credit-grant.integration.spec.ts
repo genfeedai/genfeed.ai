@@ -313,7 +313,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const organization = createTestOrganization({
       id: organizationId,
       label: `Test Org ${params.plan} ${organizationId}`,
-      user: userId,
+      userId,
     });
 
     await dbHelper.seedCollection('organizations', [organization]);

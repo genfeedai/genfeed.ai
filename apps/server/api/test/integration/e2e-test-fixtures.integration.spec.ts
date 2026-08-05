@@ -12,15 +12,13 @@ import { BetterAuthIdentityCacheService } from '@api/common/services/better-auth
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createTestUser } from '@api-test/e2e/e2e-test.utils';
 import {
   BRAND_SERVICE_E2E_MOCK_PROVIDERS,
   COLLECTION_E2E_MOCK_PROVIDERS,
   E2ETestModule,
-  TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 /**
  * Nest accepts both `{ provide: Token, useValue }` objects and bare classes as
@@ -39,30 +37,6 @@ function resolveProviderToken(provider: unknown): unknown {
 describe('E2E fixture contracts', () => {
   it('creates users with canonical Prisma fields', () => {
     expect(createTestUser()).not.toHaveProperty('isActive');
-  });
-
-  it('strips legacy user activity state at the shared seed boundary', async () => {
-    const create = vi.fn().mockResolvedValue({ id: 'user-1' });
-    const helper = new TestDatabaseHelper({
-      user: { create },
-    } as unknown as PrismaService);
-
-    await helper.seedCollection('users', [
-      {
-        email: 'user-1@example.com',
-        handle: 'user-1',
-        id: 'user-1',
-        isActive: true,
-      },
-    ]);
-
-    expect(create).toHaveBeenCalledWith({
-      data: {
-        email: 'user-1@example.com',
-        handle: 'user-1',
-        id: 'user-1',
-      },
-    });
   });
 
   it('provides every optional BrandsService collaborator to CRUD E2E modules', async () => {

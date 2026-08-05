@@ -36,6 +36,7 @@ import {
   createTestCredit,
   createTestIngredient,
   createTestMember,
+  createTestMetadata,
   createTestOrganization,
   createTestOrganizationSetting,
   createTestPost,
@@ -165,23 +166,23 @@ describe('Organizations E2E Tests', () => {
     testOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Test Organization for E2E',
-      user: testUser.id,
+      userId: testUser.id,
     });
 
     // Create test member (owner)
     testMember = createTestMember({
       id: generateIdString(),
-      organization: testOrganization.id,
-      role: 'owner',
-      user: testUser.id,
+      organizationId: testOrganization.id,
+      roleId: 'owner',
+      userId: testUser.id,
     });
 
     // Create test brand
     testBrand = createTestBrand({
       id: generateIdString(),
       label: 'Test Brand',
-      organization: testOrganization.id,
-      user: testUser.id,
+      organizationId: testOrganization.id,
+      userId: testUser.id,
     });
 
     // Seed core data
@@ -192,14 +193,14 @@ describe('Organizations E2E Tests', () => {
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
         id: generateIdString(),
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
       }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
       createTestCredit({
         id: generateIdString(),
         balance: 50000,
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
       }),
     ]);
   });
@@ -222,16 +223,16 @@ describe('Organizations E2E Tests', () => {
         createTestBrand({
           id: generateIdString(),
           label: 'Brand Two',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           slug: `brand-two-${Date.now()}`,
-          user: testUser.id,
+          userId: testUser.id,
         }),
         createTestBrand({
           id: generateIdString(),
           label: 'Brand Three',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           slug: `brand-three-${Date.now()}`,
-          user: testUser.id,
+          userId: testUser.id,
         }),
       ];
       await dbHelper.seedCollection('brands', additionalBrands);
@@ -265,9 +266,9 @@ describe('Organizations E2E Tests', () => {
         id: generateIdString(),
         isDeleted: true,
         label: 'Deleted Brand',
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
         slug: `deleted-brand-${Date.now()}`,
-        user: testUser.id,
+        userId: testUser.id,
       });
       await dbHelper.seedCollection('brands', [deletedBrand]);
 
@@ -299,28 +300,25 @@ describe('Organizations E2E Tests', () => {
         createTestTag({
           id: generateIdString(),
           label: 'Tag One',
-          organization: testOrganization.id,
-          user: testUser.id,
+          organizationId: testOrganization.id,
+          userId: testUser.id,
         }),
         createTestTag({
           id: generateIdString(),
           label: 'Tag Two',
-          organization: testOrganization.id,
-          user: testUser.id,
+          organizationId: testOrganization.id,
+          userId: testUser.id,
         }),
         // Global tag (no user, no organization)
         createTestTag({
           id: generateIdString(),
           label: 'Global Tag',
-          organization: undefined,
-          user: undefined,
+          organizationId: null,
+          userId: null,
         }),
       ];
 
-      // Clear the user and organization fields for global tag
       const [tag1, tag2, globalTag] = tags;
-      delete (globalTag as Record<string, unknown>).user;
-      delete (globalTag as Record<string, unknown>).organization;
 
       await dbHelper.seedCollection('tags', [tag1, tag2, globalTag]);
     });
@@ -361,7 +359,7 @@ describe('Organizations E2E Tests', () => {
         id: generateIdString(),
         brandId: testBrand.id,
         organizationId: testOrganization.id,
-        platform: 'youtube',
+        platform: 'YOUTUBE',
         userId: testUser.id,
       });
 
@@ -437,37 +435,51 @@ describe('Organizations E2E Tests', () => {
 
   describe('GET /v1/organizations/:organizationId/ingredients', () => {
     beforeEach(async () => {
-      // Create ingredients
+      const metadata = [
+        createTestMetadata({
+          extension: 'MP4',
+          label: 'Video Ingredient',
+        }),
+        createTestMetadata({
+          extension: 'JPEG',
+          label: 'Image Ingredient',
+        }),
+        createTestMetadata({
+          extension: 'MP3',
+          label: 'Audio Ingredient',
+        }),
+      ];
       const ingredients = [
         createTestIngredient({
           id: generateIdString(),
-          brand: testBrand.id,
-          category: 'video',
-          label: 'Video Ingredient',
-          organization: testOrganization.id,
-          status: 'ready',
-          user: testUser.id,
+          brandId: testBrand.id,
+          category: 'VIDEO',
+          metadataId: metadata[0]?.id,
+          organizationId: testOrganization.id,
+          status: 'UPLOADED',
+          userId: testUser.id,
         }),
         createTestIngredient({
           id: generateIdString(),
-          brand: testBrand.id,
-          category: 'image',
-          label: 'Image Ingredient',
-          organization: testOrganization.id,
-          status: 'ready',
-          user: testUser.id,
+          brandId: testBrand.id,
+          category: 'IMAGE',
+          metadataId: metadata[1]?.id,
+          organizationId: testOrganization.id,
+          status: 'UPLOADED',
+          userId: testUser.id,
         }),
         createTestIngredient({
           id: generateIdString(),
-          brand: testBrand.id,
-          category: 'audio',
-          label: 'Audio Ingredient',
-          organization: testOrganization.id,
-          status: 'processing',
-          user: testUser.id,
+          brandId: testBrand.id,
+          category: 'AUDIO',
+          metadataId: metadata[2]?.id,
+          organizationId: testOrganization.id,
+          status: 'PROCESSING',
+          userId: testUser.id,
         }),
       ];
 
+      await dbHelper.seedCollection('metadata', metadata);
       await dbHelper.seedCollection('ingredients', ingredients);
     });
 
@@ -489,19 +501,19 @@ describe('Organizations E2E Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(1);
-      expect(response.body.data[0].attributes.category).toBe('video');
+      expect(response.body.data[0].attributes.category).toBe('VIDEO');
     });
 
     it('should filter ingredients by status', async () => {
       const response = await authenticatedRequest().get(
-        `/v1/organizations/${testOrganization.id}/ingredients?status=ready`,
+        `/v1/organizations/${testOrganization.id}/ingredients?status=uploaded`,
       );
 
       expect(response.status).toBe(200);
       expect(response.body.data.length).toBe(2);
       response.body.data.forEach((ingredient: Record<string, unknown>) => {
         expect((ingredient.attributes as Record<string, unknown>).status).toBe(
-          'ready',
+          'UPLOADED',
         );
       });
     });
@@ -548,9 +560,9 @@ describe('Organizations E2E Tests', () => {
 
       const membership = createTestMember({
         id: generateIdString(),
-        organization: testOrganization.id,
-        role: 'member',
-        user: memberUser.id,
+        organizationId: testOrganization.id,
+        roleId: 'member',
+        userId: memberUser.id,
       });
 
       await dbHelper.seedCollection('users', [memberUser]);
@@ -581,22 +593,22 @@ describe('Organizations E2E Tests', () => {
       otherOrganization = createTestOrganization({
         id: generateIdString(),
         label: 'Other Organization',
-        user: otherUser.id,
+        userId: otherUser.id,
       });
 
       const otherMember = createTestMember({
         id: generateIdString(),
-        organization: otherOrganization.id,
-        role: 'owner',
-        user: otherUser.id,
+        organizationId: otherOrganization.id,
+        roleId: 'owner',
+        userId: otherUser.id,
       });
 
       const otherBrand = createTestBrand({
         id: generateIdString(),
         label: 'Other Brand',
-        organization: otherOrganization.id,
+        organizationId: otherOrganization.id,
         slug: `other-brand-${Date.now()}`,
-        user: otherUser.id,
+        userId: otherUser.id,
       });
 
       await dbHelper.seedCollection('users', [otherUser]);
@@ -606,7 +618,7 @@ describe('Organizations E2E Tests', () => {
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
           id: generateIdString(),
-          organization: otherOrganization.id,
+          organizationId: otherOrganization.id,
         }),
       ]);
     });
@@ -630,9 +642,8 @@ describe('Organizations E2E Tests', () => {
       // Create ingredient in other organization
       const otherIngredient = createTestIngredient({
         id: generateIdString(),
-        label: 'Other Ingredient',
-        organization: otherOrganization.id,
-        user: otherUser.id,
+        organizationId: otherOrganization.id,
+        userId: otherUser.id,
       });
       await dbHelper.seedCollection('ingredients', [otherIngredient]);
 
