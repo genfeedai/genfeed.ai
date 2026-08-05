@@ -12,5 +12,6 @@ export default function robots(): MetadataRoute.Robots {
       disallow: '/',
       userAgent: '*',
     },
+    sitemap: 'https://app.genfeed.ai/sitemap.xml',
   };
 }
