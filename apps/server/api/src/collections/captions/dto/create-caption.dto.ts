@@ -9,7 +9,7 @@ export class CreateCaptionDto {
     description: 'The ingredient ID that this caption belongs to',
     required: true,
   })
-  readonly ingredient!: string;
+  readonly ingredientId!: string;
 
   @IsString()
   @ApiProperty({

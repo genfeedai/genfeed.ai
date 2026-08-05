@@ -166,7 +166,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'instagramHandle',
     'logoUrl',
   ],
-  'caption:Caption': ['brand', 'format', 'language'],
+  'caption:Caption': [],
   'content-plan-item:ContentPlanItem': [],
   'content-plan:ContentPlan': [],
   'content-run:ContentRun': [

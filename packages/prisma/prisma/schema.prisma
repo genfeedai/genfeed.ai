@@ -4739,11 +4739,14 @@ model Caption {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   content        String?
+  format         String       @default("srt")
+  language       String       @default("en")
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, userId, isDeleted, createdAt(sort: Desc)])
   @@map("captions")
 }
 

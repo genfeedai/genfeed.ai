@@ -125,13 +125,13 @@ export class CaptionsController {
 
     const ingredient: IngredientDocument | null =
       await this.ingredientsService.findOne({
-        id: createCaptionDto.ingredient,
+        id: createCaptionDto.ingredientId,
       });
 
     if (!ingredient) {
       return returnNotFound(
         this.constructorName,
-        createCaptionDto.ingredient.toString(),
+        createCaptionDto.ingredientId,
       );
     }
 
@@ -175,10 +175,9 @@ export class CaptionsController {
 
     const data: CaptionDocument = await this.captionsService.create(
       new CaptionEntity({
-        ...createCaptionDto,
         content: captionContent,
         format: createCaptionDto.format,
-        ingredientId: createCaptionDto.ingredient,
+        ingredientId: createCaptionDto.ingredientId,
         isDeleted: false,
         language: createCaptionDto.language,
         organizationId: publicMetadata.organization,

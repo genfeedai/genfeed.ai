@@ -148,6 +148,7 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
             ingredientId: sourceIngredientId,
             isDeleted: false,
             language: CaptionLanguage.EN,
+            organizationId: context.organizationId,
             userId: context.userId,
           }),
         );

@@ -141,7 +141,7 @@ describe('CaptionsController', () => {
       await expect(
         controller.create(
           createMockRequest(),
-          { format: 'srt', ingredient: ingredientId, language: 'en' } as never,
+          { format: 'srt', ingredientId, language: 'en' } as never,
           createMockUser(userId),
         ),
       ).rejects.toThrow(HttpException);
@@ -160,7 +160,7 @@ describe('CaptionsController', () => {
       await expect(
         controller.create(
           createMockRequest(),
-          { format: 'srt', ingredient: ingredientId, language: 'en' } as never,
+          { format: 'srt', ingredientId, language: 'en' } as never,
           createMockUser(userId),
         ),
       ).rejects.toThrow(BadRequestException);
@@ -179,7 +179,7 @@ describe('CaptionsController', () => {
       await expect(
         controller.create(
           createMockRequest(),
-          { format: 'srt', ingredient: ingredientId, language: 'en' } as never,
+          { format: 'srt', ingredientId, language: 'en' } as never,
           createMockUser(userId),
         ),
       ).rejects.toThrow(BadRequestException);
@@ -211,7 +211,7 @@ describe('CaptionsController', () => {
 
       const result = await controller.create(
         createMockRequest(),
-        { format: 'srt', ingredient: ingredientId, language: 'en' } as never,
+        { format: 'srt', ingredientId, language: 'en' } as never,
         createMockUser(userId),
       );
 

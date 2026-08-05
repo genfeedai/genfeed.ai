@@ -1374,6 +1374,10 @@ describe('Serializer Attributes', () => {
       const unique = new Set(captionAttributes);
       expect(unique.size).toBe(captionAttributes.length);
     });
+
+    it('should not expose a nonexistent brand field', () => {
+      expect(captionAttributes).not.toContain('brand');
+    });
   });
 
   describe('presetAttributes', () => {

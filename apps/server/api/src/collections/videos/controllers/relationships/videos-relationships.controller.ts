@@ -315,12 +315,12 @@ export class VideosRelationshipsController {
 
             const caption = await this.captionsService.create(
               new CaptionEntity({
-                ...createMergedVideoDto,
                 content: captionContent,
                 format: CaptionFormat.SRT,
                 ingredientId: ingredientData.id,
                 isDeleted: false,
                 language: CaptionLanguage.EN,
+                organizationId: publicMetadata.organization,
                 userId: publicMetadata.user,
               }),
             );

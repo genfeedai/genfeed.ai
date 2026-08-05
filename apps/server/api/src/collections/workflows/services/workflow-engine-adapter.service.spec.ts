@@ -918,7 +918,13 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(captionsResult.status).toBe('completed');
       expect(whisperService.generateCaptions).toHaveBeenCalledWith(avatarId);
-      expect(captionsService.create).toHaveBeenCalled();
+      expect(captionsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ingredientId: avatarId,
+          organizationId,
+          userId,
+        }),
+      );
 
       const musicWorkflow = executionService.convertToExecutableWorkflow({
         _id: { toString: () => 'wf-music' },

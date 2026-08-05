@@ -5,15 +5,21 @@ describe('CaptionEntity', () => {
     expect(CaptionEntity).toBeDefined();
   });
 
-  it('should create an instance', () => {
-    const entity = new CaptionEntity();
-    expect(entity).toBeInstanceOf(CaptionEntity);
-  });
+  it('should preserve canonical persistence fields', () => {
+    const entity = new CaptionEntity({
+      format: 'srt',
+      ingredientId: 'ingredient-1',
+      language: 'en',
+      organizationId: 'organization-1',
+      userId: 'user-1',
+    });
 
-  // describe('properties', () => {
-  //   it('should have expected properties', () => {
-  //     const entity = new CaptionEntity();
-  //     // Test properties
-  //   });
-  // });
+    expect(entity).toBeInstanceOf(CaptionEntity);
+    expect(entity).toMatchObject({
+      ingredientId: 'ingredient-1',
+      organizationId: 'organization-1',
+      userId: 'user-1',
+    });
+    expect(entity).not.toHaveProperty('ingredient');
+  });
 });
