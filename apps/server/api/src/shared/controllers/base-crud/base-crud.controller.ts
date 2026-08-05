@@ -210,10 +210,8 @@ export abstract class BaseCRUDController<
     }
 
     // Return 404 instead of 403 for security
-    if (
-      !this.canUserModifyEntity(user, existing) &&
-      !getIsSuperAdmin(user, request)
-    ) {
+    const canModifyEntity = this.canUserModifyEntity(user, existing);
+    if (!canModifyEntity && !getIsSuperAdmin(user, request)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 
@@ -221,6 +219,18 @@ export abstract class BaseCRUDController<
 
     // Add user context to create data
     const enrichedDto = await this.enrichUpdateDto(updateDto, user);
+    if (!canModifyEntity) {
+      const existingRecord = existing as Record<string, unknown>;
+      const existingOrganizationId = resolveScopeId(
+        existingRecord.organizationId ?? existingRecord.organization,
+      );
+      const enrichedRecord = enrichedDto as Record<string, unknown>;
+      if (existingOrganizationId) {
+        enrichedRecord.organization = existingOrganizationId;
+      } else {
+        delete enrichedRecord.organization;
+      }
+    }
     const data = await this.service.patch(
       id,
       enrichedDto,
@@ -375,39 +385,37 @@ export abstract class BaseCRUDController<
   /**
    * Enrich create DTO with user context
    * Child controllers can override this to add more context
+   *
+   * Tenant and identity scope come from the auth token and nothing else. A
+   * body-supplied `organization`/`organizationId` (or `user`/`userId`) is
+   * DELETED rather than preferred: `BaseService.normalizeData` remaps the
+   * `organization` alias onto the real `organizationId` column, so honouring
+   * a client value would let any authenticated caller write rows into another
+   * tenant. `brand` stays caller-selectable — a user legitimately picks among
+   * their own brands, and the row is still pinned to the caller's org.
    */
   public enrichCreateDto(createDto: Partial<CreateDto>, user: User): CreateDto {
     const publicMetadata = getPublicMetadata(user);
 
-    let organization: string | undefined;
-    let brand: string | undefined;
+    const dtoRecord = { ...createDto } as Record<string, unknown>;
 
+    let brand: string | undefined;
     if (publicMetadata.brand) {
       brand = publicMetadata.brand;
     }
-
-    if (publicMetadata.organization) {
-      organization = publicMetadata.organization;
-    }
-
-    // Only set brand if it exists on both publicMetadata or createDto, and avoid TS error for generic CreateDto
-    const dtoRecord = createDto as Record<string, unknown>;
-    if (createDto && Object.hasOwn(createDto, 'brand') && dtoRecord.brand) {
+    if (Object.hasOwn(dtoRecord, 'brand') && dtoRecord.brand) {
       brand = String(dtoRecord.brand);
     }
 
-    if (
-      createDto &&
-      Object.hasOwn(createDto, 'organization') &&
-      dtoRecord.organization
-    ) {
-      organization = String(dtoRecord.organization);
-    }
+    delete dtoRecord.organization;
+    delete dtoRecord.organizationId;
+    delete dtoRecord.user;
+    delete dtoRecord.userId;
 
     return {
-      ...createDto,
+      ...dtoRecord,
       brand,
-      organization,
+      organization: publicMetadata.organization || undefined,
       user: publicMetadata.user,
     } as CreateDto;
   }
@@ -424,8 +432,10 @@ export abstract class BaseCRUDController<
       unknown
     >;
 
-    // Handle common relationship fields that might need ObjectId conversion
-    const relationshipFields = ['parent', 'folder', 'brand', 'organization'];
+    // Handle common relationship fields that might need ObjectId conversion.
+    // `organization` is deliberately absent: it is never taken from the body,
+    // so there is nothing to convert (see enrichCreateDto for the rationale).
+    const relationshipFields = ['parent', 'folder', 'brand'];
     for (const field of relationshipFields) {
       if (Object.hasOwn(dto, field)) {
         dto[field] = await EntityIdUtil.convertRelationshipField(
@@ -435,33 +445,26 @@ export abstract class BaseCRUDController<
       }
     }
 
-    // Determine final brand and organization values
-    // Prefer dto values over publicMetadata (same logic as enrichCreateDto)
     let brand: string | undefined;
-    let organization: string | undefined;
-
-    // Start with publicMetadata defaults
     if (publicMetadata.brand) {
       brand = publicMetadata.brand;
     }
-
-    if (publicMetadata.organization) {
-      organization = publicMetadata.organization;
-    }
-
-    // Override with dto values if provided (already converted above)
     if (Object.hasOwn(dto, 'brand')) {
       brand = dto.brand as string | undefined;
     }
 
-    if (Object.hasOwn(dto, 'organization')) {
-      organization = dto.organization as string | undefined;
-    }
+    // Tenant/identity scope is authoritative from the auth token — a body
+    // value would otherwise let a caller re-parent an existing row into
+    // another tenant on update, which is the same bypass as on create.
+    delete dto.organization;
+    delete dto.organizationId;
+    delete dto.user;
+    delete dto.userId;
 
     return await Promise.resolve({
       ...dto,
       brand,
-      organization,
+      organization: publicMetadata.organization || undefined,
       user: publicMetadata.user,
     } as UpdateDto);
   }

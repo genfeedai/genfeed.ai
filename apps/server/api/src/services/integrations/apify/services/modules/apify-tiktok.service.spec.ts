@@ -88,6 +88,10 @@ describe('ApifyTikTokService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // `clearAllMocks` drops recorded calls but keeps implementations, so the
+    // missing-token test's `mockReturnValue(null)` otherwise leaks into every
+    // test that runs after it. Re-arm the happy-path token each time.
+    mockBaseService.getApiToken.mockReturnValue('test-token');
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

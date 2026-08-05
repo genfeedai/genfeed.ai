@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import type { UseAnimatedCounterOptions } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import * as React from 'react';
 import { afterAll, beforeAll, vi } from 'vitest';
 
@@ -173,6 +174,26 @@ global.IntersectionObserver = class IntersectionObserver {
   }
 } as unknown as typeof globalThis.IntersectionObserver;
 window.IntersectionObserver = global.IntersectionObserver;
+
+// `MetricCard` renders every numeric-looking value through `useAnimatedCounter`,
+// which counts up from 0 only once an IntersectionObserver reports the element
+// visible. The stub above never fires, so the value stays pinned at 0 and any
+// assertion on it fails — a trap every new MetricCard consumer walked into. The
+// hook has exactly one caller and its own coverage lives in `packages/hooks`,
+// so settle it at its final value here instead of re-mocking it per spec.
+vi.mock(
+  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
+  () => ({
+    useAnimatedCounter: ({
+      decimals = 0,
+      end,
+      suffix = '',
+    }: UseAnimatedCounterOptions) => ({
+      ref: { current: null },
+      value: `${end.toFixed(decimals)}${suffix}`,
+    }),
+  }),
+);
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

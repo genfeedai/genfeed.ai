@@ -12,7 +12,12 @@ describe('app/(protected)/admin/layout.tsx', () => {
     expect(source).toContain('loadProtectedBootstrap');
     expect(source).toContain('bootstrap?.accessState?.isSuperAdmin');
     expect(source).toContain('notFound()');
-    // Self-host / local Portless superadmins must reach admin too.
-    expect(source).not.toContain('isSaaS');
+
+    // Self-host / local Portless superadmins must reach admin too. The guard's
+    // doc comment names `isSaaS` deliberately, so assert against code only.
+    const code = source
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/\/\/[^\n]*/g, '');
+    expect(code).not.toContain('isSaaS');
   });
 });

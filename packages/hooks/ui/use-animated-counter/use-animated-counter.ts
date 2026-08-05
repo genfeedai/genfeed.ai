@@ -1,7 +1,7 @@
 import { useIntersectionObserver } from '@hooks/ui/use-intersection-observer/use-intersection-observer';
 import { useEffect, useState } from 'react';
 
-interface UseAnimatedCounterProps {
+export interface UseAnimatedCounterOptions {
   end: number;
   duration?: number;
   suffix?: string;
@@ -23,7 +23,7 @@ export function useAnimatedCounter({
   duration = 2000,
   suffix = '',
   decimals = 0,
-}: UseAnimatedCounterProps): UseAnimatedCounterReturn {
+}: UseAnimatedCounterOptions): UseAnimatedCounterReturn {
   const [count, setCount] = useState(0);
   const { ref, isIntersecting } = useIntersectionObserver<HTMLDivElement>({
     threshold: 0.3,

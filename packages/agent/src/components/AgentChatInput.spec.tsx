@@ -319,6 +319,8 @@ describe('AgentChatInput', () => {
             },
           ],
           brandId: 'brand-1',
+          composerMode: 'chat',
+          generationModelKey: null,
           planModeEnabled: false,
         },
       );
@@ -425,7 +427,11 @@ describe('AgentChatInput', () => {
         'Ship the composer fix',
         undefined,
         undefined,
-        { planModeEnabled: false },
+        {
+          composerMode: 'chat',
+          generationModelKey: null,
+          planModeEnabled: false,
+        },
       );
     });
   });
@@ -530,7 +536,11 @@ describe('AgentChatInput', () => {
         'Route to the focused composer',
         undefined,
         undefined,
-        { planModeEnabled: false },
+        {
+          composerMode: 'chat',
+          generationModelKey: null,
+          planModeEnabled: false,
+        },
       );
     });
     expect(onSendSecond).not.toHaveBeenCalled();
