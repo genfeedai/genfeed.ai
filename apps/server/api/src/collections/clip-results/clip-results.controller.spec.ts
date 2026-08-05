@@ -70,7 +70,14 @@ describe('ClipResultsController', () => {
 
   describe('create', () => {
     it('should create a clip result with organization and user from metadata', async () => {
-      const dto = { clip: 'clip-1', project: 'project-1' };
+      const dto = {
+        duration: 30,
+        endTime: 45,
+        index: 0,
+        projectId: 'project-1',
+        startTime: 15,
+        title: 'Clip title',
+      };
       const created = { id: 'cr-1', ...dto } as unknown as ClipResultDocument;
       service.create.mockResolvedValue(created);
 
@@ -78,8 +85,8 @@ describe('ClipResultsController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(String),
-          user: expect.any(String),
+          organizationId,
+          userId,
         }),
       );
       expect(result).toEqual({ data: created });
@@ -136,7 +143,7 @@ describe('ClipResultsController', () => {
         expect.objectContaining({
           id: 'cr-1',
           isDeleted: false,
-          organization: expect.any(String),
+          organizationId,
         }),
       );
       expect(result).toEqual({ data: doc });
@@ -172,7 +179,7 @@ describe('ClipResultsController', () => {
         expect.objectContaining({
           id: 'cr-1',
           isDeleted: false,
-          organization: expect.any(String),
+          organizationId,
         }),
       );
       expect(service.patch).toHaveBeenCalledWith('cr-1', {

@@ -29,13 +29,11 @@ type ClipProjectWriteDto = Partial<
   Record<string, unknown>;
 
 const PROJECT_SCALAR_KEYS = new Set([
-  'brand',
   'brandId',
   'config',
   'error',
   'failedClipCount',
   'isDeleted',
-  'organization',
   'organizationId',
   'pendingClipCount',
   'progress',
@@ -43,6 +41,7 @@ const PROJECT_SCALAR_KEYS = new Set([
   'readyClipCount',
   'status',
   'terminalAt',
+  'userId',
 ]);
 
 @Injectable()
@@ -57,6 +56,13 @@ export class ClipProjectsService extends BaseService<
     private readonly clipResultsService: ClipResultsService,
   ) {
     super(prisma, 'clipProject', logger);
+  }
+
+  protected override normalizeDocument(document: unknown): ClipProjectDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config = this.readRecord(record.config);
+
+    return { ...config, ...record } as ClipProjectDocument;
   }
 
   override async create(
@@ -236,20 +242,16 @@ export class ClipProjectsService extends BaseService<
     const data: Record<string, unknown> = {};
     const config: Record<string, unknown> = { ...existingConfig };
 
-    if (typeof dto.organization === 'string') {
-      data.organizationId = dto.organization;
-    }
-
     if (typeof dto.organizationId === 'string') {
       data.organizationId = dto.organizationId;
     }
 
-    if (Object.hasOwn(dto, 'brand')) {
-      data.brandId = dto.brand ?? null;
-    }
-
     if (Object.hasOwn(dto, 'brandId')) {
       data.brandId = dto.brandId ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'userId')) {
+      data.userId = dto.userId ?? null;
     }
 
     this.assignIfOwn(data, dto, 'status');

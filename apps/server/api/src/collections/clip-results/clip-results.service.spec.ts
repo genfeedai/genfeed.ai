@@ -35,6 +35,7 @@ function createPrisma() {
             { name: 'id' },
             { name: 'organizationId' },
             { name: 'projectId' },
+            { name: 'userId' },
             { name: 'providerJobId' },
             { name: 'viralityScore' },
             { name: 'status' },
@@ -72,28 +73,29 @@ describe('ClipResultsService', () => {
 
   it('maps create DTO fields to durable columns and data JSON', async () => {
     prisma.clipResult.create.mockResolvedValue({
-      data: {},
+      data: { title: 'Clip title' },
       id: 'clip-1',
       isSelected: false,
       organizationId: 'org-1',
       projectId: 'project-1',
       readiness: {},
       status: 'pending',
+      userId: 'user-1',
     });
 
-    await service.create({
+    const result = await service.create({
       clipType: 'hook',
       duration: 30,
       endTime: 45,
       index: 0,
-      organization: 'org-1',
-      project: 'project-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
       startTime: 15,
       status: 'pending',
       summary: 'A compelling moment',
       tags: ['ai'],
       title: 'Clip title',
-      user: 'user-1',
+      userId: 'user-1',
       viralityScore: 88,
     } as CreateClipResultDto);
 
@@ -108,7 +110,6 @@ describe('ClipResultsService', () => {
           summary: 'A compelling moment',
           tags: ['ai'],
           title: 'Clip title',
-          user: 'user-1',
         }),
         organizationId: 'org-1',
         projectId: 'project-1',
@@ -117,9 +118,12 @@ describe('ClipResultsService', () => {
           terminal: false,
         }),
         status: 'pending',
+        userId: 'user-1',
         viralityScore: 88,
       }),
     });
+    expect(result.title).toBe('Clip title');
+    expect(result.userId).toBe('user-1');
   });
 
   it('routes mode to a durable column, not the data JSON blob', async () => {
@@ -139,11 +143,11 @@ describe('ClipResultsService', () => {
       endTime: 45,
       index: 0,
       mode: 'raw-cut',
-      organization: 'org-1',
-      project: 'project-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
       startTime: 15,
       title: 'Raw cut',
-      user: 'user-1',
+      userId: 'user-1',
     } as unknown as CreateClipResultDto);
 
     const createArgs = prisma.clipResult.create.mock.calls[0]?.[0] as {
@@ -178,7 +182,7 @@ describe('ClipResultsService', () => {
       status: 'completed',
     });
 
-    await service.patch('legacy-clip-id', {
+    await service.patch('requested-clip-id', {
       providerJobId: 'provider-job-1',
       status: 'completed',
       videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
@@ -233,6 +237,20 @@ describe('ClipResultsService', () => {
         title: 'Clip',
       }),
     );
+  });
+
+  it('lists organization results newest first with tenant and deletion scope', async () => {
+    prisma.clipResult.findMany.mockResolvedValue([]);
+
+    await service.findAllByOrganization('org-1');
+
+    expect(prisma.clipResult.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
   });
 
   it('returns a bounded oldest-first set of active raw-cut clips', async () => {

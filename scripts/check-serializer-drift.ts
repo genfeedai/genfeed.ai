@@ -500,7 +500,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'summary',
     'tags',
     'title',
-    'user',
   ],
   'folder:Folder': ['key'],
   'goal:Goal': ['description', 'title'],

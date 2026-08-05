@@ -1,6 +1,6 @@
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { ClipProjectStatus } from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, OmitType, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -64,7 +64,9 @@ export class TranscriptSegmentDto {
   readonly text!: string;
 }
 
-export class UpdateClipProjectDto extends PartialType(CreateClipProjectDto) {
+export class UpdateClipProjectDto extends PartialType(
+  OmitType(CreateClipProjectDto, ['organizationId', 'userId'] as const),
+) {
   @IsOptional()
   @IsIn([...ClipProjectStatus])
   @ApiProperty({

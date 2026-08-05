@@ -54,8 +54,8 @@ export class ClipResultsController {
     const data: ClipResultDocument = await this.clipResultsService.create({
       ...createClipResultDto,
       organizationId: publicMetadata.organization,
-      user: publicMetadata.user,
-    } as CreateClipResultDto);
+      userId: publicMetadata.user,
+    });
 
     return serializeSingle(request, ClipResultSerializer, data);
   }

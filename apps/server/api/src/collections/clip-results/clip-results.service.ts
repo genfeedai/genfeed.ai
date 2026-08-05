@@ -23,14 +23,13 @@ const RESULT_SCALAR_KEYS = new Set([
   'isDeleted',
   'isSelected',
   'mode',
-  'organization',
   'organizationId',
-  'project',
   'projectId',
   'providerJobId',
   'readiness',
   'status',
   'terminalAt',
+  'userId',
   'viralityScore',
 ]);
 
@@ -46,6 +45,13 @@ export class ClipResultsService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'clipResult', logger);
+  }
+
+  protected override normalizeDocument(document: unknown): ClipResultDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const payload = this.readRecord(record.data);
+
+    return { ...payload, ...record } as ClipResultDocument;
   }
 
   override async create(
@@ -109,6 +115,17 @@ export class ClipResultsService extends BaseService<
     });
 
     return result ? this.normalizeDocument(result) : null;
+  }
+
+  async findAllByOrganization(
+    organizationId: string,
+  ): Promise<ClipResultDocument[]> {
+    const results = await this.delegate.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: { isDeleted: false, organizationId },
+    });
+
+    return this.normalizeDocuments(results);
   }
 
   async countActiveRawCuts(): Promise<number> {
@@ -196,22 +213,18 @@ export class ClipResultsService extends BaseService<
     existingData: Record<string, unknown> = {},
   ): Record<string, unknown> {
     const data: Record<string, unknown> = {};
-    const legacyData: Record<string, unknown> = { ...existingData };
-
-    if (typeof dto.organization === 'string') {
-      data.organizationId = dto.organization;
-    }
+    const payloadData: Record<string, unknown> = { ...existingData };
 
     if (typeof dto.organizationId === 'string') {
       data.organizationId = dto.organizationId;
     }
 
-    if (Object.hasOwn(dto, 'project')) {
-      data.projectId = dto.project ?? null;
-    }
-
     if (Object.hasOwn(dto, 'projectId')) {
       data.projectId = dto.projectId ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'userId')) {
+      data.userId = dto.userId ?? null;
     }
 
     this.assignIfOwn(data, dto, 'providerJobId');
@@ -227,11 +240,11 @@ export class ClipResultsService extends BaseService<
       if (RESULT_SCALAR_KEYS.has(key) || value === undefined) {
         continue;
       }
-      legacyData[key] = value;
+      payloadData[key] = value;
     }
 
     const suppliedData = this.readRecord(dto.data);
-    data.data = { ...legacyData, ...suppliedData };
+    data.data = { ...payloadData, ...suppliedData };
 
     this.applyTerminalDefaults(data, mode);
 

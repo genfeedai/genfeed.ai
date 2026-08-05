@@ -144,7 +144,7 @@ export class ClipProjectsController {
         mode,
       },
       sourceVideoUrl: dto.youtubeUrl,
-      user: userId,
+      userId,
     });
 
     const projectId = String(project.id);
@@ -213,7 +213,7 @@ export class ClipProjectsController {
       },
       sourceVideoUrl: dto.youtubeUrl,
       status: 'pending',
-      user: userId,
+      userId,
     });
 
     const projectId = String(project.id);
@@ -386,7 +386,7 @@ export class ClipProjectsController {
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,
       organizationId: publicMetadata.organization,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     return serializeSingle(request, ClipProjectSerializer, data);
@@ -409,7 +409,7 @@ export class ClipProjectsController {
     const aggregate = {
       where: {
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
       orderBy: query.sort
         ? handleQuerySort(query.sort)

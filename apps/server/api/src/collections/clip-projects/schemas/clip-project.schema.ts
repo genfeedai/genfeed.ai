@@ -52,13 +52,11 @@ type ClipProjectRecord = Omit<
 >;
 
 export interface ClipProjectDocument extends ClipProjectRecord {
-  brand?: string | null;
   error?: string | null;
   failedClipCount: number;
   highlights?: ClipProjectHighlight[];
   language?: string;
   name?: string;
-  organization?: string;
   pendingClipCount: number;
   progress: number;
   referenceFrames?: ClipReferenceFrameSet;
@@ -70,6 +68,5 @@ export interface ClipProjectDocument extends ClipProjectRecord {
   status: SharedClipProjectStatus | string;
   terminalAt?: Date | null;
   transcriptText?: string;
-  user?: string;
   [key: string]: unknown;
 }

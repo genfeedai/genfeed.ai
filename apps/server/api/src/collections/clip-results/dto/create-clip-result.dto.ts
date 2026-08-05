@@ -18,7 +18,7 @@ import {
 export class CreateClipResultDto extends OrganizationalCreateDto {
   @IsEntityId()
   @ApiProperty({ description: 'The clip project ID', required: true })
-  readonly project!: string;
+  readonly projectId!: string;
 
   @IsNumber()
   @ApiProperty({ description: 'Clip index within the project', required: true })

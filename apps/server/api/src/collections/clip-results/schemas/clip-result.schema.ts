@@ -19,13 +19,12 @@ export interface ClipResultDocument extends ClipResultRecord {
   isSelected: boolean;
   /** `avatar` (default) vs deterministic `raw-cut`. Real column; see #1239. */
   mode: ClipResultMode | string;
-  project?: string | null;
   readiness: ClipReadinessContract | Record<string, unknown>;
   status: SharedClipResultStatus | string;
   terminalAt?: Date | null;
-  // Raw-cut data contract. Persisted in the `data` blob and flattened by
-  // BaseService.normalizeDocument; typed here so the orchestrator (#1237) and
-  // serializer read a discriminated shape rather than `unknown`.
+  // Raw-cut data contract. Persisted in the `data` blob and flattened by the
+  // ClipResultsService read codec so orchestrators and serializers consume a
+  // typed shape rather than storage details.
   startTime?: number | null;
   endTime?: number | null;
   duration?: number | null;
@@ -40,7 +39,6 @@ export interface ClipResultDocument extends ClipResultRecord {
   room?: string | null;
   sourceVideoS3Key?: string | null;
   sourceVideoUrl?: string | null;
-  userId?: string | null;
   [key: string]: unknown;
 }
 

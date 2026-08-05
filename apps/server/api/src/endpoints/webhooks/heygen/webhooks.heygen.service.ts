@@ -66,9 +66,7 @@ export class HeygenWebhookService {
       });
 
       if (clipResult) {
-        const projectId =
-          this.readString(clipResult.project) ??
-          this.readString(clipResult.projectId);
+        const projectId = this.readString(clipResult.projectId);
 
         if (!projectId) {
           this.loggerService.warn(`${url} clip result missing project id`, {

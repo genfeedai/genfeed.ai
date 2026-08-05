@@ -37,6 +37,7 @@ function createPrisma() {
             { name: 'id' },
             { name: 'organizationId' },
             { name: 'brandId' },
+            { name: 'userId' },
             { name: 'status' },
             { name: 'progress' },
             { name: 'error' },
@@ -79,23 +80,27 @@ describe('ClipProjectsService', () => {
   it('maps create DTO fields to durable columns and config JSON', async () => {
     prisma.clipProject.create.mockResolvedValue({
       brandId: 'brand-1',
-      config: {},
+      config: {
+        language: 'en',
+        name: 'Launch clip',
+      },
       id: 'project-1',
       organizationId: 'org-1',
       progress: 0,
       readiness: {},
       status: 'pending',
+      userId: 'user-1',
     });
 
     const project = await service.create({
       brandId: 'brand-1',
       language: 'en',
       name: 'Launch clip',
-      organization: 'org-1',
+      organizationId: 'org-1',
       settings: { maxClips: 3 },
       sourceVideoUrl: 'https://example.com/source.mp4',
       status: 'pending',
-      user: 'user-1',
+      userId: 'user-1',
     } as CreateClipProjectDto);
 
     expect(prisma.clipProject.create).toHaveBeenCalledWith({
@@ -105,7 +110,6 @@ describe('ClipProjectsService', () => {
           name: 'Launch clip',
           settings: { maxClips: 3 },
           sourceVideoUrl: 'https://example.com/source.mp4',
-          user: 'user-1',
         }),
         brandId: 'brand-1',
         organizationId: 'org-1',
@@ -114,9 +118,11 @@ describe('ClipProjectsService', () => {
           terminal: false,
         }),
         status: 'pending',
+        userId: 'user-1',
       }),
     });
     expect(project.brandId).toBe('brand-1');
+    expect(project.name).toBe('Launch clip');
   });
 
   it('normalizes reference-frame state into clip-project config', async () => {
@@ -130,7 +136,7 @@ describe('ClipProjectsService', () => {
     });
 
     await service.create({
-      organization: 'org-1',
+      organizationId: 'org-1',
       referenceFrames: {
         candidates: [
           {
@@ -223,7 +229,7 @@ describe('ClipProjectsService', () => {
 
     await expect(
       service.create({
-        organization: 'org-1',
+        organizationId: 'org-1',
         referenceFrames: {
           candidates: [
             {
@@ -482,7 +488,7 @@ describe('ClipProjectsService', () => {
       status: 'completed',
     });
 
-    await service.patch('legacy-project-id', {
+    await service.patch('requested-project-id', {
       error: null,
       progress: 100,
       readyClipCount: 2,
@@ -491,7 +497,7 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
       where: {
-        id: 'legacy-project-id',
+        id: 'requested-project-id',
         isDeleted: false,
       },
     });

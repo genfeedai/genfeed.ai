@@ -610,6 +610,8 @@ model User {
   leads                    Lead[]                    @relation("lead_user")
   outreachCampaigns        OutreachCampaign[]
   captions                 Caption[]
+  clipProjects             ClipProject[]
+  clipResults              ClipResult[]
   personaAssignments       Persona[]                 @relation("persona_assigned_members")
   mcpApprovals             McpApproval[]
   brandInterviews          BrandInterview[]
@@ -4757,6 +4759,9 @@ model ClipProject {
   organization     Organization @relation(fields: [organizationId], references: [id])
   brandId          String?
   brand            Brand?       @relation(fields: [brandId], references: [id])
+  userId           String?
+  user             User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  results          ClipResult[]
   status           String       @default("pending")
   progress         Int          @default(0)
   error            String?
@@ -4771,6 +4776,7 @@ model ClipProject {
   updatedAt        DateTime     @updatedAt
 
   @@index([organizationId, status, isDeleted])
+  @@index([userId])
   @@map("clip_projects")
 }
 
@@ -4779,7 +4785,10 @@ model ClipResult {
   mongoId        String?      @unique
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   projectId      String?
+  project        ClipProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
   providerJobId  String?
   viralityScore  Float?
   status         String       @default("pending")
@@ -4795,6 +4804,8 @@ model ClipResult {
   @@index([organizationId, projectId])
   @@index([organizationId, projectId, status, isDeleted])
   @@index([organizationId, mode, isDeleted])
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId])
   @@index([providerJobId])
   @@map("clip_results")
 }
