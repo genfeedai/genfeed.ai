@@ -20,12 +20,12 @@ export class SourcePostsService extends BaseService<SourcePost> {
   async createDraft(
     postId: string,
     body: SourcePostDraftActionInput,
-    options: { brand?: string } = {},
+    options: { brandId?: string } = {},
   ): Promise<SourcePostDraftActionResult> {
     const response = await this.instance.post<SourcePostDraftActionResult>(
       `/${postId}/actions/draft`,
       body,
-      { params: { brand: options.brand } },
+      { params: { brandId: options.brandId } },
     );
     return response.data;
   }
@@ -33,12 +33,12 @@ export class SourcePostsService extends BaseService<SourcePost> {
   async publishTwitterAction(
     postId: string,
     body: { actionType: 'reply' | 'quote'; text: string },
-    options: { brand?: string } = {},
+    options: { brandId?: string } = {},
   ): Promise<ITwitterPublishResult> {
     const response = await this.instance.post<ITwitterPublishResult>(
       `/${postId}/actions/twitter`,
       body,
-      { params: { brand: options.brand } },
+      { params: { brandId: options.brandId } },
     );
     return response.data;
   }

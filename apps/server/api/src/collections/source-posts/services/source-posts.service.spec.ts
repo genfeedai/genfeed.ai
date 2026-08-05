@@ -79,6 +79,28 @@ describe('SourcePostsService', () => {
     expect(result.corpus).toContain('AI content generation');
   });
 
+  it('filters source posts by the canonical sourceId without loading relations', async () => {
+    sourcePost.findMany.mockResolvedValue([]);
+    sourcePost.count.mockResolvedValue(0);
+
+    await service.listByBrand(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      { sourceId: 'source-1' },
+    );
+
+    expect(sourcePost.findMany).toHaveBeenCalledWith({
+      orderBy: [{ publishedAt: 'desc' }, { collectedAt: 'desc' }],
+      skip: 0,
+      take: 25,
+      where: {
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        sourceId: 'source-1',
+      },
+    });
+  });
+
   it('creates a quote draft from a scoped source post', async () => {
     sourcePost.findFirst.mockResolvedValue({
       brandId: 'brand-1',
@@ -106,8 +128,8 @@ describe('SourcePostsService', () => {
 
     expect(credentialsService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: 'brand-1',
-        organization: 'org-1',
+        brandId: 'brand-1',
+        organizationId: 'org-1',
         platform: 'twitter',
       }),
     );

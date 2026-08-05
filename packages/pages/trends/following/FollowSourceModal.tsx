@@ -262,7 +262,7 @@ export default function FollowSourceModal({
             profileUrl: candidate.profileUrl ?? undefined,
           });
           const syncResult = await service.syncSource(source.id, {
-            brand: brandId,
+            brandId,
             limit: 25,
           });
           postsCollected += syncResult.count ?? 0;

@@ -136,7 +136,7 @@ export class SourcePostsService {
       limit?: number;
       platform?: string;
       search?: string;
-      source?: string;
+      sourceId?: string;
     } = {},
   ): Promise<SourcePostListResult> {
     const page = Math.max(1, query.page ?? 1);
@@ -144,7 +144,6 @@ export class SourcePostsService {
     const where = this.buildScopedWhere(context, query);
     const [docs, total] = await Promise.all([
       this.db.sourcePost.findMany({
-        include: { source: true },
         orderBy: [{ publishedAt: 'desc' }, { collectedAt: 'desc' }],
         skip: (page - 1) * limit,
         take: limit,
@@ -167,7 +166,6 @@ export class SourcePostsService {
     context: { organizationId: string; brandId: string },
   ): Promise<SourcePostDocument> {
     const post = await this.db.sourcePost.findFirst({
-      include: { source: true },
       where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id,
@@ -247,7 +245,6 @@ export class SourcePostsService {
   ): Promise<WeeklySourceCorpusResult> {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const posts = await this.db.sourcePost.findMany({
-      include: { source: true },
       orderBy: [{ publishedAt: 'desc' }, { collectedAt: 'desc' }],
       take: Math.min(100, Math.max(1, limit)),
       where: scopedWhere(organizationId, {
@@ -417,7 +414,7 @@ export class SourcePostsService {
 
   private buildScopedWhere(
     context: { organizationId: string; brandId: string },
-    query: { platform?: string; search?: string; source?: string },
+    query: { platform?: string; search?: string; sourceId?: string },
   ) {
     const where: Record<string, unknown> = scopedWhere(context.organizationId, {
       brandId: context.brandId,
@@ -427,8 +424,8 @@ export class SourcePostsService {
       where.platform = query.platform;
     }
 
-    if (query.source) {
-      where.sourceId = query.source;
+    if (query.sourceId) {
+      where.sourceId = query.sourceId;
     }
 
     const search = query.search?.trim();

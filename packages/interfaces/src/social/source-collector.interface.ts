@@ -3,13 +3,7 @@ import type {
   SocialSourceType,
   SourcePostActionType,
 } from '@genfeedai/enums';
-import type {
-  IBaseEntity,
-  IBrand,
-  ICredential,
-  IOrganization,
-  IUser,
-} from '../index';
+import type { IBaseEntity } from '../index';
 
 export interface SourcePostMetrics {
   likes?: number;
@@ -22,13 +16,9 @@ export interface SourcePostMetrics {
 }
 
 export interface ISocialSource extends IBaseEntity {
-  organization?: IOrganization | string;
-  organizationId?: string;
-  brand?: IBrand | string;
-  brandId?: string;
-  user?: IUser | string;
-  userId?: string;
-  credential?: ICredential | string | null;
+  organizationId: string;
+  brandId: string;
+  userId: string;
   credentialId?: string | null;
   platform: SocialSourcePlatform | string;
   sourceType: SocialSourceType | string;
@@ -48,14 +38,10 @@ export interface ISocialSource extends IBaseEntity {
 }
 
 export interface ISourcePost extends IBaseEntity {
-  organization?: IOrganization | string;
-  organizationId?: string;
-  brand?: IBrand | string;
-  brandId?: string;
-  user?: IUser | string | null;
+  organizationId: string;
+  brandId: string;
   userId?: string | null;
-  source?: ISocialSource | string;
-  sourceId?: string;
+  sourceId: string;
   platform: SocialSourcePlatform | string;
   externalId: string;
   contentType: string;

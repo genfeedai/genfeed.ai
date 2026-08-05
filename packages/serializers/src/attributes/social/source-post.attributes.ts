@@ -1,13 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const sourcePostAttributes = createEntityAttributes([
-  'organization',
   'organizationId',
-  'brand',
   'brandId',
-  'user',
   'userId',
-  'source',
   'sourceId',
   'platform',
   'externalId',

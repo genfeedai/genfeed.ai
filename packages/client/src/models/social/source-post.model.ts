@@ -3,14 +3,10 @@ import type { SocialSourcePlatform } from '@genfeedai/enums';
 import type { ISourcePost, SourcePostMetrics } from '@genfeedai/interfaces';
 
 export class SourcePost extends BaseEntity implements ISourcePost {
-  public declare organization?: ISourcePost['organization'];
-  public declare organizationId?: string;
-  public declare brand?: ISourcePost['brand'];
-  public declare brandId?: string;
-  public declare user?: ISourcePost['user'];
+  public declare organizationId: string;
+  public declare brandId: string;
   public declare userId?: string | null;
-  public declare source?: ISourcePost['source'];
-  public declare sourceId?: string;
+  public declare sourceId: string;
   public declare platform: SocialSourcePlatform | string;
   public declare externalId: string;
   public declare contentType: string;

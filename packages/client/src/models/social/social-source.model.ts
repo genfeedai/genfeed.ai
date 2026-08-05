@@ -3,13 +3,9 @@ import type { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
 import type { ISocialSource } from '@genfeedai/interfaces';
 
 export class SocialSource extends BaseEntity implements ISocialSource {
-  public declare organization?: ISocialSource['organization'];
-  public declare organizationId?: string;
-  public declare brand?: ISocialSource['brand'];
-  public declare brandId?: string;
-  public declare user?: ISocialSource['user'];
-  public declare userId?: string;
-  public declare credential?: ISocialSource['credential'];
+  public declare organizationId: string;
+  public declare brandId: string;
+  public declare userId: string;
   public declare credentialId?: string | null;
   public declare platform: SocialSourcePlatform | string;
   public declare sourceType: SocialSourceType | string;

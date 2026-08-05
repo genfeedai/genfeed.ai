@@ -4,13 +4,9 @@ import type { SourcePostMetrics } from '@genfeedai/interfaces';
 export interface SourcePostDocument {
   id: string;
   organizationId: string;
-  organization?: string | { id?: string } | null;
   brandId: string;
-  brand?: string | { id?: string } | null;
   userId?: string | null;
-  user?: string | { id?: string } | null;
   sourceId: string;
-  source?: string | { id?: string } | null;
   platform: SocialSourcePlatform | string;
   externalId: string;
   contentType: string;

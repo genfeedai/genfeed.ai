@@ -30,10 +30,10 @@ export class SocialSourcesService extends BaseService<
   }
 
   async getFollowingFeed(options: {
-    brand?: string;
+    brandId?: string;
     platform?: string;
     search?: string;
-    source?: string;
+    sourceId?: string;
     postsLimit?: number;
   }): Promise<SocialSourcesResponse> {
     const response = await this.instance.get<SocialSourcesResponse>('/feed', {
@@ -44,23 +44,23 @@ export class SocialSourcesService extends BaseService<
 
   async syncSource(
     sourceId: string,
-    options: { brand?: string; limit?: number } = {},
+    options: { brandId?: string; limit?: number } = {},
   ): Promise<SocialSourceSyncResult> {
     const response = await this.instance.post<SocialSourceSyncResult>(
       `/${sourceId}/sync`,
       { limit: options.limit },
-      { params: { brand: options.brand } },
+      { params: { brandId: options.brandId } },
     );
     return response.data;
   }
 
   async syncBrand(
-    options: { brand?: string; limit?: number } = {},
+    options: { brandId?: string; limit?: number } = {},
   ): Promise<SocialSourceBrandSyncResult> {
     const response = await this.instance.post<SocialSourceBrandSyncResult>(
       '/sync',
       { limit: options.limit },
-      { params: { brand: options.brand } },
+      { params: { brandId: options.brandId } },
     );
     return response.data;
   }

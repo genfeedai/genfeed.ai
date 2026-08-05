@@ -13,7 +13,7 @@ export class SourcePostsQueryDto extends BaseQueryDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  source?: string;
+  sourceId?: string;
 
   @IsString()
   @IsOptional()

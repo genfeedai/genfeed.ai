@@ -112,7 +112,7 @@ export class SocialSourcesService {
         page: query.page,
         platform: query.platform,
         search: query.search,
-        source: query.source,
+        sourceId: query.sourceId,
       }),
     ]);
     const sources = sourcesResult.docs;
