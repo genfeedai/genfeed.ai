@@ -23,7 +23,7 @@ export class ReplyBotConfig extends BaseReplyBotConfig {
     super(partial);
 
     this.rateLimits = normalizeRateLimits(partial.rateLimits);
-    this.monitoredAccounts = [...(partial.monitoredAccounts ?? [])];
+    this.monitoredAccountIds = [...(partial.monitoredAccountIds ?? [])];
     this.totalRepliesSent = partial.totalRepliesSent ?? 0;
     this.totalDmsSent = partial.totalDmsSent ?? 0;
     this.totalSkipped = partial.totalSkipped ?? 0;
