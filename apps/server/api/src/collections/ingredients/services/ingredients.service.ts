@@ -10,7 +10,10 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientStatus, MetadataExtension } from '@genfeedai/enums';
@@ -120,9 +123,7 @@ export class IngredientsService extends BaseService<
   @HandleErrors('create ingredient', 'ingredients')
   async create(
     createDto: CreateIngredientDto,
-    populate:
-      | (string | PopulateOption)[]
-      | 'none' = this.getPopulationForContext('create'),
+    populate: PopulateInput = this.getPopulationForContext('create'),
   ): Promise<IngredientDocument> {
     this.logger.debug(`${this.constructorName} create`, { createDto });
 
@@ -301,7 +302,7 @@ export class IngredientsService extends BaseService<
   async patch(
     id: string,
     updateDto: Partial<UpdateIngredientDto>,
-    populate: (string | PopulateOption)[] | 'none' = [],
+    populate: PopulateInput = [],
   ): Promise<IngredientDocument> {
     try {
       this.logger.debug(`${this.constructorName} patch`, { id, updateDto });

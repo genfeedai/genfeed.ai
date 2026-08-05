@@ -6,13 +6,15 @@ import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import {
   authorizeAgentArtifactWrite,
   hasAgentArtifactWriteInput,
 } from '@api/shared/utils/agent-artifact-reference-write.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import {
@@ -50,8 +52,6 @@ type AgentRunPageOptions = {
 };
 
 type AgentRunWriteData = Record<string, unknown>;
-type AgentRunPopulateInput = (string | PopulateOption)[] | 'none';
-
 type AgentRunRetryOptions = {
   brandId?: string | null;
   retriedBy: string;
@@ -179,7 +179,7 @@ export class AgentRunsService extends BaseService<
   override async patch(
     id: string,
     updateDto: Partial<UpdateAgentRunDto> | AgentRunWriteData,
-    populate: AgentRunPopulateInput = [],
+    populate: PopulateInput = [],
   ): Promise<AgentRunDocument> {
     const normalized = this.normalizeAgentRunWriteData(updateDto);
     if (hasAgentArtifactWriteInput(normalized)) {

@@ -9,19 +9,17 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
-import type {
-  ClipReferenceFrameSet,
-  PopulateOption,
-} from '@genfeedai/interfaces';
+import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto

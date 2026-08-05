@@ -7,14 +7,14 @@ import {
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type ClipResultWriteDto = Partial<CreateClipResultDto & UpdateClipResultDto> &
   Record<string, unknown>;

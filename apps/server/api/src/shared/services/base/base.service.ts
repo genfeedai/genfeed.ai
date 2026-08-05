@@ -35,7 +35,7 @@ type PrismaFilter = Record<string, unknown>;
  */
 type PrismaUpdate = Record<string, unknown>;
 
-type PopulateInput = (string | PopulateOption)[] | 'none';
+export type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type PrismaOrderDirection = 'asc' | 'desc' | number;
 type PrismaOrderByInput = Record<string, PrismaOrderDirection>;

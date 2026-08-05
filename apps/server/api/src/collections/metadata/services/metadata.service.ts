@@ -3,9 +3,11 @@ import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata
 import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import { toMetadataCreateData } from '@api/collections/metadata/utils/metadata-create-data.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import { MetadataExtension } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -28,7 +30,7 @@ export class MetadataService extends BaseService<
 
   override async create(
     createDto: CreateMetadataDto,
-    populate: (string | PopulateOption)[] | 'none' = [],
+    populate: PopulateInput = [],
   ): Promise<MetadataDocument> {
     return super.create(
       toMetadataCreateData({

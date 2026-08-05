@@ -7,16 +7,17 @@ import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
-type PopulateInput = (string | PopulateOption)[] | 'none';
 const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
 type CredentialUpsertFields = Partial<
   Omit<

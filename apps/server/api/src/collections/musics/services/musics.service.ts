@@ -3,8 +3,10 @@ import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
 import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -24,7 +26,7 @@ export class MusicsService extends BaseService<
 
   override async create(
     createDto: CreateMusicDto,
-    populate?: (string | PopulateOption)[] | 'none',
+    populate?: PopulateInput,
   ): Promise<MusicDocument> {
     return this.ingredientsService.create(
       createDto as unknown as Parameters<IngredientsService['create']>[0],
@@ -35,7 +37,7 @@ export class MusicsService extends BaseService<
   override async patch(
     id: string,
     updateDto: Partial<UpdateMusicDto> | Record<string, unknown>,
-    populate: (string | PopulateOption)[] | 'none' = [],
+    populate: PopulateInput = [],
   ): Promise<MusicDocument> {
     return this.ingredientsService.patch(
       id,

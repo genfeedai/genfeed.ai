@@ -2,13 +2,13 @@ import { CreateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/cre
 import { UpdateAgentCampaignDto } from '@api/collections/agent-campaigns/dto/update-agent-campaign.dto';
 import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-
-type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type AgentCampaignWriteDto = Partial<
   CreateAgentCampaignDto & UpdateAgentCampaignDto

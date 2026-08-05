@@ -17,7 +17,10 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
@@ -207,7 +210,7 @@ export class PostsService extends BaseService<
 
   create(
     dto: PostCreateInput,
-    populate: (string | PopulateOption)[] | 'none' = [
+    populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -255,7 +258,7 @@ export class PostsService extends BaseService<
 
   findOne(
     params: Record<string, unknown>,
-    populate: (string | PopulateOption)[] | 'none' = [
+    populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -361,7 +364,7 @@ export class PostsService extends BaseService<
   async patch(
     id: string,
     dto: PostUpdateInput,
-    populate: (string | PopulateOption)[] | 'none' = [
+    populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -461,9 +464,10 @@ export class PostsService extends BaseService<
             ...(prismaWriteData.scheduledDate
               ? { scheduledDate: prismaWriteData.scheduledDate as Date }
               : {}),
-          } as never,
+          },
           where: {
             isDeleted: false,
+            organizationId: currentPost.organizationId,
             parentId: id,
             status: { not: PostStatus.PUBLIC },
           },
