@@ -61,7 +61,6 @@ describe('AgentRunsOperationsService', () => {
       agentRunsService.cancel.mockResolvedValue({
         id: 'run1',
         status: 'cancelled',
-        thread: undefined,
         threadId: 'thread1',
       });
       threadEngineService.appendEvent.mockResolvedValue({});
@@ -81,26 +80,6 @@ describe('AgentRunsOperationsService', () => {
         type: 'run.cancelled',
         userId: scope.userId,
       });
-    });
-
-    it('falls back to the populated thread id', async () => {
-      agentRunsService.cancel.mockResolvedValue({
-        id: 'run1',
-        status: 'cancelled',
-        thread: { id: 'legacy-thread1' },
-        threadId: null,
-      });
-      threadEngineService.appendEvent.mockResolvedValue({});
-
-      await service.cancelRun('run1', scope);
-
-      expect(threadEngineService.appendEvent).toHaveBeenCalledWith(
-        expect.objectContaining({
-          runId: 'run1',
-          threadId: 'legacy-thread1',
-          type: 'run.cancelled',
-        }),
-      );
     });
 
     it('does not fail when appending the thread event fails', async () => {

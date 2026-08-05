@@ -229,7 +229,6 @@ export class AgentRunsService extends BaseService<
   override async findOne(
     params: Record<string, unknown>,
   ): Promise<AgentRunDocument | null> {
-    const id = params.id ?? params._id;
     const organizationId = params.organizationId;
 
     if (!organizationId) {
@@ -243,14 +242,10 @@ export class AgentRunsService extends BaseService<
       );
     }
 
-    const scopedParams: Record<string, unknown> = {
+    const scopedParams = {
       ...params,
       isDeleted: params.isDeleted ?? false,
     };
-
-    if (id) {
-      scopedParams._id = id;
-    }
 
     return super.findOne(scopedParams) as Promise<AgentRunDocument | null>;
   }

@@ -75,7 +75,7 @@ function mapAgentRun(
     ...(completedAt ? { completedAt } : {}),
     ...(contentGenerated !== undefined ? { contentGenerated } : {}),
     ...(creditsUsed !== undefined ? { creditsUsed } : {}),
-    id: maybeString(run.id ?? run._id ?? run.runId) ?? fallbackId,
+    id: maybeString(run.id) ?? fallbackId,
     ...(message ? { message } : {}),
     ...(outputSummary ? { outputSummary } : {}),
     startedAt,
@@ -434,7 +434,7 @@ export class DesktopCloudService implements IDesktopDataService {
                 completedAt: latestRun.endedAt
                   ? String(latestRun.endedAt)
                   : undefined,
-                id: String(latestRun._id ?? latestRun.id ?? ''),
+                id: String(latestRun.id ?? ''),
                 mode: latestRun.mode === 'batch' ? 'batch' : 'single',
                 startedAt: String(latestRun.startedAt ?? ''),
                 status: String(latestRun.status ?? 'completed') as

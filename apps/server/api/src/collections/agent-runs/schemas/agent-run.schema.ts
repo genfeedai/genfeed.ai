@@ -14,12 +14,8 @@ export interface AgentRunStep {
 
 export interface AgentRunDocument
   extends Omit<AgentRun, 'durationMs' | 'steps' | 'toolCalls'> {
-  _id: string;
-  brand?: string | null;
   durationMs?: number | null;
-  organization: string;
   steps?: AgentRunStep[];
   toolCalls?: AgentRunToolCall[];
-  user: string;
   [key: string]: unknown;
 }

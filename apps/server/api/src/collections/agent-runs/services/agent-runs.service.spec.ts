@@ -85,6 +85,20 @@ describe('AgentRunsService', () => {
     );
   });
 
+  it('finds runs with canonical IDs and organization scope', async () => {
+    agentRun.findFirst.mockResolvedValue({ id: 'run-1' });
+
+    await service.findOne({ id: 'run-1', organizationId: 'org-1' });
+
+    expect(agentRun.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'run-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
   it('caps active runs and applies cursor dates', async () => {
     await service.getActiveRuns('org-1', {
       cursor: '2026-06-01T10:00:00.000Z',
