@@ -373,18 +373,42 @@ export class ModelsService extends BaseService<
     };
   }
 
-  async clearOtherDefaults(
-    category: string,
-    organizationId: string | null,
-    exceptModelId: string,
-  ): Promise<void> {
-    if (!('organizationId' in filter)) {
+  /**
+   * Bulk model writes must name the registry scope they target. `patchAll`
+   * builds its `where` from a caller-supplied filter, and Prisma treats an
+   * absent `organizationId` as "every value" — so a filter that omits the key
+   * widens the write across every tenant plus the global registry. An explicit
+   * `organizationId: null` is a valid scope, not a missing one: it addresses
+   * the global registry.
+   */
+  override async patchAll(
+    filter: Record<string, unknown>,
+    update: Record<string, unknown>,
+  ): Promise<{ modifiedCount: number }> {
+    // A non-object filter is the base class's own error to report.
+    if (this.isModelRecord(filter) && !('organizationId' in filter)) {
       throw new ValidationException(
         'organizationId is required for bulk model updates',
       );
     }
 
-    // sql-risk-audit: ignore bulk-write-tenant-review -- The explicit guard above rejects every bulk write without an organizationId scope, including the null scope used by the global registry.
+    return super.patchAll(filter, update);
+  }
+
+  /**
+   * Drop `isDefault` from every competing model in one category and one
+   * registry scope. The scope is a required argument, and `null` is a
+   * legitimate value for it — that is the global registry, the same scope
+   * `touchDiscoveredModels` writes to. A concrete id targets that tenant's
+   * private models only. No suppression is needed: the `where` names both
+   * `organizationId` and `isDeleted`, so the bulk-write tenant guard is
+   * satisfied on its own terms.
+   */
+  async clearOtherDefaults(
+    category: string,
+    organizationId: string | null,
+    exceptModelId: string,
+  ): Promise<void> {
     await this.prisma.model.updateMany({
       data: { isDefault: false },
       where: {

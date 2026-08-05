@@ -157,15 +157,52 @@ describe('ModelsService', () => {
     });
   });
 
+  it('clears competing defaults in the global registry scope', async () => {
+    modelDelegate.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.clearOtherDefaults(
+      ModelCategory.IMAGE,
+      null,
+      'selected-model',
+    );
+
+    expect(modelDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDefault: false },
+      where: {
+        category: ModelCategory.IMAGE,
+        id: { not: 'selected-model' },
+        isDefault: true,
+        isDeleted: false,
+        organizationId: null,
+      },
+    });
+  });
+
   it('rejects bulk updates without an explicit organization scope', async () => {
     await expect(
-      service.updateMany(
-        { category: ModelCategory.IMAGE },
-        { isDefault: false },
-      ),
+      service.patchAll({ key: 'google/imagen-4' }, { isDefault: false }),
     ).rejects.toThrow('organizationId is required for bulk model updates');
 
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('permits a bulk update explicitly scoped to the global registry', async () => {
+    modelDelegate.updateMany.mockResolvedValue({ count: 2 });
+
+    const result = await service.patchAll(
+      { key: 'google/imagen-4', organizationId: null },
+      { isDefault: false },
+    );
+
+    expect(modelDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDefault: false },
+      where: {
+        isDeleted: false,
+        key: 'google/imagen-4',
+        organizationId: null,
+      },
+    });
+    expect(result).toEqual({ modifiedCount: 2 });
   });
 
   it('creates a private model from a completed training', async () => {
