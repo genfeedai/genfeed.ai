@@ -5,7 +5,6 @@ import {
   type QueueDispatchResult,
 } from '@genfeedai/queue-contracts';
 import { ConfigService } from '@libs/config/config.service';
-import { Public } from '@libs/decorators/public.decorator';
 import { RedisDriver, resolveRedisDriver } from '@libs/redis/redis-driver';
 import { Controller, Get } from '@nestjs/common';
 
@@ -24,21 +23,24 @@ interface QueueCapability {
 /**
  * Queue capability probe (#2382).
  *
- * Makes the queue-degradation contract observable without a logged-in session,
- * so "does this deployment have background workers?" is answerable by the
- * desktop shell at startup and by a reviewer with a single request.
+ * Answers "does this deployment have background workers?" in one request, so
+ * the desktop shell can decide at startup whether to offer queue-backed
+ * features instead of letting them fail at use time.
+ *
+ * Authenticated like every other route — it deliberately does **not** carry
+ * `@Public()`. Every real caller already has a session, so opting out of
+ * `CombinedAuthGuard` would buy nothing and would put deployment shape on an
+ * anonymous endpoint.
  *
  * The probe only performs a real {@link QueueService.dispatch} when the resolved
  * driver has no broker — there, dispatch is provably side-effect-free, because
  * it short-circuits to a degraded result before touching BullMQ. Where a broker
- * *does* exist this endpoint reports capability only, so a public route can
- * never be used to push jobs onto a production queue.
+ * *does* exist this endpoint reports capability only, so it can never be used to
+ * push jobs onto a production queue.
  *
- * Carries `@Cache` so the response-cache path is exercised on a route that is
- * reachable without auth: with no Redis the interceptor fails open and the
- * endpoint still serves, uncached.
+ * Carries `@Cache` so the response-cache path is exercised here too: with no
+ * Redis the interceptor fails open and the endpoint still serves, uncached.
  */
-@Public()
 @Controller('queues')
 export class QueueDiagnosticsController {
   constructor(
