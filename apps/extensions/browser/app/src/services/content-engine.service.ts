@@ -33,14 +33,6 @@ function assertNotAborted(signal?: AbortSignal): void {
   }
 }
 
-function getRunId(run: RunRecord): string {
-  const runId = run._id || run.id;
-  if (!runId) {
-    throw new Error('Run id missing from response.');
-  }
-  return runId;
-}
-
 export class ContentEngineService {
   constructor(private readonly runsService: RunsService) {}
 
@@ -62,7 +54,7 @@ export class ContentEngineService {
       },
     );
 
-    const runId = getRunId(initialRun);
+    const runId = initialRun.id;
     let currentRun = initialRun;
     let currentEvents = await this.safeGetRunEvents(runId);
 

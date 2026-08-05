@@ -126,8 +126,7 @@ export type RunStatus =
   | 'cancelled';
 
 export interface RunRecord {
-  _id?: string;
-  id?: string;
+  id: string;
   actionType: RunActionType;
   status: RunStatus;
   progress: number;

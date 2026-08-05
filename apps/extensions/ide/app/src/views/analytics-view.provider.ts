@@ -286,7 +286,7 @@ export class AnalyticsViewProvider implements vscode.WebviewViewProvider {
 
       empty.style.display = 'none';
       list.innerHTML = runs.map((run) => {
-        const runId = run._id || run.id || 'unknown';
+        const runId = run.id;
         const query = run.input && run.input.query ? String(run.input.query) : 'No query payload';
         return \`
           <div class="card">
