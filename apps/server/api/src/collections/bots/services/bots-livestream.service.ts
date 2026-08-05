@@ -7,6 +7,7 @@ import type {
   BotTarget,
 } from '@api/collections/bots/schemas/bot.schema';
 import type {
+  LivestreamBotSessionData,
   LivestreamBotSessionDocument,
   LivestreamDeliveryRecord,
   LivestreamPlatformState,
@@ -397,7 +398,7 @@ export class BotsLivestreamService {
   }
 
   private serializeSessionData(
-    session: LivestreamBotSessionDocument,
+    session: LivestreamBotSessionData,
   ): Prisma.InputJsonValue {
     return toJsonCompatible({
       context: session.context ?? { source: 'none' },
@@ -490,20 +491,11 @@ export class BotsLivestreamService {
     const created = await this.prisma.livestreamBotSession.create({
       data: {
         data: this.serializeSessionData({
-          _id: '',
-          botId,
-          brandId,
           context: { source: 'none' },
-          createdAt: new Date(),
           deliveryHistory: [],
-          id: '',
-          isDeleted: false,
-          organizationId,
           platformStates: this.buildPlatformStates(normalizedBot),
           status: 'stopped',
           transcriptChunks: [],
-          updatedAt: new Date(),
-          userId,
         }),
         botId,
         brandId,

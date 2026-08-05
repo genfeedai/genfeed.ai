@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { InvitationService } from '@api/collections/members/services/invitation.service';
 import { CreateWarmupAccountDto } from '@api/endpoints/admin/warmup-accounts/dto/create-warmup-account.dto';
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
@@ -27,7 +26,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-type WarmupAccountView = IWarmupAccount & { _id: string };
+type WarmupAccountView = IWarmupAccount;
 type WarmupTransaction = Prisma.TransactionClient;
 type RoleAssignment = Pick<Role, 'id' | 'key'>;
 type CustomerUser = Pick<User, 'id'>;
@@ -478,7 +477,6 @@ export class AdminWarmupAccountsService {
 
   private toView(account: WarmupAccount): WarmupAccountView {
     return {
-      _id: account.id,
       auditEvents: account.auditEvents as unknown as IWarmupAccountAuditEvent[],
       brandId: account.brandId ?? undefined,
       brandName: account.brandName,

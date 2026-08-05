@@ -95,7 +95,7 @@ export class DevController {
           category,
           cdnUrl,
           ingredient: {
-            _id: ingredient.id.toString(),
+            id: ingredient.id,
             metadata: ingredient.metadata ?? undefined,
             // The Discord card renders `prompt.original`, so it needs the
             // populated object, not the id.

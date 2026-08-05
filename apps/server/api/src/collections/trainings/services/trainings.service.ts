@@ -172,15 +172,13 @@ export class TrainingsService extends BaseService<
       );
     }
 
-    const sourceIds = sources.map((source) => source);
-
     const sourceResult = await this.ingredientsService.findAll(
       {
         where: {
           // Keep the source restriction and ownership restriction under
           // separate `AND` branches so neither predicate overwrites the other.
           AND: [
-            { id: { in: sourceIds } },
+            { id: { in: sources } },
             {
               OR: [
                 { userId: ownerIds.userId },
@@ -201,7 +199,6 @@ export class TrainingsService extends BaseService<
     const sourceImages = (
       (sourceResult.docs as TrainingSourceImage[]) ?? []
     ).map((image) => ({
-      _id: image.id,
       id: image.id,
       metadata: image.metadata ?? {},
     }));
@@ -341,7 +338,6 @@ export class TrainingsService extends BaseService<
 
       sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(
         (image) => ({
-          _id: image.id,
           id: image.id,
           metadata: image.metadata ?? {},
         }),

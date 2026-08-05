@@ -2,7 +2,6 @@ import { isIP } from 'node:net';
 import process from 'node:process';
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
-import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/link-click.schema';
 import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -353,7 +352,7 @@ export class TrackedLinksService {
     if (!result) {
       return null;
     }
-    return { ...result, _id: result.id } as unknown as TrackedLink;
+    return result;
   }
 
   /**
