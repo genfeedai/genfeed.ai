@@ -24,32 +24,32 @@ describe('PostsAnalyticsController', () => {
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: 'c07f1f77bcf86cd799439013',
+      organization: 'c07f1f77bcf86cd799439012',
+      user: 'c07f1f77bcf86cd799439011',
     },
   } as unknown as User;
 
   const mockPost = {
-    _id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
-    credential: '507f1f77bcf86cd799439016',
+    id: 'c07f1f77bcf86cd799439014',
+    brandId: 'c07f1f77bcf86cd799439013',
+    credentialId: 'c07f1f77bcf86cd799439016',
     isDeleted: false,
-    organization: '507f1f77bcf86cd799439012',
-    user: '507f1f77bcf86cd799439011',
+    organizationId: 'c07f1f77bcf86cd799439012',
+    userId: 'c07f1f77bcf86cd799439011',
   };
 
   const mockCredential = {
-    _id: '507f1f77bcf86cd799439016',
+    id: 'c07f1f77bcf86cd799439016',
     isConnected: true,
-    organization: '507f1f77bcf86cd799439012',
+    organizationId: 'c07f1f77bcf86cd799439012',
     platform: 'twitter',
   };
 
   const mockAnalyticsSummary = {
     comments: 10,
     likes: 100,
-    postId: '507f1f77bcf86cd799439014',
+    postId: 'c07f1f77bcf86cd799439014',
     views: 1000,
   };
 
@@ -114,7 +114,7 @@ describe('PostsAnalyticsController', () => {
   });
 
   describe('getAnalytics', () => {
-    const postId = '507f1f77bcf86cd799439014';
+    const postId = 'c07f1f77bcf86cd799439014';
 
     it('should return post analytics', async () => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
@@ -169,7 +169,7 @@ describe('PostsAnalyticsController', () => {
   });
 
   describe('refreshAnalytics', () => {
-    const postId = '507f1f77bcf86cd799439014';
+    const postId = 'c07f1f77bcf86cd799439014';
 
     it('should refresh analytics for a post', async () => {
       mockPostsService.findOne.mockResolvedValue(mockPost);
@@ -209,21 +209,19 @@ describe('PostsAnalyticsController', () => {
       // built from unpopulated relation aliases silently loses its tenant
       // scoping and can return another organization's credential.
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: '507f1f77bcf86cd799439016',
-        brandId: '507f1f77bcf86cd799439013',
-        organizationId: '507f1f77bcf86cd799439012',
+        id: 'c07f1f77bcf86cd799439016',
+        brandId: 'c07f1f77bcf86cd799439013',
+        isDeleted: false,
+        organizationId: 'c07f1f77bcf86cd799439012',
       });
     });
 
-    it('resolves scalar foreign keys ahead of populated relation objects', async () => {
+    it('uses canonical scalar foreign keys for the credential lookup', async () => {
       mockPostsService.findOne.mockResolvedValue({
         ...mockPost,
-        // What the row actually looks like when the relations are included.
-        brand: { id: '507f1f77bcf86cd799439013', label: 'Acme' },
-        brandId: '507f1f77bcf86cd799439013',
-        credentialId: '507f1f77bcf86cd799439016',
-        organization: { id: '507f1f77bcf86cd799439012' },
-        organizationId: '507f1f77bcf86cd799439012',
+        brandId: 'c07f1f77bcf86cd799439013',
+        credentialId: 'c07f1f77bcf86cd799439016',
+        organizationId: 'c07f1f77bcf86cd799439012',
       });
       mockCredentialsService.findOne.mockResolvedValue(mockCredential);
       mockPostAnalyticsService.getPostAnalyticsSummary.mockResolvedValue(
@@ -233,17 +231,18 @@ describe('PostsAnalyticsController', () => {
       await controller.refreshAnalytics(mockUser, postId);
 
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
-        _id: '507f1f77bcf86cd799439016',
-        brandId: '507f1f77bcf86cd799439013',
-        organizationId: '507f1f77bcf86cd799439012',
+        id: 'c07f1f77bcf86cd799439016',
+        brandId: 'c07f1f77bcf86cd799439013',
+        isDeleted: false,
+        organizationId: 'c07f1f77bcf86cd799439012',
       });
     });
 
     it('fails closed instead of querying unscoped when the organization is unresolvable', async () => {
       mockPostsService.findOne.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439014',
-        brandId: '507f1f77bcf86cd799439013',
-        credentialId: '507f1f77bcf86cd799439016',
+        id: 'c07f1f77bcf86cd799439014',
+        brandId: 'c07f1f77bcf86cd799439013',
+        credentialId: 'c07f1f77bcf86cd799439016',
         isDeleted: false,
       });
 
