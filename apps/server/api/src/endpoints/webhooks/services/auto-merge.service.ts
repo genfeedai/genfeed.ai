@@ -5,7 +5,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
+import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { resolveRoom } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
@@ -190,7 +190,7 @@ export class AutoMergeService {
     userId?: string;
     userRoom?: string;
   }> {
-    return UserExtractionUtil.extractUserIds(ingredient.userId);
+    return extractUserIds(ingredient.userId);
   }
 
   private async createAndQueueMerge(

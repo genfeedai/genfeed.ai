@@ -12,7 +12,7 @@ import {
   categoryToPlural,
   normalizeCategory,
 } from '@api/helpers/utils/category-conversion/category-conversion.util';
-import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
+import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
@@ -191,8 +191,9 @@ export class WebhooksService {
     );
 
     // 5. Resolve the canonical user identity and compatibility room fields.
-    const { dbUserId, authProviderUserId, userId, userRoom } =
-      UserExtractionUtil.extractUserIds(ingredient.userId);
+    const { dbUserId, authProviderUserId, userId, userRoom } = extractUserIds(
+      ingredient.userId,
+    );
 
     // 6. Activity update
     if (dbUserId) {
@@ -291,9 +292,7 @@ export class WebhooksService {
         status: IngredientStatus.FAILED,
       });
 
-      const { dbUserId, userId, userRoom } = UserExtractionUtil.extractUserIds(
-        ingredient.userId,
-      );
+      const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
 
       // Activity update via decomposed service
       if (dbUserId) {

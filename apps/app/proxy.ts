@@ -13,8 +13,7 @@ import {
 import { type NextRequest, NextResponse } from 'next/server';
 
 type BootstrapBrandSummary = {
-  _id?: string;
-  id?: string;
+  id: string;
   organization?: {
     slug?: string;
   };
@@ -436,9 +435,7 @@ async function resolveActiveWorkspaceSlugs(
   const brands = bootstrap?.brands ?? [];
   const activeBrandId = bootstrap?.access?.brandId ?? '';
   const matchedBrand = activeBrandId
-    ? brands.find((brand) => {
-        return String(brand.id ?? brand._id ?? '') === activeBrandId;
-      })
+    ? brands.find((brand) => brand.id === activeBrandId)
     : undefined;
   const resolvedBrand =
     activeBrandId && matchedBrand?.slug

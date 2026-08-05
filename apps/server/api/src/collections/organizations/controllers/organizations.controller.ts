@@ -272,16 +272,12 @@ export class OrganizationsController extends BaseCRUDController<
       userId,
     });
 
-    // Membership rows are Prisma-shaped (`organizationId`). A missing
-    // organization ID previously sent `findOne({ id: undefined })` downstream — which
-    // normalized to an unscoped findFirst and returned the first organization
-    // in the table once per membership row (#switcher duplicate/wrong-org).
+    // A missing organization ID must not reach findOne because an undefined
+    // unique filter can normalize to an unscoped findFirst.
     // Dedup so multiple memberships in one org can't render duplicate entries.
     const membershipOrgIds = [
       ...new Set(
-        members
-          .map((member) => member.organizationId || member.organization || '')
-          .filter(Boolean),
+        members.map((member) => member.organizationId).filter(Boolean),
       ),
     ];
     const orgIds =
@@ -606,29 +602,10 @@ export class OrganizationsController extends BaseCRUDController<
   }
 
   private isOrganizationOwner(
-    organization: { user?: unknown; userId?: unknown },
+    organization: { userId?: string | null },
     userId: string,
   ): boolean {
-    const ownerId =
-      this.resolveEntityId(organization.userId) ??
-      this.resolveEntityId(organization.user);
-
-    return ownerId === userId;
-  }
-
-  private resolveEntityId(value: unknown): string | null {
-    if (typeof value === 'string') {
-      return value;
-    }
-
-    if (!value || typeof value !== 'object') {
-      return null;
-    }
-
-    const record = value as { _id?: unknown; id?: unknown };
-    const candidate = record.id ?? record._id;
-
-    return typeof candidate === 'string' ? candidate : null;
+    return organization.userId === userId;
   }
 
   private async provisionDefaultRecurringWorkflows(

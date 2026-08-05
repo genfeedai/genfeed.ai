@@ -299,7 +299,6 @@ describe('AuthBootstrapService', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(125);
     brandsService.findForOrganization.mockResolvedValue([
       {
-        _id: brandId,
         id: brandId,
         isFleetEnabled: true,
         label: 'Primary Brand',
@@ -374,7 +373,7 @@ describe('AuthBootstrapService', () => {
     });
     expect(usersService.findOne).toHaveBeenCalledWith(
       {
-        _id: expect.any(String),
+        id: userId,
         isDeleted: false,
       },
       [],
@@ -405,7 +404,6 @@ describe('AuthBootstrapService', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(10);
     brandsService.findForOrganization.mockResolvedValue([
       {
-        _id: brandId,
         id: brandId,
         isFleetEnabled: false,
         label: 'Primary Brand',
@@ -484,7 +482,6 @@ describe('AuthBootstrapService', () => {
 
     brandsService.findForOrganization.mockResolvedValue([
       {
-        _id: brandId,
         id: brandId,
         isFleetEnabled: true,
         label: 'Primary Brand',

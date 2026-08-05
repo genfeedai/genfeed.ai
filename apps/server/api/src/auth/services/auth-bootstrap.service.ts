@@ -36,23 +36,8 @@ export interface OverviewBootstrapPayload {
   timeSeries: unknown[];
 }
 
-function getBrandId(
-  record: { id?: unknown; _id?: unknown } | null | undefined,
-): string {
-  if (typeof record?.id === 'string') {
-    return record.id;
-  }
-
-  if (
-    record &&
-    typeof record === 'object' &&
-    '_id' in record &&
-    typeof record.id === 'string'
-  ) {
-    return record.id;
-  }
-
-  return '';
+function getBrandId(record: { id?: unknown } | null | undefined): string {
+  return typeof record?.id === 'string' ? record.id : '';
 }
 
 type BootstrapBaseData = Pick<
