@@ -7,7 +7,6 @@ import { cdnAsset } from '@helpers/media/cdn/cdn.helper';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata } from '@ui/shell/metadata';
@@ -109,15 +108,7 @@ export default async function RootLayout({ children }: LayoutProps) {
       bodyClassName="gf-app flex flex-col"
       head={layoutHead}
     >
-      <AppProviders
-        initialTheme={initialTheme}
-        storageKey={THEME_STORAGE_KEY}
-        marketingConsentDefault={EnvironmentService.marketing.consentDefault}
-        marketingGtmContainerId={EnvironmentService.marketing.gtmContainerId}
-        marketingRetargetingProviders={
-          EnvironmentService.marketing.retargetingProviders
-        }
-      >
+      <AppProviders initialTheme={initialTheme} storageKey={THEME_STORAGE_KEY}>
         {children}
       </AppProviders>
     </AppHtmlDocument>

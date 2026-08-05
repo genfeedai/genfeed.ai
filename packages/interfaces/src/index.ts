@@ -27,7 +27,6 @@ export * from './analytics/creator-watchlist.interface';
 export * from './analytics/dashboard-preset.interface';
 export * from './analytics/evaluation.interface';
 export * from './analytics/insight.interface';
-export * from './analytics/link-tracking.interface';
 export * from './analytics/platform-config.interface';
 export * from './analytics/training.interface';
 export * from './analytics/trend.interface';

@@ -5,7 +5,6 @@ export interface AppProvidersProps {
   initialTheme: string;
   disableTransitionOnChange?: boolean;
   enableSystem?: boolean;
-  googleAnalyticsId?: string;
   includeLazyModalErrorDebug?: boolean;
   includeToaster?: boolean;
   storageKey?: string;

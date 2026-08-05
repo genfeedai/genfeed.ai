@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { initWebsiteAnalytics } from './packages/analytics/posthog-client';
 
 Sentry.init({
   debug: false,
@@ -22,5 +23,10 @@ Sentry.init({
 
   tracesSampleRate: 1,
 });
+
+// PostHog is the single tracker on the marketing site — cookieless, anonymous
+// pageviews + CTA conversions. No-ops (and never loads posthog-js) when no
+// build-time key is present. See packages/analytics/posthog-client.ts.
+initWebsiteAnalytics();
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
