@@ -74,8 +74,8 @@ export class VideosEditsController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
-      user: publicMetadata.user,
+      id: videoId,
+      userId: publicMetadata.user,
     });
 
     if (!video) {
@@ -99,12 +99,12 @@ export class VideosEditsController {
 
     try {
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand: video.brandId,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          organization: video.organizationId,
-          parent: videoId,
+          organizationId: video.organizationId,
+          parentId: videoId,
           status: IngredientStatus.PROCESSING,
         });
 
@@ -202,8 +202,8 @@ export class VideosEditsController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
-      user: publicMetadata.user,
+      id: videoId,
+      userId: publicMetadata.user,
     });
 
     if (!video) {
@@ -221,7 +221,7 @@ export class VideosEditsController {
     }
 
     const originalMetadata = await this.metadataService.findOne({
-      ingredient: videoId,
+      ingredients: { some: { id: videoId } },
     });
 
     if (!originalMetadata) {
@@ -236,13 +236,13 @@ export class VideosEditsController {
 
     try {
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand: video.brandId,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: originalMetadata.height,
-          organization: video.organizationId,
-          parent: videoId,
+          organizationId: video.organizationId,
+          parentId: videoId,
           status: IngredientStatus.PROCESSING,
           width: originalMetadata.width,
         });

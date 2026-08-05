@@ -1,5 +1,4 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   Allow,
@@ -26,14 +25,6 @@ export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
     required: false,
   })
   readonly isFavorite?: boolean;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Reference to the training that uses this ingredient',
-    required: false,
-  })
-  readonly training?: string;
 
   @IsString()
   @IsOptional()

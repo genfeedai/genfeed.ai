@@ -4,18 +4,18 @@ describe('IngredientFilterUtil', () => {
   describe('buildParentFilter', () => {
     it('should filter root ingredients when parent is null', () => {
       const result = IngredientFilterUtil.buildParentFilter(null);
-      expect(result).toEqual({ parent: null });
+      expect(result).toEqual({ parentId: null });
     });
 
     it('should filter root ingredients when parent is "null" string', () => {
       const result = IngredientFilterUtil.buildParentFilter('null');
-      expect(result).toEqual({ parent: null });
+      expect(result).toEqual({ parentId: null });
     });
 
     it('should filter by parent ID when valid ObjectId provided', () => {
       const parentId = '507f191e810c19729de860ee';
       const result = IngredientFilterUtil.buildParentFilter(parentId);
-      expect(result).toEqual({ parent: parentId });
+      expect(result).toEqual({ parentId });
     });
 
     it('should return empty object when parent is undefined (shows both parents and children)', () => {

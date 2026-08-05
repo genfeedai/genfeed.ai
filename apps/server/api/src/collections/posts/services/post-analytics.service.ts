@@ -13,7 +13,6 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type { IPlatformAnalyticsTotals } from '@genfeedai/interfaces';
 import type { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -141,7 +140,7 @@ export class PostAnalyticsService extends BaseService<
         : 0;
 
     // Fetch post to get required fields for upsert
-    const post = await this.postsService.findOne({ _id: postId });
+    const post = await this.postsService.findOne({ id: postId });
     if (!post) {
       this.logger.error(`Post ${postId} not found for analytics update`);
       return null;
@@ -428,25 +427,12 @@ export class PostAnalyticsService extends BaseService<
     }
   }
 
-  /**
-   * Resolves the post's owning brand/organization/user from its scalar foreign
-   * keys, falling back to the legacy relation aliases only when they carry a
-   * usable id. Returns null (and logs) rather than letting an unresolvable id
-   * reach a non-nullable FK column or a platform analytics lookup.
-   *
-   * @see .agents/memory/rules/prisma_legacy_alias_fields.md
-   */
   private resolvePostOwner(post: PostDocument): {
     brandId: string;
     organizationId: string;
     userId: string;
   } | null {
-    const brandId = resolveRelationId(post.brandId, post.brand);
-    const organizationId = resolveRelationId(
-      post.organizationId,
-      post.organization,
-    );
-    const userId = resolveRelationId(post.userId, post.user);
+    const { brandId, organizationId, userId } = post;
 
     if (!brandId || !organizationId || !userId) {
       this.logger.error(

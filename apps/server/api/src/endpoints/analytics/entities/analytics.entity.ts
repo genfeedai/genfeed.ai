@@ -2,7 +2,6 @@ import type { AnalyticDocument } from '@api/endpoints/analytics/schemas/analytic
 
 export class AnalyticEntity implements AnalyticDocument {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
   declare readonly data: AnalyticDocument['data'];

@@ -45,23 +45,57 @@ export class CreateIngredientDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly prompt?: string;
+  readonly userId?: string;
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({
-    description: 'Parent ingredient ID (for tracking origin/hierarchy)',
-    required: false,
-  })
-  readonly parent?: string;
+  @ApiProperty({ required: false })
+  readonly organizationId?: string;
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({
-    description: 'Folder ID for organizing ingredients',
-    required: false,
-  })
-  readonly folder?: string;
+  @ApiProperty({ required: false })
+  readonly brandId?: string | null;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly promptId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly parentId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly folderId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly trainingId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly bookmarkId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly personaId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly agentRunId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly agentStrategyId?: string;
 
   @IsEntityId({ each: true })
   @IsOptional()
@@ -74,35 +108,11 @@ export class CreateIngredientDto {
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
-  readonly metadata?: string;
-
-  @IsEntityId()
-  @IsOptional()
   @ApiProperty({
-    description: 'Metadata ID — preferred over the legacy `metadata` field',
+    description: 'Metadata ID',
     required: false,
   })
   readonly metadataId?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
-  readonly brand?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
-  readonly training?: string;
-
-  @IsEntityId({ each: true })
-  @IsOptional()
-  @ApiProperty({
-    description: 'References to asset(s) or ingredient image(s) for generation',
-    required: false,
-    type: [String],
-  })
-  readonly references?: string[];
 
   @IsString()
   @IsOptional()
@@ -120,7 +130,17 @@ export class CreateIngredientDto {
   @IsString()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly text?: string;
+  readonly generationPrompt?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly modelUsed?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly negativePrompt?: string;
 
   @IsString({ each: true })
   @IsOptional()
@@ -171,7 +191,22 @@ export class CreateIngredientDto {
   @IsNumber()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly seed?: number;
+  readonly generationSeed?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly isMergeEnabled?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly language?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly voiceSource?: string;
 
   @IsString({ each: true })
   @IsOptional()

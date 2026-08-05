@@ -81,9 +81,36 @@ describe('EvaluationsService review and comparison workflow', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
 
       expect(mocks.videosService.findOne).toHaveBeenCalledWith(
-        { _id: 'video-1', isDeleted: false, organizationId },
+        { id: 'video-1', isDeleted: false, organizationId },
         expect.any(Array),
       );
+    });
+  });
+
+  describe('canonical document shape', () => {
+    it('keeps evaluation data nested and does not synthesize relation aliases', async () => {
+      const storedEvaluation = {
+        contentId: 'post-1',
+        contentType: 'post',
+        data: {
+          brandId: 'brand-1',
+          overallScore: 91,
+          status: Status.COMPLETED,
+        },
+        id: 'eval-1',
+        organizationId,
+        userId: reviewerId,
+      };
+      mocks.prisma.evaluation.findFirst.mockResolvedValue(storedEvaluation);
+
+      const result = await service.findOne({ id: 'eval-1' });
+
+      expect(result).toEqual(storedEvaluation);
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('user');
+      expect(result).not.toHaveProperty('brandId');
+      expect(result).not.toHaveProperty('overallScore');
+      expect(result).not.toHaveProperty('status');
     });
   });
 

@@ -71,7 +71,9 @@ export class ActivitiesController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const where: Record<string, unknown> = { isDeleted };
     const isSuperAdmin = getIsSuperAdmin(user, request);
-    const hasExplicitTenantFilter = Boolean(query.brand || query.organization);
+    const hasExplicitTenantFilter = Boolean(
+      query.brandId || query.organizationId,
+    );
 
     if (hasExplicitTenantFilter) {
       const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
@@ -79,26 +81,26 @@ export class ActivitiesController {
         publicMetadata,
         isSuperAdmin,
       );
-      if (scope.brand) {
-        where.brand = scope.brand;
+      if (scope.brandId) {
+        where.brandId = scope.brandId;
       }
       // Always keep a tenant boundary for non-superadmin explicit filters.
-      if (scope.organization) {
-        where.organization = scope.organization;
+      if (scope.organizationId) {
+        where.organizationId = scope.organizationId;
       } else if (!isSuperAdmin && publicMetadata.user) {
-        where.user = publicMetadata.user;
+        where.userId = publicMetadata.user;
       }
     } else if (!isSuperAdmin) {
       // Default member scope: active brand, else org ownership OR.
       if (publicMetadata.brand) {
-        where.brand = publicMetadata.brand;
+        where.brandId = publicMetadata.brand;
       } else if (publicMetadata.organization) {
         where.OR = [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ];
       } else {
-        where.user = publicMetadata.user;
+        where.userId = publicMetadata.user;
       }
     }
 
@@ -126,10 +128,10 @@ export class ActivitiesController {
 
     // Find and verify ownership
     const activity = await this.activitiesService.findOne({
-      _id: activityId,
+      id: activityId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
     });
 

@@ -31,9 +31,9 @@ export class CredentialHelper {
     const { organizationId, brandId, platform } = options;
 
     const credential = await credentialsService.findOne({
-      brand: brandId,
+      brandId: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform,
     });
 
@@ -64,9 +64,9 @@ export class CredentialHelper {
     const { organizationId, brandId, platform } = options;
 
     const credential = await credentialsService.findOne({
-      brand: brandId,
+      brandId: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform,
     });
 
@@ -84,9 +84,9 @@ export class CredentialHelper {
     const { organizationId, brandId, platform } = options;
 
     return {
-      brand: brandId,
+      brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform,
     };
   }

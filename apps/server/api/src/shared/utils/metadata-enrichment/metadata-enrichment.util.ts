@@ -135,15 +135,15 @@ export class MetadataEnrichmentUtil {
     const query: Record<string, unknown> = {};
 
     if (publicMetadata.organization) {
-      query.organization = publicMetadata.organization;
+      query.organizationId = publicMetadata.organization;
     }
 
     if (includeUser && publicMetadata.user) {
-      query.user = publicMetadata.user;
+      query.userId = publicMetadata.user;
     }
 
     if (includeBrand && publicMetadata.brand) {
-      query.brand = publicMetadata.brand;
+      query.brandId = publicMetadata.brand;
     }
 
     if (includeIsDeleted) {

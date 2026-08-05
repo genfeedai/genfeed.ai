@@ -3,7 +3,6 @@ import type { BotActivity } from '@genfeedai/prisma';
 export type { BotActivity } from '@genfeedai/prisma';
 
 export interface BotActivityDocument extends Omit<BotActivity, 'data'> {
-  _id: string;
   botType?: string;
   brand?: string | null;
   completedAt?: Date | null;

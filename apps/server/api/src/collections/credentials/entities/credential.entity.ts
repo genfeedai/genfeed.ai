@@ -3,15 +3,10 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class CredentialEntity extends BaseEntity implements Credential {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
-  declare readonly userId: string;
-  declare readonly organizationId: string;
-  declare readonly brandId: string | null;
+  declare readonly userId: Credential['userId'];
+  declare readonly organizationId: Credential['organizationId'];
+  declare readonly brandId: Credential['brandId'];
   declare readonly username: Credential['username'];
-  declare readonly user: string;
-  declare readonly brand: string;
-  declare readonly organization: string;
-  declare readonly tags: string[];
 
   declare readonly platform: Credential['platform'];
   declare readonly externalId: Credential['externalId'];

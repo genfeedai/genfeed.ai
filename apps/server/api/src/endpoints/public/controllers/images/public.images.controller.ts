@@ -80,12 +80,14 @@ export class PublicImagesController {
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      matchQuery.brand = brand;
+      matchQuery.brandId = brand;
     }
 
-    // Filter by tag if provided (assuming tags are stored in metadata)
+    // Filter by related tag label.
     if (tag) {
-      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      matchQuery.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
@@ -113,7 +115,7 @@ export class PublicImagesController {
     this.logger.log(url, { params: { imageId } });
     const image = await this.imagesService.findOne(
       {
-        _id: imageId,
+        id: imageId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
@@ -137,7 +139,7 @@ export class PublicImagesController {
     @Res() res: ExpressResponse,
   ): Promise<void> {
     const image = await this.imagesService.findOne({
-      _id: imageId,
+      id: imageId,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.IMAGE,
       ),

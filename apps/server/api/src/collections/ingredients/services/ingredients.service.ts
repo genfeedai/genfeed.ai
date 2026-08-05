@@ -1,6 +1,7 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { toIngredientCreateData } from '@api/collections/ingredients/utils/ingredient-create-data.util';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -82,17 +83,15 @@ export class IngredientsService extends BaseService<
   protected getPopulationForContext(
     context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
   ): PopulateOption[] {
-    // NOTE: User populate is intentionally excluded from all contexts.
-    // The User model is on the AUTH connection, but Ingredients are on CLOUD.
-    // Cross-database relation loading is not supported here. Use
-    // createUserLookupPipeline() in findAll queries instead.
+    // User details are omitted from list projections unless a caller explicitly
+    // needs them; this keeps ingredient payloads and relation queries bounded.
     switch (context) {
       case 'list':
         return [
           PopulatePatterns.brandMinimal,
           PopulatePatterns.metadataBasic,
           PopulatePatterns.promptMinimal,
-          { path: 'tags', select: '_id label' },
+          { path: 'tags', select: ['id', 'label'] },
         ];
       case 'detail':
         return [
@@ -100,9 +99,9 @@ export class IngredientsService extends BaseService<
           PopulatePatterns.brandMinimal,
           PopulatePatterns.metadataFull,
           PopulatePatterns.promptFull,
-          { path: 'parent', select: '_id category status' },
-          { path: 'references', select: '_id category status' },
-          { path: 'tags', select: '_id label' },
+          { path: 'parent', select: ['id', 'category', 'status'] },
+          { path: 'references', select: ['id', 'category', 'status'] },
+          { path: 'tags', select: ['id', 'label'] },
         ];
       case 'create':
         return [
@@ -111,7 +110,7 @@ export class IngredientsService extends BaseService<
           PopulatePatterns.promptMinimal,
         ];
       default:
-        return [PopulatePatterns.brandId, { path: 'metadata', select: '_id' }];
+        return [PopulatePatterns.brandId, { path: 'metadata', select: ['id'] }];
     }
   }
 
@@ -124,7 +123,12 @@ export class IngredientsService extends BaseService<
   ): Promise<IngredientDocument> {
     this.logger.debug(`${this.constructorName} create`, { createDto });
 
-    const result = await super.create(createDto, populate);
+    const result = await super.create(
+      toIngredientCreateData(
+        createDto as unknown as Record<string, unknown>,
+      ) as CreateIngredientDto,
+      populate,
+    );
 
     this.logger.debug(`${this.constructorName} create success`, {
       id: result.id,
@@ -139,34 +143,6 @@ export class IngredientsService extends BaseService<
     }
 
     return result;
-  }
-
-  async findLatest(
-    params: Record<string, unknown>,
-  ): Promise<IngredientDocument | null> {
-    try {
-      this.logger.debug(`${this.constructorName} findLatest`, { params });
-
-      const where = this.buildWhereFromParams(params);
-
-      const result = await this.prisma.ingredient.findFirst({
-        where,
-        orderBy: { version: 'desc' },
-      });
-
-      this.logger.debug(
-        `${this.constructorName} findLatest ${result ? 'success' : 'not found'}`,
-        { found: !!result, params },
-      );
-
-      return result as unknown as IngredientDocument | null;
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} findLatest failed`, {
-        error,
-        params,
-      });
-      throw error;
-    }
   }
 
   /**
@@ -315,35 +291,6 @@ export class IngredientsService extends BaseService<
         `${this.constructorName} findApprovedImagesByCampaign failed`,
         { brandId, campaign, error, organizationId },
       );
-      throw error;
-    }
-  }
-
-  /**
-   * Override findOne to use Prisma query
-   */
-  async findOne(
-    params: Record<string, unknown>,
-    populate: (string | PopulateOption)[] | 'none' = [],
-  ): Promise<IngredientDocument | null> {
-    try {
-      this.logger.debug(`${this.constructorName} findOne`, { params });
-
-      const where = this.buildWhereFromParams(params);
-
-      const result = await super.findOne(where, populate);
-
-      this.logger.debug(
-        `${this.constructorName} findOne ${result ? 'success' : 'not found'}`,
-        { params },
-      );
-
-      return result as unknown as IngredientDocument | null;
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} findOne failed`, {
-        error,
-        params,
-      });
       throw error;
     }
   }
@@ -676,33 +623,6 @@ export class IngredientsService extends BaseService<
       });
       throw error;
     }
-  }
-
-  /**
-   * Build a Prisma where clause from generic params, normalising id fields.
-   */
-  private buildWhereFromParams(
-    params: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const where: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(params)) {
-      if (key === '_id') {
-        where.id = value;
-      } else if (key === 'organization') {
-        where.organizationId = value;
-      } else if (key === 'brand') {
-        where.brandId = value;
-      } else if (key === 'parent') {
-        where.parentId = value;
-      } else if (key === 'metadata') {
-        where.metadataId = value;
-      } else {
-        where[key] = value;
-      }
-    }
-
-    return where;
   }
 
   /**

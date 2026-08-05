@@ -100,12 +100,12 @@ export class OrganizationsRelationshipsController {
       this.membersService.findOne({
         isActive: true,
         isDeleted: false,
-        organization: organizationId,
-        user: publicMetadata.user,
+        organizationId: organizationId,
+        userId: publicMetadata.user,
       }),
       this.organizationsService.findOne({
-        _id: organizationId,
-        user: publicMetadata.user,
+        id: organizationId,
+        userId: publicMetadata.user,
       }),
     ]);
 
@@ -323,12 +323,12 @@ export class OrganizationsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
     const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent,
+      query.parentId,
     );
 
     const where = {
       isDeleted,
-      organization: organizationId,
+      organizationId: organizationId,
       ...statusFilter,
       ...(query.search && {
         OR: [
@@ -337,9 +337,9 @@ export class OrganizationsRelationshipsController {
         ],
       }),
       ...(query.category && { category: query.category }),
-      ...(query.brand &&
-        isEntityId(query.brand) && {
-          brand: query.brand,
+      ...(query.brandId &&
+        isEntityId(query.brandId) && {
+          brandId: query.brandId,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
         AND: [parentConditions],

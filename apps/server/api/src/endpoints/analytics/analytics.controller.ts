@@ -291,7 +291,7 @@ export class AnalyticsController {
 
     if (getIsSuperAdmin(user)) {
       // Superadmins can export all data or filter by specific org
-      targetOrganizationId = query.organization || undefined;
+      targetOrganizationId = query.organizationId || undefined;
     } else {
       // Non-superadmins can only export their own organization's data
       if (!publicMetadata.organization) {
@@ -301,8 +301,8 @@ export class AnalyticsController {
       }
       // If they try to export another org's data, deny access
       if (
-        query.organization &&
-        query.organization !== publicMetadata.organization
+        query.organizationId &&
+        query.organizationId !== publicMetadata.organization
       ) {
         throw new ForbiddenException(
           'You can only export data for your own organization',
@@ -330,7 +330,7 @@ export class AnalyticsController {
       exportFormat,
       exportFields,
       {
-        brandId: query.brand,
+        brandId: query.brandId,
         endDate: query.endDate,
         organizationId: targetOrganizationId,
         platform: query.platform,
@@ -568,7 +568,7 @@ export class AnalyticsController {
   @Get('overview')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:overview:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brand || ''}`,
+      `analytics:overview:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}`,
     tags: ['analytics', 'overview'],
     ttl: 300, // Cache for 5 minutes
   })
@@ -584,7 +584,7 @@ export class AnalyticsController {
     const data = await this.analyticsService.getOverview(
       query.startDate,
       query.endDate,
-      query.brand,
+      query.brandId,
       organizationId,
     );
     return serializeSingle(req, AnalyticsOverviewSerializer, data);
@@ -593,7 +593,7 @@ export class AnalyticsController {
   @Get('top')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:top:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.metric || 'views'}:${req.query?.limit || '10'}:${req.query?.brand || ''}:${req.query?.platform || ''}`,
+      `analytics:top:${req.user?.id ?? 'anonymous'}:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.metric || 'views'}:${req.query?.limit || '10'}:${req.query?.brandId || ''}:${req.query?.platform || ''}`,
     tags: ['analytics', 'top-content'],
     ttl: 300, // Cache for 5 minutes
   })
@@ -611,7 +611,7 @@ export class AnalyticsController {
       query.endDate,
       query.limit,
       query.metric,
-      query.brand,
+      query.brandId,
       query.platform as CredentialPlatform,
       organizationId,
     );
@@ -621,7 +621,7 @@ export class AnalyticsController {
   @Get('platforms')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:platforms:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brand || ''}`,
+      `analytics:platforms:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}`,
     tags: ['analytics', 'platforms'],
     ttl: 300, // Cache for 5 minutes
   })
@@ -635,7 +635,7 @@ export class AnalyticsController {
     const data = await this.analyticsService.getPlatformComparison(
       query.startDate,
       query.endDate,
-      query.brand,
+      query.brandId,
     );
     return serializeSingle(req, AnalyticsPlatformSerializer, data);
   }
@@ -643,7 +643,7 @@ export class AnalyticsController {
   @Get('growth')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:growth:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.metric || 'views'}:${req.query?.brand || ''}`,
+      `analytics:growth:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.metric || 'views'}:${req.query?.brandId || ''}`,
     tags: ['analytics', 'growth'],
     ttl: 300, // Cache for 5 minutes
   })
@@ -658,7 +658,7 @@ export class AnalyticsController {
       query.startDate,
       query.endDate,
       query.metric,
-      query.brand,
+      query.brandId,
     );
     return serializeSingle(req, AnalyticsGrowthSerializer, data);
   }
@@ -666,7 +666,7 @@ export class AnalyticsController {
   @Get('engagement')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:engagement:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brand || ''}:${req.query?.platform || ''}`,
+      `analytics:engagement:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}:${req.query?.platform || ''}`,
     tags: ['analytics', 'engagement'],
     ttl: 300, // Cache for 5 minutes
   })
@@ -680,7 +680,7 @@ export class AnalyticsController {
     const data = await this.analyticsService.getEngagementBreakdown(
       query.startDate,
       query.endDate,
-      query.brand,
+      query.brandId,
       query.platform as CredentialPlatform,
     );
     return serializeSingle(req, AnalyticsEngagementSerializer, data);
@@ -689,7 +689,7 @@ export class AnalyticsController {
   @Get('hooks')
   @Cache({
     keyGenerator: (req) =>
-      `analytics:hooks:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brand || ''}:${req.query?.organization || ''}`,
+      `analytics:hooks:${req.query?.startDate || 'default'}:${req.query?.endDate || 'default'}:${req.query?.brandId || ''}:${req.query?.organizationId || ''}`,
     tags: ['analytics', 'hooks'],
     ttl: 300, // Cache for 5 minutes
   })
@@ -703,8 +703,8 @@ export class AnalyticsController {
     const data = await this.analyticsService.getViralHooks(
       query.startDate,
       query.endDate,
-      query.brand,
-      query.organization,
+      query.brandId,
+      query.organizationId,
     );
     return serializeSingle(req, AnalyticsHooksSerializer, data);
   }

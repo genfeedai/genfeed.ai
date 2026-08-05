@@ -60,7 +60,7 @@ export class ReplicateWebhookService {
 
       // Get metadata for this callback
       const metadata = await this.metadataService.findOne({
-        _id: metadataId,
+        id: metadataId,
         isDeleted: false,
       });
       if (!metadata) {

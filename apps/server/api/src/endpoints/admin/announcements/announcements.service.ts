@@ -139,7 +139,7 @@ export class AdminAnnouncementsService {
     const credential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.TWITTER,
     });
 

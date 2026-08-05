@@ -3,10 +3,7 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import type { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type {
-  IngredientDocument,
-  IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
@@ -58,15 +55,6 @@ function extractLabelFromText(text: string, maxLength: number = 50): string {
   return `${truncated}...`;
 }
 
-function getIngredientRefId(
-  value: string | IngredientRefDocument | null | undefined,
-): string | undefined {
-  if (typeof value === 'string') {
-    return value;
-  }
-  return value?._id ?? value?.id;
-}
-
 function getPostCategoryFromIngredient(
   ingredient: Pick<IngredientDocument, 'category'> | null,
 ): PostCategory {
@@ -86,10 +74,10 @@ export async function createLegacyPost({
   publicMetadata,
 }: LegacyPostCreateParams): Promise<PostDocument> {
   const credential = await dependencies.credentialsService.findOne({
-    _id: createPostDto.credential,
+    id: createPostDto.credential,
     isConnected: true,
     isDeleted: false,
-    organization: publicMetadata.organization,
+    organizationId: publicMetadata.organization,
   });
 
   if (!credential) {
@@ -217,12 +205,10 @@ export async function createLegacyPost({
 
   const data = await dependencies.postsService.create({
     ...createPostDto,
-    brand: firstIngredient
-      ? (getIngredientRefId(firstIngredient.brand) ?? publicMetadata.brand)
-      : publicMetadata.brand,
+    brandId: firstIngredient?.brandId ?? publicMetadata.brand,
     category:
       createPostDto.category || getPostCategoryFromIngredient(firstIngredient),
-    credential: createPostDto.credential,
+    credentialId: createPostDto.credential,
     description: createPostDto.description || credential.description || '',
     ingredients: ingredientIds,
     label:
@@ -231,10 +217,8 @@ export async function createLegacyPost({
       (createPostDto.description?.trim()
         ? extractLabelFromText(createPostDto.description.trim())
         : ''),
-    organization: firstIngredient
-      ? (getIngredientRefId(firstIngredient.organization) ??
-        publicMetadata.organization)
-      : publicMetadata.organization,
+    organizationId:
+      firstIngredient?.organizationId ?? publicMetadata.organization,
     platform: credential.platform as never,
     publishIntent: warmupHoldReason ? 'warmup_hold' : undefined,
     publicationDate: createPostDto.publicationDate,
@@ -242,25 +226,21 @@ export async function createLegacyPost({
     scheduledDate: createPostDto.scheduledDate,
     status: effectiveStatus,
     tags: createPostDto.tags || [],
-    user: publicMetadata.user,
+    userId: publicMetadata.user,
   });
 
   await dependencies.activitiesService.create(
     new ActivityEntity({
-      brand: firstIngredient
-        ? (getIngredientRefId(firstIngredient.brand) ?? publicMetadata.brand)
-        : publicMetadata.brand,
+      brandId: firstIngredient?.brandId ?? publicMetadata.brand,
       entityId: data.id,
       entityModel: ActivityEntityModel.POST,
       key: warmupHoldReason
         ? ActivityKey.POST_CREATED
         : ActivityKey.VIDEO_SCHEDULED,
-      organization: firstIngredient
-        ? (getIngredientRefId(firstIngredient.organization) ??
-          publicMetadata.organization)
-        : publicMetadata.organization,
+      organizationId:
+        firstIngredient?.organizationId ?? publicMetadata.organization,
       source: ActivitySource.SCRIPT,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
       value: (data.id as string).toString(),
     }),
   );

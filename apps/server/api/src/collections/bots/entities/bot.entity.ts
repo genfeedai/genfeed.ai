@@ -24,7 +24,6 @@ export class BotSettingsEntity {
 
 export class BotEntity extends BaseEntity implements Bot {
   id!: string;
-  mongoId!: string | null;
   userId!: string;
   organizationId!: string;
   brandId!: string | null;

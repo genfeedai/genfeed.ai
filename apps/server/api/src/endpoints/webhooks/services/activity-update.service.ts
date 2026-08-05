@@ -105,13 +105,13 @@ export class ActivityUpdateService {
     } else {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: brandId ? String(brandId) : undefined,
+          brandId: brandId ? String(brandId) : undefined,
           entityId: ingredientId,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: activityKey,
-          organization: organizationId ? String(organizationId) : undefined,
+          organizationId: organizationId ? String(organizationId) : undefined,
           source: activitySource,
-          user: dbUserId,
+          userId: dbUserId,
           value: buildCompletionValue({ activityKey, ingredientId }),
         }),
       );
@@ -195,13 +195,13 @@ export class ActivityUpdateService {
     } else {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: brandId ? String(brandId) : undefined,
+          brandId: brandId ? String(brandId) : undefined,
           entityId: ingredientId,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: activityKey,
-          organization: organizationId ? String(organizationId) : undefined,
+          organizationId: organizationId ? String(organizationId) : undefined,
           source: activitySource,
-          user: dbUserId,
+          userId: dbUserId,
           value: buildFailureValue({ activityKey, errorMessage, ingredientId }),
         }),
       );
@@ -230,11 +230,10 @@ export class ActivityUpdateService {
     processingKey: ActivityKey,
     dbUserId: string,
   ): Promise<ActivityDocument | null> {
-    return this.activitiesService.findOne({
-      OR: [{ value: { contains: ingredientId } }, { value: ingredientId }],
-      isDeleted: false,
-      key: processingKey,
-      user: dbUserId,
-    });
+    return this.activitiesService.findByActionValue(
+      processingKey,
+      ingredientId,
+      dbUserId,
+    );
   }
 }

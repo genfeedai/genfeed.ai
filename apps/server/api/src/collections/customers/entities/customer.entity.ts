@@ -3,7 +3,6 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class CustomerEntity extends BaseEntity implements Customer {
   declare readonly organizationId: string;
-  declare readonly organization: string;
 
   declare readonly stripeCustomerId: string | null;
 }

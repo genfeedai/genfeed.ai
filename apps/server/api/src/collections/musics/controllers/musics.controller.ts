@@ -119,7 +119,7 @@ export class MusicsController {
       ErrorResponse.notFound('Music', id);
     }
 
-    const existing = await this.musicsService.findOne({ _id: id }, []);
+    const existing = await this.musicsService.findOne({ id: id }, []);
     if (
       !existing ||
       (!this.canUserModifyEntity(user, existing) &&
@@ -174,8 +174,8 @@ export class MusicsController {
     const publicMetadata = getPublicMetadata(user);
 
     // Use CollectionFilterUtil for common filtering patterns
-    const brand = CollectionFilterUtil.buildBrandFilter(
-      query.brand,
+    const brandId = CollectionFilterUtil.buildBrandFilter(
+      query.brandId,
       publicMetadata,
       'user',
     );
@@ -197,7 +197,7 @@ export class MusicsController {
       where: {
         OR: [
           {
-            brandId: brand,
+            brandId,
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.MUSIC,
             ),
@@ -219,9 +219,7 @@ export class MusicsController {
             ...(scope !== undefined ? { scope } : {}),
             status,
             // Filter default musics by brand when brand is specified
-            ...(query.brand && isEntityId(query.brand)
-              ? { brandId: brand }
-              : {}),
+            ...(query.brandId && isEntityId(query.brandId) ? { brandId } : {}),
           },
         ],
       },
@@ -233,7 +231,7 @@ export class MusicsController {
     const publicMetadata = getPublicMetadata(user);
 
     return {
-      _id: id,
+      id,
       OR: [
         { organizationId: publicMetadata.organization },
         { isDefault: true, organizationId: null },

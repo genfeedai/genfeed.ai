@@ -88,9 +88,9 @@ export class TranscriptsController {
     }
 
     const transcript = await this.transcriptsService.findOne({
-      _id: transcriptId,
+      id: transcriptId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     return serializeSingle(req, TranscriptSerializer, transcript);
@@ -110,7 +110,7 @@ export class TranscriptsController {
     }
 
     const transcript = await this.transcriptsService.updateOne(
-      { _id: transcriptId, isDeleted: false, organization: organizationId },
+      { id: transcriptId, isDeleted: false, organizationId },
       updateTranscriptDto,
     );
 

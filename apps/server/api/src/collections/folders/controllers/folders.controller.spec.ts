@@ -318,7 +318,7 @@ describe('FoldersController', () => {
       });
 
       await controller.create(mockRequest, mockUser, {
-        brand: mockUser.publicMetadata.brand,
+        brandId: mockUser.publicMetadata.brand,
         label: 'Brand Folder',
       });
 
@@ -336,7 +336,7 @@ describe('FoldersController', () => {
     it('rejects a foreign brand on create', async () => {
       await expect(
         controller.create(mockRequest, mockUser, {
-          brand: '507f191e810c19729de860aa',
+          brandId: '507f191e810c19729de860aa',
           label: 'Foreign Brand Folder',
         }),
       ).rejects.toThrow(HttpException);
@@ -477,7 +477,7 @@ describe('FoldersController', () => {
 
       await expect(
         controller.update(mockRequest, mockUser, folderId, {
-          brand: '507f191e810c19729de860aa',
+          brandId: '507f191e810c19729de860aa',
           label: 'Updated Folder',
         }),
       ).rejects.toThrow(HttpException);
@@ -497,7 +497,7 @@ describe('FoldersController', () => {
       });
 
       await controller.update(mockRequest, mockUser, folderId, {
-        brand: mockUser.publicMetadata.brand,
+        brandId: mockUser.publicMetadata.brand,
       });
 
       expect(foldersService.patch).toHaveBeenCalledWith(

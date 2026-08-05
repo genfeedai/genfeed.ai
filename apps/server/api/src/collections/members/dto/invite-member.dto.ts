@@ -20,5 +20,5 @@ export class InviteMemberDto {
   @IsOptional()
   @IsEntityId()
   @ApiProperty({ required: false })
-  readonly role?: string;
+  readonly roleId?: string;
 }

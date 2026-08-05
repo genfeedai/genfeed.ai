@@ -54,8 +54,8 @@ export class TaskCommentsController {
     const doc = await this.taskCommentsService.create({
       ...createDto,
       authorUserId: publicMetadata.user,
-      organization: publicMetadata.organization,
-      task: taskId,
+      organizationId: publicMetadata.organization,
+      taskId: taskId,
     } as CreateTaskCommentDto & {
       authorUserId: string;
       task: string;
@@ -72,9 +72,9 @@ export class TaskCommentsController {
   ) {
     const { organization } = getPublicMetadata(user);
     const comment = await this.taskCommentsService.findOne({
-      _id: commentId,
+      id: commentId,
       isDeleted: false,
-      organization: organization,
+      organizationId: organization,
     });
 
     if (!comment) {

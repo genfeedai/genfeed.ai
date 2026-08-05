@@ -5,7 +5,6 @@
  */
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -83,12 +82,12 @@ export class VideosUploadController {
     const validatedFile = file;
 
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         label: validatedFile.originalname,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });

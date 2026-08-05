@@ -114,7 +114,7 @@ export class OrganizationsSettingsController {
       organizationId,
     );
     const data = await this.organizationSettingsService.findOne({
-      organization: resolvedOrganizationId,
+      organizationId: resolvedOrganizationId,
     });
 
     if (!data) {
@@ -141,7 +141,7 @@ export class OrganizationsSettingsController {
     );
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organization: resolvedOrganizationId,
+        organizationId: resolvedOrganizationId,
       },
     );
 
@@ -150,8 +150,8 @@ export class OrganizationsSettingsController {
     }
 
     if (
-      Array.isArray(settingsDto.enabledModels) &&
-      settingsDto.enabledModels.length === 0
+      Array.isArray(settingsDto.enabledModelIds) &&
+      settingsDto.enabledModelIds.length === 0
     ) {
       throw new BadRequestException(
         'At least one model must remain enabled for the organization',
@@ -205,9 +205,9 @@ export class OrganizationsSettingsController {
     );
     const brandSettings = await this.brandsService.findOne(
       {
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
-        organization: resolvedOrganizationId,
+        organizationId: resolvedOrganizationId,
       },
       'none',
     );
@@ -217,7 +217,6 @@ export class OrganizationsSettingsController {
     }
 
     return serializeSingle(req, FleetCapabilitiesSerializer, {
-      _id: `fleet-capabilities:${resolvedOrganizationId}:${brandId}`,
       brandEnabled: Boolean(brandSettings.isFleetEnabled),
       brandId,
       // Public Core exposes the brand switch here without probing managed fleet runtime.
@@ -227,6 +226,7 @@ export class OrganizationsSettingsController {
         videos: false,
         voices: false,
       },
+      id: `fleet-capabilities:${resolvedOrganizationId}:${brandId}`,
       organizationId: resolvedOrganizationId,
     });
   }
@@ -242,7 +242,7 @@ export class OrganizationsSettingsController {
       organizationId,
     );
     const data = await this.subscriptionsService.findOne({
-      organization: resolvedOrganizationId,
+      organizationId: resolvedOrganizationId,
     });
 
     return serializeSingle(req, SubscriptionSerializer, data);

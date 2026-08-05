@@ -1,38 +1,27 @@
 import type { PopulateOption } from '@genfeedai/interfaces';
 
-type PipelineStage = Record<string, unknown>;
-
-/**
- * Creates selective populate options for MongoDB queries
- * Allows specifying which fields to include from populated references
- */
-export class PopulateBuilder {
-  static create(path: string): PopulateOption {
-    return { path };
-  }
-
-  static withFields(path: string, fields: string[]): PopulateOption {
-    return {
-      path,
-      select: fields.join(' '),
-    };
-  }
-
-  static idOnly(path: string): PopulateOption {
-    return {
-      path,
-      select: '_id',
-    };
-  }
-
-  static minimal(path: string): PopulateOption {
-    // Common minimal fields that are often needed
-    return {
-      path,
-      select: '_id label handle',
-    };
-  }
+function createPopulate(path: string): PopulateOption {
+  return { path };
 }
+
+function populateWithFields(
+  path: string,
+  fields: readonly string[],
+): PopulateOption {
+  return { path, select: fields };
+}
+
+function populateIdOnly(path: string): PopulateOption {
+  return populateWithFields(path, ['id']);
+}
+
+/** Creates selective Prisma relation-loading options. */
+export const PopulateBuilder = {
+  create: createPopulate,
+  idOnly: populateIdOnly,
+  minimal: populateIdOnly,
+  withFields: populateWithFields,
+} as const;
 
 /**
  * Common population patterns for different entities
@@ -42,21 +31,25 @@ export const PopulatePatterns = {
 
   // Asset patterns
   assetMinimal: PopulateBuilder.withFields('asset', [
-    '_id',
+    'id',
     'category',
-    'parent',
-    'parentModel',
+    'parentType',
+    'parentOrgId',
+    'parentBrandId',
+    'parentIngredientId',
+    'parentArticleId',
+    'cloudObjectKey',
   ]),
   brandFull: PopulateBuilder.create('brand'),
   brandId: PopulateBuilder.idOnly('brand'),
 
   // Brand patterns
-  brandMinimal: PopulateBuilder.minimal('brand'), // Uses _id label handle which matches brand schema
+  brandMinimal: PopulateBuilder.withFields('brand', ['id', 'label', 'slug']),
   credentialFull: PopulateBuilder.create('credential'),
 
   // Credential patterns
   credentialMinimal: PopulateBuilder.withFields('credential', [
-    '_id',
+    'id',
     'platform',
     'externalHandle',
     'isConnected',
@@ -64,17 +57,17 @@ export const PopulatePatterns = {
 
   // Ingredient patterns
   ingredientMinimal: PopulateBuilder.withFields('ingredient', [
-    '_id',
+    'id',
     'category',
     'status',
   ]),
   ingredientsMinimal: PopulateBuilder.withFields('ingredients', [
-    '_id',
+    'id',
     'category',
     'status',
   ]),
   metadataBasic: PopulateBuilder.withFields('metadata', [
-    '_id',
+    'id',
     'width',
     'height',
     'duration',
@@ -91,11 +84,11 @@ export const PopulatePatterns = {
 
   // Organization patterns
   organizationMinimal: PopulateBuilder.withFields('organization', [
-    '_id',
+    'id',
     'label',
   ]),
   parentMinimal: PopulateBuilder.withFields('parent', [
-    '_id',
+    'id',
     'category',
     'status',
   ]),
@@ -103,7 +96,7 @@ export const PopulatePatterns = {
 
   // Post patterns
   postsMinimal: PopulateBuilder.withFields('posts', [
-    '_id',
+    'id',
     'platform',
     'status',
     'externalId',
@@ -114,7 +107,7 @@ export const PopulatePatterns = {
 
   // Prompt patterns
   promptMinimal: PopulateBuilder.withFields('prompt', [
-    '_id',
+    'id',
     'original',
     'enhanced',
   ]),
@@ -122,7 +115,7 @@ export const PopulatePatterns = {
   userId: PopulateBuilder.idOnly('user'),
   // User patterns
   userMinimal: PopulateBuilder.withFields('user', [
-    '_id',
+    'id',
     'handle',
     'firstName',
     'lastName',
@@ -147,48 +140,4 @@ export function getPopulationLevel(
     default:
       return PopulateBuilder.minimal(entity);
   }
-}
-
-/**
- * Creates a relationInclude pipeline to resolve user data from the 'users' collection.
- * Use this instead of relation loading when the document lives in a different
- * database than the User record (e.g., CLOUD vs AUTH).
- *
- * All DB connections use the same Prisma datasource, so relationInclude works across
- * collection boundaries even though the models are split by database.
- */
-export function createUserLookupPipeline(
-  mode: 'minimal' | 'full' = 'minimal',
-): PipelineStage[] {
-  const projection =
-    mode === 'minimal'
-      ? {
-          _id: 1,
-          email: 1,
-          firstName: 1,
-          handle: 1,
-          lastName: 1,
-        }
-      : {};
-
-  return [];
-}
-
-/**
- * Creates MongoDB findAll query stages to lookup model labels
- * Supports both regular models (from models collection) and training models (from trainings collection)
- *
- * IMPORTANT: This pipeline must first lookup/populate metadata before accessing its fields.
- * The metadata field in ingredients is an ObjectId reference, not an embedded document.
- *
- * The pipeline:
- * 1. Looks up the metadata document
- * 2. Looks up model label from models or trainings collections
- * 3. Replaces metadata ObjectId with the full document INCLUDING modelLabel
- * 4. Adds modelLabel at root level for serializer/UI consumption
- *
- * @returns Array of query fragments that enrich metadata with modelLabel
- */
-export function createModelLookupPipeline() {
-  return { where: {} };
 }

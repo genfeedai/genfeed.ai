@@ -12,7 +12,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  folder?: string;
+  folderId?: string;
 
   @ApiProperty({
     description: 'Filter by parent video ID',
@@ -20,7 +20,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  parent?: string;
+  parentId?: string;
 
   @ApiProperty({
     description:

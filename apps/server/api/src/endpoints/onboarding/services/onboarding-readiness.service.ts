@@ -144,8 +144,7 @@ export class OnboardingReadinessService {
     organizationId: string,
   ): Promise<{ isFirstLogin: boolean; hasCompletedOnboarding: boolean }> {
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     return {
@@ -174,7 +173,7 @@ export class OnboardingReadinessService {
 
     if (userId && /^[0-9a-f]{24}$/i.test(userId)) {
       const dbUser = await this.usersService.findOne({
-        _id: userId,
+        id: userId,
         isDeleted: false,
       });
 
@@ -186,7 +185,7 @@ export class OnboardingReadinessService {
 
     if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
       const organization = await this.organizationsService.findOne({
-        _id: organizationId,
+        id: organizationId,
         isDeleted: false,
       });
 
@@ -196,11 +195,10 @@ export class OnboardingReadinessService {
         const [brand, settings] = await Promise.all([
           this.brandsService.findOne({
             isDeleted: false,
-            organization: organization.id,
+            organizationId: organization.id,
           }),
           this.organizationSettingsService.findOne({
-            isDeleted: false,
-            organization: organization.id,
+            organizationId: organization.id,
           }),
         ]);
 

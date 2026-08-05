@@ -75,7 +75,7 @@ export class MembersController {
         orderBy: handleQuerySort(query.sort),
         where: {
           isDeleted,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
         },
       },
       options,
@@ -217,7 +217,7 @@ export class MembersController {
     }
 
     const data = await this.membersService.findOne(
-      scopedWhere(organizationId, { _id: memberId }),
+      scopedWhere(organizationId, { id: memberId }),
     );
     // 404 (not 403) on a cross-org miss, matching base-crud.controller.ts — the
     // response must not confirm that the id exists in another organization.

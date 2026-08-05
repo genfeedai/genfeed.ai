@@ -32,13 +32,11 @@ export class AgentGoalsService {
   ): Promise<Record<string, unknown>> {
     this.validateMetricTarget(dto.metric, dto.targetValue);
 
-    // Map dto.brand -> brandId; move non-Prisma domain fields into config
-    const brandId = dto.brand ?? undefined;
     const config = this.buildGoalConfig(dto);
 
     const goal = await this.prisma.agentGoal.create({
       data: {
-        brandId: brandId ?? null,
+        brandId: dto.brandId ?? null,
         config,
         description: dto.description,
         isDeleted: false,
@@ -100,8 +98,8 @@ export class AgentGoalsService {
     if (dto.description !== undefined) {
       prismaData.description = dto.description;
     }
-    if ((dto as Record<string, unknown>).brand !== undefined) {
-      prismaData.brandId = (dto as Record<string, unknown>).brand ?? null;
+    if (dto.brandId !== undefined) {
+      prismaData.brandId = dto.brandId;
     }
 
     await this.prisma.agentGoal.update({

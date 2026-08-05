@@ -68,6 +68,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     super(prisma, 'evaluation', logger);
   }
 
+  /**
+   * Evaluation JSON stays under `data`; callers and serializers consume the
+   * canonical Prisma shape instead of BaseService's Mongo-era JSON flattening.
+   */
+  protected override normalizeDocument(document: unknown): EvaluationDocument {
+    return document as EvaluationDocument;
+  }
+
   private async validateContentForEvaluation(
     contentType: IngredientCategory | 'article' | 'post',
     contentId: string,
@@ -77,7 +85,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case IngredientCategory.VIDEO: {
         if (!this.videosService) throw new Error('VideosService not available');
         const video = await this.videosService.findOne(
-          scopedWhere(organizationId, { _id: contentId }),
+          scopedWhere(organizationId, { id: contentId }),
           [{ path: 'metadata' }],
         );
         if (!video) throw new NotFoundException('Video', contentId);
@@ -89,7 +97,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case IngredientCategory.IMAGE: {
         if (!this.imagesService) throw new Error('ImagesService not available');
         const image = await this.imagesService.findOne(
-          scopedWhere(organizationId, { _id: contentId }),
+          scopedWhere(organizationId, { id: contentId }),
           [{ path: 'metadata' }],
         );
         if (!image) throw new NotFoundException('Image', contentId);
@@ -102,7 +110,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         if (!this.articlesService)
           throw new Error('ArticlesService not available');
         const article = await this.articlesService.findOne(
-          scopedWhere(organizationId, { _id: contentId }),
+          scopedWhere(organizationId, { id: contentId }),
         );
         if (!article) throw new NotFoundException('Article', contentId);
         if (!article.content)
@@ -112,7 +120,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       case 'post': {
         if (!this.postsService) throw new Error('PostsService not available');
         const post = await this.postsService.findOne(
-          scopedWhere(organizationId, { _id: contentId }),
+          scopedWhere(organizationId, { id: contentId }),
         );
         if (!post) throw new NotFoundException('Post', contentId);
         if (!post.description)
@@ -197,7 +205,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.videosService) throw new Error('VideosService not available');
 
     const video = await this.videosService.findOne(
-      scopedWhere(organizationId, { _id: videoId }),
+      scopedWhere(organizationId, { id: videoId }),
       [{ path: 'metadata' }, { path: 'prompt' }, { path: 'brand' }],
     );
 
@@ -253,7 +261,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       `Content evaluation: ${IngredientCategory.VIDEO}`,
     );
 
-    return evaluation as unknown as EvaluationDocument;
+    return evaluation;
   }
 
   async evaluateImage(
@@ -268,7 +276,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.imagesService) throw new Error('ImagesService not available');
 
     const image = await this.imagesService.findOne(
-      scopedWhere(organizationId, { _id: imageId }),
+      scopedWhere(organizationId, { id: imageId }),
       [{ path: 'metadata' }, { path: 'prompt' }, { path: 'brand' }],
     );
 
@@ -324,7 +332,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       `Content evaluation: ${IngredientCategory.IMAGE}`,
     );
 
-    return evaluation as unknown as EvaluationDocument;
+    return evaluation;
   }
 
   async evaluateArticle(
@@ -339,7 +347,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.articlesService) throw new Error('ArticlesService not available');
 
     const article = await this.articlesService.findOne(
-      scopedWhere(organizationId, { _id: articleId }),
+      scopedWhere(organizationId, { id: articleId }),
       [{ path: 'brand' }],
     );
 
@@ -392,7 +400,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       'Content evaluation: article',
     );
 
-    return evaluation as unknown as EvaluationDocument;
+    return evaluation;
   }
 
   async evaluatePost(
@@ -407,7 +415,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     if (!this.postsService) throw new Error('PostsService not available');
 
     const post = await this.postsService.findOne(
-      scopedWhere(organizationId, { _id: postId }),
+      scopedWhere(organizationId, { id: postId }),
       [{ path: 'brand' }],
     );
     if (!post) throw new NotFoundException('Post', postId);
@@ -444,7 +452,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       );
     });
 
-    return evaluation as unknown as EvaluationDocument;
+    return evaluation;
   }
 
   private async evaluatePostAsync(
@@ -619,7 +627,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
-    return updated as unknown as EvaluationDocument;
+    return updated;
   }
 
   async compareEvaluations(
@@ -728,7 +736,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     });
 
-    return updated as unknown as EvaluationDocument;
+    return updated;
   }
 
   async getEvaluationTrends(

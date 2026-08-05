@@ -97,7 +97,7 @@ describe('VideosLipSyncController', () => {
   let heygenService: { generatePhotoAvatarVideo: ReturnType<typeof vi.fn> };
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
   let metadataService: { patch: ReturnType<typeof vi.fn> };
-  let sharedService: { saveDocuments: ReturnType<typeof vi.fn> };
+  let sharedService: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let websocketService: {
     publishFileProcessing: ReturnType<typeof vi.fn>;
   };
@@ -120,7 +120,7 @@ describe('VideosLipSyncController', () => {
     };
     metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     sharedService = {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: mockIngredientData,
         metadataData: mockMetadataData,
       }),

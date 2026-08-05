@@ -141,9 +141,9 @@ export class PromptsController {
     let selectedBrand: BrandDocument | undefined;
     if (isEntityId(createPromptDto.brandId)) {
       const brand = await this.brandsService.findOne({
-        _id: createPromptDto.brandId,
+        id: createPromptDto.brandId,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
       selectedBrand = brand ?? undefined;
     }
@@ -285,8 +285,8 @@ export class PromptsController {
     };
 
     // Add brand filter if provided
-    if (query.brand && isEntityId(query.brand)) {
-      match.brandId = query.brand;
+    if (query.brandId && isEntityId(query.brandId)) {
+      match.brandId = query.brandId;
     }
 
     // Filter by favorite status if provided
@@ -312,7 +312,7 @@ export class PromptsController {
 
     const data = (await this.promptsService.findOne(
       {
-        _id: promptId,
+        id: promptId,
         isDeleted: false,
         organizationId: publicMetadata.organization,
       },
@@ -326,7 +326,7 @@ export class PromptsController {
       const ingredient = await this.ingredientsService.findOne({
         isDeleted: false,
         organizationId: publicMetadata.organization,
-        prompt: promptId,
+        promptId: promptId,
       });
 
       if (ingredient) {
@@ -351,7 +351,7 @@ export class PromptsController {
 
     // Verify the prompt exists and belongs to the user
     const prompt = await this.promptsService.findOne({
-      _id: promptId,
+      id: promptId,
       OR: [
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
@@ -366,7 +366,7 @@ export class PromptsController {
     await this.promptsService.patch(promptId, updatePromptDto);
 
     // Fetch the updated prompt with populated ingredient
-    const data = await this.promptsService.findOne({ _id: promptId }, [
+    const data = await this.promptsService.findOne({ id: promptId }, [
       { path: 'ingredients' },
     ]);
 
@@ -384,7 +384,7 @@ export class PromptsController {
     const publicMetadata = getPublicMetadata(user);
 
     const prompt = await this.promptsService.findOne({
-      _id: promptId,
+      id: promptId,
       isDeleted: false,
       userId: publicMetadata.user,
     });

@@ -19,14 +19,11 @@ function getRecordId(
 function getEntityId(
   record: Record<string, unknown> | null | undefined,
 ): string {
-  return getRecordId(record, 'id') || getRecordId(record, '_id');
+  return getRecordId(record, 'id');
 }
 
 function getMemberOrganizationId(member: MemberDocument): string {
-  const record = member as unknown as Record<string, unknown>;
-  return (
-    getRecordId(record, 'organizationId') || getRecordId(record, 'organization')
-  );
+  return member.organizationId;
 }
 
 /**
@@ -65,7 +62,7 @@ export class BetterAuthIdentityResolverService {
     userId: string,
   ): Promise<IBetterAuthResolvedIdentity> {
     const user = await this.usersService.findOne(
-      { _id: userId, isDeleted: false },
+      { id: userId, isDeleted: false },
       [],
     );
     const userRecord = user as Record<string, unknown> | null | undefined;
@@ -84,7 +81,7 @@ export class BetterAuthIdentityResolverService {
     const members = await this.membersService.find({
       isActive: true,
       isDeleted: false,
-      user: resolvedUserId,
+      userId: resolvedUserId,
     });
 
     const organizationId = await this.resolveOrganizationId(
@@ -95,7 +92,7 @@ export class BetterAuthIdentityResolverService {
 
     // A user with active membership rows must resolve to SOME organization.
     // Silently returning `organizationId: undefined` here let every
-    // downstream `{ organization: publicMetadata.organization }` OR-branch
+    // downstream organization-scoped OR branch
     // (images/videos/gifs/agent-* controllers) collapse to `{}` and get
     // dropped by BaseService.normalizeWhere's empty-entry filter — silently
     // narrowing list queries to self-created records only (200 OK, 0 results)
@@ -125,7 +122,7 @@ export class BetterAuthIdentityResolverService {
     members: MemberDocument[],
   ): Promise<string | undefined> {
     const organization = await this.organizationsService.findOne({
-      _id: candidate,
+      id: candidate,
       isDeleted: false,
     });
     const organizationId = getEntityId(
@@ -139,9 +136,7 @@ export class BetterAuthIdentityResolverService {
       (member) => getMemberOrganizationId(member) === organizationId,
     );
     const isOwner =
-      getRecordId(organization as Record<string, unknown>, 'userId') ===
-        userId ||
-      getRecordId(organization as Record<string, unknown>, 'user') === userId;
+      getRecordId(organization as Record<string, unknown>, 'userId') === userId;
 
     return isMember || isOwner ? organizationId : undefined;
   }
@@ -167,7 +162,7 @@ export class BetterAuthIdentityResolverService {
 
     const ownerOrg = await this.organizationsService.findOne({
       isDeleted: false,
-      user: userId,
+      userId: userId,
     });
     const ownerOrgId = getEntityId(
       ownerOrg as Record<string, unknown> | null | undefined,
@@ -182,7 +177,7 @@ export class BetterAuthIdentityResolverService {
         continue;
       }
       const organization = await this.organizationsService.findOne({
-        _id: memberOrgId,
+        id: memberOrgId,
         isDeleted: false,
       });
       const organizationId = getEntityId(
@@ -203,21 +198,16 @@ export class BetterAuthIdentityResolverService {
     const memberForOrg = members.find(
       (member) => getMemberOrganizationId(member) === organizationId,
     );
-    const lastUsedBrandId =
-      getRecordId(
-        memberForOrg as unknown as Record<string, unknown> | undefined,
-        'lastUsedBrandId',
-      ) ||
-      getRecordId(
-        memberForOrg as unknown as Record<string, unknown> | undefined,
-        'lastUsedBrand',
-      );
+    const lastUsedBrandId = getRecordId(
+      memberForOrg as unknown as Record<string, unknown> | undefined,
+      'lastUsedBrandId',
+    );
 
     if (lastUsedBrandId) {
       const lastUsedBrand = await this.brandsService.findOne({
-        _id: lastUsedBrandId,
+        id: lastUsedBrandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
       const brandId = getEntityId(
         lastUsedBrand as Record<string, unknown> | null | undefined,
@@ -229,7 +219,7 @@ export class BetterAuthIdentityResolverService {
 
     const firstBrand = await this.brandsService.findOne({
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
     return (
       getEntityId(firstBrand as Record<string, unknown> | null | undefined) ||

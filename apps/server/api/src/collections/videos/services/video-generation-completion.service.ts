@@ -119,7 +119,7 @@ export class VideoGenerationCompletionService {
     } catch (error: unknown) {
       if (error instanceof PollTimeoutException) {
         const ingredient = await this.videosService.findOne(
-          { _id: context.ingredientData.id },
+          { id: context.ingredientData.id },
           VIDEO_POPULATE,
         );
         if (ingredient) {

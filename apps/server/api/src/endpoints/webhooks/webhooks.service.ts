@@ -1,8 +1,5 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import {
-  type IngredientDocument,
-  type IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
@@ -20,7 +17,6 @@ import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-r
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   FileInputType,
   IngredientCategory,
@@ -55,58 +51,6 @@ export class WebhooksService {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  private getDocumentId(
-    value:
-      | {
-          id?: string | { toString(): string };
-        }
-      | null
-      | undefined,
-  ): string | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    if (typeof value.id === 'string') {
-      return value.id;
-    }
-
-    if (value.id && typeof value.id.toString === 'function') {
-      return value.id.toString();
-    }
-
-    return undefined;
-  }
-
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString();
-  }
-
-  private toUserReference(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | { id: string } | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    if (!ref) {
-      return undefined;
-    }
-
-    const userId = this.getRefId(ref);
-    if (!userId) {
-      return undefined;
-    }
-
-    return { id: userId };
-  }
-
   async processMediaFromWebhook(
     integration: string,
     category: IngredientCategory | string,
@@ -130,12 +74,8 @@ export class WebhooksService {
       { externalId, url },
     );
 
-    const ingredientId = this.getDocumentId(
-      rawIngredient as { _id?: string; id?: string } | null,
-    );
-    const metadataId = this.getDocumentId(
-      metadata as { _id?: string; id?: string } | null,
-    );
+    const ingredientId = rawIngredient.id;
+    const metadataId = metadata.id;
 
     if (!ingredientId || !metadataId) {
       throw new Error('Webhook lookup returned records without stable ids');
@@ -158,23 +98,16 @@ export class WebhooksService {
     externalId?: string,
   ): Promise<void> {
     const categoryValue = normalizeCategory(category);
-    const ingredient = await this.ingredientsService.findOne(
-      { _id: ingredientId, isDeleted: false },
-      [PopulatePatterns.userMinimal],
-    );
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+      isDeleted: false,
+    });
 
     if (!ingredient) {
       throw new Error(`Ingredient ${ingredientId} not found`);
     }
 
-    const metadataId =
-      ingredient.metadata &&
-      typeof ingredient.metadata === 'object' &&
-      'id' in ingredient.metadata
-        ? String(
-            (ingredient.metadata as { id: string | { toString(): string } }).id,
-          )
-        : String(ingredient.metadata);
+    const metadataId = ingredient.metadataId;
 
     if (!metadataId) {
       throw new Error(
@@ -217,12 +150,11 @@ export class WebhooksService {
     );
 
     // Re-populate the user after patch to preserve the canonical relation.
-    const ingredient = await this.ingredientsService.findOne(
-      { _id: input.ingredientId },
-      [PopulatePatterns.userMinimal],
-    );
+    const ingredient = await this.ingredientsService.findOne({
+      id: input.ingredientId,
+    });
     const metadata = await this.metadataService.findOne({
-      _id: input.metadataId,
+      id: input.metadataId,
       isDeleted: false,
     });
 
@@ -260,17 +192,17 @@ export class WebhooksService {
 
     // 5. Resolve the canonical user identity and compatibility room fields.
     const { dbUserId, authProviderUserId, userId, userRoom } =
-      UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
+      UserExtractionUtil.extractUserIds(ingredient.userId);
 
     // 6. Activity update
     if (dbUserId) {
       await this.activityUpdateService.updateSuccessActivity({
-        brandId: this.getRefId(ingredient.brand),
+        brandId: ingredient.brandId ?? undefined,
         category: ingredient.category as IngredientCategory | string,
         dbUserId,
         ingredientId: ingredient.id.toString(),
         metadataExtension: metadata?.extension,
-        organizationId: this.getRefId(ingredient.organization),
+        organizationId: ingredient.organizationId,
         transformations: ingredient.transformations || [],
         userId,
         userRoom,
@@ -340,9 +272,7 @@ export class WebhooksService {
       }
 
       if (errorMessage) {
-        const metadataId = this.getDocumentId(
-          metadata as { _id?: string; id?: string } | null,
-        );
+        const metadataId = metadata.id;
         if (metadataId) {
           await this.metadataService.patch(metadataId, {
             error: errorMessage,
@@ -350,12 +280,8 @@ export class WebhooksService {
         }
       }
 
-      const metadataId = this.getDocumentId(
-        metadata as { _id?: string; id?: string } | null,
-      );
-      const ingredient = await this.ingredientsService.findOne({ metadataId }, [
-        PopulatePatterns.userMinimal,
-      ]);
+      const metadataId = metadata.id;
+      const ingredient = await this.ingredientsService.findOne({ metadataId });
 
       if (!ingredient) {
         return;
@@ -366,18 +292,18 @@ export class WebhooksService {
       });
 
       const { dbUserId, userId, userRoom } = UserExtractionUtil.extractUserIds(
-        this.toUserReference(ingredient.user),
+        ingredient.userId,
       );
 
       // Activity update via decomposed service
       if (dbUserId) {
         await this.activityUpdateService.updateFailureActivity({
-          brandId: this.getRefId(ingredient.brand),
+          brandId: ingredient.brandId ?? undefined,
           category: ingredient.category as IngredientCategory | string,
           dbUserId,
           errorMessage,
           ingredientId: ingredient.id.toString(),
-          organizationId: this.getRefId(ingredient.organization),
+          organizationId: ingredient.organizationId,
           userId,
           userRoom,
         });
@@ -434,14 +360,21 @@ export class WebhooksService {
     integration: string,
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne(
-      { _id: ingredientId },
+      { id: ingredientId },
       [
-        { path: 'prompt', select: 'original' },
+        { path: 'prompt', select: ['original'] },
         {
           path: 'metadata',
-          select: 'width height duration model externalProvider hasAudio',
+          select: [
+            'width',
+            'height',
+            'duration',
+            'model',
+            'externalProvider',
+            'hasAudio',
+          ],
         },
-        { path: 'brand', select: 'label' },
+        { path: 'brand', select: ['label'] },
       ],
     );
 
@@ -580,9 +513,7 @@ export class WebhooksService {
     const logContext = `${this.constructorName} processAssetFromWebhook`;
 
     try {
-      const asset = await this.assetsService.findOne({ _id: assetId }, [
-        { path: 'user', select: 'id' },
-      ]);
+      const asset = await this.assetsService.findOne({ id: assetId });
 
       if (!asset) {
         this.loggerService.error(`${logContext} asset not found`, { assetId });
@@ -600,15 +531,9 @@ export class WebhooksService {
         { type: FileInputType.URL, url },
       );
 
-      const { userId } = UserExtractionUtil.extractUserIds(
-        asset.user ?? undefined,
-      );
+      const userId = asset.userId ?? undefined;
 
       if (userId) {
-        // `parent`/`parentModel` are Mongo-era compat fields — the Prisma
-        // `Asset` row has no such columns. They only ever hold a value because
-        // `BaseService.normalizeDocument` back-fills them from `parentType` and
-        // the four typed parent FKs, so read those scalars directly instead.
         const parentId =
           asset.parentBrandId ??
           asset.parentOrgId ??
@@ -623,8 +548,8 @@ export class WebhooksService {
           {
             assetId: assetId.toString(),
             category: asset.category,
-            parent: parentId,
-            parentModel: asset.parentType,
+            parentId,
+            parentType: asset.parentType,
           },
         );
 

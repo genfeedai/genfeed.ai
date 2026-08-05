@@ -38,22 +38,16 @@ describe('AgentThreadsService Prisma row contract', () => {
     );
   });
 
-  it('keeps canonical ids required while legacy relation aliases remain optional', () => {
+  it('keeps canonical relation ids required', () => {
     expectTypeOf<
       Pick<AgentRoomDocument, 'organizationId' | 'userId'>
     >().toEqualTypeOf<{
       organizationId: string;
       userId: string;
     }>();
-    expectTypeOf<
-      Pick<AgentRoomDocument, 'organization' | 'user'>
-    >().toEqualTypeOf<{
-      organization?: string;
-      user?: string;
-    }>();
   });
 
-  it('returns a bare delegate update row without inventing legacy aliases', async () => {
+  it('returns the canonical delegate update row unchanged', async () => {
     const barePrismaRow = {
       id: 'thread-1',
       organizationId: 'org-1',
@@ -76,7 +70,5 @@ describe('AgentThreadsService Prisma row contract', () => {
     expect(result).toBe(barePrismaRow);
     expect(result.organizationId).toBe('org-1');
     expect(result.userId).toBe('user-1');
-    expect(result.organization).toBeUndefined();
-    expect(result.user).toBeUndefined();
   });
 });

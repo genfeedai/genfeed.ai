@@ -288,15 +288,12 @@ describe('AgentRunsController', () => {
   describe('enrichCreateDto', () => {
     it('replaces body supplied scope with authenticated scope', () => {
       const bodySuppliedScope = {
-        brand: 'other-brand',
         brandId: 'other-brand-id',
         label: 'Run',
-        organization: 'other-org',
         organizationId: 'other-org-id',
         trigger: 'manual',
-        user: 'other-user',
         userId: 'other-user-id',
-      } satisfies Partial<CreateAgentRunDto> & Record<string, unknown>;
+      } satisfies Partial<CreateAgentRunDto>;
 
       const dto = controller.enrichCreateDto(
         bodySuppliedScope,
@@ -308,9 +305,6 @@ describe('AgentRunsController', () => {
         organizationId: '507f1f77bcf86cd799439012',
         userId: '507f1f77bcf86cd799439014',
       });
-      expect(dto).not.toHaveProperty('brand');
-      expect(dto).not.toHaveProperty('organization');
-      expect(dto).not.toHaveProperty('user');
     });
   });
 

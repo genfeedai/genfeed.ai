@@ -437,7 +437,6 @@ export class TestDatabaseHelper {
     }
 
     if (delegateName === 'organizationSetting') {
-      this.rename(data, 'enabledModels', 'enabledModelIds');
       delete data['isDeleted'];
       delete data['isNotificationsTelegramEnabled'];
     }

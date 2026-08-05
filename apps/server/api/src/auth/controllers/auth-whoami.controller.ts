@@ -41,7 +41,7 @@ export class AuthWhoamiController {
     const context = req.context;
     const contextUserId = context?.userId ?? meta.user;
     const contextOrganizationId = context?.organizationId ?? meta.organization;
-    const mongoUserId = EntityIdUtil.isValid(contextUserId)
+    const databaseUserId = EntityIdUtil.isValid(contextUserId)
       ? String(contextUserId)
       : '';
     const authUserId = user?.id || '';
@@ -63,7 +63,7 @@ export class AuthWhoamiController {
         user: {
           authUserId,
           email: user?.emailAddresses?.[0]?.emailAddress || user?.email || '',
-          id: mongoUserId,
+          id: databaseUserId,
           name: user?.firstName
             ? `${user.firstName} ${user.lastName || ''}`.trim()
             : '',
@@ -95,10 +95,10 @@ export class AuthWhoamiController {
         {
           isActive: true,
           isDeleted: false,
-          organization: String(organizationId),
-          user: String(userId),
+          organizationId: String(organizationId),
+          userId: String(userId),
         },
-        [PopulateBuilder.withFields('role', ['_id', 'key', 'label'])],
+        [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
       );
 
       const role = member?.role as unknown as { key?: string } | undefined;

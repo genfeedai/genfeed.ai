@@ -108,10 +108,10 @@ export class RolesGuard implements CanActivate {
       {
         isActive: true,
         isDeleted: false,
-        organization: organizationId,
-        user: publicMetadata.user,
+        organizationId: organizationId,
+        userId: publicMetadata.user,
       },
-      [PopulateBuilder.withFields('role', ['_id', 'key', 'label'])], // Populate role with key field
+      [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
     );
 
     if (!member) {

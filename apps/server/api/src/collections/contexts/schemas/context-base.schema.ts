@@ -3,7 +3,6 @@ import type { ContextBase as PrismaContextBase } from '@genfeedai/prisma';
 export type { ContextBase as PrismaContextBase } from '@genfeedai/prisma';
 
 export interface ContextBase extends PrismaContextBase {
-  _id: string;
   category?: string;
   createdBy?: string | null;
   description?: string;

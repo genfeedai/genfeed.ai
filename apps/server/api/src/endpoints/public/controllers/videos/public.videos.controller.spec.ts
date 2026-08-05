@@ -110,25 +110,21 @@ describe('PublicVideosController', () => {
     );
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
       where?: {
-        brand?: string;
+        brandId?: string;
       };
     };
-    expect(aggregateArg.where?.brand).toEqual(brandId);
+    expect(aggregateArg.where?.brandId).toEqual(brandId);
   });
 
   it('should pass tag filter as regex when provided', async () => {
     await controller.findPublicVideos(mockRequest, {} as never, 'funny');
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as {
       where?: {
-        'metadata.tags'?: {
-          mode: string;
-          contains: string;
-        };
+        tags?: unknown;
       };
     };
-    expect(aggregateArg.where?.['metadata.tags']).toEqual({
-      mode: 'insensitive',
-      contains: 'funny',
+    expect(aggregateArg.where?.tags).toEqual({
+      some: { label: { contains: 'funny', mode: 'insensitive' } },
     });
   });
 

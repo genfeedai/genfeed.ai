@@ -419,7 +419,7 @@ export const createTestOrganizationSetting = (
   id: generateIdString(),
   brandsLimit: 10,
   createdAt: new Date(),
-  enabledModels: [],
+  enabledModelIds: [],
   isDeleted: false,
   isFastlaneEnabled: false,
   isGenerateArticlesEnabled: true,

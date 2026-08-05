@@ -4,7 +4,6 @@ import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhoo
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { extractInvoiceSubscriptionId } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { ActivitySource, ByokBillingStatus } from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
@@ -114,11 +113,7 @@ export class StripeInvoiceWebhookHandler {
     url: string,
   ): Promise<void> {
     try {
-      // Scalar FK first: `user` is a Mongo-era relation alias that only holds
-      // an id while `BaseService.normalizeDocument` back-fills it. Passing an
-      // absent id to `findOne` yields `null`, so onboarding would silently
-      // never be marked complete on the first subscription payment.
-      const userId = resolveRelationId(subscription.userId, subscription.user);
+      const userId = subscription.userId;
 
       if (!userId) {
         this.loggerService.error(
@@ -181,10 +176,7 @@ export class StripeInvoiceWebhookHandler {
       if (subscription) {
         this.loggerService.log(`${url} invoice payment failed`, {
           invoiceId: invoice.id,
-          organizationId: resolveRelationId(
-            subscription.organizationId,
-            subscription.organization,
-          ),
+          organizationId: subscription.organizationId,
           stripeSubscriptionId,
         });
 

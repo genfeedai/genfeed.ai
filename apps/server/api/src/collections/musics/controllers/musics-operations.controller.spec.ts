@@ -96,7 +96,7 @@ describe('MusicsOperationsController', () => {
       }),
     },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
           id: '507f1f77bcf86cd799439014',
         },
@@ -201,7 +201,9 @@ describe('MusicsOperationsController', () => {
       );
 
       expect(promptsService.create).toHaveBeenCalled();
-      expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 

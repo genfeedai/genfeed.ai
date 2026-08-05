@@ -39,10 +39,10 @@ export class HookRemixService {
     });
 
     const ctaIngredient = await this.ingredientsService.findOne({
-      _id: dto.ctaIngredientId,
-      brand: dto.brandId,
+      id: dto.ctaIngredientId,
+      brandId: dto.brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!ctaIngredient) {
@@ -102,10 +102,10 @@ export class HookRemixService {
     });
 
     const ctaIngredient = await this.ingredientsService.findOne({
-      _id: dto.ctaIngredientId,
-      brand: dto.brandId,
+      id: dto.ctaIngredientId,
+      brandId: dto.brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!ctaIngredient) {

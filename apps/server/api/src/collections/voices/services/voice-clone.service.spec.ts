@@ -42,7 +42,7 @@ describe('VoiceCloneService', () => {
     log: ReturnType<typeof vi.fn>;
   };
   let notifications: { publishAssetStatus: ReturnType<typeof vi.fn> };
-  let shared: { saveDocuments: ReturnType<typeof vi.fn> };
+  let shared: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let credits: { settleElevenLabsCloneCredits: ReturnType<typeof vi.fn> };
   let voices: {
     findOne: ReturnType<typeof vi.fn>;
@@ -63,7 +63,7 @@ describe('VoiceCloneService', () => {
     logger = { error: vi.fn(), log: vi.fn() };
     notifications = { publishAssetStatus: vi.fn() };
     shared = {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
       }),
     };

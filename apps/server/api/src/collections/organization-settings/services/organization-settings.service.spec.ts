@@ -52,7 +52,7 @@ describe('OrganizationSettingsService.ensureEnabledModelIds', () => {
     } as never);
 
     expect(patch).toHaveBeenCalledWith('set_1', {
-      enabledModels: ['model_1', 'model_2'],
+      enabledModelIds: ['model_1', 'model_2'],
     });
   });
 

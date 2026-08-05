@@ -1,20 +1,37 @@
+import { randomBytes } from 'node:crypto';
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
-import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform, FileInputType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
 
 type PopulateInput = (string | PopulateOption)[] | 'none';
+const OAUTH_STATE_TTL_MS = 15 * 60 * 1000;
+type CredentialUpsertFields = Partial<
+  Omit<
+    CreateCredentialDto,
+    'brandId' | 'organizationId' | 'platform' | 'userId'
+  >
+>;
+
+function requireCredentialRelationId(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new TypeError(`${field} is required to persist a credential`);
+  }
+
+  return value;
+}
 
 export interface ExternalCredentialProfile {
   avatarUrl?: string | null;
@@ -22,6 +39,17 @@ export interface ExternalCredentialProfile {
   id?: string | null;
   name?: string | null;
 }
+
+export interface OAuthCredentialScope {
+  organizationId: string;
+  userId?: string;
+}
+
+export type PendingOAuthCredential = CredentialDocument & {
+  brandId: string;
+  organizationId: string;
+  userId: string;
+};
 
 @Injectable()
 export class CredentialsService extends BaseService<
@@ -36,6 +64,35 @@ export class CredentialsService extends BaseService<
     private readonly filesClientService: FilesClientService,
   ) {
     super(prisma, 'credential', logger);
+  }
+
+  protected override normalizeData(data: unknown): Record<string, unknown> {
+    const normalized = super.normalizeData(data) as Record<string, unknown>;
+    const { tagIds, ...credentialData } = normalized;
+
+    if (tagIds === undefined) {
+      return credentialData;
+    }
+
+    if (
+      !Array.isArray(tagIds) ||
+      tagIds.some((tagId) => typeof tagId !== 'string')
+    ) {
+      throw new TypeError('tagIds must be an array of entity IDs');
+    }
+
+    const normalizedTagIds = tagIds.map((tagId) => tagId.trim());
+
+    if (normalizedTagIds.some((tagId) => tagId.length === 0)) {
+      throw new TypeError('tagIds must contain non-empty entity IDs');
+    }
+
+    return {
+      ...credentialData,
+      tags: {
+        set: [...new Set(normalizedTagIds)].map((id) => ({ id })),
+      },
+    };
   }
 
   /**
@@ -105,36 +162,22 @@ export class CredentialsService extends BaseService<
     );
   }
 
-  async saveCredentials(
+  async upsertForBrand(
     brand: {
-      id?: unknown;
-      _id?: unknown;
-      organizationId?: unknown;
-      organization?: unknown;
-      userId?: unknown;
-      user?: unknown;
+      id: string;
+      organizationId: string;
       [key: string]: unknown;
     },
+    userId: string,
     platform: CredentialPlatform,
-    fields: Partial<Record<string, unknown>>,
+    fields: CredentialUpsertFields,
   ): Promise<CredentialDocument> {
-    // `String(undefined)` wrote the literal "undefined" into a foreign key,
-    // which Postgres rejects with P2003 — and `String(<populated relation>)`
-    // wrote "[object Object]". Resolve scalar-first and fail closed instead.
-    const brandRef = 'Brand';
-    const brandId = requireRelationId(brand.id, brand._id, 'brand', brandRef);
-    const organizationId = requireRelationId(
+    const brandId = requireCredentialRelationId(brand.id, 'brandId');
+    const organizationId = requireCredentialRelationId(
       brand.organizationId,
-      brand.organization,
-      'organization',
-      brandRef,
+      'organizationId',
     );
-    const userId = requireRelationId(
-      brand.userId,
-      brand.user,
-      'user',
-      brandRef,
-    );
+    const credentialUserId = requireCredentialRelationId(userId, 'userId');
 
     const existing = await this.findOne({
       brandId,
@@ -142,24 +185,145 @@ export class CredentialsService extends BaseService<
       platform,
     });
 
-    const { ...tokenData } = fields;
-
-    const entity = new CredentialEntity({
+    const credentialData = {
+      ...fields,
       brandId,
       organizationId,
       platform,
-      userId,
-      ...tokenData,
-    });
+      userId: credentialUserId,
+    };
 
     if (existing) {
-      return this.patch((existing as Record<string, unknown>).id as string, {
-        ...entity,
+      return this.patch(existing.id, {
+        ...credentialData,
         isDeleted: false,
       });
     }
 
-    return this.create(entity as unknown as CreateCredentialDto);
+    return this.create(credentialData as unknown as CreateCredentialDto);
+  }
+
+  /**
+   * Start an OAuth connection with an opaque, credential-bound CSRF nonce.
+   * Provider callbacks receive no tenant identifiers they can tamper with;
+   * the pending credential remains the authoritative source of scope.
+   */
+  async beginOAuthForBrand(
+    brand: {
+      id: string;
+      organizationId: string;
+      [key: string]: unknown;
+    },
+    userId: string,
+    platform: CredentialPlatform,
+    fields: CredentialUpsertFields = {},
+  ): Promise<{ credential: CredentialDocument; state: string }> {
+    const state = randomBytes(32).toString('base64url');
+    const credential = await this.upsertForBrand(brand, userId, platform, {
+      ...fields,
+      oauthState: state,
+    });
+
+    return { credential, state };
+  }
+
+  /** Resolve a pending OAuth nonce within the authenticated tenant scope. */
+  async findPendingOAuthCredential(
+    state: string,
+    platform: CredentialPlatform,
+    scope?: Partial<OAuthCredentialScope>,
+  ): Promise<PendingOAuthCredential | null> {
+    if (typeof state !== 'string' || !state.trim()) {
+      return null;
+    }
+
+    const credential = await this.findOne({
+      isDeleted: false,
+      oauthState: state,
+      platform,
+      updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
+      ...(scope?.organizationId
+        ? {
+            organizationId: requireCredentialRelationId(
+              scope.organizationId,
+              'organizationId',
+            ),
+          }
+        : {}),
+      ...(scope?.userId
+        ? {
+            userId: requireCredentialRelationId(scope.userId, 'userId'),
+          }
+        : {}),
+    });
+
+    if (
+      !credential?.brandId ||
+      !credential.organizationId ||
+      !credential.userId
+    ) {
+      return null;
+    }
+
+    return credential as PendingOAuthCredential;
+  }
+
+  /**
+   * Create a credential-scoped tag and attach it atomically. The credential
+   * lookup and relation write are both tenant-scoped so a leaked credential ID
+   * cannot create or attach data in another organization.
+   */
+  createAndAttachTag(
+    credentialId: string,
+    organizationId: string,
+    userId: string,
+    createTagDto: CreateTagDto,
+  ): Promise<CredentialDocument> {
+    return this.prisma.$transaction(async (tx) => {
+      const credential = await tx.credential.findFirst({
+        select: { brandId: true, id: true },
+        where: {
+          id: credentialId,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+
+      if (!credential) {
+        throw new NotFoundException('Credential', credentialId);
+      }
+
+      const tag = await tx.tag.create({
+        data: {
+          ...(createTagDto.backgroundColor !== undefined && {
+            backgroundColor: createTagDto.backgroundColor,
+          }),
+          brandId: credential.brandId,
+          category: PrismaTagCategory.CREDENTIAL,
+          ...(createTagDto.description !== undefined && {
+            description: createTagDto.description,
+          }),
+          ...(createTagDto.key !== undefined && { key: createTagDto.key }),
+          label: createTagDto.label,
+          organizationId,
+          ...(createTagDto.textColor !== undefined && {
+            textColor: createTagDto.textColor,
+          }),
+          userId,
+        },
+        select: { id: true },
+      });
+
+      return tx.credential.update({
+        data: { tags: { connect: { id: tag.id } } },
+        include: { tags: true },
+        where: {
+          id: credential.id,
+          isDeleted: false,
+          organizationId,
+        },
+      });
+    });
   }
 
   /**
@@ -175,7 +339,7 @@ export class CredentialsService extends BaseService<
     const credential = await this.findOne({
       id: credentialId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!credential) {

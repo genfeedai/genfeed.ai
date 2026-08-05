@@ -40,13 +40,7 @@ type PopulateInput = (string | PopulateOption)[] | 'none';
 type PrismaOrderDirection = 'asc' | 'desc' | number;
 type PrismaOrderByInput = Record<string, PrismaOrderDirection>;
 type PrismaOrderBy = Record<string, 'asc' | 'desc'>;
-/**
- * @deprecated Internal shape kept only for backward-compatible method signatures.
- * All runtime field lookups now use the static PRISMA_MODEL_METADATA map via
- * `getModelMeta()` from `@genfeedai/prisma`. The `_runtimeDataModel` property
- * on PrismaService is NOT populated by the PrismaPg driver adapter (Prisma 7)
- * and must not be relied on.
- */
+/** Static Prisma model-field metadata used for enum and nullability handling. */
 type RuntimeModelField = {
   isList?: boolean;
   isRequired?: boolean;
@@ -110,26 +104,6 @@ const PAGINATION_OPTION_KEYS = new Set([
   'useFacet',
 ]);
 
-const SCALAR_FILTER_OPERATOR_KEYS = new Set([
-  'contains',
-  'endsWith',
-  'equals',
-  'gt',
-  'gte',
-  'has',
-  'hasEvery',
-  'hasSome',
-  'in',
-  'isEmpty',
-  'lt',
-  'lte',
-  'mode',
-  'not',
-  'notIn',
-  'search',
-  'startsWith',
-]);
-
 /**
  * Stage 4: argument shape whose `where` clause is compile-time typed to the
  * model's `Prisma.<Model>WhereInput` (via the `TWhere` generic), while the
@@ -172,23 +146,41 @@ type PrismaDelegate<TWhere = PrismaFilter, TResult = BaseDocument> = {
 };
 
 /**
- * Convert a populate array (string | PopulateOption) into a Prisma `include` object.
- *
- * Populate strings map directly to Prisma relation names.
- * PopulateOption `select` field is ignored here — Prisma `include` includes full relations
- * by default. Field-level selection within a relation requires a nested `select`, which
- * callers that need it should override directly using Prisma APIs.
+ * Convert relation-loading options into Prisma `include` entries. Explicit
+ * field lists become nested `select` objects so list endpoints do not fetch
+ * complete related records.
  */
 function populateToInclude(
   populate: PopulateInput,
-): Record<string, boolean> | undefined {
+): Record<string, unknown> | undefined {
   if (populate === 'none') {
     return undefined;
   }
 
   if (!populate.length) return undefined;
+  const toRelationSelection = (option: PopulateOption): unknown => {
+    const nested = option.populate
+      ? { [option.populate.path]: toRelationSelection(option.populate) }
+      : undefined;
+
+    if (option.select?.length) {
+      return {
+        select: {
+          ...Object.fromEntries(option.select.map((field) => [field, true])),
+          ...nested,
+        },
+      };
+    }
+
+    return nested ? { include: nested } : true;
+  };
+
   return Object.fromEntries(
-    populate.map((p) => [typeof p === 'string' ? p : p.path, true]),
+    populate.map((option) =>
+      typeof option === 'string'
+        ? [option, true]
+        : [option.path, toRelationSelection(option)],
+    ),
   );
 }
 
@@ -205,11 +197,9 @@ function populateToInclude(
  * - `patch(id, data)` — Updates a single document by ID. Auto-invalidates cache.
  * - `patchAll(filter, update)` — Bulk update. Returns `{ modifiedCount }`.
  *
- * ## findAll / aggregation
- * The `findAll` method previously accepted MongoDB findAll queries. In the Prisma
- * migration it accepts `AggregationOptions` (page, limit, sort) and builds a simple
- * `findMany` + `count` query. Services that require complex aggregations should call
- * `this.prisma[this.modelName].findMany(...)` directly.
+ * ## findAll
+ * Accepts a Prisma query shape plus pagination options and executes `findMany`
+ * and `count`. Complex queries belong in their domain service.
  */
 @Injectable()
 export abstract class BaseService<
@@ -289,6 +279,39 @@ export abstract class BaseService<
     );
   }
 
+  /** Whether this service's Prisma model declares a concrete scalar/relation field. */
+  public supportsField(fieldName: string): boolean {
+    return this.staticModelMeta !== undefined && this.modelHasField(fieldName);
+  }
+
+  private assertProjectionFields(
+    projection: Record<string, unknown> | undefined,
+    kind: 'include' | 'select',
+  ): void {
+    if (!projection || !this.staticModelMeta) {
+      return;
+    }
+
+    for (const fieldName of Object.keys(projection)) {
+      if (fieldName === '_count') {
+        continue;
+      }
+      if (!this.modelHasField(fieldName)) {
+        throw new ValidationException(
+          `Invalid Prisma ${kind} field "${fieldName}" on model "${this.modelName}"`,
+        );
+      }
+    }
+  }
+
+  private populateToInclude(
+    populate: PopulateInput,
+  ): Record<string, unknown> | undefined {
+    const include = populateToInclude(populate);
+    this.assertProjectionFields(include, 'include');
+    return include;
+  }
+
   /**
    * Returns a RuntimeModelField-shaped object for `fieldName` when the field
    * exists in the static metadata, or `undefined` when it does not.
@@ -315,10 +338,6 @@ export abstract class BaseService<
     }
 
     return undefined;
-  }
-
-  private getRelationIdField(fieldName: string): string | undefined {
-    return this.staticModelMeta?.relationIdFields[fieldName];
   }
 
   /**
@@ -353,110 +372,9 @@ export abstract class BaseService<
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
-  private mergeLegacyPayload(
-    target: Record<string, unknown>,
-    source: unknown,
-  ): void {
-    if (!this.isPlainObject(source)) {
-      return;
-    }
-
-    for (const [key, value] of Object.entries(source)) {
-      if (target[key] === undefined) {
-        target[key] = value;
-      }
-    }
-  }
-
+  /** Domain extension point for decoding canonical persisted JSON fields. */
   protected normalizeDocument(document: unknown): T {
-    if (!this.isPlainObject(document)) {
-      return document as T;
-    }
-
-    const normalized: Record<string, unknown> = { ...document };
-
-    if (
-      normalized.organization === undefined &&
-      typeof normalized.organizationId === 'string'
-    ) {
-      normalized.organization = normalized.organizationId;
-    }
-
-    if (
-      normalized.user === undefined &&
-      typeof normalized.userId === 'string'
-    ) {
-      normalized.user = normalized.userId;
-    }
-
-    if (
-      normalized.brand === undefined &&
-      (typeof normalized.brandId === 'string' || normalized.brandId === null)
-    ) {
-      normalized.brand = normalized.brandId;
-    }
-
-    if (
-      normalized.parentModel === undefined &&
-      typeof normalized.parentType === 'string'
-    ) {
-      normalized.parentModel = normalized.parentType;
-    }
-
-    if (normalized.parent === undefined) {
-      const parentCandidate =
-        normalized.parentBrandId ??
-        normalized.parentOrgId ??
-        normalized.parentIngredientId ??
-        normalized.parentArticleId;
-
-      if (typeof parentCandidate === 'string' || parentCandidate === null) {
-        normalized.parent = parentCandidate;
-      }
-    }
-
-    this.mergeLegacyPayload(normalized, normalized.data);
-    this.mergeLegacyPayload(normalized, normalized.config);
-    this.mergeLegacyPayload(normalized, normalized.settings);
-    this.mergeLegacyPayload(normalized, normalized.policies);
-    this.mergeLegacyPayload(normalized, normalized.metadata);
-    this.mergeLegacyPayload(normalized, normalized.stats);
-    this.mergeLegacyPayload(normalized, normalized.result);
-
-    if (normalized.key === undefined && typeof normalized.action === 'string') {
-      normalized.key = normalized.action;
-    }
-
-    if (normalized.action === undefined && typeof normalized.key === 'string') {
-      normalized.action = normalized.key;
-    }
-
-    // Prisma stores OrganizationSetting model allowlist as enabledModelIds;
-    // domain/API surface remains enabledModels.
-    this.applyEnabledModelsAlias(normalized);
-
-    // A populated relation is a raw Prisma row — normalizeDocument never runs on
-    // it, so the alias above would only land on the parent. `GET /organizations/:id`
-    // serializes `settings` as a nested relationship, and without this the org
-    // allowlist reached every consumer (models settings page, promptbar, brand
-    // context) as `undefined` — every model read as disabled and no toggle stuck.
-    if (this.isPlainObject(normalized.settings)) {
-      normalized.settings = this.applyEnabledModelsAlias({
-        ...normalized.settings,
-      });
-    }
-
-    return normalized as T;
-  }
-
-  private applyEnabledModelsAlias(
-    row: Record<string, unknown>,
-  ): Record<string, unknown> {
-    if (row.enabledModels === undefined && Array.isArray(row.enabledModelIds)) {
-      row.enabledModels = row.enabledModelIds;
-    }
-
-    return row;
+    return document as T;
   }
 
   protected normalizeDocuments(documents: unknown[]): T[] {
@@ -638,7 +556,7 @@ export abstract class BaseService<
   }
 
   protected normalizeWhere(where: PrismaFilter = {}): PrismaFilter {
-    const normalized = this.processSearchParams(where);
+    const normalized = where;
     const result: PrismaFilter = {};
 
     for (const [key, value] of Object.entries(normalized)) {
@@ -686,38 +604,6 @@ export abstract class BaseService<
       // Nest DTO instances materialize omitted fields as own properties holding
       // `undefined`. Prisma rejects those keys; drop them before write.
       if (value === undefined) {
-        continue;
-      }
-
-      // Canonicalize Mongo-era relation-id aliases at the persistence boundary.
-      // The mapping is generated from the Prisma schema, so this only applies to
-      // real relations backed by a conventional `<relation>Id` scalar. Nested
-      // Prisma relation objects (`connect`, `create`, ...) remain untouched.
-      const relationIdField = this.getRelationIdField(key);
-      if (relationIdField && (typeof value === 'string' || value === null)) {
-        // Explicit canonical input always wins when both forms are present.
-        if (data[relationIdField] === undefined && value !== '') {
-          result[relationIdField] = this.normalizeOperatorValue(
-            relationIdField,
-            value,
-          );
-        }
-        continue;
-      }
-
-      // Domain API still uses `enabledModels`; Prisma column is `enabledModelIds`
-      // (OrganizationSetting). Without this remap, org bootstrap / user setup
-      // create throws PrismaClientValidationError and brands never provision —
-      // which is what reds the authed nightly (#1626).
-      if (
-        key === 'enabledModels' &&
-        this.modelHasField('enabledModelIds') &&
-        !this.modelHasField('enabledModels')
-      ) {
-        result.enabledModelIds = this.normalizeOperatorValue(
-          'enabledModelIds',
-          value,
-        );
         continue;
       }
 
@@ -803,7 +689,7 @@ export abstract class BaseService<
         modelName: this.modelName,
       });
 
-      const include = populateToInclude(populate);
+      const include = this.populateToInclude(populate);
       const doc = await this.internalDelegate.create({
         data: this.normalizeData(createDto),
         ...(include ? { include } : {}),
@@ -827,17 +713,7 @@ export abstract class BaseService<
     }
   }
 
-  /**
-   * Find documents with pagination.
-   *
-   * Previously accepted MongoDB findAll queries. Now accepts an options object.
-   * Services that require raw aggregation should override this method or call
-   * `this.prisma.$queryRaw` / `this.delegate.findMany(...)` directly.
-   *
-   * The first parameter `_pipeline` is kept for API compatibility with callers that pass
-   * a MongoDB pipeline array — it is ignored. Pass `{}` or `[]` when calling from
-   * migrated code.
-   */
+  /** Find documents with optional projection, sorting, caching, and pagination. */
   async findAll(
     input: unknown,
     options: AggregationOptions,
@@ -855,6 +731,8 @@ export abstract class BaseService<
       this.auditUnknownFilterFields(where);
       const include = findAllInput.include;
       const select = findAllInput.select;
+      this.assertProjectionFields(include, 'include');
+      this.assertProjectionFields(select, 'select');
       const projection = select ? { select } : include ? { include } : {};
 
       const cacheKey =
@@ -955,7 +833,7 @@ export abstract class BaseService<
 
   async find(params: PrismaFilter, populate: PopulateInput = []): Promise<T[]> {
     const where = this.normalizeWhere(params);
-    const include = populateToInclude(populate);
+    const include = this.populateToInclude(populate);
     const docs = await this.internalDelegate.findMany({
       where,
       ...(include ? { include } : {}),
@@ -973,19 +851,11 @@ export abstract class BaseService<
         throw new ValidationException('Search parameters are required');
       }
 
-      // Guard: a primary-key lookup with a missing id must never fall through
-      // to an unscoped findFirst. normalizeWhere drops undefined values, so
-      // `findOne({ _id: undefined })` would silently return the first row in
-      // the table — a cross-tenant read. Treat it as "not found" instead.
-      const voidableIdKeys = ['_id', 'id'] as const;
-      const hasVoidIdParam = voidableIdKeys.some(
-        (key) =>
-          key in params &&
-          (params[key] === undefined ||
-            params[key] === null ||
-            params[key] === ''),
-      );
-      if (hasVoidIdParam) {
+      // A missing canonical ID must never degrade into an unscoped findFirst.
+      if (
+        'id' in params &&
+        (params.id === undefined || params.id === null || params.id === '')
+      ) {
         this.logger?.warn(
           'findOne called with an empty identifier — returning null instead of an unscoped first-row read',
           { model: this.modelName, params },
@@ -996,7 +866,7 @@ export abstract class BaseService<
       this.logger?.debug('Finding document', { params, populate });
 
       const where = this.normalizeWhere(params);
-      const include = populateToInclude(populate);
+      const include = this.populateToInclude(populate);
 
       const result = await this.internalDelegate.findFirst({
         where,
@@ -1037,7 +907,7 @@ export abstract class BaseService<
       this.logger?.debug('Updating document', { id, populate, updateDto });
       const data = this.normalizeData(updateDto);
 
-      const include = populateToInclude(populate);
+      const include = this.populateToInclude(populate);
       const result = await this.internalDelegate.update({
         where: { id },
         data,
@@ -1152,93 +1022,6 @@ export abstract class BaseService<
   }
 
   /**
-   * Process search parameters for Prisma where clauses.
-   * Converts `_id` → `id` and also matches `mongoId` when the model still
-   * carries a legacy Mongo identifier.
-   * Converts legacy scalar `organization` / `user` filters to scalar foreign keys.
-   * Strips ObjectId conversion — Prisma uses string IDs natively.
-   */
-  public processSearchParams(params: PrismaFilter): PrismaFilter {
-    const processed: PrismaFilter = {};
-    const legacyRelationFields = {
-      organization: 'organizationId',
-      user: 'userId',
-    } as const;
-
-    for (const [key, value] of Object.entries(params)) {
-      if (key === 'isDeleted' && !this.modelHasField('isDeleted')) {
-        continue;
-      }
-
-      if (
-        key in legacyRelationFields &&
-        (typeof value === 'string' || value === null)
-      ) {
-        const relationKey = key as keyof typeof legacyRelationFields;
-        const scalarKey = legacyRelationFields[relationKey];
-
-        // Map the legacy relation alias to its scalar FK for BOTH id strings and
-        // explicit nulls (global / unowned items use `{ organization: null }`).
-        // Null must be mapped too — otherwise the raw relation name reaches
-        // Prisma and throws "Unknown argument `organization`" for models that
-        // only expose the scalar FK (e.g. FontFamilyRecord, Tag.user).
-        if (this.modelHasField(scalarKey)) {
-          processed[scalarKey] = value;
-          continue;
-        }
-
-        if (this.modelHasField(relationKey)) {
-          processed[relationKey] =
-            typeof value === 'string' ? { is: { id: value } } : value;
-          continue;
-        }
-
-        // Model exposes neither the scalar FK nor the relation — drop the
-        // condition instead of emitting an unknown argument.
-        continue;
-      }
-
-      const scalarRelationKey = `${key}Id`;
-      const shouldMapRelationObject =
-        this.isPlainObject(value) &&
-        Object.keys(value).some(
-          (operator) =>
-            operator.startsWith('$') ||
-            SCALAR_FILTER_OPERATOR_KEYS.has(operator),
-        );
-
-      if (
-        (typeof value === 'string' ||
-          value === null ||
-          shouldMapRelationObject) &&
-        this.modelHasField(scalarRelationKey)
-      ) {
-        processed[scalarRelationKey] = value;
-        continue;
-      }
-
-      if (key === '_id') {
-        if (this.modelHasField('mongoId')) {
-          const existingOr = Array.isArray(processed.OR)
-            ? [...processed.OR]
-            : [];
-
-          processed.OR = [...existingOr, { id: value }, { mongoId: value }];
-          continue;
-        }
-
-        processed.id = value;
-        continue;
-      }
-
-      const prismaKey = key;
-      processed[prismaKey] = value;
-    }
-
-    return processed;
-  }
-
-  /**
    * Find one document with organization isolation.
    * Automatically includes `organizationId` and `isDeleted: false` filters.
    */
@@ -1247,7 +1030,7 @@ export abstract class BaseService<
     organizationId: string,
     populate: PopulateOption[] = [],
   ): Promise<T> {
-    const include = populateToInclude(populate);
+    const include = this.populateToInclude(populate);
     const item = await this.internalDelegate.findFirst({
       where: this.withSoftDeleteFilter({ id, organizationId }),
       ...(include ? { include } : {}),
@@ -1285,7 +1068,7 @@ export abstract class BaseService<
     }
 
     const query = this.normalizeWhere(filterBuilder.build());
-    const include = populateToInclude(populate);
+    const include = this.populateToInclude(populate);
 
     const orderBy = Object.entries(sort).map(([key, dir]) => ({
       [key]: dir === 1 ? 'asc' : 'desc',

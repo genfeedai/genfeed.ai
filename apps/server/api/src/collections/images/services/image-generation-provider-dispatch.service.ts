@@ -93,13 +93,13 @@ export class ImageGenerationProviderDispatchService {
   ): Promise<void> {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: context.brand.id,
+        brandId: context.brand.id,
         entityId: ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_PROCESSING,
-        organization: context.publicMetadata.organization,
+        organizationId: context.publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
-        user: context.publicMetadata.user,
+        userId: context.publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientId.toString(),
           model: context.model,
@@ -395,16 +395,22 @@ export class ImageGenerationProviderDispatchService {
   private createAdditionalDocuments(
     context: ImageGenerationContext,
   ): Promise<ImageGenerationSaveDocumentsResult> {
-    return this.sharedService.saveDocuments(context.user, {
-      ...context.createImageDto,
-      brand: context.brand.id,
+    return this.sharedService.createMediaDocuments(context.user, {
+      brandId: context.brand.id,
       category: IngredientCategory.IMAGE,
       extension: MetadataExtension.JPG,
+      generationPrompt: context.promptData.original,
+      generationSeed: context.createImageDto.seed,
       model: context.model,
-      organization: context.publicMetadata.organization,
-      parent: context.ingredientData.parentId,
-      prompt: context.promptData.id,
+      negativePrompt: context.createImageDto.negativePrompt,
+      organizationId: context.publicMetadata.organization,
+      parentId: context.ingredientData.parentId,
+      promptId: context.promptData.id,
+      scope: context.createImageDto.scope,
+      sourceIds: context.referenceIds,
       status: IngredientStatus.PROCESSING,
+      style: context.style,
+      tagIds: context.createImageDto.tags,
     });
   }
 

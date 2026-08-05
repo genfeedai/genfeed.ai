@@ -102,7 +102,7 @@ describe('EditorRenderService', () => {
     patch: ReturnType<typeof vi.fn>;
   };
   let sharedService: {
-    saveDocuments: ReturnType<typeof vi.fn>;
+    createMediaDocuments: ReturnType<typeof vi.fn>;
   };
   let notificationsPublisher: {
     publishMediaFailed: ReturnType<typeof vi.fn>;
@@ -149,7 +149,7 @@ describe('EditorRenderService', () => {
       patch: vi.fn().mockResolvedValue(undefined),
     };
     sharedService = {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: 'output-video-123' },
         metadataData: { id: 'output-metadata-123' },
       }),

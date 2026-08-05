@@ -177,7 +177,7 @@ export class ReplicateWebhookController {
     await this.websocketService.publishTrainingStatus(
       String(training.id),
       IngredientStatus.GENERATED,
-      String(training.user),
+      training.userId,
       {
         externalId: payload.id,
         model: trainedModelVersion,
@@ -232,7 +232,7 @@ export class ReplicateWebhookController {
     await this.websocketService.publishTrainingStatus(
       String(training.id),
       IngredientStatus.FAILED,
-      String(training.user),
+      training.userId,
       {
         error: payload.error || 'Training failed',
         externalId: payload.id,

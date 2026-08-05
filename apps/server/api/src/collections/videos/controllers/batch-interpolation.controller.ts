@@ -142,9 +142,9 @@ export class BatchInterpolationController {
 
     // Get brand for organization context
     const brand = await this.brandsService.findOne({
-      _id: publicMetadata.brand,
+      id: publicMetadata.brand,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -289,8 +289,8 @@ export class BatchInterpolationController {
 
         // Create video ingredient with groupId for batch tracking
         const { metadataData, ingredientData } =
-          await this.sharedService.saveDocuments(user, {
-            brand: brand.id,
+          await this.sharedService.createMediaDocuments(user, {
+            brandId: brand.id,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
             groupId,
@@ -298,10 +298,10 @@ export class BatchInterpolationController {
             height,
             isMergeEnabled: dto.isMergeEnabled || false,
             model: dto.modelKey,
-            organization: brand.organizationId,
-            prompt: promptData.id,
+            organizationId: brand.organizationId,
+            promptId: promptData.id,
             promptTemplate: templateUsed,
-            references: [pair.startImageId],
+            sourceIds: [pair.startImageId],
             status: IngredientStatus.PROCESSING,
             templateVersion: templateVersion,
             width,
@@ -312,13 +312,13 @@ export class BatchInterpolationController {
         // Create activity for tracking
         const activity = await this.activitiesService.create(
           new ActivityEntity({
-            brand: brand.id,
+            brandId: brand.id,
             entityId: ingredientData.id,
             entityModel: ActivityEntityModel.INGREDIENT,
             key: ActivityKey.VIDEO_PROCESSING,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
             source: ActivitySource.VIDEO_GENERATION,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
             value: JSON.stringify({
               groupId,
               ingredientId,

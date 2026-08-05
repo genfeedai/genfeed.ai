@@ -4,7 +4,6 @@ import {
   extractInvoiceSubscriptionId,
   getEmailDomainForLog,
   getEmailLogMetadata,
-  normalizeObjectId,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import { describe, expect, it, vi } from 'vitest';
@@ -12,16 +11,6 @@ import { describe, expect, it, vi } from 'vitest';
 function invoiceWith(overrides: Record<string, unknown>): StripeInvoice {
   return { id: 'in_1', ...overrides } as unknown as StripeInvoice;
 }
-
-describe('normalizeObjectId', () => {
-  it('returns "unknown" for missing values', () => {
-    expect(normalizeObjectId(undefined)).toBe('unknown');
-  });
-
-  it('stringifies present values', () => {
-    expect(normalizeObjectId('org_1' as never)).toBe('org_1');
-  });
-});
 
 describe('getEmailLogMetadata', () => {
   it('keeps only the normalized email domain for log correlation', () => {

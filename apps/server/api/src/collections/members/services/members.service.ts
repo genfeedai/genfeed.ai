@@ -46,11 +46,32 @@ export class MembersService extends BaseService<
     super(prisma, 'member', logger);
   }
 
-  async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
-    const where = this.processSearchParams(filter);
+  protected override normalizeData(data: unknown): Record<string, unknown> {
+    const normalized = super.normalizeData(data) as Record<string, unknown>;
+    const { brandIds, ...memberData } = normalized;
 
+    if (brandIds === undefined) {
+      return memberData;
+    }
+
+    if (
+      !Array.isArray(brandIds) ||
+      brandIds.some((brandId) => typeof brandId !== 'string')
+    ) {
+      throw new TypeError('brandIds must be an array of entity IDs');
+    }
+
+    return {
+      ...memberData,
+      brands: {
+        set: [...new Set(brandIds)].map((id) => ({ id })),
+      },
+    };
+  }
+
+  async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
     const members = await this.prisma.member.findMany({
-      where: where as never,
+      where: filter as never,
     });
 
     return members as unknown as MemberDocument[];
@@ -137,10 +158,7 @@ export class MembersService extends BaseService<
     filter: Record<string, unknown>,
     brandId: string | null,
   ): Promise<void> {
-    // Map legacy relation aliases (`organization`/`user`) to their scalar FKs
-    // before hitting Prisma — `updateMany` validates `where` against the scalar
-    // columns, so a raw `{ organization: id }` throws "Unknown argument".
-    const where = this.processSearchParams(filter) as {
+    const where = filter as {
       organizationId?: unknown;
       userId?: unknown;
     };

@@ -94,9 +94,9 @@ export class VideosLipSyncController {
 
       // 1. Resolve parent (image) ingredient
       const imageIngredient = await this.ingredientsService.findOne({
-        _id: createLipSyncDto.parent,
+        id: createLipSyncDto.parent,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
 
       if (!imageIngredient) {
@@ -136,9 +136,9 @@ export class VideosLipSyncController {
 
       // 2. Resolve voice (audio) ingredient
       const audioIngredient = await this.ingredientsService.findOne({
-        _id: createLipSyncDto.voice,
+        id: createLipSyncDto.voice,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
 
       if (!audioIngredient) {
@@ -192,15 +192,15 @@ export class VideosLipSyncController {
 
       // 4. Create video ingredient with metadata
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand: imageIngredient.brand || publicMetadata.brand,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: imageIngredient.brand || publicMetadata.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organization: publicMetadata.organization,
-          parent: createLipSyncDto.parent,
+          organizationId: publicMetadata.organization,
+          parentId: createLipSyncDto.parent,
           // Store references for traceability
-          references: [createLipSyncDto.parent, createLipSyncDto.voice],
+          sourceIds: [createLipSyncDto.parent, createLipSyncDto.voice],
           status: IngredientStatus.PROCESSING,
         });
 

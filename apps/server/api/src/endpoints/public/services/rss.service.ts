@@ -91,7 +91,7 @@ export class RssService {
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
           ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
-          user: userId,
+          userId: userId,
         },
         orderBy: { createdAt: -1, publishedAt: -1 },
       },
@@ -132,7 +132,7 @@ export class RssService {
     const result = await this.articlesService.findAll(
       {
         where: {
-          brand: brandId,
+          brandId: brandId,
           isDeleted: false,
           scope: ArticleScope.PUBLIC,
           ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
@@ -177,7 +177,7 @@ export class RssService {
       {
         where: {
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
           scope: ArticleScope.PUBLIC,
           ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
         },

@@ -21,14 +21,12 @@ export interface AgentPolicyConfig {
 
 export interface OrganizationSettingDocument
   extends Omit<PrismaOrganizationSetting, 'agentPolicy' | 'defaultVoiceRef'> {
-  _id: string;
   agentPolicy?: AgentPolicyConfig;
   defaultAvatarIngredientId: string | null;
   defaultAvatarPhotoUrl: string | null;
   defaultModel: string | null;
   defaultVoiceId: string | null;
   defaultVoiceRef?: PrismaOrganizationSetting['defaultVoiceRef'];
-  organization?: string;
   [key: string]: unknown;
 }
 

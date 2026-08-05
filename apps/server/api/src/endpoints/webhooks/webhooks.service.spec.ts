@@ -821,7 +821,7 @@ describe('WebhooksService', () => {
       expect(websocketService.publishAssetStatus).not.toHaveBeenCalled();
     });
 
-    it('should include parent and parentModel in websocket metadata', async () => {
+    it('should include parentId and parentType in websocket metadata', async () => {
       await service.processAssetFromWebhook(integration, assetId, url);
 
       expect(websocketService.publishAssetStatus).toHaveBeenCalledWith(
@@ -829,8 +829,8 @@ describe('WebhooksService', () => {
         'completed',
         expect.any(String),
         expect.objectContaining({
-          parent: mockAsset.parentBrandId,
-          parentModel: mockAsset.parentType,
+          parentId: mockAsset.parentBrandId,
+          parentType: mockAsset.parentType,
         }),
       );
     });

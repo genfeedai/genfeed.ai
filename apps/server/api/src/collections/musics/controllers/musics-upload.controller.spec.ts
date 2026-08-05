@@ -62,7 +62,7 @@ describe('MusicsUploadController', () => {
     metadataService: { patch: vi.fn() },
     musicsService: { patch: vi.fn() },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
           _id: '507f1f77bcf86cd799439014',
           category: 'music',
@@ -120,7 +120,7 @@ describe('MusicsUploadController', () => {
     it('should upload a music file successfully', async () => {
       const result = await controller.createUpload(mockReq, mockUser, mockFile);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
       expect(filesClientService.uploadToS3).toHaveBeenCalled();
       expect(result).toBeDefined();
     });

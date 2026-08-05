@@ -1,8 +1,26 @@
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty, PartialType, PickType } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
 
-export class UpdateCredentialDto extends PartialType(CreateCredentialDto) {
+export class UpdateCredentialDto extends PartialType(
+  PickType(CreateCredentialDto, [
+    'accessToken',
+    'accessTokenExpiry',
+    'accessTokenSecret',
+    'description',
+    'externalAvatar',
+    'externalHandle',
+    'externalId',
+    'externalName',
+    'isConnected',
+    'label',
+    'oauthToken',
+    'oauthTokenSecret',
+    'refreshToken',
+    'refreshTokenExpiry',
+    'tagIds',
+  ] as const),
+) {
   @IsBoolean()
   @IsOptional()
   @ApiProperty({

@@ -61,7 +61,7 @@ class TestIntegrationController extends BaseIntegrationController {
   // Expose protected methods for testing
   async testHandleConnect(
     user: User,
-    dto: { brand?: string },
+    dto: { brandId?: string },
   ): Promise<OAuthUrlResult> {
     return this.handleConnect(user, dto as never);
   }
@@ -72,14 +72,13 @@ class TestIntegrationController extends BaseIntegrationController {
 
   async testGetOrCreateCredential(
     brand: {
-      id?: unknown;
-      _id?: unknown;
-      organization?: unknown;
-      organizationId?: unknown;
+      id: string;
+      organizationId: string;
     },
+    userId: string,
     initialData?: Record<string, unknown>,
   ) {
-    return this.getOrCreateCredential(brand, initialData);
+    return this.getOrCreateCredential(brand, userId, initialData);
   }
 
   testUpdateCredentialWithTokens(
@@ -121,7 +120,7 @@ describe('BaseIntegrationController', () => {
   let credentialsService: {
     findOne: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
-    saveCredentials: ReturnType<typeof vi.fn>;
+    upsertForBrand: ReturnType<typeof vi.fn>;
   };
 
   const mockUser = {
@@ -132,17 +131,18 @@ describe('BaseIntegrationController', () => {
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
         id: brandId,
-        organization: orgId,
+        organizationId: orgId,
+        userId,
       }),
     };
 
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         isConnected: false,
       }),
-      patch: vi.fn().mockResolvedValue({ _id: 'cred-1', isConnected: true }),
-      saveCredentials: vi.fn().mockResolvedValue({ _id: 'cred-1' }),
+      patch: vi.fn().mockResolvedValue({ id: 'cred-1', isConnected: true }),
+      upsertForBrand: vi.fn().mockResolvedValue({ id: 'cred-1' }),
     };
 
     controller = new TestIntegrationController(
@@ -177,13 +177,11 @@ describe('BaseIntegrationController', () => {
         orgId,
       );
 
-      expect(brandsService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({
-          _id: expect.any(String),
-          isDeleted: false,
-          organization: expect.any(String),
-        }),
-      );
+      expect(brandsService.findOne).toHaveBeenCalledWith({
+        id: brandId,
+        isDeleted: false,
+        organizationId: orgId,
+      });
       expect(result).toHaveProperty('id');
     });
 
@@ -207,10 +205,10 @@ describe('BaseIntegrationController', () => {
     it('should return existing credential if found', async () => {
       const brand = {
         id: brandId,
-        organization: orgId,
+        organizationId: orgId,
       };
 
-      const result = await controller.testGetOrCreateCredential(brand);
+      const result = await controller.testGetOrCreateCredential(brand, userId);
 
       // Scalar foreign keys — an `organization` alias filter is dropped by
       // `normalizeWhere` when the relation was not populated, which would
@@ -220,47 +218,39 @@ describe('BaseIntegrationController', () => {
         organizationId: orgId,
         platform: CredentialPlatform.YOUTUBE,
       });
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
-      expect(result).toHaveProperty('_id');
+      expect(credentialsService.upsertForBrand).not.toHaveBeenCalled();
+      expect(result).toHaveProperty('id');
     });
 
     it('should create and return new credential if none exists', async () => {
       const brand = {
-        _id: brandId,
-        organization: orgId,
+        id: brandId,
+        organizationId: orgId,
       };
 
       credentialsService.findOne
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           isConnected: false,
         });
 
-      const result = await controller.testGetOrCreateCredential(brand);
+      const result = await controller.testGetOrCreateCredential(brand, userId);
 
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         brand,
+        userId,
         CredentialPlatform.YOUTUBE,
         expect.objectContaining({ isConnected: false }),
       );
-      expect(result).toHaveProperty('_id');
-    });
-
-    it('fails closed instead of querying unscoped when the organization is unresolvable', async () => {
-      await expect(
-        controller.testGetOrCreateCredential({ id: brandId }),
-      ).rejects.toThrow(/organization/);
-
-      expect(credentialsService.findOne).not.toHaveBeenCalled();
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
+      expect(result).toHaveProperty('id');
     });
   });
 
   describe('handleConnect', () => {
     it('should validate brand, generate OAuth URL, and create credential', async () => {
       const result = await controller.testHandleConnect(mockUser, {
-        brand: brandId.toString(),
+        brandId: brandId.toString(),
       });
 
       expect(brandsService.findOne).toHaveBeenCalled();
@@ -277,11 +267,12 @@ describe('BaseIntegrationController', () => {
       });
 
       await controller.testHandleConnect(mockUser, {
-        brand: brandId.toString(),
+        brandId: brandId.toString(),
       });
 
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         expect.anything(),
+        userId,
         CredentialPlatform.YOUTUBE,
         expect.objectContaining({
           isConnected: false,
@@ -302,7 +293,7 @@ describe('BaseIntegrationController', () => {
 
       await expect(
         controller.testHandleConnect(mockUser, {
-          brand: '507f191e810c19729de860ee'.toString(),
+          brandId: '507f191e810c19729de860ee'.toString(),
         }),
       ).rejects.toThrow(HttpException);
     });

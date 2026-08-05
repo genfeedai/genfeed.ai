@@ -60,10 +60,10 @@ export class VideoProvenanceService {
 
     const orScopes: Record<string, unknown>[] = [];
     if (scope.userId) {
-      orScopes.push({ user: scope.userId });
+      orScopes.push({ userId: scope.userId });
     }
     if (scope.organizationId) {
-      orScopes.push({ organization: scope.organizationId });
+      orScopes.push({ organizationId: scope.organizationId });
     }
 
     // Refuse to run an unscoped lookup. Empty/missing user and org would
@@ -75,7 +75,7 @@ export class VideoProvenanceService {
 
     const where: Record<string, unknown> = {
       OR: orScopes,
-      _id: videoId,
+      id: videoId,
       isDeleted: false,
     };
 
@@ -90,7 +90,7 @@ export class VideoProvenanceService {
     });
 
     return this.buildPackageFromVideoQuery(videoId, {
-      _id: videoId,
+      id: videoId,
       // buildWhereFromParams passes the value directly to Prisma which stores
       // IngredientCategory as uppercase (e.g. 'VIDEO'). The JS enum value is
       // lowercase ('video'), so we convert via CategoryPrismaUtil to avoid a
@@ -134,7 +134,7 @@ export class VideoProvenanceService {
 
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({
-          _id: video.metadataId,
+          id: video.metadataId,
           isDeleted: false,
         })) as unknown as IMetadataProvenanceRecord | null)
       : null;

@@ -92,8 +92,8 @@ export class OrganizationSettingsService extends BaseService<
     }
 
     return this.patch(setting.id, {
-      enabledModels: enabledModelIds,
-    } as UpdateOrganizationSettingDto);
+      enabledModelIds,
+    });
   }
 
   private readJourneyState(
@@ -152,7 +152,7 @@ export class OrganizationSettingsService extends BaseService<
   /**
    * Get the latest major versions of all active models
    * Filters out older major versions (e.g., veo-2 when veo-3 exists)
-   * Returns array of model ObjectIds
+   * Returns model IDs.
    */
   async getLatestMajorVersionModelIds(): Promise<string[]> {
     // Fetch all active models — scope to system models only.
@@ -248,7 +248,7 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   /**
-   * Atomically add a model to an org's enabledModels set (idempotent via $addToSet)
+   * Atomically add a model to an organization's enabled model IDs.
    */
   async addEnabledModel(
     organizationId: string,
@@ -271,8 +271,7 @@ export class OrganizationSettingsService extends BaseService<
     organizationId: string,
   ): Promise<IOnboardingJourneyMissionState[]> {
     const settings = await this.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!settings) {

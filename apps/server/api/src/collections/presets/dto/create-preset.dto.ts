@@ -17,7 +17,7 @@ export class CreatePresetDto extends ElementDto {
     description: 'The organization ID for the preset',
     required: false,
   })
-  organization?: string;
+  organizationId?: string;
 
   @IsEntityId()
   @IsOptional()
@@ -25,7 +25,7 @@ export class CreatePresetDto extends ElementDto {
     description: 'The brand ID for the preset (null for org-wide presets)',
     required: false,
   })
-  brand?: string;
+  brandId?: string;
 
   @IsEntityId()
   @IsOptional()
@@ -33,7 +33,7 @@ export class CreatePresetDto extends ElementDto {
     description: 'Ingredient image ID used as thumbnail for the preset',
     required: false,
   })
-  ingredient?: string;
+  ingredientId?: string;
 
   @IsString()
   @IsOptional()

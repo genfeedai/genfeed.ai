@@ -95,14 +95,14 @@ export class OutreachCampaignsController extends BaseCRUDController<
     };
 
     const organizationId =
-      query.organization || publicMetadata.organization?.toString();
+      query.organizationId || publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = organizationId;
+      match.organizationId = organizationId;
     }
 
-    const brandId = publicMetadata.brand?.toString();
+    const brandId = query.brandId || publicMetadata.brand?.toString();
     if (brandId) {
-      match.brand = brandId;
+      match.brandId = brandId;
     }
 
     if (query.platform) {
@@ -301,11 +301,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
       }
 
       targets.push({
-        campaign: id,
+        campaignId: id,
         contentUrl: parsed.url,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId,
-        organization: campaign.organizationId,
+        organizationId: campaign.organizationId,
         platform: parsed.platform,
         targetType: parsed.targetType,
       });
@@ -363,11 +363,11 @@ export class OutreachCampaignsController extends BaseCRUDController<
       }
 
       targets.push({
-        campaign: id,
+        campaignId: id,
         contentUrl: `https://x.com/${username}`,
         discoverySource: CampaignDiscoverySource.MANUAL,
         externalId: username,
-        organization: campaign.organizationId,
+        organizationId: campaign.organizationId,
         platform,
         recipientUsername: username,
         status: CampaignTargetStatus.PENDING,

@@ -18,7 +18,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  parent?: string;
+  parentId?: string;
 
   @ApiProperty({
     description:
@@ -58,7 +58,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  references?: string;
+  referenceId?: string;
 
   @ApiProperty({
     description: 'Filter by image format',
@@ -90,7 +90,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  folder?: string;
+  folderId?: string;
 
   @ApiProperty({
     description: 'Filter by training ID',
@@ -98,7 +98,7 @@ export class ImagesQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  training?: string;
+  trainingId?: string;
 
   @ApiProperty({
     default: false,

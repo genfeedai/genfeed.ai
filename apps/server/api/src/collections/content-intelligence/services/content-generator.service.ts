@@ -121,7 +121,7 @@ export class ContentGeneratorService {
       const playbook = await this.playbookBuilderService.findOne({
         id: dto.playbookId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
       if (playbook) {
         playbookInsights = playbook.insights as unknown as PlaybookInsightsView;
@@ -170,7 +170,7 @@ export class ContentGeneratorService {
       const pattern = await this.patternStoreService.findOne({
         id: dto.patternId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
       return pattern ? [pattern] : [];
     }
@@ -201,7 +201,7 @@ export class ContentGeneratorService {
         {
           id: dto.brandId,
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         },
         'none',
       );
@@ -213,7 +213,7 @@ export class ContentGeneratorService {
       const persona = await this.personasService.findOne({
         brandId: dto.brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
       const profileContribution =
         await this.harnessProfilesService?.buildContributionForBrand(

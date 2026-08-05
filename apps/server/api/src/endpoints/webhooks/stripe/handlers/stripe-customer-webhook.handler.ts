@@ -41,7 +41,7 @@ export class StripeCustomerWebhookHandler {
         await this.subscriptionsService.syncWithStripe(existingSubscription);
         this.loggerService.log(`${url} customer synced from Stripe`, {
           customerId: customer.id,
-          organizationId: existingSubscription.organization,
+          organizationId: existingSubscription.organizationId,
         });
       }
     } catch (error: unknown) {

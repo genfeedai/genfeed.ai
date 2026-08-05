@@ -46,7 +46,6 @@ export class CreativePatternsService {
     return {
       ...record,
       ...data,
-      _id: record.mongoId ?? record.id,
       brand: record.brandId,
       data,
       organization: record.organizationId,
@@ -90,7 +89,7 @@ export class CreativePatternsService {
       .map((record) => this.normalizeRecord(record))
       .find(
         (record) =>
-          (this.readString(record.brand) ?? null) === payload.brandId &&
+          (this.readString(record.brandId) ?? null) === payload.brandId &&
           this.readString(record.industry) === this.readString(data.industry) &&
           this.readString(record.patternType) ===
             this.readString(data.patternType) &&
@@ -184,7 +183,7 @@ export class CreativePatternsService {
 
         if (
           filters.brandId &&
-          (this.readString(record.brand) ?? null) !== filters.brandId
+          (this.readString(record.brandId) ?? null) !== filters.brandId
         ) {
           return false;
         }

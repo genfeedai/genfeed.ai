@@ -57,16 +57,12 @@ export class BookmarksController {
 
     const bookmark = await this.bookmarksService.create({
       ...createBookmarkDto,
-      brand: createBookmarkDto.brand
-        ? String(createBookmarkDto.brand)
+      brandId: createBookmarkDto.brandId
+        ? String(createBookmarkDto.brandId)
         : publicMetadata.brand,
-      folder: createBookmarkDto.folder
-        ? String(createBookmarkDto.folder)
-        : undefined,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
       savedAt: new Date(),
-      tags: createBookmarkDto.tags?.map((tag) => tag),
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     } as CreateBookmarkDto);
 
     return serializeSingle(request, BookmarkSerializer, bookmark);
@@ -90,8 +86,8 @@ export class BookmarksController {
     // Build match conditions
     const matchConditions: BookmarkMatchConditions = {
       isDeleted,
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     };
 
     // Filter by category
@@ -110,13 +106,13 @@ export class BookmarksController {
     }
 
     // Filter by folder
-    if (query.folder) {
-      matchConditions.folder = query.folder;
+    if (query.folderId) {
+      matchConditions.folderId = query.folderId;
     }
 
     // Filter by brand
-    if (query.brand) {
-      matchConditions.brand = query.brand;
+    if (query.brandId) {
+      matchConditions.brandId = query.brandId;
     }
 
     const aggregate = {
@@ -139,9 +135,9 @@ export class BookmarksController {
     const publicMetadata = getPublicMetadata(user);
 
     const bookmark = await this.bookmarksService.findOne({
-      _id: bookmarkId,
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      id: bookmarkId,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     if (!bookmark) {
@@ -163,9 +159,9 @@ export class BookmarksController {
 
     // Verify ownership
     const bookmark = await this.bookmarksService.findOne({
-      _id: bookmarkId,
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      id: bookmarkId,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     if (!bookmark) {
@@ -175,17 +171,10 @@ export class BookmarksController {
     // Update the bookmark
     await this.bookmarksService.patch(bookmarkId, {
       ...updateBookmarkDto,
-      brand: updateBookmarkDto.brand
-        ? String(updateBookmarkDto.brand)
-        : undefined,
-      folder: updateBookmarkDto.folder
-        ? String(updateBookmarkDto.folder)
-        : undefined,
-      tags: updateBookmarkDto.tags?.map((tag) => tag),
     } as UpdateBookmarkDto);
 
     // Fetch updated bookmark
-    const updated = await this.bookmarksService.findOne({ _id: bookmarkId });
+    const updated = await this.bookmarksService.findOne({ id: bookmarkId });
 
     return serializeSingle(request, BookmarkSerializer, updated);
   }
@@ -200,9 +189,9 @@ export class BookmarksController {
 
     // Verify ownership
     const bookmark = await this.bookmarksService.findOne({
-      _id: bookmarkId,
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      id: bookmarkId,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     if (!bookmark) {

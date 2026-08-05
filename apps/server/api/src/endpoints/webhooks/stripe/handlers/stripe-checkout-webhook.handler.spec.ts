@@ -16,6 +16,7 @@ import type { StripeCheckoutSession } from '@api/services/integrations/stripe/se
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
@@ -79,6 +80,20 @@ describe('StripeCheckoutWebhookHandler', () => {
   const lifecycleEmailService = {
     recordCheckoutCompleted: vi.fn(),
   };
+
+  function subscription(
+    overrides: Partial<ISubscriptionOssReadModel> = {},
+  ): ISubscriptionOssReadModel {
+    return {
+      cancelAtPeriodEnd: false,
+      id: 'sub_db_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+      status: 'active',
+      userId: 'user_1',
+      ...overrides,
+    };
+  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -147,11 +162,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     } as unknown as StripeCheckoutSession;
 
     it('adds purchased credits and records the activity for the org', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        id: 'sub_db_1',
-        organization: 'org_1',
-        user: 'user_1',
-      });
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        subscription(),
+      );
       usersService.findOne.mockResolvedValue({
         id: 'user_1',
         isOnboardingCompleted: true,
@@ -195,11 +208,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     });
 
     it('does not grant duplicate PAYG credits for an already processed session', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        id: 'sub_db_1',
-        organization: 'org_1',
-        user: 'user_1',
-      });
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        subscription(),
+      );
       supportService.withCheckoutSessionProcessing.mockResolvedValueOnce(null);
 
       await handler.handleCheckoutCompleted(session, 'test');
@@ -213,11 +224,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     });
 
     it('does not record duplicate PAYG activity when a retry finds an existing credit grant', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        id: 'sub_db_1',
-        organization: 'org_1',
-        user: 'user_1',
-      });
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        subscription(),
+      );
       supportService.addPurchasedCredits.mockResolvedValueOnce(false);
 
       await handler.handleCheckoutCompleted(session, 'test');
@@ -243,11 +252,9 @@ describe('StripeCheckoutWebhookHandler', () => {
     });
 
     it('omits the activity user when the subscription user is soft-deleted or missing', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        id: 'sub_db_1',
-        organization: 'org_1',
-        user: 'user_deleted_1',
-      });
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        subscription({ userId: 'user_deleted_1' }),
+      );
       usersService.findOne.mockResolvedValue(null);
 
       await handler.handleCheckoutCompleted(session, 'test');
@@ -266,11 +273,9 @@ describe('StripeCheckoutWebhookHandler', () => {
 
     it('rethrows PAYG processing failures after logging', async () => {
       const error = new Error('credit write failed');
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        id: 'sub_db_1',
-        organization: 'org_1',
-        user: 'user_1',
-      });
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        subscription(),
+      );
       supportService.addPurchasedCredits.mockRejectedValueOnce(error);
 
       await expect(

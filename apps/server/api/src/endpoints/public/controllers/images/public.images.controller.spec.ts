@@ -205,7 +205,9 @@ describe('PublicImagesController', () => {
       expect(imagesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            'metadata.tags': { mode: 'insensitive', contains: tag },
+            tags: {
+              some: { label: { contains: tag, mode: 'insensitive' } },
+            },
           }),
         }),
         expect.any(Object),

@@ -116,7 +116,7 @@ export class CreatorsController {
 
     const match: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     };
 
     if (query.platform) {
@@ -150,9 +150,9 @@ export class CreatorsController {
 
     const publicMetadata = getPublicMetadata(user);
     const data = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -249,9 +249,9 @@ export class CreatorsController {
 
     const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!creator) {
@@ -263,7 +263,7 @@ export class CreatorsController {
 
     // Return updated creator
     const updated = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
     });
 
@@ -291,9 +291,9 @@ export class CreatorsController {
 
     const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!creator) {

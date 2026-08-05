@@ -86,8 +86,8 @@ export class UsersRelationshipsController {
     try {
       member = (await this.membersService.findOne({
         isDeleted: false,
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       })) as { brands?: string[] } | null;
     } catch (error: unknown) {
       this.loggerService.error(
@@ -99,7 +99,7 @@ export class UsersRelationshipsController {
 
     const brandFilter: Record<string, unknown> = {
       isDeleted,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     };
 
     if (
@@ -107,7 +107,7 @@ export class UsersRelationshipsController {
       member.brands.length > 0 &&
       !getIsSuperAdmin(user, request)
     ) {
-      brandFilter._id = { in: member.brands };
+      brandFilter.id = { in: member.brands };
     }
 
     const data = await this.brandsService.findAll(
@@ -130,7 +130,7 @@ export class UsersRelationshipsController {
   async findMeSettings(@Req() request: Request, @CurrentUser() user: User) {
     const publicMetadata = getPublicMetadata(user);
     const userData = await this.usersService.findOne({
-      _id: publicMetadata.user,
+      id: publicMetadata.user,
       isDeleted: false,
     });
     const settings = await this.findUserSettings(userData);
@@ -155,7 +155,7 @@ export class UsersRelationshipsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
     const userData = await this.usersService.findOne({
-      _id: publicMetadata.user,
+      id: publicMetadata.user,
       isDeleted: false,
     });
     const settings = await this.findUserSettings(userData);
@@ -164,7 +164,7 @@ export class UsersRelationshipsController {
       return returnNotFound('Settings', publicMetadata.user);
     }
 
-    const settingsId = this.getSettingsId(settings);
+    const settingsId = this.getCanonicalId(settings);
     if (!settingsId) {
       return returnNotFound('Settings', publicMetadata.user);
     }
@@ -201,7 +201,7 @@ export class UsersRelationshipsController {
         orderBy: handleQuerySort(query.sort),
         where: {
           isDeleted,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
         },
       },
       options,
@@ -222,9 +222,9 @@ export class UsersRelationshipsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!organization) {
@@ -271,8 +271,8 @@ export class UsersRelationshipsController {
       {
         isActive: true,
         isDeleted: false,
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
       data.id,
     );
@@ -292,7 +292,7 @@ export class UsersRelationshipsController {
     @Body() updateSettingDto: UpdateSettingDto,
   ) {
     const user = await this.usersService.findOne({
-      _id: userId,
+      id: userId,
       isDeleted: false,
     });
     const settings = await this.findUserSettings(user);
@@ -301,7 +301,7 @@ export class UsersRelationshipsController {
       return returnNotFound(this.constructorName, userId);
     }
 
-    const settingsId = this.getSettingsId(settings);
+    const settingsId = this.getCanonicalId(settings);
     if (!settingsId) {
       return returnNotFound(this.constructorName, userId);
     }
@@ -322,49 +322,26 @@ export class UsersRelationshipsController {
       : {};
   }
 
-  private getSettingsId(settings: unknown): string | undefined {
-    const record = this.readObjectRecord(settings);
-    for (const key of ['id', '_id', 'mongoId'] as const) {
-      const value = record[key];
-
-      if (typeof value === 'string' && value.length > 0) {
-        return value;
-      }
-    }
-
-    return undefined;
-  }
-
-  private getUserIdCandidates(userData: unknown): string[] {
-    const record = this.readObjectRecord(userData);
-    const candidates = ['id', '_id', 'mongoId']
-      .map((key) => record[key])
-      .filter(
-        (value): value is string =>
-          typeof value === 'string' && value.length > 0,
-      );
-
-    return [...new Set(candidates)];
+  private getCanonicalId(value: unknown): string | undefined {
+    const id = this.readObjectRecord(value).id;
+    return typeof id === 'string' && id.length > 0 ? id : undefined;
   }
 
   private async findUserSettings(userData: unknown): Promise<unknown | null> {
     const record = this.readObjectRecord(userData);
 
-    if (this.getSettingsId(record.settings)) {
+    if (this.getCanonicalId(record.settings)) {
       return record.settings;
     }
 
-    for (const userId of this.getUserIdCandidates(userData)) {
-      const settings = await this.settingsService.findOne({
-        isDeleted: false,
-        user: userId,
-      });
-
-      if (settings) {
-        return settings;
-      }
+    const userId = this.getCanonicalId(userData);
+    if (!userId) {
+      return null;
     }
 
-    return null;
+    return this.settingsService.findOne({
+      isDeleted: false,
+      userId,
+    });
   }
 }

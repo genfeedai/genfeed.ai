@@ -7,7 +7,6 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class BrandEntity extends BaseEntity implements Brand {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly userId: string;
   declare readonly organizationId: string;
   declare readonly user: string;

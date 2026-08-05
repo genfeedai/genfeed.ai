@@ -3,7 +3,6 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class ApiKeyEntity extends BaseEntity implements ApiKey {
   id!: string;
-  mongoId!: string | null;
   userId!: string;
   organizationId!: string;
   key!: string;

@@ -36,7 +36,6 @@ export interface ContentPlanItemData {
 export interface ContentPlanItemDocument
   extends Omit<PrismaContentPlanItem, 'data'>,
     ContentPlanItemData {
-  _id: string;
   brand?: string | null;
   data?: Record<string, unknown>;
   organization: string;

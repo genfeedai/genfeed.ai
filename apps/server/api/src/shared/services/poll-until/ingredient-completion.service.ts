@@ -104,7 +104,7 @@ export class IngredientCompletionService {
     populate: PopulateOption[],
   ): Promise<IngredientDocument> {
     const ingredient = await this.ingredientsService.findOne(
-      { _id: ingredientId },
+      { id: ingredientId },
       populate,
     );
 

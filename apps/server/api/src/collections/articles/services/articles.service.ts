@@ -924,16 +924,10 @@ export class ArticlesService extends BaseService<
     }
 
     const userIds = [
-      ...new Set(
-        docs.map((d) => (d.userId ?? d.user)?.toString()).filter(Boolean),
-      ),
+      ...new Set(docs.map((d) => d.userId?.toString()).filter(Boolean)),
     ] as string[];
     const orgIds = [
-      ...new Set(
-        docs
-          .map((d) => (d.organizationId ?? d.organization)?.toString())
-          .filter(Boolean),
-      ),
+      ...new Set(docs.map((d) => d.organizationId?.toString()).filter(Boolean)),
     ] as string[];
 
     // Scope by id. Never load the full users/orgs tables — that is both an
@@ -977,8 +971,8 @@ export class ArticlesService extends BaseService<
     );
 
     for (const doc of docs) {
-      const docUserId = (doc.userId ?? doc.user)?.toString();
-      const docOrgId = (doc.organizationId ?? doc.organization)?.toString();
+      const docUserId = doc.userId?.toString();
+      const docOrgId = doc.organizationId?.toString();
       if (docUserId && usersMap.has(docUserId)) {
         doc.user = usersMap.get(docUserId);
       }

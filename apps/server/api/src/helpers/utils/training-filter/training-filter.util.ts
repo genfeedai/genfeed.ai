@@ -10,7 +10,7 @@ export class TrainingFilterUtil {
       category: options.category,
       id: { in: options.sourceIds },
       isDeleted: false,
-      ...(options.userId ? { user: options.userId } : {}),
+      ...(options.userId ? { userId: options.userId } : {}),
     };
   }
 

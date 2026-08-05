@@ -46,7 +46,7 @@ describe('AuthWhoamiController', () => {
   });
 
   describe('whoami', () => {
-    const mongoUserId = '507f191e810c19729de860ee'.toString();
+    const databaseUserId = '507f191e810c19729de860ee';
 
     it('should return full user context for authenticated user', async () => {
       mockMembersService.findOne.mockResolvedValue({ role: { key: 'admin' } });
@@ -61,7 +61,7 @@ describe('AuthWhoamiController', () => {
           organization: 'org_abc',
           organizationName: 'Test Org',
           scopes: ['read', 'write'],
-          user: mongoUserId,
+          user: databaseUserId,
         },
       });
 
@@ -79,7 +79,7 @@ describe('AuthWhoamiController', () => {
           user: {
             authUserId: 'auth_user_123',
             email: 'john@example.com',
-            id: mongoUserId,
+            id: databaseUserId,
             name: 'John Doe',
           },
         },

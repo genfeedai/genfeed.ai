@@ -109,9 +109,9 @@ export class PlaybooksController {
 
     const publicMetadata = getPublicMetadata(user);
     const data = await this.playbookBuilderService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -153,9 +153,9 @@ export class PlaybooksController {
 
     const publicMetadata = getPublicMetadata(user);
     const existing = await this.playbookBuilderService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {
@@ -179,9 +179,9 @@ export class PlaybooksController {
 
     const publicMetadata = getPublicMetadata(user);
     const existing = await this.playbookBuilderService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {
@@ -206,9 +206,9 @@ export class PlaybooksController {
 
     const publicMetadata = getPublicMetadata(user);
     const existing = await this.playbookBuilderService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {

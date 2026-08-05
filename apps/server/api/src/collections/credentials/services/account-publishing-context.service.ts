@@ -71,11 +71,11 @@ export class AccountPublishingContextService {
     params: ResolveAccountPublishingContextParams,
   ): Promise<AccountPublishingContext> {
     const credential = await this.credentialsService.findOne({
-      _id: params.credentialId,
-      brand: params.brandId,
+      id: params.credentialId,
+      brandId: params.brandId,
       isConnected: true,
       isDeleted: false,
-      organization: params.organizationId,
+      organizationId: params.organizationId,
     });
 
     if (!credential) {
@@ -117,7 +117,6 @@ export class AccountPublishingContextService {
 
     const context: AccountPublishingContext = {
       account: {
-        externalUrl: readString(credential.externalUrl),
         handle: this.getCredentialHandle(credential),
         id: String(credential.id),
         label: this.getCredentialLabel(credential, platform),
@@ -172,7 +171,7 @@ export class AccountPublishingContextService {
   private getCredentialHandle(
     credential: CredentialDocument,
   ): string | undefined {
-    return readString(credential.externalHandle ?? credential.handle);
+    return readString(credential.externalHandle);
   }
 
   private getCredentialLabel(

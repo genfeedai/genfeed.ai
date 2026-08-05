@@ -6,6 +6,7 @@ import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluatio
 import type { EvaluationEntityType } from '@api/collections/evaluations/dto/evaluations-query.dto';
 import { EvaluationsQueryDto } from '@api/collections/evaluations/dto/evaluations-query.dto';
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
+import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -19,7 +20,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
-import { BaseService } from '@api/shared/services/base/base.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
 import { EvaluationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -56,7 +56,7 @@ const ENTITY_TYPE_TO_CONTENT_TYPE: Record<
 @Controller('evaluations')
 @UseGuards(RolesGuard)
 export class EvaluationsController extends BaseCRUDController<
-  { [key: string]: unknown; _id: string },
+  EvaluationDocument,
   unknown,
   unknown,
   EvaluationsQueryDto
@@ -67,11 +67,7 @@ export class EvaluationsController extends BaseCRUDController<
   ) {
     super(
       loggerService,
-      evaluationsService as unknown as BaseService<
-        { [key: string]: unknown; _id: string },
-        unknown,
-        unknown
-      >,
+      evaluationsService,
       EvaluationSerializer,
       'Evaluation',
     );
@@ -97,7 +93,7 @@ export class EvaluationsController extends BaseCRUDController<
 
     const where: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      ...(adminFilter ?? { organization: publicMetadata.organization }),
+      ...(adminFilter ?? { organizationId: publicMetadata.organization }),
     };
 
     if (query.entityType) {
@@ -323,7 +319,7 @@ export class EvaluationsController extends BaseCRUDController<
     );
 
     const evaluation = await this.evaluationsService.findOne({
-      _id: evaluationId,
+      id: evaluationId,
       ...ownershipFilter,
     });
 

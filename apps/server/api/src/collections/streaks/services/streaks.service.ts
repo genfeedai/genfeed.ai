@@ -149,10 +149,6 @@ export class StreaksService {
 
     return {
       ...(record as unknown as StreakDocument),
-      _id:
-        typeof record.mongoId === 'string' && record.mongoId.length > 0
-          ? record.mongoId
-          : String(record.id ?? ''),
       currentStreak:
         typeof merged.currentStreak === 'number' ? merged.currentStreak : 0,
       data,
@@ -565,8 +561,8 @@ export class StreaksService {
     let frozen = 0;
 
     for (const streak of staleStreaks) {
-      const streakOrg = String(streak.organization ?? '');
-      const streakUser = String(streak.user ?? '');
+      const streakOrg = String(streak.organizationId ?? '');
+      const streakUser = String(streak.userId ?? '');
       const streakCurrentStreak = streak.currentStreak;
 
       if (streak.streakFreezes > 0) {

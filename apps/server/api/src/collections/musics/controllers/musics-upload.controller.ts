@@ -70,13 +70,16 @@ export class MusicsUploadController {
     )
     file: Express.Multer.File,
   ) {
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      category: IngredientCategory.MUSIC,
-      extension: MetadataExtension.MP3,
-      label: file.originalname,
-      scope: AssetScope.USER,
-      status: IngredientStatus.UPLOADED,
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        category: IngredientCategory.MUSIC,
+        extension: MetadataExtension.MP3,
+        label: file.originalname,
+        scope: AssetScope.USER,
+        status: IngredientStatus.UPLOADED,
+      },
+    );
 
     await this.filesClientService.uploadToS3(ingredientData.id, `musics`, {
       contentType: file.mimetype || 'audio/mpeg',

@@ -14,7 +14,7 @@ export interface IngredientMetadataDocument extends IngredientRefDocument {
   extension?: string;
   height?: number;
   model?: string;
-  prompt?: string;
+  promptId?: string | null;
   result?: string;
   size?: number;
   style?: string;

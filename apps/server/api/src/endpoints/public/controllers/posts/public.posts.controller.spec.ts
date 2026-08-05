@@ -138,8 +138,7 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
-      expect(callArgs.where.brand).toBeDefined();
-      expect((callArgs.where.brand as string).toString()).toBe(brandId);
+      expect(callArgs.where.brandId).toBe(brandId);
     });
 
     it('should filter by tag when provided', async () => {
@@ -160,13 +159,9 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
-      expect(callArgs.where['metadata.tags']).toBeDefined();
-      expect(
-        (callArgs.where['metadata.tags'] as { contains: string }).contains,
-      ).toBe(tag);
-      expect((callArgs.where['metadata.tags'] as { mode: string }).mode).toBe(
-        'insensitive',
-      );
+      expect(callArgs.where.tags).toEqual({
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      });
     });
 
     it('should apply correct match query for public posts', async () => {
@@ -216,7 +211,7 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
-      expect(callArgs.where.brand).toBeUndefined();
+      expect(callArgs.where.brandId).toBeUndefined();
     });
   });
 

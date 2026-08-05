@@ -140,7 +140,7 @@ export class PostsGenerationController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const originalPost = await this.postsService.findOne({ _id: postId }, [
+    const originalPost = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ]);
@@ -167,7 +167,7 @@ export class PostsGenerationController {
 
     const existingChildren = await this.postsService.count({
       isDeleted: false,
-      parent: postId,
+      parentId: postId,
     });
 
     if (existingChildren > 0) {
@@ -196,19 +196,19 @@ export class PostsGenerationController {
 
     for (let i = 0; i < additionalCount; i++) {
       const childPost = await this.postsService.create({
-        brand: publicMetadata.brand,
+        brandId: publicMetadata.brand,
         category: PostCategory.TEXT,
-        credential: originalPost.credentialId,
+        credentialId: originalPost.credentialId,
         description: 'Generating...',
         ingredients: [],
         label: '',
         order: i + 1,
-        organization: publicMetadata.organization,
-        parent: postId,
+        organizationId: publicMetadata.organization,
+        parentId: postId,
         platform:
           parsePlatform(originalPost.platform) ?? CredentialPlatform.TWITTER,
         status: PostStatus.PROCESSING,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       });
       createdPosts.push(childPost);
     }
@@ -252,7 +252,7 @@ export class PostsGenerationController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const post = await this.postsService.findOne({ _id: postId }, [
+    const post = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ]);
@@ -321,7 +321,7 @@ export class PostsGenerationController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const post = await this.postsService.findOne({ _id: postId }, [
+    const post = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ]);
@@ -352,7 +352,7 @@ export class PostsGenerationController {
       dto.targetKeyword,
     );
 
-    const updatedPost = await this.postsService.findOne({ _id: postId }, [
+    const updatedPost = await this.postsService.findOne({ id: postId }, [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,

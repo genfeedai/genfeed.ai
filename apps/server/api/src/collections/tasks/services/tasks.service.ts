@@ -17,6 +17,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -41,6 +42,11 @@ const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
 type CreateTaskDtoExtended = CreateTaskDto & {
   platforms?: string[];
   request?: string;
+};
+
+const LINKED_RUNS_POPULATE: PopulateOption = {
+  path: 'linkedRuns',
+  select: ['id'],
 };
 
 /**
@@ -87,7 +93,6 @@ export class TasksService extends BaseService<
       eventStream: [],
       linkedApprovalIds: [],
       linkedOutputIds: [],
-      linkedRunIds: [],
       platforms: extended.platforms ?? [],
       progress: routing
         ? {
@@ -105,22 +110,37 @@ export class TasksService extends BaseService<
 
   override async findOne(
     params: Record<string, unknown>,
+    populate: PopulateOption[] = [],
   ): Promise<TaskDocument | null> {
     // Always require isDeleted: false unless caller explicitly opts in (admin paths).
     const scopedParams: Record<string, unknown> = {
       isDeleted: false,
       ...params,
     };
-    return super.findOne(scopedParams);
+    const includesLinkedRuns = populate.some(
+      (option) => option.path === LINKED_RUNS_POPULATE.path,
+    );
+    return super.findOne(scopedParams, [
+      ...populate,
+      ...(includesLinkedRuns ? [] : [LINKED_RUNS_POPULATE]),
+    ]);
   }
 
   override async patch(
     id: string,
     updateDto: UpdateTaskDto | Record<string, unknown>,
   ): Promise<TaskDocument> {
-    const newStatus = (updateDto as Record<string, unknown>).status as
-      | TaskStatus
-      | undefined;
+    const update = { ...(updateDto as Record<string, unknown>) };
+    const linkedRunIds = update.linkedRunIds;
+    delete update.linkedRunIds;
+
+    if (Array.isArray(linkedRunIds)) {
+      update.linkedRuns = {
+        set: linkedRunIds.map((runId) => ({ id: String(runId) })),
+      };
+    }
+
+    const newStatus = update.status as TaskStatus | undefined;
 
     if (newStatus) {
       const existing = await super.findOne({
@@ -133,7 +153,23 @@ export class TasksService extends BaseService<
       }
     }
 
-    return super.patch(id, updateDto);
+    return super.patch(id, update, [LINKED_RUNS_POPULATE]);
+  }
+
+  normalizeTaskDocument(document: unknown): TaskDocument {
+    return this.normalizeDocument(document);
+  }
+
+  protected override normalizeDocument(document: unknown): TaskDocument {
+    const normalized = super.normalizeDocument(document);
+    const linkedRuns = (document as { linkedRuns?: Array<{ id: string }> })
+      ?.linkedRuns;
+    if (linkedRuns) {
+      normalized.linkedRunIds = linkedRuns.map((run) => run.id);
+    } else if (!Array.isArray(normalized.linkedRunIds)) {
+      normalized.linkedRunIds = [];
+    }
+    return normalized;
   }
 
   async findByIdentifier(
@@ -194,9 +230,11 @@ export class TasksService extends BaseService<
       where: scopedWhere(organizationId, { id: taskId }),
     });
 
-    return (await this.delegate.findFirst({
+    const checkedOut = await this.delegate.findFirst({
+      include: { linkedRuns: { select: { id: true } } },
       where: scopedWhere(organizationId, { id: taskId }),
-    })) as unknown as TaskDocument;
+    });
+    return checkedOut ? this.normalizeTaskDocument(checkedOut) : null;
   }
 
   async release(
@@ -226,9 +264,12 @@ export class TasksService extends BaseService<
       where: scopedWhere(organizationId, { id: taskId }),
     });
 
-    return (await this.delegate.findFirst({
+    const released = await this.delegate.findFirst({
+      include: { linkedRuns: { select: { id: true } } },
       where: scopedWhere(organizationId, { id: taskId }),
-    })) as unknown as TaskDocument;
+    });
+    if (!released) throw new NotFoundException('Task', taskId);
+    return this.normalizeTaskDocument(released);
   }
 
   // ===========================================================================

@@ -69,17 +69,22 @@ export class PublicPostsController {
 
     // Filter by ingredient if provided
     if (ingredient && isEntityId(ingredient)) {
-      matchQuery.ingredient = ingredient;
+      matchQuery.OR = [
+        { entityIngredientId: ingredient },
+        { ingredients: { some: { id: ingredient } } },
+      ];
     }
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      matchQuery.brand = brand;
+      matchQuery.brandId = brand;
     }
 
-    // Filter by tag if provided (assuming tags are stored in metadata)
+    // Filter by related tag label.
     if (tag) {
-      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      matchQuery.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
@@ -126,12 +131,14 @@ export class PublicPostsController {
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      matchQuery.brand = brand;
+      matchQuery.brandId = brand;
     }
 
     // Filter by tag if provided
     if (tag) {
-      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      matchQuery.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     // `totalPosts` was computed by the former Mongo aggregation and is not an
@@ -174,7 +181,7 @@ export class PublicPostsController {
     // Posts carry no `scope` column — `status` is their visibility, and this
     // matches what the public list endpoint above returns.
     const post = await this.postsService.findOne({
-      _id: postId,
+      id: postId,
       isDeleted: false,
       status: PostStatus.PUBLIC,
     });

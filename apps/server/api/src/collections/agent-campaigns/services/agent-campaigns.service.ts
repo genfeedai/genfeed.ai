@@ -13,10 +13,14 @@ type PopulateInput = (string | PopulateOption)[] | 'none';
 type AgentCampaignWriteDto = Partial<
   CreateAgentCampaignDto & UpdateAgentCampaignDto
 > & {
-  brand?: string;
   config?: unknown;
-  organization?: string;
-  user?: string;
+  organizationId?: string;
+  userId?: string;
+};
+
+type AgentCampaignCreateInput = CreateAgentCampaignDto & {
+  organizationId: string;
+  userId: string;
 };
 
 const CONFIG_BACKED_KEYS = [
@@ -48,8 +52,17 @@ export class AgentCampaignsService extends BaseService<
     super(prisma, 'agentCampaign', logger);
   }
 
+  protected override normalizeDocument(
+    document: unknown,
+  ): AgentCampaignDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config = this.readRecord(record.config) ?? {};
+
+    return { ...config, ...record } as AgentCampaignDocument;
+  }
+
   override async create(
-    createDto: CreateAgentCampaignDto,
+    createDto: AgentCampaignCreateInput,
     populate: PopulateInput = [],
   ): Promise<AgentCampaignDocument> {
     return await super.create(
@@ -66,7 +79,7 @@ export class AgentCampaignsService extends BaseService<
     updateDto: Partial<UpdateAgentCampaignDto>,
     populate: PopulateInput = [],
   ): Promise<AgentCampaignDocument> {
-    const existing = await this.findOne({ _id: id });
+    const existing = await this.findOne({ id: id });
     const existingConfig = this.readRecord(
       (existing as Record<string, unknown> | null)?.config,
     );
@@ -104,28 +117,30 @@ export class AgentCampaignsService extends BaseService<
       data.description = dto.brief;
     }
 
-    if (typeof dto.organization === 'string') {
-      data.organizationId = dto.organization;
+    if (typeof dto.organizationId === 'string') {
+      data.organizationId = dto.organizationId;
     }
 
-    if (typeof dto.user === 'string') {
-      data.userId = dto.user;
+    if (typeof dto.userId === 'string') {
+      data.userId = dto.userId;
     }
 
-    if (Object.hasOwn(dto, 'brand')) {
-      data.brandId = dto.brand ?? null;
+    if (Object.hasOwn(dto, 'brandId')) {
+      data.brandId = dto.brandId ?? null;
     }
 
     if (Object.hasOwn(dto, 'campaignLeadStrategyId')) {
       data.campaignLeadStrategyId = dto.campaignLeadStrategyId ?? null;
     }
 
-    if (Object.hasOwn(dto, 'agents')) {
-      const agents = Array.isArray(dto.agents) ? dto.agents : [];
+    if (Object.hasOwn(dto, 'agentStrategyIds')) {
+      const agentStrategyIds = Array.isArray(dto.agentStrategyIds)
+        ? dto.agentStrategyIds
+        : [];
       data.agents =
         mode === 'create'
-          ? { connect: agents.map((id) => ({ id })) }
-          : { set: agents.map((id) => ({ id })) };
+          ? { connect: agentStrategyIds.map((id) => ({ id })) }
+          : { set: agentStrategyIds.map((id) => ({ id })) };
     }
 
     for (const key of CONFIG_BACKED_KEYS) {

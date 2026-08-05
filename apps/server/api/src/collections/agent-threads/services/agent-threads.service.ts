@@ -396,10 +396,6 @@ export class AgentThreadsService extends BaseService<
 
     return {
       ...(record as unknown as AgentThreadSnapshotDocument),
-      _id:
-        typeof record.mongoId === 'string' && record.mongoId.length > 0
-          ? record.mongoId
-          : String(record.id ?? ''),
       organization:
         typeof record.organizationId === 'string'
           ? record.organizationId

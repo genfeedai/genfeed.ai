@@ -7,7 +7,6 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { TagsModule } from '@api/collections/tags/tags.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
 import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { GoogleSearchConsoleModule } from '@api/services/integrations/google-search-console/google-search-console.module';
@@ -36,7 +35,6 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => PinterestModule),
     forwardRef(() => QuotaModule),
     forwardRef(() => RedditModule),
-    forwardRef(() => TagsModule),
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
     forwardRef(() => YoutubeModule),

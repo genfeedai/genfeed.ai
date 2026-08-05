@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -51,7 +50,7 @@ export class VideosGifController {
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,
   ) {
-    const video = await this.videosService.findOne({ _id: videoId });
+    const video = await this.videosService.findOne({ id: videoId });
     if (!video) {
       return returnNotFound(this.constructorName, videoId);
     }
@@ -63,14 +62,12 @@ export class VideosGifController {
     );
 
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocuments(user, {
+      await this.sharedService.createMediaDocuments(user, {
         category: IngredientCategory.GIF,
         extension: MetadataExtension.GIF,
+        externalId: jobResponse.jobId,
+        externalProvider: 'video-to-gif',
         label: generateLabel(),
-        metadata: {
-          jobId: jobResponse.jobId,
-          jobType: 'video-to-gif',
-        },
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });

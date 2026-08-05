@@ -226,14 +226,14 @@ export class PersonasContentController {
   ) {
     try {
       const { organization } = getPublicMetadata(user);
-      // @ts-expect-error TS2554
-      const posts = await this.postsService.findAll({
-        isDeleted: false,
-        limit: Number(limit),
-        organization: EntityIdUtil.toValidId(organization)!,
-        page: Number(page),
-        persona: EntityIdUtil.toValidId(id)!,
-      });
+      const posts = await this.postsService.findAll(
+        {
+          isDeleted: false,
+          organizationId: EntityIdUtil.toValidId(organization)!,
+          personaId: EntityIdUtil.toValidId(id)!,
+        },
+        { limit: Number(limit), page: Number(page) },
+      );
 
       return serializeCollection(
         request,

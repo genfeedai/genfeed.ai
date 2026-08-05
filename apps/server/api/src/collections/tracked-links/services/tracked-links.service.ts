@@ -48,9 +48,7 @@ export class TrackedLinksService {
     const brand = await findOrThrow(
       this.prisma.brand,
       {
-        where: scopedWhere(organizationId, {
-          OR: [{ id: brandId }, { mongoId: brandId }],
-        }),
+        where: scopedWhere(organizationId, { id: brandId }),
       },
       'Brand',
       brandId,
@@ -70,7 +68,7 @@ export class TrackedLinksService {
       this.prisma.ingredient,
       {
         where: scopedWhere(organizationId, {
-          OR: [{ id: contentId }, { mongoId: contentId }],
+          id: contentId,
           ...(brandId ? { brandId } : {}),
         }),
       },

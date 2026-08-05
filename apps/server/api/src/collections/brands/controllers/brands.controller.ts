@@ -230,7 +230,7 @@ export class BrandsController extends BaseCRUDController<
         user,
         onboardingProfileOptions,
       );
-      const renamed = await this.brandsService.findOne({ _id: id });
+      const renamed = await this.brandsService.findOne({ id: id });
       return serializeSingle(
         request,
         BrandSerializer,
@@ -250,7 +250,7 @@ export class BrandsController extends BaseCRUDController<
       return super.patch(request, user, id, restWithoutAck as UpdateBrandDto);
     }
 
-    const existing = (await this.brandsService.findOne({ _id: id })) as
+    const existing = (await this.brandsService.findOne({ id: id })) as
       | (BrandDocument & { organizationId?: string })
       | null;
     if (!existing) {
@@ -282,11 +282,11 @@ export class BrandsController extends BaseCRUDController<
 
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: id,
+        brandId: id,
         key: ActivityKey.BRAND_RELOCATED,
-        organization: requestedOrgId,
+        organizationId: requestedOrgId,
         source: ActivitySource.BRAND_RELOCATION,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify(summary),
       }),
     );
@@ -378,10 +378,10 @@ export class BrandsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -449,13 +449,13 @@ export class BrandsController extends BaseCRUDController<
       publicMetadata,
       false,
     );
-    const organizationId = scope.organization ?? publicMetadata.organization;
+    const organizationId = scope.organizationId ?? publicMetadata.organization;
 
     const orConditions: Record<string, unknown>[] = [
-      { user: publicMetadata.user },
+      { userId: publicMetadata.user },
     ];
     if (organizationId) {
-      orConditions.push({ organization: organizationId });
+      orConditions.push({ organizationId });
     }
 
     return {
@@ -507,8 +507,8 @@ export class BrandsController extends BaseCRUDController<
     const brand = await this.brandsService.findOneBySlug({
       slug,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });

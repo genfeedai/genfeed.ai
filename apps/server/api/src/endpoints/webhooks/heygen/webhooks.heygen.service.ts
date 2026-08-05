@@ -61,7 +61,7 @@ export class HeygenWebhookService {
       }
 
       const clipResult = await this.clipResultsService.findOne({
-        _id: callbackId,
+        id: callbackId,
         isDeleted: false,
       });
 
@@ -87,18 +87,17 @@ export class HeygenWebhookService {
       }
 
       let metadata = await this.metadataService.findOne({
-        _id: callbackId,
+        id: callbackId,
         isDeleted: false,
       });
       let ingredient = await this.ingredientsService.findOne({
-        _id: callbackId,
+        id: callbackId,
         isDeleted: false,
       });
 
-      if (!metadata && ingredient?.metadata) {
-        const metadataId = this.getDocumentId(ingredient.metadata);
+      if (!metadata && ingredient?.metadataId) {
         metadata = await this.metadataService.findOne({
-          _id: metadataId,
+          id: ingredient.metadataId,
           isDeleted: false,
         });
       }

@@ -69,9 +69,9 @@ export class VideoGenerationPreparationService {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: createVideoDto.brand || publicMetadata.brand,
+      id: createVideoDto.brand || publicMetadata.brand,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
     if (!brand) {
       throw new HttpException(
@@ -88,8 +88,7 @@ export class VideoGenerationPreparationService {
       : [];
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     );
     const model = await this.resolveVideoModel(
@@ -202,24 +201,33 @@ export class VideoGenerationPreparationService {
       }),
     );
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...createVideoDto,
-        bookmark: createVideoDto.bookmark
+      await this.sharedService.createMediaDocuments(user, {
+        bookmarkId: createVideoDto.bookmark
           ? (createVideoDto.bookmark as string)
           : undefined,
-        brand: brand.id,
+        brandId: brand.id,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
+        duration: createVideoDto.duration,
         extension: MetadataExtension.MP4,
+        generationPrompt: promptText,
+        generationSeed: createVideoDto.seed,
+        hasAudio: createVideoDto.isAudioEnabled,
         height,
+        isDefault: createVideoDto.isDefault,
+        language: createVideoDto.language,
         model,
-        organization: brand.organizationId,
-        prompt: promptData.id,
+        negativePrompt: createVideoDto.negativePrompt,
+        organizationId: brand.organizationId,
+        promptId: promptData.id,
         promptTemplate: templateUsed,
-        references: referenceIds.length > 0 ? referenceIds : undefined,
+        resolution: createVideoDto.resolution,
+        scope: createVideoDto.scope,
+        sourceIds: referenceIds,
         status: IngredientStatus.PROCESSING,
         style: createVideoDto.style === '' ? null : createVideoDto.style,
+        tagIds: createVideoDto.tags,
         templateVersion,
         width,
       });
@@ -271,9 +279,9 @@ export class VideoGenerationPreparationService {
       resolved.publicMetadata.organization ||
       resolved.request.context?.organizationId;
     const prompt = await this.promptsService.findOne({
-      _id: resolved.createVideoDto.prompt.toString(),
+      id: resolved.createVideoDto.prompt.toString(),
       isDeleted: false,
-      ...(validationOrgId ? { organization: validationOrgId } : {}),
+      ...(validationOrgId ? { organizationId: validationOrgId } : {}),
     });
     if (!prompt?.id) {
       throw new HttpException(

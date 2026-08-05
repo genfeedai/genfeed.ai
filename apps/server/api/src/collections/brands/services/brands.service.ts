@@ -122,6 +122,11 @@ function mergeDefinedKeys(
   return merged;
 }
 
+type BrandCreateInput = CreateBrandDto & {
+  organizationId?: string;
+  userId?: string;
+};
+
 @Injectable()
 export class BrandsService extends BaseService<
   BrandDocument,
@@ -145,36 +150,12 @@ export class BrandsService extends BaseService<
     super(prisma, 'brand', logger, undefined, cacheService);
   }
 
-  async create(
-    createBrandDto: CreateBrandDto & {
-      /** Legacy session/controller alias — never a Brand column. */
-      brand?: unknown;
-      brandId?: unknown;
-      organization?: unknown;
-      organizationId?: string;
-      user?: unknown;
-      userId?: string;
-    },
-  ): Promise<BrandDocument> {
-    // BaseCRUD.enrichCreateDto always stamps session `brand` / `organization` /
-    // `user` onto create payloads. Brand has no `brand` column — only
-    // organizationId/userId FKs. Strip relation aliases before Prisma create.
-    // Map string aliases onto scalar FKs; never forward `user`/`organization` as
-    // nested relation inputs (Sentry API-GENFEED-AI-6T).
+  async create(createBrandDto: BrandCreateInput): Promise<BrandDocument> {
     const {
-      brand: _sessionBrand,
-      brandId: _sessionBrandId,
-      organization,
-      organizationId,
-      user,
-      userId,
+      organizationId: resolvedOrganizationId,
+      userId: resolvedUserId,
       ...brandFields
     } = createBrandDto;
-    const resolvedOrganizationId =
-      organizationId ??
-      (typeof organization === 'string' ? organization : undefined);
-    const resolvedUserId =
-      userId ?? (typeof user === 'string' ? user : undefined);
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -334,15 +315,7 @@ export class BrandsService extends BaseService<
 
   async patch(
     id: string,
-    updateBrandDto: Partial<UpdateBrandDto> & {
-      /** Legacy session/controller alias — never a Brand column. */
-      brand?: unknown;
-      brandId?: unknown;
-      organization?: unknown;
-      organizationId?: string;
-      user?: unknown;
-      userId?: unknown;
-    },
+    updateBrandDto: Partial<UpdateBrandDto>,
   ): Promise<BrandDocument> {
     this.logger.debug('Updating brand', {
       brandId: id,
@@ -350,24 +323,10 @@ export class BrandsService extends BaseService<
       service: this.constructorName,
     });
 
-    // BaseCRUD.enrichUpdateDto stamps session `brand` / `organization` / `user`
-    // onto every PATCH. Brand has no `brand` column — same trap as create.
-    // Ownership is not mutable via brand PATCH (`UpdateBrandDto` forbids
-    // `user`/`userId`); drop both the session alias and any client-supplied
-    // scalar so Prisma never sees `data.user` (Sentry API-GENFEED-AI-6T).
-    const {
-      brand: _sessionBrand,
-      brandId: _sessionBrandId,
-      organization: _sessionOrganization,
-      user: _sessionUser,
-      userId: _sessionUserId,
-      ...brandFields
-    } = updateBrandDto;
-
     const brand = await super.patch(
       id,
       omitUndefinedFields(
-        brandFields as Record<string, unknown>,
+        updateBrandDto as Record<string, unknown>,
       ) as Partial<UpdateBrandDto>,
     );
 
@@ -679,9 +638,9 @@ export class BrandsService extends BaseService<
     });
 
     const targetBrand = await this.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!targetBrand) {

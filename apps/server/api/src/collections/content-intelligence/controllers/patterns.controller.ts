@@ -97,7 +97,7 @@ export class PatternsController {
 
     const match: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     };
 
     if (query.platform) {
@@ -146,9 +146,9 @@ export class PatternsController {
 
     const publicMetadata = getPublicMetadata(user);
     const data = await this.patternStoreService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -170,9 +170,9 @@ export class PatternsController {
 
     const publicMetadata = getPublicMetadata(user);
     const pattern = await this.patternStoreService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!pattern) {

@@ -107,7 +107,7 @@ export class CreateAgentCampaignDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
-  brand?: string;
+  brandId?: string;
 
   @IsArray()
   @IsEntityId({ each: true })
@@ -116,7 +116,7 @@ export class CreateAgentCampaignDto {
     description: 'Agent strategy IDs included in this campaign',
     required: false,
   })
-  agents?: string[];
+  agentStrategyIds?: string[];
 
   @IsEntityId()
   @IsOptional()

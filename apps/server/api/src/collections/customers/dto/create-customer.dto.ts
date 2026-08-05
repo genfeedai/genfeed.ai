@@ -8,7 +8,7 @@ export class CreateCustomerDto {
     description: 'The organization ID that the customer belongs to',
     required: true,
   })
-  readonly organization!: string;
+  readonly organizationId!: string;
 
   @IsString()
   @IsNotEmpty()

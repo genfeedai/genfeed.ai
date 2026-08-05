@@ -2,6 +2,7 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   CampaignDiscoverySource,
   CampaignPlatform,
+  CampaignTargetStatus,
   CampaignTargetType,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -18,19 +19,18 @@ import {
 
 export class CreateCampaignTargetDto {
   @IsEntityId()
-  @IsOptional()
   @ApiProperty({
     description: 'Organization that owns this target',
-    required: false,
+    required: true,
   })
-  organization?: string;
+  organizationId!: string;
 
   @IsEntityId()
   @ApiProperty({
     description: 'Campaign this target belongs to',
     required: true,
   })
-  campaign!: string;
+  campaignId!: string;
 
   @IsEnum(CampaignPlatform)
   @ApiProperty({
@@ -77,6 +77,14 @@ export class CreateCampaignTargetDto {
     required: false,
   })
   authorId?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Username of a direct-message recipient',
+    required: false,
+  })
+  recipientUsername?: string;
 
   @IsString()
   @IsOptional()
@@ -157,4 +165,15 @@ export class CreateCampaignTargetDto {
     required: false,
   })
   scheduledAt?: Date;
+
+  @IsEnum(CampaignTargetStatus)
+  @IsOptional()
+  @ApiProperty({
+    default: CampaignTargetStatus.PENDING,
+    description: 'Initial processing status',
+    enum: CampaignTargetStatus,
+    enumName: 'CampaignTargetStatus',
+    required: false,
+  })
+  status?: CampaignTargetStatus;
 }

@@ -6,14 +6,18 @@ export interface PersonaDocument
     PrismaPersona,
     'avatarExternalId' | 'avatarProvider' | 'voiceExternalId' | 'voiceProvider'
   > {
-  _id: string;
   avatarExternalId?: string | null;
   avatarProvider?: AvatarProvider | string | null;
-  brand?: string | null;
+  bio?: string | null;
+  contentStrategy?: Record<string, unknown> | null;
+  emoji?: string | null;
+  eyeColor?: string | null;
   triggerWord?: string | null;
   fleetSources?: Array<Record<string, unknown>>;
-  organization?: string;
-  user?: string;
+  loraStatus?: string | null;
+  niche?: string | null;
+  s3Folder?: string | null;
+  skinTone?: string | null;
   voiceExternalId?: string | null;
   voiceProvider?: VoiceProvider | string | null;
   [key: string]: unknown;

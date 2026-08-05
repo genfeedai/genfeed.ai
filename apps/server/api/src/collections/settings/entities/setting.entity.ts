@@ -3,7 +3,6 @@ import { type Setting } from '@genfeedai/prisma';
 
 export class SettingEntity extends BaseEntity implements Setting {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly userId: string;
   declare readonly user: string;
   declare readonly theme: Setting['theme'];

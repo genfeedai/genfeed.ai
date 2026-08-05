@@ -338,7 +338,7 @@ describe('VideosController', () => {
         {
           provide: SharedService,
           useValue: {
-            saveDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
+            createMediaDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
           },
         },
         {
@@ -1022,7 +1022,7 @@ describe('VideosController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalled();
-      expect(sharedService.saveDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalled();
       expect(activitiesService.create).toHaveBeenCalled();
       expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalled();
@@ -1160,7 +1160,7 @@ describe('VideosController', () => {
       await controller.create(mockRequest, dto, mockUser);
 
       // Should make multiple API calls for non-batch models
-      expect(sharedService.saveDocuments).toHaveBeenCalledTimes(3);
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(3);
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalledTimes(3);
     });
 
@@ -1329,7 +1329,7 @@ describe('VideosController', () => {
 
       await controller.create(mockRequest, dto, mockUser);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           references: [expect.any(String)],
@@ -1483,7 +1483,7 @@ beforeAll(async () => {
         provide: ReplicateService,
         useValue: { generateTextToVideo: vi.fn() },
       },
-      { provide: SharedService, useValue: { saveDocuments: vi.fn() } },
+      { provide: SharedService, useValue: { createMediaDocuments: vi.fn() } },
       {
         provide: VideosService,
         useValue: {

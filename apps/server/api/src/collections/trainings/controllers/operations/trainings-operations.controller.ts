@@ -83,10 +83,10 @@ export class TrainingsOperationsController {
       const publicMetadata = getPublicMetadata(user);
 
       const existingTraining = await this.trainingsService.findOne({
-        _id: trainingId,
+        id: trainingId,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
       });
 
@@ -148,10 +148,10 @@ export class TrainingsOperationsController {
 
       // Find the training
       const training = await this.trainingsService.findOne({
-        _id: trainingId,
+        id: trainingId,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
       });
 
@@ -195,11 +195,6 @@ export class TrainingsOperationsController {
         metadata: { in: metadataIds },
       };
 
-      // NOT NEEDED RIGHT NOW
-      // if (query.brand && isEntityId(query.brand)) {
-      //   imageMatchConditions.brand = query.brand;
-      // }
-
       const data = await this.ingredientsService.findAll(
         { where: imageMatchConditions },
         {
@@ -232,10 +227,10 @@ export class TrainingsOperationsController {
       const publicMetadata = getPublicMetadata(user);
 
       const training = await this.trainingsService.findOne({
-        _id: trainingId,
+        id: trainingId,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
       });
 
@@ -254,7 +249,7 @@ export class TrainingsOperationsController {
       const sourceResult = await this.ingredientsService.findAll(
         {
           where: {
-            _id: {
+            id: {
               in: sources,
             },
             category: CategoryPrismaUtil.toIngredientCategory(

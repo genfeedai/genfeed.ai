@@ -1,8 +1,9 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { RouterPriority } from '@genfeedai/enums';
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -15,9 +16,25 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class CreateImageDto extends OmitType(CreateIngredientDto, [
-  'metadata',
-]) {
+export class CreateImageDto extends CreateIngredientDto {
+  @IsString()
+  @ApiProperty({ description: 'Image generation prompt', required: true })
+  readonly text!: string;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'Random generation seed', required: false })
+  readonly seed?: number;
+
+  @IsEntityId({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Source ingredient IDs used as image references',
+    required: false,
+    type: [String],
+  })
+  readonly references?: string[];
+
   @IsString()
   @IsOptional()
   @ApiProperty({

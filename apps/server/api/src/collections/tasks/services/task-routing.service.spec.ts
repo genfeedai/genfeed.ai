@@ -109,8 +109,8 @@ describe('TaskRoutingService', () => {
 
       const decision = await service.buildRoutingDecision(
         dto({
-          brand: 'brand-1',
-          organization: 'org-1',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
           request: 'write a newsletter',
         }),
         'Weekly digest',
@@ -136,8 +136,8 @@ describe('TaskRoutingService', () => {
 
       const decision = await service.buildRoutingDecision(
         dto({
-          brand: 'brand-1',
-          organization: 'org-1',
+          brandId: 'brand-1',
+          organizationId: 'org-1',
           request: 'make a video',
         }),
         'Title',

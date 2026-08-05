@@ -356,7 +356,7 @@ export class AdminFleetTrainingService {
         // Register trained model in the model registry
         try {
           const completedTraining = await this.trainingsService.findOne({
-            _id: trainingId,
+            id: trainingId,
           });
           if (completedTraining) {
             await this.modelRegistrationService.createFromTraining(
@@ -465,7 +465,7 @@ export class AdminFleetTrainingService {
     loraModelPath?: string,
   ): Promise<void> {
     const persona = await this.personasService.findOne({
-      ...(organizationId ? { organization: organizationId } : {}),
+      ...(organizationId ? { organizationId: organizationId } : {}),
       isFleetCharacter: true,
       isDeleted: false,
       slug: personaSlug,

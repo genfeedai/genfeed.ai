@@ -309,12 +309,12 @@ export class TaskActionsService {
     id: string,
     data: Record<string, unknown>,
   ): Promise<TaskDocument> {
-    const updated = (await this.delegate.update({
+    const updated = await this.delegate.update({
       data,
       where: { id },
-    })) as unknown as TaskDocument | null;
+    });
     if (!updated) throw new NotFoundException('Task', id);
-    return updated;
+    return this.tasksService.normalizeTaskDocument(updated);
   }
 
   /**
@@ -336,12 +336,12 @@ export class TaskActionsService {
       op === 'add'
         ? Array.from(new Set([...existingIds, outputId]))
         : existingIds.filter((oid) => oid !== outputId);
-    const updated = (await this.delegate.update({
+    const updated = await this.delegate.update({
       data: { [field]: nextIds },
       where: { id },
-    })) as unknown as TaskDocument | null;
+    });
     if (!updated) throw new NotFoundException('Task', id);
-    return updated;
+    return this.tasksService.normalizeTaskDocument(updated);
   }
 
   private async patchTaskAndReturn(
@@ -352,10 +352,7 @@ export class TaskActionsService {
     if (Object.keys(patch).length === 0) {
       return this.tasksService.findOne(scopedWhere(organizationId, { id }));
     }
-    return (await this.delegate.update({
-      data: patch,
-      where: { id },
-    })) as unknown as TaskDocument | null;
+    return this.tasksService.patch(id, patch);
   }
 
   private async requireLinkedOutputTask(
@@ -433,10 +430,13 @@ export class TaskActionsService {
     const currentStream = current?.eventStream ?? [];
     const newStream = [...currentStream, eventDoc];
 
-    const updated = (await this.delegate.update({
+    const updatedRow = await this.delegate.update({
       data: { eventStream: newStream },
       where: { id: taskId },
-    })) as unknown as TaskDocument | null;
+    });
+    const updated = updatedRow
+      ? this.tasksService.normalizeTaskDocument(updatedRow)
+      : null;
 
     if (!updated) return;
 

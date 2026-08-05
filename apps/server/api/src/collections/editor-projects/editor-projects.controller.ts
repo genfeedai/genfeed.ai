@@ -96,10 +96,10 @@ export class EditorProjectsController {
     // If sourceVideoId is provided, build initial video track from real data
     if (createDto.sourceVideoId) {
       const video = await this.ingredientsService.findOne({
-        _id: createDto.sourceVideoId,
+        id: createDto.sourceVideoId,
         category: IngredientCategory.VIDEO,
         isDeleted: false,
-        organization: orgId,
+        organizationId: orgId,
       });
 
       if (!video) {
@@ -107,7 +107,7 @@ export class EditorProjectsController {
       }
 
       const metadata = await this.metadataService.findOne({
-        ingredient: createDto.sourceVideoId,
+        ingredients: { some: { id: createDto.sourceVideoId } },
       });
 
       const duration = metadata?.duration || 10;

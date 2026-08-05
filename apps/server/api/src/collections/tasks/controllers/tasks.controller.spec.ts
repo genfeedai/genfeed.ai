@@ -192,10 +192,7 @@ describe('TasksController', () => {
         projectId: 'project-1',
         status: 'todo',
       });
-      expect(matchStage.where.organization).toEqual(expect.any(String));
-      expect((matchStage.where.organization as string).toString()).toBe(
-        organizationId,
-      );
+      expect(matchStage.where.organizationId).toBe(organizationId);
       expect(matchStage.where.parentId).toEqual(expect.any(String));
       expect((matchStage.where.parentId as string).toString()).toBe(parentId);
     });

@@ -47,6 +47,7 @@ type MockBaseService = {
   findOne: ReturnType<typeof vi.fn>;
   patch: ReturnType<typeof vi.fn>;
   remove: ReturnType<typeof vi.fn>;
+  supportsField: ReturnType<typeof vi.fn>;
 };
 
 describe('BaseCRUDController', () => {
@@ -90,6 +91,7 @@ describe('BaseCRUDController', () => {
             findOne: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
+            supportsField: vi.fn(() => true),
           },
         },
         {
@@ -113,6 +115,7 @@ describe('BaseCRUDController', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
+      supportsField: vi.fn(() => true),
     };
 
     logger = {
@@ -337,8 +340,8 @@ describe('BaseCRUDController', () => {
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          brand: expect.any(String),
-          user: expect.any(String),
+          brandId: expect.any(String),
+          userId: expect.any(String),
         }),
         controller.getPopulateFields(),
       );
@@ -359,7 +362,7 @@ describe('BaseCRUDController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(String),
+          organizationId: expect.any(String),
         }),
         expect.any(Array),
       );
@@ -400,11 +403,10 @@ describe('BaseCRUDController', () => {
       );
       expect(service.patch).toHaveBeenCalledWith(
         id,
-        expect.objectContaining({
+        {
           description: 'Updated description',
           name: 'Updated Name',
-          user: expect.any(String),
-        }),
+        },
         controller.getPopulateFields(),
       );
       expect(result).toEqual({ data: updatedEntity });

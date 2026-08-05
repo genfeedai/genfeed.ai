@@ -23,10 +23,7 @@ type StreaksServiceContract = Pick<
 type ActivityMutationInput = Partial<CreateActivityDto> &
   Partial<UpdateActivityDto> & {
     action?: string | null;
-    brandId?: string | null;
     data?: Record<string, unknown>;
-    organizationId?: string | null;
-    userId?: string | null;
   };
 
 @Injectable()
@@ -103,15 +100,11 @@ export class ActivitiesService extends BaseService<
 
     const mutation: Record<string, unknown> = {
       action: input.action ?? input.key ?? existing?.action ?? null,
-      brandId: input.brandId ?? input.brand ?? existing?.brandId ?? null,
+      brandId: input.brandId ?? existing?.brandId ?? null,
       entityId: input.entityId ?? existing?.entityId ?? null,
       entityModel: input.entityModel ?? existing?.entityModel ?? null,
-      organizationId:
-        input.organizationId ??
-        input.organization ??
-        existing?.organizationId ??
-        null,
-      userId: input.userId ?? input.user ?? existing?.userId ?? null,
+      organizationId: input.organizationId ?? existing?.organizationId ?? null,
+      userId: input.userId ?? existing?.userId ?? null,
     };
 
     if (Object.keys(trustedData).length > 0) {
@@ -188,6 +181,22 @@ export class ActivitiesService extends BaseService<
     }
 
     return activity;
+  }
+
+  findByActionValue(
+    action: string,
+    value: string,
+    userId: string,
+  ): Promise<ActivityDocument | null> {
+    return super.findOne({
+      action,
+      data: {
+        path: ['value'],
+        string_contains: value,
+      },
+      isDeleted: false,
+      userId,
+    });
   }
 
   /**

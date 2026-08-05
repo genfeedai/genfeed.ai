@@ -86,10 +86,10 @@ export class ArticlesController extends BaseCRUDController<
         tag: query.tag,
       },
       {
-        brand: scope.brand ?? publicMetadata.brand,
+        brandId: scope.brandId ?? publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
-        organization: scope.organization ?? publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: scope.organizationId ?? publicMetadata.organization,
+        userId: publicMetadata.user,
       },
     );
   }
@@ -129,8 +129,7 @@ export class ArticlesController extends BaseCRUDController<
 
     // Check organization access
     if (
-      String(article.organization ?? article.organizationId) !==
-        publicMetadata.organization.toString() &&
+      article.organizationId !== publicMetadata.organization.toString() &&
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(this.entityName, articleId);
@@ -157,7 +156,7 @@ export class ArticlesController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const article = await this.articlesService.findOne({
-      _id: articleId,
+      id: articleId,
       isDeleted: false,
     });
 
@@ -166,8 +165,7 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     if (
-      String(article.organization ?? article.organizationId) !==
-        publicMetadata.organization.toString() &&
+      article.organizationId !== publicMetadata.organization.toString() &&
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(this.entityName, articleId);

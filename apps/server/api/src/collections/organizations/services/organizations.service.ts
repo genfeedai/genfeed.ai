@@ -72,7 +72,7 @@ export class OrganizationsService extends BaseService<
     {
       path: 'settings',
       select: [
-        '_id',
+        'id',
         'isWhitelabelEnabled',
         'isVoiceControlEnabled',
         'isWatermarkEnabled',
@@ -96,7 +96,7 @@ export class OrganizationsService extends BaseService<
         'quotaTiktok',
         'quotaTwitter',
         'quotaInstagram',
-        'enabledModels',
+        'enabledModelIds',
       ].join(' '),
     },
   ];
@@ -214,7 +214,7 @@ export class OrganizationsService extends BaseService<
       const prefix = updateDto.prefix.toUpperCase();
 
       // Prefix is immutable once set — reject if the org already has one.
-      const org = await this.findOne({ _id: id, isDeleted: false });
+      const org = await this.findOne({ id: id, isDeleted: false });
       if (!org) {
         throw new NotFoundException('Organization');
       }

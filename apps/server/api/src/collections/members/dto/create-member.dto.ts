@@ -17,21 +17,21 @@ export class CreateMemberDto {
     description: 'The organization ID this member belongs to',
     required: true,
   })
-  readonly organization!: string;
+  readonly organizationId!: string;
 
   @IsEntityId()
   @ApiProperty({
     description: 'The user ID of this member',
     required: true,
   })
-  readonly user!: string;
+  readonly userId!: string;
 
   @IsEntityId()
   @ApiProperty({
     description: 'The role ID assigned to this member',
     required: true,
   })
-  readonly role!: string;
+  readonly roleId!: string;
 
   @IsOptional()
   @IsArray()
@@ -42,7 +42,7 @@ export class CreateMemberDto {
     required: false,
     type: [String],
   })
-  readonly brands?: string[];
+  readonly brandIds?: string[];
 
   @IsOptional()
   @IsBoolean()

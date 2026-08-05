@@ -8,10 +8,10 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
  *
  * @example
  * // Build parent filter conditions
- * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parent);
+ * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parentId);
  *
  * // Build format filter pipeline stage
- * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parent);
+ * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parentId);
  */
 export class IngredientFilterUtil {
   /**
@@ -22,25 +22,25 @@ export class IngredientFilterUtil {
    * - valid ObjectId → ingredients with that parent
    * - undefined → returns empty object (no filter, shows both parents and children)
    *
-   * @param parent - Parent ID from query params
+   * @param parentId - Parent ID from query params
    * @returns Filter conditions for parent field
    */
   static buildParentFilter(
-    parent: string | null | undefined,
+    parentId: string | null | undefined,
   ): Record<string, unknown> {
     // Check if parent parameter is explicitly provided in query
-    const hasParentParam = parent !== undefined;
+    const hasParentParam = parentId !== undefined;
 
     if (hasParentParam) {
-      if (parent === null || parent === 'null' || parent === '') {
+      if (parentId === null || parentId === 'null' || parentId === '') {
         // Explicitly requesting root ingredients
-        return { parent: null };
-      } else if (isEntityId(parent)) {
+        return { parentId: null };
+      } else if (isEntityId(parentId)) {
         // Valid parent ID provided
-        return { parent: parent };
+        return { parentId };
       } else {
         // Invalid parent ID, default to root ingredients
-        return { parent: null };
+        return { parentId: null };
       }
     }
 
@@ -56,20 +56,20 @@ export class IngredientFilterUtil {
    * - valid ObjectId → ingredients in that folder
    * - undefined → no folder filter ("All Assets")
    *
-   * @param folder - Folder ID from query params
+   * @param folderId - Folder ID from query params
    * @returns Filter conditions for folder field
    */
   static buildFolderFilter(
-    folder: string | null | undefined,
+    folderId: string | null | undefined,
   ): Record<string, unknown> {
-    const hasFolderParam = folder !== undefined;
+    const hasFolderParam = folderId !== undefined;
 
     if (hasFolderParam) {
-      if (isEntityId(folder)) {
-        return { folder: folder };
+      if (isEntityId(folderId)) {
+        return { folderId };
       } else {
         // null, 'null', '' or invalid ID → no folder
-        return { folder: null };
+        return { folderId: null };
       }
     }
 
@@ -84,24 +84,24 @@ export class IngredientFilterUtil {
    * - valid ObjectId → ingredients for that training
    * - undefined → exclude training ingredients
    *
-   * @param training - Training ID from query params
+   * @param trainingId - Training ID from query params
    * @returns Filter conditions for training field
    */
   static buildTrainingFilter(
-    training: string | undefined,
+    trainingId: string | undefined,
   ): Record<string, unknown> {
-    if (training) {
-      if (isEntityId(training)) {
+    if (trainingId) {
+      if (isEntityId(trainingId)) {
         // Show only ingredients with this specific training
-        return { training: training };
+        return { trainingId };
       } else {
         // Invalid training ID - exclude training ingredients
-        return { training: null };
+        return { trainingId: null };
       }
     }
 
     // Default: exclude training ingredients
-    return { training: null };
+    return { trainingId: null };
   }
 
   /**
@@ -111,14 +111,14 @@ export class IngredientFilterUtil {
    * - valid ObjectId → specific brand
    * - undefined → any brand (exists)
    *
-   * @param brand - Brand ID from query params
+   * @param brandId - Brand ID from query params
    * @returns Filter value for brand field
    */
   static buildBrandFilter(
-    brand: string | undefined,
+    brandId: string | undefined,
   ): string | Record<string, unknown> {
-    if (isEntityId(brand)) {
-      return brand;
+    if (isEntityId(brandId)) {
+      return brandId;
     }
     return { not: null };
   }
@@ -167,11 +167,11 @@ export class IngredientFilterUtil {
    * @param baseMatch - Base match conditions (user, organization, category, etc.)
    * @returns Complete array of pipeline stages
    */
-  static buildIngredientquery(
+  static buildIngredientQuery(
     query: {
-      parent?: string | null;
-      folder?: string | null;
-      training?: string;
+      parentId?: string | null;
+      folderId?: string | null;
+      trainingId?: string;
       format?: string;
       sort?: string;
       lightweight?: boolean;
@@ -179,13 +179,13 @@ export class IngredientFilterUtil {
     baseMatch: Record<string, unknown>,
   ): Record<string, unknown> {
     const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent,
+      query.parentId,
     );
     const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folder,
+      query.folderId,
     );
     const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.training,
+      query.trainingId,
     );
 
     return {

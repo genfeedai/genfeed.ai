@@ -68,7 +68,7 @@ export class BrandSetupService {
     organizationId: string;
   }> {
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false },
+      { id: brandId, isDeleted: false },
       'none',
     );
 
@@ -374,8 +374,7 @@ export class BrandSetupService {
         // onboarding window. Outside it, this is a plain brand label update — an
         // arbitrary brand PATCH must never rename an established organization.
         const settings = await this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         });
 
         if (settings?.isFirstLogin) {
@@ -419,8 +418,7 @@ export class BrandSetupService {
     organizationId: string,
   ): Promise<void> {
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!settings?.id) {
@@ -472,8 +470,7 @@ export class BrandSetupService {
    */
   private async completeOnboarding(organizationId: string): Promise<void> {
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (settings) {

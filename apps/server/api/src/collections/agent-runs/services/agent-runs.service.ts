@@ -853,19 +853,12 @@ export class AgentRunsService extends BaseService<
         ? { ...(data as Record<string, unknown>) }
         : {};
 
-    const organizationId = requireId(dto, 'organizationId', 'organization');
-    const userId = requireId(dto, 'userId', 'user');
-    const brandId = readOptionalId(dto, 'brandId', 'brand');
-    const strategyId = readOptionalId(dto, 'strategyId', 'strategy');
-    const threadId = readOptionalId(dto, 'threadId', 'thread');
-    const parentRunId = readOptionalId(dto, 'parentRunId', 'parentRun');
-
-    delete dto.organization;
-    delete dto.user;
-    delete dto.brand;
-    delete dto.strategy;
-    delete dto.thread;
-    delete dto.parentRun;
+    const organizationId = requireId(dto, 'organizationId');
+    const userId = requireId(dto, 'userId');
+    const brandId = readOptionalId(dto, 'brandId');
+    const strategyId = readOptionalId(dto, 'strategyId');
+    const threadId = readOptionalId(dto, 'threadId');
+    const parentRunId = readOptionalId(dto, 'parentRunId');
 
     if (organizationId) {
       dto.organizationId = organizationId;

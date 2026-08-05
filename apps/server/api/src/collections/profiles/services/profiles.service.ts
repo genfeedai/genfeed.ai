@@ -103,8 +103,7 @@ export class ProfilesService {
   private normalizeProfile(record: ProfileDocument): Profile {
     const data = this.readObjectRecord(record.data);
     const {
-      id: _id,
-      _id: __id,
+      id: _dataId,
       organizationId: _organizationId,
       createdById: _createdById,
       isDeleted: _isDeleted,
@@ -119,7 +118,6 @@ export class ProfilesService {
     return {
       ...record,
       ...safeData,
-      _id: record.mongoId ?? record.id,
       id: record.id,
       organizationId: record.organizationId,
       createdById: record.createdById,

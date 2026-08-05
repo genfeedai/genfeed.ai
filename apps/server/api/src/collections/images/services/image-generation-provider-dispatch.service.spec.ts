@@ -61,7 +61,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     }),
   };
   const sharedService = {
-    saveDocuments: vi.fn(),
+    createMediaDocuments: vi.fn(),
   };
   const websocketService = {
     publishBackgroundTaskUpdate: vi.fn(),
@@ -202,7 +202,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     falService.generateImage
       .mockResolvedValueOnce({ url: 'https://fal.example.com/primary.png' })
       .mockResolvedValueOnce({ url: 'https://fal.example.com/second.png' });
-    sharedService.saveDocuments.mockResolvedValue({
+    sharedService.createMediaDocuments.mockResolvedValue({
       ingredientData: { id: 'ingredient-2', parent: 'parent-1' },
       metadataData: { id: 'metadata-2' },
     });
@@ -280,7 +280,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       ],
       status: 'succeeded',
     });
-    sharedService.saveDocuments
+    sharedService.createMediaDocuments
       .mockResolvedValueOnce({
         ingredientData: { id: 'ingredient-2', parent: 'parent-1' },
         metadataData: { id: 'metadata-2' },

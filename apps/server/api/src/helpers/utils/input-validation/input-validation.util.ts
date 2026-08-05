@@ -305,7 +305,7 @@ export class InputValidationUtil {
   /**
    * Validate a supported entity id.
    */
-  static validateObjectId(value: unknown, fieldName: string): string {
+  static validateEntityId(value: unknown, fieldName: string): string {
     if (!value || typeof value !== 'string') {
       throw new ValidationException(
         `${fieldName} is required and must be a string`,

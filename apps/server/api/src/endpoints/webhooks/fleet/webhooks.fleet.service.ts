@@ -132,7 +132,7 @@ export class FleetWebhookService {
     ingredientId: string,
   ): Promise<IngredientDocument | null> {
     return await this.voicesService.findOne({
-      OR: [{ id: ingredientId }, { mongoId: ingredientId }],
+      id: ingredientId,
       category: IngredientCategory.VOICE,
       isDeleted: false,
       voiceProvider: VoiceProvider.GENFEED_AI,
@@ -204,7 +204,7 @@ export class FleetWebhookService {
     const ingredientId = this.voiceId(voice);
     await this.voicesService.patchAll(
       {
-        OR: [{ id: ingredientId }, { mongoId: ingredientId }],
+        id: ingredientId,
         organizationId: voice.organizationId,
       },
       update,

@@ -149,7 +149,7 @@ export class PublicBrandsController {
     this.logger.log(url, { params: { brandId } });
     // Scope is filtered in the query, not after the fetch — see findOneBySlug.
     const data = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
     });
@@ -183,7 +183,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 
@@ -237,7 +237,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
     if (!brand) {
@@ -293,7 +293,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 
@@ -350,7 +350,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 

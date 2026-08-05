@@ -140,6 +140,7 @@ export class ImageGenerationService {
         promptBuilderBrand,
         promptOriginalText,
         publicMetadata,
+        referenceIds,
         referenceImageUrls,
         style,
         user,
@@ -161,6 +162,7 @@ export class ImageGenerationService {
       promptBuilderBrand,
       promptData,
       publicMetadata,
+      referenceIds,
       referenceImageUrl,
       referenceImageUrls,
       request,
@@ -203,7 +205,7 @@ export class ImageGenerationService {
     });
     const publicMetadata = getPublicMetadata(user);
 
-    if (!createImageDto.prompt && !createImageDto.text) {
+    if (!createImageDto.text) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -213,17 +215,13 @@ export class ImageGenerationService {
       );
     }
 
-    const promptOriginal = createImageDto.text || createImageDto.prompt;
-    const promptOriginalText =
-      typeof promptOriginal === 'string'
-        ? promptOriginal
-        : String(promptOriginal ?? '');
+    const promptOriginalText = createImageDto.text;
 
-    const brandId = createImageDto.brand || publicMetadata.brand;
+    const brandId = createImageDto.brandId || publicMetadata.brand;
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -238,8 +236,7 @@ export class ImageGenerationService {
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     );
 
@@ -297,6 +294,7 @@ export class ImageGenerationService {
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
     promptOriginalText: string;
     publicMetadata: ImageGenerationPublicMetadata;
+    referenceIds: string[];
     referenceImageUrls: string[];
     style?: string;
     user: User;
@@ -315,14 +313,15 @@ export class ImageGenerationService {
       promptBuilderBrand,
       promptOriginalText,
       publicMetadata,
+      referenceIds,
       referenceImageUrls,
       style,
       user,
       width,
     } = params;
 
-    const submittedPromptId = isEntityId(createImageDto.prompt)
-      ? createImageDto.prompt
+    const submittedPromptId = isEntityId(createImageDto.promptId)
+      ? createImageDto.promptId
       : undefined;
     const submittedPrompt = submittedPromptId
       ? await this.promptsService.findOne({
@@ -339,8 +338,8 @@ export class ImageGenerationService {
         })
       : await this.promptsService.create(
           new PromptEntity({
-            brandId: isEntityId(createImageDto.brand)
-              ? createImageDto.brand
+            brandId: isEntityId(createImageDto.brandId)
+              ? createImageDto.brandId
               : publicMetadata.brand,
             category: PromptCategory.MODELS_PROMPT_IMAGE,
             model,
@@ -385,21 +384,27 @@ export class ImageGenerationService {
     );
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...createImageDto,
-        brand: brand.id,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: brand.id,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
+        generationPrompt: promptOriginalText,
+        generationSeed: createImageDto.seed,
         height,
+        isDefault: createImageDto.isDefault,
         model,
-        organization: publicMetadata.organization,
-        parent: isEntityId(createImageDto.parent)
-          ? createImageDto.parent
+        negativePrompt: createImageDto.negativePrompt,
+        organizationId: publicMetadata.organization,
+        parentId: isEntityId(createImageDto.parentId)
+          ? createImageDto.parentId
           : undefined,
-        prompt: promptData.id,
+        promptId: promptData.id,
         // Template tracking
         promptTemplate: imageTemplateUsed,
+        scope: createImageDto.scope,
+        sourceIds: referenceIds,
         style,
+        tagIds: createImageDto.tags,
         templateVersion: imageTemplateVersion,
         width,
       });
@@ -532,7 +537,7 @@ export class ImageGenerationService {
   ): Promise<unknown> {
     if (plan.kind === 'inline') {
       return this.imagesService.findOne(
-        { _id: context.ingredientData.id },
+        { id: context.ingredientData.id },
         IMAGE_POPULATE,
       );
     }
@@ -571,7 +576,7 @@ export class ImageGenerationService {
     }
 
     const ingredient = await this.imagesService.findOne(
-      { _id: context.ingredientData.id },
+      { id: context.ingredientData.id },
       IMAGE_POPULATE,
     );
 

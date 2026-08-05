@@ -103,7 +103,7 @@ describe('SocialSourcesService', () => {
     await expect(
       service.createScoped(
         {
-          credential: 'credential-2',
+          credentialId: 'credential-2',
           handle: '@OpenAI',
           platform: SocialSourcePlatform.TWITTER,
         },

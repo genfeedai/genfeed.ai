@@ -122,7 +122,7 @@ describe('VideosReframeController', () => {
       generateTextToVideo: vi.fn().mockResolvedValue('gen123'),
     },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { brand: mockVideo.brand, id: ingredientId },
         metadataData: { id: metadataId },
       }),
@@ -331,7 +331,9 @@ describe('VideosReframeController', () => {
         width: 4000,
       },
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({ height: 1920, width: 1080 }),
     );

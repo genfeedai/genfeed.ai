@@ -90,9 +90,9 @@ describe('AssetsOperationsController', () => {
   const mockAsset = {
     id: mockAssetId,
     category: AssetCategory.LOGO,
-    parent: mockBrandId,
-    parentModel: AssetParent.BRAND,
-    user: mockUserId,
+    parentBrandId: mockBrandId,
+    parentType: AssetParent.BRAND,
+    userId: mockUserId,
   };
 
   const mockIngredient = {
@@ -216,8 +216,8 @@ describe('AssetsOperationsController', () => {
       const generateDto: GenerateAssetDto = {
         category: AssetCategory.BANNER,
         model: 'test-model',
-        parent: mockBrandId,
-        parentModel: AssetParent.BRAND,
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
         text: 'Generate a banner',
       };
 
@@ -229,15 +229,15 @@ describe('AssetsOperationsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: mockBrandId,
+          id: mockBrandId,
           isDeleted: false,
-          organization: expect.any(String),
+          organizationId: expect.any(String),
         }),
       );
       expect(assetsService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({
           category: AssetCategory.BANNER,
-          parent: expect.any(String),
+          parentBrandId: expect.any(String),
         }),
         { isDeleted: true },
       );
@@ -262,7 +262,7 @@ describe('AssetsOperationsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should require a brand when parent model is not brand', async () => {
+    it('should reject a non-brand parent type', async () => {
       const userWithoutBrand = {
         id: 'user_456',
         publicMetadata: {
@@ -274,8 +274,8 @@ describe('AssetsOperationsController', () => {
       const generateDto: GenerateAssetDto = {
         category: AssetCategory.LOGO,
         model: 'test-model',
-        parent: mockBrandId,
-        parentModel: AssetParent.ORGANIZATION,
+        parentId: mockBrandId,
+        parentType: AssetParent.ORGANIZATION,
         text: 'Generate a logo',
       };
 
@@ -288,8 +288,8 @@ describe('AssetsOperationsController', () => {
       const generateDto: GenerateAssetDto = {
         category: AssetCategory.REFERENCE,
         model: 'test-model',
-        parent: mockBrandId,
-        parentModel: AssetParent.BRAND,
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
         text: 'Generate a reference',
       };
 
@@ -306,8 +306,8 @@ describe('AssetsOperationsController', () => {
       const generateDto: GenerateAssetDto = {
         category: AssetCategory.LOGO,
         model: 'test-model',
-        parent: mockBrandId,
-        parentModel: AssetParent.BRAND,
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
         text: 'Generate a logo',
       };
 
@@ -321,8 +321,8 @@ describe('AssetsOperationsController', () => {
     it('should upload an asset and publish updates', async () => {
       const uploadDto: CreateAssetDto = {
         category: AssetCategory.LOGO,
-        parent: mockBrandId.toString(),
-        parentModel: AssetParent.BRAND,
+        parentId: mockBrandId.toString(),
+        parentType: AssetParent.BRAND,
       };
 
       const result = await controller.createUpload(
@@ -336,8 +336,8 @@ describe('AssetsOperationsController', () => {
         expect.objectContaining({
           category: AssetCategory.LOGO,
           isDeleted: false,
-          parent: expect.any(String),
-          parentModel: AssetParent.BRAND,
+          parentBrandId: expect.any(String),
+          parentType: AssetParent.BRAND,
         }),
         { isDeleted: true },
       );
@@ -399,7 +399,7 @@ describe('AssetsOperationsController', () => {
       const createDto: CreateFromIngredientDto = {
         category: AssetCategory.LOGO,
         ingredientId: mockIngredientId.toString(),
-        parent: mockBrandId.toString(),
+        parentId: mockBrandId.toString(),
       };
 
       const result = await controller.createFromIngredient(
@@ -410,13 +410,13 @@ describe('AssetsOperationsController', () => {
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: mockIngredientId.toString(),
+          id: mockIngredientId.toString(),
           isDeleted: false,
-          user: expect.any(String),
+          userId: expect.any(String),
         }),
       );
       expect(metadataService.findOne).toHaveBeenCalledWith({
-        _id: mockMetadataId,
+        id: mockMetadataId,
         isDeleted: false,
       });
       expect(filesClientService.copyInS3).toHaveBeenCalledWith(
@@ -449,7 +449,7 @@ describe('AssetsOperationsController', () => {
       const createDto: CreateFromIngredientDto = {
         category: AssetCategory.LOGO,
         ingredientId: mockIngredientId.toString(),
-        parent: mockBrandId.toString(),
+        parentId: mockBrandId.toString(),
       };
 
       await expect(
@@ -466,7 +466,7 @@ describe('AssetsOperationsController', () => {
       const createDto: CreateFromIngredientDto = {
         category: AssetCategory.BANNER,
         ingredientId: mockIngredientId.toString(),
-        parent: mockBrandId.toString(),
+        parentId: mockBrandId.toString(),
       };
 
       await expect(
@@ -480,7 +480,7 @@ describe('AssetsOperationsController', () => {
       const createDto: CreateFromIngredientDto = {
         category: AssetCategory.LOGO,
         ingredientId: mockIngredientId.toString(),
-        parent: mockBrandId.toString(),
+        parentId: mockBrandId.toString(),
       };
 
       await expect(
@@ -496,7 +496,7 @@ describe('AssetsOperationsController', () => {
       const createDto: CreateFromIngredientDto = {
         category: AssetCategory.LOGO,
         ingredientId: mockIngredientId.toString(),
-        parent: mockBrandId.toString(),
+        parentId: mockBrandId.toString(),
       };
 
       await expect(

@@ -1,6 +1,5 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AssetScope } from '@genfeedai/enums';
 import {
   CanActivate,
@@ -27,7 +26,7 @@ import {
  * @UseGuards(AssetAccessGuard)
  * async findOne(@Param('ingredientId') ingredientId: string) {
  *   // Guard has already checked access
- *   return this.service.findOne({ _id: ingredientId });
+ *   return this.service.findOne({ id: ingredientId });
  * }
  * ```
  */
@@ -46,7 +45,7 @@ export class AssetAccessGuard implements CanActivate {
 
     // Find asset (include isDeleted check to avoid accessing soft-deleted assets)
     const asset = await this.ingredientsService.findOne({
-      _id: assetId,
+      id: assetId,
       isDeleted: false,
     });
 
@@ -69,9 +68,7 @@ export class AssetAccessGuard implements CanActivate {
     // Check permissions based on scope
     switch (assetScope) {
       case AssetScope.ORGANIZATION: {
-        // Scalar FKs first — Mongo-era aliases type-check but are often undefined
-        // on Prisma rows unless the relation was included/back-filled.
-        const assetUserId = resolveRelationId(asset.userId, asset.user);
+        const assetUserId = asset.userId;
 
         if (
           assetUserId === user.id ||
@@ -80,10 +77,7 @@ export class AssetAccessGuard implements CanActivate {
           return true;
         }
 
-        const assetOrgId = resolveRelationId(
-          asset.organizationId,
-          asset.organization,
-        );
+        const assetOrgId = asset.organizationId;
         const userOrgId = user.publicMetadata?.organization?.toString();
 
         if (assetOrgId && userOrgId && assetOrgId === userOrgId) {
@@ -96,7 +90,7 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.BRAND: {
-        const brandAssetUserId = resolveRelationId(asset.userId, asset.user);
+        const brandAssetUserId = asset.userId;
 
         if (
           brandAssetUserId === user.id ||
@@ -105,7 +99,7 @@ export class AssetAccessGuard implements CanActivate {
           return true;
         }
 
-        const assetBrandId = resolveRelationId(asset.brandId, asset.brand);
+        const assetBrandId = asset.brandId;
         const userBrandId = user.publicMetadata?.brand?.toString();
 
         if (assetBrandId && userBrandId && assetBrandId === userBrandId) {
@@ -118,7 +112,7 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.USER: {
-        const userAssetUserId = resolveRelationId(asset.userId, asset.user);
+        const userAssetUserId = asset.userId;
 
         if (
           userAssetUserId === user.id ||

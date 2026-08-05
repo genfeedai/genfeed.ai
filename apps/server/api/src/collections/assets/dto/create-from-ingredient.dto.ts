@@ -29,5 +29,5 @@ export class CreateFromIngredientDto {
     description: 'The parent brand ID',
     required: true,
   })
-  readonly parent!: string;
+  readonly parentId!: string;
 }

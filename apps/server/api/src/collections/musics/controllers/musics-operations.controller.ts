@@ -115,14 +115,13 @@ export class MusicsOperationsController {
 
     // Fetch brand for default model
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     );
 
@@ -172,26 +171,32 @@ export class MusicsOperationsController {
     );
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...createMusicDto,
-        brand: publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: publicMetadata.brand,
         category: IngredientCategory.MUSIC,
+        duration: createMusicDto.duration,
         extension: MetadataExtension.MP3,
-        organization: publicMetadata.organization,
-        prompt: promptData.id,
+        generationPrompt: createMusicDto.text,
+        generationSeed: createMusicDto.seed,
+        isDefault: createMusicDto.isDefault,
+        model,
+        organizationId: publicMetadata.organization,
+        promptId: promptData.id,
+        scope: createMusicDto.scope,
         status: IngredientStatus.PROCESSING,
+        tagIds: createMusicDto.tags,
       });
 
     // Create activity for music generation start (after ingredientData is available)
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: publicMetadata.brand,
+        brandId: publicMetadata.brand,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.MUSIC_GENERATION,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model,
@@ -354,14 +359,19 @@ export class MusicsOperationsController {
               const {
                 metadataData: additionalMetadata,
                 ingredientData: additionalIngredient,
-              } = await this.sharedService.saveDocuments(user, {
-                ...createMusicDto,
-                brand: publicMetadata.brand,
+              } = await this.sharedService.createMediaDocuments(user, {
+                brandId: publicMetadata.brand,
                 category: IngredientCategory.MUSIC,
+                duration: createMusicDto.duration,
                 extension: MetadataExtension.MP3,
-                organization: publicMetadata.organization,
-                prompt: promptId,
+                generationPrompt: createMusicDto.text,
+                generationSeed: createMusicDto.seed,
+                model,
+                organizationId: publicMetadata.organization,
+                promptId: promptId,
+                scope: createMusicDto.scope,
                 status: IngredientStatus.PROCESSING,
+                tagIds: createMusicDto.tags,
               });
 
               additionalMetadataId = additionalMetadata.id.toString();
@@ -370,7 +380,7 @@ export class MusicsOperationsController {
               pendingIngredientIds.push(additionalIngredient.id.toString());
 
               await this.musicsService.patch(additionalIngredient.id, {
-                prompt: promptId,
+                promptId: promptId,
               });
 
               const seedForOutput = baseSeed >= 0 ? baseSeed + i : -1;

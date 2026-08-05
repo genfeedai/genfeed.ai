@@ -119,8 +119,8 @@ export class OrganizationsController extends BaseCRUDController<
     const member = await this.membersService.findOne({
       isActive: true,
       isDeleted: false,
-      organization: organizationId,
-      user: publicMetadata.user,
+      organizationId: organizationId,
+      userId: publicMetadata.user,
     });
 
     return Boolean(member);
@@ -269,12 +269,11 @@ export class OrganizationsController extends BaseCRUDController<
     const members = await this.membersService.find({
       isActive: true,
       isDeleted: false,
-      user: userId,
+      userId,
     });
 
-    // Membership rows are Prisma-shaped (`organizationId`); the legacy
-    // `organization` alias is optional-typed and undefined at runtime, so
-    // mapping it sent `findOne({ _id: undefined })` downstream — which
+    // Membership rows are Prisma-shaped (`organizationId`). A missing
+    // organization ID previously sent `findOne({ id: undefined })` downstream — which
     // normalized to an unscoped findFirst and returned the first organization
     // in the table once per membership row (#switcher duplicate/wrong-org).
     // Dedup so multiple memberships in one org can't render duplicate entries.
@@ -300,7 +299,7 @@ export class OrganizationsController extends BaseCRUDController<
     const orgs = await Promise.all(
       orgIds.map((orgId) =>
         this.organizationsService.findOne({
-          _id: orgId,
+          id: orgId,
           isDeleted: false,
         }),
       ),
@@ -313,7 +312,7 @@ export class OrganizationsController extends BaseCRUDController<
         .map(async (org) => {
           const brand = await this.brandsService.findOne({
             isDeleted: false,
-            organization: org.id,
+            organizationId: org.id,
           });
           return {
             brand: brand
@@ -356,8 +355,8 @@ export class OrganizationsController extends BaseCRUDController<
     const member = await this.membersService.findOne({
       isActive: true,
       isDeleted: false,
-      organization: orgId,
-      user: userId,
+      organizationId: orgId,
+      userId: userId,
     });
 
     if (!member && !getIsSuperAdmin(user)) {
@@ -374,15 +373,15 @@ export class OrganizationsController extends BaseCRUDController<
     let brand = null;
     if (member?.lastUsedBrandId) {
       brand = await this.brandsService.findOne({
-        _id: member.lastUsedBrandId,
+        id: member.lastUsedBrandId,
         isDeleted: false,
-        organization: orgId,
+        organizationId: orgId,
       });
     }
     if (!brand) {
       brand = await this.brandsService.findOne({
         isDeleted: false,
-        organization: orgId,
+        organizationId: orgId,
       });
     }
 
@@ -398,14 +397,19 @@ export class OrganizationsController extends BaseCRUDController<
     await this.usersService.patch(userId, { lastUsedOrganizationId: orgId });
     if (member) {
       await this.membersService.setLastUsedBrand(
-        { isActive: true, isDeleted: false, organization: orgId, user: userId },
+        {
+          isActive: true,
+          isDeleted: false,
+          organizationId: orgId,
+          userId,
+        },
         brand.id.toString(),
       );
     }
     await this.userAccessCacheService.invalidateAll(userId);
 
     const org = await this.organizationsService.findOne({
-      _id: orgId,
+      id: orgId,
       isDeleted: false,
     });
 
@@ -442,7 +446,7 @@ export class OrganizationsController extends BaseCRUDController<
     await this.assertOrganizationCreationAllowed(user, userId);
 
     const userDoc = await this.usersService.findOne({
-      _id: userId,
+      id: userId,
       isDeleted: false,
     });
 
@@ -471,7 +475,7 @@ export class OrganizationsController extends BaseCRUDController<
       await this.organizationSettingsService.getLatestMajorVersionModelIds();
     await this.organizationSettingsService.create({
       brandsLimit: 0,
-      enabledModels: enabledModelIds,
+      enabledModelIds,
       isAutoEvaluateEnabled: false,
       isGenerateArticlesEnabled: false,
       isGenerateImagesEnabled: true,
@@ -489,9 +493,7 @@ export class OrganizationsController extends BaseCRUDController<
       organizationId: orgId,
       seatsLimit: DEFAULT_FREE_SEATS,
       timezone: 'UTC',
-    } as unknown as Parameters<
-      typeof this.organizationSettingsService.create
-    >[0]);
+    });
 
     // Step 3: Create default brand
     const brand = await this.brandsService.create({
@@ -550,8 +552,8 @@ export class OrganizationsController extends BaseCRUDController<
       {
         isActive: true,
         isDeleted: false,
-        organization: org.id.toString(),
-        user: userId,
+        organizationId: org.id.toString(),
+        userId,
       },
       brand.id.toString(),
     );
@@ -575,7 +577,7 @@ export class OrganizationsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const settings = publicMetadata.organization
       ? await this.organizationSettingsService.findOne({
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
         })
       : null;
 

@@ -131,17 +131,17 @@ describe('AgentRunsService', () => {
     );
   });
 
-  it('normalizes legacy relation aliases to scalar columns on create', async () => {
+  it('persists canonical relation IDs on create', async () => {
     await service.create({
-      brand: 'brand-1',
+      brandId: 'brand-1',
       creditBudget: 50,
       label: 'Run',
       metadata: { source: 'test' },
       objective: 'Do the thing',
-      organization: 'org-1',
-      strategy: 'strategy-1',
+      organizationId: 'org-1',
+      strategyId: 'strategy-1',
       trigger: 'manual' as never,
-      user: 'user-1',
+      userId: 'user-1',
     });
 
     expect(agentRun.create).toHaveBeenCalledWith({
@@ -153,21 +153,13 @@ describe('AgentRunsService', () => {
         userId: 'user-1',
       }),
     });
-    expect(agentRun.create.mock.calls[0]?.[0].data).not.toHaveProperty(
-      'organization',
-    );
-    expect(agentRun.create.mock.calls[0]?.[0].data).not.toHaveProperty('user');
-    expect(agentRun.create.mock.calls[0]?.[0].data).not.toHaveProperty('brand');
-    expect(agentRun.create.mock.calls[0]?.[0].data).not.toHaveProperty(
-      'strategy',
-    );
   });
 
   it('rejects create without normalized user scope', async () => {
     await expect(
       service.create({
         label: 'Run',
-        organization: 'org-1',
+        organizationId: 'org-1',
         trigger: 'manual' as never,
       } as never),
     ).rejects.toThrow('User context is required');
@@ -175,7 +167,7 @@ describe('AgentRunsService', () => {
 
   it('persists authorized message-equivalent references and pins on create', async () => {
     await service.create({
-      brand: 'brand-1',
+      brandId: 'brand-1',
       label: 'Artifact run',
       metadata: {
         artifactReferences: [
@@ -188,9 +180,9 @@ describe('AgentRunsService', () => {
         ],
         artifactVersionPinIds: ['pin-1'],
       },
-      organization: 'org-1',
+      organizationId: 'org-1',
       trigger: 'manual' as never,
-      user: 'user-1',
+      userId: 'user-1',
     });
 
     expect(artifactReferenceService.resolveReference).toHaveBeenCalledWith(

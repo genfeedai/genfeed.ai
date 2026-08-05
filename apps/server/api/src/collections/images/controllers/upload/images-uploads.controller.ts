@@ -159,13 +159,16 @@ export class ImagesUploadsController {
       );
     }
 
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      category,
-      extension,
-      label: validatedFile.originalname,
-      scope: AssetScope.USER,
-      status: IngredientStatus.UPLOADED,
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        category,
+        extension,
+        label: validatedFile.originalname,
+        scope: AssetScope.USER,
+        status: IngredientStatus.UPLOADED,
+      },
+    );
 
     await this.filesClientService.uploadToS3(
       ingredientData.id,
@@ -202,13 +205,16 @@ export class ImagesUploadsController {
       throw new BadRequestException('NFT is not an image');
     }
 
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      category: IngredientCategory.IMAGE,
-      extension: contentType.split('/').pop() || 'jpg',
-      label: nft.name || address,
-      scope: AssetScope.USER,
-      status: IngredientStatus.UPLOADED,
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        category: IngredientCategory.IMAGE,
+        extension: contentType.split('/').pop() || 'jpg',
+        label: nft.name || address,
+        scope: AssetScope.USER,
+        status: IngredientStatus.UPLOADED,
+      },
+    );
 
     await this.filesClientService.uploadToS3(ingredientData.id, 'images', {
       contentType,

@@ -94,10 +94,10 @@ export class VideosUpscaleController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
+      id: videoId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
     });
 
@@ -127,16 +127,13 @@ export class VideosUpscaleController {
 
     try {
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand:
-            typeof video.brand === 'string'
-              ? video.brand
-              : publicMetadata.brand,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: video.brandId ?? publicMetadata.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model,
-          organization: publicMetadata.organization,
-          parent: videoId,
+          organizationId: publicMetadata.organization,
+          parentId: videoId,
           status: IngredientStatus.PROCESSING,
           transformations: [TransformationCategory.UPSCALED],
         });
@@ -152,16 +149,13 @@ export class VideosUpscaleController {
       // Create activity for video upscale start
       const activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand:
-            typeof video.brand === 'string'
-              ? video.brand
-              : publicMetadata.brand,
+          brandId: video.brandId ?? publicMetadata.brand,
           entityId: ingredientData.id,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: ActivityKey.VIDEO_UPSCALE_PROCESSING,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           source: ActivitySource.VIDEO_UPSCALE,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
           value: JSON.stringify({
             ingredientId: ingredientData.id.toString(),
             model,

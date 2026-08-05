@@ -453,9 +453,9 @@ export class NewslettersService extends BaseService<
 
   private async getBrandContext(ctx: TenantContext) {
     return await this.brandsService.findOne({
-      _id: ctx.brandId,
+      id: ctx.brandId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
   }
 

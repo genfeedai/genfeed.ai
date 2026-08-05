@@ -5,6 +5,7 @@ import { WatchlistsService } from '@api/collections/watchlists/services/watchlis
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { BrandScopeQueryDto } from '@api/helpers/dto/brand-scope-query.dto';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
@@ -22,18 +23,10 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-
-function readWatchlistConfig(config: unknown): Partial<{
-  handle: string;
-  platform: WatchlistPlatform;
-}> {
-  return (
-    (config as { handle?: string; platform?: WatchlistPlatform } | null) ?? {}
-  );
-}
 
 @AutoSwagger()
 @Controller('watchlists')
@@ -45,9 +38,13 @@ export class WatchlistsController {
    */
   @Get()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async findAll(@Req() req: Request, @CurrentUser() user: User) {
+  async findAll(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto = {},
+  ) {
     const { brand } = getPublicMetadata(user);
-    const brandId = (req.query.brand as string) || brand;
+    const brandId = query.brandId || brand;
 
     if (!brandId) {
       throw new NotFoundException({ message: 'Account ID is required' });
@@ -67,7 +64,7 @@ export class WatchlistsController {
     @Param('watchlistId') watchlistId: string,
   ) {
     const item = await this.service.findOne({
-      _id: watchlistId,
+      id: watchlistId,
       isDeleted: false,
     });
     if (!item) {
@@ -79,7 +76,7 @@ export class WatchlistsController {
   /**
    * Create a new watchlist item.
    *
-   * Applies server-side defaults for `brand`/`organization`/`user`/`label`
+   * Applies server-side defaults for ownership and `label`
    * (quick-add semantics) and upserts: if a watchlist item already exists
    * for the same brand/platform/handle, the existing item is returned
    * instead of throwing a conflict.
@@ -90,9 +87,10 @@ export class WatchlistsController {
     @Body() dto: CreateWatchlistDto,
     @Req() req: Request,
     @CurrentUser() user: User,
+    @Query() query: BrandScopeQueryDto = {},
   ) {
     const { organization, brand, user: dbUserId } = getPublicMetadata(user);
-    const brandId = dto.brand || (req.query.brand as string) || brand;
+    const brandId = query.brandId || brand;
 
     if (!brandId) {
       throw new NotFoundException({ message: 'Account ID is required' });
@@ -109,15 +107,13 @@ export class WatchlistsController {
       return serializeSingle(req, WatchlistSerializer, existing);
     }
 
-    const createDto: CreateWatchlistDto = {
+    const item = await this.service.create({
       ...dto,
-      brand: brandId,
+      brandId,
       label: dto.label || `@${dto.handle}`, // Default label to handle
-      organization: dto.organization || organization,
-      user: dto.user || dbUserId,
-    };
-
-    const item = await this.service.create(createDto);
+      organizationId: organization,
+      userId: dbUserId,
+    });
     return serializeSingle(req, WatchlistSerializer, item);
   }
 
@@ -132,7 +128,7 @@ export class WatchlistsController {
     @Body() dto: UpdateWatchlistDto,
   ) {
     const existing = await this.service.findOne({
-      _id: watchlistId,
+      id: watchlistId,
       isDeleted: false,
     });
     if (!existing) {
@@ -141,9 +137,9 @@ export class WatchlistsController {
 
     // If updating platform or handle, check for duplicates
     if (dto.platform || dto.handle) {
-      const existingConfig = readWatchlistConfig(existing.config);
-      const platform = dto.platform || existingConfig.platform;
-      const handle = dto.handle || existingConfig.handle;
+      const platform =
+        dto.platform || (existing.platform as WatchlistPlatform | null);
+      const handle = dto.handle || existing.handle;
       const brandId = existing.brandId ?? undefined;
 
       if (!brandId || !platform || !handle) {

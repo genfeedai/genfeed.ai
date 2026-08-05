@@ -64,10 +64,10 @@ export class BrandsRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -112,10 +112,10 @@ export class BrandsRelationshipsController {
     const countResult = await this.credentialsService.findAll(
       {
         where: {
-          brand: brandId,
+          brandId: brandId,
           isConnected: true,
           isDeleted: false,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
         },
       },
       { pagination: false },

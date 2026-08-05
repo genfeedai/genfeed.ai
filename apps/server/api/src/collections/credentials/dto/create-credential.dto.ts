@@ -4,6 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
   IsNotEmpty,
   IsOptional,
@@ -12,42 +13,44 @@ import {
 
 export class CreateCredentialVerifyDto {
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly code?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly state?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly oauthToken?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly oauthVerifier?: string;
+}
 
-  @IsString()
-  @ApiProperty({ required: false })
-  readonly userId?: string;
-
-  @IsString()
-  @ApiProperty({ required: false })
-  readonly brand?: string;
+export class ConnectCredentialDto {
+  @IsEntityId()
+  @ApiProperty({ required: true })
+  readonly brandId!: string;
 }
 
 export class CreateCredentialDto {
   @IsEntityId()
   @ApiProperty({ required: true })
-  readonly user!: string;
+  readonly userId!: string;
 
   @IsEntityId()
   @ApiProperty({ required: true })
-  readonly brand!: string;
+  readonly brandId!: string;
 
   @IsEntityId()
   @ApiProperty({ required: true })
-  readonly organization!: string;
+  readonly organizationId!: string;
 
   @ApiProperty({
     enum: CredentialPlatform,
@@ -59,12 +62,14 @@ export class CreateCredentialDto {
   readonly platform!: CredentialPlatform;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly externalId!: string;
+  readonly externalId?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly externalHandle!: string;
+  readonly externalHandle?: string;
 
   @IsString()
   @IsOptional()
@@ -82,32 +87,39 @@ export class CreateCredentialDto {
   readonly oauthState?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly oauthToken!: string;
+  readonly oauthToken?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly oauthTokenSecret!: string;
+  readonly oauthTokenSecret?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly accessToken!: string;
+  readonly accessToken?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly accessTokenSecret!: string;
+  readonly accessTokenSecret?: string;
+
+  @IsDateString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly accessTokenExpiry?: string;
 
   @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly accessTokenExpiry!: Date;
+  readonly refreshToken?: string;
 
-  @IsString()
+  @IsDateString()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly refreshToken!: string;
-
-  @IsString()
-  @ApiProperty({ required: false })
-  readonly refreshTokenExpiry!: Date;
+  readonly refreshTokenExpiry?: string;
 
   @IsString()
   @IsOptional()
@@ -120,15 +132,17 @@ export class CreateCredentialDto {
   readonly description?: string;
 
   @IsArray()
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Array of tag IDs',
     required: false,
     type: [String],
   })
-  readonly tags?: string[];
+  readonly tagIds?: string[];
 
   @IsBoolean()
+  @IsOptional()
   @ApiProperty({ required: false })
-  readonly isConnected!: boolean;
+  readonly isConnected?: boolean;
 }

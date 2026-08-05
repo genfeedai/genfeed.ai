@@ -57,7 +57,10 @@ export class FailedGenerationService {
     } = options;
 
     // Update the ingredient status
-    await service.patch(ingredientId, { status });
+    await service.patch(ingredientId, {
+      generationError: websocketMessage,
+      status,
+    });
 
     // Update existing activity if metadata provided
     if (activityMetadata) {
@@ -82,17 +85,11 @@ export class FailedGenerationService {
 
       // Try to find existing PROCESSING activity
       if (processingKey && ingredientId) {
-        const existingActivity = await this.activitiesService.findOne({
-          OR: [
-            // Try to find by ingredientId in JSON value
-            { value: { contains: ingredientId } },
-            // Also check if value is just the ingredientId string
-            { value: ingredientId },
-          ],
-          isDeleted: false,
-          key: processingKey,
-          user: activityMetadata.user,
-        });
+        const existingActivity = await this.activitiesService.findByActionValue(
+          processingKey,
+          ingredientId,
+          activityMetadata.user,
+        );
 
         if (existingActivity) {
           // Update existing activity
@@ -129,13 +126,13 @@ export class FailedGenerationService {
           await this.activitiesService.create(
             new ActivityEntity({
               // @ts-expect-error TS2339
-              brand: activityMetadata.brand ?? undefined,
+              brandId: activityMetadata.brand ?? undefined,
               entityId: ingredientId,
               entityModel: ActivityEntityModel.INGREDIENT,
               key: activityMetadata.key,
-              organization: activityMetadata.organization,
+              organizationId: activityMetadata.organization,
               source: activityMetadata.source,
-              user: activityMetadata.user,
+              userId: activityMetadata.user,
               value: JSON.stringify({
                 error: websocketMessage || 'Generation failed',
                 ingredientId: ingredientId,
@@ -155,11 +152,11 @@ export class FailedGenerationService {
         await this.activitiesService.create(
           new ActivityEntity({
             // @ts-expect-error TS2339
-            brand: activityMetadata.brand ?? undefined,
+            brandId: activityMetadata.brand ?? undefined,
             key: activityMetadata.key,
-            organization: activityMetadata.organization,
+            organizationId: activityMetadata.organization,
             source: activityMetadata.source,
-            user: activityMetadata.user,
+            userId: activityMetadata.user,
             value: activityMetadata.value,
           }),
         );
@@ -271,7 +268,10 @@ export class FailedGenerationService {
           organization: metadata.organization,
           source: ActivitySource.SCRIPT,
           user: metadata.user,
-          value: ingredientId,
+          value: JSON.stringify({
+            error: errorMessage || 'Generation failed',
+            ingredientId,
+          }),
         }
       : undefined;
 

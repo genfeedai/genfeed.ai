@@ -15,10 +15,9 @@ type PopulateInput = (string | PopulateOption)[] | 'none';
 type AgentStrategyWriteDto = Partial<
   Omit<
     CreateAgentStrategyDto & UpdateAgentStrategyDto,
-    'brand' | 'lastRunAt' | 'nextRunAt'
+    'lastRunAt' | 'nextRunAt'
   >
 > & {
-  brand?: string | null;
   config?: unknown;
   consecutiveFailures?: number;
   creditsUsedThisWeek?: number;
@@ -27,18 +26,22 @@ type AgentStrategyWriteDto = Partial<
   lastRunAt?: Date | null;
   monthToDateCreditsUsed?: number;
   nextRunAt?: Date | null;
-  organization?: string;
+  organizationId?: string;
   policies?: unknown;
   requiresManualReactivation?: boolean;
   reserveTrendBudgetRemaining?: number;
   runHistory?: unknown;
-  user?: string;
+  userId?: string;
+};
+
+type AgentStrategyCreateInput = CreateAgentStrategyDto & {
+  organizationId: string;
+  userId: string;
 };
 
 /**
- * Prisma `AgentStrategy` is a slim table: scalars + `config`/`policies` JSON.
- * Domain fields from the Mongo-era document live in those bags; reads expand
- * them via BaseService.normalizeDocument. Writes must pack them back.
+ * Prisma `AgentStrategy` stores domain extension fields in `config` and
+ * `policies`. This service owns both decoding and encoding those JSON columns.
  */
 const CONFIG_BACKED_KEYS = [
   'autoPublishConfidenceThreshold',
@@ -104,12 +107,22 @@ export class AgentStrategiesService extends BaseService<
     super(prisma, 'agentStrategy', logger);
   }
 
+  protected override normalizeDocument(
+    document: unknown,
+  ): AgentStrategyDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config = this.readRecord(record.config) ?? {};
+    const policies = this.readRecord(record.policies) ?? {};
+
+    return { ...config, ...policies, ...record } as AgentStrategyDocument;
+  }
+
   /**
    * Create strategy with scheduler defaults.
    * If strategy starts active, queue first run immediately.
    */
   override async create(
-    createDto: CreateAgentStrategyDto,
+    createDto: AgentStrategyCreateInput,
     populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
     const now = new Date();
@@ -150,7 +163,7 @@ export class AgentStrategiesService extends BaseService<
     updateDto: Partial<UpdateAgentStrategyDto>,
     populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
-    const existing = await this.findOne({ _id: id });
+    const existing = await this.findOne({ id: id });
     const existingRecord = existing as Record<string, unknown> | null;
     const existingConfig = this.readRecord(existingRecord?.config) ?? {};
     const existingPolicies = this.readRecord(existingRecord?.policies) ?? {};
@@ -400,28 +413,16 @@ export class AgentStrategiesService extends BaseService<
       data.description = (dto as { description?: string }).description ?? null;
     }
 
-    if (typeof dto.organization === 'string') {
-      data.organizationId = dto.organization;
-    } else if (
-      mode === 'create' &&
-      typeof (dto as { organizationId?: string }).organizationId === 'string'
-    ) {
-      data.organizationId = (dto as { organizationId: string }).organizationId;
+    if (typeof dto.organizationId === 'string') {
+      data.organizationId = dto.organizationId;
     }
 
-    if (typeof dto.user === 'string') {
-      data.userId = dto.user;
-    } else if (
-      mode === 'create' &&
-      typeof (dto as { userId?: string }).userId === 'string'
-    ) {
-      data.userId = (dto as { userId: string }).userId;
+    if (typeof dto.userId === 'string') {
+      data.userId = dto.userId;
     }
 
-    if (Object.hasOwn(dto, 'brand')) {
-      data.brandId = dto.brand ?? null;
-    } else if (Object.hasOwn(dto, 'brandId')) {
-      data.brandId = (dto as { brandId?: string | null }).brandId ?? null;
+    if (Object.hasOwn(dto, 'brandId')) {
+      data.brandId = dto.brandId ?? null;
     }
 
     if (Object.hasOwn(dto, 'goalId')) {

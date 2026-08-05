@@ -1,6 +1,6 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 export class OrganizationSettingEntity extends BaseEntity {
-  declare readonly organization: string;
+  declare readonly organizationId: string;
 
   declare readonly isWhitelabelEnabled: boolean;
   declare readonly isVoiceControlEnabled: boolean;
@@ -33,7 +33,7 @@ export class OrganizationSettingEntity extends BaseEntity {
   declare readonly quotaTwitter: number;
   declare readonly quotaInstagram: number;
 
-  declare readonly enabledModels: string[];
+  declare readonly enabledModelIds: string[];
 
   declare readonly subscriptionTier: string | undefined;
 

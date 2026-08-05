@@ -107,13 +107,11 @@ export class FontFamiliesController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     // Build OR conditions: global items OR user's org items
-    const orConditions: Record<string, unknown>[] = [
-      { organization: null }, // global items
-    ];
+    const orConditions: Record<string, unknown>[] = [{ organizationId: null }];
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
     }
 

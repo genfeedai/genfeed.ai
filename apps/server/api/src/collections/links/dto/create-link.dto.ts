@@ -9,7 +9,7 @@ export class CreateLinkDto {
     description: 'The brand ID this link belongs to',
     required: true,
   })
-  readonly brand!: string;
+  readonly brandId!: string;
 
   @IsString()
   @ApiProperty({ description: 'The display name of the link', required: true })

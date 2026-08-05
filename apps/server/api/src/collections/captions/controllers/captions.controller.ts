@@ -18,7 +18,6 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
@@ -98,7 +97,7 @@ export class CaptionsController {
     @Param('captionId') captionId: string,
   ): Promise<JsonApiSingleResponse> {
     const data: CaptionDocument | null = await this.captionsService.findOne(
-      { _id: captionId },
+      { id: captionId },
       [
         {
           path: 'ingredient',
@@ -125,7 +124,7 @@ export class CaptionsController {
 
     const ingredient: IngredientDocument | null =
       await this.ingredientsService.findOne({
-        _id: createCaptionDto.ingredient,
+        id: createCaptionDto.ingredient,
       });
 
     if (!ingredient) {
@@ -178,10 +177,10 @@ export class CaptionsController {
         ...createCaptionDto,
         content: captionContent,
         format: createCaptionDto.format,
-        ingredient: createCaptionDto.ingredient,
+        ingredientId: createCaptionDto.ingredient,
         isDeleted: false,
         language: createCaptionDto.language,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
     return serializeSingle(request, CaptionSerializer, data);

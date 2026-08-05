@@ -78,7 +78,7 @@ describe('VideosResizeController', () => {
     loggerService: { error: vi.fn(), log: vi.fn() },
     metadataService: { patch: vi.fn() },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
         metadataData: { id: metadataId },
       }),
@@ -184,7 +184,9 @@ describe('VideosResizeController', () => {
       '507f1f77bcf86cd799439011',
       resizeParams,
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
         category: 'video',
@@ -227,7 +229,9 @@ describe('VideosResizeController', () => {
       '507f1f77bcf86cd799439011',
       resizeParams,
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
         parent: '507f1f77bcf86cd799439011',

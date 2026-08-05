@@ -24,6 +24,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
+  type ISubscriptionOssReadModel,
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/interfaces/billing';
@@ -38,31 +39,22 @@ describe('OrganizationsSettingsController', () => {
   let mockReq: Request;
 
   const mockOrganizationSettings = {
-    _id: '507f1f77bcf86cd799439011',
-    branding: {
-      colors: {
-        primary: '#000000',
-        secondary: '#ffffff',
-      },
-      logo: 'https://example.com/logo.png',
-    },
     createdAt: new Date(),
-    features: {
-      apiAccess: true,
-      customDomain: false,
-    },
-    organization: '507f1f77bcf86cd799439012',
+    id: '507f1f77bcf86cd799439011',
+    isWhitelabelEnabled: false,
+    organizationId: '507f1f77bcf86cd799439012',
     updatedAt: new Date(),
   };
 
   const mockSubscription = {
-    _id: '507f1f77bcf86cd799439015',
-    createdAt: new Date(),
-    organization: '507f1f77bcf86cd799439012',
+    cancelAtPeriodEnd: false,
+    id: '507f1f77bcf86cd799439015',
+    isDeleted: false,
+    organizationId: '507f1f77bcf86cd799439012',
     plan: 'pro',
     status: 'active',
-    updatedAt: new Date(),
-  };
+    userId: '507f1f77bcf86cd799439011',
+  } satisfies ISubscriptionOssReadModel;
 
   const mockLoggerService = {
     debug: vi.fn(),
@@ -169,7 +161,7 @@ describe('OrganizationsSettingsController', () => {
       const result = await controller.getSettings(mockReq, organizationId);
 
       expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organization: organizationId,
+        organizationId,
       });
       expect(result).toBeDefined();
     });
@@ -189,7 +181,7 @@ describe('OrganizationsSettingsController', () => {
       );
 
       expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
-        organization: 'org_current',
+        organizationId: 'org_current',
       });
       expect(result).toBeDefined();
     });
@@ -206,9 +198,7 @@ describe('OrganizationsSettingsController', () => {
   describe('updateSettings', () => {
     const organizationId = '507f1f77bcf86cd799439012';
     const updateDto = {
-      branding: {
-        logo: 'https://example.com/new-logo.png',
-      },
+      isWhitelabelEnabled: true,
     };
 
     it('should update settings when settings exist', async () => {
@@ -309,7 +299,7 @@ describe('OrganizationsSettingsController', () => {
       );
 
       expect(subscriptionsService.findOne).toHaveBeenCalledWith({
-        organization: organizationId,
+        organizationId,
       });
       expect(result).toBeDefined();
     });
@@ -321,7 +311,7 @@ describe('OrganizationsSettingsController', () => {
 
     it('should return brand flag without probing managed fleet runtime', async () => {
       mockBrandsService.findOne.mockResolvedValue({
-        _id: brandId,
+        id: brandId,
         isFleetEnabled: true,
       });
 
@@ -333,14 +323,13 @@ describe('OrganizationsSettingsController', () => {
 
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         {
-          _id: brandId,
+          id: brandId,
           isDeleted: false,
-          organization: organizationId,
+          organizationId,
         },
         'none',
       );
       expect(result).toMatchObject({
-        _id: `fleet-capabilities:${organizationId}:${brandId}`,
         brandEnabled: true,
         brandId,
         fleet: {
@@ -349,13 +338,14 @@ describe('OrganizationsSettingsController', () => {
           videos: false,
           voices: false,
         },
+        id: `fleet-capabilities:${organizationId}:${brandId}`,
         organizationId,
       });
     });
 
     it('uses the repaired request context organization id for brand lookups', async () => {
       mockBrandsService.findOne.mockResolvedValue({
-        _id: brandId,
+        id: brandId,
         isFleetEnabled: false,
       });
 
@@ -371,9 +361,9 @@ describe('OrganizationsSettingsController', () => {
 
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         {
-          _id: brandId,
+          id: brandId,
           isDeleted: false,
-          organization: 'org_current',
+          organizationId: 'org_current',
         },
         'none',
       );

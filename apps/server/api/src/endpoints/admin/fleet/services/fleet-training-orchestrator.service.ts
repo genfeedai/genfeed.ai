@@ -6,7 +6,6 @@ import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/
 import { AdminFleetTrainingService } from '@api/endpoints/admin/fleet/services/fleet-training.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FleetReviewStatus as FleetReviewStatusEnum,
@@ -67,9 +66,9 @@ export class AdminFleetTrainingOrchestratorService {
     this.loggerService.log(caller, { organizationId, trainingId });
 
     const training = await this.trainingsService.findOne({
-      _id: trainingId,
+      id: trainingId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!training) {
@@ -143,7 +142,7 @@ export class AdminFleetTrainingOrchestratorService {
               organizationId,
               {
                 isDeleted: false,
-                persona: persona.id,
+                personaId: persona.id,
                 reviewStatus: FleetReviewStatusEnum.APPROVED,
               },
             )
@@ -157,16 +156,16 @@ export class AdminFleetTrainingOrchestratorService {
       loraName,
       loraRank,
       model: baseModel,
-      organization: EntityIdUtil.toValidId(organizationId)!,
-      persona: persona.id,
+      organizationId,
+      personaId: persona.id,
       personaSlug: data.personaSlug,
       progress: 0,
       provider: TrainingProvider.GENFEED_AI,
-      sources: sourceIds.map((id) => EntityIdUtil.toValidId(id)!),
+      sources: sourceIds,
       stage: TrainingStage.QUEUED,
       steps,
       trigger: triggerWord,
-      user: EntityIdUtil.toValidId(userId)!,
+      userId,
     } as Parameters<TrainingsService['create']>[0]);
 
     await this.personasService.patch(persona.id.toString(), {

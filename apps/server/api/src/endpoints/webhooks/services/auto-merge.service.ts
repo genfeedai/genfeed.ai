@@ -1,9 +1,6 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import {
-  type IngredientDocument,
-  type IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -44,67 +41,6 @@ export class AutoMergeService {
     private readonly websocketService: NotificationsPublisherService,
     private readonly loggerService: LoggerService,
   ) {}
-
-  private getDocumentId(
-    value:
-      | {
-          _id?: string | { toString(): string };
-          id?: string | { toString(): string };
-        }
-      | null
-      | undefined,
-  ): string | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    if (typeof value.id === 'string') {
-      return value.id;
-    }
-
-    if (value.id && typeof value.id.toString === 'function') {
-      return value.id.toString();
-    }
-
-    if (typeof value.id === 'string') {
-      return value.id;
-    }
-
-    if (value.id && typeof value.id.toString === 'function') {
-      return value.id.toString();
-    }
-
-    return undefined;
-  }
-
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString() ?? ref?._id?.toString();
-  }
-
-  private toUserReference(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | { id: string } | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    if (!ref) {
-      return undefined;
-    }
-
-    const userId = this.getRefId(ref);
-    if (!userId) {
-      return undefined;
-    }
-
-    return { id: userId };
-  }
 
   /**
    * Trigger auto-merge if this video is part of a batch with merge enabled.
@@ -254,9 +190,7 @@ export class AutoMergeService {
     userId?: string;
     userRoom?: string;
   }> {
-    return UserExtractionUtil.extractUserIds(
-      this.toUserReference(ingredient.user),
-    );
+    return UserExtractionUtil.extractUserIds(ingredient.userId);
   }
 
   private async createAndQueueMerge(
@@ -276,7 +210,7 @@ export class AutoMergeService {
       throw new Error('No userId available for auto-merge');
     }
 
-    const organizationId = this.getRefId(ingredient.organization);
+    const organizationId = ingredient.organizationId;
     if (!organizationId) {
       throw new Error('No organizationId available for auto-merge');
     }
@@ -286,28 +220,27 @@ export class AutoMergeService {
     const metadataData = await this.metadataService.create(
       new MetadataEntity({
         extension: MetadataExtension.MP4,
+        label: 'Merged video',
       }) as unknown as Parameters<MetadataService['create']>[0],
     );
-    const metadataId = this.getDocumentId(
-      metadataData as { _id?: string; id?: string } | null,
-    );
+    const metadataId = metadataData.id;
     if (!metadataId) {
       throw new Error('Auto-merge metadata id is missing');
     }
 
     const ingredientData = await this.ingredientsService.create({
-      brand: this.getRefId(ingredient.brand),
+      brandId: ingredient.brandId ?? undefined,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.VIDEO,
       ),
       groupId,
       metadataId,
       order: 1,
-      organization: organizationId,
+      organizationId,
       sources: parentIds,
       status: IngredientStatus.PROCESSING,
       transformations: [TransformationCategory.MERGED],
-      user: dbUserId,
+      userId: dbUserId,
     } as Parameters<typeof this.ingredientsService.create>[0]);
 
     const mergedIngredientId = String(ingredientData.id);
@@ -317,13 +250,13 @@ export class AutoMergeService {
 
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: this.getRefId(ingredient.brand),
+        brandId: ingredient.brandId ?? undefined,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: organizationId,
+        organizationId: organizationId,
         source: ActivitySource.WEB,
-        user: dbUserId,
+        userId: dbUserId,
         value: JSON.stringify({
           frameCount: videoIds.length,
           groupId,
@@ -453,7 +386,7 @@ export class AutoMergeService {
         await this.websocketService.publishMediaFailed(
           websocketURL,
           `Auto-merge failed: ${errorMessage}`,
-          userId!,
+          resolvedUserId,
           room,
         );
 
@@ -476,7 +409,7 @@ export class AutoMergeService {
           room,
           status: 'failed',
           taskId: mergedIngredientId,
-          userId: userId!,
+          userId: resolvedUserId,
         });
       });
   }

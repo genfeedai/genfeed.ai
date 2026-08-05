@@ -77,9 +77,9 @@ export class OnboardingPreviewService {
         // 1. Fetch brand data
         const brand = await this.brandsService.findOne(
           {
-            _id: dto.brandId,
+            id: dto.brandId,
             isDeleted: false,
-            organization: organizationId,
+            organizationId: organizationId,
           },
           'none',
         );

@@ -19,11 +19,8 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type {
@@ -39,9 +36,10 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
-const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
+const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'category',
   'credential',
+  'credentialId',
   'description',
   'ingredients',
   'isRepeat',
@@ -49,6 +47,7 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
   'label',
   'maxRepeats',
   'parent',
+  'parentId',
   'publishIntent',
   'repeatDaysOfWeek',
   'repeatEndDate',
@@ -73,6 +72,77 @@ type ContentMentionPostRecord = {
   label: string | null;
 };
 
+type PostCreateInput = Omit<CreatePostDto, 'credential' | 'parent'> & {
+  brand?: string;
+  brandId?: string;
+  credential?: string;
+  credentialId?: string;
+  organization?: string;
+  organizationId?: string;
+  parent?: string;
+  parentId?: string;
+  platform: CredentialPlatform;
+  publishIntent?: string;
+  reviewFeedback?: string;
+  user?: string;
+  userId?: string;
+};
+
+type PostUpdateInput = Partial<UpdatePostDto> & {
+  brand?: string;
+  brandId?: string;
+  credential?: string;
+  credentialId?: string;
+  organization?: string;
+  organizationId?: string;
+  parent?: string;
+  parentId?: string;
+  user?: string;
+  userId?: string;
+};
+
+const POST_SCALAR_FIELDS = [
+  'brandId',
+  'category',
+  'contentRunId',
+  'credentialId',
+  'creativeVersion',
+  'description',
+  'externalId',
+  'externalShortcode',
+  'groupId',
+  'hookVersion',
+  'isAnalyticsEnabled',
+  'isDeleted',
+  'isRepeat',
+  'isShareToFeedSelected',
+  'label',
+  'lastAttemptAt',
+  'maxRepeats',
+  'order',
+  'originalPostId',
+  'organizationId',
+  'parentId',
+  'personaId',
+  'platform',
+  'publicationDate',
+  'publishIntent',
+  'quoteTweetId',
+  'repeatCount',
+  'repeatDaysOfWeek',
+  'repeatEndDate',
+  'repeatFrequency',
+  'repeatInterval',
+  'retryCount',
+  'scheduleSlot',
+  'scheduledDate',
+  'source',
+  'status',
+  'timezone',
+  'userId',
+  'variantId',
+] as const;
+
 @Injectable()
 export class PostsService extends BaseService<
   PostDocument,
@@ -94,14 +164,7 @@ export class PostsService extends BaseService<
   }
 
   create(
-    dto: CreatePostDto & {
-      user: string;
-      organization: string;
-      brand: string;
-      platform: CredentialPlatform;
-      publishIntent?: string;
-      reviewFeedback?: string;
-    },
+    dto: PostCreateInput,
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -109,28 +172,57 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    // Normalize ObjectId fields — DTO fields are Types.ObjectId but may arrive as strings at runtime
+    const {
+      brand,
+      campaign: _campaign,
+      credential,
+      ingredients,
+      organization,
+      parent,
+      tags,
+      threadPosts: _threadPosts,
+      user,
+    } = dto;
     const normalizedIngredients =
-      dto.ingredients !== undefined
-        ? EntityIdUtil.normalizeIds(dto.ingredients as unknown as Array<string>)
+      ingredients !== undefined
+        ? EntityIdUtil.normalizeIds(ingredients as unknown as Array<string>)
         : undefined;
     const normalizedCredential = EntityIdUtil.normalizeId(
-      dto.credential as unknown as string,
+      (dto.credentialId ?? credential) as unknown as string,
     );
     const normalizedParent = EntityIdUtil.normalizeId(
-      dto.parent as unknown as string | undefined,
+      (dto.parentId ?? parent) as unknown as string | undefined,
     );
+    const normalizedBrand = EntityIdUtil.normalizeId(
+      (dto.brandId ?? brand) as unknown as string | undefined,
+    );
+    const normalizedOrganization = EntityIdUtil.normalizeId(
+      (dto.organizationId ?? organization) as unknown as string | undefined,
+    );
+    const normalizedUser = EntityIdUtil.normalizeId(
+      (dto.userId ?? user) as unknown as string | undefined,
+    );
+    const normalizedTags = tags ? EntityIdUtil.normalizeIds(tags) : undefined;
 
-    // Build normalized DTO
-    const normalizedDto = {
-      ...dto,
+    const normalizedDto: Record<string, unknown> = {
+      ...pickDefinedFields(dto, POST_SCALAR_FIELDS),
+      ...(normalizedBrand !== undefined && { brandId: normalizedBrand }),
       ...(normalizedIngredients !== undefined && {
-        ingredients: normalizedIngredients,
+        ingredients: {
+          connect: normalizedIngredients.map((id) => ({ id })),
+        },
       }),
       ...(normalizedCredential !== undefined && {
-        credential: normalizedCredential,
+        credentialId: normalizedCredential,
       }),
-      parent: normalizedParent,
+      ...(normalizedParent !== undefined && { parentId: normalizedParent }),
+      ...(normalizedOrganization !== undefined && {
+        organizationId: normalizedOrganization,
+      }),
+      ...(normalizedTags !== undefined && {
+        tags: { connect: normalizedTags.map((id) => ({ id })) },
+      }),
+      ...(normalizedUser !== undefined && { userId: normalizedUser }),
     };
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
@@ -147,7 +239,7 @@ export class PostsService extends BaseService<
       normalizedDto.scheduledDate = convertedDate;
     }
 
-    return super.create(normalizedDto, populate);
+    return super.create(normalizedDto as unknown as CreatePostDto, populate);
   }
 
   findOne(
@@ -168,7 +260,7 @@ export class PostsService extends BaseService<
   async findByIds(
     ids: string[],
     organizationId: string,
-    populate: PopulateOption[] = [
+    _populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ],
@@ -257,7 +349,7 @@ export class PostsService extends BaseService<
 
   async patch(
     id: string,
-    dto: Partial<UpdatePostDto>,
+    dto: PostUpdateInput,
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -269,7 +361,7 @@ export class PostsService extends BaseService<
       typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
     const isPublishingPost = normalizedStatus === PostStatus.PUBLIC;
     const changesApprovalScope = Object.keys(dto).some((key) =>
-      PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key as keyof UpdatePostDto),
+      PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key),
     );
     const approvalContext = changesApprovalScope
       ? await this.prisma.post.findFirst({
@@ -286,34 +378,51 @@ export class PostsService extends BaseService<
     let currentPost: PostDocument | null = null;
 
     if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
-      currentPost = await this.findOne({ _id: id });
+      currentPost = await this.findOne({ id: id });
     }
 
-    // Normalize ObjectId fields — DTO fields are Types.ObjectId but may arrive as strings at runtime
+    const { brand, credential, ingredients, organization, parent, tags, user } =
+      dto;
     const normalizedIngredients =
-      dto.ingredients !== undefined
-        ? (EntityIdUtil.normalizeIds(
-            dto.ingredients as unknown as Array<string>,
-          ) ?? [])
+      ingredients !== undefined
+        ? (EntityIdUtil.normalizeIds(ingredients as unknown as Array<string>) ??
+          [])
         : undefined;
     const normalizedCredential = EntityIdUtil.normalizeId(
-      dto.credential as unknown as string | undefined,
+      (dto.credentialId ?? credential) as unknown as string | undefined,
     );
     const normalizedParent =
-      dto.parent !== undefined
-        ? EntityIdUtil.normalizeId(dto.parent as unknown as string)
+      dto.parentId !== undefined || parent !== undefined
+        ? EntityIdUtil.normalizeId((dto.parentId ?? parent) as string)
         : undefined;
+    const normalizedBrand = EntityIdUtil.normalizeId(
+      (dto.brandId ?? brand) as unknown as string | undefined,
+    );
+    const normalizedOrganization = EntityIdUtil.normalizeId(
+      (dto.organizationId ?? organization) as unknown as string | undefined,
+    );
+    const normalizedUser = EntityIdUtil.normalizeId(
+      (dto.userId ?? user) as unknown as string | undefined,
+    );
+    const normalizedTags = tags ? EntityIdUtil.normalizeIds(tags) : undefined;
 
-    // Build normalized DTO
-    const normalizedDto: Partial<UpdatePostDto> = {
-      ...dto,
+    const normalizedDto: Record<string, unknown> = {
+      ...pickDefinedFields(dto, POST_SCALAR_FIELDS),
+      ...(normalizedBrand !== undefined && { brandId: normalizedBrand }),
       ...(normalizedIngredients !== undefined && {
-        ingredients: normalizedIngredients,
+        ingredients: { set: normalizedIngredients.map((id) => ({ id })) },
       }),
       ...(normalizedCredential !== undefined && {
-        credential: normalizedCredential,
+        credentialId: normalizedCredential,
       }),
-      ...(normalizedParent !== undefined && { parent: normalizedParent }),
+      ...(normalizedParent !== undefined && { parentId: normalizedParent }),
+      ...(normalizedOrganization !== undefined && {
+        organizationId: normalizedOrganization,
+      }),
+      ...(normalizedTags !== undefined && {
+        tags: { set: normalizedTags.map((id) => ({ id })) },
+      }),
+      ...(normalizedUser !== undefined && { userId: normalizedUser }),
     };
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
@@ -327,12 +436,12 @@ export class PostsService extends BaseService<
         `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
       );
 
-      (normalizedDto as Record<string, unknown>).scheduledDate = convertedDate;
+      normalizedDto.scheduledDate = convertedDate;
     }
 
     // If parent post is being scheduled, automatically schedule all children
     if (normalizedStatus === PostStatus.SCHEDULED) {
-      if (currentPost && !currentPost.parent) {
+      if (currentPost && !currentPost.parentId) {
         // Find all children and update them to SCHEDULED
         const updateResult = await this.prisma.post.updateMany({
           data: {
@@ -356,7 +465,11 @@ export class PostsService extends BaseService<
       }
     }
 
-    const updatedPost = await super.patch(id, normalizedDto, populate);
+    const updatedPost = await super.patch(
+      id,
+      normalizedDto as unknown as UpdatePostDto,
+      populate,
+    );
 
     if (approvalContext?.publishApprovalId && this.publishApprovalsService) {
       await this.publishApprovalsService.invalidatePost(
@@ -410,27 +523,19 @@ export class PostsService extends BaseService<
   }
 
   private async completePublishFirstPostMission(
-    post: Pick<PostDocument, 'organization'> & { organizationId?: unknown },
+    post: Pick<PostDocument, 'organizationId'>,
   ): Promise<void> {
     if (!this.organizationSettingsService || !this.creditsUtilsService) {
       return;
     }
 
-    // `String(post.organization)` yielded the literal "undefined" (truthy, so
-    // the guard below never fired) whenever the patched post carried no
-    // populated organization — which then looked up settings for a
-    // non-existent organization id.
-    const organizationId = resolveRelationId(
-      post.organizationId,
-      post.organization,
-    );
+    const organizationId = post.organizationId;
     if (!organizationId) {
       return;
     }
 
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!settings?.id) {
@@ -522,22 +627,9 @@ export class PostsService extends BaseService<
     });
 
     try {
-      // Scalar FKs first. Populated relations cannot be stringified safely, so
-      // fail closed rather than enqueueing a job with an unusable owner id.
-      const postRef = `Post ${postId}`;
-      const brandId = requireRelationId(
-        post.brandId,
-        post.brand,
-        'brand',
-        postRef,
-      );
-      const organizationId = requireRelationId(
-        post.organizationId,
-        post.organization,
-        'organization',
-        postRef,
-      );
-      const userId = requireRelationId(post.userId, post.user, 'user', postRef);
+      const brandId = post.brandId;
+      const organizationId = post.organizationId;
+      const userId = post.userId;
       const authProviderUserId = userId;
 
       await this.fileQueueService?.uploadYoutube({
@@ -645,7 +737,7 @@ export class PostsService extends BaseService<
   @HandleErrors('get post children', 'posts')
   async getChildren(
     parentId: string,
-    populate: PopulateOption[] = [
+    _populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -716,10 +808,10 @@ export class PostsService extends BaseService<
 
     const rootRow = ancestors.find((a) => a.parentId === null);
     if (!rootRow) {
-      return this.findOne({ _id: postId }, populate);
+      return this.findOne({ id: postId }, populate);
     }
 
-    return this.findOne({ _id: rootRow.id }, populate);
+    return this.findOne({ id: rootRow.id }, populate);
   }
 
   /**
@@ -728,12 +820,7 @@ export class PostsService extends BaseService<
   @HandleErrors('add thread reply', 'posts')
   async addThreadReply(
     parentId: string,
-    dto: CreatePostDto & {
-      user: string;
-      organization: string;
-      brand: string;
-      platform: CredentialPlatform;
-    },
+    dto: PostCreateInput,
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -741,7 +828,7 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const parentPost = await this.findOne({ _id: parentId });
+    const parentPost = await this.findOne({ id: parentId });
     if (!parentPost) {
       throw new Error(`Parent post with ID ${parentId} not found`);
     }
@@ -759,12 +846,12 @@ export class PostsService extends BaseService<
       where: { isDeleted: false, parentId: rootPostId },
     });
 
-    const { parent, ...dtoWithoutParent } = dto;
+    const { parent: _parent, parentId: _parentId, ...dtoWithoutParent } = dto;
 
     const replyDto = {
       ...dtoWithoutParent,
       order: childrenCount + 1,
-      parent: rootPostId,
+      parentId: rootPostId,
     };
 
     return this.create(replyDto, populate);
@@ -790,7 +877,7 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const originalPost = await this.findOne({ _id: originalPostId }, populate);
+    const originalPost = await this.findOne({ id: originalPostId }, populate);
     if (!originalPost) {
       throw new Error(`Original post with ID ${originalPostId} not found`);
     }
@@ -810,32 +897,24 @@ export class PostsService extends BaseService<
     const credentialId = originalPost.credentialId;
 
     const remixDto = {
-      brand: dto.brand,
+      brandId: dto.brand,
       category: originalPost.category,
-      credential: credentialId,
+      credentialId,
       description: newDescription,
       ingredients: ingredientIds || [],
       isAnalyticsEnabled: originalPost.isAnalyticsEnabled,
       isShareToFeedSelected: originalPost.isShareToFeedSelected,
       label: dto.label || `Remix: ${originalPost.label || 'Untitled'}`,
-      organization: dto.organization,
-      originalPost: originalPostId,
+      organizationId: dto.organization,
+      originalPostId,
       platform: originalPost.platform,
       status: PostStatus.DRAFT,
       tags: originalPost.tags,
       timezone: originalPost.timezone || 'UTC',
-      user: dto.user,
+      userId: dto.user,
     };
 
-    return this.create(
-      remixDto as unknown as CreatePostDto & {
-        user: string;
-        organization: string;
-        brand: string;
-        platform: CredentialPlatform;
-      },
-      populate,
-    );
+    return this.create(remixDto as PostCreateInput, populate);
   }
 
   /**
@@ -852,7 +931,7 @@ export class PostsService extends BaseService<
     ],
     maxPosts: number = 500,
   ): Promise<PostDocument[]> {
-    const post = await this.findOne({ _id: postId }, populate);
+    const post = await this.findOne({ id: postId }, populate);
     if (!post) {
       return [];
     }
@@ -922,7 +1001,7 @@ export class PostsService extends BaseService<
 
     this.logger.log('Soft deleting post with cascade deletion', { id });
 
-    const post = await this.findOne({ _id: id });
+    const post = await this.findOne({ id: id });
     if (!post) {
       this.logger.warn(`Post ${id} not found for deletion`);
       return null;

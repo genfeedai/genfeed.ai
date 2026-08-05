@@ -4,9 +4,57 @@ import type { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schem
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+const BOOKMARK_CREATE_SCALAR_FIELDS = [
+  'author',
+  'authorHandle',
+  'brandId',
+  'category',
+  'content',
+  'description',
+  'folderId',
+  'intent',
+  'mediaUrls',
+  'organizationId',
+  'platform',
+  'platformData',
+  'savedAt',
+  'thumbnailUrl',
+  'title',
+  'url',
+  'userId',
+] as const;
+
+const BOOKMARK_UPDATE_SCALAR_FIELDS = [
+  'author',
+  'authorHandle',
+  'brandId',
+  'category',
+  'content',
+  'description',
+  'folderId',
+  'intent',
+  'isDeleted',
+  'mediaUrls',
+  'platform',
+  'platformData',
+  'thumbnailUrl',
+  'title',
+  'url',
+] as const;
+
+type BookmarkOwnershipInput = {
+  organizationId: string;
+  savedAt?: Date;
+  userId: string;
+};
+
+type BookmarkCreateInput = CreateBookmarkDto & BookmarkOwnershipInput;
 
 @Injectable()
 export class BookmarksService extends BaseService<
@@ -20,6 +68,38 @@ export class BookmarksService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'bookmark', logger);
+  }
+
+  override create(
+    input: BookmarkCreateInput,
+    populate: (string | PopulateOption)[] = [],
+  ): Promise<Bookmark> {
+    return super.create(
+      {
+        ...pickDefinedFields(input, BOOKMARK_CREATE_SCALAR_FIELDS),
+        ...(input.tagIds
+          ? { tags: { connect: input.tagIds.map((id) => ({ id })) } }
+          : {}),
+      } as unknown as CreateBookmarkDto,
+      populate,
+    );
+  }
+
+  override patch(
+    id: string,
+    input: UpdateBookmarkDto,
+    populate: (string | PopulateOption)[] = [],
+  ): Promise<Bookmark> {
+    return super.patch(
+      id,
+      {
+        ...pickDefinedFields(input, BOOKMARK_UPDATE_SCALAR_FIELDS),
+        ...(input.tagIds
+          ? { tags: { set: input.tagIds.map((tagId) => ({ id: tagId })) } }
+          : {}),
+      } as unknown as UpdateBookmarkDto,
+      populate,
+    );
   }
 
   /**

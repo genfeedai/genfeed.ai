@@ -72,7 +72,7 @@ describe('VideosGifController', () => {
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { _id: ingredientId },
         metadataData: { _id: metadataId },
       }),
@@ -123,7 +123,7 @@ describe('VideosGifController', () => {
     );
     expect(result).toBeDefined();
     expect(mockServices.fileQueueService.createGif).toHaveBeenCalled();
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
   });
 
   it('should throw NOT_FOUND when video does not exist for gif creation', async () => {
@@ -154,7 +154,9 @@ describe('VideosGifController', () => {
       mockUser,
       '507f1f77bcf86cd799439011',
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({ category: 'gif', extension: 'gif' }),
     );
@@ -167,7 +169,9 @@ describe('VideosGifController', () => {
       mockUser,
       '507f1f77bcf86cd799439011',
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({ status: 'processing' }),
     );
@@ -180,7 +184,9 @@ describe('VideosGifController', () => {
       mockUser,
       '507f1f77bcf86cd799439011',
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
         metadata: expect.objectContaining({

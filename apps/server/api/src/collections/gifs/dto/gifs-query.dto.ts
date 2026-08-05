@@ -18,7 +18,7 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  parent?: string;
+  parentId?: string;
 
   @ApiProperty({
     description:
@@ -58,7 +58,7 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  declare brandId?: string;
 
   @ApiProperty({
     description: 'Filter by format',
@@ -90,7 +90,7 @@ export class GifsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  folder?: string;
+  folderId?: string;
 
   @ApiProperty({
     default: false,

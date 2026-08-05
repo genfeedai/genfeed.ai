@@ -2,7 +2,6 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { IngredientRefDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { CreateRemixPostDto } from '@api/collections/posts/dto/create-remix-post.dto';
@@ -69,16 +68,6 @@ export class PostsOperationsController {
     private readonly quotaService: QuotaService,
   ) {}
 
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString() ?? ref?.id?.toString();
-  }
-
   private getBadRequestResponse(
     response: unknown,
   ): string | Record<string, unknown> {
@@ -126,10 +115,10 @@ export class PostsOperationsController {
     try {
       // Validate credential
       const credential = await this.credentialsService.findOne({
-        _id: dto.credential,
+        id: dto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -187,13 +176,13 @@ export class PostsOperationsController {
         updatedPosts.map(
           (updatedPost) =>
             new ActivityEntity({
-              brand: publicMetadata.brand,
+              brandId: publicMetadata.brand,
               entityId: updatedPost.id,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.VIDEO_SCHEDULED,
-              organization: publicMetadata.organization,
+              organizationId: publicMetadata.organization,
               source: ActivitySource.SCRIPT,
-              user: publicMetadata.user,
+              userId: publicMetadata.user,
               value: (updatedPost.id as string).toString(),
             }),
         ),
@@ -233,7 +222,7 @@ export class PostsOperationsController {
     assertApiKeyPostStatusPublishingScope(publicMetadata, createPostDto.status);
     const parentId = postId;
     try {
-      const parentPost = await this.postsService.findOne({ _id: parentId });
+      const parentPost = await this.postsService.findOne({ id: parentId });
       if (!parentPost) {
         throw new HttpException(
           {
@@ -255,10 +244,10 @@ export class PostsOperationsController {
       }
 
       const credential = await this.credentialsService.findOne({
-        _id: createPostDto.credential,
+        id: createPostDto.credential,
         isConnected: true,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
 
       if (!credential) {
@@ -328,9 +317,9 @@ export class PostsOperationsController {
       if (createPostDto.ingredients && createPostDto.ingredients.length > 0) {
         for (const ingredientId of createPostDto.ingredients) {
           const ingredient = await this.ingredientsService.findOne({
-            _id: ingredientId,
+            id: ingredientId,
             isDeleted: false,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
           });
 
           if (!ingredient) {
@@ -359,11 +348,11 @@ export class PostsOperationsController {
 
       const data = await this.postsService.addThreadReply(parentId, {
         ...createPostDto,
-        brand: this.getRefId(firstIngredient?.brand) ?? publicMetadata.brand,
+        brandId: firstIngredient?.brandId ?? publicMetadata.brand,
         category:
           createPostDto.category ??
           this.getPostCategoryFromIngredient(firstIngredient),
-        credential: createPostDto.credential,
+        credentialId: createPostDto.credential,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
         label:
@@ -374,15 +363,14 @@ export class PostsOperationsController {
                 createPostDto.description.trim(),
               )
             : ''),
-        organization:
-          this.getRefId(firstIngredient?.organization) ??
-          publicMetadata.organization,
+        organizationId:
+          firstIngredient?.organizationId ?? publicMetadata.organization,
         platform: credentialPlatform,
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
         status: createPostDto.status,
         tags: createPostDto.tags || [],
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       });
 
       return serializeSingle(request, this.serializer, data);
@@ -413,7 +401,7 @@ export class PostsOperationsController {
 
     try {
       // Verify the original post exists and user has access
-      const originalPost = await this.postsService.findOne({ _id: postId }, [
+      const originalPost = await this.postsService.findOne({ id: postId }, [
         PopulatePatterns.ingredientsMinimal,
         PopulatePatterns.credentialMinimal,
       ]);
@@ -453,13 +441,13 @@ export class PostsOperationsController {
       // Create activity log
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: publicMetadata.brand,
+          brandId: publicMetadata.brand,
           entityId: remixPost.id,
           entityModel: ActivityEntityModel.POST,
           key: ActivityKey.POST_CREATED,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           source: ActivitySource.WEB,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
           value: (remixPost.id as string).toString(),
         }),
       );

@@ -422,7 +422,7 @@ describe('ImagesOperationsController', () => {
         {
           provide: SharedService,
           useValue: {
-            saveDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
+            createMediaDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
             updateDocuments: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -828,7 +828,7 @@ describe('ImagesOperationsController', () => {
 
       const result = await controller.create(mockRequest, dto, mockUser);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           height: 1080,
@@ -1129,7 +1129,7 @@ describe('ImagesOperationsController', () => {
         mockUser,
       );
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           parent: expect.any(String),

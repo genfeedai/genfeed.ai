@@ -377,8 +377,8 @@ describe('ModelsController', () => {
       ).toBeUndefined();
     });
 
-    it('should filter foreign org models even when enabledModels is present', async () => {
-      // Simulates a scenario where enabledModels references a model from a different
+    it('should filter foreign org models even when enabledModelIds is present', async () => {
+      // Simulates a scenario where enabledModelIds references a model from a different
       // org (e.g. data corruption). The org filter is the last line of defense.
       const mockOrgObjectId = mockOrgId;
       const foreignOrgId = '507f191e810c19729de860ee';

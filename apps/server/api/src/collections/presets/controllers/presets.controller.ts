@@ -8,15 +8,9 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import {
-  getIsSuperAdmin,
-  getPublicMetadata,
-} from '@api/helpers/utils/auth/auth.util';
-import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
-import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { SortObject } from '@genfeedai/interfaces';
 import { PresetSerializer } from '@genfeedai/serializers';
@@ -82,9 +76,9 @@ export class PresetsController extends BaseCRUDController<
 
   /**
    * Override enrichCreateDto to handle preset-specific logic
-   * - Only admins can create default presets (organization: null)
+   * - Only admins can create default presets (organizationId: null)
    * - Regular users create organization-specific presets
-   * - Presets can be app-wide (no org/brand), org-wide (org but no brand), or brand-specific
+   * - Presets can be app-wide, organization-wide, or brand-specific
    * Uses PresetFilterUtil for consistent enrichment logic
    */
   public enrichCreateDto(
@@ -106,7 +100,7 @@ export class PresetsController extends BaseCRUDController<
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     return PresetFilterUtil.canUserModifyPreset(
       user,
-      entity as { organization?: string | null },
+      entity as { organizationId?: string | null },
     );
   }
 
@@ -130,51 +124,7 @@ export class PresetsController extends BaseCRUDController<
     @Param('presetId') presetId: string,
     @Body() updateDto: UpdatePresetDto,
   ) {
-    if (!isEntityId(presetId)) {
-      ErrorResponse.notFound(this.entityName, presetId);
-    }
-
-    // Check if preset exists - don't populate 'user' since Preset doesn't have that field
-    const existing = await this.presetsService.findOne({
-      _id: presetId,
-    });
-
-    if (!existing) {
-      ErrorResponse.notFound(this.entityName, presetId);
-    }
-
-    // Return 404 instead of 403 for security
-    if (
-      !this.canUserModifyEntity(user, existing) &&
-      !getIsSuperAdmin(user, request)
-    ) {
-      ErrorResponse.notFound(this.entityName, presetId);
-    }
-
-    // Update without adding user field since Preset doesn't have it
-    const enrichedDto = {
-      ...updateDto,
-      // Only add organization if it's being updated
-      ...(updateDto.organization && {
-        organization: updateDto.organization,
-      }),
-
-      ...(updateDto.brand && {
-        brand: updateDto.brand,
-      }),
-    };
-
-    const data = await this.presetsService.patch(
-      presetId,
-      enrichedDto,
-      this.getPopulateFields(),
-    );
-
-    if (!data) {
-      ErrorResponse.notFound(this.entityName, presetId);
-    }
-
-    return serializeSingle(request, PresetSerializer, data);
+    return super.patch(request, user, presetId, updateDto);
   }
 
   @Delete(':presetId')

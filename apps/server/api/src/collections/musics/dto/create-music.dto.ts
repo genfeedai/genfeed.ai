@@ -2,7 +2,7 @@ import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ing
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
 import { RouterPriority } from '@genfeedai/enums';
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -15,9 +15,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-export class CreateMusicDto extends OmitType(CreateIngredientDto, [
-  'metadata',
-]) {
+export class CreateMusicDto extends CreateIngredientDto {
   @IsOptional()
   @ValidateNested()
   @Type(() => CreateMetadataDto)

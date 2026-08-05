@@ -20,7 +20,7 @@ describe('CollectionFilterUtil', () => {
           { brand: brandA, organization: orgB },
           { brand: brandA, isSuperAdmin: true, organization: orgA },
         ),
-      ).toEqual({ brand: brandA, organization: orgB });
+      ).toEqual({ brandId: brandA, organizationId: orgB });
     });
 
     it('rejects a member organization filter outside the session org', () => {
@@ -49,7 +49,10 @@ describe('CollectionFilterUtil', () => {
           { brand: 'brand-other-in-org' },
           { brand: brandA, isSuperAdmin: false, organization: orgA },
         ),
-      ).toEqual({ brand: 'brand-other-in-org', organization: orgA });
+      ).toEqual({
+        brandId: 'brand-other-in-org',
+        organizationId: orgA,
+      });
     });
 
     it('allows member organization filter equal to the session org', () => {
@@ -58,7 +61,7 @@ describe('CollectionFilterUtil', () => {
           { organization: orgA },
           { brand: brandA, isSuperAdmin: false, organization: orgA },
         ),
-      ).toEqual({ organization: orgA });
+      ).toEqual({ organizationId: orgA });
     });
   });
 
@@ -155,8 +158,8 @@ describe('CollectionFilterUtil', () => {
 
       expect(result).toHaveProperty('OR');
       expect(result.OR).toHaveLength(2);
-      expect(result.OR?.[0].user).toBe(userId);
-      expect(result.OR?.[1].organization).toBe(organizationId);
+      expect(result.OR?.[0].userId).toBe(userId);
+      expect(result.OR?.[1].organizationId).toBe(organizationId);
     });
 
     it('returns single condition when only user provided', () => {
@@ -164,8 +167,8 @@ describe('CollectionFilterUtil', () => {
         { user: userId },
         { includeOrganization: false },
       );
-      expect(result).toHaveProperty('user');
-      expect((result as Record<string, string>).user).toBe(userId);
+      expect(result).toHaveProperty('userId');
+      expect((result as Record<string, string>).userId).toBe(userId);
     });
 
     it('returns empty filter when metadata empty', () => {

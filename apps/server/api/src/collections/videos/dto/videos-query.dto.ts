@@ -40,7 +40,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  training?: string;
+  trainingId?: string;
 
   @ApiProperty({
     description: 'Filter by scope/visibility level',
@@ -58,7 +58,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  reference?: string;
+  referenceId?: string;
 
   @ApiProperty({
     description: 'Filter by video format',
@@ -74,7 +74,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  parent?: string;
+  parentId?: string;
 
   @ApiProperty({
     description: 'Filter by folder ID',
@@ -82,7 +82,7 @@ export class VideosQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  folder?: string;
+  folderId?: string;
 
   @ApiProperty({
     description: 'Filter by provider',
@@ -131,7 +131,7 @@ export class VideosQueryDto extends BaseQueryDto {
   @ApiProperty({
     default: false,
     description:
-      'Return the most recent items using the legacy /latest filter ' +
+      'Return the most recent items using the /latest filter ' +
       '(brand-scoped user assets, training sources excluded), ordered by ' +
       'createdAt desc and capped at 50. Bypasses the standard list filters ' +
       '(status/scope/folder/parent/search/organization).',

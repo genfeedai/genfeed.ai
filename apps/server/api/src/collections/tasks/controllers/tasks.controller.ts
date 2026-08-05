@@ -5,10 +5,7 @@ import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
-import {
-  Task,
-  type TaskDocument,
-} from '@api/collections/tasks/schemas/task.schema';
+import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -22,7 +19,6 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -81,7 +77,7 @@ export class TasksController extends BaseCRUDController<
     const organizationId = publicMetadata.organization;
 
     const org = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
       isDeleted: false,
     });
 
@@ -107,11 +103,11 @@ export class TasksController extends BaseCRUDController<
     const doc = await this.tasksService.create({
       ...createDto,
       identifier,
-      organization: organizationId,
+      organizationId: organizationId,
       taskNumber,
     } as CreateTaskDto & {
       identifier: string;
-      organization: string;
+      organizationId: string;
       taskNumber: number;
     });
 
@@ -168,14 +164,14 @@ export class TasksController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     };
 
     // Optional brand filter from the request only. Omit for org-wide inbox
     // (all brands under the org). Session brand must not force a filter —
     // brand-less `/~/workspace/inbox` is intentionally cross-brand.
-    if (query.brand) {
-      match.brandId = query.brand;
+    if (query.brandId) {
+      match.brandId = query.brandId;
     }
 
     if (query.status) {
@@ -246,9 +242,7 @@ export class TasksController extends BaseCRUDController<
   ): boolean {
     // Both ids must exist: `undefined === undefined` granted write access.
     const { organization: userOrgId } = getPublicMetadata(user);
-    const { organization, organizationId } = entity;
-    const entityOrgId = resolveRelationId(organizationId, organization);
-    return Boolean(userOrgId) && entityOrgId === userOrgId;
+    return Boolean(userOrgId) && entity.organizationId === userOrgId;
   }
 
   @Get('by-identifier/:identifier')
@@ -276,7 +270,7 @@ export class TasksController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     const { organization } = getPublicMetadata(user);
     const doc = await this.tasksService.findOne(
-      scopedWhere(organization, { _id: id }),
+      scopedWhere(organization, { id: id }),
     );
 
     if (!doc) {
@@ -322,7 +316,7 @@ export class TasksController extends BaseCRUDController<
     // When a task is marked done/cancelled, check if parent's children are all complete
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
       const task = await this.tasksService.findOne({
-        _id: id,
+        id: id,
         isDeleted: false,
       });
 
@@ -532,7 +526,8 @@ export class TasksController extends BaseCRUDController<
       metadataUserId,
     );
 
-    if (this.workspaceTaskQueueService) {
+    const workspaceTaskQueueService = this.workspaceTaskQueueService;
+    if (workspaceTaskQueueService) {
       await Promise.all(
         tasks.map((task) => {
           const taskExt = task as TaskDocument & {
@@ -540,7 +535,7 @@ export class TasksController extends BaseCRUDController<
             platforms?: string[];
             request?: string;
           };
-          return this.workspaceTaskQueueService!.enqueue({
+          return workspaceTaskQueueService.enqueue({
             brandId: task.brandId ?? undefined,
             organizationId: organization,
             outputType: taskExt.outputType,

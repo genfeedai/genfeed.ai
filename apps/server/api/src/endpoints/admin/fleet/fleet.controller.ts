@@ -104,9 +104,9 @@ export class AdminFleetController {
 
       const character = await this.adminFleetService.createCharacter({
         ...dto,
-        brand: brandId,
-        organization: organizationId,
-        user: userId,
+        brandId,
+        organizationId,
+        userId,
       } as Parameters<AdminFleetService['createCharacter']>[0]);
       return serializeSingle(request, PersonaSerializer, character);
     } catch (error) {

@@ -1,5 +1,4 @@
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
-import type { SubscriptionRefId } from '@genfeedai/interfaces/billing';
 
 export type StripeWebhookEvent = {
   data: { object: unknown };
@@ -43,20 +42,6 @@ export function getEmailLogMetadata(email: string | null | undefined): {
 } {
   const emailDomain = getEmailDomainForLog(email);
   return emailDomain ? { emailDomain } : {};
-}
-
-export function normalizeObjectId(
-  value: SubscriptionRefId | undefined,
-): string {
-  if (!value) {
-    return 'unknown';
-  }
-
-  if (value === '__never__') {
-    return value.toString();
-  }
-
-  return String(value);
 }
 
 /**

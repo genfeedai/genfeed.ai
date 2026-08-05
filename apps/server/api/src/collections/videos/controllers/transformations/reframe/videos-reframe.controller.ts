@@ -22,7 +22,6 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -101,9 +100,9 @@ export class VideosReframeController {
     const publicMetadata = getPublicMetadata(user);
     const parent = await this.videosService.findOne(
       {
-        _id: videoId,
+        id: videoId,
         category: IngredientCategory.VIDEO,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -159,7 +158,7 @@ export class VideosReframeController {
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brandId: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: parent.brandId ?? publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         organizationId: publicMetadata.organization,
@@ -173,26 +172,29 @@ export class VideosReframeController {
     );
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...createVideoDto,
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: parent.brandId ?? publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         duration: parentMetadata.duration,
         extension: MetadataExtension.MP4,
+        generationPrompt: promptData.original,
+        generationSeed: createVideoDto.seed,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-        organization: isEntityId(parent.organization)
-          ? parent.organization
-          : publicMetadata.organization,
-        parent: parent.id,
-        prompt: promptData.id,
+        negativePrompt: createVideoDto.negativePrompt,
+        organizationId: parent.organizationId ?? publicMetadata.organization,
+        parentId: parent.id,
+        promptId: promptData.id,
+        scope: createVideoDto.scope,
+        sourceIds: createVideoDto.references,
         status: IngredientStatus.PROCESSING,
+        tagIds: createVideoDto.tags,
         transformations: [TransformationCategory.REFRAMED],
         width: targetWidth,
       });
 
     await this.videosService.patch(ingredientData.id, {
-      prompt: promptData.id,
+      promptId: promptData.id,
     });
 
     const websocketUrl = WebSocketPaths.video(ingredientData.id);
@@ -200,13 +202,13 @@ export class VideosReframeController {
     // Create activity for video reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: parent.brandId ?? publicMetadata.brand,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_REFRAME_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.VIDEO_REFRAME,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
@@ -301,7 +303,7 @@ export class VideosReframeController {
           metadataData.id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: promptData.id,
+            promptId: promptData.id,
           }),
         );
       } else {

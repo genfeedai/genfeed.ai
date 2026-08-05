@@ -214,7 +214,7 @@ export class ModelsController extends BaseCRUDController<
 
   /**
    * Override findAll to add organization filtering support
-   * When organizationId is provided, filter by organization's enabledModels
+   * When organizationId is provided, filter by its enabled model IDs.
    */
   @Get()
   async findAll(
@@ -244,7 +244,7 @@ export class ModelsController extends BaseCRUDController<
       if (enabledModelIds.length > 0) {
         where.id = { in: enabledModelIds };
       } else {
-        // Strict mode: if no organization settings or empty enabledModels, return no models
+        // Strict mode: no settings or an empty allowlist enables no models.
         where.id = { in: [] };
       }
     }

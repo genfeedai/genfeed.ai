@@ -18,7 +18,6 @@ import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import type { Video } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { requireVideoOutputPath } from '@api/collections/videos/utils/video-processing-result.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
@@ -184,12 +183,12 @@ export class VideosRelationshipsController {
 
     const aggregate = {
       where: {
-        _id: { in: uniqueObjectIds },
+        id: { in: uniqueObjectIds },
         category: IngredientCategory.VIDEO,
         status: {
           in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
         },
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       },
     };
 
@@ -209,13 +208,13 @@ export class VideosRelationshipsController {
     const parentIds = ingredientIds.map((id: string) => id);
 
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         order: 1,
-        organization: publicMetadata.organization,
-        sources: parentIds,
+        organizationId: publicMetadata.organization,
+        sourceIds: parentIds,
         status: IngredientStatus.PROCESSING,
       });
 
@@ -225,13 +224,13 @@ export class VideosRelationshipsController {
     // Create activity to track merge progress
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: publicMetadata.brand,
+        brandId: publicMetadata.brand,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.WEB,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           frameCount: ingredientIds.length,
           ingredientId,
@@ -318,10 +317,10 @@ export class VideosRelationshipsController {
                 ...createMergedVideoDto,
                 content: captionContent,
                 format: CaptionFormat.SRT,
-                ingredient: ingredientData.id,
+                ingredientId: ingredientData.id,
                 isDeleted: false,
                 language: CaptionLanguage.EN,
-                user: publicMetadata.user,
+                userId: publicMetadata.user,
               }),
             );
 

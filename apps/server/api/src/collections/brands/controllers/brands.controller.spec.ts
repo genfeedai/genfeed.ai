@@ -256,7 +256,7 @@ describe('BrandsController', () => {
     expect(result).toEqual({ data: { ...mockBrand, label: 'Moonrise' } });
   });
 
-  it('removes session relation aliases before a normal brand patch', async () => {
+  it('does not forward client-supplied ownership fields on a normal patch', async () => {
     const brandId = '507f191e810c19729de860ee';
     brandsService.findOne.mockResolvedValue(mockBrand as never);
     brandsService.patch.mockResolvedValue({

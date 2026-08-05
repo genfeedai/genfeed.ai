@@ -37,7 +37,7 @@ export class ModelRegistrationService {
       throw new ForbiddenException('Model not available for this organization');
     }
 
-    // enabledModels check
+    // Organization enabled-model allowlist check.
     const orgSettings = await this.orgSettingsService.findOne({
       organizationId,
     });

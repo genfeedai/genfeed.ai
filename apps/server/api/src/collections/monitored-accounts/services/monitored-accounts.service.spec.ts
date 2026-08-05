@@ -10,7 +10,10 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockDelegate = {
+  create: ReturnType<typeof vi.fn>;
+  findUnique: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
 };
 
 describe('MonitoredAccountsService active filters', () => {
@@ -18,7 +21,28 @@ describe('MonitoredAccountsService active filters', () => {
   let delegate: MockDelegate;
 
   beforeEach(() => {
-    delegate = { findMany: vi.fn().mockResolvedValue([]) };
+    delegate = {
+      create: vi.fn().mockImplementation(({ data }) =>
+        Promise.resolve({
+          ...data,
+          createdAt: new Date(),
+          id: 'account-1',
+          isDeleted: false,
+          updatedAt: new Date(),
+        }),
+      ),
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(),
+      update: vi.fn().mockImplementation(({ data }) =>
+        Promise.resolve({
+          ...data,
+          createdAt: new Date(),
+          id: 'account-1',
+          isDeleted: false,
+          updatedAt: new Date(),
+        }),
+      ),
+    };
 
     service = new MonitoredAccountsService(
       { monitoredAccount: delegate } as unknown as PrismaService,
@@ -53,6 +77,56 @@ describe('MonitoredAccountsService active filters', () => {
         isDeleted: false,
         organizationId: 'org-1',
       },
+    });
+  });
+
+  it('writes scalar relations and packs platform details into config', async () => {
+    await service.create(
+      {
+        botConfigId: 'bot-1',
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        externalId: 'platform-user-1',
+        organizationId: 'org-1',
+        platform: 'twitter' as never,
+        userId: 'user-1',
+        username: 'alice',
+      },
+      [],
+    );
+
+    expect(delegate.create).toHaveBeenCalledWith({
+      data: {
+        botConfigId: 'bot-1',
+        brandId: 'brand-1',
+        config: {
+          externalId: 'platform-user-1',
+          platform: 'twitter',
+          username: 'alice',
+        },
+        credentialId: 'credential-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
+  });
+
+  it('merges config-backed patches without dropping stored fields', async () => {
+    delegate.findUnique.mockResolvedValue({
+      config: { externalId: 'platform-user-1', username: 'old-name' },
+      id: 'account-1',
+    });
+
+    await service.patch('account-1', { username: 'new-name' }, []);
+
+    expect(delegate.update).toHaveBeenCalledWith({
+      data: {
+        config: {
+          externalId: 'platform-user-1',
+          username: 'new-name',
+        },
+      },
+      where: { id: 'account-1' },
     });
   });
 });

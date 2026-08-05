@@ -99,7 +99,7 @@ export class IngredientsRelationshipsController {
     @Req() request: Request,
     @Param('ingredientId') ingredientId: string,
   ): Promise<JsonApiSingleResponse> {
-    const data = await this.ingredientsService.findOne({ _id: ingredientId }, [
+    const data = await this.ingredientsService.findOne({ id: ingredientId }, [
       PopulatePatterns.metadataFull,
     ]);
 
@@ -119,7 +119,7 @@ export class IngredientsRelationshipsController {
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const ingredient = await this.ingredientsService.findOne({
-      _id: ingredientId,
+      id: ingredientId,
       isDeleted: false,
     });
 

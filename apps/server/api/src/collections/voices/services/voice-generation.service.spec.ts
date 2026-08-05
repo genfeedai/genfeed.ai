@@ -23,7 +23,7 @@ describe('VoiceGenerationService', () => {
   const request = {} as Request;
   let elevenLabs: { generateAndUploadAudio: ReturnType<typeof vi.fn> };
   let logger: { error: ReturnType<typeof vi.fn> };
-  let shared: { saveDocuments: ReturnType<typeof vi.fn> };
+  let shared: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let credits: {
     assertOrganizationCanAfford: ReturnType<typeof vi.fn>;
     settleGenerationCredits: ReturnType<typeof vi.fn>;
@@ -43,7 +43,7 @@ describe('VoiceGenerationService', () => {
     };
     logger = { error: vi.fn() };
     shared = {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
       }),
     };
@@ -77,7 +77,7 @@ describe('VoiceGenerationService', () => {
         response: { detail },
         status: HttpStatus.BAD_REQUEST,
       });
-      expect(shared.saveDocuments).not.toHaveBeenCalled();
+      expect(shared.createMediaDocuments).not.toHaveBeenCalled();
     },
   );
 
@@ -92,7 +92,7 @@ describe('VoiceGenerationService', () => {
       organizationId,
       1,
     );
-    expect(shared.saveDocuments).toHaveBeenCalledWith(
+    expect(shared.createMediaDocuments).toHaveBeenCalledWith(
       user,
       expect.objectContaining({
         category: IngredientCategory.VOICE,

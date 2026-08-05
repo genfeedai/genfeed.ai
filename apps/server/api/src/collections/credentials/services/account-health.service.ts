@@ -15,12 +15,6 @@ import { type Credential, type Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-type CredentialHealthRecord = Credential & {
-  externalUrl?: string | null;
-  handle?: string | null;
-  name?: string | null;
-};
-
 export interface AssessAccountHealthParams {
   brandId?: string;
   credentialId: string;
@@ -254,7 +248,7 @@ export class AccountHealthService {
     brandId?: string;
     credentialId: string;
     organizationId: string;
-  }): Promise<CredentialHealthRecord> {
+  }): Promise<Credential> {
     const credential = await this.prisma.credential.findFirst({
       where: scopedWhere(params.organizationId, {
         id: params.credentialId,
@@ -266,7 +260,7 @@ export class AccountHealthService {
       throw new NotFoundException('Credential');
     }
 
-    return credential as CredentialHealthRecord;
+    return credential;
   }
 
   private mergeThresholds(
@@ -323,7 +317,7 @@ export class AccountHealthService {
   }
 
   private async buildSignals(
-    credential: CredentialHealthRecord,
+    credential: Credential,
     overrides: Partial<AccountHealthSignals> | undefined,
   ): Promise<AccountHealthSignals> {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
@@ -366,7 +360,7 @@ export class AccountHealthService {
   }
 
   private createSummary(
-    credential: CredentialHealthRecord,
+    credential: Credential,
     thresholds: AccountHealthThresholds,
     signals: AccountHealthSignals,
   ): AccountHealthSummary {
@@ -490,7 +484,7 @@ export class AccountHealthService {
     };
   }
 
-  private getCredentialLabel(credential: CredentialHealthRecord): string {
+  private getCredentialLabel(credential: Credential): string {
     const explicitLabel =
       readString(credential.label) ?? readString(credential.externalName);
     const handle = readString(credential.externalHandle);

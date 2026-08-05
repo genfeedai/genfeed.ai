@@ -1,10 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateFolderDto } from '@api/collections/folders/dto/create-folder.dto';
 import { UpdateFolderDto } from '@api/collections/folders/dto/update-folder.dto';
-import {
-  Folder,
-  type FolderDocument,
-} from '@api/collections/folders/schemas/folder.schema';
+import { type FolderDocument } from '@api/collections/folders/schemas/folder.schema';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -67,7 +64,7 @@ export class FoldersController extends BaseCRUDController<
       getPublicMetadata(user);
     const isSuperAdmin = getIsSuperAdmin(user, request);
     const folderQuery: Record<string, unknown> = {
-      _id: folderId,
+      id: folderId,
       isDeleted: false,
     };
     if (!isSuperAdmin) {
@@ -173,7 +170,7 @@ export class FoldersController extends BaseCRUDController<
     user: User,
   ): CreateFolderDto {
     const publicMetadata = getPublicMetadata(user);
-    const requestedBrandId = createDto.brand?.toString();
+    const requestedBrandId = createDto.brandId?.toString();
 
     if (
       requestedBrandId &&
@@ -182,10 +179,8 @@ export class FoldersController extends BaseCRUDController<
       ErrorResponse.notFound('Brand', requestedBrandId);
     }
 
-    const { brand: _brand, ...folderDto } = createDto;
-
     return {
-      ...folderDto,
+      ...createDto,
       brandId: requestedBrandId || null,
       organizationId: publicMetadata.organization,
       userId: publicMetadata.user,
@@ -196,16 +191,15 @@ export class FoldersController extends BaseCRUDController<
     updateDto: Partial<UpdateFolderDto>,
     user: User,
   ): Promise<UpdateFolderDto> {
-    const requestedBrandId = updateDto.brand?.toString();
+    const requestedBrandId = updateDto.brandId?.toString();
     const currentBrandId = getPublicMetadata(user).brand?.toString();
 
     if (requestedBrandId && requestedBrandId !== currentBrandId) {
       ErrorResponse.notFound('Brand', requestedBrandId);
     }
 
-    const { brand: _brand, ...folderDto } = updateDto;
-    const scopedDto: Record<string, unknown> = { ...folderDto };
-    if (Object.hasOwn(updateDto, 'brand')) {
+    const scopedDto: Record<string, unknown> = { ...updateDto };
+    if (Object.hasOwn(updateDto, 'brandId')) {
       scopedDto.brandId = requestedBrandId || null;
     }
 

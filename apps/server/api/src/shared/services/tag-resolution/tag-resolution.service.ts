@@ -23,7 +23,7 @@ export class TagResolutionService {
 
     const aggregate = {
       where: {
-        _id: { in: tagIds },
+        id: { in: tagIds },
         isDeleted: false,
       },
     };
@@ -48,7 +48,7 @@ export class TagResolutionService {
     }
 
     const tag = (await this.tagsService.findOne({
-      _id: tagId,
+      id: tagId,
     })) as TagLabelDocument | null;
     return tag?.label || null;
   }

@@ -67,7 +67,7 @@ describe('VideosCaptionsController', () => {
     ingredientsService: { patch: vi.fn() },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
-    sharedService: { saveDocuments: vi.fn() },
+    sharedService: { createMediaDocuments: vi.fn() },
     videosService: { findOne: vi.fn() },
     websocketService: { publishVideoComplete: vi.fn() },
   };
@@ -161,7 +161,7 @@ describe('VideosCaptionsController', () => {
       mockServices.captionsService.findOne.mockResolvedValue(
         mockVideo.captions[0],
       );
-      mockServices.sharedService.saveDocuments.mockResolvedValue({
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: {
           id: '507f1f77bcf86cd799439016',
         },

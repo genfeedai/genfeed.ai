@@ -35,10 +35,6 @@ export class CustomerInstancesService extends BaseService<
 
     return {
       ...(record as unknown as CustomerInstanceDocument),
-      _id:
-        typeof record.mongoId === 'string' && record.mongoId.length > 0
-          ? record.mongoId
-          : String(record.id ?? ''),
       amiId: typeof config.amiId === 'string' ? config.amiId : undefined,
       apiUrl: typeof config.apiUrl === 'string' ? config.apiUrl : undefined,
       instanceId:

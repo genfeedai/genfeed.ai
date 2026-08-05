@@ -232,8 +232,8 @@ export class EditorRenderService {
 
     try {
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand: brandId,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           height: contract.snapshot.settings.height,
@@ -314,9 +314,9 @@ export class EditorRenderService {
     const result = await this.ingredientsService.findAll(
       {
         where: {
-          _id: { in: assetIds },
+          id: { in: assetIds },
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         },
       },
       { pagination: false },
@@ -353,9 +353,8 @@ export class EditorRenderService {
       );
 
       if (asset.type === EditorTrackType.VIDEO && !brandId) {
-        const ingredientBrand = ingredient.brandId ?? ingredient.brand;
-        if (typeof ingredientBrand === 'string') {
-          brandId = ingredientBrand;
+        if (typeof ingredient.brandId === 'string') {
+          brandId = ingredient.brandId;
         }
       }
     }

@@ -184,9 +184,7 @@ export class TaskFeedbackMemoryAdapterService {
   }
 
   private extractBrandId(task: TaskDocument): string | undefined {
-    return this.normalizeId(
-      (task as Record<string, unknown>).brandId ?? task.brand,
-    );
+    return this.normalizeId((task as Record<string, unknown>).brandId);
   }
 
   private extractId(task: TaskDocument): string {

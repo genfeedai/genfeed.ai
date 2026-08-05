@@ -3,7 +3,6 @@ import { type TemplateUsage } from '@genfeedai/prisma';
 
 export class TemplateUsageEntity extends BaseEntity implements TemplateUsage {
   declare id: string;
-  declare mongoId: string | null;
   declare organizationId: string;
   declare userId: string;
   templateId!: string;

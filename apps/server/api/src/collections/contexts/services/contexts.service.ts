@@ -66,7 +66,6 @@ export class ContextsService {
 
   private normalizeContextBase(contextBase: {
     id: string;
-    mongoId: string | null;
     organizationId: string;
     createdById?: string | null;
     sourceBrandId?: string | null;
@@ -76,7 +75,6 @@ export class ContextsService {
     return {
       ...contextBase,
       ...this.getDataRecord(contextBase.data),
-      _id: contextBase.mongoId || contextBase.id,
       createdBy: contextBase.createdById ?? undefined,
       organization: contextBase.organizationId,
       sourceBrand: contextBase.sourceBrandId ?? undefined,
@@ -86,7 +84,6 @@ export class ContextsService {
   private normalizeContextBases(
     contextBases: Array<{
       id: string;
-      mongoId: string | null;
       organizationId: string;
       createdById?: string | null;
       sourceBrandId?: string | null;
@@ -101,7 +98,6 @@ export class ContextsService {
 
   private normalizeContextEntry(entry: {
     id: string;
-    mongoId: string | null;
     contextBaseId: string;
     organizationId: string;
     data?: unknown;
@@ -110,7 +106,6 @@ export class ContextsService {
     return {
       ...entry,
       ...this.getDataRecord(entry.data),
-      _id: entry.mongoId || entry.id,
       contextBase: entry.contextBaseId,
       organization: entry.organizationId,
     } as ContextEntry;
@@ -119,7 +114,6 @@ export class ContextsService {
   private normalizeContextEntries(
     entries: Array<{
       id: string;
-      mongoId: string | null;
       contextBaseId: string;
       organizationId: string;
       data?: unknown;

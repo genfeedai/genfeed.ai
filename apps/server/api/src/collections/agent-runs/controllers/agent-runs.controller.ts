@@ -19,7 +19,6 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
@@ -73,11 +72,8 @@ export class AgentRunsController extends BaseCRUDController<
     const dto = createDto as Record<string, unknown>;
 
     // Strip tenant/user scope supplied in the body; auth metadata is authoritative.
-    delete dto.brand;
     delete dto.brandId;
-    delete dto.organization;
     delete dto.organizationId;
-    delete dto.user;
     delete dto.userId;
 
     return {
@@ -96,12 +92,12 @@ export class AgentRunsController extends BaseCRUDController<
 
     const organizationId = publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = organizationId;
+      match.organizationId = organizationId;
     }
 
-    const brandId = publicMetadata.brand?.toString() ?? query.brand;
+    const brandId = publicMetadata.brand?.toString() ?? query.brandId;
     if (brandId) {
-      match.brand = brandId;
+      match.brandId = brandId;
     }
 
     if (query.historyOnly) {
@@ -112,8 +108,8 @@ export class AgentRunsController extends BaseCRUDController<
       match.status = query.status;
     }
 
-    if (query.strategy) {
-      match.strategy = query.strategy;
+    if (query.strategyId) {
+      match.strategyId = query.strategyId;
     }
 
     if (query.trigger) {
@@ -221,11 +217,8 @@ export class AgentRunsController extends BaseCRUDController<
     // Scalar FKs first — the relations are only present when the row was
     // loaded with a populate, so reading the aliases alone denied legitimate
     // owners and skipped the brand check entirely.
-    const entityOrganizationId = resolveRelationId(
-      entity.organizationId,
-      entity.organization,
-    );
-    const entityBrandId = resolveRelationId(entity.brandId, entity.brand);
+    const entityOrganizationId = entity.organizationId;
+    const entityBrandId = entity.brandId ?? undefined;
 
     if (
       publicMetadata.brand &&
@@ -335,10 +328,10 @@ export class AgentRunsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const brandId = publicMetadata.brand ?? requestedBrandId;
     const doc = await this.agentRunsService.findOne({
-      _id: id,
-      ...(brandId ? { brand: brandId } : {}),
+      id: id,
+      ...(brandId ? { brandId: brandId } : {}),
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!doc) {

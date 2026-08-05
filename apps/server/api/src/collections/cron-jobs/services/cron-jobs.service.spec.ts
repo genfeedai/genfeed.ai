@@ -78,7 +78,7 @@ describe('Legacy cron workflow migration', () => {
     const workflowsService = {
       findOne: vi.fn(),
     };
-    const legacyWorkflowStepRunner = {
+    const workflowStepRunner = {
       executeWorkflow: vi.fn(),
     };
     const cacheService = {
@@ -102,7 +102,7 @@ describe('Legacy cron workflow migration', () => {
       prisma as never,
       legacyCronJobMigrationService,
       workflowsService as never,
-      legacyWorkflowStepRunner as never,
+      workflowStepRunner as never,
       { create: vi.fn() } as never,
       { queueRun: vi.fn() } as never,
       { chatCompletion: vi.fn() } as never,
@@ -115,7 +115,7 @@ describe('Legacy cron workflow migration', () => {
     return {
       cacheService,
       creditsUtilsService,
-      legacyWorkflowStepRunner,
+      workflowStepRunner,
       logger,
       legacyCronJobMigrationService,
       prisma,
@@ -379,8 +379,8 @@ describe('Legacy cron workflow migration', () => {
     expect(prisma.cronJob.findFirst).not.toHaveBeenCalled();
   });
 
-  it('executes migrated workflow_execution rows through the legacy step runner', async () => {
-    const { legacyWorkflowStepRunner, prisma, service, workflowsService } =
+  it('executes migrated workflow_execution rows through the step runner', async () => {
+    const { workflowStepRunner, prisma, service, workflowsService } =
       createService();
     prisma.cronJob.findFirst.mockResolvedValue(
       buildCronJob({
@@ -407,7 +407,7 @@ describe('Legacy cron workflow migration', () => {
     });
 
     expect(result).toEqual({ workflowId: 'workflow-target' });
-    expect(legacyWorkflowStepRunner.executeWorkflow).toHaveBeenCalledWith(
+    expect(workflowStepRunner.executeWorkflow).toHaveBeenCalledWith(
       'workflow-target',
     );
   });

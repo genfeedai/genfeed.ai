@@ -58,7 +58,7 @@ export type VideoGenerationResolvedPrompt = Awaited<
   ReturnType<PromptsService['create']>
 >;
 export type VideoGenerationSaveDocumentsResult = Awaited<
-  ReturnType<SharedService['saveDocuments']>
+  ReturnType<SharedService['createMediaDocuments']>
 >;
 
 export interface ResolvedVideoGenerationRequest {

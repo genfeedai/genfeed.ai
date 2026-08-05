@@ -79,12 +79,14 @@ export class PublicVideosController {
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      match.brand = brand;
+      match.brandId = brand;
     }
 
-    // Filter by tag if provided (assuming tags are stored in metadata)
+    // Filter by related tag label.
     if (tag) {
-      match['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      match.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     const aggregate = { where: match, orderBy: { createdAt: -1 } };
@@ -111,7 +113,7 @@ export class PublicVideosController {
 
     this.logger.log(url, { params: { videoId } });
     const video = await this.videosService.findOne({
-      _id: videoId,
+      id: videoId,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
@@ -142,7 +144,7 @@ export class PublicVideosController {
     }
 
     const video = await this.videosService.findOne({
-      _id: videoId,
+      id: videoId,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
     });

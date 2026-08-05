@@ -3,7 +3,6 @@ import { type Ingredient } from '@genfeedai/prisma';
 
 export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly userId: string;
   declare readonly organizationId: string;
   declare readonly brandId: string | null;

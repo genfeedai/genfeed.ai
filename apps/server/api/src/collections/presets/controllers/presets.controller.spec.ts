@@ -20,14 +20,14 @@ describe('PresetsController', () => {
   } as unknown as User;
 
   const mockPreset = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     category: 'video',
     createdAt: new Date(),
     isActive: true,
     isDeleted: false,
     key: 'default',
     label: 'Default Preset',
-    organization: null,
+    organizationId: null,
     updatedAt: new Date(),
   };
 
@@ -78,28 +78,28 @@ describe('PresetsController', () => {
   describe('buildFindAllQuery', () => {
     it('should build query with organization filter', () => {
       const inputQuery = { category: 'video' };
-      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
       expect(Array.isArray(query)).toBe(false);
     });
 
     it('should default orderBy to { createdAt: -1 } when no sort provided', () => {
-      const query = controller.buildFindAllQuery(mockUser, {}, false);
+      const query = controller.buildFindAllQuery(mockUser, {});
 
       expect(query.orderBy).toEqual({ createdAt: -1 });
     });
 
     it('should filter by category', () => {
       const inputQuery = { category: 'image' };
-      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
     });
 
     it('should filter by active status', () => {
       const inputQuery = { isActive: true };
-      const query = controller.buildFindAllQuery(mockUser, inputQuery, false);
+      const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
       expect(query).toBeDefined();
     });
@@ -135,13 +135,13 @@ describe('PresetsController', () => {
 
       const enriched = controller.enrichCreateDto(createDto, regularUser);
 
-      expect(enriched.organization).toBeDefined();
+      expect(enriched.organizationId).toBeDefined();
     });
   });
 
   describe('canUserModifyEntity', () => {
     it('should allow superadmin to modify any preset', () => {
-      const entity = { organization: null };
+      const entity = { organizationId: null };
       const result = controller.canUserModifyEntity(mockUser, entity);
 
       expect(result).toBe(true);
@@ -156,7 +156,7 @@ describe('PresetsController', () => {
         },
       } as unknown as User;
 
-      const entity = { organization: null };
+      const entity = { organizationId: null };
       const result = controller.canUserModifyEntity(regularUser, entity);
 
       expect(result).toBe(false);
@@ -172,7 +172,7 @@ describe('PresetsController', () => {
       } as unknown as User;
 
       const entity = {
-        organization: '507f1f77bcf86cd799439012',
+        organizationId: '507f1f77bcf86cd799439012',
       };
       const result = controller.canUserModifyEntity(regularUser, entity);
 

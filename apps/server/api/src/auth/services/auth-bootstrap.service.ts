@@ -162,8 +162,8 @@ export class AuthBootstrapService {
     if (!isSuperAdmin) {
       await this.membersService.findOne({
         isDeleted: false,
-        organization: organizationId,
-        user: userId,
+        organizationId: organizationId,
+        userId: userId,
       });
     }
 
@@ -232,7 +232,7 @@ export class AuthBootstrapService {
         hasValidUserId
           ? this.usersService.findOne(
               {
-                _id: userId,
+                id: userId,
                 isDeleted: false,
               },
               [],
@@ -240,8 +240,7 @@ export class AuthBootstrapService {
           : null,
         hasValidOrganizationId
           ? this.organizationSettingsService.findOne({
-              isDeleted: false,
-              organization: organizationId,
+              organizationId: organizationId,
             })
           : null,
         organizationId

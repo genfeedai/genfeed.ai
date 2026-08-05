@@ -235,7 +235,6 @@ export class ContentPlansService extends BaseService<
 
     return this.normalizeDocument({
       ...doc,
-      _id: doc.mongoId ?? doc.id,
       brand: doc.brandId,
       config,
       createdBy: doc.createdById,

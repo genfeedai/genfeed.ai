@@ -1,8 +1,11 @@
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
 import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
+import { toMetadataCreateData } from '@api/collections/metadata/utils/metadata-create-data.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { MetadataExtension } from '@genfeedai/enums';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -22,6 +25,20 @@ export class MetadataService extends BaseService<
     super(prisma, 'metadata', logger);
   }
 
+  override async create(
+    createDto: CreateMetadataDto,
+    populate: (string | PopulateOption)[] | 'none' = [],
+  ): Promise<MetadataDocument> {
+    return super.create(
+      toMetadataCreateData({
+        ...(createDto as unknown as Record<string, unknown>),
+        extension: createDto.extension ?? MetadataExtension.JPEG,
+        label: createDto.label?.trim() || 'Generated media',
+      }) as CreateMetadataDto,
+      populate,
+    );
+  }
+
   async remove(ingredientId: string): Promise<MetadataDocument | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
@@ -29,15 +46,22 @@ export class MetadataService extends BaseService<
         this.logger.debug(`${url} started`, { ingredientId });
       }
 
-      const metadata = await this.prisma.metadata.findFirst({
-        where: { ingredientId, isDeleted: false },
+      const ingredient = await this.prisma.ingredient.findFirst({
+        select: { metadataId: true },
+        where: { id: ingredientId, isDeleted: false },
       });
 
-      if (metadata) {
-        await this.prisma.metadata.update({
-          where: { id: metadata.id },
+      if (ingredient?.metadataId) {
+        const metadata = await this.prisma.metadata.update({
           data: { isDeleted: true },
+          where: { id: ingredient.metadataId },
         });
+
+        if (this.logger) {
+          this.logger.debug(`${url} completed`, { ingredientId });
+        }
+
+        return this.normalizeDocument(metadata);
       }
 
       if (this.logger) {

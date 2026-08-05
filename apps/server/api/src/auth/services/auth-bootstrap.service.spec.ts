@@ -292,7 +292,7 @@ describe('AuthBootstrapService', () => {
       hasEverHadCredits: true,
       subscriptionTier: SubscriptionTier.PRO,
       toObject: () => ({
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         organization: organizationId,
       }),
     });
@@ -365,7 +365,7 @@ describe('AuthBootstrapService', () => {
       }),
       fleetCapabilities: null,
       settings: expect.objectContaining({
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         organization: organizationId,
       }),
       streak: {
@@ -397,7 +397,7 @@ describe('AuthBootstrapService', () => {
       settings: { locale: 'en' },
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      enabledModels: ['model_1'],
+      enabledModelIds: ['model_1'],
       hasEverHadCredits: false,
       organization: organizationId,
       subscriptionTier: SubscriptionTier.PRO,
@@ -440,7 +440,7 @@ describe('AuthBootstrapService', () => {
     );
     expect(result.settings).toEqual(
       expect.objectContaining({
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         organization: organizationId,
       }),
     );

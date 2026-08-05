@@ -18,35 +18,11 @@ import {
 
 export class CreateOutreachCampaignDto {
   @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Organization that owns this campaign',
-    required: false,
-  })
-  organization?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Brand this campaign is scoped to',
-    required: false,
-  })
-  brand?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'User that created this campaign',
-    required: false,
-  })
-  user?: string;
-
-  @IsEntityId()
   @ApiProperty({
     description: 'Credential to use for posting replies',
     required: true,
   })
-  credential!: string;
+  credentialId!: string;
 
   @IsString()
   @MaxLength(120)

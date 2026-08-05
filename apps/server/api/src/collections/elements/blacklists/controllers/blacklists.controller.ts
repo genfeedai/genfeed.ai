@@ -214,7 +214,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
 
     // Check ownership before update - don't populate 'user' field since blacklists don't have it
     const existing = await this.blacklistsService.findOne(
-      { _id: id },
+      { id: id },
       [], // No population needed for ownership check
     );
 

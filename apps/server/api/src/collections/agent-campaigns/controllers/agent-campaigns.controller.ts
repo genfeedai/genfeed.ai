@@ -84,7 +84,7 @@ export class AgentCampaignsController extends BaseCRUDController<
           ? await this.executionService.execute(
               id,
               organizationId,
-              await this.resolveMongoUserId(user),
+              await this.resolveDatabaseUserId(user),
             )
           : await this.executionService.pause(id, organizationId);
 
@@ -118,12 +118,12 @@ export class AgentCampaignsController extends BaseCRUDController<
 
     const organizationId = publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = organizationId;
+      match.organizationId = organizationId;
     }
 
     const brandId = publicMetadata.brand?.toString();
     if (brandId) {
-      match.brand = brandId;
+      match.brandId = brandId;
     }
 
     if (query.status) {
@@ -157,7 +157,7 @@ export class AgentCampaignsController extends BaseCRUDController<
     return Boolean(publicMetadata?.isSuperAdmin);
   }
 
-  private async resolveMongoUserId(user: User): Promise<string> {
+  private async resolveDatabaseUserId(user: User): Promise<string> {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (EntityIdUtil.isValid(metadataUserId)) {
       return metadataUserId;
@@ -171,18 +171,18 @@ export class AgentCampaignsController extends BaseCRUDController<
     }
 
     const dbUser = await this.usersService.findOne(
-      { _id: userId, isDeleted: false },
+      { id: userId, isDeleted: false },
       [],
     );
     if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }
 
-    const mongoUserId = String(dbUser.id);
-    if (!EntityIdUtil.isValid(mongoUserId)) {
+    const databaseUserId = String(dbUser.id);
+    if (!EntityIdUtil.isValid(databaseUserId)) {
       throw new UnauthorizedException('Invalid user account reference');
     }
 
-    return mongoUserId;
+    return databaseUserId;
   }
 }

@@ -71,7 +71,7 @@ describe('VideosRelationshipsController', () => {
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
     postsService: { findAll: vi.fn() },
-    sharedService: { saveDocuments: vi.fn() },
+    sharedService: { createMediaDocuments: vi.fn() },
     videosService: { findAll: vi.fn(), findOne: vi.fn() },
     websocketService: {
       publishBackgroundTaskUpdate: vi.fn(),
@@ -207,7 +207,7 @@ describe('VideosRelationshipsController', () => {
         docs: [mockVideo, { ...mockVideo, id: '507f1f77bcf86cd799439012' }],
         total: 2,
       });
-      mockServices.sharedService.saveDocuments.mockResolvedValue({
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: {
           id: '507f1f77bcf86cd799439015',
         },

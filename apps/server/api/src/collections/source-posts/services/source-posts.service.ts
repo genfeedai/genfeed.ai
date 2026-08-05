@@ -280,10 +280,10 @@ export class SourcePostsService {
     const sourcePost = await this.findOneScoped(id, context);
     const platform = normalizeCredentialPlatform(sourcePost.platform);
     const credential = await this.credentialsService.findOne({
-      brand: context.brandId,
+      brandId: context.brandId,
       isConnected: true,
       isDeleted: false,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
       platform,
     });
 

@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -71,8 +70,8 @@ export class VideosEffectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
-      user: publicMetadata.user,
+      id: videoId,
+      userId: publicMetadata.user,
     });
 
     if (!video) {
@@ -80,12 +79,12 @@ export class VideosEffectsController {
     }
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: video.brandId,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: video.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: video.organizationId,
-        parent: videoId,
+        organizationId: video.organizationId,
+        parentId: videoId,
         status: IngredientStatus.PROCESSING,
       });
 
@@ -151,8 +150,8 @@ export class VideosEffectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
-      user: publicMetadata.user,
+      id: videoId,
+      userId: publicMetadata.user,
     });
 
     if (!video) {
@@ -161,12 +160,12 @@ export class VideosEffectsController {
 
     try {
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand: video.brandId,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: video.brandId,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          organization: video.organizationId,
-          parent: videoId,
+          organizationId: video.organizationId,
+          parentId: videoId,
           status: IngredientStatus.PROCESSING,
         });
 

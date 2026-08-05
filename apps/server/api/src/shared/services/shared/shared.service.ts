@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
@@ -6,127 +7,57 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type {
+  InternalMediaDocumentsInput,
+  MediaDocumentsInput,
+} from '@api/shared/services/shared/media-documents.types';
 import {
   IngredientCategory,
-  IngredientExtension,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-const toId = (value: unknown): string | undefined => {
-  if (isEntityId(value)) {
-    return value.trim();
+interface MediaDocumentOwnership {
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+}
+
+const normalizeId = (
+  value: string | null | undefined,
+  field: string,
+): string | undefined => {
+  if (value === null || value === undefined || value.trim() === '') {
+    return undefined;
   }
-  return undefined;
+
+  if (!isEntityId(value)) {
+    throw new BadRequestException(`${field} must be a valid entity ID`);
+  }
+
+  return value.trim();
 };
 
-const toIds = (value: unknown): string[] =>
-  Array.isArray(value)
-    ? value.flatMap((item) => {
-        const id = toId(item);
+const normalizeIds = (values: string[] | undefined, field: string): string[] =>
+  Array.from(
+    new Set(
+      (values ?? []).flatMap((value, index) => {
+        const id = normalizeId(value, `${field}[${index}]`);
         return id ? [id] : [];
-      })
-    : [];
-
-const pickDefined = (
-  body: Record<string, unknown>,
-  keys: readonly string[],
-): Record<string, unknown> =>
-  Object.fromEntries(
-    keys.flatMap((key) => (body[key] === undefined ? [] : [[key, body[key]]])),
+      }),
+    ),
   );
 
-const METADATA_SCALAR_FIELDS = [
-  'assistant',
-  'description',
-  'duration',
-  'error',
-  'externalId',
-  'externalProvider',
-  'fps',
-  'hasAudio',
-  'height',
-  'model',
-  'promptTemplate',
-  'resolution',
-  'result',
-  'seed',
-  'size',
-  'style',
-  'templateVersion',
-  'width',
-] as const;
-
-const INGREDIENT_SCALAR_FIELDS = [
-  'assetLabel',
-  'campaign',
-  'campaignWeek',
-  'category',
-  'cfgScale',
-  'cdnUrl',
-  'cloneStatus',
-  'contentRating',
-  'externalVoiceCatalogId',
-  'externalVoiceId',
-  'fileSize',
-  'generationCompletedAt',
-  'generationError',
-  'generationProgress',
-  'generationSource',
-  'generationStage',
-  'generationStartedAt',
-  'generationSteps',
-  'groupId',
-  'groupIndex',
-  'isCloned',
-  'isDefault',
-  'isDefaultSelectable',
-  'isDeleted',
-  'isFeatured',
-  'isFavorite',
-  'isHighlighted',
-  'isMergeEnabled',
-  'isPublic',
-  'isVoiceActive',
-  'language',
-  'loraUsed',
-  'mimeType',
-  'negativePrompt',
-  'order',
-  'personaSlug',
-  'postedTo',
-  'promptTemplate',
-  'providerData',
-  'qualityFeedback',
-  'qualityScore',
-  'qualityStatus',
-  'reviewStatus',
-  'sampleAudioUrl',
-  's3Key',
-  'scope',
-  'status',
-  'templateVersion',
-  'transformations',
-  'version',
-  'voiceProvider',
-  'voiceSource',
-  'workflowUsed',
-] as const;
-
-const resolveMetadataLabel = (body: Record<string, unknown>): string => {
-  if (typeof body.label === 'string' && body.label.trim()) {
-    return body.label.trim();
+const resolveMetadataLabel = (input: MediaDocumentsInput): string => {
+  if (input.label?.trim()) {
+    return input.label.trim();
   }
 
-  const prompt =
-    typeof body.text === 'string'
-      ? body.text
-      : typeof body.generationPrompt === 'string'
-        ? body.generationPrompt
-        : '';
-  const normalizedPrompt = prompt.replace(/\s+/g, ' ').trim();
+  const normalizedPrompt = (input.generationPrompt ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   if (!normalizedPrompt) {
     return 'Generated media';
@@ -137,12 +68,24 @@ const resolveMetadataLabel = (body: Record<string, unknown>): string => {
     : normalizedPrompt;
 };
 
-const resolveMetadataExtension = (body: Record<string, unknown>): unknown => {
-  if (body.extension !== undefined) {
-    return body.extension;
+const resolveMetadataExtension = (
+  input: MediaDocumentsInput,
+): MetadataExtension => {
+  if (input.extension !== undefined) {
+    if (
+      Object.values(MetadataExtension).includes(
+        input.extension as MetadataExtension,
+      )
+    ) {
+      return input.extension as MetadataExtension;
+    }
+
+    throw new BadRequestException(
+      `extension must be a supported metadata extension`,
+    );
   }
 
-  switch (String(body.category ?? '').toLowerCase()) {
+  switch (String(input.category).toLowerCase()) {
     case IngredientCategory.MUSIC:
     case IngredientCategory.VOICE:
       return MetadataExtension.MP3;
@@ -153,61 +96,91 @@ const resolveMetadataExtension = (body: Record<string, unknown>): unknown => {
   }
 };
 
-const toMetadataCreateData = (
-  body: Record<string, unknown>,
+const buildMetadataCreateDto = (
+  input: MediaDocumentsInput,
   promptId: string | undefined,
-) => {
-  const tagIds = toIds(body.tags);
+  tagIds: string[],
+): CreateMetadataDto => ({
+  ...(input.assistant !== undefined ? { assistant: input.assistant } : {}),
+  ...(input.description !== undefined
+    ? { description: input.description }
+    : {}),
+  ...(input.duration !== undefined ? { duration: input.duration } : {}),
+  ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
+  ...(input.externalProvider !== undefined
+    ? { externalProvider: input.externalProvider }
+    : {}),
+  ...(input.hasAudio !== undefined ? { hasAudio: input.hasAudio } : {}),
+  ...(input.height !== undefined ? { height: input.height } : {}),
+  ...(input.model !== undefined ? { model: input.model } : {}),
+  ...(input.promptTemplate !== undefined
+    ? { promptTemplate: input.promptTemplate }
+    : {}),
+  ...(input.resolution !== undefined ? { resolution: input.resolution } : {}),
+  ...(input.result !== undefined ? { result: input.result } : {}),
+  ...(input.size !== undefined ? { size: input.size } : {}),
+  ...(input.style !== undefined ? { style: input.style } : {}),
+  ...(input.generationSeed !== undefined ? { seed: input.generationSeed } : {}),
+  ...(input.templateVersion !== undefined
+    ? { templateVersion: input.templateVersion }
+    : {}),
+  ...(input.width !== undefined ? { width: input.width } : {}),
+  extension: resolveMetadataExtension(input),
+  label: resolveMetadataLabel(input),
+  ...(promptId ? { promptId } : {}),
+  ...(tagIds.length > 0 ? { tags: tagIds } : {}),
+});
 
-  return {
-    ...pickDefined(body, METADATA_SCALAR_FIELDS),
-    extension: resolveMetadataExtension(body),
-    label: resolveMetadataLabel(body),
-    ...(promptId ? { promptId } : {}),
-    ...(tagIds.length > 0
-      ? { tags: { connect: tagIds.map((id) => ({ id })) } }
-      : {}),
-  };
-};
-
-const toIngredientCreateData = (
-  body: Record<string, unknown>,
-  relations: {
-    brandId: string | undefined;
-    metadataId: string;
-    organizationId: string | undefined;
-    parentId: string | undefined;
-    promptId: string | undefined;
-    userId: string | undefined;
-  },
-) => {
-  const sourceIds = Array.from(
-    new Set([...toIds(body.sources), ...toIds(body.references)]),
-  );
-  const tagIds = toIds(body.tags);
-
-  return {
-    ...pickDefined(body, INGREDIENT_SCALAR_FIELDS),
-    ...relations,
-    folderId: toId(body.folderId) ?? toId(body.folder),
-    trainingId: toId(body.trainingId) ?? toId(body.training),
-    personaId: toId(body.personaId) ?? toId(body.persona),
-    bookmarkId: toId(body.bookmarkId) ?? toId(body.bookmark),
-    agentRunId: toId(body.agentRunId) ?? toId(body.agentRun),
-    agentStrategyId: toId(body.agentStrategyId) ?? toId(body.agentStrategy),
-    modelUsed: body.modelUsed ?? body.model,
-    generationPrompt: body.generationPrompt ?? body.text,
-    generationSeed: body.generationSeed ?? body.seed,
-    isDefault: body.isDefault === true,
-    status: body.status ?? IngredientStatus.PROCESSING,
-    ...(sourceIds.length > 0
-      ? { sources: { connect: sourceIds.map((id) => ({ id })) } }
-      : {}),
-    ...(tagIds.length > 0
-      ? { tags: { connect: tagIds.map((id) => ({ id })) } }
-      : {}),
-  };
-};
+const buildIngredientCreateDto = (
+  input: MediaDocumentsInput,
+  ownership: MediaDocumentOwnership,
+  metadataId: string,
+  parentId: string | undefined,
+  promptId: string | undefined,
+  sourceIds: string[],
+  tagIds: string[],
+  version: number,
+): CreateIngredientDto => ({
+  ...(input.bookmarkId !== undefined ? { bookmarkId: input.bookmarkId } : {}),
+  ...(ownership.brandId ? { brandId: ownership.brandId } : {}),
+  category: input.category,
+  ...(input.generationPrompt !== undefined
+    ? { generationPrompt: input.generationPrompt }
+    : {}),
+  ...(input.generationSeed !== undefined
+    ? { generationSeed: input.generationSeed }
+    : {}),
+  ...(input.groupId !== undefined ? { groupId: input.groupId } : {}),
+  ...(input.groupIndex !== undefined ? { groupIndex: input.groupIndex } : {}),
+  isDefault: input.isDefault === true,
+  ...(input.isMergeEnabled !== undefined
+    ? { isMergeEnabled: input.isMergeEnabled }
+    : {}),
+  ...(input.language !== undefined ? { language: input.language } : {}),
+  metadataId,
+  ...(input.model !== undefined ? { modelUsed: input.model } : {}),
+  ...(input.negativePrompt !== undefined
+    ? { negativePrompt: input.negativePrompt }
+    : {}),
+  ...(input.order !== undefined ? { order: input.order } : {}),
+  ...(ownership.organizationId
+    ? { organizationId: ownership.organizationId }
+    : {}),
+  ...(parentId ? { parentId } : {}),
+  ...(promptId ? { promptId } : {}),
+  ...(input.scope !== undefined ? { scope: input.scope } : {}),
+  ...(sourceIds.length > 0 ? { sources: sourceIds } : {}),
+  status: input.status ?? IngredientStatus.PROCESSING,
+  ...(tagIds.length > 0 ? { tags: tagIds } : {}),
+  ...(input.transformations !== undefined
+    ? { transformations: input.transformations }
+    : {}),
+  ...(ownership.userId ? { userId: ownership.userId } : {}),
+  version,
+  ...(input.voiceSource !== undefined
+    ? { voiceSource: input.voiceSource }
+    : {}),
+});
 
 @Injectable()
 export class SharedService {
@@ -225,84 +198,50 @@ export class SharedService {
     return this.moduleRef.get(PromptsService, { strict: false });
   }
 
-  public async saveDocuments(user: User, body: Record<string, unknown>) {
+  public async createMediaDocuments(user: User, input: MediaDocumentsInput) {
     const publicMetadata = getPublicMetadata(user);
-    const promptId = toId(body.promptId) ?? toId(body.prompt);
-    const parentId = toId(body.parentId) ?? toId(body.parent);
-    const brandId =
-      toId(body.brandId) || toId(body.brand) || publicMetadata.brand;
-    const organizationId =
-      toId(body.organizationId) ||
-      toId(body.organization) ||
-      publicMetadata.organization;
-    const userId = toId(body.userId) || toId(body.user) || publicMetadata.user;
-
-    const metadataData = (await this.metadataService.create(
-      toMetadataCreateData(body, promptId) as CreateMetadataDto,
-    )) as { id: string };
-
-    let version = 1;
-    if (parentId) {
-      const parentMedia = await this.ingredientsService.findOne({
-        _id: parentId,
-      });
-
-      if (parentMedia) {
-        version = (parentMedia.version ?? 1) + 1;
-      }
-    }
-
-    let ingredientData: IngredientDocument;
-    try {
-      ingredientData = (await this.ingredientsService.create(
-        toIngredientCreateData(
-          { ...body, version },
-          {
-            brandId,
-            metadataId: metadataData.id,
-            organizationId,
-            parentId,
-            promptId,
-            userId,
-          },
-        ) as Parameters<IngredientsService['create']>[0],
-      )) as unknown as IngredientDocument;
-    } catch (error: unknown) {
-      await this.metadataService
-        .patch(metadataData.id, { isDeleted: true })
-        .catch(() => undefined);
-      throw error;
-    }
-
-    return { ingredientData, metadataData };
+    return this.persistMediaDocuments(input, {
+      brandId:
+        normalizeId(input.brandId, 'brandId') ??
+        normalizeId(publicMetadata.brand, 'publicMetadata.brand'),
+      organizationId:
+        normalizeId(input.organizationId, 'organizationId') ??
+        normalizeId(publicMetadata.organization, 'publicMetadata.organization'),
+      userId:
+        normalizeId(input.userId, 'userId') ??
+        normalizeId(publicMetadata.user, 'publicMetadata.user'),
+    });
   }
 
   /**
-   * Save documents with explicit IDs (for internal/orchestration use)
-   * Use this when you don't have access to the legacy auth provider User object
+   * Creates media documents for internal callers with explicit ownership IDs.
    */
-  public async saveDocumentsInternal(body: {
-    brand: string;
-    category: IngredientCategory;
-    extension: IngredientExtension | MetadataExtension;
-    organization: string;
-    user: string;
-    status?: IngredientStatus;
-    prompt?: string;
-    sources?: string[];
-    parent?: string;
-    [key: string]: unknown;
-  }) {
-    const promptId = toId(body.promptId) ?? toId(body.prompt);
-    const parentId = toId(body.parentId) ?? toId(body.parent);
-    const metadataData = (await this.metadataService.create(
-      toMetadataCreateData(body, promptId) as unknown as CreateMetadataDto,
-    )) as { id: string };
+  public async createMediaDocumentsInternal(
+    input: InternalMediaDocumentsInput,
+  ) {
+    return this.persistMediaDocuments(input, {
+      brandId: normalizeId(input.brandId, 'brandId'),
+      organizationId: normalizeId(input.organizationId, 'organizationId'),
+      userId: normalizeId(input.userId, 'userId'),
+    });
+  }
+
+  private async persistMediaDocuments(
+    input: MediaDocumentsInput,
+    ownership: MediaDocumentOwnership,
+  ) {
+    const promptId = normalizeId(input.promptId, 'promptId');
+    const parentId = normalizeId(input.parentId, 'parentId');
+    const sourceIds = normalizeIds(input.sourceIds, 'sourceIds');
+    const tagIds = normalizeIds(input.tagIds, 'tagIds');
+    const metadataData = await this.metadataService.create(
+      buildMetadataCreateDto(input, promptId, tagIds),
+    );
 
     let version = 1;
     if (parentId) {
       const parentMedia = await this.ingredientsService.findOne({
-        _id: parentId,
+        id: parentId,
       });
       if (parentMedia) {
         version = (parentMedia.version ?? 1) + 1;
@@ -311,19 +250,18 @@ export class SharedService {
 
     let ingredientData: IngredientDocument;
     try {
-      ingredientData = (await this.ingredientsService.create(
-        toIngredientCreateData(
-          { ...body, version },
-          {
-            brandId: toId(body.brand),
-            metadataId: metadataData.id,
-            organizationId: toId(body.organization),
-            parentId,
-            promptId,
-            userId: toId(body.user),
-          },
-        ) as Parameters<IngredientsService['create']>[0],
-      )) as unknown as IngredientDocument;
+      ingredientData = await this.ingredientsService.create(
+        buildIngredientCreateDto(
+          input,
+          ownership,
+          metadataData.id,
+          parentId,
+          promptId,
+          sourceIds,
+          tagIds,
+          version,
+        ),
+      );
     } catch (error: unknown) {
       await this.metadataService
         .patch(metadataData.id, { isDeleted: true })
@@ -342,7 +280,7 @@ export class SharedService {
     // TEST ALL CASES BEFORE MAKING IT MANDATORY
     promptId?: string,
   ) {
-    const validPromptId = toId(promptId);
+    const validPromptId = normalizeId(promptId, 'promptId');
 
     await this.metadataService.patch(metadataData.id, {
       promptId: validPromptId,

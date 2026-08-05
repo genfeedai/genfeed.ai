@@ -37,14 +37,13 @@ describe('IngredientsService', () => {
   let prisma: PrismaService;
 
   const mockIngredient = {
-    _id: 'test-id',
-    brand: 'test-object-id',
-    id: 'test-id',
+    brandId: '507f1f77bcf86cd799439013',
+    id: '507f1f77bcf86cd799439011',
     isDeleted: false,
-    metadata: 'metadata-id',
-    organization: 'test-object-id',
+    metadataId: '507f1f77bcf86cd799439014',
+    organizationId: '507f1f77bcf86cd799439012',
     title: 'Test Ingredient',
-    user: 'test-object-id',
+    userId: '507f1f77bcf86cd799439015',
   };
 
   beforeEach(async () => {
@@ -86,8 +85,9 @@ describe('IngredientsService', () => {
   describe('create', () => {
     it('should create an ingredient successfully', async () => {
       const createDto: CreateIngredientDto = {
-        brand: 'test-object-id',
-        status: 'pending',
+        brandId: '507f1f77bcf86cd799439013',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.PROCESSING,
       };
 
       const result = await service.create(createDto);
@@ -98,8 +98,9 @@ describe('IngredientsService', () => {
 
     it('should handle creation errors', async () => {
       const createDto: CreateIngredientDto = {
-        brand: 'test-object-id',
-        status: 'pending',
+        brandId: '507f1f77bcf86cd799439013',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.PROCESSING,
       };
 
       const error = new Error('Creation failed');
@@ -109,16 +110,28 @@ describe('IngredientsService', () => {
         'Creation failed',
       );
     });
-  });
 
-  describe('findLatest', () => {
-    it('should find latest ingredient for a user', async () => {
-      const params = { user: 'user-id' };
+    it('writes canonical provenance and source relations', async () => {
+      const sourceId = '507f1f77bcf86cd799439021';
 
-      const result = await service.findLatest(params);
+      await service.create({
+        category: IngredientCategory.IMAGE,
+        generationPrompt: 'A boxer in a dark arena',
+        generationSeed: 42,
+        modelUsed: 'black-forest-labs/flux-schnell',
+        sources: [sourceId],
+      });
 
-      expect(ingredientDelegate.findFirst).toHaveBeenCalled();
-      expect(result).toBeDefined();
+      expect(ingredientDelegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            generationPrompt: 'A boxer in a dark arena',
+            generationSeed: 42,
+            modelUsed: 'black-forest-labs/flux-schnell',
+            sources: { connect: [{ id: sourceId }] },
+          }),
+        }),
+      );
     });
   });
 

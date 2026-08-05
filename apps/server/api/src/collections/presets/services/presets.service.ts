@@ -4,10 +4,39 @@ import { type PresetDocument } from '@api/collections/presets/schemas/preset.sch
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
+
+const PRESET_CREATE_SCALAR_FIELDS = [
+  'brandId',
+  'category',
+  'isActive',
+  'organizationId',
+] as const;
+
+const PRESET_UPDATE_SCALAR_FIELDS = [
+  ...PRESET_CREATE_SCALAR_FIELDS,
+  'isDeleted',
+  'isFavorite',
+] as const;
+
+const PRESET_CONFIG_FIELDS = [
+  'blacklists',
+  'camera',
+  'description',
+  'ingredientId',
+  'key',
+  'label',
+  'model',
+  'mood',
+  'platform',
+  'prompt',
+  'scene',
+  'style',
+] as const;
 
 @Injectable()
 export class PresetsService extends BaseService<
@@ -51,8 +80,13 @@ export class PresetsService extends BaseService<
       );
     }
 
-    // Use base service create method
-    return super.create(createDto, populate);
+    return super.create(
+      {
+        ...pickDefinedFields(createDto, PRESET_CREATE_SCALAR_FIELDS),
+        config: pickDefinedFields(createDto, PRESET_CONFIG_FIELDS),
+      } as unknown as CreatePresetDto,
+      populate,
+    );
   }
 
   /**
@@ -133,7 +167,32 @@ export class PresetsService extends BaseService<
       }
     }
 
-    // Use base service patch method
-    return super.patch(id, updateDto, populate);
+    const configPatch = pickDefinedFields(updateDto, PRESET_CONFIG_FIELDS);
+    const hasConfigPatch = Object.keys(configPatch).length > 0;
+    let config: Record<string, unknown> | undefined;
+
+    if (hasConfigPatch) {
+      const existing = await this.prisma.preset.findUnique({ where: { id } });
+      if (!existing) {
+        throw new NotFoundException('Preset', id);
+      }
+
+      const storedConfig =
+        existing.config &&
+        typeof existing.config === 'object' &&
+        !Array.isArray(existing.config)
+          ? (existing.config as Record<string, unknown>)
+          : {};
+      config = { ...storedConfig, ...configPatch };
+    }
+
+    return super.patch(
+      id,
+      {
+        ...pickDefinedFields(updateDto, PRESET_UPDATE_SCALAR_FIELDS),
+        ...(config ? { config } : {}),
+      } as unknown as Partial<UpdatePresetDto>,
+      populate,
+    );
   }
 }

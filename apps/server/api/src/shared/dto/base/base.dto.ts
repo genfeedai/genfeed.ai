@@ -3,30 +3,18 @@ import { AssetScope } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export abstract class BaseCreateDto {
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'The unique identifier of the document',
-    required: false,
-  })
-  readonly _id?: string;
-}
+export abstract class BaseCreateDto {}
 
 export abstract class OrganizationalCreateDto extends BaseCreateDto {
   @IsEntityId()
-  @ApiProperty({
-    description: 'The user ID who created this resource',
-    required: true,
-  })
-  readonly user!: string;
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly userId?: string;
 
   @IsEntityId()
-  @ApiProperty({
-    description: 'The organization ID that owns this resource',
-    required: true,
-  })
-  readonly organization!: string;
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly organizationId?: string;
 }
 
 export abstract class StatusCreateDto extends OrganizationalCreateDto {
@@ -69,32 +57,18 @@ export abstract class LabeledCreateDto extends OrganizationalCreateDto {
   readonly description?: string;
 }
 
-export abstract class BaseUpdateDto {
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'The unique identifier of the document',
-    required: false,
-  })
-  readonly _id?: string;
-}
+export abstract class BaseUpdateDto {}
 
 export abstract class OrganizationalUpdateDto extends BaseUpdateDto {
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({
-    description: 'The user ID who owns this resource',
-    required: false,
-  })
-  readonly user?: string;
+  @ApiProperty({ required: false })
+  readonly userId?: string;
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({
-    description: 'The organization ID that owns this resource',
-    required: false,
-  })
-  readonly organization?: string;
+  @ApiProperty({ required: false })
+  readonly organizationId?: string;
 }
 
 export abstract class StatusUpdateDto extends OrganizationalUpdateDto {

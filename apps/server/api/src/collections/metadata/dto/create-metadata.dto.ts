@@ -25,7 +25,7 @@ export class CreateMetadataDto {
     description: 'Required if model is not provided',
     required: false,
   })
-  readonly assistant!: string;
+  readonly assistant?: string;
 
   @Transform(({ value }) =>
     value === '' || value === undefined ? null : value,
@@ -44,7 +44,7 @@ export class CreateMetadataDto {
   @IsString()
   @IsOptional()
   @ApiProperty({ default: '', required: false })
-  readonly result!: string;
+  readonly result?: string;
 
   @IsString()
   @IsOptional()
@@ -62,7 +62,7 @@ export class CreateMetadataDto {
     enumName: 'MetadataStyle',
     required: false,
   })
-  readonly style?: MetadataStyle | null;
+  readonly style?: string | null;
 
   @IsString()
   @IsOptional()
@@ -93,6 +93,10 @@ export class CreateMetadataDto {
   @IsOptional()
   readonly externalId?: string;
 
+  @IsString()
+  @IsOptional()
+  readonly externalProvider?: string;
+
   @IsNumber()
   @IsOptional()
   readonly width?: number;
@@ -112,6 +116,26 @@ export class CreateMetadataDto {
   @IsBoolean()
   @IsOptional()
   readonly hasAudio?: boolean;
+
+  @IsNumber()
+  @IsOptional()
+  readonly fps?: number;
+
+  @IsString()
+  @IsOptional()
+  readonly resolution?: string;
+
+  @IsNumber()
+  @IsOptional()
+  readonly seed?: number;
+
+  @IsString()
+  @IsOptional()
+  readonly promptTemplate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  readonly templateVersion?: number;
 
   @IsArray()
   @IsString({ each: true })

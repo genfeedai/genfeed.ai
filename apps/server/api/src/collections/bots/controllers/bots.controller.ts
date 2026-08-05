@@ -26,16 +26,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
-interface MutableEntityReference {
-  id?: string;
-}
-
-interface MutableEntity {
-  brand?: MutableEntityReference | string;
-  organization?: MutableEntityReference | string;
-  user?: MutableEntityReference | string;
-}
-
 @AutoSwagger()
 @Controller('bots')
 export class BotsController extends BaseCRUDController<
@@ -64,27 +54,31 @@ export class BotsController extends BaseCRUDController<
 
     const scope =
       query.scope ||
-      (query.brand ? 'brand' : query.organization ? 'organization' : 'user');
+      (query.brandId
+        ? 'brand'
+        : query.organizationId
+          ? 'organization'
+          : 'user');
 
     if (scope === 'organization') {
       const organizationId =
-        query.organization || publicMetadata.organization?.toString();
+        query.organizationId || publicMetadata.organization?.toString();
       if (organizationId) {
-        match.organization = organizationId;
+        match.organizationId = organizationId;
       }
     }
 
     if (scope === 'brand') {
-      const brandId = query.brand || publicMetadata.brand?.toString();
+      const brandId = query.brandId || publicMetadata.brand?.toString();
       if (brandId) {
-        match.brand = brandId;
+        match.brandId = brandId;
       }
     }
 
     if (scope === 'user') {
-      const userId = query.user || publicMetadata.user?.toString();
+      const userId = query.userId || publicMetadata.user?.toString();
       if (userId) {
-        match.user = userId;
+        match.userId = userId;
       }
     }
 
@@ -111,44 +105,24 @@ export class BotsController extends BaseCRUDController<
     };
   }
 
-  public canUserModifyEntity(user: User, entity: unknown): boolean {
+  public canUserModifyEntity(user: User, entity: BotDocument): boolean {
     const publicMetadata = getPublicMetadata(user);
-    const mutableEntity = entity as MutableEntity;
 
-    const entityUserId =
-      mutableEntity.user &&
-      typeof mutableEntity.user === 'object' &&
-      '_id' in mutableEntity.user
-        ? mutableEntity.user.id?.toString()
-        : mutableEntity.user?.toString();
-    if (entityUserId && entityUserId === publicMetadata.user) {
+    if (entity.userId === publicMetadata.user) {
       return true;
     }
 
-    const entityBrandId =
-      mutableEntity.brand &&
-      typeof mutableEntity.brand === 'object' &&
-      '_id' in mutableEntity.brand
-        ? mutableEntity.brand.id?.toString()
-        : mutableEntity.brand?.toString();
     if (
-      entityBrandId &&
+      entity.brandId &&
       publicMetadata.brand &&
-      entityBrandId === publicMetadata.brand
+      entity.brandId === publicMetadata.brand
     ) {
       return true;
     }
 
-    const entityOrganizationId =
-      mutableEntity.organization &&
-      typeof mutableEntity.organization === 'object' &&
-      '_id' in mutableEntity.organization
-        ? mutableEntity.organization.id?.toString()
-        : mutableEntity.organization?.toString();
     if (
-      entityOrganizationId &&
       publicMetadata.organization &&
-      entityOrganizationId === publicMetadata.organization
+      entity.organizationId === publicMetadata.organization
     ) {
       return true;
     }
@@ -227,7 +201,7 @@ export class BotsController extends BaseCRUDController<
   ): Promise<BotDocument> {
     const bot = await this.botsService.findOne(
       {
-        _id: id,
+        id: id,
         isDeleted: false,
       },
       this.getPopulateFields(),

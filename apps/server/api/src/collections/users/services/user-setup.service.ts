@@ -157,7 +157,7 @@ export class UserSetupService {
     const membership = await this.membersService.findOne({
       isActive: true,
       isDeleted: false,
-      user: userId,
+      userId: userId,
     });
 
     // Scalar FK: the legacy `organization` alias is undefined unless the query
@@ -168,7 +168,7 @@ export class UserSetupService {
     }
 
     return this.organizationsService.findOne({
-      _id: membership.organizationId,
+      id: membership.organizationId,
       isDeleted: false,
     });
   }
@@ -196,7 +196,7 @@ export class UserSetupService {
     // source of truth are keyed by the `user` ownership field.
     const existing = await this.organizationsService.findOne({
       isDeleted: false,
-      user: userId,
+      userId: userId,
     });
 
     if (existing) {
@@ -288,8 +288,7 @@ export class UserSetupService {
     organizationId: string,
   ): Promise<OrganizationSettingDocument> {
     const existing = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (existing) {
@@ -305,7 +304,7 @@ export class UserSetupService {
 
     const orgSettings = await this.organizationSettingsService.create({
       brandsLimit: 0,
-      enabledModels: enabledModelIds,
+      enabledModelIds,
       isAutoEvaluateEnabled: false,
       isFastlaneEnabled: false,
       isGenerateArticlesEnabled: false,
@@ -324,9 +323,7 @@ export class UserSetupService {
       organizationId,
       seatsLimit: DEFAULT_FREE_SEATS,
       timezone: 'UTC',
-    } as unknown as Parameters<
-      typeof this.organizationSettingsService.create
-    >[0]);
+    });
 
     this.logger.log(
       `Created organization settings ${orgSettings.id} with ${enabledModelIds.length} enabled models`,
@@ -341,7 +338,7 @@ export class UserSetupService {
   ): Promise<SettingDocument> {
     const existing = await this.settingsService.findOne({
       isDeleted: false,
-      user: userId,
+      userId: userId,
     });
 
     if (existing) {
@@ -374,7 +371,7 @@ export class UserSetupService {
   ): Promise<BrandDocument> {
     const existing = await this.brandsService.findOne({
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (existing) {
@@ -414,8 +411,8 @@ export class UserSetupService {
   ): Promise<MemberDocument> {
     const existing = await this.membersService.findOne({
       isDeleted: false,
-      organization: organizationId,
-      user: userId,
+      organizationId: organizationId,
+      userId: userId,
     });
 
     if (existing) {

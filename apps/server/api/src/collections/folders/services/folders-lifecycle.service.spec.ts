@@ -210,7 +210,7 @@ describe('Library folder lifecycle persistence', () => {
       query: {},
     } as Request;
     const createDto: CreateFolderDto = {
-      brand: brandId,
+      brandId,
       description: 'Campaign assets',
       label: 'Campaign',
     };

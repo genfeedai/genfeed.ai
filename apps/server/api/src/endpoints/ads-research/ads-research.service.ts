@@ -751,9 +751,9 @@ export class AdsResearchService {
     }
 
     const credential = await this.credentialsService.findOne({
-      _id: params.credentialId,
+      id: params.credentialId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!credential?.accessToken) {

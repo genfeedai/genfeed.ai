@@ -27,7 +27,7 @@ import {
   LegacyCronJobMigrationService,
 } from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
 import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -92,7 +92,7 @@ export class CronJobsService {
     private readonly prisma: PrismaService,
     private readonly legacyCronJobMigrationService: LegacyCronJobMigrationService,
     private readonly workflowsService: WorkflowsService,
-    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
+    private readonly workflowStepRunner: WorkflowStepRunnerService,
     private readonly agentRunsService: AgentRunsService,
     private readonly agentRunQueueService: AgentRunQueueService,
     private readonly openRouterService: OpenRouterService,
@@ -502,7 +502,7 @@ export class CronJobsService {
           throw new Error('Workflow not found for this tenant');
         }
 
-        await this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
+        await this.workflowStepRunner.executeWorkflow(workflowId);
         return { workflowId };
       }
 
@@ -551,10 +551,10 @@ export class CronJobsService {
         ? `Cron: ${normalizedStrategy.label}`
         : `Cron Agent Job: ${job.name}`,
       objective,
-      organization: orgId,
-      strategy: normalizedStrategy?.id,
+      organizationId: orgId,
+      strategyId: normalizedStrategy?.id,
       trigger: AgentExecutionTrigger.CRON,
-      user: userId,
+      userId: userId,
     });
 
     await this.agentRunQueueService.queueRun({

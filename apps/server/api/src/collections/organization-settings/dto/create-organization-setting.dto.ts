@@ -180,7 +180,7 @@ export class CreateOrganizationSettingDto {
 
   @IsEntityId()
   @ApiProperty({ required: true })
-  readonly organization!: string;
+  readonly organizationId!: string;
 
   @IsBoolean()
   @ApiProperty({ default: false, required: true })
@@ -367,7 +367,7 @@ export class CreateOrganizationSettingDto {
     required: false,
     type: [String],
   })
-  readonly enabledModels?: string[];
+  readonly enabledModelIds?: string[];
 
   @IsString()
   @IsOptional()
