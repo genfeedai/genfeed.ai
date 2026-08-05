@@ -73,7 +73,7 @@ export class CampaignQueueService implements OnModuleInit {
   async triggerProcessing(
     campaignId: string,
     organizationId: string,
-  ): Promise<string> {
+  ): Promise<string | undefined> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
@@ -88,7 +88,7 @@ export class CampaignQueueService implements OnModuleInit {
         organizationId,
       });
 
-      return job.id!;
+      return job.id;
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
       throw error;
@@ -153,7 +153,7 @@ export class CampaignQueueService implements OnModuleInit {
 
       return campaigns.map((campaign) => ({
         id: campaign.id.toString(),
-        organizationId: campaign.organization.toString(),
+        organizationId: campaign.organizationId,
       }));
     } catch (error: unknown) {
       this.logger.error(

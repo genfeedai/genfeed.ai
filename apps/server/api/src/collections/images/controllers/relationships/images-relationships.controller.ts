@@ -39,7 +39,7 @@ export class ImagesRelationshipsController {
     const aggregate = {
       where: {
         isDeleted,
-        parent: imageId,
+        parentId: imageId,
       },
       orderBy: handleQuerySort(query.sort),
     };

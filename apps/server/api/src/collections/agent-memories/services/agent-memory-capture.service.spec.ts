@@ -33,7 +33,7 @@ describe('AgentMemoryCaptureService', () => {
   const memoryId = 'test-object-id';
   const contextId = 'test-object-id';
 
-  const mockMemory = { _id: memoryId };
+  const mockMemory = { id: memoryId };
 
   beforeEach(async () => {
     agentMemoriesService = {
@@ -41,7 +41,7 @@ describe('AgentMemoryCaptureService', () => {
     };
     contextsService = {
       addEntry: vi.fn().mockResolvedValue(undefined),
-      create: vi.fn().mockResolvedValue({ _id: contextId }),
+      create: vi.fn().mockResolvedValue({ id: contextId }),
       findAll: vi.fn().mockResolvedValue([]),
     };
     brandMemoryService = {
@@ -157,14 +157,18 @@ describe('AgentMemoryCaptureService', () => {
       });
 
       expect(contextsService.create).toHaveBeenCalled();
-      expect(contextsService.addEntry).toHaveBeenCalled();
+      expect(contextsService.addEntry).toHaveBeenCalledWith(
+        contextId,
+        expect.any(Object),
+        orgId,
+      );
     });
 
     it('reuses existing context base when one already exists for the brand', async () => {
       const existingContext = {
         id: contextId,
         isDeleted: false,
-        sourceBrand: brandId,
+        sourceBrandId: brandId,
       };
       contextsService.findAll.mockResolvedValue([existingContext]);
 

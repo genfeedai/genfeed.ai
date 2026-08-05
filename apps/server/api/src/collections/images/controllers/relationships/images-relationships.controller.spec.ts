@@ -11,7 +11,7 @@ describe('ImagesRelationshipsController', () => {
   let imagesService: ImagesService;
 
   const mockImage = {
-    _id: '507f1f77bcf86cd799439014',
+    id: '507f1f77bcf86cd799439014',
     category: 'image',
   };
 
@@ -74,7 +74,7 @@ describe('ImagesRelationshipsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should filter by parent ObjectId in aggregate pipeline', async () => {
+    it('should filter by canonical parentId in aggregate pipeline', async () => {
       await controller.findChildren(
         mockRequest,
         '507f1f77bcf86cd799439014',
@@ -84,7 +84,8 @@ describe('ImagesRelationshipsController', () => {
       const callArgs = (imagesService.findAll as ReturnType<typeof vi.fn>).mock
         .calls[0];
       const query = callArgs[0] as { where: Record<string, unknown> };
-      expect(query.where.parent).toEqual('507f1f77bcf86cd799439014');
+      expect(query.where.parentId).toEqual('507f1f77bcf86cd799439014');
+      expect(query.where).not.toHaveProperty('parent');
     });
 
     it('should include isDeleted filter in pipeline', async () => {

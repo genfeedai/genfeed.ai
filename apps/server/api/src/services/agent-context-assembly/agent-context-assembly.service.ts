@@ -77,7 +77,7 @@ export class AgentContextAssemblyService {
           organizationId: organizationId,
         };
         if (params.brandId) {
-          filter._id = params.brandId;
+          filter.id = params.brandId;
         } else {
           filter.isSelected = true;
         }

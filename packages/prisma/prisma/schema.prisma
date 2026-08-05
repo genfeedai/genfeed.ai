@@ -3527,6 +3527,8 @@ model CronRun {
 model Task {
   id                     String       @id @default(cuid())
   mongoId                String?      @unique
+  identifier             String?
+  taskNumber             Int?
   organizationId         String
   organization           Organization @relation(fields: [organizationId], references: [id])
   brandId                String?
@@ -3571,6 +3573,7 @@ model Task {
   checkedOutAt    DateTime?
 
   @@index([organizationId, checkoutAgentId])
+  @@unique([organizationId, identifier])
   @@map("tasks")
 }
 

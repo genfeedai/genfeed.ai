@@ -35,7 +35,7 @@ export class ContentIntelligenceService extends BaseService<
     };
 
     const creatorData = {
-      createdBy: userId,
+      createdById: userId,
       displayName: dto.displayName,
       handle: dto.handle,
       niche: dto.niche,

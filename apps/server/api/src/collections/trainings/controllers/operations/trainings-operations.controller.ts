@@ -192,7 +192,7 @@ export class TrainingsOperationsController {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
-        metadata: { in: metadataIds },
+        metadataId: { in: metadataIds },
       };
 
       const data = await this.ingredientsService.findAll(

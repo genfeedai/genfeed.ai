@@ -39,7 +39,7 @@ export class PlaybookBuilderService extends BaseService<
     dto: CreatePlaybookDto,
   ): Promise<PatternPlaybookDocument> {
     const playbookData = {
-      createdBy: userId,
+      createdById: userId,
       description: dto.description,
       insights: {
         benchmarks: {},

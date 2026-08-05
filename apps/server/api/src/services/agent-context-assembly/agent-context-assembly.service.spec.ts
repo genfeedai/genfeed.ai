@@ -22,7 +22,6 @@ function createCacheService() {
 
 function createCompleteBrand() {
   return {
-    _id: 'brand-1',
     agentConfig: {
       defaultModel: 'anthropic/claude-sonnet-4-5-20250929',
       persona: 'Prefer decisive operator copy.',
@@ -47,7 +46,6 @@ function createCompleteBrand() {
     fontFamily: 'Inter',
     id: 'brand-1',
     label: 'Acme',
-    organization: 'org-1',
     organizationId: 'org-1',
     primaryColor: '#ff5500',
     referenceImages: [
@@ -142,9 +140,9 @@ describe('AgentContextAssemblyService', () => {
     });
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      _id: 'brand-1',
+      id: 'brand-1',
       isDeleted: false,
-      organization: 'org-1',
+      organizationId: 'org-1',
     });
     expect(context).toMatchObject({
       brandDescription: 'An operator-first content OS.',
@@ -278,12 +276,10 @@ describe('AgentContextAssemblyService', () => {
   it('reports partial readiness without hiding non-color visual fields', async () => {
     brandsService.resolveBrandKitAssets.mockResolvedValue({ references: [] });
     brandsService.findOne.mockResolvedValue({
-      _id: 'brand-partial',
       agentConfig: {},
       fontFamily: 'Inter',
       id: 'brand-partial',
       label: 'Partial',
-      organization: 'org-1',
       organizationId: 'org-1',
       primaryColor: '#000000',
       referenceImages: [],
