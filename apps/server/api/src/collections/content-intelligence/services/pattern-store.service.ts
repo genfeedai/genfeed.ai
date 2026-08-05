@@ -36,11 +36,30 @@ export interface CreatePatternDto {
   sourcePostDate?: Date;
 }
 
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function pickDefined(values: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(values).filter(([, value]) => value !== undefined),
+  );
+}
+
+function buildDataFilter(
+  path: string[],
+  operator: Record<string, unknown>,
+): Prisma.ContentPatternWhereInput {
+  return { data: { path, ...operator } as Prisma.JsonFilter };
+}
+
 @Injectable()
 export class PatternStoreService extends BaseService<
   ContentPatternDocument,
-  CreatePatternDto,
-  Partial<CreatePatternDto>,
+  Prisma.ContentPatternUncheckedCreateInput,
+  Prisma.ContentPatternUncheckedUpdateInput,
   Prisma.ContentPatternWhereInput
 > {
   constructor(
@@ -50,12 +69,29 @@ export class PatternStoreService extends BaseService<
     super(prisma, 'contentPattern', logger);
   }
 
+  protected override normalizeDocument(
+    document: unknown,
+  ): ContentPatternDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const data = readJsonRecord(record.data);
+    return { ...data, ...record, data } as ContentPatternDocument;
+  }
+
   storePattern(dto: CreatePatternDto): Promise<ContentPatternDocument> {
+    const { organizationId, sourceCreatorId, sourcePostDate, ...domainData } =
+      dto;
     return this.create({
-      ...dto,
-      relevanceWeight: 1.0,
-      usageCount: 0,
-    } as CreatePatternDto);
+      data: {
+        ...pickDefined(domainData),
+        ...(sourcePostDate
+          ? { sourcePostDate: sourcePostDate.toISOString() }
+          : {}),
+        relevanceWeight: 1,
+        usageCount: 0,
+      } as Prisma.InputJsonObject,
+      organizationId,
+      sourceCreatorId,
+    });
   }
 
   storeBulkPatterns(
@@ -76,52 +112,79 @@ export class PatternStoreService extends BaseService<
       minEngagementRate?: number;
     },
   ): Promise<ContentPatternDocument[]> {
-    const where: Record<string, unknown> = scopedWhere(organizationId, {});
+    const filtersAnd: Prisma.ContentPatternWhereInput[] = [];
 
     if (filters?.platform) {
-      where.platform = filters.platform;
+      filtersAnd.push(
+        buildDataFilter(['platform'], { equals: filters.platform }),
+      );
     }
     if (filters?.patternType) {
-      where.patternType = filters.patternType;
+      filtersAnd.push(
+        buildDataFilter(['patternType'], { equals: filters.patternType }),
+      );
     }
     if (filters?.templateCategory) {
-      where.templateCategory = filters.templateCategory;
-    }
-    if (filters?.sourceCreator) {
-      where.sourceCreatorId = filters.sourceCreator;
+      filtersAnd.push(
+        buildDataFilter(['templateCategory'], {
+          equals: filters.templateCategory,
+        }),
+      );
     }
     if (filters?.tags && filters.tags.length > 0) {
-      where.tags = { hasSome: filters.tags };
+      filtersAnd.push(
+        buildDataFilter(['tags'], { array_contains: filters.tags }),
+      );
     }
     if (filters?.minRelevanceWeight !== undefined) {
-      where.relevanceWeight = { gte: filters.minRelevanceWeight };
+      filtersAnd.push(
+        buildDataFilter(['relevanceWeight'], {
+          gte: filters.minRelevanceWeight,
+        }),
+      );
     }
     if (filters?.minEngagementRate !== undefined) {
-      where.sourceMetrics = {
-        path: ['engagementRate'],
-        gte: filters.minEngagementRate,
-      };
+      filtersAnd.push(
+        buildDataFilter(['sourceMetrics', 'engagementRate'], {
+          gte: filters.minEngagementRate,
+        }),
+      );
     }
 
-    return this.delegate.findMany({
-      where,
+    const documents = await this.delegate.findMany({
+      where: scopedWhere(organizationId, {
+        ...(filters?.sourceCreator
+          ? { sourceCreatorId: filters.sourceCreator }
+          : {}),
+        ...(filtersAnd.length > 0 ? { AND: filtersAnd } : {}),
+      }),
       orderBy: [{ createdAt: 'desc' }],
-    }) as Promise<ContentPatternDocument[]>;
+    });
+    return this.normalizeDocuments(documents);
   }
 
-  findByCreator(
+  async findByCreator(
     creatorId: string,
     organizationId: string,
   ): Promise<ContentPatternDocument[]> {
-    return this.delegate.findMany({
+    const documents = await this.delegate.findMany({
       where: scopedWhere(organizationId, { sourceCreatorId: creatorId }),
-    }) as Promise<ContentPatternDocument[]>;
+    });
+    return this.normalizeDocuments(documents);
   }
 
   async incrementUsage(id: string): Promise<void> {
+    const existing = await this.delegate.findUnique({ where: { id } });
+    if (!existing) return;
+    const data = readJsonRecord(existing.data);
     await this.delegate.update({
       where: { id },
-      data: { usageCount: { increment: 1 } },
+      data: {
+        data: {
+          ...data,
+          usageCount: Number(data.usageCount ?? 0) + 1,
+        } as Prisma.InputJsonObject,
+      },
     });
   }
 
@@ -129,8 +192,24 @@ export class PatternStoreService extends BaseService<
     id: string,
     weight: number,
   ): Promise<ContentPatternDocument> {
-    return this.patch(id, {
+    return this.updatePatternData(id, {
       relevanceWeight: Math.max(0, Math.min(1, weight)),
+    });
+  }
+
+  private async updatePatternData(
+    id: string,
+    update: Record<string, unknown>,
+  ): Promise<ContentPatternDocument> {
+    const existing = await this.delegate.findUnique({ where: { id } });
+    if (!existing) {
+      throw new Error('Content pattern not found');
+    }
+    return this.patch(id, {
+      data: {
+        ...readJsonRecord(existing.data),
+        ...pickDefined(update),
+      } as Prisma.InputJsonObject,
     });
   }
 

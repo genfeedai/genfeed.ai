@@ -63,9 +63,9 @@ describe('CreatorsController', () => {
   } as Request;
 
   const mockCreator = {
-    _id: '507f1f77bcf86cd799439015',
+    id: '507f1f77bcf86cd799439015',
     handle: '@testcreator',
-    organization: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439012',
     platform: 'twitter',
     status: 'active',
   };
@@ -129,7 +129,14 @@ describe('CreatorsController', () => {
 
       await controller.findAll(mockRequest, mockUser, {} as any);
 
-      expect(mockContentIntelligenceService.findAll).toHaveBeenCalled();
+      expect(mockContentIntelligenceService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            AND: [{ data: { equals: 'twitter', path: ['platform'] } }],
+          }),
+        }),
+        expect.anything(),
+      );
     });
 
     it('should filter by platform', async () => {
@@ -155,7 +162,7 @@ describe('CreatorsController', () => {
 
       expect(mockContentIntelligenceService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: '507f1f77bcf86cd799439015',
+          id: '507f1f77bcf86cd799439015',
           isDeleted: false,
         }),
       );

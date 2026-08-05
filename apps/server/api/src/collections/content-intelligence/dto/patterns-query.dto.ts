@@ -52,7 +52,7 @@ export class PatternsQueryDto {
     description: 'Filter by source creator',
     required: false,
   })
-  sourceCreator?: string;
+  sourceCreatorId?: string;
 
   @IsOptional()
   @IsArray()

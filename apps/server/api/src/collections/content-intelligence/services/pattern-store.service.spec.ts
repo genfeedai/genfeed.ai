@@ -10,7 +10,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
   const contentPattern = {
+    create: vi.fn(),
     findMany: vi.fn(),
+    findUnique: vi.fn(),
+    update: vi.fn(),
     updateMany: vi.fn(),
   };
 
@@ -98,6 +101,59 @@ describe('PatternStoreService organization scoping', () => {
 
       expect(storePattern).toHaveBeenCalledTimes(3);
       expect(result).toEqual([{ id: 'a' }, { id: 'b' }, { id: 'c' }]);
+    });
+  });
+
+  it('persists scalar ownership separately from pattern JSON data', async () => {
+    mocks.prisma.contentPattern.create.mockImplementation(async ({ data }) => ({
+      createdAt: new Date(),
+      id: 'pattern-1',
+      isDeleted: false,
+      updatedAt: new Date(),
+      ...data,
+    }));
+
+    await service.storePattern({
+      ...buildPattern('example'),
+      sourceCreatorId: creatorId,
+    });
+
+    expect(mocks.prisma.contentPattern.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        data: expect.objectContaining({
+          patternType: ContentPatternType.HOOK,
+          rawExample: 'example',
+          relevanceWeight: 1,
+          usageCount: 0,
+        }),
+        organizationId,
+        sourceCreatorId: creatorId,
+      }),
+    });
+  });
+
+  it('filters JSON domain fields through Prisma JSON paths', async () => {
+    mocks.prisma.contentPattern.findMany.mockResolvedValue([]);
+
+    await service.findByOrganization(organizationId, {
+      minEngagementRate: 2,
+      patternType: ContentPatternType.HOOK,
+    });
+
+    expect(mocks.prisma.contentPattern.findMany).toHaveBeenCalledWith({
+      orderBy: [{ createdAt: 'desc' }],
+      where: expect.objectContaining({
+        AND: expect.arrayContaining([
+          { data: { equals: ContentPatternType.HOOK, path: ['patternType'] } },
+          {
+            data: {
+              gte: 2,
+              path: ['sourceMetrics', 'engagementRate'],
+            },
+          },
+        ]),
+        organizationId,
+      }),
     });
   });
 

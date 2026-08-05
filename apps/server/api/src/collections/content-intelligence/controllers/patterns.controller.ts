@@ -21,7 +21,6 @@ import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 type SerializableDocument = Record<string, unknown> & {
-  _id?: string | { toString(): string };
   toObject?: () => unknown;
 };
 
@@ -50,22 +49,23 @@ const ContentPatternSerializer = {
       return null;
     }
     const doc = toSerializableDocument(data);
+    const persistedData = toSerializableDocument(doc.data);
     return {
       attributes: {
-        description: doc.description,
-        extractedFormula: doc.extractedFormula,
-        patternType: doc.patternType,
-        placeholders: doc.placeholders,
-        platform: doc.platform,
-        rawExample: doc.rawExample,
-        relevanceWeight: doc.relevanceWeight,
-        sourceCreator: doc.sourceCreator?.toString(),
-        sourceMetrics: doc.sourceMetrics,
-        sourcePostDate: doc.sourcePostDate,
-        sourcePostUrl: doc.sourcePostUrl,
-        tags: doc.tags,
-        templateCategory: doc.templateCategory,
-        usageCount: doc.usageCount,
+        description: persistedData.description,
+        extractedFormula: persistedData.extractedFormula,
+        patternType: persistedData.patternType,
+        placeholders: persistedData.placeholders,
+        platform: persistedData.platform,
+        rawExample: persistedData.rawExample,
+        relevanceWeight: persistedData.relevanceWeight,
+        sourceCreatorId: doc.sourceCreatorId,
+        sourceMetrics: persistedData.sourceMetrics,
+        sourcePostDate: persistedData.sourcePostDate,
+        sourcePostUrl: persistedData.sourcePostUrl,
+        tags: persistedData.tags,
+        templateCategory: persistedData.templateCategory,
+        usageCount: persistedData.usageCount,
       },
       id: doc.id?.toString(),
       type: 'content-pattern',
@@ -99,35 +99,51 @@ export class PatternsController {
       isDeleted: false,
       organizationId: organizationId,
     };
+    const dataFilters: Record<string, unknown>[] = [];
 
     if (query.platform) {
-      match.platform = query.platform;
+      dataFilters.push({
+        data: { path: ['platform'], equals: query.platform },
+      });
     }
     if (query.patternType) {
-      match.patternType = query.patternType;
+      dataFilters.push({
+        data: { path: ['patternType'], equals: query.patternType },
+      });
     }
     if (query.templateCategory) {
-      match.templateCategory = query.templateCategory;
+      dataFilters.push({
+        data: { path: ['templateCategory'], equals: query.templateCategory },
+      });
     }
-    if (query.sourceCreator) {
-      match.sourceCreator = query.sourceCreator.toString();
+    if (query.sourceCreatorId) {
+      match.sourceCreatorId = query.sourceCreatorId;
     }
     if (query.tags && query.tags.length > 0) {
-      match.tags = { in: query.tags };
+      dataFilters.push({
+        data: { path: ['tags'], array_contains: query.tags },
+      });
     }
     if (query.minRelevanceWeight !== undefined) {
-      match.relevanceWeight = { gte: query.minRelevanceWeight };
+      dataFilters.push({
+        data: { path: ['relevanceWeight'], gte: query.minRelevanceWeight },
+      });
     }
     if (query.minEngagementRate !== undefined) {
-      match['sourceMetrics.engagementRate'] = { gte: query.minEngagementRate };
+      dataFilters.push({
+        data: {
+          path: ['sourceMetrics', 'engagementRate'],
+          gte: query.minEngagementRate,
+        },
+      });
     }
-
-    const sortField = query.sortBy || 'sourceMetrics.engagementRate';
-    const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
+    if (dataFilters.length > 0) {
+      match.AND = dataFilters;
+    }
 
     const pipeline = {
       where: match,
-      orderBy: { [sortField]: sortOrder, createdAt: -1 },
+      orderBy: { createdAt: query.sortOrder === 'asc' ? 1 : -1 },
     };
 
     const data = await this.patternStoreService.findAll(pipeline, options);

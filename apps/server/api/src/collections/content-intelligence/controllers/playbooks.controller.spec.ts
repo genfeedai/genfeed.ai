@@ -1,8 +1,21 @@
 vi.mock('@api/helpers/utils/response/response.util', () => ({
-  serializeCollection: vi.fn((_req, _serializer, data) => ({
-    data: data.docs || data,
-  })),
-  serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
+  serializeCollection: vi.fn(
+    (
+      _req: unknown,
+      serializer: { serialize(data: unknown): unknown },
+      result: { docs?: unknown[] } | unknown[],
+    ) => {
+      const docs = Array.isArray(result) ? result : (result.docs ?? []);
+      return { data: docs.map((doc) => serializer.serialize(doc)) };
+    },
+  ),
+  serializeSingle: vi.fn(
+    (
+      _req: unknown,
+      serializer: { serialize(data: unknown): unknown },
+      data: unknown,
+    ) => ({ data: serializer.serialize(data) }),
+  ),
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
@@ -36,9 +49,13 @@ describe('PlaybooksController', () => {
   } as Request;
 
   const mockPlaybook = {
+    data: {
+      name: 'Test Playbook',
+      platform: ContentIntelligencePlatform.TWITTER,
+    },
     id: '507f1f77bcf86cd799439015',
-    name: 'Test Playbook',
     organizationId: '507f1f77bcf86cd799439012',
+    sourceCreators: ['507f1f77bcf86cd799439016'],
   };
 
   const mockPlaybookBuilderService = {
@@ -46,8 +63,8 @@ describe('PlaybooksController', () => {
     createPlaybook: vi.fn(),
     findAll: vi.fn(),
     findOne: vi.fn(),
-    patch: vi.fn(),
     remove: vi.fn(),
+    updatePlaybook: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -91,6 +108,7 @@ describe('PlaybooksController', () => {
 
       expect(mockPlaybookBuilderService.findAll).toHaveBeenCalledWith(
         {
+          include: { sourceCreators: { select: { id: true } } },
           orderBy: { createdAt: -1 },
           where: {
             isDeleted: false,
@@ -106,13 +124,21 @@ describe('PlaybooksController', () => {
     it('should return a playbook', async () => {
       mockPlaybookBuilderService.findOne.mockResolvedValue(mockPlaybook);
 
-      await controller.findOne(
+      const result = await controller.findOne(
         mockRequest,
         mockUser,
         '507f1f77bcf86cd799439015',
       );
 
       expect(mockPlaybookBuilderService.findOne).toHaveBeenCalled();
+      expect(result).toEqual({
+        data: expect.objectContaining({
+          attributes: expect.objectContaining({
+            sourceCreators: ['507f1f77bcf86cd799439016'],
+          }),
+          id: '507f1f77bcf86cd799439015',
+        }),
+      });
     });
 
     it('should throw when not found', async () => {
@@ -150,9 +176,9 @@ describe('PlaybooksController', () => {
   describe('update', () => {
     it('should update a playbook', async () => {
       mockPlaybookBuilderService.findOne.mockResolvedValue(mockPlaybook);
-      mockPlaybookBuilderService.patch.mockResolvedValue({
+      mockPlaybookBuilderService.updatePlaybook.mockResolvedValue({
         ...mockPlaybook,
-        name: 'Updated',
+        data: { ...mockPlaybook.data, name: 'Updated' },
       });
 
       await controller.update(
@@ -162,8 +188,8 @@ describe('PlaybooksController', () => {
         { name: 'Updated' } satisfies UpdatePlaybookDto,
       );
 
-      expect(mockPlaybookBuilderService.patch).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439015',
+      expect(mockPlaybookBuilderService.updatePlaybook).toHaveBeenCalledWith(
+        mockPlaybook,
         { name: 'Updated' },
       );
     });
@@ -198,6 +224,7 @@ describe('PlaybooksController', () => {
 
       expect(mockPlaybookBuilderService.buildInsights).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439015',
+        '507f1f77bcf86cd799439012',
       );
     });
 
