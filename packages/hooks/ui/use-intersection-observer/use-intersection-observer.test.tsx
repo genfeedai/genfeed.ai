@@ -1,5 +1,5 @@
 import { useIntersectionObserver } from '@hooks/ui/use-intersection-observer/use-intersection-observer';
-import { renderHook } from '@testing-library/react';
+import { render, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockObserve = vi.fn();
@@ -17,6 +17,7 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 describe('useIntersectionObserver', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
   });
 
   it('should return ref and initial state', () => {
@@ -48,5 +49,16 @@ describe('useIntersectionObserver', () => {
     );
 
     expect(result.current.ref).toBeDefined();
+  });
+
+  it('does not fail when IntersectionObserver is unavailable', () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+
+    function ObservedTarget() {
+      const { ref } = useIntersectionObserver();
+      return <div ref={ref} />;
+    }
+
+    expect(() => render(<ObservedTarget />)).not.toThrow();
   });
 });
