@@ -43,7 +43,7 @@ describe('ContentReviewService', () => {
   // ---------------------------------------------------------------------------
   describe('getQueue', () => {
     it('should delegate to contentDraftsService.listByBrand with PENDING status', async () => {
-      const mockDrafts = [{ _id: 'test-object-id' }];
+      const mockDrafts = [{ id: 'test-object-id' }];
       mockContentDraftsService.listByBrand.mockResolvedValue(mockDrafts);
 
       const result = await service.getQueue(orgId, brandId);
@@ -70,7 +70,7 @@ describe('ContentReviewService', () => {
   // ---------------------------------------------------------------------------
   describe('approveDraft', () => {
     it('should call contentDraftsService.approve with the correct args', async () => {
-      const mockDraft = { _id: draftId, status: ContentDraftStatus.APPROVED };
+      const mockDraft = { id: draftId, status: ContentDraftStatus.APPROVED };
       mockContentDraftsService.approve.mockResolvedValue(mockDraft);
 
       const result = await service.approveDraft(orgId, draftId, userId);
@@ -99,7 +99,7 @@ describe('ContentReviewService', () => {
   // ---------------------------------------------------------------------------
   describe('rejectDraft', () => {
     it('should call contentDraftsService.reject with reason', async () => {
-      const mockDraft = { _id: draftId, status: ContentDraftStatus.REJECTED };
+      const mockDraft = { id: draftId, status: ContentDraftStatus.REJECTED };
       mockContentDraftsService.reject.mockResolvedValue(mockDraft);
 
       const result = await service.rejectDraft(orgId, draftId, 'Not good');
@@ -113,7 +113,7 @@ describe('ContentReviewService', () => {
     });
 
     it('should call contentDraftsService.reject without reason', async () => {
-      const mockDraft = { _id: draftId };
+      const mockDraft = { id: draftId };
       mockContentDraftsService.reject.mockResolvedValue(mockDraft);
 
       await service.rejectDraft(orgId, draftId);
@@ -208,7 +208,7 @@ describe('ContentReviewService', () => {
       mockBrandsService.findOne.mockResolvedValue({
         agentConfig: { autoPublish: { enabled: true } },
       });
-      mockContentDraftsService.approve.mockResolvedValue({ _id: draftId });
+      mockContentDraftsService.approve.mockResolvedValue({ id: draftId });
 
       const result = await service.autoApproveIfEligible(
         orgId,
@@ -232,7 +232,7 @@ describe('ContentReviewService', () => {
           autoPublish: { confidenceThreshold: 0.75, enabled: true },
         },
       });
-      mockContentDraftsService.approve.mockResolvedValue({ _id: draftId });
+      mockContentDraftsService.approve.mockResolvedValue({ id: draftId });
 
       const result = await service.autoApproveIfEligible(
         orgId,
@@ -277,7 +277,7 @@ describe('ContentReviewService', () => {
       expect(result).toBe(false);
     });
 
-    it('should query the brand with correct filter including ObjectId conversion', async () => {
+    it('should query the brand with canonical scoped filters', async () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 
       await service.autoApproveIfEligible(orgId, brandId, draftId, 0.9);
@@ -286,8 +286,8 @@ describe('ContentReviewService', () => {
       expect(callArg).toMatchObject({
         isDeleted: false,
       });
-      expect(callArg._id).toEqual(expect.any(String));
-      expect(callArg.organization).toEqual(expect.any(String));
+      expect(callArg.id).toEqual(expect.any(String));
+      expect(callArg.organizationId).toEqual(expect.any(String));
     });
   });
 });

@@ -71,25 +71,25 @@ import type { Request } from 'express';
 const mockReq = {} as Request;
 
 const mockVideo = {
-  brand: '507f1f77bcf86cd799439014',
+  brandId: 'c07f1f77bcf86cd799439014',
   category: 'video',
-  id: '507f1f77bcf86cd799439011',
-  organization: '507f1f77bcf86cd799439013',
-  user: '507f1f77bcf86cd799439012',
+  id: 'c07f1f77bcf86cd799439011',
+  organizationId: 'c07f1f77bcf86cd799439013',
+  userId: 'c07f1f77bcf86cd799439012',
 };
 
 const mockUser = {
   id: 'user_123',
   publicMetadata: {
-    brand: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439013',
-    user: '507f1f77bcf86cd799439012',
+    brand: 'c07f1f77bcf86cd799439014',
+    organization: 'c07f1f77bcf86cd799439013',
+    user: 'c07f1f77bcf86cd799439012',
   },
 } as unknown as User;
 
-const ingredientId = '507f1f77bcf86cd799439015';
-const metadataId = '507f1f77bcf86cd799439016';
-const activityId = '507f1f77bcf86cd799439018';
+const ingredientId = 'c07f1f77bcf86cd799439015';
+const metadataId = 'c07f1f77bcf86cd799439016';
+const activityId = 'c07f1f77bcf86cd799439018';
 
 describe('VideosUpscaleController', () => {
   let controller: VideosUpscaleController;
@@ -124,7 +124,7 @@ describe('VideosUpscaleController', () => {
     sharedService: {
       createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          brand: mockVideo.brand,
+          brandId: mockVideo.brandId,
           id: ingredientId,
           type: 'video',
         },
@@ -201,7 +201,7 @@ describe('VideosUpscaleController', () => {
     const result = await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(result).toBeDefined();
@@ -215,13 +215,13 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
 
     expect(
       mockServices.filesClientService.getPresignedDownloadUrl,
-    ).toHaveBeenCalledWith('507f1f77bcf86cd799439011', 'videos');
+    ).toHaveBeenCalledWith('c07f1f77bcf86cd799439011', 'videos');
     expect(mockServices.promptBuilderService.buildPrompt).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -244,14 +244,14 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(
       mockServices.creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalledWith(
-      '507f1f77bcf86cd799439013',
-      '507f1f77bcf86cd799439012',
+      'c07f1f77bcf86cd799439013',
+      'c07f1f77bcf86cd799439012',
       10,
       expect.stringContaining('Video upscaling'),
       expect.anything(),
@@ -265,7 +265,7 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(
@@ -279,7 +279,7 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(
@@ -295,7 +295,7 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(mockServices.activitiesService.create).toHaveBeenCalledWith(
@@ -309,7 +309,7 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(mockServices.routerService.getDefaultModel).toHaveBeenCalled();
@@ -321,13 +321,16 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: 'c07f1f77bcf86cd799439011',
+        isDeleted: false,
         OR: expect.arrayContaining([
-          expect.objectContaining({ user: expect.anything() }),
+          expect.objectContaining({ userId: expect.anything() }),
+          expect.objectContaining({ organizationId: expect.anything() }),
         ]),
       }),
     );
@@ -339,7 +342,7 @@ describe('VideosUpscaleController', () => {
     await controller.upscaleVideo(
       mockReq,
       mockUser,
-      '507f1f77bcf86cd799439011',
+      'c07f1f77bcf86cd799439011',
       dto,
     );
     expect(
@@ -360,7 +363,7 @@ describe('VideosUpscaleController', () => {
       controller.upscaleVideo(
         mockReq,
         mockUser,
-        '507f1f77bcf86cd799439011',
+        'c07f1f77bcf86cd799439011',
         dto,
       ),
     ).rejects.toThrow();

@@ -108,7 +108,7 @@ describe('MonitoredAccountsService', () => {
       await service.findAllByOrganization('org-123');
 
       expect(mockFindAll).toHaveBeenCalledWith({
-        organization: 'org-123',
+        organizationId: 'org-123',
         pagination: false,
       });
     });
@@ -129,7 +129,7 @@ describe('MonitoredAccountsService', () => {
       await service.findByBotConfig('config-123');
 
       expect(mockFindAll).toHaveBeenCalledWith({
-        botConfig: 'config-123',
+        botConfigId: 'config-123',
         pagination: false,
       });
     });
@@ -143,7 +143,7 @@ describe('MonitoredAccountsService', () => {
 
       expect(mockFindAll).toHaveBeenCalledWith({
         isActive: true,
-        organization: 'org-123',
+        organizationId: 'org-123',
         pagination: false,
       });
     });

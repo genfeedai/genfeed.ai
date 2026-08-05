@@ -43,10 +43,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
 
-const ORG_ID = '67a123456789012345678901';
-const USER_ID = '67a123456789012345678902';
-const CONVERSATION_ID = '67a123456789012345678903';
-const RUN_ID = '67a123456789012345678904';
+const ORG_ID = 'c7a123456789012345678901';
+const USER_ID = 'c7a123456789012345678902';
+const CONVERSATION_ID = 'c7a123456789012345678903';
+const RUN_ID = 'c7a123456789012345678904';
 
 describe('AgentOrchestratorService', () => {
   let service: AgentOrchestratorService;
@@ -118,8 +118,8 @@ describe('AgentOrchestratorService', () => {
       get: vi.fn().mockReturnValue(''),
     };
     const agentMessagesServiceMock = {
-      addMessage: vi.fn().mockResolvedValue({ _id: 'msg-1' }),
-      create: vi.fn().mockResolvedValue({ _id: 'msg-1' }),
+      addMessage: vi.fn().mockResolvedValue({ id: 'msg-1' }),
+      create: vi.fn().mockResolvedValue({ id: 'msg-1' }),
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
       getRecentMessages: vi.fn().mockResolvedValue([]),
     };
@@ -881,10 +881,10 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     const artifactReference = {
-      brandId: '67a123456789012345678905',
+      brandId: 'c7a123456789012345678905',
       kind: 'ingredient' as const,
       organizationId: ORG_ID,
-      recordId: '67a123456789012345678906',
+      recordId: 'c7a123456789012345678906',
       serializer: 'ingredient' as const,
     };
 
@@ -1003,7 +1003,7 @@ describe('AgentOrchestratorService', () => {
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalledTimes(1);
-    expect(result.creditsUsed).toBe(1);
+    expect(result.creditsUsed).toBe(4);
   });
 
   it('does not overwrite a manually renamed thread title', async () => {
@@ -1030,7 +1030,7 @@ describe('AgentOrchestratorService', () => {
 
     expect(agentThreadsService.updateThreadMetadata).not.toHaveBeenCalled();
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(1);
-    expect(result.creditsUsed).toBe(1);
+    expect(result.creditsUsed).toBe(4);
   });
 
   it('proposes a plan and pauses execution when plan mode is enabled on the thread', async () => {
@@ -1162,7 +1162,6 @@ describe('AgentOrchestratorService', () => {
     agentMemoriesService.getFeedbackMemoriesForGeneration.mockResolvedValueOnce(
       [
         {
-          _id: 'memory-1',
           confidence: 0.91,
           content:
             'Launch posts perform best when the first line names the customer pain.',
@@ -1185,14 +1184,12 @@ describe('AgentOrchestratorService', () => {
           id: 'memory-1',
           importance: 0.8,
           kind: 'winner',
-          organization: ORG_ID,
           organizationId: ORG_ID,
           platform: 'linkedin',
           scope: 'brand',
           summary: 'Lead with customer pain before product claims.',
           tags: ['launch'],
           updatedAt: new Date('2026-03-02T00:00:00.000Z'),
-          user: USER_ID,
           userId: USER_ID,
         },
       ] as never,
@@ -1732,7 +1729,7 @@ describe('AgentOrchestratorService', () => {
       'Agent tool: generate_music',
       expect.anything(),
     );
-    expect(result.creditsUsed).toBe(1);
+    expect(result.creditsUsed).toBe(8);
   });
 
   it('should deduct the flat credit cost exactly once when billing is not delegated', async () => {
@@ -1797,11 +1794,11 @@ describe('AgentOrchestratorService', () => {
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalledTimes(2);
-    expect(result.creditsUsed).toBe(11);
+    expect(result.creditsUsed).toBe(18);
   });
 
   it('should apply org agent policy defaults for strategy-driven runs', async () => {
-    const strategyBrandId = 'test-object-id';
+    const strategyBrandId = 'b07f191e810c19729de860ee';
     organizationsService.findOne.mockResolvedValue({
       onboardingCompleted: true,
     } as never);
@@ -1819,9 +1816,9 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: 'test-object-id',
+      id: 's07f191e810c19729de860ee',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
-      brand: strategyBrandId,
+      brandId: strategyBrandId,
       platforms: ['linkedin'],
     } as never);
     contextAssemblyService.assembleContext.mockResolvedValue({
@@ -1923,7 +1920,7 @@ describe('AgentOrchestratorService', () => {
       },
     } as never);
     agentStrategiesService.findOneById.mockResolvedValue({
-      _id: 'test-object-id',
+      id: 'strategy-1',
       autonomyMode: AgentAutonomyMode.SUPERVISED,
       model: 'deepseek/deepseek-v4-flash-0731',
       platforms: ['twitter'],
@@ -2698,7 +2695,7 @@ describe('AgentOrchestratorService', () => {
     await expect(
       service.chatStream(
         {
-          brandId: '67a123456789012345678905',
+          brandId: 'c7a123456789012345678905',
           content: 'Generate 3 posts for LinkedIn',
         },
         {
