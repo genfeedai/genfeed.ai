@@ -211,7 +211,7 @@ export class AssetsOperationsController {
       parentId,
       parentType: generateAssetDto.parentType,
       userId: publicMetadata.user,
-    } as unknown as CreateAssetDto);
+    });
 
     const { input: promptParams } = await this.promptBuilderService.buildPrompt(
       selectedModel as string,
@@ -340,9 +340,7 @@ export class AssetsOperationsController {
         }
       }
 
-      const assetData = await this.assetsService.create(
-        entityData as unknown as CreateAssetDto,
-      );
+      const assetData = await this.assetsService.create(entityData);
 
       this.loggerService.log(`${url} - Asset created successfully`, {
         assetId: assetData.id,
@@ -468,12 +466,12 @@ export class AssetsOperationsController {
     const ingredientType = 'images';
     const sourceKey = `ingredients/${ingredientType}/${validatedIngredientId}`;
 
-    const parentObjectId = validatedParent;
+    const parentId = validatedParent;
     await this.assetsService.patchAll(
       {
         category: validatedCategory,
         isDeleted: false,
-        parentBrandId: parentObjectId,
+        parentBrandId: parentId,
         parentType: AssetParent.BRAND,
       },
       { isDeleted: true },
@@ -481,10 +479,10 @@ export class AssetsOperationsController {
 
     const assetData = await this.assetsService.create({
       category: validatedCategory,
-      parentId: parentObjectId,
+      parentId,
       parentType: AssetParent.BRAND,
       userId: publicMetadata.user,
-    } as unknown as CreateAssetDto);
+    });
 
     const destinationKey = `ingredients/${validatedCategory}s/${assetData.id}`;
 

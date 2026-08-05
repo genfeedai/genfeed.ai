@@ -157,8 +157,8 @@ export class HeygenPollProcessor extends WorkerHost {
         id: data.ingredientId,
         isDeleted: false,
       });
-      if (ingredient?.metadata) {
-        await this.metadataService.patch(String(ingredient.metadata), {
+      if (ingredient?.metadataId) {
+        await this.metadataService.patch(ingredient.metadataId, {
           error: errorMessage,
         });
       }

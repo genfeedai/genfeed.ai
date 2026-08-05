@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
-import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
 import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -432,15 +431,10 @@ export class IngredientsOperationsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    // Convert to ObjectIds
-    const tagObjectIds = updateTagsDto.tags.map((tagId: string) => tagId);
-
-    this.loggerService.log(`Converted to ObjectIds`, { tagObjectIds });
-
     // Now set the new valid tags using service method
     const data = await this.ingredientsService.patch(
       ingredientId,
-      { tags: tagObjectIds } as unknown as UpdateIngredientDto,
+      { tags: updateTagsDto.tags },
       [{ path: 'tags' }],
     );
 

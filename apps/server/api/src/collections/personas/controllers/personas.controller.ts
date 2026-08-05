@@ -50,19 +50,16 @@ export class PersonasController extends BaseCRUDController<
   ) {
     if (updateDto.memberIds) {
       const { organization } = getPublicMetadata(user);
-      const personaId = EntityIdUtil.toValidId(id)!;
-      const orgId = EntityIdUtil.toValidId(organization)!;
-      const memberObjectIds = updateDto.memberIds.map(
-        (memberId) => EntityIdUtil.toValidId(memberId)!,
+      const personaId = EntityIdUtil.validate(id, 'personaId');
+      const orgId = EntityIdUtil.validate(organization, 'organizationId');
+      const memberIds = EntityIdUtil.validateMany(
+        updateDto.memberIds,
+        'memberIds',
       );
 
       // Applied directly here (not via the generic field patch) because
       // assignedMembers is a relation set, not a plain scalar update.
-      await this.personasService.assignMembers(
-        personaId,
-        memberObjectIds,
-        orgId,
-      );
+      await this.personasService.assignMembers(personaId, memberIds, orgId);
     }
 
     const { memberIds: _memberIds, ...rest } = updateDto;

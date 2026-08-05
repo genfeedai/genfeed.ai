@@ -9,10 +9,12 @@ import { AssetParent } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+type AssetCreateInput = CreateAssetDto & { userId: string };
+
 @Injectable()
 export class AssetsService extends BaseService<
   AssetDocument,
-  CreateAssetDto,
+  AssetCreateInput,
   UpdateAssetDto
 > {
   public readonly constructorName: string = String(this.constructor.name);

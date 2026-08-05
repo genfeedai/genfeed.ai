@@ -179,11 +179,10 @@ export class VideosRelationshipsController {
     };
 
     const uniqueIds = [...new Set(createMergedVideoDto.ids)];
-    const uniqueObjectIds = uniqueIds.map((id: string) => id);
 
     const aggregate = {
       where: {
-        id: { in: uniqueObjectIds },
+        id: { in: uniqueIds },
         category: IngredientCategory.VIDEO,
         status: {
           in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],

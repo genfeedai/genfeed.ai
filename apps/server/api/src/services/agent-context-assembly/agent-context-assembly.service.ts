@@ -638,15 +638,10 @@ export class AgentContextAssemblyService {
       bannerUrl: assets.banner?.url,
       description: this.readTextField(brand.description),
       fontFamily: this.readTextField(brand.fontFamily),
-      id:
-        this.readTextField(brand.id) ??
-        this.readTextField(brand.id) ??
-        'unknown-brand',
+      id: this.readTextField(brand.id) ?? 'unknown-brand',
       label: this.readTextField(brand.label),
       logoUrl: assets.logo?.url,
-      organization:
-        this.readTextField(brand.organizationId) ??
-        this.readTextField(brand.organization),
+      organization: this.readTextField(brand.organizationId),
       primaryColor: this.readTextField(brand.primaryColor),
       referenceImages: this.mergeReferenceImages(brand.referenceImages, assets),
       secondaryColor: this.readTextField(brand.secondaryColor),

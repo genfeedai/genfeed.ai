@@ -20,17 +20,12 @@ import { ConfigService } from '@workers/config/config.service';
 interface IngredientWithMetadataDoc {
   id: string;
   category: string;
-  metadata:
-    | string
-    | {
-        id?: string;
-        width?: number | null;
-        height?: number | null;
-      };
-  metadataDoc?: {
+  metadata: {
+    height?: number | null;
     id: string;
-  };
-  metadataId?: string;
+    width?: number | null;
+  } | null;
+  metadataId: string;
 }
 
 /**
@@ -355,10 +350,7 @@ export class CronIngredientsService {
       const docsNeedingRefresh = (
         ingredientsNeedingRefresh.docs as unknown as IngredientWithMetadataDoc[]
       ).filter((ingredient) => {
-        const metadata =
-          typeof ingredient.metadata === 'object'
-            ? ingredient.metadata
-            : undefined;
+        const { metadata } = ingredient;
 
         return (
           !metadata ||
@@ -411,21 +403,6 @@ export class CronIngredientsService {
             uploadMeta.height &&
             uploadMeta.height > 0
           ) {
-            const metadataId =
-              ingredient.metadataDoc?.id ??
-              (typeof ingredient.metadata === 'object'
-                ? ingredient.metadata.id
-                : (ingredient.metadataId ?? ingredient.metadata));
-
-            if (!metadataId) {
-              this.logger.warn(
-                `Skipping ingredient ${ingredientId} without metadata id`,
-                context,
-              );
-              errorCount++;
-              continue;
-            }
-
             const updateData: Partial<Record<string, unknown>> = {
               height: uploadMeta.height,
               width: uploadMeta.width,
@@ -451,7 +428,7 @@ export class CronIngredientsService {
               }
             }
 
-            await this.metadataService.patch(metadataId, updateData);
+            await this.metadataService.patch(ingredient.metadataId, updateData);
             successCount++;
 
             this.logger.debug(
