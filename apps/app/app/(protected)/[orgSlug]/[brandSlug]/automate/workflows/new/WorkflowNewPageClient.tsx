@@ -275,7 +275,7 @@ export default function WorkflowNewPageClient() {
           inputValues,
           metadata: { source: 'workflow-editor-run-panel' },
         });
-        setActiveExecutionId(execution?._id);
+        setActiveExecutionId(execution?.id);
         setShowRunPanel(false);
         setShowExecutionPanel(true);
       } catch (error) {

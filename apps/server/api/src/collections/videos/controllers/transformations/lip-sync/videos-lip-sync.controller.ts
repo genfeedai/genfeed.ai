@@ -193,7 +193,7 @@ export class VideosLipSyncController {
       // 4. Create video ingredient with metadata
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(user, {
-          brandId: imageIngredient.brand || publicMetadata.brand,
+          brandId: imageIngredient.brandId ?? publicMetadata.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,

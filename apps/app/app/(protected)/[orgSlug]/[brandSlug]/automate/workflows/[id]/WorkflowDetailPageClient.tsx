@@ -230,7 +230,7 @@ export default function WorkflowDetailPageClient({
           metadata: { source: 'workflow-editor-run-panel' },
           threadId: activeThreadId ?? undefined,
         });
-        setActiveExecutionId(execution._id);
+        setActiveExecutionId(execution.id);
         setShowRunPanel(false);
         setShowExecutionPanel(true);
       } catch (error) {
