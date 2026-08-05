@@ -16,6 +16,8 @@ import {
 } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 
+export type PostUpdateInput = UpdatePostRequest;
+
 /**
  * Service for managing posts (scheduled social media content)
  *

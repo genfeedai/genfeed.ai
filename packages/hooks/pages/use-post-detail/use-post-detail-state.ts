@@ -10,7 +10,10 @@ import {
 } from '@genfeedai/enums';
 import type { ICredential, IPost } from '@genfeedai/interfaces';
 import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
-import { PostsService } from '@genfeedai/services/content/posts.service';
+import {
+  PostsService,
+  type PostUpdateInput,
+} from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { validateCarouselCount } from '@genfeedai/utils/carousel-validation';
@@ -20,8 +23,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { Eye, Heart, MessageSquare, TrendingUp, Zap } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-type PostUpdateInput = Parameters<PostsService['patch']>[1];
 
 export const GROK_FEEDBACK_QUESTIONS = [
   '@grok What are your thoughts on this thread?',

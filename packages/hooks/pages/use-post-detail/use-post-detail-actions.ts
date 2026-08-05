@@ -3,7 +3,10 @@
 import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { PostStatus } from '@genfeedai/enums';
 import type { IPost, PostQuickActionKey } from '@genfeedai/interfaces';
-import type { PostsService } from '@genfeedai/services/content/posts.service';
+import type {
+  PostsService,
+  PostUpdateInput,
+} from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -18,7 +21,7 @@ export interface UsePostDetailActionsOptions {
   router: AppRouterInstance;
   fetchPost: (isRefresh?: boolean) => Promise<void>;
   updateActivePost: (
-    updates: Partial<IPost>,
+    updates: PostUpdateInput,
     successMessage?: string,
     silent?: boolean,
   ) => Promise<IPost | null>;
