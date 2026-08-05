@@ -110,14 +110,9 @@ export class CredentialsService extends BaseService<Credential> {
     return response.data;
   }
 
-  public async getQuotaStatus(
-    credentialId: string,
-    organizationId: string,
-  ): Promise<QuotaStatus> {
+  public async getQuotaStatus(credentialId: string): Promise<QuotaStatus> {
     return await this.instance
-      .get<JsonApiResponseDocument>(
-        `/${credentialId}/quota?organizationId=${organizationId}`,
-      )
+      .get<JsonApiResponseDocument>(`/${credentialId}/quota`)
       .then((res) => {
         const data = this.extractResource<QuotaStatus>(res.data);
         return data as QuotaStatus;

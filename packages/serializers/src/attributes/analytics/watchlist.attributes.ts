@@ -1,9 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const watchlistAttributes = createEntityAttributes([
-  'brand',
-  'organization',
-  'user',
+  'brandId',
+  'organizationId',
+  'userId',
   'label',
   'platform',
   'handle',

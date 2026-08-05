@@ -68,8 +68,8 @@ export interface AssetStatusData {
   metadata?: {
     assetId: string;
     category: string;
-    parent?: string;
-    parentModel?: string;
+    parentId?: string;
+    parentType?: string;
   };
   timestamp?: string;
 }

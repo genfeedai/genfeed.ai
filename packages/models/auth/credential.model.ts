@@ -25,12 +25,17 @@ export class Credential extends BaseCredential {
   }
 
   public get externalUrl(): string {
+    const handle = this.externalHandle?.replace(/^@/, '').trim();
+    if (!handle) {
+      return '';
+    }
+
     const platformUrls: Record<string, string> = {
-      [CredentialPlatform.YOUTUBE]: `https://www.youtube.com/@${this.externalHandle}`,
-      [CredentialPlatform.TIKTOK]: `https://www.tiktok.com/@${this.externalHandle}`,
-      [CredentialPlatform.TWITTER]: `https://x.com/${this.externalHandle}`,
-      [CredentialPlatform.INSTAGRAM]: `https://www.instagram.com/${this.externalHandle}`,
-      [CredentialPlatform.LINKEDIN]: `https://www.linkedin.com/in/${this.externalHandle}`,
+      [CredentialPlatform.YOUTUBE]: `https://www.youtube.com/@${handle}`,
+      [CredentialPlatform.TIKTOK]: `https://www.tiktok.com/@${handle}`,
+      [CredentialPlatform.TWITTER]: `https://x.com/${handle}`,
+      [CredentialPlatform.INSTAGRAM]: `https://www.instagram.com/${handle}`,
+      [CredentialPlatform.LINKEDIN]: `https://www.linkedin.com/in/${handle}`,
     };
 
     return platformUrls[this.platform] ?? '';

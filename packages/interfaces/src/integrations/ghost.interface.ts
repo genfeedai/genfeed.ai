@@ -55,7 +55,7 @@ export interface GhostSiteApiResponse {
 export interface GhostConnectPayload {
   ghostUrl: string;
   apiKey: string;
-  brand: string;
+  brandId: string;
 }
 
 export interface GhostCreatePostPayload {

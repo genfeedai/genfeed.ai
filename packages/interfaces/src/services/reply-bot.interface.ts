@@ -69,9 +69,9 @@ export interface IReplyBotDmConfig {
 export interface IReplyBotSchedule {
   enabled: boolean;
   timezone: string;
-  daysOfWeek: number[];
-  startHour: number;
-  endHour: number;
+  activeDays: string[];
+  activeHoursStart: string;
+  activeHoursEnd: string;
 }
 
 export interface IReplyBotFilters {
@@ -94,10 +94,10 @@ export interface IReplyBotConfig {
   createdAt: string;
   updatedAt: string;
 
-  organization: string;
-  brand?: string;
-  user?: string;
-  credential?: string;
+  organizationId: string;
+  brandId?: string;
+  userId: string;
+  credentialId?: string;
 
   name: string;
   description?: string;
@@ -115,7 +115,7 @@ export interface IReplyBotConfig {
   schedule?: IReplyBotSchedule;
   filters?: IReplyBotFilters;
 
-  monitoredAccounts: string[];
+  monitoredAccountIds: string[];
   totalRepliesSent: number;
   totalDmsSent: number;
   totalSkipped: number;
@@ -128,10 +128,11 @@ export interface IMonitoredAccount {
   createdAt: string;
   updatedAt: string;
 
-  organization: string;
-  brand?: string;
-  user?: string;
-  botConfig?: string;
+  organizationId: string;
+  brandId?: string;
+  userId: string;
+  botConfigId?: string;
+  credentialId?: string;
 
   platform: ReplyBotPlatform;
   externalId: string;

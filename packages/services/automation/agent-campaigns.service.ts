@@ -12,9 +12,9 @@ const agentCampaignSerializer: IServiceSerializer<AgentCampaign> = {
 };
 
 export interface CreateAgentCampaignInput {
-  agents?: string[];
+  agentStrategyIds?: string[];
   brief?: string;
-  brand?: string;
+  brandId?: string;
   campaignLeadStrategyId?: string;
   contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: { posts?: number; images?: number; videos?: number };
@@ -27,9 +27,9 @@ export interface CreateAgentCampaignInput {
 
 export class AgentCampaign implements IAgentCampaign {
   id!: string;
-  organization!: string;
-  user!: string;
-  brand?: string;
+  organizationId!: string;
+  userId!: string;
+  brandId?: string;
   label!: string;
   brief?: string;
   agents!: string[];

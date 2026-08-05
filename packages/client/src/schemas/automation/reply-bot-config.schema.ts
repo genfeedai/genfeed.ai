@@ -25,9 +25,28 @@ export const replyBotDmConfigSchema = z.object({
 });
 
 export const replyBotScheduleSchema = z.object({
-  activeDays: z.array(z.number().min(0).max(6)).default([1, 2, 3, 4, 5]),
-  activeHoursEnd: z.number().min(0).max(23).default(21),
-  activeHoursStart: z.number().min(0).max(23).default(9),
+  activeDays: z
+    .array(
+      z.enum([
+        'sunday',
+        'monday',
+        'tuesday',
+        'wednesday',
+        'thursday',
+        'friday',
+        'saturday',
+      ]),
+    )
+    .default(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']),
+  activeHoursEnd: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .default('17:00'),
+  activeHoursStart: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .default('09:00'),
+  enabled: z.boolean().default(false),
   timezone: z.string().default('UTC'),
 });
 
@@ -48,10 +67,11 @@ export const replyBotFiltersSchema = z.object({
 export const replyBotConfigSchema = z.object({
   actionType: z.nativeEnum(ReplyBotActionType),
   description: z.string().max(500).optional(),
+  credentialId: z.string().optional(),
   dmConfig: replyBotDmConfigSchema.optional(),
   filters: replyBotFiltersSchema.optional(),
   isActive: z.boolean().default(false),
-  monitoredAccounts: z.array(z.string()).default([]),
+  monitoredAccountIds: z.array(z.string()).default([]),
   name: z.string().min(1, 'Name is required').max(100),
   platform: z.nativeEnum(ReplyBotPlatform),
   rateLimits: replyBotRateLimitsSchema.default({

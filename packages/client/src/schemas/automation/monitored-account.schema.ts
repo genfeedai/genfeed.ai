@@ -8,7 +8,7 @@ export const monitoredAccountSchema = z.object({
   followersCount: z.number().min(0).default(0),
   isActive: z.boolean().default(true),
   platform: z.nativeEnum(ReplyBotPlatform),
-  platformUserId: z.string().min(1, 'User ID is required'),
+  externalId: z.string().min(1, 'User ID is required'),
   username: z.string().min(1, 'Username is required'),
 });
 

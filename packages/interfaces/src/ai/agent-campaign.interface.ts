@@ -15,9 +15,9 @@ export interface IAgentCampaignContentRotation {
 
 export interface IAgentCampaign {
   id: string;
-  organization: string;
-  user: string;
-  brand?: string;
+  organizationId: string;
+  userId: string;
+  brandId?: string;
   label: string;
   brief?: string;
   agents: string[];
@@ -35,8 +35,8 @@ export interface IAgentCampaign {
 export interface ICreateAgentCampaignDto {
   label: string;
   brief?: string;
-  brand?: string;
-  agents?: string[];
+  brandId?: string;
+  agentStrategyIds?: string[];
   startDate: string;
   endDate?: string;
   status?: 'draft' | 'active' | 'paused' | 'completed';

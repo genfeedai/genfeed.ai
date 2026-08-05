@@ -8,13 +8,20 @@ import type {
 
 export interface IEvaluation {
   id: string;
-  organization: string; // ObjectId reference
-  user: string; // ObjectId reference
-  brand: string; // ObjectId reference
-  contentType: IngredientCategory | 'article' | 'post';
-  content: string; // ObjectId reference
-  evaluationType: EvaluationType;
-  status: Status; // PROCESSING, COMPLETED, FAILED
+  organizationId: string;
+  userId: string;
+  contentType: IngredientCategory | 'article' | 'post' | null;
+  contentId: string | null;
+  data: IEvaluationData;
+  isDeleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IEvaluationData {
+  brandId?: string;
+  evaluationType?: EvaluationType;
+  status?: Status;
   overallScore?: number;
   scores?: IEvaluationScores;
   analysis?: IEvaluationAnalysis;
@@ -23,8 +30,6 @@ export interface IEvaluation {
   actualPerformance?: IActualPerformance;
   review?: IEvaluationReview;
   reviewerComments?: IEvaluationReviewerComment[];
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export type EvaluationReviewDecision =
@@ -107,7 +112,7 @@ export interface IActualPerformance {
   engagement: number;
   engagementRate: number;
   accuracyScore: number;
-  syncedAt: Date;
+  syncedAt: string;
 }
 
 export interface IEvaluationComparisonScoreBreakdown {

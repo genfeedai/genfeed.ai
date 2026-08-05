@@ -4,7 +4,7 @@ export const promptAttributes = createEntityAttributes([
   'organization',
   'brand',
   'user',
-  'ingredient',
+  'ingredients',
   'original',
   'enhanced',
   'status',

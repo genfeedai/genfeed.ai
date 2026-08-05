@@ -1,7 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const serviceAttributes = createEntityAttributes([
-  'brand',
+  'brandId',
   'code',
   'state',
   'oauthToken',

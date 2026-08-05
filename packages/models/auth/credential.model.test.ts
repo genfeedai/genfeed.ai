@@ -122,14 +122,15 @@ const createOrganization = (
 const createCredential = (partial: Partial<ICredential> = {}) =>
   new Credential({
     ...createBaseEntity<ICredential>(partial),
-    brand: 'brand-123',
+    brandId: 'brand-123',
     externalHandle: 'user123',
     externalId: 'external-123',
     isConnected: true,
     organization: createOrganization(),
+    organizationId: 'organization-123',
     platform: CredentialPlatform.TWITTER,
-    token: 'token',
     user: createUser(),
+    userId: 'user-123',
     ...partial,
   });
 
@@ -152,11 +153,9 @@ describe('Credential', () => {
       expect((cred.user as { id: string }).id).toBe('user-123');
     });
 
-    it('should not instantiate user when it is a string', () => {
-      const cred = createCredential({
-        user: 'user-string-id' as never,
-      });
-      expect(cred.user).toBe('user-string-id');
+    it('keeps the canonical user ID independently of population', () => {
+      const cred = createCredential({ userId: 'user-string-id' });
+      expect(cred.userId).toBe('user-string-id');
     });
   });
 
@@ -183,6 +182,22 @@ describe('Credential', () => {
         platform: CredentialPlatform.TWITTER,
       });
       expect(cred.externalUrl).toBe('https://x.com/tweeter');
+    });
+
+    it('normalizes a leading at-sign in provider handles', () => {
+      const cred = createCredential({
+        externalHandle: '@tweeter',
+        platform: CredentialPlatform.TWITTER,
+      });
+      expect(cred.externalUrl).toBe('https://x.com/tweeter');
+    });
+
+    it('returns an empty URL when the credential has no external handle', () => {
+      const cred = createCredential({
+        externalHandle: null,
+        platform: CredentialPlatform.TWITTER,
+      });
+      expect(cred.externalUrl).toBe('');
     });
 
     it('should return Instagram URL', () => {

@@ -1,25 +1,26 @@
 import type { CredentialPlatform } from '@genfeedai/enums';
-import type { IBaseEntity, IOrganization, ITag, IUser } from '../index';
+import type { IBaseEntity, IBrand, IOrganization, ITag, IUser } from '../index';
 import type { AccountHealthSummary } from './account-health.interface';
 
 export interface ICredential extends IBaseEntity {
-  user: IUser;
-  organization: IOrganization;
-  brand: string;
+  userId: string | null;
+  organizationId: string | null;
+  brandId: string | null;
+  user?: IUser;
+  organization?: IOrganization;
+  brand?: IBrand;
 
-  externalId: string;
-  externalHandle: string;
-  externalName?: string;
-  externalAvatar?: string;
+  externalId?: string | null;
+  externalHandle?: string | null;
+  externalName?: string | null;
+  externalAvatar?: string | null;
   externalUrl?: string;
 
   platform: CredentialPlatform;
-  token: string;
-  tokenExpiry?: string;
-  accessTokenExpiry?: string;
+  accessTokenExpiry?: string | null;
 
-  label?: string;
-  description?: string;
+  label?: string | null;
+  description?: string | null;
   tags?: ITag[];
 
   accountHealth?: AccountHealthSummary;

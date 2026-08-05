@@ -21,12 +21,12 @@ export const elementBaseSchema = z.object({
 // Schema for preset elements (collection of elements)
 export const elementPresetSchema: z.ZodType<Partial<IPreset>> =
   elementBaseSchema.extend({
-    brand: z.string().optional(),
+    brandId: z.string().optional(),
     category: z.enum(
       Object.values(ModelCategory) as [ModelCategory, ...ModelCategory[]],
     ),
     isActive: z.boolean(),
-    organization: z.string().optional(),
+    organizationId: z.string().optional(),
   });
 
 // Schema for style elements

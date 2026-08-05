@@ -22,7 +22,7 @@ export class Prompt extends BaseEntity implements IPrompt {
   public declare ratio?: string;
   public declare resolution?: string;
   public declare fps?: number;
-  public declare ingredient?: IIngredient;
+  public declare ingredients?: IIngredient[];
   public declare isSkipEnhancement: boolean;
   public declare systemPromptKey?: string;
   public declare scope?: AssetScope;

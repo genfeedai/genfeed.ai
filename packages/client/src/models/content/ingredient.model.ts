@@ -19,6 +19,14 @@ import type {
 } from '@genfeedai/interfaces';
 
 export class Ingredient extends BaseEntity implements IIngredient {
+  public declare userId?: string | null;
+  public declare organizationId?: string | null;
+  public declare brandId?: string | null;
+  public declare parentId?: string | null;
+  public declare promptId?: string | null;
+  public declare metadataId?: string | null;
+  public declare folderId?: string | null;
+  public declare trainingId?: string | null;
   public declare user: IUser | string;
   public declare organization: IOrganization | string;
   public declare metadata: IMetadata | string;

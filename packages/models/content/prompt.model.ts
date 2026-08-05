@@ -18,10 +18,10 @@ export class Prompt extends BasePrompt {
   constructor(partial: IExtendedPrompt) {
     super(partial);
 
-    if (partial?.ingredient && typeof partial.ingredient === 'object') {
-      this.ingredient = new Ingredient(
-        partial.ingredient,
-      ) as unknown as IIngredient;
+    if (partial?.ingredients) {
+      this.ingredients = partial.ingredients.map(
+        (ingredient) => new Ingredient(ingredient) as unknown as IIngredient,
+      );
     }
 
     this.label = partial?.label;

@@ -51,7 +51,7 @@ export interface CreateAgentStrategyInput {
   agentType?: string;
   autonomyMode?: string;
   autoPublishConfidenceThreshold?: number;
-  brand?: string;
+  brandId?: string;
   budgetPolicy?: Partial<AgentStrategyBudgetPolicy>;
   dailyCreditBudget?: number;
   displayRole?: string;
@@ -143,9 +143,9 @@ export interface AgentStrategyReport {
 
 export class AgentStrategy {
   id!: string;
-  organization!: string;
-  brand?: string;
-  user!: string;
+  organizationId!: string;
+  brandId?: string;
+  userId!: string;
   agentType!: string;
   autonomyMode!: string;
   isActive!: boolean;

@@ -29,7 +29,7 @@ export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
 // Main prompt interface
 export interface IPrompt {
-  _id: string;
+  id: string;
   name: string;
   description: string;
   promptText: string;

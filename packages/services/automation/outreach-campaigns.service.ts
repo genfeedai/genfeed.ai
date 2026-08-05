@@ -15,10 +15,10 @@ import {
  */
 export interface ICampaign {
   id: string;
-  organization: string;
-  brand?: string;
-  user?: string;
-  credential: string;
+  organizationId: string;
+  brandId?: string;
+  userId?: string;
+  credentialId: string;
   label: string;
   description?: string;
   platform: CampaignPlatform;
@@ -85,10 +85,10 @@ export interface ICampaign {
  */
 export class OutreachCampaign implements ICampaign {
   id!: string;
-  organization!: string;
-  brand?: string;
-  user?: string;
-  credential!: string;
+  organizationId!: string;
+  brandId?: string;
+  userId?: string;
+  credentialId!: string;
   label!: string;
   description?: string;
   platform!: CampaignPlatform;
@@ -184,8 +184,8 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     brandId?: string,
   ): Promise<OutreachCampaign[]> {
     return this.findAll({
-      ...(brandId ? { brand: brandId } : {}),
-      organization: organizationId,
+      ...(brandId ? { brandId } : {}),
+      organizationId,
       pagination: false,
     });
   }
@@ -198,7 +198,7 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     status: CampaignStatus,
   ): Promise<OutreachCampaign[]> {
     return this.findAll({
-      organization: organizationId,
+      organizationId,
       pagination: false,
       status,
     });

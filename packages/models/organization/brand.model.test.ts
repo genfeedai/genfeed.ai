@@ -169,6 +169,7 @@ const createAsset = (partial: Partial<IAsset> = {}): IAsset => ({
 
 const createLink = (partial: Partial<ILink> = {}): ILink => ({
   ...createBaseEntity<ILink>(partial),
+  brandId: 'brand-123',
   category: LinkCategory.WEBSITE,
   label: 'Homepage',
   url: 'https://example.com',
@@ -177,14 +178,15 @@ const createLink = (partial: Partial<ILink> = {}): ILink => ({
 
 const createCredential = (partial: Partial<ICredential> = {}): ICredential => ({
   ...createBaseEntity<ICredential>(partial),
-  brand: 'brand-123',
+  brandId: 'brand-123',
   externalHandle: 'user123',
   externalId: 'external-123',
   isConnected: true,
   organization: createOrganization(),
+  organizationId: 'organization-123',
   platform: CredentialPlatform.TWITTER,
-  token: 'token',
   user: createUser(),
+  userId: 'user-123',
   ...partial,
 });
 

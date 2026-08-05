@@ -78,7 +78,7 @@ export interface ISourcePost extends IBaseEntity {
 export interface CreateSocialSourceInput {
   platform: SocialSourcePlatform | string;
   handle: string;
-  credential?: string;
+  credentialId?: string;
   displayName?: string;
   avatarUrl?: string;
   profileUrl?: string;

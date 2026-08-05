@@ -3,10 +3,11 @@ import type { ReplyBotPlatform } from '@genfeedai/enums';
 import type { IMonitoredAccount } from '@genfeedai/interfaces';
 
 export class MonitoredAccount extends BaseEntity implements IMonitoredAccount {
-  public declare organization: string;
-  public declare brand?: string;
-  public declare user?: string;
-  public declare botConfig?: string;
+  public declare organizationId: string;
+  public declare brandId?: string;
+  public declare userId: string;
+  public declare botConfigId?: string;
+  public declare credentialId?: string;
   public declare platform: ReplyBotPlatform;
   public declare externalId: string;
   public declare username: string;

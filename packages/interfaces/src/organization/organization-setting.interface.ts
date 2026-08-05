@@ -68,7 +68,7 @@ export interface IOrganizationSetting extends IBaseEntity {
   brandsLimit: number;
   timezone?: string;
 
-  enabledModels?: string[];
+  enabledModelIds?: string[];
   subscriptionTier?: string;
 
   isAdvancedMode: boolean;

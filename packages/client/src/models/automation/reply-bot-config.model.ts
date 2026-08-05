@@ -13,10 +13,10 @@ import type {
 } from '@genfeedai/interfaces';
 
 export class ReplyBotConfig extends BaseEntity implements IReplyBotConfig {
-  public declare organization: string;
-  public declare brand?: string;
-  public declare user?: string;
-  public declare credential?: string;
+  public declare organizationId: string;
+  public declare brandId?: string;
+  public declare userId: string;
+  public declare credentialId?: string;
   public declare name: string;
   public declare description?: string;
   public declare type: ReplyBotType;
@@ -31,7 +31,7 @@ export class ReplyBotConfig extends BaseEntity implements IReplyBotConfig {
   public declare rateLimits: IReplyBotRateLimits;
   public declare schedule?: IReplyBotSchedule;
   public declare filters?: IReplyBotFilters;
-  public declare monitoredAccounts: string[];
+  public declare monitoredAccountIds: string[];
   public declare totalRepliesSent: number;
   public declare totalDmsSent: number;
   public declare totalSkipped: number;

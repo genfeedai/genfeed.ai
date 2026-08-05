@@ -6,6 +6,7 @@ import { monitoredAccountAttributes } from '@serializers/attributes/automation/m
 import { replyBotConfigAttributes } from '@serializers/attributes/automation/reply-bot-config.attributes';
 import { taskAttributes } from '@serializers/attributes/automation/task.attributes';
 import { workflowAttributes } from '@serializers/attributes/automation/workflow.attributes';
+import { workflowExecutionAttributes } from '@serializers/attributes/automation/workflow-execution.attributes';
 import {
   subscriptionAttributes,
   subscriptionPreviewAttributes,
@@ -196,7 +197,45 @@ describe('Serializer Attributes', () => {
     });
   });
 
+  describe('workflowExecutionAttributes', () => {
+    it('uses canonical relation IDs and exposes persisted runtime state', () => {
+      expect(workflowExecutionAttributes).toEqual(
+        expect.arrayContaining([
+          'workflowId',
+          'userId',
+          'organizationId',
+          'inputValues',
+          'nodeResults',
+          'failedNodeId',
+          'creditsUsed',
+          'result',
+        ]),
+      );
+      expect(workflowExecutionAttributes).not.toEqual(
+        expect.arrayContaining(['workflow', 'user', 'organization']),
+      );
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(workflowExecutionAttributes);
+      expect(unique.size).toBe(workflowExecutionAttributes.length);
+    });
+  });
+
   describe('evaluationAttributes', () => {
+    it('uses the canonical Prisma relation IDs and nested data payload', () => {
+      expect(evaluationAttributes).toEqual([
+        'organizationId',
+        'userId',
+        'contentType',
+        'contentId',
+        'data',
+        'createdAt',
+        'updatedAt',
+        'isDeleted',
+      ]);
+    });
+
     it('should be a non-empty array of strings', () => {
       expect(Array.isArray(evaluationAttributes)).toBe(true);
       expect(evaluationAttributes.length).toBeGreaterThan(0);

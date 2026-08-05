@@ -1,6 +1,7 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type { CredentialPlatform } from '@genfeedai/enums';
 import type {
+  IBrand,
   ICredential,
   ICredentialInstagram,
   ICredentialOAuth,
@@ -10,28 +11,22 @@ import type {
 } from '@genfeedai/interfaces';
 
 export class BaseCredential extends BaseEntity implements ICredential {
-  public declare user: IUser;
-  public declare organization: IOrganization;
+  public declare userId: string | null;
+  public declare organizationId: string | null;
+  public declare brandId: string | null;
+  public declare user?: IUser;
+  public declare organization?: IOrganization;
+  public declare brand?: IBrand;
   public declare tags: ITag[];
   public declare platform: CredentialPlatform;
-  public declare brand: string;
-  public declare externalId: string;
-  public declare externalHandle: string;
-  public declare externalName?: string;
-  public declare externalAvatar?: string;
-  public declare handle: string;
-  public declare label: string;
-  public declare description?: string;
-  public declare isActive: boolean;
-  public declare isVerified: boolean;
-  public declare token: string;
-  public declare tokenExpiry?: string;
-  public declare accessTokenExpiry?: string;
+  public declare externalId?: string | null;
+  public declare externalHandle?: string | null;
+  public declare externalName?: string | null;
+  public declare externalAvatar?: string | null;
+  public declare label?: string | null;
+  public declare description?: string | null;
+  public declare accessTokenExpiry?: string | null;
   public declare isConnected: boolean;
-  public declare accessToken?: string;
-  public declare refreshToken?: string;
-  public declare expiresAt?: string;
-  public declare metadata?: Record<string, unknown>;
 
   constructor(data: Partial<ICredential> = {}) {
     super(data);

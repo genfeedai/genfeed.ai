@@ -7,7 +7,7 @@ export type GoogleSearchConsoleDimension =
   | 'searchAppearance';
 
 export interface GoogleSearchConsoleSite {
-  _id?: string;
+  id: string;
   siteUrl: string;
   permissionLevel: string;
 }
@@ -36,7 +36,7 @@ export interface GoogleSearchConsoleSearchAnalyticsParams {
 }
 
 export interface GoogleSearchConsoleSearchAnalyticsResult {
-  _id?: string;
+  id: string;
   siteUrl: string;
   startDate: string;
   endDate: string;

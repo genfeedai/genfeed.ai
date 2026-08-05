@@ -173,18 +173,12 @@ describe('Prompt', () => {
       expect(prompt.useRAG).toBe(true);
     });
 
-    it('should instantiate populated ingredient', () => {
+    it('should instantiate populated ingredients', () => {
       const prompt = createPrompt({
-        ingredient: createIngredient({ id: 'ing-123' }),
+        ingredients: [createIngredient({ id: 'ing-123' })],
       });
-      expect(prompt.ingredient).toBeDefined();
-    });
-
-    it('should not instantiate ingredient when it is a string', () => {
-      const prompt = createPrompt({
-        ingredient: 'ing-string' as never,
-      });
-      expect(prompt.ingredient).toBeDefined();
+      expect(prompt.ingredients).toHaveLength(1);
+      expect(prompt.ingredients?.[0]).toBeInstanceOf(Ingredient);
     });
 
     it('should handle missing extended properties', () => {

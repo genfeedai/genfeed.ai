@@ -169,8 +169,11 @@ const createMember = (partial: Partial<IMember> = {}) =>
     ...createBaseEntity<IMember>(partial),
     isActive: true,
     organization: createOrganization(),
+    organizationId: 'organization-1',
     role: createRole(),
+    roleId: 'role-1',
     user: createUser(),
+    userId: 'user-1',
     ...partial,
   });
 
@@ -206,11 +209,9 @@ describe('Member', () => {
       expect(member.role).toBeDefined();
     });
 
-    it('should not wrap organization when it is a string', () => {
-      const member = createMember({
-        organization: 'org-string',
-      } as never);
-      expect(member.organization).toBe('org-string');
+    it('keeps the canonical organization ID independently of population', () => {
+      const member = createMember({ organizationId: 'org-string' });
+      expect(member.organizationId).toBe('org-string');
     });
   });
 

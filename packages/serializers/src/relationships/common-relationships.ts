@@ -24,6 +24,7 @@ export const FOLDER_REL = rel('folder', folderAttributes);
 // Minimal relationships (for list views / performance)
 export const ORGANIZATION_MINIMAL_REL = rel('organization', ['label']);
 export const BRAND_MINIMAL_REL = rel('brand', ['label', 'slug']);
+export const WORKFLOW_MINIMAL_REL = rel('workflow', ['label', 'description']);
 
 /**
  * Standard entity relationships bundle.

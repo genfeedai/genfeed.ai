@@ -5,14 +5,16 @@
  */
 
 import { z } from 'zod';
+import { isEntityId } from './entity-id';
 
 /**
- * MongoDB ObjectId validation
- * 24 character hex string
+ * Canonical entity identifier validation.
+ * Accepts Prisma CUID/CUID2, UUID, ULID, and historical 24-character IDs.
  */
-export const objectIdSchema = z
+export const entityIdSchema = z
   .string()
-  .regex(/^[a-fA-F0-9]{24}$/, 'Invalid ObjectId format');
+  .trim()
+  .refine(isEntityId, 'Invalid entity id format');
 
 /**
  * ISO 8601 date string validation
@@ -35,11 +37,11 @@ export const dateStringSchema = z
 export const timezoneSchema = z.string().min(1).max(64);
 
 /**
- * Array of ObjectIds with size constraints
+ * Array of entity ids with size constraints.
  */
-export const objectIdArraySchema = (options?: { min?: number; max?: number }) =>
+export const entityIdArraySchema = (options?: { min?: number; max?: number }) =>
   z
-    .array(objectIdSchema)
+    .array(entityIdSchema)
     .min(options?.min ?? 0)
     .max(options?.max ?? 100);
 

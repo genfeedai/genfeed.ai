@@ -1,11 +1,11 @@
 import type { CredentialPlatform } from '@genfeedai/enums';
 
 export interface SocialAnalyticsPostJobData {
+  brandId: string;
+  credentialId?: string;
   id: string;
-  credential?: string;
   externalId: string;
-  organization: string;
-  brand: string;
+  organizationId: string;
   platform: CredentialPlatform;
 }
 

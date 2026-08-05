@@ -22,6 +22,14 @@ import type {
 } from '../index';
 
 export interface IIngredient extends IBaseEntity {
+  userId?: string | null;
+  organizationId?: string | null;
+  brandId?: string | null;
+  parentId?: string | null;
+  promptId?: string | null;
+  metadataId?: string | null;
+  folderId?: string | null;
+  trainingId?: string | null;
   category: IngredientCategory;
   status: IngredientStatus;
   transformations?: TransformationCategory[];

@@ -13,9 +13,9 @@ import {
 } from '@genfeedai/enums';
 import { z } from 'zod';
 import {
+  entityIdArraySchema,
+  entityIdSchema,
   nonNegativeIntSchema,
-  objectIdArraySchema,
-  objectIdSchema,
   optionalStringSchema,
   positiveIntSchema,
 } from '../helpers/common-schemas';
@@ -28,16 +28,20 @@ import {
  * Request payload for creating a new ingredient
  */
 export interface CreateIngredientRequest {
-  prompt?: string;
-  parent?: string;
-  folder?: string;
+  promptId?: string;
+  parentId?: string;
+  folderId?: string;
   sources?: string[];
-  metadata?: string;
-  brand?: string;
-  training?: string;
-  references?: string[];
+  metadataId?: string;
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+  trainingId?: string;
   category?: IngredientCategory;
-  text?: string;
+  generationPrompt?: string;
+  generationSeed?: number;
+  modelUsed?: string;
+  negativePrompt?: string;
   transformations?: TransformationCategory[];
   status?: IngredientStatus;
   order?: number;
@@ -45,7 +49,6 @@ export interface CreateIngredientRequest {
   isDefault?: boolean;
   scope?: AssetScope;
   isHighlighted?: boolean;
-  seed?: number;
   tags?: string[];
   groupId?: string;
   groupIndex?: number;
@@ -57,16 +60,20 @@ export interface CreateIngredientRequest {
  * Request payload for updating an existing ingredient
  */
 export interface UpdateIngredientRequest {
-  prompt?: string;
-  parent?: string;
-  folder?: string;
+  promptId?: string;
+  parentId?: string;
+  folderId?: string;
   sources?: string[];
-  metadata?: string;
-  brand?: string;
-  training?: string;
-  references?: string[];
+  metadataId?: string;
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+  trainingId?: string;
   category?: IngredientCategory;
-  text?: string;
+  generationPrompt?: string;
+  generationSeed?: number;
+  modelUsed?: string;
+  negativePrompt?: string;
   transformations?: TransformationCategory[];
   status?: IngredientStatus;
   order?: number;
@@ -74,7 +81,6 @@ export interface UpdateIngredientRequest {
   isDefault?: boolean;
   scope?: AssetScope;
   isHighlighted?: boolean;
-  seed?: number;
   tags?: string[];
   groupId?: string;
   groupIndex?: number;
@@ -90,28 +96,31 @@ export interface UpdateIngredientRequest {
  * Zod schema matching CreateIngredientDto
  */
 export const createIngredientSchema = z.object({
-  brand: objectIdSchema.optional(),
+  brandId: entityIdSchema.optional(),
   category: z.nativeEnum(IngredientCategory).optional(),
   cdnUrl: optionalStringSchema,
-  folder: objectIdSchema.optional(),
+  folderId: entityIdSchema.optional(),
+  generationPrompt: optionalStringSchema,
+  generationSeed: z.number().int().optional(),
   groupId: optionalStringSchema,
   groupIndex: z.number().int().optional(),
   isDefault: z.boolean().optional(),
   isHighlighted: z.boolean().optional(),
-  metadata: objectIdSchema.optional(),
+  metadataId: entityIdSchema.optional(),
+  modelUsed: optionalStringSchema,
+  negativePrompt: optionalStringSchema,
   order: nonNegativeIntSchema.optional(),
-  parent: objectIdSchema.optional(),
-  prompt: objectIdSchema.optional(),
-  references: objectIdArraySchema().optional(),
+  organizationId: entityIdSchema.optional(),
+  parentId: entityIdSchema.optional(),
+  promptId: entityIdSchema.optional(),
   scope: z.nativeEnum(AssetScope).optional(),
-  seed: z.number().int().optional(),
   s3Key: optionalStringSchema,
-  sources: objectIdArraySchema().optional(),
+  sources: entityIdArraySchema().optional(),
   status: z.nativeEnum(IngredientStatus).optional(),
-  tags: objectIdArraySchema().optional(),
-  text: optionalStringSchema,
-  training: objectIdSchema.optional(),
+  tags: entityIdArraySchema().optional(),
+  trainingId: entityIdSchema.optional(),
   transformations: z.array(z.nativeEnum(TransformationCategory)).optional(),
+  userId: entityIdSchema.optional(),
   version: positiveIntSchema.optional(),
 }) satisfies z.ZodType<CreateIngredientRequest>;
 

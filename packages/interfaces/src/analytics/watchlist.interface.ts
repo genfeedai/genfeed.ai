@@ -1,5 +1,4 @@
 import type { WatchlistPlatform } from '@genfeedai/enums';
-import type { IBrand, IOrganization, IUser } from '../index';
 
 export interface IWatchlistMetrics {
   followers?: number;
@@ -9,10 +8,10 @@ export interface IWatchlistMetrics {
 
 export interface IWatchlist {
   id: string;
-  brand: string | IBrand;
-  organization: IOrganization;
-  user: IUser;
-  name: string;
+  brandId: string;
+  organizationId: string;
+  userId: string;
+  label: string;
   platform: WatchlistPlatform;
   handle: string;
   category?: string;

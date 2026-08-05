@@ -205,7 +205,7 @@ export interface AgentProfileVoiceFieldsProps {
 }
 
 export interface AgentProfilePlatformOverrideProps {
-  enabledModels: string[];
+  enabledModelIds: string[];
   isDisabled?: boolean;
   label: string;
   onSave: (
@@ -225,7 +225,7 @@ export interface AgentProfilePlatformOverrideProps {
 }
 
 export interface AgentProfilePlatformOverrideFieldsProps {
-  enabledModels: string[];
+  enabledModelIds: string[];
   isDisabled?: boolean;
   onSave: AgentProfilePlatformOverrideProps['onSave'];
   onSelectChange: AgentProfilePlatformOverrideProps['onSelectChange'];

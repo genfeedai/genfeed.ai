@@ -34,7 +34,6 @@ export interface IHarnessProfileExamples {
 }
 
 export interface IHarnessProfile extends IBaseEntity {
-  _id?: string;
   organization?: string;
   organizationId?: string;
   createdBy?: string;

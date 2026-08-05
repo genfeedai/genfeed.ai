@@ -28,8 +28,8 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     brandId?: string,
   ): Promise<ReplyBotConfig[]> {
     return this.findAll({
-      ...(brandId ? { brand: brandId } : {}),
-      organization: organizationId,
+      ...(brandId ? { brandId } : {}),
+      organizationId,
       pagination: false,
     });
   }
@@ -42,9 +42,9 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     brandId?: string,
   ): Promise<ReplyBotConfig[]> {
     return this.findAll({
-      ...(brandId ? { brand: brandId } : {}),
+      ...(brandId ? { brandId } : {}),
       isActive: true,
-      organization: organizationId,
+      organizationId,
       pagination: false,
     });
   }
