@@ -5,6 +5,29 @@ import { ChartColumn } from 'lucide-react';
 
 import { describe, expect, it, vi } from 'vitest';
 
+// The canonical MetricCard renders numeric values through a scroll-triggered
+// animated counter (useAnimatedCounter + IntersectionObserver). jsdom's
+// IntersectionObserver mock never fires, so the counter would stay pinned at
+// its initial 0 value in every test. Mirrors the same mock used by the other
+// MetricCard aliases (StatCard.test.tsx, KPICard.test.tsx).
+vi.mock(
+  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
+  () => ({
+    useAnimatedCounter: ({
+      end,
+      suffix,
+      decimals,
+    }: {
+      end: number;
+      suffix: string;
+      decimals: number;
+    }) => ({
+      ref: { current: null },
+      value: `${end.toFixed(decimals)}${suffix}`,
+    }),
+  }),
+);
+
 describe('MetricCard', () => {
   describe('Basic Rendering', () => {
     it('renders title and value correctly', () => {
@@ -80,8 +103,8 @@ describe('MetricCard', () => {
 
     it('uses default icon color when not specified', () => {
       render(<MetricCard title="Test" value={100} icon={ChartColumn} />);
-      const iconContainer = document.querySelector('.text-muted-foreground');
-      expect(iconContainer).toBeInTheDocument();
+      const iconContainer = document.querySelector('.bg-muted');
+      expect(iconContainer).toHaveClass('text-foreground/50');
     });
   });
 
@@ -96,9 +119,9 @@ describe('MetricCard', () => {
       expect(screen.getByText('-3.2%')).toBeInTheDocument();
     });
 
-    it('shows zero change with plus sign', () => {
+    it('shows zero change without plus sign', () => {
       render(<MetricCard title="Test" value={100} change={0} />);
-      expect(screen.getByText('+0.0%')).toBeInTheDocument();
+      expect(screen.getByText('0%')).toBeInTheDocument();
     });
 
     it('applies green color for positive change', () => {
@@ -118,11 +141,10 @@ describe('MetricCard', () => {
     });
 
     it('applies gray color for zero change', () => {
-      const { container } = render(
-        <MetricCard title="Test" value={100} change={0} />,
-      );
-      const changeElement = container.querySelector('.text-muted-foreground');
-      expect(changeElement).toBeInTheDocument();
+      render(<MetricCard title="Test" value={100} change={0} />);
+      // The trend badge carries its own text, so match on that rather than on
+      // the utility chain that styles it.
+      expect(screen.getByText('0%')).toHaveClass('text-foreground/45');
     });
   });
 
@@ -156,7 +178,7 @@ describe('MetricCard', () => {
     });
 
     it('shows stable trend icon', () => {
-      const { container } = render(
+      render(
         <MetricCard
           title="Test"
           value={100}
@@ -164,8 +186,7 @@ describe('MetricCard', () => {
           change={0}
         />,
       );
-      const trendContainer = container.querySelector('.text-muted-foreground');
-      expect(trendContainer).toBeInTheDocument();
+      expect(screen.getByText('0%')).toHaveClass('text-foreground/45');
     });
 
     it('does not show trend icon when trend is not provided', () => {
