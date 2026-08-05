@@ -8,7 +8,7 @@ packaged Electron shell.
 - GitHub Actions workflow: `Desktop QA`.
 - Trigger: desktop release tags, manual dispatch, and trunk PR/release gates that
   call the reusable `Desktop QA` workflow.
-- Command: `bun run --filter=@genfeedai/desktop qa:release`.
+- Command: `bunx turbo run qa:release --filter=@genfeedai/desktop`.
 - Coverage: desktop lint, type-check, Bun tests, native rebuild, canonical
   `apps/app` standalone build, and Electron `--smoke-test` readiness. Smoke only
   passes after `did-finish-load` and the `gf-desktop-shell` body marker render.

@@ -42,7 +42,13 @@ describe('desktop release QA', () => {
     expect(workflow).toContain('workflow_call:');
     expect(workflow).toContain('runs-on: macos-latest');
     expect(workflow).toContain('Setup Bun environment');
+    // The gate must run through turbo so `qa:release` picks up its `^build`
+    // dependency; `bun run --filter` executes the script directly and leaves
+    // the workspace packages unbuilt.
     expect(workflow).toContain(
+      'bunx turbo run qa:release --filter=@genfeedai/desktop',
+    );
+    expect(workflow).not.toContain(
       'bun run --filter=@genfeedai/desktop qa:release',
     );
   });
