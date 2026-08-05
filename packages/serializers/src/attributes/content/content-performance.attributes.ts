@@ -1,10 +1,14 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const contentPerformanceAttributes = createEntityAttributes([
-  'organization',
-  'brand',
-  'user',
-  'post',
+  'organizationId',
+  'brandId',
+  'userId',
+  'postId',
+  'contentRunId',
+  'workflowExecutionId',
+  'variantId',
+  'generationId',
   'platform',
   'externalPostId',
   'contentType',

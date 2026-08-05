@@ -35,7 +35,7 @@ export class CreateTrainingDto {
   // readonly user!: string;
 
   @ApiProperty({
-    description: 'Array of source ObjectIds',
+    description: 'Array of source ingredient IDs',
     maxItems: MAX_TRAINING_SOURCES,
     required: false,
   })

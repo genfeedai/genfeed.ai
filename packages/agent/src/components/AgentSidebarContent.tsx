@@ -15,8 +15,8 @@ export function AgentSidebarContent({
   apiService,
   onNavigate,
 }: AgentSidebarContentProps): ReactElement {
-  const { href, orgHref } = useOrgUrl();
-  const newThreadHref = orgHref(APP_ROUTES.AGENT.NEW);
+  const { activeHref, href } = useOrgUrl();
+  const newThreadHref = activeHref(APP_ROUTES.AGENT.NEW);
   const newThreadAction = useMemo(
     () => (
       <Link

@@ -36,7 +36,7 @@ const CHECKOUT_SESSION_PROCESSED_TTL_SECONDS = 60 * 60 * 24 * 30;
 const CHECKOUT_SESSION_LOCK_TTL_SECONDS = 60 * 5;
 
 type CreditsActivity = {
-  brandId: string;
+  brandId?: string;
   key?: ActivityKey;
   organizationId: string;
   source: ActivitySource;
@@ -337,11 +337,11 @@ export class StripeWebhookSupportService {
   /** Record the credits-added/reset activity entry. */
   async recordCreditsActivity(activity: CreditsActivity): Promise<void> {
     await this.activitiesService.create({
-      brand: activity.brandId,
+      ...(activity.brandId ? { brandId: activity.brandId } : {}),
       key: activity.key ?? ActivityKey.CREDITS_ADD,
-      organization: activity.organizationId,
+      organizationId: activity.organizationId,
       source: activity.source,
-      ...(activity.userId ? { user: activity.userId } : {}),
+      ...(activity.userId ? { userId: activity.userId } : {}),
       value: activity.value,
     });
   }
@@ -376,7 +376,7 @@ export class StripeWebhookSupportService {
 
     let dbUser = subscription
       ? await this.usersService.findOne({
-          id: subscription.user,
+          id: subscription.userId,
           isDeleted: false,
         })
       : null;
@@ -405,13 +405,13 @@ export class StripeWebhookSupportService {
     // OrganizationSetting.subscriptionTier replaces the legacy auth provider metadata write;
     // updateOrganizationTierAndModels is the canonical tier writer).
     if (subscriptionTier) {
-      const organizationId = subscription?.organization
-        ? String(subscription.organization)
+      const organizationId = subscription?.organizationId
+        ? subscription.organizationId
         : String(
             (
               await this.organizationsService.findOne({
                 isDeleted: false,
-                user: String(dbUser.id),
+                userId: String(dbUser.id),
               })
             )?.id ?? '',
           );
@@ -453,8 +453,7 @@ export class StripeWebhookSupportService {
   ): Promise<void> {
     try {
       const orgSetting = await this.organizationSettingsService.findOne({
-        isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
       if (orgSetting) {
         await this.organizationSettingsService.patch(orgSetting.id.toString(), {
@@ -482,8 +481,7 @@ export class StripeWebhookSupportService {
     failureLogMessage: string,
   ): Promise<void> {
     const orgSetting = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!orgSetting) {
@@ -602,8 +600,7 @@ export class StripeWebhookSupportService {
   ): Promise<void> {
     try {
       const orgSetting = await this.organizationSettingsService.findOne({
-        isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
 
       if (!orgSetting) {
@@ -622,13 +619,13 @@ export class StripeWebhookSupportService {
         await this.organizationSettingsService.getLatestMajorVersionModelIds();
 
       await this.organizationSettingsService.patch(orgSetting.id.toString(), {
-        enabledModels: enabledModelIds,
+        enabledModelIds,
         subscriptionTier: tier,
       });
       await this.invalidateOrganizationCaches(organizationId);
 
       this.loggerService.log(`${url} organization tier and models updated`, {
-        enabledModelsCount: enabledModelIds.length,
+        enabledModelIdsCount: enabledModelIds.length,
         organizationId,
         tier,
       });

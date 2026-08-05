@@ -8,11 +8,14 @@ import type {
 
 export class Watchlist implements IWatchlist {
   public id!: string;
+  public brandId!: string;
+  public organizationId!: string;
+  public userId!: string;
   public brand!: IBrand;
   public organization!: IOrganization;
   public user!: IUser;
 
-  public name!: string;
+  public label!: string;
   public platform!: WatchlistPlatform;
   public handle!: string;
   public category?: string;

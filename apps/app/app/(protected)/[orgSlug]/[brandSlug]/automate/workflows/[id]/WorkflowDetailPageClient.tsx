@@ -172,6 +172,17 @@ export default function WorkflowDetailPageClient({
         getById: workflowsApi.getById,
         update: workflowsApi.update,
       },
+      workflowReferences: {
+        fetchReferencableWorkflows: (excludeId, signal) =>
+          workflowsApi.getReferencable(excludeId ?? undefined, signal),
+        fetchWorkflowInterface: workflowsApi.getInterface,
+        validateReference: async (parentWorkflowId, childWorkflowId) => {
+          await workflowsApi.validateReference(
+            parentWorkflowId,
+            childWorkflowId,
+          );
+        },
+      },
       workflowsApi: {
         setThumbnail: async (selectedWorkflowId, thumbnailUrl, nodeId) => {
           const service = await getWorkflowService();
@@ -220,7 +231,7 @@ export default function WorkflowDetailPageClient({
           metadata: { source: 'workflow-editor-run-panel' },
           threadId: activeThreadId ?? undefined,
         });
-        setActiveExecutionId(execution._id);
+        setActiveExecutionId(execution.id);
         setShowRunPanel(false);
         setShowExecutionPanel(true);
       } catch (error) {

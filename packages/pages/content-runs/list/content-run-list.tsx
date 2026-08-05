@@ -44,7 +44,7 @@ const STATUS_OPTIONS = [
 const EMPTY_RUNS: ContentRunRecord[] = [];
 
 function getRunId(run: ContentRunRecord): string {
-  return run.id ?? run._id ?? '';
+  return run.id;
 }
 
 function getRunTitle(brief?: ContentRunBrief): string {

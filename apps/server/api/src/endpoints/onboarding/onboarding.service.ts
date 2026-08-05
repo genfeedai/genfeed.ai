@@ -62,12 +62,12 @@ export class OnboardingService {
     let userId = publicMetadata.user?.toString() ?? '';
 
     let dbUser = userId
-      ? await this.usersService.findOne({ _id: userId, isDeleted: false }, [])
+      ? await this.usersService.findOne({ id: userId, isDeleted: false }, [])
       : null;
 
     if (!dbUser && user.id) {
       dbUser = await this.usersService.findOne(
-        { _id: user.id, isDeleted: false },
+        { id: user.id, isDeleted: false },
         [],
       );
     }
@@ -102,7 +102,7 @@ export class OnboardingService {
       } else {
         const ownedOrg = await this.organizationsService.findOne({
           isDeleted: false,
-          user: userId,
+          userId: userId,
         });
         organizationId = this.getEntityId(ownedOrg);
       }
@@ -240,7 +240,7 @@ export class OnboardingService {
       async () => {
         // Check if org already has a prefix
         const org = await this.organizationsService.findOne({
-          _id: organizationId,
+          id: organizationId,
           isDeleted: false,
         });
 

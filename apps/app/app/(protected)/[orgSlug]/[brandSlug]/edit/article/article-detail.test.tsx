@@ -158,7 +158,7 @@ describe('ArticleDetail', () => {
       expect(generateAccountContentMock).toHaveBeenCalledWith(
         expect.objectContaining({
           count: 1,
-          credential: 'cred-1',
+          credentialId: 'cred-1',
           format: 'post',
           tone: 'professional',
           topic: expect.stringContaining('Autonomous Content Systems'),

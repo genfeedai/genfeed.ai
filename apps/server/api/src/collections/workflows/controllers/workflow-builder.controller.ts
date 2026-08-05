@@ -170,10 +170,8 @@ export class WorkflowBuilderController {
             warnings: warnings.length > 0 ? warnings : undefined,
           },
           nodes: cloudWorkflow.nodes,
-          organization: publicMetadata.organization,
           trigger: WorkflowTrigger.MANUAL,
-          user: publicMetadata.user,
-        } as unknown as CreateWorkflowDto,
+        } as CreateWorkflowDto,
         publicMetadata.brand || undefined,
       );
 
@@ -191,7 +189,7 @@ export class WorkflowBuilderController {
   }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     const inputs: Record<string, unknown> = {};
@@ -255,7 +253,7 @@ export class WorkflowBuilderController {
   ): Promise<{ data: { isValid: boolean; errors: string[] } }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     const errors: string[] = [];
@@ -299,8 +297,8 @@ export class WorkflowBuilderController {
   }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     const result = WorkflowValidator.validate({

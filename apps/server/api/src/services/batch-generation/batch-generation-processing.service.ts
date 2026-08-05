@@ -201,7 +201,7 @@ export class BatchGenerationProcessingService {
               topic,
               totalCount: batchConfig.totalCount ?? batchItems.length,
             }),
-          { batchId, itemId: item._id },
+          { batchId, itemId: item.id },
         );
 
         const generated = await this.contentGeneratorService.generateContent(
@@ -223,18 +223,18 @@ export class BatchGenerationProcessingService {
 
         // Create a draft post as placeholder
         const post = await this.postsService.create({
-          brand: batchRecord.brandId,
-          credential: undefined as never,
+          brandId: batchRecord.brandId,
+          credentialId: undefined as never,
           description: item.caption,
           ingredients: [],
           label: `Batch: ${topic}`,
-          organization: orgId,
+          organizationId: orgId,
           platform: item.platform as never,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
           status: PostStatus.DRAFT,
-          user: batchRecord.userId,
+          userId: batchRecord.userId,
         } as never);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
@@ -256,16 +256,16 @@ export class BatchGenerationProcessingService {
               topic,
               totalCount: batchConfig.totalCount ?? batchItems.length,
             }),
-          { batchId, itemId: item._id },
+          { batchId, itemId: item.id },
         );
       } catch (error: unknown) {
         item.status = BatchItemStatus.FAILED;
         item.error = error instanceof Error ? error.message : 'Unknown error';
         failedCount++;
 
-        this.logger.error(`Batch item ${item._id} failed: ${item.error}`, {
+        this.logger.error(`Batch item ${item.id} failed: ${item.error}`, {
           batchId,
-          itemId: item._id,
+          itemId: item.id,
         });
 
         const topics = batchConfig.topics ?? [];
@@ -285,7 +285,7 @@ export class BatchGenerationProcessingService {
                   : `${item.format} content`,
               totalCount: batchConfig.totalCount ?? batchItems.length,
             }),
-          { batchId, itemId: item._id },
+          { batchId, itemId: item.id },
         );
       }
     }

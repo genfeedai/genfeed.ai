@@ -308,13 +308,7 @@ export class ApiService {
     },
   ): Promise<RunRecord> {
     const run = await this.createRun(actionType, input, options);
-    const runId = run._id || run.id;
-
-    if (!runId) {
-      throw new Error('Run response is missing an id.');
-    }
-
-    return this.executeRun(runId);
+    return this.executeRun(run.id);
   }
 }
 

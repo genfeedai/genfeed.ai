@@ -68,14 +68,14 @@ describe('executionApi', () => {
   describe('execution HTTP client', () => {
     it('routes requests through the configured client', async () => {
       const client: WorkflowUIHttpClient = {
-        post: vi.fn().mockResolvedValue({ _id: 'exec-1' }),
+        post: vi.fn().mockResolvedValue({ id: 'exec-1' }),
       };
       configureExecutionHttpClient(client);
 
       const result = await getExecutionHttpClient().post('/x', { a: 1 });
 
       expect(client.post).toHaveBeenCalledWith('/x', { a: 1 });
-      expect(result).toEqual({ _id: 'exec-1' });
+      expect(result).toEqual({ id: 'exec-1' });
     });
 
     it('reverts to the bare-fetch default when reconfigured with undefined', async () => {
@@ -84,7 +84,7 @@ describe('executionApi', () => {
       configureExecutionHttpClient(undefined);
 
       const fetchMock = vi.fn().mockResolvedValue({
-        json: () => Promise.resolve({ _id: 'default' }),
+        json: () => Promise.resolve({ id: 'default' }),
         ok: true,
       });
       vi.stubGlobal('fetch', fetchMock);
@@ -98,7 +98,7 @@ describe('executionApi', () => {
 
       expect(custom.post).not.toHaveBeenCalled();
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      expect(result).toEqual({ _id: 'default' });
+      expect(result).toEqual({ id: 'default' });
     });
 
     describe('bare-fetch default', () => {

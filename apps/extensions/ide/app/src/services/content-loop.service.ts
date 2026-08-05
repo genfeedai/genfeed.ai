@@ -95,7 +95,7 @@ export async function executeContentLoop({
     runs.push(run);
     timeline.push(
       timelineEvent(step.id, `${step.actionType} step executed`, 'info', {
-        runId: run._id || run.id,
+        runId: run.id,
         status: run.status,
       }),
     );

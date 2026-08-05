@@ -23,7 +23,7 @@ describe('AgentThreadProjectorService', () => {
       },
       runId: 'run-1',
       sequence: 1,
-      thread: threadId,
+      threadId,
       type: 'input.requested',
     } as never);
 
@@ -51,7 +51,7 @@ describe('AgentThreadProjectorService', () => {
         },
         runId: 'run-1',
         sequence: 2,
-        thread: threadId,
+        threadId,
         type: 'input.resolved',
       } as never,
     );
@@ -72,7 +72,7 @@ describe('AgentThreadProjectorService', () => {
       },
       runId: 'run-2',
       sequence: 1,
-      thread: threadId,
+      threadId,
       type: 'thread.turn_started',
     } as never);
 
@@ -89,7 +89,7 @@ describe('AgentThreadProjectorService', () => {
         },
         runId: 'run-2',
         sequence: 2,
-        thread: threadId,
+        threadId,
         type: 'assistant.finalized',
       } as never,
     );
@@ -107,7 +107,7 @@ describe('AgentThreadProjectorService', () => {
         },
         runId: 'run-2',
         sequence: 3,
-        thread: threadId,
+        threadId,
         type: 'run.completed',
       } as never,
     );
@@ -129,9 +129,6 @@ describe('AgentThreadProjectorService', () => {
   });
 
   it('derives synthesized ids from the scalar thread id', () => {
-    // A real event row carries `threadId`; `thread` is the Mongo-era relation alias
-    // and is absent unless the read populated it. `event.thread.toString()` threw
-    // `Cannot read properties of undefined` and aborted the whole projection.
     const projected = service.applyEvent(null, {
       commandId: 'cmd-scalar',
       occurredAt: '2026-03-11T09:00:00.000Z',
@@ -153,9 +150,7 @@ describe('AgentThreadProjectorService', () => {
     ]);
   });
 
-  it('mirrors the scalar thread id into the persisted snapshot payload', () => {
-    // The snapshot's legacy `thread` mirror is sourced from the `threadId` column,
-    // so a snapshot loaded without the relation no longer persists `undefined`.
+  it('does not manufacture a thread relation alias in snapshot data', () => {
     const projected = service.applyEvent(
       { threadId: 'thread-scalar-id' } as never,
       {
@@ -170,7 +165,7 @@ describe('AgentThreadProjectorService', () => {
       } as never,
     );
 
-    expect(projected.thread).toBe('thread-scalar-id');
+    expect(projected).not.toHaveProperty('thread');
   });
 
   it('stores proposed plan review metadata from plan events', () => {
@@ -193,7 +188,7 @@ describe('AgentThreadProjectorService', () => {
       },
       runId: 'run-plan',
       sequence: 1,
-      thread: threadId,
+      threadId,
       type: 'plan.upserted',
     } as never);
 

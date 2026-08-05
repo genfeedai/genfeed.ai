@@ -10,13 +10,18 @@ export interface IMemberInvitation {
   email: string;
   firstName?: string;
   lastName?: string;
-  role: string; // Role ID
+  roleId: string;
 }
 
 export interface IMember extends IBaseEntity {
-  organization: IOrganization;
-  user: IUser;
-  role: IRole;
+  organizationId: string;
+  userId: string;
+  roleId: string;
+  lastUsedBrandId?: string | null;
+  roleKey?: string | null;
+  organization?: IOrganization;
+  user?: IUser;
+  role?: IRole;
   brands?: IBrand[];
   isActive: boolean;
   isDeleted: boolean;

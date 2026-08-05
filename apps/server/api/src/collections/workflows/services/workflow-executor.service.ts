@@ -573,14 +573,11 @@ export class WorkflowExecutorService {
           eta: initialEta,
         },
         trigger,
-        workflow: workflowId as never,
+        workflowId,
       },
     );
 
-    const executionId = String(
-      (execution as unknown as Record<string, unknown>).id ??
-        (execution as unknown as { id: string }).id,
-    );
+    const executionId = execution.id;
 
     try {
       await this.executionsService.startExecution(executionId);

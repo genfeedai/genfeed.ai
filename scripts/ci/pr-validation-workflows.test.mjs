@@ -191,6 +191,22 @@ test('enforces the content-automation boundary guards on every pull request', ()
   }
 });
 
+test('enforces relation alias read and write guards on every pull request', () => {
+  const workflow = readWorkflow('ci.yml');
+  const guards = jobBlock(workflow, 'guards', 'ci.yml');
+
+  for (const script of [
+    'check:relation-alias-reads',
+    'check:relation-alias-writes',
+  ]) {
+    assert.match(
+      guards,
+      new RegExp(`^ {8}run: bun run ${script}$`, 'm'),
+      `the guards job must run ${script}`,
+    );
+  }
+});
+
 test('keeps desktop QA dormant but available for manual and release use', () => {
   const workflow = readWorkflow('desktop-qa.yml');
 

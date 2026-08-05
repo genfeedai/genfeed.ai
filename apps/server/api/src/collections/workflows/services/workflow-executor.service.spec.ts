@@ -99,7 +99,6 @@ describe('WorkflowExecutorService', () => {
       inputVariables: [],
       label: 'Multi-node workflow',
       metadata: {},
-      mongoId: null,
       nodes: [],
       organizationId: 'org-1',
       steps: [],
@@ -206,7 +205,7 @@ describe('WorkflowExecutorService', () => {
       'org-1',
       expect.objectContaining({
         inputValues: { topic: 'launch' },
-        workflow: 'workflow-1',
+        workflowId: 'workflow-1',
       }),
     );
     expect(executionsService.startExecution).toHaveBeenCalledWith(

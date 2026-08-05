@@ -13,7 +13,7 @@ export interface BatchWorkflowStatusItemOutputSummary {
 }
 
 export interface BatchWorkflowStatusItem {
-  _id: string;
+  id: string;
   ingredientId: string;
   status: string;
   executionId?: string;
@@ -26,7 +26,7 @@ export interface BatchWorkflowStatusItem {
 }
 
 export interface BatchWorkflowStatusResponse {
-  _id: string;
+  id: string;
   workflowId: string;
   status: string;
   totalCount: number;
@@ -41,7 +41,7 @@ export interface BatchWorkflowStatusResponse {
  * Condensed batch-job row returned by the `GET workflows/batch` listing.
  */
 export interface BatchWorkflowSummary {
-  _id: string;
+  id: string;
   workflowId: string;
   status: string;
   totalCount: number;

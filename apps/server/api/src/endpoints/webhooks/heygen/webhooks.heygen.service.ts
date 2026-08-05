@@ -27,10 +27,6 @@ export class HeygenWebhookService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
-  private getDocumentId(value: { _id?: unknown; id?: unknown }): string {
-    return String(value.id);
-  }
-
   async handleCallback(body: HeygenWebhookPayload) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`, { body });
@@ -61,14 +57,12 @@ export class HeygenWebhookService {
       }
 
       const clipResult = await this.clipResultsService.findOne({
-        _id: callbackId,
+        id: callbackId,
         isDeleted: false,
       });
 
       if (clipResult) {
-        const projectId =
-          this.readString(clipResult.project) ??
-          this.readString(clipResult.projectId);
+        const projectId = this.readString(clipResult.projectId);
 
         if (!projectId) {
           this.loggerService.warn(`${url} clip result missing project id`, {
@@ -87,18 +81,17 @@ export class HeygenWebhookService {
       }
 
       let metadata = await this.metadataService.findOne({
-        _id: callbackId,
+        id: callbackId,
         isDeleted: false,
       });
       let ingredient = await this.ingredientsService.findOne({
-        _id: callbackId,
+        id: callbackId,
         isDeleted: false,
       });
 
-      if (!metadata && ingredient?.metadata) {
-        const metadataId = this.getDocumentId(ingredient.metadata);
+      if (!metadata && ingredient?.metadataId) {
         metadata = await this.metadataService.findOne({
-          _id: metadataId,
+          id: ingredient.metadataId,
           isDeleted: false,
         });
       }
@@ -144,10 +137,7 @@ export class HeygenWebhookService {
         );
       }
 
-      await this.metadataService.patch(
-        this.getDocumentId(metadata),
-        updateData,
-      );
+      await this.metadataService.patch(metadata.id, updateData);
 
       this.loggerService.log(`${url} completed`, {
         callbackId,

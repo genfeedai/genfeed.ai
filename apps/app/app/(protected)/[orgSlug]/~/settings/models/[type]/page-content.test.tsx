@@ -29,7 +29,7 @@ describe('ModelsTypePageClientContent', () => {
     expect(mockModelsList).toHaveBeenCalledTimes(1);
     expect(mockModelsList).toHaveBeenCalledWith(
       expect.objectContaining({
-        category: 'videos',
+        type: 'videos',
         onRefreshRegister: expect.any(Function),
         scope: PageScope.ORGANIZATION,
       }),

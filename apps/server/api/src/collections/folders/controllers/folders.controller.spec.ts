@@ -41,12 +41,18 @@ describe('FoldersController', () => {
   let foldersService: vi.Mocked<FoldersService>;
   let _loggerService: vi.Mocked<LoggerService>;
 
+  const mockBrandId = 'cmbrand000000000000000001';
+  const mockOrganizationId = 'cmorganization000000000000001';
+  const mockUserId = 'cmuser0000000000000000001';
+  const foreignBrandId = 'cmbrand000000000000000002';
+  const foreignOrganizationId = 'cmorganization000000000000002';
+
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      brand: mockBrandId,
+      organization: mockOrganizationId,
+      user: mockUserId,
     } as IAuthPublicMetadata,
   } as unknown as User;
   const mockSuperAdmin = {
@@ -61,7 +67,7 @@ describe('FoldersController', () => {
     originalUrl: '/api/folders',
     query: {},
   } as Request;
-  const folderId = '507f191e810c19729de860ef';
+  const folderId = 'cmfolder000000000000000001';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -122,11 +128,11 @@ describe('FoldersController', () => {
           OR: [
             {
               brandId: null,
-              organizationId: '507f191e810c19729de860ee',
+              organizationId: mockOrganizationId,
             },
             {
-              brandId: '507f191e810c19729de860ee',
-              organizationId: '507f191e810c19729de860ee',
+              brandId: mockBrandId,
+              organizationId: mockOrganizationId,
             },
           ],
         }),
@@ -147,7 +153,7 @@ describe('FoldersController', () => {
 
     it('scopes current-brand queries to the caller organization', () => {
       const result = controller.buildFindAllQuery(mockUser, {
-        brand: '507f191e810c19729de860ee',
+        brand: mockBrandId,
       } as BaseQueryDto & { brand: string });
 
       expect(result).toMatchObject({
@@ -155,11 +161,11 @@ describe('FoldersController', () => {
           OR: [
             {
               brandId: null,
-              organizationId: '507f191e810c19729de860ee',
+              organizationId: mockOrganizationId,
             },
             {
-              brandId: '507f191e810c19729de860ee',
-              organizationId: '507f191e810c19729de860ee',
+              brandId: mockBrandId,
+              organizationId: mockOrganizationId,
             },
           ],
         }),
@@ -201,13 +207,13 @@ describe('FoldersController', () => {
 
     it('allows a superadmin to list every folder in a selected organization', () => {
       const result = controller.buildFindAllQuery(mockSuperAdmin, {
-        organization: '507f191e810c19729de860aa',
+        organization: foreignOrganizationId,
       } as BaseQueryDto & { organization: string });
 
       expect(result).toMatchObject({
         where: {
           isDeleted: false,
-          organizationId: '507f191e810c19729de860aa',
+          organizationId: foreignOrganizationId,
         },
       });
       expect(result.where).not.toHaveProperty('OR');
@@ -215,8 +221,8 @@ describe('FoldersController', () => {
 
     it('allows a superadmin to scope a selected organization to one brand', () => {
       const result = controller.buildFindAllQuery(mockSuperAdmin, {
-        brand: '507f191e810c19729de860ab',
-        organization: '507f191e810c19729de860aa',
+        brand: foreignBrandId,
+        organization: foreignOrganizationId,
       } as BaseQueryDto & { brand: string; organization: string });
 
       expect(result).toMatchObject({
@@ -224,11 +230,11 @@ describe('FoldersController', () => {
           OR: [
             {
               brandId: null,
-              organizationId: '507f191e810c19729de860aa',
+              organizationId: foreignOrganizationId,
             },
             {
-              brandId: '507f191e810c19729de860ab',
-              organizationId: '507f191e810c19729de860aa',
+              brandId: foreignBrandId,
+              organizationId: foreignOrganizationId,
             },
           ],
         }),
@@ -237,7 +243,7 @@ describe('FoldersController', () => {
 
     it('does not return folders for a requested foreign brand', () => {
       const result = controller.buildFindAllQuery(mockUser, {
-        brand: '507f191e810c19729de860aa',
+        brand: foreignBrandId,
       } as BaseQueryDto & { brand: string });
 
       expect(result).toMatchObject({
@@ -254,7 +260,7 @@ describe('FoldersController', () => {
       const relationAccessorKeys = ['brand', 'organization', 'user'];
       const scenarios: Array<BaseQueryDto & Record<string, unknown>> = [
         {},
-        { brand: '507f191e810c19729de860ee' } as BaseQueryDto & {
+        { brand: mockBrandId } as BaseQueryDto & {
           brand: string;
         },
         { organization: 'org-1' } as BaseQueryDto & { organization: string },
@@ -318,7 +324,7 @@ describe('FoldersController', () => {
       });
 
       await controller.create(mockRequest, mockUser, {
-        brand: mockUser.publicMetadata.brand,
+        brandId: mockUser.publicMetadata.brand,
         label: 'Brand Folder',
       });
 
@@ -336,7 +342,7 @@ describe('FoldersController', () => {
     it('rejects a foreign brand on create', async () => {
       await expect(
         controller.create(mockRequest, mockUser, {
-          brand: '507f191e810c19729de860aa',
+          brandId: foreignBrandId,
           label: 'Foreign Brand Folder',
         }),
       ).rejects.toThrow(HttpException);
@@ -370,7 +376,7 @@ describe('FoldersController', () => {
       const result = await controller.findOne(mockRequest, mockUser, folderId);
 
       expect(foldersService.findOne).toHaveBeenCalledWith({
-        _id: folderId,
+        id: folderId,
         isDeleted: false,
         organizationId: mockUser.publicMetadata.organization,
       });
@@ -379,7 +385,7 @@ describe('FoldersController', () => {
 
     it('returns not found when the folder is outside caller brand scope', async () => {
       foldersService.findOne.mockResolvedValue({
-        brandId: '507f191e810c19729de860aa',
+        brandId: foreignBrandId,
         id: folderId,
         isDeleted: false,
         label: 'Foreign Folder',
@@ -393,11 +399,11 @@ describe('FoldersController', () => {
 
     it('allows a superadmin to read an active folder outside active tenant scope', async () => {
       const foreignFolder = {
-        brandId: '507f191e810c19729de860ab',
+        brandId: foreignBrandId,
         id: folderId,
         isDeleted: false,
         label: 'Foreign Folder',
-        organizationId: '507f191e810c19729de860aa',
+        organizationId: foreignOrganizationId,
       };
       foldersService.findOne.mockResolvedValue(foreignFolder);
 
@@ -408,7 +414,7 @@ describe('FoldersController', () => {
       );
 
       expect(foldersService.findOne).toHaveBeenCalledWith({
-        _id: folderId,
+        id: folderId,
         isDeleted: false,
       });
       expect(result).toEqual({ data: foreignFolder });
@@ -442,10 +448,7 @@ describe('FoldersController', () => {
         updateDto,
       );
 
-      expect(foldersService.findOne).toHaveBeenCalledWith(
-        { _id: folderId },
-        [],
-      );
+      expect(foldersService.findOne).toHaveBeenCalledWith({ id: folderId }, []);
       expect(foldersService.patch).toHaveBeenCalledWith(
         folderId,
         { label: 'Updated Folder' },
@@ -477,7 +480,7 @@ describe('FoldersController', () => {
 
       await expect(
         controller.update(mockRequest, mockUser, folderId, {
-          brand: '507f191e810c19729de860aa',
+          brandId: foreignBrandId,
           label: 'Updated Folder',
         }),
       ).rejects.toThrow(HttpException);
@@ -497,7 +500,7 @@ describe('FoldersController', () => {
       });
 
       await controller.update(mockRequest, mockUser, folderId, {
-        brand: mockUser.publicMetadata.brand,
+        brandId: mockUser.publicMetadata.brand,
       });
 
       expect(foldersService.patch).toHaveBeenCalledWith(
@@ -511,7 +514,7 @@ describe('FoldersController', () => {
       foldersService.findOne.mockResolvedValue({
         id: folderId,
         label: 'Foreign Folder',
-        organizationId: '507f191e810c19729de860aa',
+        organizationId: foreignOrganizationId,
       });
 
       await expect(
@@ -524,7 +527,7 @@ describe('FoldersController', () => {
 
     it('rejects updates to folders owned by another brand', async () => {
       foldersService.findOne.mockResolvedValue({
-        brandId: '507f191e810c19729de860aa',
+        brandId: foreignBrandId,
         id: folderId,
         label: 'Foreign Brand Folder',
         organizationId: mockUser.publicMetadata.organization,
@@ -556,7 +559,7 @@ describe('FoldersController', () => {
       const result = await controller.remove(mockRequest, mockUser, folderId);
 
       expect(foldersService.findOne).toHaveBeenCalledWith({
-        _id: folderId,
+        id: folderId,
         isDeleted: false,
       });
       expect(foldersService.remove).toHaveBeenCalledWith(folderId);
@@ -577,7 +580,7 @@ describe('FoldersController', () => {
       const mockFolder = {
         id: folderId,
         label: 'Folder',
-        organizationId: '507f191e810c19729de860aa',
+        organizationId: foreignOrganizationId,
       };
 
       foldersService.findOne.mockResolvedValue(mockFolder);
@@ -593,11 +596,15 @@ describe('FoldersController', () => {
     it('should return paginated folders', async () => {
       const mockFolders = {
         docs: [
-          { _id: '1', name: 'Folder 1', user: mockUser.publicMetadata.user },
           {
-            _id: '2',
-            name: 'Folder 2',
-            organization: mockUser.publicMetadata.organization,
+            id: 'cmfolder000000000000000002',
+            label: 'Folder 1',
+            userId: mockUser.publicMetadata.user,
+          },
+          {
+            id: 'cmfolder000000000000000003',
+            label: 'Folder 2',
+            organizationId: mockUser.publicMetadata.organization,
           },
         ],
         hasNextPage: false,

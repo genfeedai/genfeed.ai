@@ -101,13 +101,13 @@ describe('CredentialHelper', () => {
   });
 
   describe('buildQuery', () => {
-    it('builds a query with ObjectId fields', () => {
+    it('builds a query with canonical relation IDs', () => {
       const query = CredentialHelper.buildQuery(baseOptions);
 
-      expect(query.brand).toEqual(expect.any(String));
-      expect(query.organization).toEqual(expect.any(String));
-      expect(String(query.brand)).toBe(brandId);
-      expect(String(query.organization)).toBe(orgId);
+      expect(query.brandId).toEqual(expect.any(String));
+      expect(query.organizationId).toEqual(expect.any(String));
+      expect(String(query.brandId)).toBe(brandId);
+      expect(String(query.organizationId)).toBe(orgId);
       expect(query.platform).toBe(platform);
       expect(query.isDeleted).toBe(false);
     });

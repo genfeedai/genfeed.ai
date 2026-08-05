@@ -93,13 +93,13 @@ export class ImageGenerationProviderDispatchService {
   ): Promise<void> {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: context.brand.id,
+        brandId: context.brand.id,
         entityId: ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_PROCESSING,
-        organization: context.publicMetadata.organization,
+        organizationId: context.publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
-        user: context.publicMetadata.user,
+        userId: context.publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientId.toString(),
           model: context.model,
@@ -164,7 +164,7 @@ export class ImageGenerationProviderDispatchService {
           context.metadataData.id,
           new MetadataEntity({
             height: uploadMeta.height,
-            prompt: context.promptData.id,
+            promptId: context.promptData.id,
             size: uploadMeta.size,
             width: uploadMeta.width,
           }),
@@ -174,7 +174,7 @@ export class ImageGenerationProviderDispatchService {
             typeof uploadMeta.publicUrl === 'string'
               ? uploadMeta.publicUrl
               : undefined,
-          prompt: context.promptData.id,
+          promptId: context.promptData.id,
           s3Key:
             typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
           status: IngredientStatus.GENERATED,
@@ -205,6 +205,12 @@ export class ImageGenerationProviderDispatchService {
       const result = await provider.generate();
       const externalId = this.externalId(result);
       await this.patchExternalId(context.metadataData.id, result);
+      await this.finalizeReturnedOutput(
+        context,
+        context.ingredientData.id,
+        context.metadataData.id,
+        result,
+      );
       return externalId;
     } catch (error: unknown) {
       return this.handleProviderFailure(context, error, provider.failureLabel);
@@ -240,9 +246,28 @@ export class ImageGenerationProviderDispatchService {
               }),
             ),
             this.imagesService.patch(ingredientData.id, {
-              prompt: context.promptData.id,
+              promptId: context.promptData.id,
             }),
           ],
+        ),
+      );
+
+      const documents = [
+        {
+          ingredientData: context.ingredientData,
+          metadataData: context.metadataData,
+        },
+        ...additionalDocuments,
+      ];
+      await Promise.all(
+        documents.map(({ ingredientData, metadataData }, index) =>
+          this.finalizeReturnedOutput(
+            context,
+            ingredientData.id,
+            metadataData.id,
+            result,
+            index,
+          ),
         ),
       );
       await Promise.all(
@@ -279,6 +304,12 @@ export class ImageGenerationProviderDispatchService {
       const primaryResult = await provider.generate();
       primaryId = this.externalId(primaryResult);
       await this.patchExternalId(context.metadataData.id, primaryResult);
+      await this.finalizeReturnedOutput(
+        context,
+        context.ingredientData.id,
+        context.metadataData.id,
+        primaryResult,
+      );
     } catch (error: unknown) {
       return this.handleProviderFailure(context, error, provider.failureLabel);
     }
@@ -313,9 +344,15 @@ export class ImageGenerationProviderDispatchService {
       await Promise.all([
         this.patchExternalId(documents.metadataData.id, result),
         this.imagesService.patch(documents.ingredientData.id, {
-          prompt: context.promptData.id,
+          promptId: context.promptData.id,
         }),
       ]);
+      await this.finalizeReturnedOutput(
+        context,
+        documents.ingredientData.id,
+        documents.metadataData.id,
+        result,
+      );
 
       try {
         await this.createPlaceholderActivity(
@@ -358,16 +395,22 @@ export class ImageGenerationProviderDispatchService {
   private createAdditionalDocuments(
     context: ImageGenerationContext,
   ): Promise<ImageGenerationSaveDocumentsResult> {
-    return this.sharedService.saveDocuments(context.user, {
-      ...context.createImageDto,
-      brand: context.brand.id,
+    return this.sharedService.createMediaDocuments(context.user, {
+      brandId: context.brand.id,
       category: IngredientCategory.IMAGE,
       extension: MetadataExtension.JPG,
+      generationPrompt: context.promptData.original,
+      generationSeed: context.createImageDto.seed,
       model: context.model,
-      organization: context.publicMetadata.organization,
-      parent: context.ingredientData.parent,
-      prompt: context.promptData.id,
+      negativePrompt: context.createImageDto.negativePrompt,
+      organizationId: context.publicMetadata.organization,
+      parentId: context.ingredientData.parentId ?? undefined,
+      promptId: context.promptData.id,
+      scope: context.createImageDto.scope,
+      sourceIds: context.referenceIds,
       status: IngredientStatus.PROCESSING,
+      style: context.style,
+      tagIds: context.createImageDto.tags,
     });
   }
 
@@ -381,10 +424,63 @@ export class ImageGenerationProviderDispatchService {
       new MetadataEntity({
         externalId,
         ...(result.kind === 'external-id' && result.promptId
-          ? { prompt: result.promptId }
+          ? { promptId: result.promptId }
           : {}),
       }),
     );
+  }
+
+  private async finalizeReturnedOutput(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+    metadataId: string,
+    result: ImageGenerationProviderResult,
+    outputIndex = 0,
+  ): Promise<void> {
+    if (result.kind !== 'external-id' || !result.outputUrls) {
+      return;
+    }
+
+    const outputUrl = result.outputUrls[outputIndex];
+    if (!outputUrl) {
+      throw new Error(
+        `Image provider returned no output URL at index ${outputIndex}`,
+      );
+    }
+
+    const id = ingredientId.toString();
+    const uploadMeta = await this.filesClientService.uploadToS3(id, 'images', {
+      type: FileInputType.URL,
+      url: outputUrl,
+    });
+
+    await Promise.all([
+      this.metadataService.patch(
+        metadataId,
+        new MetadataEntity({
+          height: uploadMeta.height,
+          result: outputUrl,
+          size: uploadMeta.size,
+          width: uploadMeta.width,
+        }),
+      ),
+      this.imagesService.patch(ingredientId, {
+        cdnUrl:
+          typeof uploadMeta.publicUrl === 'string'
+            ? uploadMeta.publicUrl
+            : undefined,
+        promptId: context.promptData.id,
+        s3Key:
+          typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
+        status: IngredientStatus.GENERATED,
+      }),
+      this.websocketService.publishVideoComplete(
+        WebSocketPaths.image(ingredientId),
+        { id, ingredientId: id, status: 'completed' },
+        context.user.id,
+        getUserRoomName(context.user.id),
+      ),
+    ]);
   }
 
   private externalId(result: ImageGenerationProviderResult): string {

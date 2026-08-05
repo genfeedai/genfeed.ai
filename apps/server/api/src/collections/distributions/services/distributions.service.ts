@@ -25,6 +25,15 @@ export class DistributionsService extends BaseService<
     super(prisma, 'distribution', logger);
   }
 
+  protected normalizeDocument(document: unknown): DistributionDocument {
+    const record = document as Record<string, unknown>;
+    const config =
+      typeof record.config === 'object' && record.config !== null
+        ? (record.config as Record<string, unknown>)
+        : {};
+    return { ...config, ...record } as DistributionDocument;
+  }
+
   async createDistribution(
     organizationId: string,
     userId: string,
@@ -40,17 +49,17 @@ export class DistributionsService extends BaseService<
         organizationId,
         userId,
         brandId: dto.brandId ?? null,
+        platform,
         status,
         config: {
           caption: dto.caption,
           chatId: dto.chatId,
           contentType: dto.contentType,
           mediaUrl: dto.mediaUrl,
-          platform,
           scheduledAt: scheduledAt?.toISOString(),
           text: dto.text,
         },
-      },
+      } as never,
     });
 
     this.logger?.log(`${url} created distribution`, {
@@ -58,10 +67,7 @@ export class DistributionsService extends BaseService<
       platform,
     });
 
-    return {
-      ...distribution,
-      _id: distribution.id,
-    } as unknown as DistributionDocument;
+    return this.normalizeDocument(distribution);
   }
 
   async findByOrganization(
@@ -78,26 +84,24 @@ export class DistributionsService extends BaseService<
     if (filters.status) {
       where.status = filters.status;
     }
+    if (filters.platform) {
+      where.platform = filters.platform;
+    }
 
-    // platform is in config JSON — fetch and filter in-memory for now
-    // TODO: add a dedicated platform column for efficient querying
-    const allDocs = await this.prisma.distribution.findMany({
-      where: where as never,
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const filtered = filters.platform
-      ? allDocs.filter((d) => {
-          const config = d.config as Record<string, unknown>;
-          return config?.platform === filters.platform;
-        })
-      : allDocs;
-
-    const total = filtered.length;
-    const docs = filtered.slice((page - 1) * limit, page * limit);
+    const [docs, total] = await Promise.all([
+      this.prisma.distribution.findMany({
+        where: scopedWhere(organizationId, where) as never,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.distribution.count({
+        where: scopedWhere(organizationId, where) as never,
+      }),
+    ]);
 
     return {
-      docs: docs as unknown as DistributionDocument[],
+      docs: docs.map((document) => this.normalizeDocument(document)),
       total,
     };
   }
@@ -114,7 +118,7 @@ export class DistributionsService extends BaseService<
       throw new NotFoundException('Distribution');
     }
 
-    return distribution as unknown as DistributionDocument;
+    return this.normalizeDocument(distribution);
   }
 
   async markAsPublished(
@@ -138,7 +142,7 @@ export class DistributionsService extends BaseService<
       },
     });
 
-    return updated as unknown as DistributionDocument;
+    return this.normalizeDocument(updated);
   }
 
   async markAsFailed(
@@ -158,7 +162,7 @@ export class DistributionsService extends BaseService<
       },
     });
 
-    return updated as unknown as DistributionDocument;
+    return this.normalizeDocument(updated);
   }
 
   async cancelScheduled(
@@ -178,6 +182,6 @@ export class DistributionsService extends BaseService<
       data: { status: PublishStatus.CANCELLED },
     });
 
-    return updated as unknown as DistributionDocument;
+    return this.normalizeDocument(updated);
   }
 }

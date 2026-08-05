@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import type { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
@@ -6,21 +7,180 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import type {
+  InternalMediaDocumentsInput,
+  MediaDocumentsInput,
+} from '@api/shared/services/shared/media-documents.types';
 import {
   IngredientCategory,
-  IngredientExtension,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-const toId = (value: unknown): string | undefined => {
-  if (isEntityId(value)) {
-    return value.trim();
+interface MediaDocumentOwnership {
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+}
+
+const normalizeId = (
+  value: string | null | undefined,
+  field: string,
+): string | undefined => {
+  if (value === null || value === undefined || value.trim() === '') {
+    return undefined;
   }
-  return undefined;
+
+  if (!isEntityId(value)) {
+    throw new BadRequestException(`${field} must be a valid entity ID`);
+  }
+
+  return value.trim();
 };
+
+const normalizeIds = (values: string[] | undefined, field: string): string[] =>
+  Array.from(
+    new Set(
+      (values ?? []).flatMap((value, index) => {
+        const id = normalizeId(value, `${field}[${index}]`);
+        return id ? [id] : [];
+      }),
+    ),
+  );
+
+const resolveMetadataLabel = (input: MediaDocumentsInput): string => {
+  if (input.label?.trim()) {
+    return input.label.trim();
+  }
+
+  const normalizedPrompt = (input.generationPrompt ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalizedPrompt) {
+    return 'Generated media';
+  }
+
+  return normalizedPrompt.length > 96
+    ? `${normalizedPrompt.slice(0, 95).trimEnd()}…`
+    : normalizedPrompt;
+};
+
+const resolveMetadataExtension = (
+  input: MediaDocumentsInput,
+): MetadataExtension => {
+  if (input.extension !== undefined) {
+    if (
+      Object.values(MetadataExtension).includes(
+        input.extension as MetadataExtension,
+      )
+    ) {
+      return input.extension as MetadataExtension;
+    }
+
+    throw new BadRequestException(
+      `extension must be a supported metadata extension`,
+    );
+  }
+
+  switch (String(input.category).toLowerCase()) {
+    case IngredientCategory.MUSIC:
+    case IngredientCategory.VOICE:
+      return MetadataExtension.MP3;
+    case IngredientCategory.VIDEO:
+      return MetadataExtension.MP4;
+    default:
+      return MetadataExtension.JPEG;
+  }
+};
+
+const buildMetadataCreateDto = (
+  input: MediaDocumentsInput,
+  promptId: string | undefined,
+  tagIds: string[],
+): CreateMetadataDto => ({
+  ...(input.assistant !== undefined ? { assistant: input.assistant } : {}),
+  ...(input.description !== undefined
+    ? { description: input.description }
+    : {}),
+  ...(input.duration !== undefined ? { duration: input.duration } : {}),
+  ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
+  ...(input.externalProvider !== undefined
+    ? { externalProvider: input.externalProvider }
+    : {}),
+  ...(input.hasAudio !== undefined ? { hasAudio: input.hasAudio } : {}),
+  ...(input.height !== undefined ? { height: input.height } : {}),
+  ...(input.model !== undefined ? { model: input.model } : {}),
+  ...(input.promptTemplate !== undefined
+    ? { promptTemplate: input.promptTemplate }
+    : {}),
+  ...(input.resolution !== undefined ? { resolution: input.resolution } : {}),
+  ...(input.result !== undefined ? { result: input.result } : {}),
+  ...(input.size !== undefined ? { size: input.size } : {}),
+  ...(input.style !== undefined ? { style: input.style } : {}),
+  ...(input.generationSeed !== undefined ? { seed: input.generationSeed } : {}),
+  ...(input.templateVersion !== undefined
+    ? { templateVersion: input.templateVersion }
+    : {}),
+  ...(input.width !== undefined ? { width: input.width } : {}),
+  extension: resolveMetadataExtension(input),
+  label: resolveMetadataLabel(input),
+  ...(promptId ? { promptId } : {}),
+  ...(tagIds.length > 0 ? { tags: tagIds } : {}),
+});
+
+const buildIngredientCreateDto = (
+  input: MediaDocumentsInput,
+  ownership: MediaDocumentOwnership,
+  metadataId: string,
+  parentId: string | undefined,
+  promptId: string | undefined,
+  sourceIds: string[],
+  tagIds: string[],
+  version: number,
+): CreateIngredientDto => ({
+  ...(input.bookmarkId !== undefined ? { bookmarkId: input.bookmarkId } : {}),
+  ...(ownership.brandId ? { brandId: ownership.brandId } : {}),
+  category: input.category,
+  ...(input.generationPrompt !== undefined
+    ? { generationPrompt: input.generationPrompt }
+    : {}),
+  ...(input.generationSeed !== undefined
+    ? { generationSeed: input.generationSeed }
+    : {}),
+  ...(input.groupId !== undefined ? { groupId: input.groupId } : {}),
+  ...(input.groupIndex !== undefined ? { groupIndex: input.groupIndex } : {}),
+  isDefault: input.isDefault === true,
+  ...(input.isMergeEnabled !== undefined
+    ? { isMergeEnabled: input.isMergeEnabled }
+    : {}),
+  ...(input.language !== undefined ? { language: input.language } : {}),
+  metadataId,
+  ...(input.model !== undefined ? { modelUsed: input.model } : {}),
+  ...(input.negativePrompt !== undefined
+    ? { negativePrompt: input.negativePrompt }
+    : {}),
+  ...(input.order !== undefined ? { order: input.order } : {}),
+  ...(ownership.organizationId
+    ? { organizationId: ownership.organizationId }
+    : {}),
+  ...(parentId ? { parentId } : {}),
+  ...(promptId ? { promptId } : {}),
+  ...(input.scope !== undefined ? { scope: input.scope } : {}),
+  ...(sourceIds.length > 0 ? { sources: sourceIds } : {}),
+  status: input.status ?? IngredientStatus.PROCESSING,
+  ...(tagIds.length > 0 ? { tags: tagIds } : {}),
+  ...(input.transformations !== undefined
+    ? { transformations: input.transformations }
+    : {}),
+  ...(ownership.userId ? { userId: ownership.userId } : {}),
+  version,
+  ...(input.voiceSource !== undefined
+    ? { voiceSource: input.voiceSource }
+    : {}),
+});
 
 @Injectable()
 export class SharedService {
@@ -38,94 +198,76 @@ export class SharedService {
     return this.moduleRef.get(PromptsService, { strict: false });
   }
 
-  public async saveDocuments(user: User, body: Record<string, unknown>) {
+  public async createMediaDocuments(user: User, input: MediaDocumentsInput) {
     const publicMetadata = getPublicMetadata(user);
-    const promptId = toId(body.prompt);
-    const parentId = toId(body.parent);
-    const brandId = toId(body.brand) || publicMetadata.brand;
-    const organizationId =
-      toId(body.organization) || publicMetadata.organization;
-    const userId = publicMetadata.user;
+    return this.persistMediaDocuments(input, {
+      brandId:
+        normalizeId(input.brandId, 'brandId') ??
+        normalizeId(publicMetadata.brand, 'publicMetadata.brand'),
+      organizationId:
+        normalizeId(input.organizationId, 'organizationId') ??
+        normalizeId(publicMetadata.organization, 'publicMetadata.organization'),
+      userId:
+        normalizeId(input.userId, 'userId') ??
+        normalizeId(publicMetadata.user, 'publicMetadata.user'),
+    });
+  }
 
-    const metadataData = (await this.metadataService.create({
-      ...body,
-      ...(promptId ? { prompt: promptId } : {}),
-    } as CreateMetadataDto)) as { id: string };
+  /**
+   * Creates media documents for internal callers with explicit ownership IDs.
+   */
+  public async createMediaDocumentsInternal(
+    input: InternalMediaDocumentsInput,
+  ) {
+    return this.persistMediaDocuments(input, {
+      brandId: normalizeId(input.brandId, 'brandId'),
+      organizationId: normalizeId(input.organizationId, 'organizationId'),
+      userId: normalizeId(input.userId, 'userId'),
+    });
+  }
+
+  private async persistMediaDocuments(
+    input: MediaDocumentsInput,
+    ownership: MediaDocumentOwnership,
+  ) {
+    const promptId = normalizeId(input.promptId, 'promptId');
+    const parentId = normalizeId(input.parentId, 'parentId');
+    const sourceIds = normalizeIds(input.sourceIds, 'sourceIds');
+    const tagIds = normalizeIds(input.tagIds, 'tagIds');
+    const metadataData = await this.metadataService.create(
+      buildMetadataCreateDto(input, promptId, tagIds),
+    );
 
     let version = 1;
     if (parentId) {
       const parentMedia = await this.ingredientsService.findOne({
-        _id: parentId,
-      });
-
-      if (parentMedia) {
-        version = (parentMedia.version ?? 1) + 1;
-      }
-    }
-
-    const ingredientData = (await this.ingredientsService.create({
-      ...body,
-      ...(toId(body.frame) ? { frame: toId(body.frame) } : {}),
-      ...(parentId ? { parent: parentId } : {}),
-      ...(promptId ? { prompt: promptId } : {}),
-      ...(toId(body.script) ? { script: toId(body.script) } : {}),
-      brand: brandId,
-      isDefault: false,
-      metadataId: metadataData.id,
-      organization: organizationId,
-      status: (body.status as IngredientStatus) || IngredientStatus.PROCESSING,
-      user: userId,
-      version,
-    } as Parameters<
-      IngredientsService['create']
-    >[0])) as unknown as IngredientDocument;
-
-    return { ingredientData, metadataData };
-  }
-
-  /**
-   * Save documents with explicit IDs (for internal/orchestration use)
-   * Use this when you don't have access to the legacy auth provider User object
-   */
-  public async saveDocumentsInternal(body: {
-    brand: string;
-    category: IngredientCategory;
-    extension: IngredientExtension | MetadataExtension;
-    organization: string;
-    user: string;
-    status?: IngredientStatus;
-    prompt?: string;
-    sources?: string[];
-    parent?: string;
-    [key: string]: unknown;
-  }) {
-    const metadataData = (await this.metadataService.create({
-      ...body,
-      ...(body.prompt ? { prompt: body.prompt } : {}),
-    } as unknown as CreateMetadataDto)) as { id: string };
-
-    let version = 1;
-    if (body.parent) {
-      const parentMedia = await this.ingredientsService.findOne({
-        _id: body.parent,
+        id: parentId,
       });
       if (parentMedia) {
         version = (parentMedia.version ?? 1) + 1;
       }
     }
 
-    const ingredientData = (await this.ingredientsService.create({
-      ...body,
-      brand: body.brand,
-      isDefault: false,
-      metadataId: metadataData.id,
-      organization: body.organization,
-      status: body.status || IngredientStatus.PROCESSING,
-      user: body.user,
-      version,
-    } as Parameters<
-      IngredientsService['create']
-    >[0])) as unknown as IngredientDocument;
+    let ingredientData: IngredientDocument;
+    try {
+      ingredientData = await this.ingredientsService.create(
+        buildIngredientCreateDto(
+          input,
+          ownership,
+          metadataData.id,
+          parentId,
+          promptId,
+          sourceIds,
+          tagIds,
+          version,
+        ),
+      );
+    } catch (error: unknown) {
+      await this.metadataService
+        .patch(metadataData.id, { isDeleted: true })
+        .catch(() => undefined);
+      throw error;
+    }
 
     return { ingredientData, metadataData };
   }
@@ -138,22 +280,22 @@ export class SharedService {
     // TEST ALL CASES BEFORE MAKING IT MANDATORY
     promptId?: string,
   ) {
-    const validPromptId = toId(promptId);
+    const validPromptId = normalizeId(promptId, 'promptId');
 
     await this.metadataService.patch(metadataData.id, {
-      prompt: validPromptId,
+      promptId: validPromptId,
       result,
     });
 
     await this.ingredientsService.patch(ingredientData.id, {
-      prompt: validPromptId,
+      promptId: validPromptId,
       status: IngredientStatus.GENERATED,
     });
 
     // Update the prompt with the ingredient reference for bidirectional linking
     if (validPromptId) {
       await this.promptsService.patch(validPromptId, {
-        ingredient: ingredientData.id,
+        ingredientId: ingredientData.id,
       });
     }
   }

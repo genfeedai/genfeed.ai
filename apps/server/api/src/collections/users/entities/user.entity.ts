@@ -1,9 +1,8 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import { type Setting, type User } from '@genfeedai/prisma';
+import { type User } from '@genfeedai/prisma';
 
 export class UserEntity extends BaseEntity implements User {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly isDefault: boolean;
   declare readonly handle: string;
   declare readonly firstName: string | null;
@@ -28,6 +27,4 @@ export class UserEntity extends BaseEntity implements User {
   declare readonly onboardingStepsCompleted: string[];
   // First-asset unlock gate — per-user "explore anyway" escape hatch.
   declare readonly hasDismissedAssetGate: boolean;
-
-  declare readonly settings: Setting | null;
 }

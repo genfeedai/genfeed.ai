@@ -23,6 +23,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
@@ -83,7 +84,9 @@ export class OrganizationsMembersController {
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @Query() query: BaseQueryDto,
+    @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
+    this.assertOrganizationScope(user, organizationId);
     const options = {
       customLabels,
       ...QueryDefaultsUtil.getPaginationDefaults(query),
@@ -100,7 +103,7 @@ export class OrganizationsMembersController {
         orderBy: handleQuerySort(query.sort),
         where: {
           isDeleted,
-          organization: organizationId,
+          organizationId,
         },
       },
       options,
@@ -114,19 +117,21 @@ export class OrganizationsMembersController {
     @Req() request: Request,
     @Param('organizationId') organizationId: string,
     @Body() inviteDto: InviteMemberDto,
-    @CurrentUser() _user: User,
+    @CurrentUser() user: User,
   ) {
+    this.assertOrganizationScope(user, organizationId);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, { inviteDto, params: { organizationId } });
 
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
+      isDeleted: false,
     });
     if (!organization) {
       return returnNotFound(this.constructorName, organizationId);
     }
 
-    const invitedByUserId = this.getInvitedByUserId(_user, organization);
+    const invitedByUserId = this.getInvitedByUserId(user, organization);
     const existingUser = await this.usersService.findOne({
       email: inviteDto.email,
       isInvited: false,
@@ -136,8 +141,8 @@ export class OrganizationsMembersController {
     if (existingUser) {
       // Check if member already exists for this organization
       const member = await this.membersService.findOne({
-        organization: organizationId,
-        user: existingUser.id,
+        organizationId: organizationId,
+        userId: existingUser.id,
       });
 
       if (member) {
@@ -149,8 +154,8 @@ export class OrganizationsMembersController {
     }
 
     // Determine role to assign
-    let roleToAssign = inviteDto.role;
-    if (!roleToAssign) {
+    let roleId = inviteDto.roleId;
+    if (!roleId) {
       const defaultRole = await this.rolesService.findOne({ key: 'user' });
       if (!defaultRole) {
         throw new HttpException(
@@ -161,7 +166,7 @@ export class OrganizationsMembersController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      roleToAssign = defaultRole.id;
+      roleId = defaultRole.id;
     }
 
     if (existingUser) {
@@ -169,7 +174,7 @@ export class OrganizationsMembersController {
       const member = await this.membersService.create({
         isActive: true,
         organizationId,
-        roleId: String(roleToAssign),
+        roleId: String(roleId),
         userId: String(existingUser.id),
       } as unknown as Parameters<typeof this.membersService.create>[0]);
 
@@ -180,9 +185,7 @@ export class OrganizationsMembersController {
       await this.usersService.patch(String(existingUser.id), {
         lastUsedOrganizationId: organizationId,
       });
-      // `_id` is a Mongo-era alias that is undefined on a Prisma row, so this
-      // used to invalidate the literal key "undefined" — read the scalar id,
-      // matching the `usersService.patch` above.
+      // Invalidate the same canonical user id patched above.
       await this.userAccessCacheService.invalidateAll(String(existingUser.id));
 
       return serializeSingle(request, MemberSerializer, member);
@@ -197,7 +200,7 @@ export class OrganizationsMembersController {
         // Check if this pending user is already in a member relationship
         const existingMembership = await this.membersService.findOne({
           isDeleted: false,
-          user: newUser.id,
+          userId: newUser.id,
         });
 
         if (existingMembership) {
@@ -227,7 +230,7 @@ export class OrganizationsMembersController {
 
       // Create settings for the invited user (if they don't exist)
       const existingSettings = await this.settingsService.findOne({
-        user: newUser.id,
+        userId: newUser.id,
       });
 
       if (!existingSettings) {
@@ -244,7 +247,7 @@ export class OrganizationsMembersController {
       const member = await this.membersService.create({
         isActive: false, // Inactive until they sign up
         organizationId,
-        roleId: String(roleToAssign),
+        roleId: String(roleId),
         userId: String(newUser.id),
       } as unknown as Parameters<typeof this.membersService.create>[0]);
 
@@ -256,7 +259,7 @@ export class OrganizationsMembersController {
         lastName: inviteDto.lastName,
         organizationId,
         redirectUrl: this.getInvitationRedirectUrl(organizationId),
-        roleId: String(roleToAssign),
+        roleId: String(roleId),
       });
 
       return serializeSingle(request, MemberSerializer, member);
@@ -270,7 +273,9 @@ export class OrganizationsMembersController {
     @Param('organizationId') organizationId: string,
     @Param('memberId') memberId: string,
     @Body() updateMemberDto: UpdateMemberDto,
+    @CurrentUser() user: User,
   ) {
+    this.assertOrganizationScope(user, organizationId);
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(url, {
       params: { memberId, organizationId },
@@ -279,7 +284,8 @@ export class OrganizationsMembersController {
 
     // Verify organization exists
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
+      isDeleted: false,
     });
     if (!organization) {
       return returnNotFound('Organization', organizationId);
@@ -287,46 +293,52 @@ export class OrganizationsMembersController {
 
     // Verify member exists and belongs to this organization
     const member = await this.membersService.findOne({
-      _id: memberId,
-      organization: organizationId,
+      id: memberId,
+      isDeleted: false,
+      organizationId,
     });
 
     if (!member) {
       return returnNotFound('Member', memberId);
     }
 
-    const brandIds = updateMemberDto.brands ?? [];
+    let memberUpdate = updateMemberDto;
 
-    const options = {
-      customLabels,
-      pagination: false,
-    };
+    if (updateMemberDto.brandIds !== undefined) {
+      const brandIds = [...new Set(updateMemberDto.brandIds)];
+      const options = {
+        customLabels,
+        pagination: false,
+      };
 
-    const validBrands = await this.brandsService.findAll(
-      {
-        where: {
-          _id: { in: brandIds },
-          isDeleted: false,
-          organization: organizationId,
-        },
-      },
-      options,
-    );
-
-    if (validBrands.docs.length !== (updateMemberDto.brands?.length || 0)) {
-      throw new HttpException(
+      const validBrands = await this.brandsService.findAll(
         {
-          detail: 'One or more brands do not belong to this organization',
-          title: 'Invalid brands',
+          where: {
+            id: { in: brandIds },
+            isDeleted: false,
+            organizationId,
+          },
         },
-        HttpStatus.BAD_REQUEST,
+        options,
       );
+
+      if (validBrands.docs.length !== brandIds.length) {
+        throw new HttpException(
+          {
+            detail: 'One or more brands do not belong to this organization',
+            title: 'Invalid brands',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      memberUpdate = { ...updateMemberDto, brandIds };
     }
 
     // Update the member
     const updatedMember = await this.membersService.patch(
       memberId,
-      updateMemberDto,
+      memberUpdate,
     );
 
     return serializeSingle(request, MemberSerializer, updatedMember);
@@ -334,12 +346,11 @@ export class OrganizationsMembersController {
 
   private getInvitedByUserId(
     user: User,
-    organization: { user?: unknown; userId?: unknown },
+    organization: { userId?: unknown },
   ): string {
     const publicMetadata = getPublicMetadata(user);
     const userId =
       this.toIdString(publicMetadata.user) ??
-      this.toIdString(organization.user) ??
       this.toIdString(organization.userId);
 
     if (!userId) {
@@ -355,20 +366,19 @@ export class OrganizationsMembersController {
     return String(userId);
   }
 
+  private assertOrganizationScope(user: User, organizationId: string): void {
+    const callerOrganizationId = this.toIdString(
+      getPublicMetadata(user).organization,
+    );
+
+    if (!callerOrganizationId || callerOrganizationId !== organizationId) {
+      throw new NotFoundException('Organization not found');
+    }
+  }
+
   private toIdString(value: unknown): string | undefined {
     if (typeof value === 'string') {
       return value;
-    }
-
-    if (value && typeof value === 'object') {
-      const candidate = value as { _id?: unknown; id?: unknown };
-
-      if (typeof candidate.id === 'string') {
-        return candidate.id;
-      }
-      if (typeof candidate.id === 'string') {
-        return candidate.id;
-      }
     }
 
     return undefined;

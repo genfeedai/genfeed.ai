@@ -139,7 +139,7 @@ export class AgentMemoryGoalsToolHandler {
     }
 
     const dto: CreateAgentGoalDto = {
-      brand: typeof params.brandId === 'string' ? params.brandId : undefined,
+      brandId: typeof params.brandId === 'string' ? params.brandId : undefined,
       description:
         typeof params.description === 'string'
           ? params.description.trim()

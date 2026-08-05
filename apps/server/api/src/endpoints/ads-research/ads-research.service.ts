@@ -221,11 +221,9 @@ export class AdsResearchService {
           sourceChannel: ad.channel,
           sourcePlatform: ad.platform,
         },
-        organization: input.organizationId,
         status: WorkflowStatus.DRAFT,
         templateId: 'ad-remix-review',
         trigger: WorkflowTrigger.SCHEDULED,
-        user: input.userId,
       },
     );
 
@@ -751,9 +749,9 @@ export class AdsResearchService {
     }
 
     const credential = await this.credentialsService.findOne({
-      _id: params.credentialId,
+      id: params.credentialId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!credential?.accessToken) {

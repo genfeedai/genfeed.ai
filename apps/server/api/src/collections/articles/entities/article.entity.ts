@@ -3,18 +3,13 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class ArticleEntity extends BaseEntity implements Article {
   id!: string;
-  mongoId!: string | null;
   userId!: string;
   organizationId!: string;
   brandId!: string | null;
   title!: string;
   excerpt!: string | null;
   coverImageUrl!: string | null;
-  user!: string;
-  organization!: string;
-  brand!: string;
   banner?: string;
-  tags!: string[];
 
   label!: string;
   description!: string | null;

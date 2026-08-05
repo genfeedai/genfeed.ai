@@ -2,6 +2,7 @@ import { PerformanceSource } from '@api/collections/content-performance/schemas/
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ContentType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('AnalyticsSyncService', () => {
@@ -95,26 +96,32 @@ describe('AnalyticsSyncService', () => {
     expect(prisma.contentPerformance.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         brandId,
+        comments: 3,
+        contentType: ContentType.CAPTION,
         contentRunId: 'run-1',
+        engagementRate: 3,
+        externalPostId: 'platform-post-1',
         generationId: 'generation-1',
+        likes: 20,
+        measuredAt: new Date('2026-05-01T09:00:00.000Z'),
         organizationId,
         platform: 'twitter',
         postId,
+        revenue: 0,
+        saves: 2,
+        shares: 5,
+        source: PerformanceSource.API,
         userId: 'user-1',
         variantId: 'variant-a',
-        data: expect.objectContaining({
-          contentRunId: 'run-1',
+        views: 1000,
+        data: {
+          clicks: 0,
           creativeVersion: 'creative-v2',
-          externalPostId: 'platform-post-1',
-          generationId: 'generation-1',
           hookVersion: 'hook-v1',
-          measuredAt: '2026-05-01T09:00:00.000Z',
           personaId: 'persona-1',
           publishIntent: 'experiment',
           scheduleSlot: 'weekday-morning',
-          source: PerformanceSource.API,
-          variantId: 'variant-a',
-        }),
+        },
       }),
     });
     expect(brandMemorySyncService.syncPostPerformance).toHaveBeenCalledWith(
@@ -122,5 +129,26 @@ describe('AnalyticsSyncService', () => {
       brandId,
       postId,
     );
+  });
+
+  it('uses the canonical measuredAt column', async () => {
+    const measuredAt = new Date('2026-05-02T09:00:00.000Z');
+    prisma.contentPerformance.findFirst.mockResolvedValue({
+      createdAt: new Date('2026-05-03T09:00:00.000Z'),
+      measuredAt,
+    });
+
+    await expect(
+      service.getLastSyncDate(organizationId, brandId),
+    ).resolves.toBe(measuredAt);
+    expect(prisma.contentPerformance.findFirst).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+        source: PerformanceSource.API,
+      },
+    });
   });
 });

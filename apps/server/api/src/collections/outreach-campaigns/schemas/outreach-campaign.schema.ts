@@ -67,19 +67,16 @@ export interface OutreachCampaignDocument
     OutreachCampaign,
     'config' | 'status' | 'campaignType' | 'isActive' | 'platform'
   > {
-  _id: string;
   aiConfig?: CampaignAiConfig;
-  brand?: string | null;
   campaignType?: CampaignType | string;
   completedAt?: Date | null;
   config?: Record<string, unknown>;
-  credential?: string;
+  credentialId: string | null;
   description?: string;
   discoveryConfig?: CampaignDiscoveryConfig;
   dmConfig?: CampaignDmConfig;
   isActive?: boolean;
   label?: string;
-  organization: string;
   platform?: CampaignPlatform | string;
   rateLimits?: CampaignRateLimits;
   schedule?: CampaignSchedule;
@@ -87,6 +84,5 @@ export interface OutreachCampaignDocument
   status: CampaignStatus | string;
   totalReplies?: number;
   totalSuccessful?: number;
-  user?: string | null;
   [key: string]: unknown;
 }

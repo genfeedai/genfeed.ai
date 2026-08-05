@@ -1,17 +1,12 @@
 import type { WatchlistPlatform } from '@genfeedai/enums';
-import type {
-  IBrand,
-  IOrganization,
-  IUser,
-  IWatchlist,
-} from '@genfeedai/interfaces';
+import type { IWatchlist } from '@genfeedai/interfaces';
 
 export class Watchlist implements IWatchlist {
   public declare id: string;
-  public declare brand: string | IBrand;
-  public declare organization: IOrganization;
-  public declare user: IUser;
-  public declare name: string;
+  public declare brandId: string;
+  public declare organizationId: string;
+  public declare userId: string;
+  public declare label: string;
   public declare platform: WatchlistPlatform;
   public declare handle: string;
   public declare category?: string;

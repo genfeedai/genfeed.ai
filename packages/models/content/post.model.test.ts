@@ -200,14 +200,15 @@ const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
 
 const createCredential = (partial: Partial<ICredential> = {}): ICredential => ({
   ...createBaseEntity<ICredential>(partial),
-  brand: 'brand-123',
+  brandId: 'brand-123',
   externalHandle: 'user123',
   externalId: 'external-123',
   isConnected: true,
   organization: createOrganization(),
+  organizationId: 'organization-123',
   platform: CredentialPlatform.TWITTER,
-  token: 'token',
   user: createUser(),
+  userId: 'user-123',
   ...partial,
 });
 

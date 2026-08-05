@@ -1,3 +1,4 @@
+import type { CreatePostRequest } from '@genfeedai/api-types';
 import {
   type MultiPostSchema,
   multiPostSchema,
@@ -150,8 +151,7 @@ export function useModalPostBatch(props: ModalPostProps) {
         return false;
       }
 
-      const expiryValue =
-        credential.accessTokenExpiry ?? credential.tokenExpiry;
+      const expiryValue = credential.accessTokenExpiry;
       if (!expiryValue) {
         return false;
       }
@@ -394,9 +394,9 @@ export function useModalPostBatch(props: ModalPostProps) {
 
           const scheduledDate = localDate.toISOString();
 
-          const body: Record<string, unknown> = {
+          const body = {
             category: config.category,
-            credential: config.credentialId,
+            credentialId: config.credentialId,
             description: config.description,
             groupId,
             ingredients: activeIngredients.map((ing: IIngredient) => ing.id),
@@ -405,7 +405,7 @@ export function useModalPostBatch(props: ModalPostProps) {
             label: config.label,
             scheduledDate,
             status: config.status,
-          };
+          } as CreatePostRequest;
 
           await service.post(body);
 

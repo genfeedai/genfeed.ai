@@ -29,7 +29,7 @@ export class AdminFleetCharacterService {
     return this.personasService.findOne({
       isFleetCharacter: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       slug,
     });
   }
@@ -80,9 +80,9 @@ export class AdminFleetCharacterService {
    */
   createCharacter(
     data: Partial<PersonaDocument> & {
-      user: string;
-      organization: string;
-      brand: string;
+      userId: string;
+      organizationId: string;
+      brandId?: string | null;
     },
   ): Promise<PersonaDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;

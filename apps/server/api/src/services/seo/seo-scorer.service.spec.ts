@@ -395,7 +395,7 @@ describe('SeoScorerService', () => {
     const tags: string[] = cacheService.invalidateByTags.mock.calls[0][0];
     expect(tags).toContain('articles');
     expect(tags).toContain('collection:articles');
-    expect(tags).toContain('agg:articles');
+    expect(tags).toContain('query:articles');
   });
 
   it('throws NotFound when the article is missing', async () => {
@@ -442,7 +442,7 @@ describe('SeoScorerService', () => {
     const tags: string[] = cacheService.invalidateByTags.mock.calls[0][0];
     expect(tags).toContain('posts');
     expect(tags).toContain('collection:posts');
-    expect(tags).toContain('agg:posts');
+    expect(tags).toContain('query:posts');
   });
 
   it('throws NotFound when the post is missing', async () => {

@@ -54,10 +54,8 @@ export interface AgentStrategyDocument
     PrismaAgentStrategy,
     'config' | 'policies' | 'agentType' | 'platforms'
   > {
-  _id: string;
   agentType?: string;
   autonomyMode?: AgentAutonomyMode | string;
-  brand?: string | null;
   budgetPolicy?: AgentStrategyBudgetPolicy;
   config?: Record<string, unknown>;
   contentMix?: AgentStrategyContentMix;
@@ -72,7 +70,6 @@ export interface AgentStrategyDocument
   monthToDateCreditsUsed: number;
   monthlyResetAt?: Date | null;
   opportunitySources?: AgentStrategyOpportunitySources;
-  organization: string;
   platforms?: string[];
   policies?: Record<string, unknown>;
   postsPerWeek?: number;
@@ -85,7 +82,6 @@ export interface AgentStrategyDocument
   runHistory: AgentStrategyRunHistoryItem[];
   skillSlugs?: string[];
   topics?: string[];
-  user: string;
   weeklyCreditBudget: number;
   [key: string]: unknown;
 }

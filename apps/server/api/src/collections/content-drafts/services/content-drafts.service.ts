@@ -11,7 +11,7 @@ import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import pLimit from 'p-limit';
+import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 
 /**
  * Max concurrent per-draft writes inside `bulkApprove`. Matches the limiter
@@ -81,7 +81,7 @@ export class ContentDraftsService extends BaseService<
       created.map((draft, index) =>
         this.trendReferenceCorpusService.recordDraftRemixLineage({
           brandId,
-          contentDraftId: (draft as Record<string, unknown>).id as string,
+          contentDraftId: draft.id,
           draftType: drafts[index]?.type,
           generatedBy: skillSlug,
           metadata: drafts[index]?.metadata,
@@ -119,7 +119,7 @@ export class ContentDraftsService extends BaseService<
 
     await this.trendReferenceCorpusService.recordDraftRemixLineage({
       brandId: input.brandId,
-      contentDraftId: (createdDraft as Record<string, unknown>).id as string,
+      contentDraftId: createdDraft.id,
       draftType: input.type,
       generatedBy: input.generatedBy,
       metadata: input.metadata,
@@ -143,7 +143,7 @@ export class ContentDraftsService extends BaseService<
       id,
     );
     const versionPin = await this.createVersionPin(
-      existing as Record<string, unknown>,
+      existing,
       organizationId,
       userId,
     );
@@ -178,10 +178,7 @@ export class ContentDraftsService extends BaseService<
 
     if (reason) {
       const currentMeta =
-        ((existing as Record<string, unknown>).metadata as Record<
-          string,
-          unknown
-        >) ?? {};
+        (existing.metadata as unknown as Record<string, unknown>) ?? {};
       updateData.metadata = { ...currentMeta, rejectionReason: reason };
     }
 
@@ -202,14 +199,14 @@ export class ContentDraftsService extends BaseService<
       return { modifiedCount: 0 };
     }
 
-    const drafts = (await this.delegate.findMany({
+    const drafts = await this.delegate.findMany({
       where: scopedWhere(organizationId, { id: { in: ids } }),
-    })) as Array<Record<string, unknown>>;
+    });
 
     // Both passes are per-draft (each draft gets its own immutable version pin,
     // so the trailing update cannot collapse into one `updateMany`). Bound the
     // fan-out instead: a single request must not open one connection per id.
-    const limit = pLimit(BULK_APPROVE_CONCURRENCY);
+    const limit = createConcurrencyLimit(BULK_APPROVE_CONCURRENCY);
 
     const pinnedDrafts = await Promise.all(
       drafts.map((draft) =>
@@ -243,7 +240,7 @@ export class ContentDraftsService extends BaseService<
   }
 
   private createVersionPin(
-    draft: Record<string, unknown>,
+    draft: Pick<ContentDraftDocument, 'brandId' | 'id'>,
     organizationId: string,
     userId: string,
   ) {
@@ -256,7 +253,7 @@ export class ContentDraftsService extends BaseService<
         ...(brandId ? { brandId } : {}),
         kind: 'content-draft',
         organizationId,
-        recordId: draft.id as string,
+        recordId: draft.id,
         serializer: 'content-draft',
       },
     });

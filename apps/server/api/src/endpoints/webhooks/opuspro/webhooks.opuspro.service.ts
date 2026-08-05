@@ -44,7 +44,7 @@ export class OpusProWebhookService {
       }
 
       const metadata = await this.metadataService.findOne({
-        _id: callback_id,
+        id: callback_id,
         isDeleted: false,
       });
       if (!metadata) {

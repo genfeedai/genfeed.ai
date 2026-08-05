@@ -42,7 +42,7 @@ describe('TwitterService', () => {
           provide: CredentialsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(null),
-            saveCredentials: vi.fn(),
+            upsertForBrand: vi.fn(),
           },
         },
         { provide: HttpService, useValue: { get: vi.fn(), post: vi.fn() } },

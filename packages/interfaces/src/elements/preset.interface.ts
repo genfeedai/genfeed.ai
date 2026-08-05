@@ -4,7 +4,9 @@ import type { IBaseEntity, IBrand, IOrganization } from '../index';
 export interface IPreset extends IBaseEntity {
   organization?: IOrganization | string;
   brand?: IBrand | string;
-  ingredient?: string;
+  organizationId?: string | null;
+  brandId?: string | null;
+  ingredientId?: string;
 
   label: string;
   description: string;

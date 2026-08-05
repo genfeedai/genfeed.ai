@@ -21,7 +21,6 @@ import {
   VIRAL_POST_MIN_ENGAGEMENT_RATE,
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -136,7 +135,7 @@ export class TriggerEvaluatorService {
     }
 
     const scope: CampaignAnalyticsScope = {
-      brandId: resolveRelationId(campaign.brandId, campaign.brand),
+      brandId: campaign.brandId ?? undefined,
       campaignId,
       // The campaign was read scoped to this id, so it is authoritative.
       organizationId,
@@ -348,18 +347,16 @@ export class TriggerEvaluatorService {
   private async loadBrandDescription(
     scope: CampaignAnalyticsScope,
   ): Promise<string> {
-    // Fail closed on an unresolvable brand id. Both filter values used to come
-    // from the relation aliases, which are `undefined` on an unpopulated read —
-    // `normalizeWhere` then dropped `_id` *and* `organization`, turning this into
-    // an unscoped read that returned the first brand row in the table.
+    // Fail closed on an unresolvable brand id so this never becomes an unscoped
+    // lookup that returns an unrelated brand.
     if (!scope.brandId) {
       return '';
     }
 
     const brand = await this.brandsService.findOne({
-      _id: scope.brandId,
+      id: scope.brandId,
       isDeleted: false,
-      organization: scope.organizationId,
+      organizationId: scope.organizationId,
     });
 
     if (!brand) {

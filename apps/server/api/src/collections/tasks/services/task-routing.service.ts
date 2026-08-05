@@ -27,12 +27,12 @@ export type AiTaskIntent = {
 };
 
 type CreateTaskDtoExtended = CreateTaskDto & {
-  brand?: string;
-  organization?: string;
+  brandId?: string;
+  organizationId?: string;
   outputType?: TaskDocument['outputType'];
   platforms?: string[];
   request?: string;
-  user?: string;
+  userId?: string;
 };
 
 type ExecutionPath = TaskRoutingDecision['executionPathUsed'];
@@ -156,8 +156,8 @@ export class TaskRoutingService {
     const extended = createDto as CreateTaskDtoExtended;
     const inferredOutputType = this.inferOutputType(createDto);
     const taskIntent = this.buildTaskIntent(createDto, inferredOutputType);
-    const brandId = extended.brand ?? undefined;
-    const organizationId = extended.organization ?? undefined;
+    const brandId = extended.brandId;
+    const organizationId = extended.organizationId;
 
     if (brandId && organizationId) {
       const resolvedSkills = await this.skillsService.resolveBrandSkills(

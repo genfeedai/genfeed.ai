@@ -38,17 +38,16 @@ export interface CreateResearchBriefRunInput {
 }
 
 export interface ContentRunRecord {
-  _id?: string;
   analyticsSummary?: ContentRunAnalyticsSummary;
-  brand?: string;
+  brandId?: string;
   brief?: ContentRunBrief;
   createdAt?: string;
   creditsUsed?: number;
   duration?: number;
   error?: string;
-  id?: string;
+  id: string;
   input?: Record<string, unknown>;
-  organization?: string;
+  organizationId: string;
   output?: unknown;
   publish?: ContentRunPublishContext | ContentRunPublishContext[];
   recommendations?: ContentRunRecommendation[];

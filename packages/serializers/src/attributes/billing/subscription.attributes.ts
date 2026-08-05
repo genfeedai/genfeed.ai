@@ -9,10 +9,13 @@ export const subscriptionPreviewAttributes = createEntityAttributes([
 ]);
 
 export const subscriptionAttributes = createEntityAttributes([
-  'organization',
-  'planId',
+  'organizationId',
+  'userId',
+  'customerId',
+  'plan',
+  'stripePriceId',
+  'stripeSubscriptionId',
   'status',
-  'category',
   'currentPeriodStart',
   'currentPeriodEnd',
   'cancelAtPeriodEnd',

@@ -1,9 +1,6 @@
 import type {
-  SocialConversation,
   SocialConversationAvailability,
   SocialConversationDocument,
-  SocialMessage,
-  SocialMessageDocument,
 } from '@api/collections/social-inbox/schemas/social-inbox.schema';
 import type { SocialInboxPage } from '@api/collections/social-inbox/services/social-inbox.types';
 import { replaceMarkup } from '@api/shared/utils/string/strip-markup.util';
@@ -71,35 +68,6 @@ export function toPage<T>(
     total: totalDocs,
     totalDocs,
     totalPages,
-  };
-}
-
-export function toConversationDocument(
-  conversation: SocialConversation,
-): SocialConversationDocument {
-  return {
-    ...conversation,
-    _id: conversation.id,
-    brand: conversation.brandId,
-    credential: conversation.credentialId,
-    organization: conversation.organizationId,
-    post: conversation.postId,
-    user: conversation.userId,
-  };
-}
-
-export function toMessageDocument(
-  message: SocialMessage,
-): SocialMessageDocument {
-  return {
-    ...message,
-    _id: message.id,
-    brand: message.brandId,
-    conversation: message.conversationId,
-    credential: message.credentialId,
-    organization: message.organizationId,
-    post: message.postId,
-    user: message.userId,
   };
 }
 

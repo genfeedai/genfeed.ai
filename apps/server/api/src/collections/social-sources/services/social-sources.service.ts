@@ -47,13 +47,13 @@ export class SocialSourcesService {
 
     const platform = normalizePlatform(dto.platform);
     const handle = normalizeHandle(platform, dto.handle);
-    await this.ensureCredentialAccess(dto.credential, context, platform);
+    await this.ensureCredentialAccess(dto.credentialId, context, platform);
     const source = await this.prisma.socialSource.create({
       data: {
         avatarUrl: dto.avatarUrl ?? null,
         bio: dto.bio ?? null,
         brandId: context.brandId,
-        credentialId: dto.credential ?? null,
+        credentialId: dto.credentialId ?? null,
         displayName: dto.displayName ?? null,
         externalId: dto.externalId ?? null,
         followersCount: dto.followersCount ?? null,
@@ -112,7 +112,7 @@ export class SocialSourcesService {
         page: query.page,
         platform: query.platform,
         search: query.search,
-        source: query.source,
+        sourceId: query.sourceId,
       }),
     ]);
     const sources = sourcesResult.docs;
@@ -167,9 +167,9 @@ export class SocialSourcesService {
       : undefined;
 
     const effectiveHandle = handle ?? existing.handle;
-    if (dto.credential !== undefined || dto.platform !== undefined) {
+    if (dto.credentialId !== undefined || dto.platform !== undefined) {
       await this.ensureCredentialAccess(
-        dto.credential ?? existing.credentialId ?? undefined,
+        dto.credentialId ?? existing.credentialId ?? undefined,
         context,
         platform,
       );
@@ -182,7 +182,9 @@ export class SocialSourcesService {
       data: {
         ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
         ...(dto.bio !== undefined && { bio: dto.bio }),
-        ...(dto.credential !== undefined && { credentialId: dto.credential }),
+        ...(dto.credentialId !== undefined && {
+          credentialId: dto.credentialId,
+        }),
         ...(dto.displayName !== undefined && { displayName: dto.displayName }),
         ...(dto.externalId !== undefined && { externalId: dto.externalId }),
         ...(dto.followersCount !== undefined && {

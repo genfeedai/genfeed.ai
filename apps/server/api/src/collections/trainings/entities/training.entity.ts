@@ -3,7 +3,6 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class TrainingEntity extends BaseEntity implements TrainingDocument {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly userId: string;
   declare readonly organizationId: string;
   declare readonly brandId: string | null;
@@ -16,10 +15,6 @@ export class TrainingEntity extends BaseEntity implements TrainingDocument {
   declare readonly isDeleted: boolean;
   declare readonly createdAt: Date;
   declare readonly updatedAt: Date;
-
-  declare readonly organization?: string;
-  declare readonly user?: string;
-  declare readonly brand?: string | null;
 
   declare readonly sources?: string[];
   declare readonly category?: string | null;

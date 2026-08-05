@@ -8,10 +8,10 @@ import {
 } from '@services/core/base.service';
 
 export interface BotActivitiesQuery {
-  organization?: string;
-  brand?: string;
-  replyBotConfig?: string;
-  monitoredAccount?: string;
+  organizationId?: string;
+  brandId?: string;
+  replyBotConfigId?: string;
+  monitoredAccountId?: string;
   status?: string;
   fromDate?: string;
   toDate?: string;
@@ -64,7 +64,7 @@ export class BotActivitiesService extends BaseService<BotActivity> {
       {
         params: {
           fromDate,
-          replyBotConfig: replyBotConfigId,
+          replyBotConfigId,
           toDate,
         },
       },
@@ -84,7 +84,7 @@ export class BotActivitiesService extends BaseService<BotActivity> {
     },
   ): Promise<{ data: BotActivity[]; total: number }> {
     return this.findWithFilters({
-      organization: organizationId,
+      organizationId,
       ...options,
     });
   }
@@ -101,7 +101,7 @@ export class BotActivitiesService extends BaseService<BotActivity> {
     },
   ): Promise<{ data: BotActivity[]; total: number }> {
     return this.findWithFilters({
-      replyBotConfig: replyBotConfigId,
+      replyBotConfigId,
       ...options,
     });
   }

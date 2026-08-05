@@ -33,9 +33,9 @@ function createPrisma() {
         ClipResult: {
           fields: [
             { name: 'id' },
-            { name: 'mongoId' },
             { name: 'organizationId' },
             { name: 'projectId' },
+            { name: 'userId' },
             { name: 'providerJobId' },
             { name: 'viralityScore' },
             { name: 'status' },
@@ -48,6 +48,9 @@ function createPrisma() {
           ],
         },
       },
+    },
+    clipProject: {
+      findFirst: vi.fn(),
     },
     clipResult: {
       count: vi.fn(),
@@ -73,28 +76,29 @@ describe('ClipResultsService', () => {
 
   it('maps create DTO fields to durable columns and data JSON', async () => {
     prisma.clipResult.create.mockResolvedValue({
-      data: {},
+      data: { title: 'Clip title' },
       id: 'clip-1',
       isSelected: false,
       organizationId: 'org-1',
       projectId: 'project-1',
       readiness: {},
       status: 'pending',
+      userId: 'user-1',
     });
 
-    await service.create({
+    const result = await service.create({
       clipType: 'hook',
       duration: 30,
       endTime: 45,
       index: 0,
-      organization: 'org-1',
-      project: 'project-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
       startTime: 15,
       status: 'pending',
       summary: 'A compelling moment',
       tags: ['ai'],
       title: 'Clip title',
-      user: 'user-1',
+      userId: 'user-1',
       viralityScore: 88,
     } as CreateClipResultDto);
 
@@ -109,7 +113,6 @@ describe('ClipResultsService', () => {
           summary: 'A compelling moment',
           tags: ['ai'],
           title: 'Clip title',
-          user: 'user-1',
         }),
         organizationId: 'org-1',
         projectId: 'project-1',
@@ -118,9 +121,12 @@ describe('ClipResultsService', () => {
           terminal: false,
         }),
         status: 'pending',
+        userId: 'user-1',
         viralityScore: 88,
       }),
     });
+    expect(result.title).toBe('Clip title');
+    expect(result.userId).toBe('user-1');
   });
 
   it('routes mode to a durable column, not the data JSON blob', async () => {
@@ -140,11 +146,11 @@ describe('ClipResultsService', () => {
       endTime: 45,
       index: 0,
       mode: 'raw-cut',
-      organization: 'org-1',
-      project: 'project-1',
+      organizationId: 'org-1',
+      projectId: 'project-1',
       startTime: 15,
       title: 'Raw cut',
-      user: 'user-1',
+      userId: 'user-1',
     } as unknown as CreateClipResultDto);
 
     const createArgs = prisma.clipResult.create.mock.calls[0]?.[0] as {
@@ -154,6 +160,60 @@ describe('ClipResultsService', () => {
     expect(createArgs.data.mode).toBe('raw-cut');
     // Never duplicated into the JSON blob.
     expect(createArgs.data.data.mode).toBeUndefined();
+  });
+
+  it('creates an externally requested result only for a project in the organization', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue({ id: 'project-1' });
+    prisma.clipResult.create.mockResolvedValue({
+      data: { title: 'Clip title' },
+      id: 'clip-1',
+      isSelected: false,
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      readiness: {},
+      status: 'pending',
+      userId: 'user-1',
+    });
+
+    await service.createForOrganization({
+      duration: 30,
+      endTime: 45,
+      index: 0,
+      organizationId: 'org-1',
+      projectId: 'project-1',
+      startTime: 15,
+      title: 'Clip title',
+      userId: 'user-1',
+    });
+
+    expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: {
+        id: 'project-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+    expect(prisma.clipResult.create).toHaveBeenCalledOnce();
+  });
+
+  it('rejects an externally requested result for a project outside the organization', async () => {
+    prisma.clipProject.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createForOrganization({
+        duration: 30,
+        endTime: 45,
+        index: 0,
+        organizationId: 'org-1',
+        projectId: 'other-project',
+        startTime: 15,
+        title: 'Clip title',
+        userId: 'user-1',
+      }),
+    ).rejects.toThrow('ClipProject');
+
+    expect(prisma.clipResult.create).not.toHaveBeenCalled();
   });
 
   it('merges patch data and adds terminal readiness for completed clips', async () => {
@@ -179,7 +239,7 @@ describe('ClipResultsService', () => {
       status: 'completed',
     });
 
-    await service.patch('legacy-clip-id', {
+    await service.patch('requested-clip-id', {
       providerJobId: 'provider-job-1',
       status: 'completed',
       videoUrl: 'https://cdn.genfeed.ai/clip.mp4',
@@ -236,6 +296,20 @@ describe('ClipResultsService', () => {
     );
   });
 
+  it('lists organization results newest first with tenant and deletion scope', async () => {
+    prisma.clipResult.findMany.mockResolvedValue([]);
+
+    await service.findAllByOrganization('org-1');
+
+    expect(prisma.clipResult.findMany).toHaveBeenCalledWith({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
   it('returns a bounded oldest-first set of active raw-cut clips', async () => {
     prisma.clipResult.findMany.mockResolvedValue([]);
 
@@ -253,7 +327,7 @@ describe('ClipResultsService', () => {
     });
   });
 
-  it('resolves a project clip result by id, mongo id, or provider job id for handoff', async () => {
+  it('resolves a project clip result by id or provider job id for handoff', async () => {
     prisma.clipResult.findFirst.mockResolvedValue({
       data: { title: 'Clip' },
       id: 'clip-1',
@@ -275,11 +349,7 @@ describe('ClipResultsService', () => {
 
     expect(prisma.clipResult.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [
-          { id: 'provider-job-1' },
-          { mongoId: 'provider-job-1' },
-          { providerJobId: 'provider-job-1' },
-        ],
+        OR: [{ id: 'provider-job-1' }, { providerJobId: 'provider-job-1' }],
         isDeleted: false,
         organizationId: 'org-1',
         projectId: 'project-1',

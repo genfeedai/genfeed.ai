@@ -126,13 +126,13 @@ describe('Tasks E2E Tests', () => {
     testOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Tasks Test Organization',
-      user: testUser.id,
+      userId: testUser.id,
     });
 
     otherOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Other Tasks Organization',
-      user: generateIdString(),
+      userId: generateIdString(),
     });
 
     scopedTaskId = generateIdString();
@@ -150,7 +150,7 @@ describe('Tasks E2E Tests', () => {
         identifier: 'GENA-20',
         isDeleted: false,
         linkedEntities: [],
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
         priority: 'high',
         status: 'todo',
         taskNumber: 20,
@@ -163,7 +163,7 @@ describe('Tasks E2E Tests', () => {
         identifier: 'GENA-99',
         isDeleted: false,
         linkedEntities: [],
-        organization: otherOrganization.id,
+        organizationId: otherOrganization.id,
         priority: 'low',
         status: 'backlog',
         taskNumber: 99,
@@ -199,6 +199,7 @@ describe('Tasks E2E Tests', () => {
         attributes: expect.objectContaining({
           assigneeAgentId: 'agent-1',
           identifier: 'GENA-20',
+          organizationId: testOrganization.id,
           priority: 'high',
           status: 'todo',
           taskNumber: 20,

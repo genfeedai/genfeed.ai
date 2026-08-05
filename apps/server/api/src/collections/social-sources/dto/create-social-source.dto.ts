@@ -15,7 +15,7 @@ export class CreateSocialSourceDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  credential?: string;
+  credentialId?: string;
 
   @IsEnum(SocialSourcePlatform)
   @ApiProperty({ enum: SocialSourcePlatform, enumName: 'SocialSourcePlatform' })

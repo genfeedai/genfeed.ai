@@ -85,12 +85,12 @@ export default function EditMemberForm({
                     }
                     isChecked={watchedBrands.includes(brand.id)}
                     onChange={(e) => {
-                      const currentBrands = getValues('brands');
+                      const currentBrands = getValues('brandIds');
                       if (e.target.checked) {
-                        setValue('brands', [...currentBrands, brand.id]);
+                        setValue('brandIds', [...currentBrands, brand.id]);
                       } else {
                         setValue(
-                          'brands',
+                          'brandIds',
                           currentBrands.filter((id) => id !== brand.id),
                         );
                       }

@@ -162,7 +162,7 @@ export class StripeCheckoutWebhookHandler {
 
       this.loggerService.log(`${url} subscription checkout completed`, {
         customerId: session.customer,
-        organizationId: subscription.organization,
+        organizationId: subscription.organizationId,
         sessionId: session.id,
         stripeSubscriptionId: session.subscription,
       });
@@ -220,7 +220,7 @@ export class StripeCheckoutWebhookHandler {
 
         // Add credits using new credit system
         const didAddCredits = await this.supportService.addPurchasedCredits(
-          String(subscription.organization),
+          subscription.organizationId,
           creditsToAdd,
           'pay-as-you-go',
           `Credit pack purchase (${creditsToAdd} credits)`,
@@ -235,7 +235,7 @@ export class StripeCheckoutWebhookHandler {
             `${url} PAYG checkout credit grant already exists`,
             {
               customerId: session.customer,
-              organizationId: subscription.organization,
+              organizationId: subscription.organizationId,
               sessionId: session.id,
             },
           );
@@ -244,11 +244,11 @@ export class StripeCheckoutWebhookHandler {
 
         const newBalance =
           await this.creditsUtilsService.getOrganizationCreditsBalance(
-            String(subscription.organization),
+            subscription.organizationId,
           );
 
         const dbUser = await this.usersService.findOne({
-          id: subscription.user,
+          id: subscription.userId,
           isDeleted: false,
         });
 
@@ -264,8 +264,7 @@ export class StripeCheckoutWebhookHandler {
         }
 
         await this.supportService.recordCreditsActivity({
-          brandId: String(subscription.organization),
-          organizationId: String(subscription.organization),
+          organizationId: subscription.organizationId,
           source: ActivitySource.PAY_AS_YOU_GO,
           ...(dbUser?.id ? { userId: String(dbUser.id) } : {}),
           value: String(creditsToAdd),
@@ -275,7 +274,7 @@ export class StripeCheckoutWebhookHandler {
           creditsAdded: creditsToAdd,
           customerId: session.customer,
           newBalance,
-          organizationId: subscription.organization,
+          organizationId: subscription.organizationId,
           sessionId: session.id,
         });
 
@@ -286,7 +285,7 @@ export class StripeCheckoutWebhookHandler {
     if (processed === null) {
       this.loggerService.log(`${url} PAYG checkout already processed`, {
         customerId: session.customer,
-        organizationId: subscription.organization,
+        organizationId: subscription.organizationId,
         sessionId: session.id,
       });
     }
@@ -606,7 +605,7 @@ export class StripeCheckoutWebhookHandler {
   ): Promise<ManagedCheckoutResources> {
     let organization = await this.organizationsService.findOne({
       isDeleted: false,
-      user: String(dbUser.id),
+      userId: String(dbUser.id),
     });
 
     let brand = organization
@@ -627,8 +626,7 @@ export class StripeCheckoutWebhookHandler {
     }
 
     let orgSetting = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: String(organization.id),
+      organizationId: String(organization.id),
     });
 
     if (!orgSetting) {
@@ -637,8 +635,7 @@ export class StripeCheckoutWebhookHandler {
         OrganizationCategory.BUSINESS,
       );
       orgSetting = await this.organizationSettingsService.findOne({
-        isDeleted: false,
-        organization: String(organization.id),
+        organizationId: String(organization.id),
       });
     }
 
@@ -670,7 +667,7 @@ export class StripeCheckoutWebhookHandler {
         category: ApiKeyCategory.GENFEEDAI,
         isRevoked: false,
         label: MANAGED_API_KEY_LABEL,
-        organization: organizationId,
+        organizationId: organizationId,
         userId,
       },
       [],

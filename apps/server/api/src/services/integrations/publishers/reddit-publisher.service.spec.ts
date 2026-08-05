@@ -37,16 +37,16 @@ describe('RedditPublisherService', () => {
 
   // Mock credential
   const mockCredential = {
-    _id: mockCredentialId,
+    id: mockCredentialId,
     accessToken: 'encrypted-access-token',
-    brand: mockBrandId,
+    brandId: mockBrandId,
     externalHandle: 'testuser',
     externalId: mockSubreddit,
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     platform: CredentialPlatform.REDDIT,
     refreshToken: 'encrypted-refresh-token',
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as CredentialDocument;
 
   // Mock credential without subreddit
@@ -57,7 +57,7 @@ describe('RedditPublisherService', () => {
 
   // Mock organization
   const mockOrganization = {
-    _id: mockOrganizationId,
+    id: mockOrganizationId,
     isDeleted: false,
     name: 'Test Organization',
   } as unknown as OrganizationDocument;
@@ -65,42 +65,42 @@ describe('RedditPublisherService', () => {
   // Mock post for text-only
   const mockTextPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.TEXT,
     description: '<p>Test Reddit content</p>',
     ingredients: [],
     isDeleted: false,
     label: 'Post Title',
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with image
   const mockImagePost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.IMAGE,
     description: '<p>Test image post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
     label: 'Image Post Title',
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Mock post with video
   const mockVideoPost = {
     id: mockPostId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: PostCategory.VIDEO,
     description: '<p>Test video post</p>',
     ingredients: [mockIngredientId],
     isDeleted: false,
-    organization: mockOrganizationId,
+    organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
-    user: mockUserId,
+    userId: mockUserId,
   } as unknown as PostEntity;
 
   // Create publish context helper

@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { ShopifyController } from '@api/services/integrations/shopify/controllers/shopify.controller';
 import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
@@ -6,7 +7,11 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(ShopifyService, {
-  additionalImports: [HttpModule, forwardRef(() => CredentialsCoreModule)],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+  ],
 });
 
 @Module({

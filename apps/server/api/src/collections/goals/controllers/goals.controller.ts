@@ -44,9 +44,7 @@ export class GoalsController extends BaseCRUDController<
 
     const doc = await this.goalsService.create({
       ...createDto,
-      organization: organizationId,
-    } as CreateGoalDto & {
-      organization: string;
+      organizationId,
     });
 
     return serializeSingle(request, GoalSerializer, doc);
@@ -56,7 +54,7 @@ export class GoalsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     };
 
     if (query.status) {

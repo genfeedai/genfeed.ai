@@ -23,14 +23,10 @@ export class ModelRegistrationService {
     modelKey: string,
     organizationId: string,
   ): Promise<ModelDocument> {
-    const model = await this.prisma.model
-      .findMany({ where: { isDeleted: false } })
-      .then((models) =>
-        models.find((candidate) => {
-          const config = candidate.config as Record<string, unknown>;
-          return config?.key === modelKey;
-        }),
-      );
+    const model = await this.modelsService.findOne({
+      isDeleted: false,
+      key: modelKey,
+    });
 
     if (!model) {
       throw new BadRequestException(`Unknown model: ${modelKey}`);
@@ -41,31 +37,28 @@ export class ModelRegistrationService {
       throw new ForbiddenException('Model not available for this organization');
     }
 
-    // enabledModels check
+    // Organization enabled-model allowlist check.
     const orgSettings = await this.orgSettingsService.findOne({
-      organization: organizationId,
+      organizationId,
     });
-    const enabledModels = Array.isArray(
-      (orgSettings as Record<string, unknown> | null)?.enabledModels,
+    const enabledModelIds = Array.isArray(
+      (orgSettings as Record<string, unknown> | null)?.enabledModelIds,
     )
-      ? ((orgSettings as Record<string, unknown>).enabledModels as string[])
+      ? ((orgSettings as Record<string, unknown>).enabledModelIds as string[])
       : [];
-    const isEnabled = enabledModels.some((id: string) => id === model.id);
+    const isEnabled = enabledModelIds.includes(model.id);
 
     if (!isEnabled) {
       throw new ForbiddenException('Model not enabled for this organization');
     }
 
-    return model as unknown as ModelDocument;
+    return model;
   }
 
   async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {
     try {
       const newModel = await this.modelsService.createFromTraining(training);
-      const organizationId =
-        typeof newModel.organization === 'string'
-          ? newModel.organization
-          : newModel.organizationId;
+      const organizationId = newModel.organizationId;
 
       if (organizationId && newModel.id) {
         await this.orgSettingsService.addEnabledModel(
@@ -79,12 +72,14 @@ export class ModelRegistrationService {
       );
       return newModel;
     } catch (err: unknown) {
-      const error = err as { code?: number };
-      if (error.code === 11000) {
-        const raceWinner = await this.prisma.model.findFirst({
-          where: { trainingId: training.id },
+      const error = err as { code?: string };
+      if (error.code === 'P2002') {
+        const raceWinner = await this.modelsService.findOne({
+          trainingId: training.id,
         });
-        return raceWinner as unknown as ModelDocument;
+        if (raceWinner) {
+          return raceWinner;
+        }
       }
       throw err;
     }
@@ -136,21 +131,22 @@ export class ModelRegistrationService {
     for (const model of orgModels) {
       if (!model.organizationId) continue;
       const orgKey = model.organizationId;
-      if (!modelsByOrg.has(orgKey)) modelsByOrg.set(orgKey, []);
-      modelsByOrg.get(orgKey)!.push(model.id);
+      const modelIds = modelsByOrg.get(orgKey) ?? [];
+      modelIds.push(model.id);
+      modelsByOrg.set(orgKey, modelIds);
     }
 
     let repaired = 0;
     for (const [orgId, modelIds] of modelsByOrg) {
       const orgSettings = await this.orgSettingsService.findOne({
-        organization: orgId,
+        organizationId: orgId,
       });
-      const enabledModels = Array.isArray(
-        (orgSettings as Record<string, unknown> | null)?.enabledModels,
+      const enabledModelIds = Array.isArray(
+        (orgSettings as Record<string, unknown> | null)?.enabledModelIds,
       )
-        ? ((orgSettings as Record<string, unknown>).enabledModels as string[])
+        ? ((orgSettings as Record<string, unknown>).enabledModelIds as string[])
         : [];
-      const enabledSet = new Set<string>(enabledModels);
+      const enabledSet = new Set<string>(enabledModelIds);
 
       for (const modelId of modelIds) {
         if (!enabledSet.has(modelId)) {
@@ -160,6 +156,6 @@ export class ModelRegistrationService {
       }
     }
 
-    this.logger.log(`Reconciled ${repaired} enabledModels drift entries`);
+    this.logger.log(`Reconciled ${repaired} enabledModelIds drift entries`);
   }
 }

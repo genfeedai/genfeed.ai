@@ -118,8 +118,7 @@ export class ByokBillingService {
 
       // Get org settings for rollover and threshold override
       const orgSettings = await this.organizationSettingsService.findOne({
-        isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
 
       if (!orgSettings) {
@@ -372,8 +371,7 @@ export class ByokBillingService {
       );
 
       const orgSettings = await this.organizationSettingsService.findOne({
-        isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
 
       const freeThreshold =

@@ -338,7 +338,7 @@ export class OrganizationsService extends BaseService<Organization> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POSTS}`,
-        { params: { ...query, organization: id } },
+        { params: { ...query, organizationId: id } },
       )
       .then((response) => {
         const document = response.data;
@@ -609,28 +609,23 @@ export class OrganizationsService extends BaseService<Organization> {
     modelId: string,
     enabled: boolean,
   ): Promise<IOrganizationSetting> {
-    // Fetch current settings to get enabledModels array
+    // Fetch the current canonical model allowlist.
     const currentSettings = await this.getSettings(organizationId);
-    const enabledModels = currentSettings.enabledModels || [];
+    const enabledModelIds = currentSettings.enabledModelIds || [];
 
-    // Add or remove modelId from array
-    let updatedEnabledModels: string[];
+    let updatedEnabledModelIds: string[];
     if (enabled) {
-      // Add model if not already in the array
-      if (!enabledModels.includes(modelId)) {
-        updatedEnabledModels = [...enabledModels, modelId];
+      if (!enabledModelIds.includes(modelId)) {
+        updatedEnabledModelIds = [...enabledModelIds, modelId];
       } else {
-        // Already enabled, return current settings
         return currentSettings;
       }
     } else {
-      // Remove model from array
-      updatedEnabledModels = enabledModels.filter((id) => id !== modelId);
+      updatedEnabledModelIds = enabledModelIds.filter((id) => id !== modelId);
     }
 
-    // Update settings using general PATCH endpoint
     return await this.patchSettings(organizationId, {
-      enabledModels: updatedEnabledModels,
+      enabledModelIds: updatedEnabledModelIds,
     });
   }
 }

@@ -4,7 +4,6 @@ export type { AgentStrategyOpportunity } from '@genfeedai/prisma';
 
 export interface AgentStrategyOpportunityDocument
   extends AgentStrategyOpportunity {
-  _id: string;
   brand?: string | null;
   decisionReason?: string;
   estimatedCreditCost: number;

@@ -456,9 +456,9 @@ export class AgentAdsResearchToolHandler {
   ): Promise<Record<string, unknown> | null> {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
-        _id: params.brandId,
+        id: params.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (explicitBrand) {
@@ -469,8 +469,8 @@ export class AgentAdsResearchToolHandler {
     const currentBrand = await this.brandsService.findOne({
       isDeleted: false,
       isSelected: true,
-      organization: ctx.organizationId,
-      user: ctx.userId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
     });
 
     if (currentBrand) {
@@ -479,9 +479,9 @@ export class AgentAdsResearchToolHandler {
 
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
-        _id: ctx.brandId,
+        id: ctx.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (contextBrand) {
@@ -491,7 +491,7 @@ export class AgentAdsResearchToolHandler {
 
     const firstOrgBrand = await this.brandsService.findOne({
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     return firstOrgBrand

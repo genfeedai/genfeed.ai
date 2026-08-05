@@ -56,10 +56,10 @@ describe('AnalyticsSocialJobService', () => {
         attemptKey: 'attempt-1',
         posts: [
           {
-            brand: 'brand-1',
+            brandId: 'brand-1',
             externalId: 'ig-1',
             id: 'post-1',
-            organization: 'org-1',
+            organizationId: 'org-1',
             platform: CredentialPlatform.INSTAGRAM,
           },
         ],

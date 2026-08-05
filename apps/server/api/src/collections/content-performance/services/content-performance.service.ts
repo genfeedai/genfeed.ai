@@ -8,16 +8,58 @@ import { PerformanceSource } from '@api/collections/content-performance/schemas/
 import { mapPostCategoryToContentType } from '@api/collections/content-performance/utils/content-performance-category.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
+const CONTENT_PERFORMANCE_SCALAR_FIELDS = [
+  'brandId',
+  'comments',
+  'contentRunId',
+  'contentType',
+  'cycleNumber',
+  'engagementRate',
+  'externalPostId',
+  'generationId',
+  'isDeleted',
+  'likes',
+  'measuredAt',
+  'organizationId',
+  'performanceScore',
+  'platform',
+  'postId',
+  'revenue',
+  'saves',
+  'shares',
+  'source',
+  'userId',
+  'variantId',
+  'views',
+  'workflowExecutionId',
+] as const satisfies readonly (keyof ContentPerformanceDocument)[];
+
+const CONTENT_PERFORMANCE_DATA_FIELDS = [
+  'clicks',
+  'hookUsed',
+  'promptUsed',
+] as const satisfies readonly (keyof ContentPerformanceDocument)[];
+
+type ContentPerformanceDomainField =
+  (typeof CONTENT_PERFORMANCE_DATA_FIELDS)[number];
+
+type ContentPerformanceWriteInput = Omit<
+  Prisma.ContentPerformanceUncheckedCreateInput,
+  'data'
+> &
+  Partial<Pick<ContentPerformanceDocument, ContentPerformanceDomainField>>;
+
 @Injectable()
 export class ContentPerformanceService extends BaseService<
   ContentPerformanceDocument,
-  Partial<ContentPerformanceDocument>,
-  Partial<ContentPerformanceDocument>,
+  Prisma.ContentPerformanceUncheckedCreateInput,
+  Prisma.ContentPerformanceUncheckedUpdateInput,
   Prisma.ContentPerformanceWhereInput
 > {
   constructor(
@@ -25,6 +67,44 @@ export class ContentPerformanceService extends BaseService<
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'contentPerformance', logger);
+  }
+
+  protected override normalizeDocument(
+    document: unknown,
+  ): ContentPerformanceDocument {
+    const record = super.normalizeDocument(document) as unknown as Record<
+      string,
+      unknown
+    >;
+    const persistedData = this.readRecord(record.data);
+    const domainData = pickDefinedFields(
+      persistedData,
+      CONTENT_PERFORMANCE_DATA_FIELDS,
+    );
+
+    return { ...domainData, ...record } as ContentPerformanceDocument;
+  }
+
+  private toPersistenceData(
+    input: ContentPerformanceWriteInput,
+  ): Prisma.ContentPerformanceUncheckedCreateInput {
+    const domainData = pickDefinedFields(
+      input,
+      CONTENT_PERFORMANCE_DATA_FIELDS,
+    );
+
+    return {
+      ...pickDefinedFields(input, CONTENT_PERFORMANCE_SCALAR_FIELDS),
+      ...(Object.keys(domainData).length > 0
+        ? { data: domainData as Prisma.InputJsonObject }
+        : {}),
+    };
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
   }
 
   private toCredentialPlatform(platform?: string): string | undefined {
@@ -41,18 +121,32 @@ export class ContentPerformanceService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<ContentPerformanceDocument> {
-    const data = {
-      ...dto,
-      brandId: dto.brand,
+    const data = this.toPersistenceData({
+      brandId: dto.brandId,
+      clicks: dto.clicks,
+      comments: dto.comments,
+      contentType: dto.contentType,
+      cycleNumber: dto.cycleNumber,
       engagementRate: dto.engagementRate ?? this.computeEngagementRate(dto),
+      externalPostId: dto.externalPostId,
+      generationId: dto.generationId,
+      hookUsed: dto.hookUsed,
+      likes: dto.likes,
       measuredAt: new Date(dto.measuredAt),
       organizationId,
       performanceScore:
         dto.performanceScore ?? this.computePerformanceScore(dto),
-      postId: dto.post ?? undefined,
+      platform: dto.platform,
+      postId: dto.postId,
+      promptUsed: dto.promptUsed,
+      revenue: dto.revenue,
+      saves: dto.saves,
+      shares: dto.shares,
+      source: dto.source,
       userId,
+      views: dto.views,
       workflowExecutionId: dto.workflowExecutionId ?? undefined,
-    };
+    });
 
     return this.create(data);
   }
@@ -65,9 +159,9 @@ export class ContentPerformanceService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<ContentPerformanceDocument[]> {
-    if (dto.brand) {
+    if (dto.brandId) {
       const brand = await this.prisma.brand.findFirst({
-        where: scopedWhere(organizationId, { id: dto.brand }),
+        where: scopedWhere(organizationId, { id: dto.brandId }),
       });
       if (!brand) {
         throw new BadRequestException(
@@ -76,23 +170,35 @@ export class ContentPerformanceService extends BaseService<
       }
     }
 
-    const records = dto.entries.map((entry) => ({
-      ...entry,
-      brandId: dto.brand,
-      engagementRate: this.computeEngagementRate(entry),
-      measuredAt: new Date(entry.measuredAt),
-      organizationId,
-      performanceScore: this.computePerformanceScore(entry),
-      postId: entry.post ?? undefined,
-      source: PerformanceSource.MANUAL,
-      userId,
-    }));
+    const records = dto.entries.map((entry) =>
+      this.toPersistenceData({
+        brandId: dto.brandId,
+        clicks: entry.clicks,
+        comments: entry.comments,
+        contentType: entry.contentType,
+        engagementRate: this.computeEngagementRate(entry),
+        externalPostId: entry.externalPostId,
+        generationId: entry.generationId,
+        likes: entry.likes,
+        measuredAt: new Date(entry.measuredAt),
+        organizationId,
+        performanceScore: this.computePerformanceScore(entry),
+        platform: entry.platform,
+        postId: entry.postId,
+        revenue: entry.revenue,
+        saves: entry.saves,
+        shares: entry.shares,
+        source: PerformanceSource.MANUAL,
+        userId,
+        views: entry.views,
+      }),
+    );
 
     const created = await Promise.all(
       records.map((r) => this.delegate.create({ data: r })),
     );
 
-    return created as ContentPerformanceDocument[];
+    return this.normalizeDocuments(created);
   }
 
   /**
@@ -108,7 +214,7 @@ export class ContentPerformanceService extends BaseService<
     errors: Array<{ index: number; message: string }>;
   }> {
     const errors: Array<{ index: number; message: string }> = [];
-    const records: Record<string, unknown>[] = [];
+    const records: ContentPerformanceWriteInput[] = [];
     let matched = 0;
 
     let validatedBrandId: string | undefined;
@@ -158,27 +264,29 @@ export class ContentPerformanceService extends BaseService<
           matched++;
         }
 
-        records.push({
-          brandId: post?.brandId ?? validatedBrandId ?? undefined,
-          comments: entry.comments ?? 0,
-          contentType: mapPostCategoryToContentType(post?.category),
-          engagementRate: this.computeEngagementRate(entry),
-          externalPostId: entry.externalPostId,
-          generationId: post?.generationId ?? undefined,
-          isDeleted: false,
-          likes: entry.likes ?? 0,
-          measuredAt: new Date(entry.measuredAt),
-          organizationId,
-          performanceScore: this.computePerformanceScore(entry),
-          platform: entry.platform,
-          postId: post?.id ?? undefined,
-          revenue: entry.revenue ?? 0,
-          saves: entry.saves ?? 0,
-          shares: entry.shares ?? 0,
-          source: PerformanceSource.CSV,
-          userId,
-          views: entry.views ?? 0,
-        });
+        records.push(
+          this.toPersistenceData({
+            brandId: post?.brandId ?? validatedBrandId ?? undefined,
+            comments: entry.comments ?? 0,
+            contentType: mapPostCategoryToContentType(post?.category),
+            engagementRate: this.computeEngagementRate(entry),
+            externalPostId: entry.externalPostId,
+            generationId: post?.generationId ?? undefined,
+            isDeleted: false,
+            likes: entry.likes ?? 0,
+            measuredAt: new Date(entry.measuredAt),
+            organizationId,
+            performanceScore: this.computePerformanceScore(entry),
+            platform: entry.platform,
+            postId: post?.id ?? undefined,
+            revenue: entry.revenue ?? 0,
+            saves: entry.saves ?? 0,
+            shares: entry.shares ?? 0,
+            source: PerformanceSource.CSV,
+            userId,
+            views: entry.views ?? 0,
+          }),
+        );
       } catch (err) {
         errors.push({
           index: i,
@@ -217,7 +325,7 @@ export class ContentPerformanceService extends BaseService<
       });
     }
 
-    const data = {
+    const data = this.toPersistenceData({
       brandId: (post?.brandId as string) ?? undefined,
       comments: dto.comments ?? 0,
       contentType: mapPostCategoryToContentType(
@@ -239,7 +347,7 @@ export class ContentPerformanceService extends BaseService<
       source: PerformanceSource.MANUAL,
       userId,
       views: dto.views ?? 0,
-    };
+    });
 
     return this.create(data);
   }
@@ -253,8 +361,8 @@ export class ContentPerformanceService extends BaseService<
   ): Promise<ContentPerformanceDocument[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {});
 
-    if (filters.brand) {
-      where.brandId = filters.brand;
+    if (filters.brandId) {
+      where.brandId = filters.brandId;
     }
     if (filters.platform) {
       where.platform = filters.platform;
@@ -281,11 +389,13 @@ export class ContentPerformanceService extends BaseService<
 
     const limit = filters.limit ? Math.min(filters.limit, 500) : 100;
 
-    return this.delegate.findMany({
+    const docs = await this.delegate.findMany({
       where,
       orderBy: { measuredAt: 'desc' },
       take: limit,
-    }) as Promise<ContentPerformanceDocument[]>;
+    });
+
+    return this.normalizeDocuments(docs);
   }
 
   /**
@@ -302,11 +412,13 @@ export class ContentPerformanceService extends BaseService<
       where.brandId = brandId;
     }
 
-    return this.delegate.findMany({
+    const docs = await this.delegate.findMany({
       where,
       orderBy: { performanceScore: 'desc' },
       take: limit,
-    }) as Promise<ContentPerformanceDocument[]>;
+    });
+
+    return this.normalizeDocuments(docs);
   }
 
   /**
@@ -316,22 +428,23 @@ export class ContentPerformanceService extends BaseService<
     organizationId: string,
     generationId: string,
   ): Promise<Record<string, unknown>> {
-    const rows = await this.delegate.findMany({
-      where: scopedWhere(organizationId, { generationId }),
-    });
+    const rows = this.normalizeDocuments(
+      await this.delegate.findMany({
+        where: scopedWhere(organizationId, { generationId }),
+      }),
+    );
 
     if (rows.length === 0) return {};
 
-    const r = rows as Array<Record<string, number | null>>;
-    const count = r.length;
-    const sum = (key: string) =>
-      r.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
+    const count = rows.length;
+    const sum = (key: keyof ContentPerformanceDocument) =>
+      rows.reduce((acc, row) => acc + (Number(row[key]) || 0), 0);
 
     return {
-      _id: generationId,
       avgEngagementRate: sum('engagementRate') / count,
       avgPerformanceScore: sum('performanceScore') / count,
       count,
+      generationId,
       totalClicks: sum('clicks'),
       totalComments: sum('comments'),
       totalLikes: sum('likes'),

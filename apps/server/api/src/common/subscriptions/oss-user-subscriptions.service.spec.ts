@@ -20,7 +20,7 @@ describe('OssUserSubscriptionsService', () => {
 
   it('throws ForbiddenException on user-initiated provisioning', async () => {
     await expect(
-      service.getOrCreateSubscription('user-1', 'cus_123'),
+      service.getOrCreateSubscription('user-1'),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

@@ -187,7 +187,6 @@ function sessionRow(
     data,
     id,
     isDeleted: false,
-    mongoId: null,
     updatedAt: new Date('2026-06-24T09:00:00.000Z'),
   };
 }

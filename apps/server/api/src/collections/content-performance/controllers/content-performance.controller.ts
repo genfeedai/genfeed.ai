@@ -223,9 +223,9 @@ export class ContentPerformanceController {
     const publicMetadata = getPublicMetadata(user);
 
     const record = await this.contentPerformanceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!record) {
@@ -245,9 +245,9 @@ export class ContentPerformanceController {
     const publicMetadata = getPublicMetadata(user);
 
     const record = await this.contentPerformanceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!record) {

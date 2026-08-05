@@ -65,9 +65,9 @@ describe('management schemas', () => {
     it('accepts valid', () => {
       expect(
         watchlistSchema.safeParse({
-          brand: 'b',
+          brandId: 'b',
           handle: '@t',
-          name: 'N',
+          label: 'N',
           platform: Platform.INSTAGRAM,
         }).success,
       ).toBe(true);
@@ -76,9 +76,9 @@ describe('management schemas', () => {
     it('rejects empty brand', () => {
       expect(
         watchlistSchema.safeParse({
-          brand: '',
+          brandId: '',
           handle: '@t',
-          name: 'N',
+          label: 'N',
           platform: Platform.INSTAGRAM,
         }).success,
       ).toBe(false);
@@ -87,9 +87,9 @@ describe('management schemas', () => {
     it('rejects invalid platform', () => {
       expect(
         watchlistSchema.safeParse({
-          brand: 'b',
+          brandId: 'b',
           handle: '@t',
-          name: 'N',
+          label: 'N',
           platform: 'invalid',
         }).success,
       ).toBe(false);

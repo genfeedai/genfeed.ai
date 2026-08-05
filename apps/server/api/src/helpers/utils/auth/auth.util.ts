@@ -66,25 +66,21 @@ export function getSubscriptionTier(
 }
 
 /**
- * Request context interface containing organization, brand, and user IDs.
- * ObjectId fields are optional - check before using in queries.
+ * Request context containing canonical Prisma relation IDs.
  */
 export interface RequestContext {
   organizationId: string;
   brandId: string;
   userId: string;
-  organizationObjectId?: string;
-  brandObjectId?: string;
-  userObjectId?: string;
 }
 
 /**
- * Query DTO with optional organization, brand, and user overrides
+ * Query DTO with optional canonical scope-id overrides.
  */
 export interface ContextQueryDto {
-  organization?: string;
-  brand?: string;
-  user?: string;
+  organizationId?: string;
+  brandId?: string;
+  userId?: string;
 }
 
 /**
@@ -93,12 +89,12 @@ export interface ContextQueryDto {
  *
  * @param user - authenticated user object
  * @param query - Optional query DTO with organization, brand, user overrides
- * @returns RequestContext with string IDs and ObjectId conversions
+ * @returns RequestContext with canonical string IDs
  *
  * @example
  * const ctx = extractRequestContext(user, query);
  * const items = await this.service.find({
- *   organization: ctx.organizationObjectId,
+ *   organizationId: ctx.organizationId,
  *   isDeleted: false,
  * });
  */
@@ -109,32 +105,29 @@ export function extractRequestContext(
   const publicMetadata = getPublicMetadata(user);
 
   const organizationId =
-    query?.organization || publicMetadata.organization?.toString() || '';
-  const brandId = query?.brand || publicMetadata.brand?.toString() || '';
-  const userId = query?.user || publicMetadata.user?.toString() || '';
+    query?.organizationId || publicMetadata.organization?.toString() || '';
+  const brandId = query?.brandId || publicMetadata.brand?.toString() || '';
+  const userId = query?.userId || publicMetadata.user?.toString() || '';
 
   return {
     brandId,
-    brandObjectId: brandId ? brandId : undefined,
     organizationId,
-    organizationObjectId: organizationId ? organizationId : undefined,
     userId,
-    userObjectId: userId ? userId : undefined,
   };
 }
 
 export function resolveRequiredBrandRequestContext(
   user: AuthenticatedUser,
-  query: Pick<ContextQueryDto, 'brand' | 'organization'> = {},
+  query: Pick<ContextQueryDto, 'brandId' | 'organizationId'> = {},
 ): Pick<RequestContext, 'brandId' | 'organizationId' | 'userId'> {
   const requestContext = extractRequestContext(user);
   const canOverrideScope = getIsSuperAdmin(user);
   const organizationId =
-    canOverrideScope && query.organization
-      ? query.organization
+    canOverrideScope && query.organizationId
+      ? query.organizationId
       : requestContext.organizationId;
   const brandId =
-    canOverrideScope && query.brand ? query.brand : requestContext.brandId;
+    canOverrideScope && query.brandId ? query.brandId : requestContext.brandId;
   const userId = requestContext.userId || user.id;
 
   if (!organizationId || !brandId || !userId) {
@@ -149,22 +142,22 @@ export function resolveRequiredBrandRequestContext(
 /**
  * Build a base filter for organization-scoped queries.
  * Includes organization and isDeleted by default.
- * Throws if organizationObjectId is missing to prevent unscoped queries.
+ * Throws if organizationId is missing to prevent unscoped queries.
  *
  * @param ctx - Request context
  * @param options - Optional flags to include user/brand filters
  * @returns filter object
- * @throws Error if organizationObjectId is undefined
+ * @throws Error if organizationId is empty
  *
  * @example
  * const filter = buildOrgFilter(ctx, { includeBrand: true });
- * // { organization: ObjectId, brand: ObjectId, isDeleted: false }
+ * // { organizationId: '...', brandId: '...', isDeleted: false }
  */
 export function buildOrgFilter(
   ctx: RequestContext,
   options?: { includeUser?: boolean; includeBrand?: boolean },
 ): Record<string, unknown> {
-  if (!ctx.organizationObjectId) {
+  if (!ctx.organizationId) {
     throw new Error(
       'Organization ID is required for organization-scoped queries',
     );
@@ -172,15 +165,15 @@ export function buildOrgFilter(
 
   const filter: Record<string, unknown> = {
     isDeleted: false,
-    organization: ctx.organizationObjectId,
+    organizationId: ctx.organizationId,
   };
 
-  if (options?.includeUser && ctx.userObjectId) {
-    filter.user = ctx.userObjectId;
+  if (options?.includeUser && ctx.userId) {
+    filter.userId = ctx.userId;
   }
 
-  if (options?.includeBrand && ctx.brandObjectId) {
-    filter.brand = ctx.brandObjectId;
+  if (options?.includeBrand && ctx.brandId) {
+    filter.brandId = ctx.brandId;
   }
 
   return filter;

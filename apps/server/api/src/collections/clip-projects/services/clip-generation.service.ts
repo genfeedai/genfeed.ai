@@ -1,5 +1,4 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
 import { type ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import type { ClipResultMode } from '@genfeedai/interfaces';
@@ -365,8 +364,8 @@ export class ClipGenerationService {
         endTime: highlight.end_time,
         index,
         mode,
-        organization: orgId,
-        project: projectId,
+        organizationId: orgId,
+        projectId: projectId,
         startTime: highlight.start_time,
         status: 'pending',
         summary: highlight.summary,
@@ -374,7 +373,7 @@ export class ClipGenerationService {
         title: highlight.title,
         userId,
         viralityScore: highlight.virality_score,
-      } as unknown as CreateClipResultDto,
+      },
     );
 
     return String((clipResult as Record<string, unknown>).id ?? clipResult.id);

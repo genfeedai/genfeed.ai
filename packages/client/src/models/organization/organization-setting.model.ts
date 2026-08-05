@@ -42,7 +42,7 @@ export class OrganizationSetting
 
   public declare timezone?: string;
 
-  public declare enabledModels?: string[];
+  public declare enabledModelIds?: string[];
   public declare defaultAvatarPhotoUrl?: string | null;
   public declare defaultVoiceId?: string | null;
   public declare defaultVoiceProvider?: VoiceProvider | null;

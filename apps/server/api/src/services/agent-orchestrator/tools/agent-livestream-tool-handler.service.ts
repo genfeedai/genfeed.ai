@@ -1,6 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   BotCategory,
   BotPlatform,
@@ -137,7 +136,7 @@ export class AgentLivestreamToolHandler {
 
     const botPlatform = this.toBotPlatform(platform);
     const createdBot = await this.botsService.create({
-      brand: String(brand.id),
+      brandId: String(brand.id),
       category: LIVESTREAM_BOT_CATEGORY,
       description:
         typeof params.description === 'string'
@@ -175,7 +174,7 @@ export class AgentLivestreamToolHandler {
             ? params.transcriptEnabled
             : undefined,
       }),
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
       platforms: [botPlatform],
       settings: {
         messagesPerMinute: 5,
@@ -212,7 +211,7 @@ export class AgentLivestreamToolHandler {
               : undefined,
         },
       ],
-      user: ctx.userId,
+      userId: ctx.userId,
     });
 
     const session =
@@ -652,9 +651,9 @@ export class AgentLivestreamToolHandler {
     }
 
     const bot = await this.botsService.findOne({
-      _id: botId,
+      id: botId,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!bot || !this.isLivestreamBot(bot)) {
@@ -663,7 +662,7 @@ export class AgentLivestreamToolHandler {
 
     const brand = await this.resolveWorkflowBrand({}, ctx);
     // Scalar FK: an undefined `bot.brand` collapsed this brand-scope gate.
-    const botBrandId = resolveRelationId(bot.brandId, bot.brand);
+    const botBrandId = bot.brandId ?? undefined;
     if (botBrandId && (!brand || botBrandId !== String(brand.id))) {
       return null;
     }
@@ -683,9 +682,9 @@ export class AgentLivestreamToolHandler {
   ): Promise<Record<string, unknown> | null> {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
-        _id: params.brandId,
+        id: params.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (explicitBrand) {
@@ -696,8 +695,8 @@ export class AgentLivestreamToolHandler {
     const currentBrand = await this.brandsService.findOne({
       isDeleted: false,
       isSelected: true,
-      organization: ctx.organizationId,
-      user: ctx.userId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
     });
 
     if (currentBrand) {
@@ -706,9 +705,9 @@ export class AgentLivestreamToolHandler {
 
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
-        _id: ctx.brandId,
+        id: ctx.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (contextBrand) {
@@ -718,7 +717,7 @@ export class AgentLivestreamToolHandler {
 
     const firstOrgBrand = await this.brandsService.findOne({
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     return firstOrgBrand

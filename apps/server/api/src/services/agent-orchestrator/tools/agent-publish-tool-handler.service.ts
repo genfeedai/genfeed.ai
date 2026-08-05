@@ -7,7 +7,6 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CredentialPlatform,
   IngredientCategory,
@@ -168,7 +167,7 @@ export class AgentPublishToolHandler {
       ctx.userId,
       {
         baseContent,
-        brandId: String(ingredient.brand),
+        brandId: ingredient.brandId ?? undefined,
         idempotencyKey,
         media: [
           {
@@ -331,9 +330,9 @@ export class AgentPublishToolHandler {
     }
 
     return (await this.ingredientsService.findOne({
-      _id: contentId,
+      id: contentId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     })) as unknown as Record<string, unknown> | null;
   }
 
@@ -347,10 +346,10 @@ export class AgentPublishToolHandler {
     }
 
     const filter: Record<string, unknown> = {
-      brand: String(params.brandId),
+      brandId: String(params.brandId),
       isConnected: true,
       isDeleted: false,
-      organization: params.organizationId,
+      organizationId: params.organizationId,
     };
 
     if (params.platforms && params.platforms.length > 0) {
@@ -418,7 +417,7 @@ export class AgentPublishToolHandler {
 
     const requestedPlatforms = params.platforms ?? [];
     const credentials = await this.resolveBrandCredentials({
-      brandId: resolveRelationId(ingredient.brandId, ingredient.brand),
+      brandId: ingredient.brandId,
       organizationId: ctx.organizationId,
     });
     const availablePlatforms = Array.from(
@@ -568,7 +567,7 @@ export class AgentPublishToolHandler {
         };
       }
 
-      const brandId = resolveRelationId(ingredient.brandId, ingredient.brand);
+      const brandId = readOptionalString(ingredient.brandId);
       await this.assertPublishingScope(ctx, brandId, 'selected content');
 
       if (platforms.length === 0) {
@@ -618,13 +617,13 @@ export class AgentPublishToolHandler {
       agentContextSource: ctx.validatedScope?.source,
       agentContextVersion: ctx.validatedScope?.contextVersion,
       agentThreadId: ctx.validatedScope?.threadId,
-      brand: ctx.validatedScope?.brandId,
+      brandId: ctx.validatedScope?.brandId,
       description: params.content as string,
       label: ((params.content as string) || '').substring(0, 100),
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
       source: 'agent',
       status: PostStatus.DRAFT,
-      user: ctx.userId,
+      userId: ctx.userId,
     } as never);
 
     return {
@@ -670,9 +669,9 @@ export class AgentPublishToolHandler {
     let groupId: string | undefined;
     try {
       const post = await this.postsService.findOne({
-        _id: postId,
+        id: postId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (!post) {
@@ -685,7 +684,7 @@ export class AgentPublishToolHandler {
 
       await this.assertPublishingScope(
         ctx,
-        readOptionalString(post.brandId) ?? readOptionalString(post.brand),
+        readOptionalString(post.brandId),
         'scheduled post',
       );
 

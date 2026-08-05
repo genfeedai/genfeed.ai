@@ -82,12 +82,11 @@ export class RequestContextMiddleware implements NestMiddleware {
 
       const [orgSetting, subscription] = await Promise.all([
         this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         }),
         this.subscriptionsService.findOne({
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         }),
       ]);
 
@@ -144,8 +143,7 @@ export class RequestContextMiddleware implements NestMiddleware {
       }
 
       const settings = await this.organizationSettingsService.findOne({
-        isDeleted: false,
-        organization: defaultOrg.id,
+        organizationId: defaultOrg.id,
       });
       const defaultBrand = await this.prisma.brand.findFirst({
         where: {

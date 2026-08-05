@@ -333,7 +333,7 @@ export function useBrandDetailAgentProfileCard({
     setForm(nextForm);
   }, [brand]);
 
-  const enabledModels = settings?.enabledModels ?? [];
+  const enabledModelIds = settings?.enabledModelIds ?? [];
   const populatedPlatformCount = useMemo(
     () =>
       Object.values(form.platformOverrides).filter(hasPlatformOverrideContent)
@@ -502,7 +502,7 @@ export function useBrandDetailAgentProfileCard({
 
   return {
     AUTO_MODEL_SELECT_VALUE,
-    enabledModels,
+    enabledModelIds,
     form,
     handleCanonicalSourceChange,
     handleDefaultModelChange,

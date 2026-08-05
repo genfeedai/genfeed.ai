@@ -3,8 +3,7 @@ import { ModelCategory } from '@genfeedai/enums';
 import { type ElementScene } from '@genfeedai/prisma';
 
 export class ElementSceneEntity extends BaseEntity implements ElementScene {
-  declare readonly user?: string;
-  declare readonly organization?: string;
+  declare readonly organizationId: string;
 
   declare readonly key: string;
   declare readonly label: string;

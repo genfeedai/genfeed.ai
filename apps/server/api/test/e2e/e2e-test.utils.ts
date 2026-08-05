@@ -3,12 +3,14 @@
  * Common utilities and helpers for E2E tests
  */
 
+import { randomUUID } from 'node:crypto';
 import {
   createTestDatabaseHelper,
   E2ETestModule,
   E2ETestModuleOptions,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
+import type { Prisma } from '@genfeedai/prisma';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -37,7 +39,7 @@ export const createTestUserContext = (
   isOwner: true,
   isSuperAdmin: false,
   organizationId: generateIdString(),
-  userId: generateIdString(),
+  userId: null,
   ...overrides,
 });
 
@@ -215,23 +217,26 @@ export const createE2ETestApp = async (
  * Create test organization data
  */
 export const createTestOrganization = (
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<Prisma.OrganizationUncheckedCreateInput> = {},
 ) => ({
   id: generateIdString(),
-  category: 'business',
+  category: 'BUSINESS' as const,
   createdAt: new Date(),
   isDeleted: false,
   isSelected: true,
   label: 'Test Organization',
+  slug: `organization-${generateIdString()}`,
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: generateIdString(),
   ...overrides,
 });
 
 /**
  * Create test brand data
  */
-export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
+export const createTestBrand = (
+  overrides: Partial<Prisma.BrandUncheckedCreateInput> = {},
+) => ({
   id: generateIdString(),
   backgroundColor: 'transparent',
   createdAt: new Date(),
@@ -242,20 +247,22 @@ export const createTestBrand = (overrides: Record<string, unknown> = {}) => ({
   isHighlighted: false,
   isSelected: false,
   label: 'Test Brand',
-  organization: generateIdString(),
+  organizationId: generateIdString(),
   primaryColor: '#000000',
   scope: 'USER',
   secondaryColor: '#FFFFFF',
   slug: `brand-${Date.now()}`,
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: null,
   ...overrides,
 });
 
 /**
  * Create test user data
  */
-export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
+export const createTestUser = (
+  overrides: Partial<Prisma.UserUncheckedCreateInput> = {},
+) => ({
   id: generateIdString(),
   createdAt: new Date(),
   email: `test-${Date.now()}@example.com`,
@@ -270,15 +277,17 @@ export const createTestUser = (overrides: Record<string, unknown> = {}) => ({
 /**
  * Create test member data
  */
-export const createTestMember = (overrides: Record<string, unknown> = {}) => ({
+export const createTestMember = (
+  overrides: Partial<Prisma.MemberUncheckedCreateInput> = {},
+) => ({
   id: generateIdString(),
   createdAt: new Date(),
   isActive: true,
   isDeleted: false,
-  organization: generateIdString(),
-  role: 'member',
+  organizationId: generateIdString(),
+  roleId: 'member',
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: generateIdString(),
   ...overrides,
 });
 
@@ -286,62 +295,43 @@ export const createTestMember = (overrides: Record<string, unknown> = {}) => ({
  * Create test credential data
  */
 export const createTestCredential = (
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<Prisma.CredentialUncheckedCreateInput> = {},
 ) => ({
   id: generateIdString(),
   accessToken: 'mock-access-token',
-  brand: generateIdString(),
+  brandId: null,
   createdAt: new Date(),
   externalHandle: '@testchannel',
   externalId: `ext-${Date.now()}`,
   isConnected: true,
   isDeleted: false,
-  organization: generateIdString(),
-  platform: 'youtube',
+  organizationId: null,
+  platform: 'YOUTUBE' as const,
   refreshToken: 'mock-refresh-token',
-  tokenExpiry: new Date(Date.now() + 3600000),
+  accessTokenExpiry: new Date(Date.now() + 3600000),
   updatedAt: new Date(),
-  user: generateIdString(),
-  ...overrides,
-});
-
-/**
- * Create test video data
- */
-export const createTestVideo = (overrides: Record<string, unknown> = {}) => ({
-  id: generateIdString(),
-  brand: generateIdString(),
-  createdAt: new Date(),
-  description: 'Test video description',
-  duration: 60,
-  height: 1080,
-  isDeleted: false,
-  label: 'Test Video',
-  organization: generateIdString(),
-  status: 'draft',
-  updatedAt: new Date(),
-  user: generateIdString(),
-  width: 1920,
+  userId: null,
   ...overrides,
 });
 
 /**
  * Create test post data
  */
-export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
+export const createTestPost = (
+  overrides: Partial<Prisma.PostUncheckedCreateInput> = {},
+) => ({
   id: generateIdString(),
-  brand: generateIdString(),
-  caption: 'Test post caption',
+  brandId: generateIdString(),
   createdAt: new Date(),
-  credential: generateIdString(),
-  ingredients: [],
+  credentialId: null,
+  description: 'Test post caption',
   isDeleted: false,
   label: 'Test Post',
-  organization: generateIdString(),
+  organizationId: generateIdString(),
   platform: 'youtube',
   status: 'draft',
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: generateIdString(),
   ...overrides,
 });
 
@@ -349,63 +339,63 @@ export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
  * Create test ingredient data
  */
 export const createTestIngredient = (
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<Prisma.IngredientUncheckedCreateInput> = {},
 ) => ({
   id: generateIdString(),
-  brand: generateIdString(),
-  category: 'video',
+  brandId: null,
+  category: 'VIDEO' as const,
   createdAt: new Date(),
-  description: 'Test ingredient description',
-  format: 'mp4',
   isDeleted: false,
-  label: 'Test Ingredient',
-  organization: generateIdString(),
-  status: 'ready',
+  organizationId: null,
+  status: 'UPLOADED' as const,
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: null,
+  ...overrides,
+});
+
+/**
+ * Create canonical metadata for seeded ingredients.
+ */
+export const createTestMetadata = (
+  overrides: Partial<Prisma.MetadataUncheckedCreateInput> = {},
+) => ({
+  id: generateIdString(),
+  createdAt: new Date(),
+  description: 'Test metadata description',
+  extension: 'MP4' as const,
+  label: 'Test Media',
+  updatedAt: new Date(),
   ...overrides,
 });
 
 /**
  * Create test tag data
  */
-export const createTestTag = (overrides: Record<string, unknown> = {}) => ({
+export const createTestTag = (
+  overrides: Partial<Prisma.TagUncheckedCreateInput> = {},
+) => ({
   id: generateIdString(),
-  color: '#FF0000',
+  backgroundColor: '#FF0000',
   createdAt: new Date(),
   isDeleted: false,
   label: 'Test Tag',
-  organization: generateIdString(),
+  organizationId: null,
   updatedAt: new Date(),
-  user: generateIdString(),
-  ...overrides,
-});
-
-/**
- * Create test asset data
- */
-export const createTestAsset = (overrides: Record<string, unknown> = {}) => ({
-  id: generateIdString(),
-  category: 'image',
-  createdAt: new Date(),
-  isDeleted: false,
-  organization: generateIdString(),
-  type: 'logo',
-  updatedAt: new Date(),
-  url: 'https://example.com/asset.png',
-  user: generateIdString(),
+  userId: null,
   ...overrides,
 });
 
 /**
  * Create test credit data
  */
-export const createTestCredit = (overrides: Record<string, unknown> = {}) => ({
+export const createTestCredit = (
+  overrides: Partial<Prisma.CreditBalanceUncheckedCreateInput> = {},
+) => ({
   id: generateIdString(),
   balance: 10000,
   createdAt: new Date(),
   isDeleted: false,
-  organization: generateIdString(),
+  organizationId: generateIdString(),
   updatedAt: new Date(),
   ...overrides,
 });
@@ -414,13 +404,12 @@ export const createTestCredit = (overrides: Record<string, unknown> = {}) => ({
  * Create test organization setting data
  */
 export const createTestOrganizationSetting = (
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<Prisma.OrganizationSettingUncheckedCreateInput> = {},
 ) => ({
   id: generateIdString(),
   brandsLimit: 10,
   createdAt: new Date(),
-  enabledModels: [],
-  isDeleted: false,
+  enabledModelIds: [],
   isFastlaneEnabled: false,
   isGenerateArticlesEnabled: true,
   isGenerateImagesEnabled: true,
@@ -428,7 +417,6 @@ export const createTestOrganizationSetting = (
   isGenerateVideosEnabled: true,
   isNotificationsDiscordEnabled: false,
   isNotificationsEmailEnabled: true,
-  isNotificationsTelegramEnabled: false,
   isVerifyIngredientEnabled: true,
   isVerifyScriptEnabled: true,
   isVerifyVideoEnabled: true,
@@ -436,7 +424,7 @@ export const createTestOrganizationSetting = (
   isWatermarkEnabled: true,
   isWebhookEnabled: false,
   isWhitelabelEnabled: false,
-  organization: generateIdString(),
+  organizationId: generateIdString(),
   quotaInstagram: 100,
   quotaTiktok: 100,
   quotaTwitter: 100,
@@ -453,16 +441,16 @@ export const createTestOrganizationSetting = (
  * Create test integration data
  */
 export const createTestIntegration = (
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<Prisma.OrgIntegrationUncheckedCreateInput> = {},
 ) => ({
   id: generateIdString(),
   config: { allowedUserIds: [], defaultWorkflow: 'wf-test' },
   createdAt: new Date(),
   encryptedToken: 'encrypted:test-bot-token',
   isDeleted: false,
-  organization: generateIdString(),
-  platform: 'telegram',
-  status: 'active',
+  organizationId: generateIdString(),
+  platform: 'TELEGRAM' as const,
+  status: 'ACTIVE' as const,
   updatedAt: new Date(),
   ...overrides,
 });
@@ -476,8 +464,7 @@ export const wait = (ms: number) =>
 /**
  * Generate a unique test ID string
  */
-export const generateIdString = () =>
-  'test-id-' + Math.random().toString(36).slice(2, 9);
+export const generateIdString = () => randomUUID();
 
 /**
  * Generate a unique test ID string (alias for generateIdString)

@@ -40,11 +40,12 @@ describe('PostGenerationService', () => {
 
   const mockPost = {
     id: postId,
-    brand: brandId,
-    credential: credentialId,
+    brandId,
+    credentialId,
     description: 'Test post description',
-    organization: organizationId,
+    organizationId,
     platform: CredentialPlatform.TWITTER,
+    userId,
   };
 
   const mockPublishingContext = {
@@ -190,7 +191,7 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('startAccountContentGeneration', () => {
     const dto = {
       count: 3,
-      credential: credentialId,
+      credentialId,
       format: 'post' as const,
       tone: TweetTone.PROFESSIONAL,
       topic: 'AI technology',
@@ -243,7 +244,7 @@ Tweet 3: Tech innovation is changing the world.`,
       await service.generateAccountContentAsync(
         {
           count: 3,
-          credential: credentialId,
+          credentialId,
           format: 'post',
           sourceReferenceIds: ['507f1f77bcf86cd799439099'],
           sourceUrl: 'https://x.com/example/status/1',
@@ -272,7 +273,7 @@ Tweet 3: Tech innovation is changing the world.`,
       await service.generateAccountContentAsync(
         {
           count: 5,
-          credential: credentialId,
+          credentialId,
           format: 'thread',
           sourceReferenceIds: ['507f1f77bcf86cd799439099'],
           sourceUrl: 'https://x.com/example/status/1',
@@ -301,7 +302,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockReplicateService.generateTextCompletionSync.mockResolvedValue('');
 
       await service.generateAccountContentAsync(
-        { count: 1, credential: credentialId, format: 'post', topic: 'AI' },
+        { count: 1, credentialId, format: 'post', topic: 'AI' },
         [mockPost],
         publicMetadata,
         mockPublishingContext,
@@ -321,7 +322,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       await service.generateAccountContentAsync(
-        { count: 1, credential: credentialId, format: 'post', topic: 'AI' },
+        { count: 1, credentialId, format: 'post', topic: 'AI' },
         [mockPost],
         publicMetadata,
         mockPublishingContext,
@@ -341,7 +342,7 @@ Tweet 3: Tech innovation is changing the world.`,
       const secondPost = { ...mockPost, id: '507f1f77bcf86cd799439015' };
 
       await service.generateAccountContentAsync(
-        { count: 2, credential: credentialId, format: 'post', topic: 'AI' },
+        { count: 2, credentialId, format: 'post', topic: 'AI' },
         [mockPost, secondPost],
         publicMetadata,
         mockPublishingContext,

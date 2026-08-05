@@ -97,7 +97,7 @@ describe('IngredientsOperationsController', () => {
       patch: vi.fn().mockResolvedValue(mockIngredient.metadata),
     },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
           id: '507f1f77bcf86cd799439016',
         },
@@ -183,7 +183,9 @@ describe('IngredientsOperationsController', () => {
       );
 
       expect(ingredientsService.findOne).toHaveBeenCalled();
-      expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
   });

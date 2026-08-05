@@ -47,6 +47,7 @@ type MockBaseService = {
   findOne: ReturnType<typeof vi.fn>;
   patch: ReturnType<typeof vi.fn>;
   remove: ReturnType<typeof vi.fn>;
+  supportsField: ReturnType<typeof vi.fn>;
 };
 
 describe('BaseCRUDController', () => {
@@ -90,6 +91,7 @@ describe('BaseCRUDController', () => {
             findOne: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
+            supportsField: vi.fn(() => true),
           },
         },
         {
@@ -113,6 +115,7 @@ describe('BaseCRUDController', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
+      supportsField: vi.fn(() => true),
     };
 
     logger = {
@@ -337,8 +340,8 @@ describe('BaseCRUDController', () => {
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          brand: expect.any(String),
-          user: expect.any(String),
+          brandId: expect.any(String),
+          userId: expect.any(String),
         }),
         controller.getPopulateFields(),
       );
@@ -359,9 +362,27 @@ describe('BaseCRUDController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(String),
+          organizationId: expect.any(String),
         }),
         expect.any(Array),
+      );
+    });
+
+    it('overrides tenant and user ownership supplied by the request body', async () => {
+      service.create.mockResolvedValue({ id: 'entity-1' });
+
+      await controller.create(mockRequest, mockUser, {
+        name: 'Scoped Entity',
+        organizationId: 'foreign-organization',
+        userId: 'foreign-user',
+      });
+
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: MOCK_ORG_ID,
+          userId: MOCK_USER_ID,
+        }),
+        controller.getPopulateFields(),
       );
     });
   });
@@ -400,11 +421,10 @@ describe('BaseCRUDController', () => {
       );
       expect(service.patch).toHaveBeenCalledWith(
         id,
-        expect.objectContaining({
+        {
           description: 'Updated description',
           name: 'Updated Name',
-          user: expect.any(String),
-        }),
+        },
         controller.getPopulateFields(),
       );
       expect(result).toEqual({ data: updatedEntity });
@@ -419,6 +439,25 @@ describe('BaseCRUDController', () => {
       ).rejects.toThrow(HttpException);
 
       expect(service.patch).not.toHaveBeenCalled();
+    });
+
+    it('strips tenant and user ownership changes from patch input', async () => {
+      const id = '507f1f77bcf86cd799439018';
+      const existingEntity = { id, userId: MOCK_USER_ID };
+      service.findOne.mockResolvedValue(existingEntity);
+      service.patch.mockResolvedValue(existingEntity);
+
+      await controller.patch(mockRequest, mockUser, id, {
+        name: 'Updated Name',
+        organizationId: 'foreign-organization',
+        userId: 'foreign-user',
+      });
+
+      expect(service.patch).toHaveBeenCalledWith(
+        id,
+        { name: 'Updated Name' },
+        controller.getPopulateFields(),
+      );
     });
 
     it('preserves the target organization for a cross-organization super-admin patch', async () => {
@@ -443,13 +482,13 @@ describe('BaseCRUDController', () => {
         id,
         expect.objectContaining({
           name: 'Admin update',
-          organization: targetOrganizationId,
+          organizationId: targetOrganizationId,
         }),
         controller.getPopulateFields(),
       );
       expect(service.patch).not.toHaveBeenCalledWith(
         id,
-        expect.objectContaining({ organization: MOCK_ORG_ID }),
+        expect.objectContaining({ organizationId: MOCK_ORG_ID }),
         expect.any(Array),
       );
     });

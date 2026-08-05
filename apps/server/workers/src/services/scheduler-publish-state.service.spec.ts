@@ -141,7 +141,7 @@ describe('SchedulerPublishStateService', () => {
     );
   });
 
-  it('normalizes relation-shaped tenant identifiers before transitioning', async () => {
+  it('transitions with canonical tenant identifiers', async () => {
     const service = new SchedulerPublishStateService({} as never, {} as never);
     const transition = vi.spyOn(service, 'transition').mockResolvedValue(true);
 
@@ -149,7 +149,7 @@ describe('SchedulerPublishStateService', () => {
       {
         groupId: 'group-1',
         id: 'post-1',
-        organization: { id: 'org-1' },
+        organizationId: 'org-1',
       },
       {
         executionState: TargetExecutionState.PUBLISHED,

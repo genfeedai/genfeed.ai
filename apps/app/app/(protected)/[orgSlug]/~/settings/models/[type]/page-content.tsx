@@ -26,7 +26,7 @@ export default function ModelsTypePageClientContent({
 
   return (
     <ModelsList
-      category={type}
+      type={type}
       scope={PageScope.ORGANIZATION}
       onRefreshRegister={setRefreshModels}
     />

@@ -53,10 +53,7 @@ export class CronAdOptimizationService {
 
       for (const config of enabledConfigs) {
         const jitterMs = Math.random() * this.MAX_JITTER_MS;
-        // Scalar FK first; `organization` is a legacy alias (sometimes back-filled).
-        const orgId = String(
-          config.organizationId ?? config.organization ?? '',
-        );
+        const orgId = String(config.organizationId ?? '');
         if (!orgId) {
           this.logger.warn(
             `${url} skipping optimization config ${String(config.id)} — missing organizationId`,
@@ -65,7 +62,6 @@ export class CronAdOptimizationService {
         }
 
         const jobData: AdOptimizationJobData = {
-          configId: String(config.id),
           organizationId: orgId,
           runId,
         };

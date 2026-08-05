@@ -1,12 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementCameraMovementDto } from '@api/collections/elements/camera-movements/dto/create-camera-movement.dto';
 import { UpdateElementCameraMovementDto } from '@api/collections/elements/camera-movements/dto/update-camera-movement.dto';
-import {
-  ElementCameraMovement,
-  type ElementCameraMovementDocument,
-} from '@api/collections/elements/camera-movements/schemas/camera-movement.schema';
+import type { ElementCameraMovementDocument } from '@api/collections/elements/camera-movements/schemas/camera-movement.schema';
 import { ElementsCameraMovementsService } from '@api/collections/elements/camera-movements/services/camera-movements.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -124,5 +122,12 @@ export class ElementsCameraMovementsController extends BaseCRUDController<
       query,
       searchableFields: ['label', 'description', 'key'],
     });
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementCameraMovementDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

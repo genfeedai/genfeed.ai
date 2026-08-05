@@ -1,12 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementLensDto } from '@api/collections/elements/lenses/dto/create-lens.dto';
 import { UpdateElementLensDto } from '@api/collections/elements/lenses/dto/update-lens.dto';
-import {
-  ElementLens,
-  type ElementLensDocument,
-} from '@api/collections/elements/lenses/schemas/lens.schema';
+import type { ElementLensDocument } from '@api/collections/elements/lenses/schemas/lens.schema';
 import { ElementsLensesService } from '@api/collections/elements/lenses/services/lenses.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -119,5 +117,12 @@ export class ElementsLensesController extends BaseCRUDController<
       query,
       searchableFields: ['label', 'description', 'key'],
     });
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementLensDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

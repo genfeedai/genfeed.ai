@@ -79,10 +79,6 @@ export class AdBulkUploadJobsService {
 
     return {
       ...(record as unknown as AdBulkUploadJobDocument),
-      _id:
-        typeof record.mongoId === 'string' && record.mongoId.length > 0
-          ? record.mongoId
-          : String(record.id ?? ''),
       brand: typeof record.brandId === 'string' ? record.brandId : undefined,
       completedPermutations:
         typeof merged.completedPermutations === 'number'
@@ -134,12 +130,15 @@ export class AdBulkUploadJobsService {
   }
 
   async create(
-    data: Record<string, unknown>,
+    data: Record<string, unknown> & { organizationId: string },
   ): Promise<AdBulkUploadJobDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = data.organizationId ?? data.organization;
-    const brandId = data.brandId ?? data.brand;
-    const credentialId = data.credentialId ?? data.credential;
+    const organizationId = data.organizationId;
+    const brandId = data.brandId;
+    const credentialId = data.credentialId;
+    if (!organizationId) {
+      throw new Error('Ad bulk upload job requires organizationId');
+    }
 
     try {
       const doc = await this.prisma.adBulkUploadJob.create({
@@ -152,18 +151,11 @@ export class AdBulkUploadJobsService {
               Object.entries(data).filter(
                 ([key, value]) =>
                   value !== undefined &&
-                  ![
-                    'brand',
-                    'brandId',
-                    'credential',
-                    'credentialId',
-                    'organization',
-                    'organizationId',
-                  ].includes(key),
+                  !['brandId', 'credentialId', 'organizationId'].includes(key),
               ),
             ),
           ),
-          organizationId: String(organizationId ?? ''),
+          organizationId,
         },
       });
       this.logger.log(`${caller} created bulk upload job ${doc.id}`);

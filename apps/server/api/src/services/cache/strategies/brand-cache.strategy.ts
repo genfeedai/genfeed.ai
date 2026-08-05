@@ -7,11 +7,11 @@ export class BrandCacheStrategy {
 
   cacheBrand(
     brandId: string,
-    brandData: { user: string } & Record<string, unknown>,
+    brandData: { userId: string } & Record<string, unknown>,
   ): Promise<boolean> {
     const key = this.cacheService.generateKey('brand', brandId);
     return this.cacheService.set(key, brandData, {
-      tags: ['brands', `brand:${brandId}`, `user:${brandData.user}`],
+      tags: ['brands', `brand:${brandId}`, `user:${brandData.userId}`],
       ttl: 1800,
     });
   }

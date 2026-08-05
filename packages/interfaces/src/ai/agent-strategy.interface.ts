@@ -2,9 +2,9 @@ import type { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
 
 export interface IAgentStrategy {
   id: string;
-  organization: string;
-  brand?: string;
-  user: string;
+  organizationId: string;
+  brandId?: string;
+  userId: string;
   agentType: AgentType;
   autonomyMode: AgentAutonomyMode;
   isActive: boolean;
@@ -36,7 +36,7 @@ export interface ICreateAgentStrategyDto {
   label: string;
   agentType?: AgentType;
   autonomyMode?: AgentAutonomyMode;
-  brand?: string;
+  brandId?: string;
   topics?: string[];
   platforms?: string[];
   runFrequency?: string;

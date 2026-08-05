@@ -11,19 +11,19 @@ describe('content loop e2e flow', () => {
 
     const runByAction: Partial<Record<RunActionType, RunRecord>> = {
       analytics: {
-        _id: 'run-analytics',
+        id: 'run-analytics',
         actionType: 'analytics',
         progress: 100,
         status: 'completed',
       },
       generate: {
-        _id: 'run-generate',
+        id: 'run-generate',
         actionType: 'generate',
         progress: 100,
         status: 'completed',
       },
       post: {
-        _id: 'run-post',
+        id: 'run-post',
         actionType: 'post',
         progress: 100,
         status: 'completed',
@@ -67,7 +67,7 @@ describe('content loop e2e flow', () => {
 
     expect(executedActions).toEqual(['generate', 'post', 'analytics']);
     expect(result.runs).toHaveLength(3);
-    expect(result.runs.map((run) => run._id)).toEqual([
+    expect(result.runs.map((run) => run.id)).toEqual([
       'run-generate',
       'run-post',
       'run-analytics',

@@ -65,6 +65,7 @@ export class DefaultVoiceRefDto {
     description: 'Preview audio URL for catalog voices',
     nullable: true,
     required: false,
+    type: String,
   })
   readonly preview?: string | null;
 }

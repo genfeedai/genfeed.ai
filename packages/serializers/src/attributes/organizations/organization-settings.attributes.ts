@@ -25,7 +25,7 @@ export const organizationSettingsAttributes = createEntityAttributes([
   'seatsLimit',
   'brandsLimit',
   'timezone',
-  'enabledModels',
+  'enabledModelIds',
   'isAdvancedMode',
   'agentReplyStyle',
   'isByokEnabled',

@@ -10,16 +10,12 @@ import {
   type GenerationResult,
   PersonaContentService,
 } from '@api/services/persona-content/persona-content.service';
-import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   FleetReviewStatus,
   IngredientStatus,
   LoraStatus,
 } from '@genfeedai/enums';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -88,7 +84,6 @@ export class AiInfluencerService {
     private readonly instagramService: InstagramService,
     private readonly twitterService: TwitterService,
     private readonly personaContentService: PersonaContentService,
-    private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -116,21 +111,12 @@ export class AiInfluencerService {
     return entries.length > 0 ? entries : undefined;
   }
 
-  private readReferenceId(value: unknown): string | undefined {
-    if (typeof value === 'string' && value.trim().length > 0) {
-      return value;
-    }
-
-    const record = this.readObjectRecord(value);
-    return this.readString(record?.id ?? record?.id);
-  }
-
-  private readRequiredPersonaReference(
+  private readRequiredPersonaId(
     persona: PersonaDocument,
-    field: 'brand' | 'organization' | 'user',
+    field: 'brandId' | 'organizationId' | 'userId',
   ): string {
     const personaRecord = persona as Record<string, unknown>;
-    const value = this.readReferenceId(personaRecord[field]);
+    const value = this.readString(personaRecord[field]);
 
     if (!value) {
       throw new Error(`Persona ${field} is missing`);
@@ -376,6 +362,13 @@ export class AiInfluencerService {
       throw new NotFoundException('Persona', slug);
     }
 
+    requireRelationId(
+      persona.organizationId,
+      'organizationId',
+      `Persona ${persona.id}`,
+    );
+    requireRelationId(persona.userId, 'userId', `Persona ${persona.id}`);
+
     this.loggerService.log(caller, {
       label: persona.label,
       loraStatus: persona.loraStatus,
@@ -460,7 +453,7 @@ export class AiInfluencerService {
       // Truncate to Instagram limit if needed
       const truncated =
         caption.length > MAX_CAPTION_LENGTH
-          ? caption.slice(0, MAX_CAPTION_LENGTH - 3) + '...'
+          ? `${caption.slice(0, MAX_CAPTION_LENGTH - 3)}...`
           : caption;
 
       this.loggerService.log(caller, {
@@ -565,36 +558,18 @@ export class AiInfluencerService {
   ): Promise<IngredientDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // The DTO keys stay Mongo-style (`brand`/`organization`/`user`) — that is the
-    // ingredient create contract across the codebase — but the *values* must come
-    // from the persona's scalar FKs. `persona.organization` / `persona.user` are
-    // legacy aliases that only exist because `BaseService` back-fills them, and
-    // `Persona.organizationId` / `Persona.userId` are non-nullable columns, so an
-    // unresolvable owner means the row was read wrong rather than being genuinely
-    // ownerless. Fail closed instead of persisting an unscoped ingredient.
-    const personaContext = `Persona ${persona.slug}`;
     const ingredient = await this.ingredientsService.create({
-      brand: resolveRelationId(persona.brandId, persona.brand),
+      brandId: persona.brandId,
       caption,
       cdnUrl: imageUrl,
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
-      organization: requireRelationId(
-        persona.organizationId,
-        persona.organization,
-        'organization',
-        personaContext,
-      ),
-      persona: persona.id,
+      organizationId: persona.organizationId,
+      personaId: persona.id,
       personaSlug: persona.slug,
       reviewStatus: FleetReviewStatus.APPROVED,
       status: IngredientStatus.GENERATED,
-      user: requireRelationId(
-        persona.userId,
-        persona.user,
-        'user',
-        personaContext,
-      ),
+      userId: persona.userId,
     } as Parameters<IngredientsService['create']>[0]);
 
     this.loggerService.log(caller, {
@@ -650,11 +625,11 @@ export class AiInfluencerService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const organizationId = this.readRequiredPersonaReference(
+      const organizationId = this.readRequiredPersonaId(
         persona,
-        'organization',
+        'organizationId',
       );
-      const brandId = this.readRequiredPersonaReference(persona, 'brand');
+      const brandId = this.readRequiredPersonaId(persona, 'brandId');
 
       switch (platform) {
         case 'instagram': {
@@ -769,26 +744,26 @@ export class AiInfluencerService {
     voiceResult: GenerationResult;
     videoResult: GenerationResult;
   }> {
-    const organizationId = this.readRequiredPersonaReference(
+    const organizationId = this.readRequiredPersonaId(
       persona,
-      'organization',
+      'organizationId',
     );
-    const userId = this.readRequiredPersonaReference(persona, 'user');
+    const userId = this.readRequiredPersonaId(persona, 'userId');
 
     const voiceResult = await this.personaContentService.generateVoice({
       ingredientId,
-      organization: organizationId,
+      organizationId,
       personaId: persona.id,
       text: script,
-      user: userId,
+      userId,
     });
 
     const videoResult = await this.personaContentService.generateVideo({
       aspectRatio: '9:16',
-      organization: organizationId,
+      organizationId,
       personaId: persona.id,
       script,
-      user: userId,
+      userId,
     });
 
     return { videoResult, voiceResult };

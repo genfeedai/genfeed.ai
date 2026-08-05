@@ -3,9 +3,10 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
+const EMPTY_ENABLED_SKILL_SLUGS: string[] = [];
 
 export interface UseBrandEnabledSkillsReturn {
   enabledSlugs: string[];
@@ -26,20 +27,12 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
   const [enabledSlugs, setEnabledSlugs] = useState<string[]>([]);
   const [isLoading, _setIsLoading] = useState(false);
 
-  const selectedBrandRecord = selectedBrand as unknown as
-    | {
-        _id?: string;
-        agentConfig?: {
-          enabledSkills?: string[];
-        };
-        id?: string;
-      }
-    | undefined;
-  const selectedBrandId =
-    selectedBrandRecord?.id ?? selectedBrandRecord?._id ?? null;
-  const persistedEnabledSlugs =
-    selectedBrandRecord?.agentConfig?.enabledSkills ?? [];
-  const persistedEnabledSlugsKey = persistedEnabledSlugs.join('\0');
+  const selectedBrandId = selectedBrand?.id ?? null;
+  const persistedEnabledSlugs = useMemo(
+    () =>
+      selectedBrand?.agentConfig?.enabledSkills ?? EMPTY_ENABLED_SKILL_SLUGS,
+    [selectedBrand?.agentConfig?.enabledSkills],
+  );
 
   useEffect(() => {
     if (!isReady || !selectedBrandId) {
@@ -52,7 +45,7 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         ? current
         : [...persistedEnabledSlugs],
     );
-  }, [isReady, persistedEnabledSlugsKey, selectedBrandId]);
+  }, [isReady, persistedEnabledSlugs, selectedBrandId]);
 
   const toggleSkill = useCallback(
     async (slug: string) => {

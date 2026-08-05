@@ -10,23 +10,23 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('resolveAuthorizedTenantQuery', () => {
-    const orgA = 'org-member-a';
-    const orgB = 'org-foreign-b';
-    const brandA = 'brand-member-a';
+    const orgA = '550e8400-e29b-41d4-a716-446655440001';
+    const orgB = '550e8400-e29b-41d4-a716-446655440002';
+    const brandA = '550e8400-e29b-41d4-a716-446655440003';
 
     it('allows superadmin arbitrary organization and brand filters', () => {
       expect(
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
-          { brand: brandA, organization: orgB },
+          { brandId: brandA, organizationId: orgB },
           { brand: brandA, isSuperAdmin: true, organization: orgA },
         ),
-      ).toEqual({ brand: brandA, organization: orgB });
+      ).toEqual({ brandId: brandA, organizationId: orgB });
     });
 
     it('rejects a member organization filter outside the session org', () => {
       const call = () =>
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
-          { organization: orgB },
+          { organizationId: orgB },
           { brand: brandA, isSuperAdmin: false, organization: orgA },
         );
 
@@ -46,25 +46,28 @@ describe('CollectionFilterUtil', () => {
     it('allows member brand filters but forces the session organization boundary', () => {
       expect(
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
-          { brand: 'brand-other-in-org' },
+          { brandId: '550e8400-e29b-41d4-a716-446655440004' },
           { brand: brandA, isSuperAdmin: false, organization: orgA },
         ),
-      ).toEqual({ brand: 'brand-other-in-org', organization: orgA });
+      ).toEqual({
+        brandId: '550e8400-e29b-41d4-a716-446655440004',
+        organizationId: orgA,
+      });
     });
 
     it('allows member organization filter equal to the session org', () => {
       expect(
         CollectionFilterUtil.resolveAuthorizedTenantQuery(
-          { organization: orgA },
+          { organizationId: orgA },
           { brand: brandA, isSuperAdmin: false, organization: orgA },
         ),
-      ).toEqual({ organization: orgA });
+      ).toEqual({ organizationId: orgA });
     });
   });
 
   describe('buildBrandFilter', () => {
-    it('returns provided brand ObjectId when valid', () => {
-      const brandId = '507f191e810c19729de860ee';
+    it('returns a provided canonical brand ID when valid', () => {
+      const brandId = '550e8400-e29b-41d4-a716-446655440003';
       const result = CollectionFilterUtil.buildBrandFilter(brandId);
 
       expect(result).toEqual(expect.any(String));
@@ -72,7 +75,7 @@ describe('CollectionFilterUtil', () => {
     });
 
     it('falls back to user brand metadata by default', () => {
-      const userBrand = '507f191e810c19729de860ee';
+      const userBrand = '550e8400-e29b-41d4-a716-446655440003';
       const result = CollectionFilterUtil.buildBrandFilter(undefined, {
         brand: userBrand,
       });
@@ -144,8 +147,8 @@ describe('CollectionFilterUtil', () => {
   });
 
   describe('buildOwnershipFilter', () => {
-    const userId = '507f191e810c19729de860ee';
-    const organizationId = '507f191e810c19729de860ee';
+    const userId = '550e8400-e29b-41d4-a716-446655440001';
+    const organizationId = '550e8400-e29b-41d4-a716-446655440002';
 
     it('builds OR filter when user and organization exist', () => {
       const result = CollectionFilterUtil.buildOwnershipFilter({
@@ -155,8 +158,8 @@ describe('CollectionFilterUtil', () => {
 
       expect(result).toHaveProperty('OR');
       expect(result.OR).toHaveLength(2);
-      expect(result.OR?.[0].user).toBe(userId);
-      expect(result.OR?.[1].organization).toBe(organizationId);
+      expect(result.OR?.[0].userId).toBe(userId);
+      expect(result.OR?.[1].organizationId).toBe(organizationId);
     });
 
     it('returns single condition when only user provided', () => {
@@ -164,8 +167,8 @@ describe('CollectionFilterUtil', () => {
         { user: userId },
         { includeOrganization: false },
       );
-      expect(result).toHaveProperty('user');
-      expect((result as Record<string, string>).user).toBe(userId);
+      expect(result).toHaveProperty('userId');
+      expect((result as Record<string, string>).userId).toBe(userId);
     });
 
     it('returns empty filter when metadata empty', () => {

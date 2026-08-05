@@ -38,13 +38,14 @@ describe('TrainingsOperationsController', () => {
       trigger: 'MYTOK',
     },
     id: '507f1f77bcf86cd799439014',
-    organization: '507f1f77bcf86cd799439012',
+    model: 'replicate/custom-model',
+    organizationId: '507f1f77bcf86cd799439012',
     sources: Array.from(
       { length: 10 },
       (_, i) => `507f1f77bcf86cd79943${String(i).padStart(4, '0')}`,
     ),
     stage: 'READY',
-    user: '507f1f77bcf86cd799439011',
+    userId: '507f1f77bcf86cd799439011',
   };
 
   const mockSourceDocs = Array.from({ length: 10 }, (_, i) => ({
@@ -65,7 +66,12 @@ describe('TrainingsOperationsController', () => {
       patchAll: vi.fn().mockResolvedValue({ modifiedCount: 10 }),
     },
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
-    metadataService: { patch: vi.fn() },
+    metadataService: {
+      findAll: vi.fn().mockResolvedValue({
+        docs: [{ id: 'metadata-1' }, { id: 'metadata-2' }],
+      }),
+      patch: vi.fn(),
+    },
     trainingsService: {
       createTrainingZip: vi
         .fn()
@@ -212,6 +218,33 @@ describe('TrainingsOperationsController', () => {
           '507f1f77bcf86cd799439014',
         ),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('getTrainingImages', () => {
+    it('filters ingredients by canonical metadataId values', async () => {
+      await controller.getTrainingImages(
+        {} as unknown as Request,
+        mockUser,
+        mockTraining.id,
+        {},
+      );
+
+      expect(mockServices.metadataService.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            model: mockTraining.model,
+          },
+        },
+        { pagination: false },
+      );
+
+      const ingredientQuery =
+        mockServices.ingredientsService.findAll.mock.calls.at(-1)?.[0];
+      expect(ingredientQuery.where).toMatchObject({
+        metadataId: { in: ['metadata-1', 'metadata-2'] },
+      });
+      expect(ingredientQuery.where).not.toHaveProperty('metadata');
     });
   });
 });

@@ -61,11 +61,11 @@ export class WorkflowExecutionsController {
   ): PrismaFindAllInput {
     const match: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     };
 
-    if (query.workflow) {
-      match.workflow = query.workflow;
+    if (query.workflowId) {
+      match.workflowId = query.workflowId;
     }
 
     if (query.status) {
@@ -77,6 +77,9 @@ export class WorkflowExecutionsController {
     }
 
     return {
+      include: {
+        workflow: { select: { description: true, id: true, label: true } },
+      },
       orderBy: handleQuerySort(query.sort),
       where: match,
     };
@@ -86,7 +89,7 @@ export class WorkflowExecutionsController {
   @ApiOperation({ summary: 'List all workflow executions' })
   @ApiQuery({
     description: 'Filter by workflow ID',
-    name: 'workflow',
+    name: 'workflowId',
     required: false,
   })
   @ApiQuery({
@@ -156,9 +159,9 @@ export class WorkflowExecutionsController {
   ) {
     const publicMetadata = getPublicMetadata(user);
     const execution = await this.workflowExecutionsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
@@ -179,10 +182,10 @@ export class WorkflowExecutionsController {
       requestedBrandId: publicMetadata.brand || undefined,
       threadId: dto.threadId,
       userId: publicMetadata.user,
-      workflowId: dto.workflow.toString(),
+      workflowId: dto.workflowId,
     });
     const result = await this.workflowExecutorService.executeManualWorkflow(
-      dto.workflow.toString(),
+      dto.workflowId,
       publicMetadata.user,
       publicMetadata.organization,
       dto.inputValues ?? {},
@@ -191,9 +194,9 @@ export class WorkflowExecutionsController {
       scope,
     );
     const execution = await this.workflowExecutionsService.findOne({
-      _id: result.executionId,
+      id: result.executionId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
   }
@@ -213,9 +216,9 @@ export class WorkflowExecutionsController {
     const publicMetadata = getPublicMetadata(user);
     // Verify ownership first
     const execution = await this.workflowExecutionsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!execution) {

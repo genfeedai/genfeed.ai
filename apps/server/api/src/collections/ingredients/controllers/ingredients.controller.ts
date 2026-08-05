@@ -8,7 +8,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { buildUpdateOperations } from '@api/helpers/utils/entity-id/update-operations.util';
 import {
   returnNotFound,
   serializeCollection,
@@ -90,36 +89,14 @@ export class IngredientsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const processedDto = await buildUpdateOperations(
-      updateIngredientDto as unknown as Record<string, unknown>,
-      ['folder', 'parent'],
-    );
-
-    if (
-      Object.hasOwn(processedDto, 'tags') &&
-      Array.isArray(processedDto.tags)
-    ) {
-      processedDto.tags = processedDto.tags.map(
-        (tag: string | { id?: string; _id?: string }) => {
-          if (typeof tag === 'string') {
-            return tag;
-          }
-
-          // Tag objects carry the canonical `id`; legacy clients may still
-          // send `_id` — accept both.
-          if (tag && typeof tag === 'object') {
-            return tag.id ?? tag._id ?? String(tag);
-          }
-
-          return tag as string;
-        },
-      );
-    }
+    const processedDto = {
+      ...(updateIngredientDto as unknown as Record<string, unknown>),
+    };
 
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.
     const ingredient = await this.ingredientsService.findOne(
-      scopedWhere(publicMetadata.organization, { _id: ingredientId }),
+      scopedWhere(publicMetadata.organization, { id: ingredientId }),
       [PopulatePatterns.metadataFull],
     );
 
@@ -131,9 +108,14 @@ export class IngredientsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    if (Object.hasOwn(processedDto, 'folder') && processedDto.folder !== null) {
+    if (
+      Object.hasOwn(processedDto, 'folderId') &&
+      processedDto.folderId !== null
+    ) {
       const folder = await this.foldersService.findOne(
-        scopedWhere(publicMetadata.organization, { _id: processedDto.folder }),
+        scopedWhere(publicMetadata.organization, {
+          id: processedDto.folderId,
+        }),
       );
 
       if (
@@ -142,14 +124,9 @@ export class IngredientsController {
       ) {
         return returnNotFound(
           this.constructorName,
-          String(processedDto.folder),
+          String(processedDto.folderId),
         );
       }
-    }
-
-    if (Object.hasOwn(processedDto, 'folder')) {
-      processedDto.folderId = processedDto.folder;
-      Reflect.deleteProperty(processedDto, 'folder');
     }
 
     await this.ingredientsService.patch(
@@ -160,7 +137,7 @@ export class IngredientsController {
     // Fetch the updated document with populated fields
     // Only populate metadata fully and brand minimally (id, label, handle)
     const data = await this.ingredientsService.findOne(
-      scopedWhere(publicMetadata.organization, { _id: ingredientId }),
+      scopedWhere(publicMetadata.organization, { id: ingredientId }),
       [PopulatePatterns.metadataFull, PopulatePatterns.brandMinimal],
     );
 

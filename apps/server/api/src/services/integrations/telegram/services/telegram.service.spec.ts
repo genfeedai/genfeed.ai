@@ -86,7 +86,7 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
       mockCredentialsService.findOne.mockResolvedValue(null);
-      const newCredential = { _id: 'test-object-id', isConnected: true };
+      const newCredential = { id: 'test-object-id', isConnected: true };
       mockCredentialsService.create.mockResolvedValue(newCredential);
 
       const result = await service.verifyAndSaveAuth(
@@ -175,7 +175,7 @@ describe('TelegramService', () => {
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.verifyAuthData).mockReturnValue(true);
       mockCredentialsService.findOne.mockResolvedValue(null);
-      mockCredentialsService.create.mockResolvedValue({ _id: 'new' });
+      mockCredentialsService.create.mockResolvedValue({ id: 'new' });
 
       await service.verifyAndSaveAuth(orgId, brandId, userId, validAuthData);
 

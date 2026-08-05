@@ -176,12 +176,12 @@ describe('Integrations E2E Tests', () => {
     it('should list all integrations for an org', async () => {
       // Seed integrations directly
       const telegramIntegration = createTestIntegration({
-        organization: testOrganization.id,
-        platform: 'telegram',
+        organizationId: testOrganization.id,
+        platform: 'TELEGRAM',
       });
       const discordIntegration = createTestIntegration({
-        organization: testOrganization.id,
-        platform: 'discord',
+        organizationId: testOrganization.id,
+        platform: 'DISCORD',
       });
 
       await dbHelper.seedCollection('orgintegrations', [
@@ -204,13 +204,13 @@ describe('Integrations E2E Tests', () => {
     it('should exclude soft-deleted integrations', async () => {
       const activeIntegration = createTestIntegration({
         isDeleted: false,
-        organization: testOrganization.id,
-        platform: 'telegram',
+        organizationId: testOrganization.id,
+        platform: 'TELEGRAM',
       });
       const deletedIntegration = createTestIntegration({
         isDeleted: true,
-        organization: testOrganization.id,
-        platform: 'discord',
+        organizationId: testOrganization.id,
+        platform: 'DISCORD',
       });
 
       await dbHelper.seedCollection('orgintegrations', [
@@ -240,8 +240,8 @@ describe('Integrations E2E Tests', () => {
   describe('PATCH /v1/organizations/:organizationId/integrations/:id', () => {
     it('should update integration config', async () => {
       const integration = createTestIntegration({
-        organization: testOrganization.id,
-        platform: 'telegram',
+        organizationId: testOrganization.id,
+        platform: 'TELEGRAM',
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
@@ -274,8 +274,8 @@ describe('Integrations E2E Tests', () => {
   describe('DELETE /v1/organizations/:organizationId/integrations/:id', () => {
     it('should soft delete an integration', async () => {
       const integration = createTestIntegration({
-        organization: testOrganization.id,
-        platform: 'telegram',
+        organizationId: testOrganization.id,
+        platform: 'TELEGRAM',
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
@@ -303,8 +303,8 @@ describe('Integrations E2E Tests', () => {
 
     it('should return 404 on re-delete of already deleted integration', async () => {
       const integration = createTestIntegration({
-        organization: testOrganization.id,
-        platform: 'telegram',
+        organizationId: testOrganization.id,
+        platform: 'TELEGRAM',
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);

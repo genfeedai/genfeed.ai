@@ -40,9 +40,9 @@ describe('AssetsController', () => {
     id: mockAssetId,
     category: AssetCategory.LOGO,
     isDeleted: false,
-    parent: mockBrandId,
-    parentModel: AssetParent.BRAND,
-    user: mockUserId,
+    parentBrandId: mockBrandId,
+    parentType: AssetParent.BRAND,
+    userId: mockUserId,
   } as unknown as Asset;
 
   const mockAssetsService = {
@@ -205,14 +205,14 @@ describe('AssetsController', () => {
     it('should invalidate cache when setting logo or banner', async () => {
       const updateDto: UpdateAssetDto = {
         category: AssetCategory.LOGO,
-        parent: mockBrandId,
-        parentModel: AssetParent.BRAND,
+        parentId: mockBrandId,
+        parentType: AssetParent.BRAND,
       };
 
       const updatedAsset = {
         ...mockAsset,
         category: AssetCategory.LOGO,
-        parent: mockBrandId,
+        parentBrandId: mockBrandId,
       };
 
       mockAssetsService.findOne.mockResolvedValue(mockAsset);

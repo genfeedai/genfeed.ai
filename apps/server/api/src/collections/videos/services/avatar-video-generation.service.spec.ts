@@ -39,7 +39,7 @@ describe('AvatarVideoGenerationService', () => {
       findOne: vi.fn().mockResolvedValue(null),
     };
     const sharedService = {
-      saveDocumentsInternal: vi.fn(),
+      createMediaDocumentsInternal: vi.fn(),
     };
     const videosService = {};
     const voicesService = {

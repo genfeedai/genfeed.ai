@@ -36,9 +36,10 @@ describe('GoogleSearchConsoleController', () => {
   let controller: GoogleSearchConsoleController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
+    beginOAuthForBrand: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
+    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
-    saveCredentials: ReturnType<typeof vi.fn>;
   };
   let oauthService: {
     exchangeAuthCodeForAccessToken: ReturnType<typeof vi.fn>;
@@ -51,7 +52,11 @@ describe('GoogleSearchConsoleController', () => {
 
   const request = {} as Request;
   const user = { id: 'auth-user-id' } as never;
-  const brand = { id: 'brand-id', organization: 'org-id', user: 'user-id' };
+  const brand = {
+    id: 'brand-id',
+    organizationId: 'org-id',
+    userId: 'user-id',
+  };
   const credential = {
     id: 'credential-id',
     accessToken: 'encrypted-access-token',
@@ -63,9 +68,13 @@ describe('GoogleSearchConsoleController', () => {
       findOne: vi.fn().mockResolvedValue(brand),
     };
     credentialsService = {
+      beginOAuthForBrand: vi.fn().mockResolvedValue({
+        credential,
+        state: 'opaque-oauth-state',
+      }),
       findOne: vi.fn().mockResolvedValue(credential),
+      findPendingOAuthCredential: vi.fn().mockResolvedValue(credential),
       patch: vi.fn().mockResolvedValue({ ...credential, isConnected: true }),
-      saveCredentials: vi.fn().mockResolvedValue(credential),
     };
     oauthService = {
       exchangeAuthCodeForAccessToken: vi.fn().mockResolvedValue({
@@ -79,7 +88,7 @@ describe('GoogleSearchConsoleController', () => {
     };
     gscService = {
       getSearchAnalytics: vi.fn().mockResolvedValue({
-        _id: 'analytics-id',
+        id: 'analytics-id',
         dimensions: ['query'],
         endDate: '2026-06-29',
         rows: [{ clicks: 2, impressions: 10, keys: ['genfeed'], position: 4 }],
@@ -88,7 +97,7 @@ describe('GoogleSearchConsoleController', () => {
       }),
       listSites: vi.fn().mockResolvedValue([
         {
-          _id: 'https://genfeed.ai/',
+          id: 'https://genfeed.ai/',
           permissionLevel: 'siteOwner',
           siteUrl: 'https://genfeed.ai/',
         },
@@ -118,22 +127,22 @@ describe('GoogleSearchConsoleController', () => {
 
   it('creates a pending credential and returns an OAuth URL', async () => {
     const result = await controller.connect(request, user, {
-      brand: 'brand-id',
+      brandId: 'brand-id',
     });
 
-    expect(brandsService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        _id: 'brand-id',
-        organization: 'org-id',
-      }),
-    );
-    expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-id',
+      isDeleted: false,
+      organizationId: 'org-id',
+    });
+    expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
       brand,
+      'user-id',
       'google_search_console',
       { isConnected: false },
     );
     expect(oauthService.generateAuthUrl).toHaveBeenCalledWith(
-      expect.stringContaining('brand-id'),
+      'opaque-oauth-state',
     );
     expect(result).toEqual({
       url: 'https://accounts.google.com/o/oauth2/v2/auth',
@@ -144,20 +153,24 @@ describe('GoogleSearchConsoleController', () => {
     brandsService.findOne.mockResolvedValueOnce(null);
 
     await expect(
-      controller.connect(request, user, { brand: 'brand-id' }),
+      controller.connect(request, user, { brandId: 'brand-id' }),
     ).rejects.toBeInstanceOf(HttpException);
   });
 
   it('verifies OAuth and stores the primary Search Console property', async () => {
     const result = await controller.verify(request, user, {
       code: 'auth-code',
-      state: JSON.stringify({
-        brandId: 'brand-id',
-        organizationId: 'org-id',
-        userId: 'user-id',
-      }),
+      state: 'opaque-oauth-state',
     });
 
+    expect(credentialsService.findPendingOAuthCredential).toHaveBeenCalledWith(
+      'opaque-oauth-state',
+      'google_search_console',
+      {
+        organizationId: 'org-id',
+        userId: 'user-id',
+      },
+    );
     expect(oauthService.exchangeAuthCodeForAccessToken).toHaveBeenCalledWith(
       'auth-code',
     );
@@ -181,32 +194,17 @@ describe('GoogleSearchConsoleController', () => {
     ).rejects.toBeInstanceOf(HttpException);
   });
 
-  it('throws Forbidden when state userId does not match the authenticated user', async () => {
+  it('rejects an OAuth state not pending for the authenticated user', async () => {
+    credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
+
     await expect(
       controller.verify(request, user, {
         code: 'auth-code',
-        state: JSON.stringify({
-          brandId: 'brand-id',
-          organizationId: 'org-id',
-          userId: 'different-user-id',
-        }),
+        state: 'foreign-or-expired-state',
       }),
     ).rejects.toBeInstanceOf(HttpException);
 
-    expect(credentialsService.findOne).not.toHaveBeenCalled();
     expect(oauthService.exchangeAuthCodeForAccessToken).not.toHaveBeenCalled();
-  });
-
-  it('throws when state is missing userId', async () => {
-    await expect(
-      controller.verify(request, user, {
-        code: 'auth-code',
-        state: JSON.stringify({
-          brandId: 'brand-id',
-          organizationId: 'org-id',
-        }),
-      }),
-    ).rejects.toBeInstanceOf(HttpException);
   });
 
   it('throws BadRequestException when the account has no verified Search Console properties', async () => {
@@ -215,11 +213,7 @@ describe('GoogleSearchConsoleController', () => {
     await expect(
       controller.verify(request, user, {
         code: 'auth-code',
-        state: JSON.stringify({
-          brandId: 'brand-id',
-          organizationId: 'org-id',
-          userId: 'user-id',
-        }),
+        state: 'opaque-oauth-state',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
 
@@ -237,7 +231,7 @@ describe('GoogleSearchConsoleController', () => {
     );
     expect(result).toEqual([
       {
-        _id: 'https://genfeed.ai/',
+        id: 'https://genfeed.ai/',
         permissionLevel: 'siteOwner',
         siteUrl: 'https://genfeed.ai/',
       },

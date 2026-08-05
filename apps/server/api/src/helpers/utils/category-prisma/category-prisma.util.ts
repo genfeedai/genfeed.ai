@@ -176,6 +176,13 @@ export class CategoryPrismaUtil {
    * - Non-empty unmappable value → throws BadRequestException.
    */
   static toIngredientCategory(
+    value: IngredientCategory | string,
+  ): PrismaIngredientCategoryValue;
+  static toIngredientCategory(value: undefined): undefined;
+  static toIngredientCategory(
+    value?: IngredientCategory | string,
+  ): PrismaIngredientCategoryValue | undefined;
+  static toIngredientCategory(
     value?: IngredientCategory | string,
   ): PrismaIngredientCategoryValue | undefined {
     if (value === undefined || value === '') {

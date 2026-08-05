@@ -45,8 +45,8 @@ export class AssetsService extends BaseService<Asset> {
   }
 
   public async postGenerate(data: {
-    parent: string;
-    parentModel: string;
+    parentId: string;
+    parentType: string;
     category: string;
     text: string;
     model: string;
@@ -59,7 +59,7 @@ export class AssetsService extends BaseService<Asset> {
   public async postFromIngredient(data: {
     ingredientId: string;
     category: string;
-    parent: string;
+    parentId: string;
   }) {
     return await this.instance
       .post<JsonApiResponseDocument>('/from-ingredient', data)

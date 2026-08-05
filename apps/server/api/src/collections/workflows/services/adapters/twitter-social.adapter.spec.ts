@@ -131,7 +131,7 @@ describe('TwitterSocialAdapter', () => {
 
     it('should search for mentions and return newest', async () => {
       mockCredentialsService.findOne.mockResolvedValue({
-        platformUsername: 'testuser',
+        externalHandle: 'testuser',
       });
       mockTwitterService.searchRecentTweets.mockResolvedValue([
         {
@@ -157,7 +157,7 @@ describe('TwitterSocialAdapter', () => {
 
     it('should return null when no new mentions since lastMentionId', async () => {
       mockCredentialsService.findOne.mockResolvedValue({
-        platformUsername: 'testuser',
+        externalHandle: 'testuser',
       });
       mockTwitterService.searchRecentTweets.mockResolvedValue([
         {
@@ -182,7 +182,7 @@ describe('TwitterSocialAdapter', () => {
   describe('trigger checkers', () => {
     it('createFollowerChecker should return newest follower', async () => {
       mockCredentialsService.findOne.mockResolvedValue({
-        platformUsername: 'brand_handle',
+        externalHandle: 'brand_handle',
       });
       mockTwitterService.getUserByUsername.mockResolvedValue({
         id: '100',

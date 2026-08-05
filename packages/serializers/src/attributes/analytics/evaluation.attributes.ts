@@ -1,19 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const evaluationAttributes = createEntityAttributes([
-  'organization',
-  'user',
-  'brand',
+  'organizationId',
+  'userId',
   'contentType',
-  'content',
-  'evaluationType',
-  'status',
-  'overallScore',
-  'scores',
-  'analysis',
-  'flags',
-  'externalContent',
-  'actualPerformance',
-  'review',
-  'reviewerComments',
+  'contentId',
+  'data',
 ]);

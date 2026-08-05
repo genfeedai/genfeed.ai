@@ -3,13 +3,9 @@ import { type Tag } from '@genfeedai/prisma';
 
 export class TagEntity extends BaseEntity implements Tag {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly userId: string;
   declare readonly organizationId: string;
   declare readonly brandId: string | null;
-  declare readonly user?: string;
-  declare readonly organization?: string;
-  declare readonly brand?: string;
 
   declare readonly category: Tag['category'];
 

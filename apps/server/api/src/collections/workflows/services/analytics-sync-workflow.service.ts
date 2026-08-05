@@ -25,11 +25,10 @@ type AnalyticsSyncWorkflowAction =
   | 'youtubeAnalyticsSync';
 
 type AnalyticsPost = PostEntity & {
-  brand?: unknown;
-  credential?: unknown;
+  brandId: string;
+  credentialId: string;
   externalId?: string | null;
-  organization?: unknown;
-  organizationId?: string;
+  organizationId: string;
   platform: CredentialPlatform;
 };
 
@@ -119,11 +118,11 @@ export class AnalyticsSyncWorkflowService {
       const jobData: SocialAnalyticsJobData = {
         attemptKey,
         posts: chunk.map((post) => ({
+          brandId: this.requiredBrandId(post),
+          credentialId: this.optionalId(post.credentialId),
           id: this.requiredId(post),
-          brand: this.requiredBrandId(post),
-          credential: this.optionalId(post.credential),
           externalId: this.requiredExternalId(post),
-          organization: organizationId,
+          organizationId,
           platform: post.platform,
         })),
       };
@@ -184,10 +183,10 @@ export class AnalyticsSyncWorkflowService {
       const jobData: SocialAnalyticsJobData = {
         attemptKey,
         posts: chunk.map((post) => ({
+          brandId: this.requiredBrandId(post),
           id: this.requiredId(post),
-          brand: this.requiredBrandId(post),
           externalId: this.requiredExternalId(post),
-          organization: organizationId,
+          organizationId,
           platform: post.platform,
         })),
       };
@@ -242,11 +241,11 @@ export class AnalyticsSyncWorkflowService {
       const jobData: SocialAnalyticsJobData = {
         attemptKey,
         posts: chunk.map((post) => ({
+          brandId: this.requiredBrandId(post),
+          credentialId: this.optionalId(post.credentialId),
           id: this.requiredId(post),
-          brand: this.requiredBrandId(post),
-          credential: this.optionalId(post.credential),
           externalId: this.requiredExternalId(post),
-          organization: organizationId,
+          organizationId,
           platform: post.platform,
         })),
       };
@@ -305,7 +304,7 @@ export class AnalyticsSyncWorkflowService {
     let skipped = 0;
 
     for (const post of posts) {
-      const credentialId = this.optionalId(post.credential);
+      const credentialId = this.optionalId(post.credentialId);
       if (!credentialId) {
         skipped++;
         this.logger.warn(`${this.logContext} skipped Twitter post`, {
@@ -327,10 +326,10 @@ export class AnalyticsSyncWorkflowService {
           attemptKey,
           credentialId,
           posts: batch.map((post) => ({
+            brandId: this.requiredBrandId(post),
             id: this.requiredId(post),
-            brand: this.requiredBrandId(post),
             externalId: this.requiredExternalId(post),
-            organization: organizationId,
+            organizationId,
           })),
         };
         await this.enqueueCollection(
@@ -424,7 +423,7 @@ export class AnalyticsSyncWorkflowService {
     let skipped = 0;
 
     for (const post of posts) {
-      const brandId = this.optionalId(post.brand);
+      const brandId = this.optionalId(post.brandId);
       if (!brandId) {
         skipped++;
         this.logger.warn(`${this.logContext} skipped YouTube post`, {
@@ -447,10 +446,10 @@ export class AnalyticsSyncWorkflowService {
           brandId,
           organizationId,
           posts: batch.map((post) => ({
+            brandId,
             id: this.requiredId(post),
-            brand: brandId,
             externalId: this.requiredExternalId(post),
-            organization: organizationId,
+            organizationId,
           })),
         };
         await this.enqueueCollection(
@@ -502,7 +501,6 @@ export class AnalyticsSyncWorkflowService {
     for (;;) {
       const result = await this.postsService.findAll(
         {
-          include: { credential: true },
           ...(options.orderBy ? { orderBy: options.orderBy } : {}),
           where,
         },
@@ -664,23 +662,11 @@ export class AnalyticsSyncWorkflowService {
   }
 
   private optionalId(value: unknown): string | undefined {
-    if (typeof value === 'string' && value.length > 0) {
-      return value;
-    }
-    if (value && typeof value === 'object') {
-      const record = value as Record<string, unknown>;
-      if (typeof record.id === 'string' && record.id.length > 0) {
-        return record.id;
-      }
-      if (typeof record.id === 'string' && record.id.length > 0) {
-        return record.id;
-      }
-    }
-    return undefined;
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
   private requiredId(post: AnalyticsPost): string {
-    const id = this.optionalId(post.id) ?? this.optionalId(post);
+    const id = this.optionalId(post.id);
     if (!id) {
       throw new Error('Analytics post missing id');
     }
@@ -688,7 +674,7 @@ export class AnalyticsSyncWorkflowService {
   }
 
   private requiredBrandId(post: AnalyticsPost): string {
-    const brandId = this.optionalId(post.brand);
+    const brandId = this.optionalId(post.brandId);
     if (!brandId) {
       throw new Error(`Analytics post ${this.requiredId(post)} missing brand`);
     }

@@ -310,7 +310,7 @@ export default function IssuesList() {
       const result = await service.list({
         ...(statusFilter ? { status: statusFilter } : {}),
         // Brand selected → filter. Brand cleared on org Workspace → all brands.
-        ...(brandId ? { brand: brandId } : {}),
+        ...(brandId ? { brandId } : {}),
       });
       if (!controller.signal.aborted) {
         dispatch({ type: 'SET_ISSUES', payload: result });

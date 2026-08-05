@@ -1,3 +1,7 @@
+import type {
+  CreatePostRequest,
+  UpdatePostRequest,
+} from '@genfeedai/api-types';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   AccountPublishingContext,
@@ -12,6 +16,8 @@ import {
 } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 
+export type PostUpdateInput = UpdatePostRequest;
+
 /**
  * Service for managing posts (scheduled social media content)
  *
@@ -24,7 +30,7 @@ import { EnvironmentService } from '@services/core/environment.service';
  *
  * // Create with type-safe payload
  * const post = await service.post({
- *   credential: credentialId,
+ *   credentialId,
  *   label: 'My Post',
  *   description: 'Content here',
  *   status: PostStatus.DRAFT,
@@ -38,11 +44,15 @@ import { EnvironmentService } from '@services/core/environment.service';
  * });
  * ```
  */
-export class PostsService extends BaseService<Post> {
+export class PostsService extends BaseService<
+  Post,
+  CreatePostRequest,
+  UpdatePostRequest
+> {
   private buildGenerationPayload(data: {
     topic: string;
     count: number;
-    credential: string;
+    credentialId: string;
     format?: SocialGenerationFormat;
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
     sourceReferenceIds?: string[];
@@ -89,7 +99,7 @@ export class PostsService extends BaseService<Post> {
   public async generateAccountContent(data: {
     topic: string;
     count: number;
-    credential: string;
+    credentialId: string;
     format: SocialGenerationFormat;
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
     sourceReferenceIds?: string[];
@@ -109,7 +119,7 @@ export class PostsService extends BaseService<Post> {
   public async generateTweets(data: {
     topic: string;
     count: number;
-    credential: string;
+    credentialId: string;
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
     sourceReferenceIds?: string[];
     trendId?: string;
@@ -125,7 +135,7 @@ export class PostsService extends BaseService<Post> {
   public async generateThread(data: {
     topic: string;
     count: number;
-    credential: string;
+    credentialId: string;
     tone?: 'professional' | 'casual' | 'viral' | 'educational' | 'humorous';
     sourceReferenceIds?: string[];
     trendId?: string;
@@ -174,7 +184,7 @@ export class PostsService extends BaseService<Post> {
       ingredientId?: string;
       timezone?: string;
     }>;
-    credential: string;
+    credentialId: string;
   }): Promise<Post[]> {
     const response = await this.instance.patch<JsonApiResponseDocument>(
       `${EnvironmentService.apiEndpoint}/posts/batch`,
@@ -188,19 +198,26 @@ export class PostsService extends BaseService<Post> {
    */
   public async createThread(data: {
     posts: Array<{
-      credential: string;
+      credentialId: string;
       description: string;
-      ingredient?: string;
+      ingredients: string[];
       label: string;
       scheduledDate?: string;
-      status: string;
+      status: CreatePostRequest['status'];
     }>;
   }): Promise<Post[]> {
-    const response = await this.instance.post<JsonApiResponseDocument>(
-      '/thread',
-      data,
-    );
-    return this.mapMany(response.data);
+    const [rootInput, ...replyInputs] = data.posts;
+    if (!rootInput) {
+      return [];
+    }
+
+    const root = await this.post(rootInput);
+    const replies: Post[] = [];
+    for (const replyInput of replyInputs) {
+      replies.push(await this.post(`${root.id}/replies`, replyInput));
+    }
+
+    return [root, ...replies];
   }
 
   /**

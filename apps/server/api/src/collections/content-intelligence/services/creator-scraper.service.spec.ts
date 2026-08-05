@@ -36,7 +36,7 @@ const creatorId = 'test-object-id';
 
 function makeCreator(platform: ContentIntelligencePlatform) {
   return {
-    _id: creatorId,
+    id: creatorId,
     handle: 'testuser',
     isDeleted: false,
     platform,

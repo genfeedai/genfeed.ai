@@ -110,7 +110,7 @@ export class WorkspaceTaskProcessor extends WorkerHost {
    * - voiceProvider === 'heygen' → voiceId is a HeyGen catalog voice,
    *   passed as heygenVoiceId directly.
    * - voiceProvider === 'elevenlabs' | 'genfeed-ai' | 'hedra' → voiceId
-   *   is a Voice document _id, passed as clonedVoiceId so the
+   *   is a Voice document id, passed as clonedVoiceId so the
    *   service looks it up and routes through resolveVoiceDocument.
    *
    * When avatar or voice is absent, useIdentity flips to true so

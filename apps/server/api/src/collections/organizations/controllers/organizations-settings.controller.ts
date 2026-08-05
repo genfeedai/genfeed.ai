@@ -114,14 +114,17 @@ export class OrganizationsSettingsController {
       organizationId,
     );
     const data = await this.organizationSettingsService.findOne({
-      organization: resolvedOrganizationId,
+      organizationId: resolvedOrganizationId,
     });
 
     if (!data) {
       return returnNotFound('Organization Settings', resolvedOrganizationId);
     }
 
-    return serializeSingle(req, OrganizationSettingSerializer, data);
+    const ensuredData =
+      await this.organizationSettingsService.ensureEnabledModelIds(data);
+
+    return serializeSingle(req, OrganizationSettingSerializer, ensuredData);
   }
 
   @Patch(':organizationId/settings')
@@ -138,12 +141,21 @@ export class OrganizationsSettingsController {
     );
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organization: resolvedOrganizationId,
+        organizationId: resolvedOrganizationId,
       },
     );
 
     if (!organizationSettings) {
       return returnNotFound('Organization Settings', resolvedOrganizationId);
+    }
+
+    if (
+      Array.isArray(settingsDto.enabledModelIds) &&
+      settingsDto.enabledModelIds.length === 0
+    ) {
+      throw new BadRequestException(
+        'At least one model must remain enabled for the organization',
+      );
     }
 
     await this.validateDefaultAvatarIngredient(
@@ -193,9 +205,9 @@ export class OrganizationsSettingsController {
     );
     const brandSettings = await this.brandsService.findOne(
       {
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
-        organization: resolvedOrganizationId,
+        organizationId: resolvedOrganizationId,
       },
       'none',
     );
@@ -205,7 +217,6 @@ export class OrganizationsSettingsController {
     }
 
     return serializeSingle(req, FleetCapabilitiesSerializer, {
-      _id: `fleet-capabilities:${resolvedOrganizationId}:${brandId}`,
       brandEnabled: Boolean(brandSettings.isFleetEnabled),
       brandId,
       // Public Core exposes the brand switch here without probing managed fleet runtime.
@@ -215,6 +226,7 @@ export class OrganizationsSettingsController {
         videos: false,
         voices: false,
       },
+      id: `fleet-capabilities:${resolvedOrganizationId}:${brandId}`,
       organizationId: resolvedOrganizationId,
     });
   }
@@ -230,7 +242,7 @@ export class OrganizationsSettingsController {
       organizationId,
     );
     const data = await this.subscriptionsService.findOne({
-      organization: resolvedOrganizationId,
+      organizationId: resolvedOrganizationId,
     });
 
     return serializeSingle(req, SubscriptionSerializer, data);

@@ -1,20 +1,17 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
+import { ConnectCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
-import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 type IntegrationBrand = {
-  id?: unknown;
-  _id?: unknown;
-  organization?: unknown;
-  organizationId?: unknown;
+  id: string;
+  organizationId: string;
 };
 
 /**
@@ -68,7 +65,7 @@ export interface OAuthVerifyResult {
  *   }
  *
  *   @Post('connect')
- *   async connect(@CurrentUser() user: User, @Body() dto: CreateCredentialDto) {
+ *   async connect(@CurrentUser() user: User, @Body() dto: ConnectCredentialDto) {
  *     return this.handleConnect(user, dto, request);
  *   }
  * }
@@ -124,9 +121,9 @@ export abstract class BaseIntegrationController {
     organizationId: string,
   ): Promise<IntegrationBrand> {
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!brand) {
@@ -151,20 +148,14 @@ export abstract class BaseIntegrationController {
    */
   protected async getOrCreateCredential(
     brand: IntegrationBrand,
+    userId: string,
     initialData: Record<string, unknown> = {},
   ) {
     // Scalar FK first: `brand.organization` is only present when the brand was
     // loaded with the relation included, and an `undefined` filter value is
     // dropped by `normalizeWhere` — which would look up (and hand back) a
     // credential belonging to another organization.
-    const brandRef = `Brand ${String(brand.id ?? brand._id)}`;
-    const brandId = requireRelationId(brand.id, brand._id, 'brand', brandRef);
-    const organizationId = requireRelationId(
-      brand.organizationId,
-      brand.organization,
-      'organization',
-      brandRef,
-    );
+    const { id: brandId, organizationId } = brand;
 
     const credentialFilter = {
       brandId,
@@ -179,7 +170,7 @@ export abstract class BaseIntegrationController {
       return existingCredential;
     }
 
-    await this.credentialsService.saveCredentials(brand, this.platform, {
+    await this.credentialsService.upsertForBrand(brand, userId, this.platform, {
       isConnected: false,
       ...initialData,
     });
@@ -190,55 +181,52 @@ export abstract class BaseIntegrationController {
   /**
    * Handle the connect flow with standard validation and error handling
    *
-   * @param user - legacy auth provider user object
+   * @param user - authenticated user
    * @param createCredentialDto - DTO with brand ID
    * @returns OAuth URL result
    */
   protected async handleConnect(
     user: User,
-    createCredentialDto: Partial<CreateCredentialDto>,
+    createCredentialDto: ConnectCredentialDto,
   ): Promise<OAuthUrlResult> {
     const url = this.getLogUrl('connect');
     this.loggerService.log(url, createCredentialDto);
 
     const publicMetadata = getPublicMetadata(user);
 
-    if (!createCredentialDto.brand) {
-      throw new HttpException(
-        {
-          detail: 'Brand ID is required',
-          title: 'Invalid payload',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
     try {
+      if (!createCredentialDto.brandId) {
+        throw new HttpException(
+          {
+            detail: 'Brand ID is required',
+            title: 'Invalid payload',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const brand = await this.validateBrand(
-        createCredentialDto.brand,
+        createCredentialDto.brandId,
         publicMetadata.organization,
       );
 
       // Generate OAuth URL
-      const oauthResult = await this.generateOAuthUrl(
-        requireRelationId(
-          brand.id,
-          brand._id,
-          'brand',
-          `Brand ${createCredentialDto.brand}`,
-        ),
-        publicMetadata,
-      );
+      const oauthResult = await this.generateOAuthUrl(brand.id, publicMetadata);
 
       // Save credential with OAuth tokens if provided
       if (oauthResult.oauthToken || oauthResult.oauthTokenSecret) {
-        await this.credentialsService.saveCredentials(brand, this.platform, {
-          isConnected: false,
-          oauthToken: oauthResult.oauthToken,
-          oauthTokenSecret: oauthResult.oauthTokenSecret,
-        });
+        await this.credentialsService.upsertForBrand(
+          brand,
+          publicMetadata.user,
+          this.platform,
+          {
+            isConnected: false,
+            oauthToken: oauthResult.oauthToken,
+            oauthTokenSecret: oauthResult.oauthTokenSecret,
+          },
+        );
       } else {
-        await this.getOrCreateCredential(brand);
+        await this.getOrCreateCredential(brand, publicMetadata.user);
       }
 
       return oauthResult;

@@ -279,7 +279,7 @@ export class OptimizationCycleService {
           (r.engagementRate ?? 0) * 0.6 + (r.performanceScore ?? 0) * 0.4,
         contentType: r.contentType ?? undefined,
         engagementRate: r.engagementRate ?? 0,
-        hookUsed: (r as Record<string, unknown>).hookUsed as string | undefined,
+        hookUsed: r.hookUsed,
         id: r.id,
         measuredAt:
           r.measuredAt instanceof Date
@@ -289,9 +289,7 @@ export class OptimizationCycleService {
               : undefined,
         performanceScore: r.performanceScore ?? 0,
         platform: r.platform ?? undefined,
-        promptUsed: (r as Record<string, unknown>).promptUsed as
-          | string
-          | undefined,
+        promptUsed: r.promptUsed,
       }))
       .sort((a, b) => b.combinedScore - a.combinedScore)
       .slice(0, limit);

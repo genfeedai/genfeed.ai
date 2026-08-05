@@ -1,8 +1,8 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const contentRunAttributes = createEntityAttributes([
-  'organization',
-  'brand',
+  'organizationId',
+  'brandId',
   'skillSlug',
   'status',
   'input',

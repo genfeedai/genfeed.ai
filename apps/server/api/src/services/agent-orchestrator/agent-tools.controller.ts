@@ -86,7 +86,7 @@ export class AgentToolsController {
       }
 
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
       const authToken = authorization?.replace('Bearer ', '');
 
       const context: ToolExecutionContext = {
@@ -127,7 +127,7 @@ export class AgentToolsController {
     return organization;
   }
 
-  private async resolveMongoUserId(user: User): Promise<string> {
+  private async resolveDatabaseUserId(user: User): Promise<string> {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (metadataUserId) {
       return metadataUserId;
@@ -141,7 +141,7 @@ export class AgentToolsController {
     }
 
     const dbUser = await this.usersService.findOne(
-      { _id: userId, isDeleted: false },
+      { id: userId, isDeleted: false },
       [],
     );
     if (!dbUser?.id) {

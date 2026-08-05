@@ -68,24 +68,28 @@ export interface TaskDocument
     | 'failureReason'
     | 'requestedChangesReason'
   > {
-  _id: string;
   approvedOutputIds: string[];
   assigneeUserId?: string;
-  brand?: string;
   chosenModel?: string;
   chosenProvider?: string;
   completedAt?: Date;
   decomposition?: Record<string, unknown> | null;
   dismissedAt?: Date;
   dismissedReason?: string;
+  elevenlabsVoiceId?: string;
   eventStream: TaskEvent[];
   executionPathUsed?: string;
   failureReason?: string;
-  identifier?: string;
+  identifier: string | null;
+  heygenAvatarId?: string;
   linkedApprovalIds: string[];
+  linkedEntities: Array<{
+    entityId: string;
+    entityModel: TaskLinkedEntityModel;
+  }>;
+  linkedIssueId?: string;
   linkedOutputIds: string[];
   linkedRunIds: string[];
-  organization: string;
   outputType: TaskOutputType;
   platforms: string[];
   planningThreadId?: string;
@@ -101,8 +105,9 @@ export interface TaskDocument
   skillVariantIds: string[];
   skillsUsed: string[];
   status: TaskStatus;
-  taskNumber?: number;
+  taskNumber: number | null;
   title: string;
-  user?: string;
+  voiceId?: string;
+  voiceProvider?: string;
   [key: string]: unknown;
 }

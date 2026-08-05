@@ -77,7 +77,6 @@ describe('AdAutomationWorkflowService', () => {
     expect(queueService.add).toHaveBeenCalledWith(
       'ad-optimization',
       expect.objectContaining({
-        configId: 'config-1',
         organizationId: 'org-1',
         runId: expect.any(String),
       }),

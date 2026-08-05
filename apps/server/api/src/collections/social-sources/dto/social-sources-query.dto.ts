@@ -35,7 +35,7 @@ export class SocialSourcesQueryDto extends BaseQueryDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  source?: string;
+  sourceId?: string;
 
   @IsOptional()
   @Type(() => Number)

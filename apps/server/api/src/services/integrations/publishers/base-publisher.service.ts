@@ -105,7 +105,7 @@ export abstract class BasePublisherService implements IPublisher {
     const ingredients = post.ingredients || [];
     const hasIngredients = ingredients && ingredients.length > 0;
 
-    // Extract ingredient IDs (handle both ObjectId and populated objects)
+    // Extract ingredient IDs from scalar IDs or populated records.
     const ingredientIds = ingredients.map((ingredient: unknown) =>
       this.getRecordId(ingredient),
     );

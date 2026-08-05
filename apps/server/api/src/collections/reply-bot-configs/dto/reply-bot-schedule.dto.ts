@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   Matches,
@@ -19,7 +20,7 @@ export class ReplyBotScheduleDto {
 
   @IsString()
   @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
-    message: 'startTime must be in HH:MM format',
+    message: 'activeHoursStart must be in HH:MM format',
   })
   @IsOptional()
   @ApiProperty({
@@ -28,11 +29,11 @@ export class ReplyBotScheduleDto {
     example: '09:00',
     required: false,
   })
-  startTime?: string;
+  activeHoursStart?: string;
 
   @IsString()
   @Matches(/^([01]\d|2[0-3]):([0-5]\d)$/, {
-    message: 'endTime must be in HH:MM format',
+    message: 'activeHoursEnd must be in HH:MM format',
   })
   @IsOptional()
   @ApiProperty({
@@ -41,7 +42,7 @@ export class ReplyBotScheduleDto {
     example: '17:00',
     required: false,
   })
-  endTime?: string;
+  activeHoursEnd?: string;
 
   @IsString()
   @IsOptional()
@@ -55,11 +56,23 @@ export class ReplyBotScheduleDto {
 
   @IsArray()
   @IsString({ each: true })
+  @IsIn(
+    [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ],
+    { each: true },
+  )
   @IsOptional()
   @ApiProperty({
-    default: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    default: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     description: 'Days when bot is active',
-    example: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+    example: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
     required: false,
     type: [String],
   })

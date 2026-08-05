@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -48,7 +48,7 @@ export class FanvueController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -57,9 +57,9 @@ export class FanvueController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -72,9 +72,9 @@ export class FanvueController {
     // Generate PKCE pair
     const { codeVerifier, codeChallenge } = this.fanvueService.generatePkce();
 
-    // Save placeholder credential with encrypted code_verifier in oauthToken
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.FANVUE,
       {
         accessToken: undefined,
@@ -83,12 +83,6 @@ export class FanvueController {
         oauthTokenSecret: undefined,
       },
     );
-
-    const state = JSON.stringify({
-      brandId: brand.id,
-      organizationId: brand.organizationId,
-      userId: publicMetadata.user,
-    });
 
     const clientId = this.configService.get('FANVUE_CLIENT_ID');
 
@@ -126,17 +120,14 @@ export class FanvueController {
         });
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
-
-      // Find the existing credential to retrieve the code_verifier
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.FANVUE,
-      });
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.FANVUE,
+        );
 
       if (!existingCredential) {
-        return returnNotFound('Credential', brandId);
+        return returnNotFound('Pending OAuth credential', state);
       }
 
       if (!existingCredential.oauthToken) {
@@ -197,8 +188,9 @@ export class FanvueController {
           externalName,
           isConnected: true,
           isDeleted: false,
-          oauthToken: undefined, // Clear code_verifier
-          oauthTokenSecret: undefined,
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
           refreshToken: tokens.refresh_token,
         },
       );

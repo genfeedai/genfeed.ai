@@ -345,12 +345,33 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   activeRunStatus: 'idle',
   activeThreadId: null,
   addActiveToolCall: (toolCall) =>
-    set((state) => ({
-      stream: {
-        ...state.stream,
-        activeToolCalls: [...state.stream.activeToolCalls, toolCall],
-      },
-    })),
+    set((state) => {
+      const existingIndex = state.stream.activeToolCalls.findIndex(
+        (item) => item.id === toolCall.id,
+      );
+
+      if (existingIndex === -1) {
+        return {
+          stream: {
+            ...state.stream,
+            activeToolCalls: [...state.stream.activeToolCalls, toolCall],
+          },
+        };
+      }
+
+      const activeToolCalls = [...state.stream.activeToolCalls];
+      activeToolCalls[existingIndex] = {
+        ...activeToolCalls[existingIndex],
+        ...toolCall,
+      };
+
+      return {
+        stream: {
+          ...state.stream,
+          activeToolCalls,
+        },
+      };
+    }),
   addMemoryEntry: (entry) =>
     set((state) => ({ memoryEntries: [entry, ...state.memoryEntries] })),
   addMessage: (message) =>
@@ -360,12 +381,31 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       messages: [...state.messages, message],
     })),
   addPendingUiActions: (actions) =>
-    set((state) => ({
-      stream: {
-        ...state.stream,
-        pendingUiActions: [...state.stream.pendingUiActions, ...actions],
-      },
-    })),
+    set((state) => {
+      const pendingUiActions = [...state.stream.pendingUiActions];
+
+      for (const action of actions) {
+        const existingIndex = pendingUiActions.findIndex(
+          (item) => item.id === action.id,
+        );
+
+        if (existingIndex === -1) {
+          pendingUiActions.push(action);
+        } else {
+          pendingUiActions[existingIndex] = {
+            ...pendingUiActions[existingIndex],
+            ...action,
+          };
+        }
+      }
+
+      return {
+        stream: {
+          ...state.stream,
+          pendingUiActions,
+        },
+      };
+    }),
   addWorkEvent: (event) =>
     set((state) => {
       const existingIndex = state.workEvents.findIndex(

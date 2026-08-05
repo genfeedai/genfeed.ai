@@ -255,17 +255,14 @@ export class WorkflowTrendPublishExecutorRegistrarService {
               (trendId
                 ? videos.find(
                     (item) =>
-                      item.id === trendId ||
-                      item.externalId === trendId ||
-                      item._id === trendId,
+                      item.id === trendId || item.externalId === trendId,
                   )
                 : undefined) ?? videos[0];
             if (!selected) {
               return null;
             }
 
-            const selectedTrendId =
-              selected.id ?? selected.externalId ?? selected._id;
+            const selectedTrendId = selected.id ?? selected.externalId;
             if (!selectedTrendId) {
               return null;
             }
@@ -426,10 +423,10 @@ export class WorkflowTrendPublishExecutorRegistrarService {
 
         for (const platform of platforms) {
           const credential = await credentialsService.findOne({
-            brand: brandId,
+            brandId: brandId,
             isConnected: true,
             isDeleted: false,
-            organization: organizationId,
+            organizationId: organizationId,
             platform: platform as CredentialPlatform,
           });
 
@@ -438,18 +435,18 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           }
 
           const post = await postsService.create({
-            brand: brandId,
+            brandId: brandId,
             category:
               ingredients.length > 0 ? PostCategory.IMAGE : PostCategory.TEXT,
-            credential: credential.id,
+            credentialId: credential.id,
             description: caption,
             ingredients,
             label: this.helper.buildPostLabel(caption),
-            organization: organizationId,
+            organizationId: organizationId,
             platform: credential.platform as CredentialPlatform,
             scheduledDate: scheduledFor ?? undefined,
             status: scheduledFor ? PostStatus.SCHEDULED : PostStatus.DRAFT,
-            user: userId,
+            userId: userId,
           });
 
           postIds.push(post.id.toString());

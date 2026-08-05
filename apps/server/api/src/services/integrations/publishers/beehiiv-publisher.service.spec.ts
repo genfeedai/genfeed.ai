@@ -26,7 +26,7 @@ describe('BeehiivPublisherService', () => {
   };
 
   const mockCredential = {
-    _id: 'cred-id',
+    id: 'cred-id',
     platform: CredentialPlatform.BEEHIIV,
   };
 

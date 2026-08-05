@@ -125,10 +125,7 @@ export class AgentMemoryCaptureService {
       isActive: true,
     });
     const matching = existing.find(
-      (item) =>
-        item.sourceBrand &&
-        String(item.sourceBrand) === brandId &&
-        !item.isDeleted,
+      (item) => item.sourceBrandId === brandId && !item.isDeleted,
     );
 
     if (matching?.id) {

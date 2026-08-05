@@ -73,8 +73,8 @@ export class IngredientsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const matchStage: Record<string, unknown> = {
       isDeleted,
-      parent: ingredientId,
-      training: { not: false },
+      parentId: ingredientId,
+      trainingId: null,
     };
 
     // Filter by favorite status if provided
@@ -99,7 +99,7 @@ export class IngredientsRelationshipsController {
     @Req() request: Request,
     @Param('ingredientId') ingredientId: string,
   ): Promise<JsonApiSingleResponse> {
-    const data = await this.ingredientsService.findOne({ _id: ingredientId }, [
+    const data = await this.ingredientsService.findOne({ id: ingredientId }, [
       PopulatePatterns.metadataFull,
     ]);
 
@@ -119,7 +119,7 @@ export class IngredientsRelationshipsController {
     @Query() query: BaseQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const ingredient = await this.ingredientsService.findOne({
-      _id: ingredientId,
+      id: ingredientId,
       isDeleted: false,
     });
 
@@ -135,11 +135,10 @@ export class IngredientsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const aggregate = {
       where: {
-        ingredients: ingredientId,
+        ingredients: { some: { id: ingredientId } },
         isDeleted,
-        // Scalar FK, coerced to an explicit null: the legacy `organization`
-        // alias is undefined unless populated, and `normalizeWhere` drops
-        // undefined values — which would silently list posts across every org.
+        // Keep the scope explicit even for unowned shared ingredients because
+        // `normalizeWhere` drops undefined values and would widen the query.
         organizationId: ingredient.organizationId ?? null,
       },
       orderBy: handleQuerySort(query.sort),

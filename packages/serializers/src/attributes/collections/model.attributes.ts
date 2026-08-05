@@ -49,9 +49,9 @@ export const modelAttributes = createEntityAttributes([
   'isDeprecated',
   'deprecatedAt',
   // Dynamic registry ownership fields
-  'organization',
-  'parentModel',
-  'training',
+  'organizationId',
+  'parentModelId',
+  'trainingId',
   'isPublic',
   'isLegacy',
   'isDiscovered',

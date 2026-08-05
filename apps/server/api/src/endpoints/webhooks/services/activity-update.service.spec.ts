@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('ActivityUpdateService', () => {
   let service: ActivityUpdateService;
   let activitiesService: {
-    findOne: ReturnType<typeof vi.fn>;
+    findByActionValue: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
@@ -24,7 +24,7 @@ describe('ActivityUpdateService', () => {
   beforeEach(() => {
     activitiesService = {
       create: vi.fn().mockResolvedValue({ id: mockObjectId }),
-      findOne: vi.fn(),
+      findByActionValue: vi.fn(),
       patch: vi.fn().mockResolvedValue({ id: mockObjectId }),
     };
     websocketService = {
@@ -60,7 +60,7 @@ describe('ActivityUpdateService', () => {
         id: mockObjectId,
         value: JSON.stringify({ ingredientId: 'old', type: 'generation' }),
       };
-      activitiesService.findOne.mockResolvedValue(existingActivity);
+      activitiesService.findByActionValue.mockResolvedValue(existingActivity);
 
       await service.updateSuccessActivity(baseParams);
 
@@ -73,7 +73,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should create new activity when no existing found', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity(baseParams);
 
@@ -81,7 +81,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should publish background task update when userId available', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity(baseParams);
 
@@ -95,7 +95,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle reframe transformation', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -110,7 +110,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle upscale transformation', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -125,7 +125,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle image category', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -140,7 +140,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle music category', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -157,15 +157,15 @@ describe('ActivityUpdateService', () => {
     it('should skip unsupported categories', async () => {
       await service.updateSuccessActivity({
         ...baseParams,
-        category: 'unsupported' as any,
+        category: 'unsupported',
       });
 
-      expect(activitiesService.findOne).not.toHaveBeenCalled();
+      expect(activitiesService.findByActionValue).not.toHaveBeenCalled();
       expect(activitiesService.create).not.toHaveBeenCalled();
     });
 
     it('should not publish websocket when userId is missing', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateSuccessActivity({
         ...baseParams,
@@ -195,7 +195,7 @@ describe('ActivityUpdateService', () => {
         id: mockObjectId,
         value: JSON.stringify({ ingredientId: 'old' }),
       };
-      activitiesService.findOne.mockResolvedValue(existingActivity);
+      activitiesService.findByActionValue.mockResolvedValue(existingActivity);
 
       await service.updateFailureActivity(baseParams);
 
@@ -208,7 +208,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should create new failure activity when no existing found', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateFailureActivity(baseParams);
 
@@ -220,7 +220,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should publish failure event', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateFailureActivity(baseParams);
 
@@ -233,7 +233,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should handle image failure', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateFailureActivity({
         ...baseParams,
@@ -248,7 +248,7 @@ describe('ActivityUpdateService', () => {
     });
 
     it('should use default error message', async () => {
-      activitiesService.findOne.mockResolvedValue(null);
+      activitiesService.findByActionValue.mockResolvedValue(null);
 
       await service.updateFailureActivity({
         ...baseParams,

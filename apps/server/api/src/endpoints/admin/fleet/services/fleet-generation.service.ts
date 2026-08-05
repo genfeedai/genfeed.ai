@@ -5,7 +5,6 @@ import { AdminFleetGenerationJob } from '@api/endpoints/admin/fleet/interfaces/f
 import { AdminFleetCharacterService } from '@api/endpoints/admin/fleet/services/fleet-character.service';
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
@@ -134,17 +133,17 @@ export class AdminFleetGenerationService {
     const ingredient =
       options.ingredientId === undefined
         ? await this.ingredientsService.create({
-            brand: EntityIdUtil.toValidId(brandId)!,
+            brandId,
             cdnUrl,
             ...AdminFleetValueReader.getDefaultFleetModerationState(),
             generationSource: model,
             modelUsed: model,
-            organization: EntityIdUtil.toValidId(organizationId)!,
-            persona: persona.id,
+            organizationId,
+            personaId: persona.id,
             personaSlug,
             s3Key: `fleet/${personaSlug}/${filename}`,
             status: IngredientStatus.GENERATED,
-            user: EntityIdUtil.toValidId(userId)!,
+            userId,
           } as Parameters<IngredientsService['create']>[0])
         : await this.ingredientsService.patch(options.ingredientId, {
             cdnUrl,
@@ -181,7 +180,7 @@ export class AdminFleetGenerationService {
     const loraPath = dto.lora || undefined;
 
     const ingredient = await this.ingredientsService.create({
-      brand: EntityIdUtil.toValidId(brandId)!,
+      brandId,
       category: 'image',
       ...AdminFleetValueReader.getDefaultFleetModerationState(),
       generationError: undefined,
@@ -193,11 +192,11 @@ export class AdminFleetGenerationService {
       loraUsed: loraPath,
       modelUsed: dto.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
       negativePrompt: dto.negativePrompt,
-      organization: EntityIdUtil.toValidId(organizationId)!,
-      persona: persona.id,
+      organizationId,
+      personaId: persona.id,
       personaSlug: dto.personaSlug,
       status: IngredientStatus.PROCESSING,
-      user: EntityIdUtil.toValidId(userId)!,
+      userId,
     } as Parameters<IngredientsService['create']>[0]);
 
     void this.processGenerationJob(
@@ -219,9 +218,9 @@ export class AdminFleetGenerationService {
     organizationId: string,
   ): Promise<AdminFleetGenerationJob> {
     const ingredient = await this.ingredientsService.findOne({
-      _id: jobId,
+      id: jobId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!ingredient) {

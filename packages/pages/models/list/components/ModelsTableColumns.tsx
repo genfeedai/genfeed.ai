@@ -169,7 +169,7 @@ export function buildModelsTableColumns({
                 <Switch
                   isChecked={isEnabled}
                   onChange={() => handleToggleModel(model, !isEnabled)}
-                  isDisabled={isToggling || model.isDefault}
+                  isDisabled={isToggling || (model.isDefault && isEnabled)}
                 />
               );
             },

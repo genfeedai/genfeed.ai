@@ -1,8 +1,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { Play, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
 
+import { AgentErrorMessage } from './AgentErrorMessage';
 import { GenerationActionCardQualityBadge } from './GenerationActionCardQualityBadge';
 
 type CardStatus = 'idle' | 'generating' | 'done' | 'error';
@@ -10,14 +11,12 @@ type CardStatus = 'idle' | 'generating' | 'done' | 'error';
 type GenerationActionCardStatusPanelProps = {
   status: CardStatus;
   isImage: boolean;
-  isPromptEmpty: boolean;
   resultUrl: string | null;
   resultId: string | null;
   error: string | null;
   generationType: string;
   qualityScore: number | undefined;
   qualityFeedback: string[] | undefined;
-  onGenerate: () => void;
   onRetry: () => void;
   onRegenerateProp: (() => void) | undefined;
 };
@@ -25,30 +24,16 @@ type GenerationActionCardStatusPanelProps = {
 export function GenerationActionCardStatusPanel({
   status,
   isImage,
-  isPromptEmpty,
   resultUrl,
   resultId,
   error,
   generationType,
   qualityScore,
   qualityFeedback,
-  onGenerate,
   onRetry,
   onRegenerateProp,
 }: GenerationActionCardStatusPanelProps): ReactElement | null {
-  if (status === 'idle') {
-    return (
-      <Button
-        variant={ButtonVariant.DEFAULT}
-        onClick={onGenerate}
-        isDisabled={isPromptEmpty}
-        className="w-full"
-      >
-        <Play className="size-4" />
-        Generate {isImage ? 'Image' : 'Video'}
-      </Button>
-    );
-  }
+  if (status === 'idle') return null;
 
   if (status === 'generating') {
     return (
@@ -62,9 +47,7 @@ export function GenerationActionCardStatusPanel({
   if (status === 'error') {
     return (
       <div className="space-y-2">
-        <div className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-          {error}
-        </div>
+        <AgentErrorMessage message={error ?? 'Generation failed'} />
         <Button
           variant={ButtonVariant.SECONDARY}
           onClick={onRetry}

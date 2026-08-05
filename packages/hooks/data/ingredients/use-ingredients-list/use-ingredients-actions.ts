@@ -365,7 +365,7 @@ export function useIngredientsActions({
       try {
         const service = await getBulkIngredientsService();
         await service.patch(ingredient.id, {
-          folder: folderId,
+          folderId,
         });
 
         logger.info(`${url} success - folder updated`);

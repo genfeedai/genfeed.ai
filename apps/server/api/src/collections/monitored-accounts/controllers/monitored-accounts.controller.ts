@@ -34,7 +34,6 @@ export class MonitoredAccountsController extends BaseCRUDController<
   MonitoredAccountDocument,
   CreateMonitoredAccountDto,
   UpdateMonitoredAccountDto,
-  // @ts-expect-error TS2344
   MonitoredAccountsQueryDto
 > {
   constructor(
@@ -59,20 +58,20 @@ export class MonitoredAccountsController extends BaseCRUDController<
 
     // Always filter by organization for multi-tenancy
     const organizationId =
-      query.organization || publicMetadata.organization?.toString();
+      query.organizationId || publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = organizationId;
+      match.organizationId = organizationId;
     }
 
-    if (query.brand) {
-      match.brand = query.brand;
+    if (query.brandId) {
+      match.brandId = query.brandId;
     } else if (publicMetadata.brand) {
-      match.brand = publicMetadata.brand;
+      match.brandId = publicMetadata.brand;
     }
 
     // Filter by bot config if provided
-    if (query.botConfig) {
-      match.botConfig = query.botConfig;
+    if (query.botConfigId) {
+      match.botConfigId = query.botConfigId;
     }
 
     // Filter by active status if provided
@@ -89,23 +88,12 @@ export class MonitoredAccountsController extends BaseCRUDController<
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
-      organization?: { id?: { toString?: () => string } } | string | null;
-      brand?: { id?: { toString?: () => string } } | string | null;
+      organizationId?: string | null;
+      brandId?: string | null;
     };
 
-    const entityOrganizationId =
-      (typeof entityRecord.organization === 'object' &&
-      entityRecord.organization !== null
-        ? entityRecord.organization.id?.toString?.()
-        : undefined) ||
-      (typeof entityRecord.organization === 'string'
-        ? entityRecord.organization
-        : undefined);
-    const entityBrandId =
-      (typeof entityRecord.brand === 'object' && entityRecord.brand !== null
-        ? entityRecord.brand.id?.toString?.()
-        : undefined) ||
-      (typeof entityRecord.brand === 'string' ? entityRecord.brand : undefined);
+    const entityOrganizationId = entityRecord.organizationId;
+    const entityBrandId = entityRecord.brandId;
     if (
       entityOrganizationId &&
       publicMetadata.organization &&
@@ -126,10 +114,10 @@ export class MonitoredAccountsController extends BaseCRUDController<
   ) {
     const publicMetadata = getPublicMetadata(user);
     const data = await this.monitoredAccountsService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     return serializeSingle(request, MonitoredAccountSerializer, data);

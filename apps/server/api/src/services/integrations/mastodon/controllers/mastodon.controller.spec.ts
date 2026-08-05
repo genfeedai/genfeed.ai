@@ -1,192 +1,158 @@
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: { decrypt: vi.fn((value: string) => `decrypted:${value}`) },
+}));
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { MastodonController } from '@api/services/integrations/mastodon/controllers/mastodon.controller';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { MastodonController } from './mastodon.controller';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('MastodonController', () => {
   let controller: MastodonController;
-  let mastodonService: {
-    registerApp: ReturnType<typeof vi.fn>;
-    generateAuthUrl: ReturnType<typeof vi.fn>;
-    exchangeCodeForToken: ReturnType<typeof vi.fn>;
-    verifyCredentials: ReturnType<typeof vi.fn>;
+
+  const mastodonService = {
+    exchangeCodeForToken: vi.fn(),
+    generateAuthUrl: vi.fn(),
+    registerApp: vi.fn(),
+    verifyCredentials: vi.fn(),
   };
-  let loggerService: {
-    log: ReturnType<typeof vi.fn>;
-    warn: ReturnType<typeof vi.fn>;
-    error: ReturnType<typeof vi.fn>;
+  const brandsService = {
+    findOne: vi.fn().mockResolvedValue({
+      id: 'brand-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
   };
+  const credentialsService = {
+    beginOAuthForBrand: vi.fn().mockResolvedValue({
+      credential: { id: 'credential-id' },
+      state: 'opaque-oauth-state',
+    }),
+    findPendingOAuthCredential: vi.fn(),
+    patch: vi.fn(),
+    updateExternalProfile: vi.fn(),
+  };
+  const user = {
+    publicMetadata: { organization: 'organization-id', user: 'user-id' },
+  } as unknown as User;
 
   beforeEach(async () => {
     vi.clearAllMocks();
-
-    mastodonService = {
-      exchangeCodeForToken: vi.fn(),
-      generateAuthUrl: vi.fn(),
-      registerApp: vi.fn(),
-      verifyCredentials: vi.fn(),
-    };
-    loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    mastodonService.registerApp.mockResolvedValue({
+      client_id: 'client-id',
+      client_secret: 'client-secret',
+      id: 'app-id',
+      name: 'Genfeed.ai',
+      redirect_uri: 'https://app.genfeed.ai/oauth/mastodon',
+    });
+    mastodonService.generateAuthUrl.mockReturnValue(
+      'https://mastodon.social/oauth/authorize?...',
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MastodonController],
       providers: [
         { provide: MastodonService, useValue: mastodonService },
-        { provide: LoggerService, useValue: loggerService },
+        { provide: LoggerService, useValue: { log: vi.fn() } },
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn(() => 'https://app.genfeed.ai') },
+        },
+        { provide: BrandsService, useValue: brandsService },
+        { provide: CredentialsService, useValue: credentialsService },
       ],
     }).compile();
 
     controller = module.get(MastodonController);
   });
 
-  describe('registerApp()', () => {
-    it('returns wrapped registration data', async () => {
-      const registration = {
-        client_id: 'cid',
-        client_secret: 'csec',
-        id: '1',
-        name: 'GenFeed',
-        redirect_uri: 'https://example.com/callback',
-      };
-      mastodonService.registerApp.mockResolvedValueOnce(registration);
-
-      const result = await controller.registerApp({
-        instanceUrl: 'https://mastodon.social',
-        redirectUri: 'https://example.com/callback',
-      });
-
-      expect(result).toEqual({ data: registration });
-      expect(mastodonService.registerApp).toHaveBeenCalledWith(
-        'https://mastodon.social',
-        'https://example.com/callback',
-      );
+  it('registers the instance app and starts credential-bound OAuth', async () => {
+    const result = await controller.connect({} as never, user, {
+      brandId: 'brand-id',
+      instanceUrl: 'mastodon.social',
     });
 
-    it('logs the instanceUrl during registration', async () => {
-      mastodonService.registerApp.mockResolvedValueOnce({});
-
-      await controller.registerApp({
-        instanceUrl: 'https://mastodon.social',
-        redirectUri: 'https://example.com/cb',
-      });
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.stringContaining('register'),
-        expect.objectContaining({ instanceUrl: 'https://mastodon.social' }),
-      );
+    expect(mastodonService.registerApp).toHaveBeenCalledWith(
+      'mastodon.social',
+      'https://app.genfeed.ai/oauth/mastodon',
+    );
+    expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'brand-id' }),
+      'user-id',
+      'mastodon',
+      expect.objectContaining({
+        oauthToken: 'client-id',
+        oauthTokenSecret: 'client-secret',
+      }),
+    );
+    expect(mastodonService.generateAuthUrl).toHaveBeenCalledWith(
+      'mastodon.social',
+      'client-id',
+      'https://app.genfeed.ai/oauth/mastodon',
+      'opaque-oauth-state',
+    );
+    expect(result).toEqual({
+      url: 'https://mastodon.social/oauth/authorize?...',
     });
   });
 
-  describe('getAuthUrl()', () => {
-    it('returns wrapped auth URL', () => {
-      mastodonService.generateAuthUrl.mockReturnValueOnce(
-        'https://mastodon.social/oauth/authorize?...',
-      );
-
-      const result = controller.getAuthUrl(
-        'https://mastodon.social',
-        'client-id',
-        'https://example.com/callback',
-        'state-token',
-      );
-
-      expect(result).toEqual({
-        data: { url: 'https://mastodon.social/oauth/authorize?...' },
-      });
+  it('exchanges the code and persists the verified account', async () => {
+    credentialsService.findPendingOAuthCredential.mockResolvedValue({
+      brandId: 'brand-id',
+      description: 'mastodon.social',
+      id: 'credential-id',
+      oauthToken: 'encrypted-client-id',
+      oauthTokenSecret: 'encrypted-client-secret',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    });
+    mastodonService.exchangeCodeForToken.mockResolvedValue({
+      accessToken: 'mastodon-token',
+    });
+    mastodonService.verifyCredentials.mockResolvedValue({
+      acct: 'creator@mastodon.social',
+      avatar: 'https://mastodon.social/avatar.png',
+      display_name: 'Creator',
+      id: 'mastodon-user',
+      username: 'creator',
+    });
+    credentialsService.patch.mockResolvedValue({ id: 'credential-id' });
+    credentialsService.updateExternalProfile.mockResolvedValue({
+      id: 'credential-id',
+      isConnected: true,
     });
 
-    it('passes empty string when state param is undefined', () => {
-      mastodonService.generateAuthUrl.mockReturnValueOnce('https://auth.url');
-
-      controller.getAuthUrl(
-        'https://mastodon.social',
-        'cid',
-        'https://example.com/cb',
-        undefined as unknown as string,
-      );
-
-      expect(mastodonService.generateAuthUrl).toHaveBeenCalledWith(
-        'https://mastodon.social',
-        'cid',
-        'https://example.com/cb',
-        '',
-      );
+    const result = await controller.verify({} as never, {
+      code: 'auth-code',
+      state: 'opaque-oauth-state',
     });
 
-    it('logs the instanceUrl on auth URL generation', () => {
-      mastodonService.generateAuthUrl.mockReturnValueOnce('https://auth.url');
-
-      controller.getAuthUrl(
-        'https://mastodon.social',
-        'cid',
-        'https://example.com/cb',
-        'state',
-      );
-
-      expect(loggerService.log).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({ instanceUrl: 'https://mastodon.social' }),
-      );
-    });
-  });
-
-  describe('exchangeToken()', () => {
-    it('returns wrapped token data', async () => {
-      const tokenResponse = {
-        access_token: 'tok',
-        created_at: 1000000,
-        scope: 'read write',
-        token_type: 'Bearer',
-      };
-      mastodonService.exchangeCodeForToken.mockResolvedValueOnce(tokenResponse);
-
-      const result = await controller.exchangeToken({
-        clientId: 'cid',
-        clientSecret: 'csec',
-        code: 'auth-code',
-        instanceUrl: 'https://mastodon.social',
-        redirectUri: 'https://example.com/callback',
-      });
-
-      expect(result).toEqual({ data: tokenResponse });
-      expect(mastodonService.exchangeCodeForToken).toHaveBeenCalledWith(
-        'https://mastodon.social',
-        'cid',
-        'csec',
-        'auth-code',
-        'https://example.com/callback',
-      );
-    });
-  });
-
-  describe('verifyCredentials()', () => {
-    it('returns wrapped account data', async () => {
-      const account = { id: 'acc-1', username: 'testuser' };
-      mastodonService.verifyCredentials.mockResolvedValueOnce(account);
-
-      const result = await controller.verifyCredentials({
-        accessToken: 'valid-token',
-        instanceUrl: 'https://mastodon.social',
-      });
-
-      expect(result).toEqual({ data: account });
-      expect(mastodonService.verifyCredentials).toHaveBeenCalledWith(
-        'https://mastodon.social',
-        'valid-token',
-      );
-    });
-
-    it('propagates errors from mastodonService.verifyCredentials', async () => {
-      mastodonService.verifyCredentials.mockRejectedValueOnce(
-        new Error('Invalid token'),
-      );
-
-      await expect(
-        controller.verifyCredentials({
-          accessToken: 'bad-token',
-          instanceUrl: 'https://mastodon.social',
-        }),
-      ).rejects.toThrow('Invalid token');
-    });
+    expect(mastodonService.exchangeCodeForToken).toHaveBeenCalledWith(
+      'mastodon.social',
+      'decrypted:encrypted-client-id',
+      'decrypted:encrypted-client-secret',
+      'auth-code',
+      'https://app.genfeed.ai/oauth/mastodon',
+    );
+    expect(credentialsService.patch).toHaveBeenCalledWith(
+      'credential-id',
+      expect.objectContaining({
+        accessToken: 'mastodon-token',
+        oauthState: null,
+        oauthToken: null,
+        oauthTokenSecret: null,
+      }),
+    );
+    expect(result).toEqual({ id: 'credential-id', isConnected: true });
   });
 });

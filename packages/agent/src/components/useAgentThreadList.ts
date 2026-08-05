@@ -64,6 +64,7 @@ export function useAgentThreadList({
   const [renameDraft, setRenameDraft] = useState('');
 
   const abortRef = useRef<AbortController | null>(null);
+  const previousBrandIdRef = useRef(brandId);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -165,15 +166,18 @@ export function useAgentThreadList({
     }
   }, [apiService, brandId, isActive, setThreads, viewStatus]);
 
-  // Brand scope change must drop the previous brand's list immediately so we
-  // never show foreign conversations while the next fetch is in flight.
-  // Adjust during render (no effect flash of the wrong brand's threads).
-  const [scopedBrandId, setScopedBrandId] = useState(brandId);
-  if (scopedBrandId !== brandId) {
-    setScopedBrandId(brandId);
+  // Brand scope changes must clear the previous list, but this must happen in
+  // an effect. Writing to the Zustand store during render causes React to
+  // update the parent layout while AgentThreadList is still rendering.
+  useEffect(() => {
+    if (!isActive || previousBrandIdRef.current === brandId) {
+      return;
+    }
+
+    previousBrandIdRef.current = brandId;
     setThreads([]);
     setIsLoading(true);
-  }
+  }, [brandId, isActive, setThreads]);
 
   // Retry uses effect-scoped setTimeout; cleanup clears it + aborts in-flight fetch.
   // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
@@ -543,10 +547,12 @@ export function useAgentThreadList({
 
   const isArchivedView = viewStatus === AgentThreadStatus.ARCHIVED;
 
-  const renderableThreads = useMemo(
-    () => threads.filter(hasRenderableThreadId),
-    [threads],
-  );
+  const renderableThreads = useMemo(() => {
+    const scopedThreads = brandId
+      ? threads.filter((thread) => thread.brandId === brandId)
+      : threads;
+    return scopedThreads.filter(hasRenderableThreadId);
+  }, [brandId, threads]);
   const pinnedThreads = useMemo(
     () => renderableThreads.filter((thread) => thread.isPinned),
     [renderableThreads],

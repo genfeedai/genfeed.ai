@@ -105,20 +105,17 @@ export default function ClipResultCard({
     try {
       const handoff = await clipsService.createEditorHandoff(
         projectId,
-        clip._id,
+        clip.id,
       );
 
       push(href(handoff.editorPath));
     } catch {
       push(href(APP_ROUTES.STUDIO.EDIT));
     }
-  }, [clip._id, projectId, videoUrl, clipsService, href, push]);
+  }, [clip.id, projectId, videoUrl, clipsService, href, push]);
 
   const handlePublish = useCallback(async () => {
-    const handoff = await clipsService.createPublishHandoff(
-      projectId,
-      clip._id,
-    );
+    const handoff = await clipsService.createPublishHandoff(projectId, clip.id);
     const asset = handoff.payload.assets[0];
     const title = handoff.payload.metadata?.title ?? clip.title;
     const description =
@@ -127,14 +124,14 @@ export default function ClipResultCard({
       href(
         buildClipDraftAgentHref({
           description,
-          ingredientId: handoff.payload.metadata?.clipResultId ?? clip._id,
+          ingredientId: handoff.payload.metadata?.clipResultId ?? clip.id,
           mediaUrl: asset?.mediaUrl ?? videoUrl ?? undefined,
           title,
         }),
       ),
     );
   }, [
-    clip._id,
+    clip.id,
     clip.summary,
     clip.title,
     projectId,

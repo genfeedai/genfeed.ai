@@ -64,14 +64,14 @@ describe('AccountPublishingContextService', () => {
       accessToken: 'secret-token',
       accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
       accessTokenSecret: 'access-token-secret',
-      brand: brandId,
+      brandId,
       externalHandle: 'vincent',
       isConnected: true,
       isDeleted: false,
       label: 'Founder X',
       oauthToken: 'oauth-secret',
       oauthTokenSecret: 'oauth-token-secret',
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.TWITTER,
       refreshToken: 'refresh-secret',
     });
@@ -131,11 +131,11 @@ describe('AccountPublishingContextService', () => {
     });
 
     expect(credentialsService.findOne).toHaveBeenCalledWith({
-      _id: credentialId,
-      brand: brandId,
+      id: credentialId,
+      brandId,
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     });
     expect(accountHealthService.assessCredentialHealth).toHaveBeenCalledWith({
       brandId,
@@ -197,12 +197,12 @@ describe('AccountPublishingContextService', () => {
     credentialsService.findOne.mockResolvedValueOnce({
       accessToken: '',
       accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
-      brand: brandId,
+      brandId,
       id: credentialId,
       isConnected: true,
       isDeleted: false,
       oauthToken: 'oauth-secret',
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.TWITTER,
     });
 
@@ -224,11 +224,11 @@ describe('AccountPublishingContextService', () => {
     credentialsService.findOne.mockResolvedValueOnce({
       accessToken: 'secret-token',
       accessTokenExpiry: new Date('2000-01-01T00:00:00.000Z'),
-      brand: brandId,
+      brandId,
       id: credentialId,
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.TWITTER,
       refreshToken: 'refresh-secret',
       refreshTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
@@ -256,11 +256,11 @@ describe('AccountPublishingContextService', () => {
     credentialsService.findOne.mockResolvedValueOnce({
       accessToken: 'secret-token',
       accessTokenExpiry: new Date('2000-01-01T00:00:00.000Z'),
-      brand: brandId,
+      brandId,
       id: credentialId,
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.TWITTER,
       refreshToken: null,
     });
@@ -286,11 +286,11 @@ describe('AccountPublishingContextService', () => {
     credentialsService.findOne.mockResolvedValueOnce({
       accessToken: 'secret-token',
       accessTokenExpiry: null,
-      brand: brandId,
+      brandId,
       id: credentialId,
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.TWITTER,
       refreshToken: null,
     });
@@ -349,11 +349,11 @@ describe('AccountPublishingContextService', () => {
     credentialsService.findOne.mockResolvedValueOnce({
       accessToken: 'secret-token',
       accessTokenExpiry: new Date('2099-01-01T00:00:00.000Z'),
-      brand: brandId,
+      brandId,
       id: credentialId,
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.LINKEDIN,
     });
     vi.stubEnv('GENFEED_CLOUD', 'true');

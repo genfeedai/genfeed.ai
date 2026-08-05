@@ -50,7 +50,7 @@ export class AgentStrategyAutopilotPerformanceService {
       strategyBrandId
         ? this.contentPerformanceService.queryPerformance(
             {
-              brand: strategyBrandId,
+              brandId: strategyBrandId,
               endDate: periodEnd.toISOString(),
               limit: 250,
               startDate: periodStart.toISOString(),
@@ -69,7 +69,10 @@ export class AgentStrategyAutopilotPerformanceService {
     ]);
 
     const impressions = performance.reduce((sum, item) => sum + item.views, 0);
-    const clicks = performance.reduce((sum, item) => sum + item.clicks, 0);
+    const clicks = performance.reduce(
+      (sum, item) => sum + (item.clicks ?? 0),
+      0,
+    );
     const visits = clicks;
     const generatedCount = drafts.length;
     const publishedCount = drafts.filter(

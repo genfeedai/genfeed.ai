@@ -221,6 +221,19 @@ export class ReplyBotOrchestratorService {
         skipCounts: prefilterResult.skipCounts,
       });
 
+      if (content.length > 0) {
+        try {
+          this.requireBotOwnerUserId(botConfig, botConfigId);
+        } catch (error: unknown) {
+          result.errors += content.length;
+          this.loggerService.error(`${url} owner resolution failed`, {
+            botConfigId,
+            error,
+          });
+          return result;
+        }
+      }
+
       // Process each content item
       for (const item of content) {
         const processed = await this.processContent(
@@ -308,13 +321,13 @@ export class ReplyBotOrchestratorService {
       );
 
     for (const account of monitoredAccounts) {
-      if (!account.isActive || !account.twitterUsername) {
+      if (!account.isActive || !account.username) {
         continue;
       }
 
       const content = await this.socialMonitorService.getUserTimeline(
         platform,
-        account.twitterUsername,
+        account.username,
         { limit: 10, sinceId: account.lastProcessedTweetId },
       );
 
@@ -454,6 +467,7 @@ export class ReplyBotOrchestratorService {
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const botConfigId = botConfig.id.toString();
+    const ownerUserId = this.requireBotOwnerUserId(botConfig, botConfigId);
 
     // Check rate limits
     const rateCheck = await this.rateLimitService.checkRateLimit(
@@ -464,16 +478,16 @@ export class ReplyBotOrchestratorService {
     if (!rateCheck.allowed) {
       // Log skipped activity
       await this.botActivitiesService.create({
-        // @ts-expect-error TS2353
-        botConfig: botConfig.id,
+        replyBotConfigId: botConfig.id,
         botType: botConfig.type,
-        organization: organizationId,
+        organizationId,
         skipReason: BotActivitySkipReason.RATE_LIMITED,
         status: BotActivityStatus.SKIPPED,
         triggerTweetAuthorId: content.authorId,
         triggerTweetAuthorUsername: content.authorUsername,
         triggerTweetId: content.id,
         triggerTweetText: content.text,
+        userId: ownerUserId,
       });
 
       return {
@@ -484,27 +498,26 @@ export class ReplyBotOrchestratorService {
 
     // Create activity record in processing state
     const activity = await this.botActivitiesService.create({
-      // @ts-expect-error TS2353
-      botConfig: botConfig.id,
+      replyBotConfigId: botConfig.id,
       botType: botConfig.type,
-      organization: organizationId,
+      organizationId,
       status: BotActivityStatus.PROCESSING,
       triggerTweetAuthorId: content.authorId,
       triggerTweetAuthorUsername: content.authorUsername,
       triggerTweetId: content.id,
       triggerTweetText: content.text,
+      userId: ownerUserId,
     });
 
     const activityId = activity.id.toString();
 
     try {
-      const ownerUserId = this.requireBotOwnerUserId(botConfig, botConfigId);
       const replyText = await this.replyGenerationService.generateReply({
         context: this.mergeReplyContext(
           botConfig.context,
           content.replyContext,
         ),
-        customInstructions: botConfig.customInstructions,
+        customInstructions: botConfig.replyInstructions,
         length: (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
         organizationId,
         tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,
@@ -707,12 +720,8 @@ export class ReplyBotOrchestratorService {
    * Resolve a reply bot config's owner from its scalar FK column.
    *
    * `ReplyBotConfig.userId` is a non-nullable column, so an unresolvable owner
-   * means the row was read wrong rather than legitimately ownerless. The
-   * `botConfig.user` alias is `undefined` on an unpopulated read — and
-   * `findOneById` passes no populate — so `botConfig.user?.toString() || ''`
-   * silently attributed (and billed) every generation to `''`. Failing closed
-   * here costs only the one content item; the caller's catch marks the activity
-   * failed.
+   * means the row was read incorrectly rather than legitimately ownerless.
+   * Fail closed before generation or activity persistence.
    */
   private requireBotOwnerUserId(
     botConfig: ReplyBotConfigDocument,
@@ -720,8 +729,7 @@ export class ReplyBotOrchestratorService {
   ): string {
     return requireRelationId(
       botConfig.userId,
-      botConfig.user,
-      'user',
+      'userId',
       `Reply bot config ${botConfigId}`,
     );
   }
@@ -764,7 +772,7 @@ export class ReplyBotOrchestratorService {
 
     const replyText = await this.replyGenerationService.generateReply({
       context: botConfig.context,
-      customInstructions: botConfig.customInstructions,
+      customInstructions: botConfig.replyInstructions,
       length: (botConfig.replyLength as ReplyLength) || ReplyLength.MEDIUM,
       organizationId,
       tone: (botConfig.replyTone as ReplyTone) || ReplyTone.FRIENDLY,

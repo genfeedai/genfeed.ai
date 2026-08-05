@@ -171,19 +171,16 @@ describe('OrganizationsController', () => {
 
   describe('findMine', () => {
     it('resolves organizations from Prisma-shaped membership rows (organizationId scalar)', async () => {
-      // Regression: rows carry `organizationId`; the legacy `organization`
-      // alias is undefined. Mapping the alias sent findOne({ _id: undefined })
-      // downstream, which returned the first org in the table for every row.
       mockMembersService.find.mockResolvedValue([
         { id: 'member_1', isActive: true, organizationId: 'org_a' },
         { id: 'member_2', isActive: true, organizationId: 'org_b' },
       ]);
       mockOrganizationsService.findOne.mockImplementation(
-        async ({ _id }: { _id: string }) => ({
-          id: _id,
-          label: `label ${_id}`,
-          slug: `slug-${_id}`,
-          userId: _id === 'org_a' ? 'user_1' : 'user_2',
+        async ({ id }: { id: string }) => ({
+          id,
+          label: `label ${id}`,
+          slug: `slug-${id}`,
+          userId: id === 'org_a' ? 'user_1' : 'user_2',
         }),
       );
       mockBrandsService.findOne.mockResolvedValue(null);
@@ -193,11 +190,11 @@ describe('OrganizationsController', () => {
       )) as OrganizationOption[];
 
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        _id: 'org_a',
+        id: 'org_a',
         isDeleted: false,
       });
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        _id: 'org_b',
+        id: 'org_b',
         isDeleted: false,
       });
       expect(result.map((entry) => entry.id)).toEqual(['org_a', 'org_b']);
@@ -248,27 +245,9 @@ describe('OrganizationsController', () => {
       expect(result).toHaveLength(1);
       expect(mockOrganizationsService.findOne).toHaveBeenCalledTimes(1);
       expect(mockOrganizationsService.findOne).not.toHaveBeenCalledWith({
-        _id: undefined,
+        id: undefined,
         isDeleted: false,
       });
-    });
-
-    it('still honours legacy `organization` alias rows as a fallback', async () => {
-      mockMembersService.find.mockResolvedValue([
-        { id: 'member_legacy', isActive: true, organization: 'org_legacy' },
-      ]);
-      mockOrganizationsService.findOne.mockResolvedValue({
-        id: 'org_legacy',
-        label: 'Legacy',
-        slug: 'legacy',
-      });
-      mockBrandsService.findOne.mockResolvedValue(null);
-
-      const result = (await controller.findMine(
-        currentUser,
-      )) as OrganizationOption[];
-
-      expect(result.map((entry) => entry.id)).toEqual(['org_legacy']);
     });
 
     it('marks only the active organization from publicMetadata', async () => {
@@ -277,10 +256,10 @@ describe('OrganizationsController', () => {
         { id: 'member_2', isActive: true, organizationId: 'org_other' },
       ]);
       mockOrganizationsService.findOne.mockImplementation(
-        async ({ _id }: { _id: string }) => ({
-          id: _id,
-          label: `label ${_id}`,
-          slug: `slug-${_id}`,
+        async ({ id }: { id: string }) => ({
+          id,
+          label: `label ${id}`,
+          slug: `slug-${id}`,
         }),
       );
       mockBrandsService.findOne.mockResolvedValue(null);
@@ -322,7 +301,7 @@ describe('OrganizationsController', () => {
         },
       ]);
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
-        _id: 'org_active',
+        id: 'org_active',
         isDeleted: false,
       });
     });

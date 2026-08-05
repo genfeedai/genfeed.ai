@@ -19,16 +19,8 @@
 
 // Allow skipping this file when the Prisma DB is not available
 // Set SKIP_PRISMA_DB=true to skip all tests in this file
-if (process.env.SKIP_PRISMA_DB === 'true') {
-  const g: any = global as any;
-  const d: any = (global as any).describe;
-  g.describe = ((name: string, fn: any) =>
-    d?.skip ? d.skip(name, fn) : describe(name, fn)) as any;
-  const i: any = (global as any).it;
-  g.it = ((name: string, fn: any) =>
-    i?.skip ? i.skip(name, fn) : it(name, fn)) as any;
-  g.test = g.it;
-}
+const describeWithDatabase =
+  process.env.SKIP_PRISMA_DB === 'true' ? describe.skip : describe;
 
 // This spec overrides ConfigService with a REAL instance (see the `providers`
 // array below) so CredentialCryptoService/GhostPublisherService get real
@@ -85,26 +77,22 @@ const seedOrganizationBrandFixture = async (
   const organizationId = generateIdString();
   const brandId = generateIdString();
 
-  // No direct `users` seed here — `normalizeDocument`'s organization branch
-  // auto-upserts a schema-valid User row (`{id, handle, email}`) via
-  // `ensureUser()` for whatever `userId` the organization document carries.
-  // Mirrors the passing stripe-webhook-credit-grant spec's pattern, which
-  // never seeds `users` directly either.
+  // Organization seeding ensures its canonical user dependency exists.
   await dbHelper.seedCollection('organizations', [
-    createTestOrganization({ id: organizationId, user: userId }),
+    createTestOrganization({ id: organizationId, userId }),
   ]);
   await dbHelper.seedCollection('brands', [
     createTestBrand({
       id: brandId,
-      organization: organizationId,
-      user: userId,
+      organizationId,
+      userId,
     }),
   ]);
 
   return { brandId, organizationId, userId };
 };
 
-describe('Publish flow real-backend proof (#334)', () => {
+describeWithDatabase('Publish flow real-backend proof (#334)', () => {
   let moduleRef: TestingModule;
   let dbHelper: TestDatabaseHelper;
   let prisma: PrismaService;
@@ -207,29 +195,29 @@ describe('Publish flow real-backend proof (#334)', () => {
     await dbHelper.seedCollection('credentials', [
       {
         accessToken: EncryptionUtil.encrypt(plaintextApiKey),
-        brand: brandId,
+        brandId,
         externalHandle: ghostUrl,
         externalId: 'ghost-site-e2e',
         id: credentialId,
         isConnected: true,
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
         platform: CredentialPlatform.GHOST,
-        user: userId,
+        userId,
       },
     ]);
 
     await dbHelper.seedCollection('posts', [
       {
-        brand: brandId,
-        credential: credentialId,
+        brandId,
+        credentialId,
         description: '<p>Real publish flow proof for #334.</p>',
         id: postId,
         label: 'Publish flow e2e test post',
-        organization: organizationId,
+        organizationId,
         platform: 'ghost',
         status: 'draft',
-        user: userId,
+        userId,
       },
     ]);
 

@@ -202,13 +202,13 @@ export class PostGenerationService {
   private async resolveAccountPublishingContext(
     dto: Pick<
       GenerateAccountPostDto,
-      'credential' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
+      'credentialId' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
     >,
     publicMetadata: Pick<IAuthPublicMetadata, 'brand' | 'organization'>,
   ): Promise<AccountPublishingContext> {
     return this.accountPublishingContextService.resolve({
       brandId: publicMetadata.brand,
-      credentialId: dto.credential,
+      credentialId: dto.credentialId,
       organizationId: publicMetadata.organization,
       sourceLineage: {
         sourceReferenceIds: dto.sourceReferenceIds,
@@ -230,19 +230,19 @@ export class PostGenerationService {
 
     for (let i = 0; i < dto.count; i++) {
       const post = await this.postsService.create({
-        brand: publicMetadata.brand,
+        brandId: publicMetadata.brand,
         category: PostCategory.TEXT,
-        credential: dto.credential,
+        credentialId: dto.credentialId,
         description: 'Generating...',
         groupId,
         ingredients: [],
         label: '',
         order: i,
-        organization: publicMetadata.organization,
-        parent: dto.format === 'thread' && i > 0 ? rootPostId : undefined,
+        organizationId: publicMetadata.organization,
+        parentId: dto.format === 'thread' && i > 0 ? rootPostId : undefined,
         platform: context.account.platform,
         status: PostStatus.PROCESSING,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       });
 
       createdPosts.push(post);
@@ -411,11 +411,11 @@ export class PostGenerationService {
     try {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: publicMetadata.brand,
+          brandId: publicMetadata.brand,
           key: ActivityKey.POST_PROCESSING,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           source: ActivitySource.POST_GENERATION,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
           value: JSON.stringify({
             count: dto.count,
             topic: dto.topic?.substring(0, 100),
@@ -474,8 +474,11 @@ export class PostGenerationService {
               status: PostStatus.DRAFT,
             },
             [
-              { path: 'ingredients', select: '_id url' },
-              { path: 'credential', select: '_id label handle' },
+              { path: 'ingredients', select: ['id', 'cdnUrl'] },
+              {
+                path: 'credential',
+                select: ['id', 'label', 'externalHandle'],
+              },
             ],
           );
 
@@ -486,13 +489,13 @@ export class PostGenerationService {
 
           await this.activitiesService.create(
             new ActivityEntity({
-              brand: publicMetadata.brand,
+              brandId: publicMetadata.brand,
               entityId: postId,
               entityModel: ActivityEntityModel.POST,
               key: ActivityKey.POST_GENERATED,
-              organization: publicMetadata.organization,
+              organizationId: publicMetadata.organization,
               source: ActivitySource.POST_GENERATION,
-              user: publicMetadata.user,
+              userId: publicMetadata.user,
               value: postId,
             }),
           );

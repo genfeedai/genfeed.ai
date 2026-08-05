@@ -59,20 +59,23 @@ export default function ModalMember({
       email: '',
       firstName: '',
       lastName: '',
-      role: '',
+      roleId: '',
     },
     resolver: standardSchemaResolver(inviteMemberSchema),
   });
 
   const editForm = useForm<MemberEditSchema>({
     defaultValues: {
-      brands: [],
+      brandIds: [],
     },
     resolver: standardSchemaResolver(memberEditSchema),
   });
 
   const formRef = useFocusFirstInput<HTMLFormElement>();
-  const watchedBrands = useWatch({ control: editForm.control, name: 'brands' });
+  const watchedBrands = useWatch({
+    control: editForm.control,
+    name: 'brandIds',
+  });
 
   const closeMemberModal = (isRefreshing = false) => {
     closeModal(ModalEnum.MEMBER);
@@ -99,7 +102,7 @@ export default function ModalMember({
 
           if (data.length > 0) {
             const defaultRole = data.find((r) => r.key === 'user') || data[0];
-            form.setValue('role', defaultRole.id);
+            form.setValue('roleId', defaultRole.id);
           }
         } catch (error) {
           logger.error(`${url} failed`, error);
@@ -114,7 +117,7 @@ export default function ModalMember({
       if (member) {
         const brandIds =
           member.brands?.map((brand: IBrand | Brand) => brand.id) || [];
-        editForm.setValue('brands', brandIds as string[]);
+        editForm.setValue('brandIds', brandIds as string[]);
       }
     }
   }, [member, organizationId, form, editForm, getRolesService]);
@@ -165,7 +168,7 @@ export default function ModalMember({
       const formData = editForm.getValues();
 
       await service.updateOrganizationMember(organizationId, member.id, {
-        brands: formData.brands,
+        brandIds: formData.brandIds,
       });
 
       logger.info(`${url} success`);
@@ -200,7 +203,7 @@ export default function ModalMember({
           isLoadingRoles={isLoadingRoles}
           isSubmitting={isSubmitting}
           onSubmit={onSubmit}
-          onSetRole={(value) => form.setValue('role', value)}
+          onSetRole={(value) => form.setValue('roleId', value)}
           onCancel={() => closeMemberModal()}
         />
       ) : (

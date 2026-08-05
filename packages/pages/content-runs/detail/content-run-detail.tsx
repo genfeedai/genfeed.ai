@@ -61,7 +61,7 @@ const METRIC_FORMATTER_STANDARD = new Intl.NumberFormat('en-US', {
 });
 
 function getRunId(run: ContentRunRecord): string {
-  return run.id ?? run._id ?? '';
+  return run.id;
 }
 
 function formatDateTime(value?: Date | string): string {

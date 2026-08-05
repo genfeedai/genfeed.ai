@@ -32,7 +32,7 @@ const publishAttributionSchema = {
 };
 
 export const postSchema = z.object({
-  credential: z.string().optional(),
+  credentialId: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
   isRepeat: z.boolean().optional(),
   label: z.string().min(1, 'Label is required'),
@@ -55,11 +55,11 @@ export type MultiPostSchema = z.infer<typeof multiPostSchema>;
 
 export const postModalSchema = z.object({
   children: z.array(z.string()).optional(),
-  credential: z.string().min(1, 'Platform account is required'),
+  credentialId: z.string().min(1, 'Platform account is required'),
   description: z.string().min(1, 'Caption is required'),
   ingredients: z.array(z.string()).optional(),
   label: z.string().optional(),
-  parent: z.string().optional(),
+  parentId: z.string().optional(),
   scheduledDate: z.string().optional(),
   status: z.string().optional(),
   ...publishAttributionSchema,
@@ -84,7 +84,7 @@ export const threadPostSchema = z.object({
 export type ThreadPostSchema = z.infer<typeof threadPostSchema>;
 
 export const threadModalSchema = z.object({
-  credential: z.string().min(1, 'Platform account is required'),
+  credentialId: z.string().min(1, 'Platform account is required'),
   globalTitle: z.string().optional(),
   ingredient: z.string().min(1, 'Content is required'),
   posts: z.array(threadPostSchema).min(1, 'At least one post is required'),

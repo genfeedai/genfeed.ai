@@ -14,7 +14,7 @@ export class QueryContentPerformanceDto {
   @ApiProperty({ description: 'Filter by brand ID', required: false })
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  brandId?: string;
 
   @ApiProperty({
     description: 'Filter by platform',

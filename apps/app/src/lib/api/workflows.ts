@@ -1,11 +1,9 @@
+import type { WorkflowFile, WorkflowInterface } from '@genfeedai/types';
 import type {
-  NodeGroup,
-  WorkflowEdge,
-  WorkflowFile,
-  WorkflowInterface,
-  WorkflowNode,
-} from '@genfeedai/types';
-import type { WorkflowListItem } from '@/features/workflows/types/workflow-list-item';
+  WorkflowData as PersistenceWorkflowData,
+  WorkflowSaveInput,
+  WorkflowSummary,
+} from '@genfeedai/workflows/ui/stores';
 import { apiClient } from './client';
 
 /**
@@ -13,44 +11,20 @@ import { apiClient } from './client';
  */
 export type WorkflowExport = WorkflowFile;
 
-export interface WorkflowData {
-  _id: string;
-  name: string;
+export interface WorkflowData extends PersistenceWorkflowData {
   description?: string;
-  version: number;
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  edgeStyle: string;
-  groups?: NodeGroup[];
+  version?: number;
   tags?: string[];
   brandId?: string | null;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
-export interface CreateWorkflowInput {
-  name: string;
-  description?: string;
-  nodes: WorkflowNode[];
-  edges: WorkflowEdge[];
-  edgeStyle?: string;
-  groups?: NodeGroup[];
-  tags?: string[];
+export interface CreateWorkflowInput extends WorkflowSaveInput {
   brandId?: string | null;
 }
 
-export interface UpdateWorkflowInput {
-  name?: string;
-  description?: string;
-  nodes?: WorkflowNode[];
-  edges?: WorkflowEdge[];
-  edgeStyle?: string;
-  groups?: NodeGroup[];
-  tags?: string[];
-  brandId?: string | null;
-}
+export type UpdateWorkflowInput = Partial<CreateWorkflowInput>;
 
 export const workflowsApi = {
   /**
@@ -59,14 +33,8 @@ export const workflowsApi = {
   create: (
     data: CreateWorkflowInput,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> => {
-    const { name, ...rest } = data;
-    return apiClient.post<WorkflowData>(
-      '/workflows',
-      { ...rest, label: name },
-      { signal },
-    );
-  },
+  ): Promise<WorkflowData> =>
+    apiClient.post<WorkflowData>('/workflows', data, { signal }),
 
   /**
    * Delete a workflow (soft delete)
@@ -132,15 +100,14 @@ export const workflowsApi = {
   getAll: (
     params?: { search?: string; tag?: string },
     signal?: AbortSignal,
-  ): Promise<WorkflowListItem[]> => {
+  ): Promise<WorkflowSummary[]> => {
     const searchParams = new URLSearchParams();
     if (params?.search) searchParams.set('search', params.search);
     if (params?.tag) searchParams.set('tag', params.tag);
     const qs = searchParams.toString();
-    return apiClient.get<WorkflowListItem[]>(
-      `/workflows${qs ? `?${qs}` : ''}`,
-      { signal },
-    );
+    return apiClient.get<WorkflowSummary[]>(`/workflows${qs ? `?${qs}` : ''}`, {
+      signal,
+    });
   },
 
   /**
@@ -183,7 +150,7 @@ export const workflowsApi = {
       Array<WorkflowData & { interface: WorkflowInterface }>
     >('/workflows?referencable=true', { signal });
     return excludeWorkflowId
-      ? results.filter((workflow) => workflow._id !== excludeWorkflowId)
+      ? results.filter((workflow) => workflow.id !== excludeWorkflowId)
       : results;
   },
 
@@ -229,17 +196,8 @@ export const workflowsApi = {
     id: string,
     data: UpdateWorkflowInput,
     signal?: AbortSignal,
-  ): Promise<WorkflowData> => {
-    const { name, ...rest } = data;
-    return apiClient.patch<WorkflowData>(
-      `/workflows/${id}`,
-      {
-        ...rest,
-        ...(name !== undefined ? { label: name } : {}),
-      },
-      { signal },
-    );
-  },
+  ): Promise<WorkflowData> =>
+    apiClient.patch<WorkflowData>(`/workflows/${id}`, data, { signal }),
 
   /**
    * Validate a workflow reference (checks for circular references)

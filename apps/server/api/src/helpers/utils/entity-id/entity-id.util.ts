@@ -1,31 +1,13 @@
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 
 /**
  * Utility class for entity id validation and normalization.
- * Entity ids are string ids (cuid/cuid2/uuid/ulid, plus legacy 24-char hex
- * Mongo ids that survive as `mongoId` lookup aliases) — see `isEntityId`.
+ * Entity ids are canonical Prisma string ids (cuid/cuid2/uuid/ulid) — see
+ * `isEntityId`.
  */
 export class EntityIdUtil {
-  // Common field names that should be validated as entity IDs
-  private static readonly ID_FIELDS = [
-    '_id',
-    'id',
-    'user',
-    'organization',
-    'brand',
-    'parent',
-    'folder',
-    'metadata',
-    'video',
-    'asset',
-    'caption',
-    'ingredient',
-    'post',
-  ];
-
   /**
    * Validate that a string is a supported entity id.
    */
@@ -63,37 +45,6 @@ export class EntityIdUtil {
   }
 
   /**
-   * Process search parameters and validate known id fields.
-   */
-  static async processSearchParams(
-    params: BaseQueryDto,
-  ): Promise<BaseQueryDto> {
-    const processed: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries(params)) {
-      if (EntityIdUtil.ID_FIELDS.includes(key)) {
-        if (value && typeof value === 'string') {
-          try {
-            const validated = await Promise.resolve(
-              EntityIdUtil.validate(value, key),
-            );
-            processed[key] = validated;
-          } catch {
-            processed[key] = value;
-          }
-        } else {
-          processed[key] = value;
-        }
-      } else {
-        processed[key] = value;
-      }
-    }
-
-    // @ts-expect-error TS2739
-    return processed;
-  }
-
-  /**
    * Safely validate a string id without throwing.
    */
   static toValidId(id: string): string | null {
@@ -121,10 +72,7 @@ export class EntityIdUtil {
     return trimmed === '' ? undefined : trimmed;
   }
 
-  /**
-   * Resolve the canonical Prisma id from a record found through an `_id`
-   * compatibility lookup, falling back to the requested id for legacy mocks.
-   */
+  /** Resolve a canonical Prisma id, falling back to the requested id. */
   static resolveCanonicalId(entity: unknown, fallbackId: string): string {
     if (typeof entity !== 'object' || entity === null) {
       return fallbackId;
@@ -171,45 +119,11 @@ export class EntityIdUtil {
 
     return {
       ...dto,
-      organization: publicMetadata.organization
+      organizationId: publicMetadata.organization
         ? EntityIdUtil.validate(publicMetadata.organization, 'organization')
         : undefined,
-      user: EntityIdUtil.validate(publicMetadata.user, 'user'),
+      userId: EntityIdUtil.validate(publicMetadata.user, 'user'),
     };
-  }
-
-  /**
-   * Create a secure query object with id validation.
-   */
-  static async createSecureQuery(
-    baseQuery: Record<string, unknown>,
-    userContext?: IAuthPublicMetadata,
-  ): Promise<Record<string, unknown>> {
-    const processedQuery: Record<string, unknown> =
-      (await EntityIdUtil.processSearchParams(
-        baseQuery as unknown as BaseQueryDto,
-      )) as unknown as Record<string, unknown>;
-
-    // Add user context if provided
-    if (userContext) {
-      processedQuery.user = await EntityIdUtil.validate(
-        userContext.user,
-        'user',
-      );
-      if (userContext.organization) {
-        processedQuery.organization = await EntityIdUtil.validate(
-          userContext.organization,
-          'organization',
-        );
-      }
-    }
-
-    // Always exclude deleted items by default
-    if (!Object.hasOwn(processedQuery, 'isDeleted')) {
-      processedQuery.isDeleted = false;
-    }
-
-    return processedQuery;
   }
 
   /**

@@ -52,30 +52,25 @@ export interface LivestreamTranscriptChunk {
 }
 
 export interface LivestreamBotSessionData {
-  botId?: string;
-  brandId?: string | null;
   context?: LivestreamSessionContext;
   deliveryHistory?: LivestreamDeliveryRecord[];
   lastTranscriptAt?: Date | null;
-  organizationId?: string;
   pausedAt?: Date | null;
   platformStates?: LivestreamPlatformState[];
   startedAt?: Date | null;
   status?: string;
   stoppedAt?: Date | null;
   transcriptChunks?: LivestreamTranscriptChunk[];
-  userId?: string;
   [key: string]: unknown;
 }
 
 export interface LivestreamBotSessionDocument
   extends Omit<LivestreamBotSession, 'data'>,
     LivestreamBotSessionData {
-  _id: string;
-  bot?: string;
-  brand?: string | null;
+  botId: string | null;
+  brandId: string | null;
   data?: LivestreamBotSessionData;
-  organization?: string;
-  user?: string;
+  organizationId: string | null;
+  userId: string | null;
   [key: string]: unknown;
 }

@@ -20,10 +20,10 @@ export default function ModalCreateThreadSettings({
       {credentials.length > 0 && (
         <FormControl
           label="Platform Account"
-          error={form.formState.errors.credential?.message}
+          error={form.formState.errors.credentialId?.message}
         >
           <SelectField
-            name="credential"
+            name="credentialId"
             control={form.control}
             placeholder="Select platform account"
           >

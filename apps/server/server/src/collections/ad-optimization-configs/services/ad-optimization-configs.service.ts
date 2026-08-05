@@ -97,9 +97,7 @@ export class AdOptimizationConfigsService {
     return {
       ...doc,
       ...values,
-      _id: doc.mongoId ?? doc.id,
       config,
-      organization: doc.organizationId,
     };
   }
 

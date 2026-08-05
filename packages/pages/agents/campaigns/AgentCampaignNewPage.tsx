@@ -92,7 +92,7 @@ export default function AgentCampaignNewPage() {
         const service = await getService();
 
         const payload: ICreateAgentCampaignDto = {
-          agents:
+          agentStrategyIds:
             form.selectedAgentIds.length > 0
               ? form.selectedAgentIds
               : undefined,

@@ -8,16 +8,6 @@ import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-/**
- * Create payloads reach this service with relation aliases (`campaign`,
- * `organization`) and descriptive fields (`platform`, `targetType`,
- * `contentUrl`, `recipientUsername`, …) that have no column on
- * `campaign_targets`. They are mapped onto real columns + the `data` JSON
- * payload by `toCreateManyInput`.
- */
-type CampaignTargetCreateInput = CreateCampaignTargetDto &
-  Record<string, unknown>;
-
 @Injectable()
 export class CampaignTargetsService extends BaseService<
   CampaignTargetDocument,
@@ -56,46 +46,34 @@ export class CampaignTargetsService extends BaseService<
   }
 
   /**
-   * Map an alias-shaped create payload onto the real `campaign_targets`
-   * columns. Everything the table has no column for lands in `data`, where
-   * `normalizeDocument` merges it back onto the top level on read.
+   * Split canonical relational columns from provider-specific target details.
+   * Details without dedicated columns live in `data` and are expanded by the
+   * collection read boundary.
    */
   private toCreateManyInput(
-    target: CampaignTargetCreateInput,
+    target: CreateCampaignTargetDto,
   ): Prisma.CampaignTargetCreateManyInput {
     const {
-      campaign,
       campaignId,
       externalId,
-      isDeleted,
-      organization,
       organizationId,
       scheduledAt,
       status,
       ...descriptive
-    } = target as CampaignTargetCreateInput & {
-      campaignId?: string;
-      isDeleted?: boolean;
-      organizationId?: string;
-      status?: string;
-    };
+    } = target;
 
-    const resolvedCampaignId = campaignId ?? campaign;
-    const resolvedOrganizationId = organizationId ?? organization;
-
-    if (!resolvedCampaignId || !resolvedOrganizationId) {
+    if (!campaignId || !organizationId) {
       throw new BadRequestException(
         'Campaign target requires both a campaign and an organization id',
       );
     }
 
     return {
-      campaignId: resolvedCampaignId,
+      campaignId,
       data: this.toDataPayload(descriptive),
-      organizationId: resolvedOrganizationId,
+      organizationId,
       status: status ?? CampaignTargetStatus.PENDING,
       ...(externalId === undefined ? {} : { externalId }),
-      ...(isDeleted === undefined ? {} : { isDeleted }),
       ...(scheduledAt === undefined ? {} : { scheduledAt }),
     };
   }
@@ -106,9 +84,7 @@ export class CampaignTargetsService extends BaseService<
   override async create(
     createDto: CreateCampaignTargetDto,
   ): Promise<CampaignTargetDocument> {
-    return super.create(
-      this.toCreateManyInput(createDto as CampaignTargetCreateInput) as never,
-    );
+    return super.create(this.toCreateManyInput(createDto) as never);
   }
 
   /**
@@ -117,7 +93,7 @@ export class CampaignTargetsService extends BaseService<
    * Returns the number of rows written — a batch insert cannot return the
    * created rows, and no caller needs them.
    */
-  async createMany(targets: CampaignTargetCreateInput[]): Promise<number> {
+  async createMany(targets: CreateCampaignTargetDto[]): Promise<number> {
     if (targets.length === 0) {
       return 0;
     }

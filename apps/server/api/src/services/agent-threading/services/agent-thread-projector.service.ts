@@ -4,7 +4,6 @@ import type {
   AgentThreadTimelineEntry,
   AgentThreadUiBlocksState,
 } from '@api/services/agent-threading/types/agent-thread.types';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { Injectable } from '@nestjs/common';
 
 const MAX_TIMELINE_ENTRIES = 250;
@@ -160,27 +159,14 @@ export class AgentThreadProjectorService {
       profileSnapshot: snapshot?.profileSnapshot ?? undefined,
       sessionBinding: snapshot?.sessionBinding ?? undefined,
       source: snapshot?.source,
-      // Legacy mirror of the snapshot's `threadId` column inside the persisted
-      // `data` payload. Sourced from the scalar FK — `snapshot.thread` is only set
-      // when a caller happens to back-fill it, so reading it directly wrote
-      // `thread: undefined` into every projected snapshot.
-      thread: resolveRelationId(snapshot?.threadId, snapshot?.thread),
       threadStatus: snapshot?.threadStatus,
       timeline: snapshot?.timeline ?? [],
       title: snapshot?.title,
     };
   }
 
-  /**
-   * Thread reference for synthesized entry ids. Reads the `threadId` scalar FK —
-   * the Mongo-era `event.thread` alias is `undefined` on any event built straight
-   * from a Prisma row, and `event.thread.toString()` threw
-   * `Cannot read properties of undefined` before the whole projection could run.
-   * An empty prefix is harmless: these ids only have to be unique inside one
-   * thread's snapshot, where `sequence` already is.
-   */
   private threadIdFor(event: AgentThreadEventDocument): string {
-    return resolveRelationId(event.threadId, event.thread) ?? '';
+    return event.threadId;
   }
 
   private buildTimelineEntry(

@@ -70,9 +70,9 @@ export class AvatarVideoController {
         );
 
       const ingredient = await this.videosService.findOne({
-        _id: result.ingredientId,
+        id: result.ingredientId,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
 
       if (!ingredient) {

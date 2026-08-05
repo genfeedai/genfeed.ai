@@ -166,7 +166,8 @@ export function buildPostsTableColumns({
     {
       header: 'Platform',
       key: 'platform',
-      render: (post: IPost) => <PlatformBadge platform={post.platform} />,
+      render: (post: IPost) =>
+        post.platform ? <PlatformBadge platform={post.platform} /> : '-',
     },
     {
       header: 'Status',

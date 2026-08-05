@@ -33,24 +33,21 @@ function parseConfig(raw: unknown): Record<string, unknown> {
 
 // ---------------------------------------------------------------------------
 // Helper: normalize a raw Prisma record → OutreachCampaignDocument
-// The Prisma model has scalar columns (id, organizationId, brandId, userId,
-// status, config, isDeleted, createdAt, updatedAt).  All domain fields live
-// inside `config`.
+// The Prisma model owns all relation ids. Domain-only settings live in config.
 // ---------------------------------------------------------------------------
 function normalizeDoc(row: Record<string, unknown>): OutreachCampaignDocument {
   const cfg = parseConfig(row.config);
   return {
     ...cfg,
-    _id: (row.mongoId as string) || (row.id as string),
     brandId: row.brandId,
+    campaignType: row.campaignType,
     createdAt: row.createdAt,
+    credentialId: row.credentialId,
     id: row.id as string,
+    isActive: row.isActive,
     isDeleted: row.isDeleted,
-    mongoId: row.mongoId,
-    // expose organizationId as `organization` for legacy consumers
-    organization:
-      (row.organizationId as string) ?? (cfg.organization as string),
     organizationId: row.organizationId,
+    platform: row.platform,
     status: (row.status as string) ?? (cfg.status as string),
     updatedAt: row.updatedAt,
     userId: row.userId,
@@ -142,9 +139,7 @@ export class OutreachCampaignsService {
     const brand = await findOrThrow(
       this.prisma.brand,
       {
-        where: scopedWhere(organizationId, {
-          OR: [{ id: brandId }, { mongoId: brandId }],
-        }),
+        where: scopedWhere(organizationId, { id: brandId }),
       },
       'Brand',
     );
@@ -162,7 +157,7 @@ export class OutreachCampaignsService {
       this.prisma.credential,
       {
         where: scopedWhere(organizationId, {
-          OR: [{ id: credentialId }, { mongoId: credentialId }],
+          id: credentialId,
           isConnected: true,
           platform: toPrismaCredentialPlatform(platform) as never,
           ...(brandId ? { brandId } : {}),
@@ -186,26 +181,31 @@ export class OutreachCampaignsService {
 
     return this.createInternal({
       ...createDto,
-      brand: scope.brandId,
-      organization: scope.organizationId,
-      user: scope.userId,
+      brandId: scope.brandId,
+      organizationId: scope.organizationId,
+      userId: scope.userId,
     });
   }
 
   private async createInternal(
-    createDto: CreateOutreachCampaignDto,
+    createDto: CreateOutreachCampaignDto & {
+      brandId?: string;
+      credentialId: string;
+      organizationId: string;
+      userId?: string;
+    },
   ): Promise<OutreachCampaignDocument> {
     const rateLimits = this.normalizeRateLimits(
       createDto.rateLimits as CampaignRateLimits | undefined,
     );
 
     // Map DTO fields into the `config` JSON column.
-    // Scalar columns: organizationId, brandId, userId, status.
+    // Scalar columns: organizationId, brandId, credentialId, userId, status.
     const {
-      organization,
-      brand,
-      user,
-      credential,
+      organizationId,
+      brandId: requestedBrandId,
+      userId,
+      credentialId,
       label,
       description,
       platform,
@@ -216,19 +216,19 @@ export class OutreachCampaignsService {
       schedule,
       isActive,
       ...rest
-    } = createDto as CreateOutreachCampaignDto & Record<string, unknown>;
+    } = createDto;
 
-    if (!organization || typeof organization !== 'string') {
+    if (!organizationId) {
       throw new BadRequestException('Organization context is required');
     }
 
     const brandId = await this.assertBrandAccess(
-      typeof brand === 'string' ? brand : undefined,
-      organization,
+      requestedBrandId,
+      organizationId,
     );
     await this.assertCredentialAccess(
-      credential,
-      organization,
+      credentialId,
+      organizationId,
       brandId,
       platform,
     );
@@ -236,14 +236,10 @@ export class OutreachCampaignsService {
     const config: Record<string, unknown> = {
       ...rest,
       aiConfig: aiConfig ?? null,
-      campaignType: campaignType ?? null,
-      credential: credential ?? null,
       description: description ?? null,
       discoveryConfig: discoveryConfig ?? null,
       dmConfig: dmConfig ?? null,
-      isActive: isActive ?? true,
       label: label ?? null,
-      platform: platform ?? null,
       rateLimits,
       schedule: schedule ?? null,
       totalReplies: 0,
@@ -253,8 +249,12 @@ export class OutreachCampaignsService {
     const row = await this.prisma.outreachCampaign.create({
       data: {
         ...(brandId ? { brandId } : {}),
-        organizationId: organization,
-        ...(user ? { userId: user as string } : {}),
+        credentialId,
+        campaignType,
+        isActive: isActive ?? true,
+        organizationId,
+        platform,
+        ...(userId ? { userId } : {}),
         config: config as never,
         status: CampaignStatus.DRAFT,
       } as never,
@@ -277,15 +277,40 @@ export class OutreachCampaignsService {
     const existingConfig = parseConfig(
       (existing as unknown as Record<string, unknown>).config,
     );
+    const existingRecord = existing as unknown as Record<string, unknown>;
 
-    // Separate scalar updates from config updates
-    const { status, ...configUpdates } =
-      updateDto as UpdateOutreachCampaignDto & Record<string, unknown>;
+    const {
+      campaignType,
+      credentialId: requestedCredentialId,
+      isActive,
+      platform,
+      status,
+      ...configUpdates
+    } = updateDto;
+
+    const organizationId = String(existingRecord.organizationId);
+    const brandId = existingRecord.brandId as string | null | undefined;
+    const credentialId =
+      typeof requestedCredentialId === 'string'
+        ? requestedCredentialId
+        : (existingRecord.credentialId as string | null | undefined);
+    if (credentialId) {
+      await this.assertCredentialAccess(
+        credentialId,
+        organizationId,
+        brandId ?? undefined,
+        String(platform ?? existingRecord.platform ?? ''),
+      );
+    }
 
     const updatedConfig = { ...existingConfig, ...configUpdates };
 
     const row = await this.prisma.outreachCampaign.update({
       data: {
+        ...(campaignType !== undefined ? { campaignType } : {}),
+        ...(credentialId !== undefined ? { credentialId } : {}),
+        ...(isActive !== undefined ? { isActive } : {}),
+        ...(platform !== undefined ? { platform } : {}),
         ...(status ? { status } : {}),
         config: updatedConfig as never,
       } as never,
@@ -646,12 +671,9 @@ export class OutreachCampaignsService {
   async find(
     query: Record<string, unknown>,
   ): Promise<OutreachCampaignDocument[]> {
-    // Translate legacy `organization` key to the Prisma column name
     const where: Record<string, unknown> = {};
     if (query.organizationId !== undefined) {
       where.organizationId = query.organizationId;
-    } else if (query.organization !== undefined) {
-      where.organizationId = query.organization;
     }
     if (query.status !== undefined) where.status = query.status;
     if (query.isDeleted !== undefined) where.isDeleted = query.isDeleted;
@@ -717,7 +739,7 @@ export class OutreachCampaignsService {
   }
 
   async remove(id: string): Promise<OutreachCampaignDocument | null> {
-    const existing = await this.findOne({ _id: id, isDeleted: false });
+    const existing = await this.findOne({ id: id, isDeleted: false });
 
     if (!existing) {
       return null;
@@ -735,22 +757,18 @@ export class OutreachCampaignsService {
     query: Record<string, unknown>,
   ): Record<string, unknown> {
     const where: Record<string, unknown> = {};
-    const id = query.id ?? query._id;
+    const id = query.id;
 
     if (typeof id === 'string') {
-      where.OR = [{ id }, { mongoId: id }];
+      where.id = id;
     }
 
     if (query.organizationId !== undefined) {
       where.organizationId = query.organizationId;
-    } else if (query.organization !== undefined) {
-      where.organizationId = query.organization;
     }
 
     if (query.brandId !== undefined) {
       where.brandId = query.brandId;
-    } else if (query.brand !== undefined) {
-      where.brandId = query.brand;
     }
 
     if (query.status !== undefined) where.status = query.status;

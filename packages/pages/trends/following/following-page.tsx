@@ -136,7 +136,7 @@ export default function FollowingPage() {
     queryFn: async () => {
       const service = await getSocialSourcesService();
       return service.getFollowingFeed({
-        brand: brandId,
+        brandId,
         platform: platform === 'all' ? undefined : platform,
         postsLimit: 50,
         search: debouncedSearch.trim() || undefined,
@@ -165,7 +165,7 @@ export default function FollowingPage() {
     try {
       setBusyId('sync-all');
       const service = await getSocialSourcesService();
-      const result = await service.syncBrand({ brand: brandId, limit: 25 });
+      const result = await service.syncBrand({ brandId, limit: 25 });
       if (result.failures?.length) {
         notifications.error(
           `${result.failures.length} source${result.failures.length === 1 ? '' : 's'} failed to sync`,
@@ -197,7 +197,7 @@ export default function FollowingPage() {
         setBusyId(sourceId);
         const service = await getSocialSourcesService();
         const result = await service.syncSource(sourceId, {
-          brand: brandId,
+          brandId,
           limit: 25,
         });
         if (result.count > 0) {
@@ -252,7 +252,7 @@ export default function FollowingPage() {
           {
             actionType,
           },
-          { brand: brandId },
+          { brandId },
         );
         notifications.success('Draft created');
       } catch (error) {

@@ -211,7 +211,7 @@ class SmartSchedulerServiceClass {
       'POST',
       {
         inputValues: input ?? {},
-        workflow: workflowId,
+        workflowId,
       },
       'Failed to execute workflow',
     );

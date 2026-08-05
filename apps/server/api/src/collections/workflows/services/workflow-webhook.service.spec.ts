@@ -23,7 +23,7 @@ describe('WorkflowWebhookService', () => {
   const workflowsService = {
     findOne: vi.fn(),
   };
-  const legacyWorkflowStepRunner = {
+  const workflowStepRunner = {
     executeWorkflow: vi.fn(),
   };
   const workflowExecutorService = {
@@ -39,7 +39,7 @@ describe('WorkflowWebhookService', () => {
       logger as never,
       configService as never,
       workflowsService as never,
-      legacyWorkflowStepRunner as never,
+      workflowStepRunner as never,
       workflowExecutorService as never,
     );
   });
@@ -191,20 +191,20 @@ describe('WorkflowWebhookService', () => {
         },
         where: { id: 'workflow-1' },
       });
-      expect(legacyWorkflowStepRunner.executeWorkflow).not.toHaveBeenCalled();
+      expect(workflowStepRunner.executeWorkflow).not.toHaveBeenCalled();
     });
 
-    it('routes step-only workflows through the legacy step runner', async () => {
+    it('routes step-only workflows through the step runner', async () => {
       workflowsService.findOne.mockResolvedValue({
         ...nodeWorkflow,
         nodes: [],
       });
-      legacyWorkflowStepRunner.executeWorkflow.mockResolvedValue(undefined);
+      workflowStepRunner.executeWorkflow.mockResolvedValue(undefined);
 
       const result = await service.triggerViaWebhook('wh_1', {});
 
       expect(result).toEqual({ runId: 'workflow-1', status: 'started' });
-      expect(legacyWorkflowStepRunner.executeWorkflow).toHaveBeenCalledWith(
+      expect(workflowStepRunner.executeWorkflow).toHaveBeenCalledWith(
         'workflow-1',
       );
       expect(

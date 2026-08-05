@@ -5,7 +5,7 @@ import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import type { IngredientRefDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -139,9 +139,9 @@ export class ImagesOperationsController {
     // Fetch the source image with metadata populated
     const sourceImage = await this.imagesService.findOne(
       {
-        _id: id,
+        id: id,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -158,33 +158,8 @@ export class ImagesOperationsController {
     }
 
     // Extract metadata fields from source image to preserve in split frames
-    const sourceMetadata = sourceImage.metadata as unknown as Record<
-      string,
-      unknown
-    >;
-    const metadataFields: Record<string, unknown> = {
-      // Copy model, style, extension, prompt from source
-      ...(sourceMetadata?.model ? { model: sourceMetadata.model } : {}),
-      ...(sourceMetadata?.style ? { style: sourceMetadata.style } : {}),
-      ...(sourceMetadata?.extension
-        ? { extension: sourceMetadata.extension }
-        : {}),
-      ...(typeof sourceMetadata?.prompt === 'string'
-        ? { prompt: sourceMetadata.prompt }
-        : {}),
-      ...(sourceMetadata?.assistant
-        ? { assistant: sourceMetadata.assistant }
-        : {}),
-      ...(sourceMetadata?.seed !== undefined
-        ? { seed: sourceMetadata.seed }
-        : {}),
-      ...(sourceMetadata?.externalId
-        ? { externalId: sourceMetadata.externalId }
-        : {}),
-      ...(sourceMetadata?.externalProvider
-        ? { externalProvider: sourceMetadata.externalProvider }
-        : {}),
-    };
+    const sourceMetadata =
+      sourceImage.metadata as IngredientMetadataDocument | null;
 
     // Get the image URL from CDN
     const imageUrl = `${this.configService.ingredientsEndpoint}/images/${id}`;
@@ -211,7 +186,7 @@ export class ImagesOperationsController {
       category: TagCategory.INGREDIENT,
       isDeleted: false,
       key: TagKey.SPLITTED,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!splittedTag) {
@@ -219,7 +194,7 @@ export class ImagesOperationsController {
         category: TagCategory.INGREDIENT,
         key: TagKey.SPLITTED,
         label: 'Splitted',
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       } as unknown as CreateTagDto);
     }
 
@@ -235,22 +210,41 @@ export class ImagesOperationsController {
       const frameHeight = frameMetadata.height || 0;
 
       // Create ingredient and metadata for this frame, preserving source metadata
-      const { ingredientData } = await this.sharedService.saveDocuments(user, {
-        brand: sourceImage.brandId,
-        category: IngredientCategory.IMAGE,
-        extension: metadataFields.extension || MetadataExtension.JPEG,
-        label: `Frame ${i + 1}`,
-        organization: publicMetadata.organization,
-        parent: id,
-        status: IngredientStatus.GENERATED,
-        // Preserve metadata fields from source image
-        ...metadataFields,
-        height: frameHeight,
-        // Add "splitted" tag
-        tags: [splittedTag.id],
-        // Set frame-specific dimensions from actual buffer metadata
-        width: frameWidth,
-      });
+      const { ingredientData } = await this.sharedService.createMediaDocuments(
+        user,
+        {
+          assistant:
+            typeof sourceMetadata?.assistant === 'string'
+              ? sourceMetadata.assistant
+              : undefined,
+          brandId: sourceImage.brandId,
+          category: IngredientCategory.IMAGE,
+          extension: sourceMetadata?.extension || MetadataExtension.JPEG,
+          externalId:
+            typeof sourceMetadata?.externalId === 'string'
+              ? sourceMetadata.externalId
+              : undefined,
+          externalProvider:
+            typeof sourceMetadata?.externalProvider === 'string'
+              ? sourceMetadata.externalProvider
+              : undefined,
+          generationSeed:
+            typeof sourceMetadata?.seed === 'number'
+              ? sourceMetadata.seed
+              : undefined,
+          label: `Frame ${i + 1}`,
+          model: sourceMetadata?.model,
+          organizationId: publicMetadata.organization,
+          parentId: id,
+          promptId: sourceMetadata?.promptId ?? undefined,
+          status: IngredientStatus.GENERATED,
+          height: frameHeight,
+          style: sourceMetadata?.style ?? undefined,
+          tagIds: [splittedTag.id],
+          // Set frame-specific dimensions from actual buffer metadata
+          width: frameWidth,
+        },
+      );
 
       // Upload frame to S3
       await this.filesClientService.uploadToS3(
@@ -278,11 +272,11 @@ export class ImagesOperationsController {
     // Create activity for the split operation
     await this.activitiesService.create(
       new ActivityEntity({
-        brand: this.getRefId(sourceImage.brand),
+        brandId: sourceImage.brandId ?? undefined,
         key: ActivityKey.IMAGE_GENERATED,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           frameCount: frameResults.length,
           frameIds: frameResults.map((f) => f.id),
@@ -302,15 +296,5 @@ export class ImagesOperationsController {
         frames: frameResults,
       },
     };
-  }
-
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 }

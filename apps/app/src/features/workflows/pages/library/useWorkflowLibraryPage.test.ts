@@ -50,8 +50,8 @@ vi.mock('@services/core/logger.service', () => ({
 const makeWorkflow = (
   overrides: Partial<WorkflowSummary> = {},
 ): WorkflowSummary => ({
-  _id: 'wf-1',
-  name: 'Test Workflow',
+  id: 'wf-1',
+  label: 'Test Workflow',
   lifecycle: 'published',
   nodeCount: 3,
   createdAt: '2024-01-01T00:00:00Z',
@@ -67,15 +67,15 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   beforeEach(() => {
     mocks.serviceList.mockResolvedValue([
       makeWorkflow({
-        _id: 'wf-1',
-        name: 'Scheduled Workflow',
+        id: 'wf-1',
+        label: 'Scheduled Workflow',
         schedule: '0 9 * * 1',
         timezone: 'UTC',
         isScheduleEnabled: false,
       }),
       makeWorkflow({
-        _id: 'wf-2',
-        name: 'Unscheduled Workflow',
+        id: 'wf-2',
+        label: 'Unscheduled Workflow',
       }),
     ]);
     mocks.serviceSetSchedule.mockResolvedValue(undefined);
@@ -121,7 +121,7 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
 
     // Optimistic state should be applied immediately
     await waitFor(() => {
-      const wf = result.current.workflows.find((w) => w._id === 'wf-1');
+      const wf = result.current.workflows.find((w) => w.id === 'wf-1');
       expect(wf?.isScheduleEnabled).toBe(true);
     });
 
@@ -140,7 +140,7 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
     });
 
     // Should revert to the original isScheduleEnabled value (false)
-    const wf = result.current.workflows.find((w) => w._id === 'wf-1');
+    const wf = result.current.workflows.find((w) => w.id === 'wf-1');
     expect(wf?.isScheduleEnabled).toBe(false);
   });
 
@@ -158,14 +158,14 @@ describe('useWorkflowLibraryPage — handleToggleSchedule', () => {
   it('does not toggle schedules on canonical system workflows', async () => {
     mocks.serviceList.mockResolvedValueOnce([
       makeWorkflow({
-        _id: 'system-wf',
+        id: 'system-wf',
         isScheduleEnabled: true,
         metadata: {
           systemWorkflow: buildSystemWorkflowMetadata({
             canonicalId: 'daily-trends-digest',
           }),
         },
-        name: 'Daily Trends Digest',
+        label: 'Daily Trends Digest',
         schedule: '0 7 * * *',
         timezone: 'UTC',
       }),
@@ -187,11 +187,11 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
   beforeEach(() => {
     mocks.serviceList.mockResolvedValue([
       makeWorkflow({
-        _id: 'wf-1',
-        name: 'Editable Workflow',
+        id: 'wf-1',
+        label: 'Editable Workflow',
       }),
     ]);
-    mocks.serviceDuplicate.mockResolvedValue({ _id: 'wf-copy' });
+    mocks.serviceDuplicate.mockResolvedValue({ id: 'wf-copy' });
     mocks.serviceRemove.mockResolvedValue(undefined);
     mocks.getService.mockResolvedValue({
       list: mocks.serviceList,
@@ -218,13 +218,13 @@ describe('useWorkflowLibraryPage — workflow duplication and deletion', () => {
   it('does not delete canonical system workflows from the library', async () => {
     mocks.serviceList.mockResolvedValueOnce([
       makeWorkflow({
-        _id: 'system-wf',
+        id: 'system-wf',
         metadata: {
           systemWorkflow: buildSystemWorkflowMetadata({
             canonicalId: 'daily-trends-digest',
           }),
         },
-        name: 'Daily Trends Digest',
+        label: 'Daily Trends Digest',
       }),
     ]);
 

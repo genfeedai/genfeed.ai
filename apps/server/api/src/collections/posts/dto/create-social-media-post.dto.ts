@@ -15,7 +15,7 @@ import {
 export class CreateSocialMediaPostDto {
   @IsEntityId()
   @ApiProperty({ required: true })
-  readonly brand!: string;
+  readonly brandId!: string;
 
   @IsEnum(Platform)
   @ApiProperty({ enum: Platform, enumName: 'Platform', required: true })

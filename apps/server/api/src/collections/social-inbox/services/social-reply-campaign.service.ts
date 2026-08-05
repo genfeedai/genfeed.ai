@@ -8,10 +8,6 @@ import type {
   SocialInboxPage,
   SocialInboxScope,
 } from '@api/collections/social-inbox/services/social-inbox.types';
-import {
-  toCampaignDocument,
-  toRecipientDocument,
-} from '@api/collections/social-inbox/services/social-reply-campaign.helpers';
 import type {
   SocialReplyCampaignCreateInput,
   SocialReplyCampaignDocument,
@@ -88,7 +84,7 @@ export class SocialReplyCampaignService {
       this.prisma.socialReplyCampaign.count({ where }),
     ]);
 
-    return toPage(docs.map(toCampaignDocument), totalDocs, page, limit);
+    return toPage(docs, totalDocs, page, limit);
   }
 
   async get(
@@ -102,7 +98,7 @@ export class SocialReplyCampaignService {
       campaignId,
     );
 
-    return toCampaignDocument(campaign);
+    return campaign;
   }
 
   async create(
@@ -160,7 +156,7 @@ export class SocialReplyCampaignService {
       });
     });
 
-    return toCampaignDocument(withTotals);
+    return withTotals;
   }
 
   async patch(
@@ -200,7 +196,7 @@ export class SocialReplyCampaignService {
       where: scopedWhere(scope.organizationId, { id: campaign.id }),
     });
 
-    return toCampaignDocument(updated);
+    return updated;
   }
 
   async remove(
@@ -221,7 +217,7 @@ export class SocialReplyCampaignService {
       where: scopedWhere(scope.organizationId, { campaignId: campaign.id }),
     });
 
-    return toCampaignDocument(removed);
+    return removed;
   }
 
   async listRecipients(
@@ -248,7 +244,7 @@ export class SocialReplyCampaignService {
       this.prisma.socialReplyCampaignRecipient.count({ where }),
     ]);
 
-    return toPage(docs.map(toRecipientDocument), totalDocs, page, limit);
+    return toPage(docs, totalDocs, page, limit);
   }
 
   /**

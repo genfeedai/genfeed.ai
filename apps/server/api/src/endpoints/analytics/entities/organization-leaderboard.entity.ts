@@ -1,4 +1,10 @@
-export class OrgLeaderboardItemEntity {
+import type {
+  IBrandWithStats,
+  IOrganizationWithStats,
+  IOrgLeaderboardItem,
+} from '@genfeedai/interfaces';
+
+export class OrgLeaderboardItemEntity implements IOrgLeaderboardItem {
   declare readonly rank: number;
   declare readonly organization: {
     id: string;
@@ -16,7 +22,7 @@ export class OrgLeaderboardItemEntity {
   }
 }
 
-export class OrgWithStatsEntity {
+export class OrgWithStatsEntity implements IOrganizationWithStats {
   declare readonly id: string;
   declare readonly name: string;
   declare readonly logo?: string;
@@ -33,7 +39,7 @@ export class OrgWithStatsEntity {
   }
 }
 
-export class BrandWithStatsEntity {
+export class BrandWithStatsEntity implements IBrandWithStats {
   declare readonly id: string;
   declare readonly name: string;
   declare readonly logo?: string;

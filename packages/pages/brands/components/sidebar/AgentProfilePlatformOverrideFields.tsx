@@ -13,7 +13,7 @@ import {
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 
 export default function AgentProfilePlatformOverrideFields({
-  enabledModels,
+  enabledModelIds,
   isDisabled,
   onSave,
   onSelectChange,
@@ -83,7 +83,7 @@ export default function AgentProfilePlatformOverrideFields({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-            {enabledModels.map((model) => (
+            {enabledModelIds.map((model) => (
               <SelectItem key={model} value={model}>
                 {model}
               </SelectItem>

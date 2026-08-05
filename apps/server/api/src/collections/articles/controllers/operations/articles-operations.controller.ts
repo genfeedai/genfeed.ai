@@ -109,8 +109,7 @@ export class ArticlesOperationsController {
 
     // Check if article generation is enabled for this organization
     const orgSettings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (orgSettings && !orgSettings.isGenerateArticlesEnabled) {
@@ -141,11 +140,11 @@ export class ArticlesOperationsController {
     // Create activity for article generation start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: publicMetadata.brand,
+        brandId: publicMetadata.brand,
         key: ActivityKey.ARTICLE_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.ARTICLE_GENERATION,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           count: dto.count || 1,
           prompt: dto.prompt?.substring(0, 100),
@@ -182,13 +181,13 @@ export class ArticlesOperationsController {
       for (const article of articles) {
         await this.activitiesService.create(
           new ActivityEntity({
-            brand: publicMetadata.brand,
+            brandId: publicMetadata.brand,
             entityId: article.id,
             entityModel: ActivityEntityModel.ARTICLE,
             key: ActivityKey.ARTICLE_GENERATED,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
             source: ActivitySource.ARTICLE_GENERATION,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
             value: article.id.toString(),
           }),
         );

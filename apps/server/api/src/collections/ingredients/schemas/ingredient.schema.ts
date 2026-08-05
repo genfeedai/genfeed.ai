@@ -4,31 +4,35 @@ import type { Ingredient } from '@genfeedai/prisma';
 export type { Ingredient } from '@genfeedai/prisma';
 
 export interface IngredientRefDocument {
-  _id?: string;
-  id?: string;
+  description?: string;
+  id: string;
+  label?: string;
+  name?: string;
+  original?: string;
   [key: string]: unknown;
 }
 
-export interface IngredientMetadataDocument extends IngredientRefDocument {
+export interface IngredientMetadataDocument {
+  id?: string;
   duration?: number;
   extension?: string;
+  externalProvider?: string;
   height?: number;
   model?: string;
-  prompt?: string;
+  promptId?: string | null;
   result?: string;
   size?: number;
   style?: string;
   width?: number;
+  [key: string]: unknown;
 }
 
 export interface IngredientDocument extends Omit<Ingredient, 'scope'> {
-  _id: string;
-  brand?: string | IngredientRefDocument | null;
-  content?: string;
+  brand?: IngredientRefDocument | null;
   metadata?: IngredientMetadataDocument | null;
-  organization?: string | IngredientRefDocument | null;
+  organization?: IngredientRefDocument | null;
+  prompt?: IngredientRefDocument | null;
   scope?: AssetScope | null;
-  title?: string;
-  user?: string | IngredientRefDocument | null;
+  user?: IngredientRefDocument | null;
   [key: string]: unknown;
 }

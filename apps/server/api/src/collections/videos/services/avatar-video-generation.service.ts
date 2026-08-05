@@ -124,18 +124,18 @@ export class AvatarVideoGenerationService {
         await this.resolveAudioSource(params, context, resolvedIdentity);
 
       const { ingredientData, metadataData } =
-        await this.sharedService.saveDocumentsInternal({
-          brand: brand.id,
+        await this.sharedService.createMediaDocumentsInternal({
+          brandId: brand.id,
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organization: context.organizationId,
-          parent:
+          organizationId: context.organizationId,
+          parentId:
             resolvedIdentity.photoIngredientId != null
               ? resolvedIdentity.photoIngredientId
               : undefined,
           status: IngredientStatus.PROCESSING,
-          user: context.userId,
+          userId: context.userId,
         });
 
       ingredientId = String(ingredientData.id);
@@ -261,8 +261,7 @@ export class AvatarVideoGenerationService {
     }
 
     const organizationSettings = await this.orgSettingsService.findOne({
-      isDeleted: false,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
     });
     const effectiveBrandAgentConfig = resolveEffectiveBrandAgentConfig({
       brand,
@@ -677,9 +676,9 @@ export class AvatarVideoGenerationService {
     organizationId: string,
   ): Promise<VoiceDocument | null> {
     return (await this.voicesService.findOne({
-      _id: voiceId,
+      id: voiceId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     })) as VoiceDocument | null;
   }
 
@@ -689,16 +688,16 @@ export class AvatarVideoGenerationService {
     const brand = context.brandId
       ? await this.brandsService.findOne(
           {
-            _id: context.brandId,
+            id: context.brandId,
             isDeleted: false,
-            organization: context.organizationId,
+            organizationId: context.organizationId,
           },
           'none',
         )
       : await this.brandsService.findOne(
           {
             isDeleted: false,
-            organization: context.organizationId,
+            organizationId: context.organizationId,
           },
           'none',
         );

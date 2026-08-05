@@ -6,10 +6,12 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+type GoalCreateInput = CreateGoalDto & { organizationId: string };
+
 @Injectable()
 export class GoalsService extends BaseService<
   GoalDocument,
-  CreateGoalDto,
+  GoalCreateInput,
   UpdateGoalDto
 > {
   constructor(
@@ -19,7 +21,7 @@ export class GoalsService extends BaseService<
     super(prisma, 'goal', logger);
   }
 
-  override async create(createDto: CreateGoalDto): Promise<GoalDocument> {
+  override async create(createDto: GoalCreateInput): Promise<GoalDocument> {
     return super.create(createDto);
   }
 

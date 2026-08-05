@@ -9,19 +9,17 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
-import type {
-  ClipReferenceFrameSet,
-  PopulateOption,
-} from '@genfeedai/interfaces';
+import type { ClipReferenceFrameSet } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-
-type PopulateInput = (string | PopulateOption)[] | 'none';
 
 type ClipProjectWriteDto = Partial<
   CreateClipProjectDto & UpdateClipProjectDto
@@ -29,16 +27,11 @@ type ClipProjectWriteDto = Partial<
   Record<string, unknown>;
 
 const PROJECT_SCALAR_KEYS = new Set([
-  '_id',
-  'brand',
   'brandId',
   'config',
   'error',
   'failedClipCount',
-  'id',
   'isDeleted',
-  'mongoId',
-  'organization',
   'organizationId',
   'pendingClipCount',
   'progress',
@@ -46,6 +39,7 @@ const PROJECT_SCALAR_KEYS = new Set([
   'readyClipCount',
   'status',
   'terminalAt',
+  'userId',
 ]);
 
 @Injectable()
@@ -60,6 +54,13 @@ export class ClipProjectsService extends BaseService<
     private readonly clipResultsService: ClipResultsService,
   ) {
     super(prisma, 'clipProject', logger);
+  }
+
+  protected override normalizeDocument(document: unknown): ClipProjectDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config = this.readRecord(record.config);
+
+    return { ...config, ...record } as ClipProjectDocument;
   }
 
   override async create(
@@ -82,7 +83,7 @@ export class ClipProjectsService extends BaseService<
     organizationId?: string,
   ): Promise<ClipProjectDocument> {
     const existing = await this.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
       ...(organizationId !== undefined ? { organizationId } : {}),
     });
@@ -111,9 +112,9 @@ export class ClipProjectsService extends BaseService<
     candidateId: string,
   ): Promise<ClipProjectDocument> {
     const project = await this.findOne({
-      _id: projectId,
+      id: projectId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!project) {
@@ -171,9 +172,9 @@ export class ClipProjectsService extends BaseService<
     const project =
       preloadedProject ??
       (await this.findOne({
-        _id: projectId,
+        id: projectId,
         isDeleted: false,
-        ...(organizationId ? { organization: organizationId } : {}),
+        ...(organizationId ? { organizationId: organizationId } : {}),
       }));
 
     if (!project) {
@@ -239,28 +240,16 @@ export class ClipProjectsService extends BaseService<
     const data: Record<string, unknown> = {};
     const config: Record<string, unknown> = { ...existingConfig };
 
-    if (typeof dto.id === 'string' && dto.id.length > 0) {
-      data.mongoId = dto.id;
-    }
-
-    if (typeof dto.mongoId === 'string' && dto.mongoId.length > 0) {
-      data.mongoId = dto.mongoId;
-    }
-
-    if (typeof dto.organization === 'string') {
-      data.organizationId = dto.organization;
-    }
-
     if (typeof dto.organizationId === 'string') {
       data.organizationId = dto.organizationId;
     }
 
-    if (Object.hasOwn(dto, 'brand')) {
-      data.brandId = dto.brand ?? null;
-    }
-
     if (Object.hasOwn(dto, 'brandId')) {
       data.brandId = dto.brandId ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'userId')) {
+      data.userId = dto.userId ?? null;
     }
 
     this.assignIfOwn(data, dto, 'status');

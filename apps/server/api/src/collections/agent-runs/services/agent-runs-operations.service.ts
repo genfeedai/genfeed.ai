@@ -16,10 +16,6 @@ export interface AgentRunOperationScope {
   userId: string;
 }
 
-type LegacyPopulatedThreadReference = {
-  id?: unknown;
-};
-
 @Injectable()
 export class AgentRunsOperationsService {
   constructor(
@@ -145,13 +141,6 @@ export class AgentRunsOperationsService {
   }
 
   private resolveThreadId(run: AgentRunDocument): string | undefined {
-    const populatedThread = run.thread as
-      | LegacyPopulatedThreadReference
-      | undefined;
-    return (
-      run.threadId?.toString() ??
-      populatedThread?.id?.toString() ??
-      populatedThread?.toString()
-    );
+    return run.threadId ?? undefined;
   }
 }

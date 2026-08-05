@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -44,8 +45,8 @@ export class AnalyticsDateRangeDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  declare brand?: string;
+  @IsEntityId()
+  brandId?: string;
 }
 
 export class LeaderboardQueryDto extends AnalyticsDateRangeDto {
@@ -159,8 +160,8 @@ export class AnalyticsFilterQueryDto extends AnalyticsDateRangeDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  declare brand?: string;
+  @IsEntityId()
+  declare brandId?: string;
 
   @ApiProperty({
     description: 'Platform to filter by',
@@ -203,8 +204,8 @@ export class AnalyticsExportQueryDto extends AnalyticsFilterQueryDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  organization?: string;
+  @IsEntityId()
+  organizationId?: string;
 }
 
 export class TopContentQueryDto extends AnalyticsDateRangeDto {
@@ -244,8 +245,8 @@ export class TopContentQueryDto extends AnalyticsDateRangeDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  declare brand?: string;
+  @IsEntityId()
+  declare brandId?: string;
 
   @ApiProperty({
     description: 'Platform to filter by',
@@ -274,7 +275,7 @@ export class GrowthQueryDto extends AnalyticsDateRangeDto {
     | AnalyticsMetric.ENGAGEMENT
     | AnalyticsMetric.POSTS = AnalyticsMetric.VIEWS;
 
-  // brand is inherited from AnalyticsDateRangeDto
+  // brandId is inherited from AnalyticsDateRangeDto
 }
 
 export class ViralHooksQueryDto extends AnalyticsDateRangeDto {
@@ -283,14 +284,14 @@ export class ViralHooksQueryDto extends AnalyticsDateRangeDto {
     required: false,
   })
   @IsOptional()
-  @IsString()
-  declare brand?: string;
+  @IsEntityId()
+  declare brandId?: string;
 
   @ApiProperty({
     description: 'Organization ID to filter by',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  organization?: string;
+  @IsEntityId()
+  organizationId?: string;
 }

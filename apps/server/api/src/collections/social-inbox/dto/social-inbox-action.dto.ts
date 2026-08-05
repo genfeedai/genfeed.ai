@@ -90,7 +90,7 @@ export class SocialConversationUpdateDto {
   @IsString({ each: true })
   tags?: string[];
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ nullable: true, required: false, type: String })
   @IsOptional()
   @IsEntityId()
   assignedOwnerId?: string | null;

@@ -120,14 +120,14 @@ describe('ImagesOperationsController', () => {
   let creditsUtilsService: vi.Mocked<CreditsUtilsService>;
   let modelsService: vi.Mocked<ModelsService>;
 
-  const mockUserId = '507f191e810c19729de860ee';
-  const mockOrgId = '507f191e810c19729de860ee';
-  const mockBrandId = '507f191e810c19729de860ee';
-  const mockImageId = '507f191e810c19729de860ee';
-  const mockMetadataId = '507f191e810c19729de860ee';
-  const mockPromptId = '507f191e810c19729de860ee';
-  const mockActivityId = '507f191e810c19729de860ee';
-  const mockTagId = '507f191e810c19729de860ee';
+  const mockUserId = 'cmuser0000000000000000001';
+  const mockOrgId = 'cmorganization000000000000001';
+  const mockBrandId = 'cmbrand000000000000000001';
+  const mockImageId = 'cmimage0000000000000000001';
+  const mockMetadataId = 'cmmetadata0000000000000001';
+  const mockPromptId = 'cmprompt000000000000000001';
+  const mockActivityId = 'cmactivity00000000000000001';
+  const mockTagId = 'cmtag000000000000000000001';
 
   const mockUser = {
     id: 'authProvider_user_123',
@@ -146,7 +146,7 @@ describe('ImagesOperationsController', () => {
   } as unknown as Request;
 
   const mockBrand = {
-    _id: mockBrandId,
+    id: mockBrandId,
     agentConfig: {
       voice: {
         audience: ['tech professionals'],
@@ -160,26 +160,26 @@ describe('ImagesOperationsController', () => {
     defaultImageModel: MODEL_KEYS.LEONARDOAI,
     description: 'Test brand description',
     label: 'Test Brand',
-    organization: mockOrgId,
+    organizationId: mockOrgId,
     primaryColor: '#ff0000',
     secondaryColor: '#00ff00',
     text: 'Brand text',
   };
 
   const mockImage = {
-    _id: mockImageId,
-    brand: mockBrandId,
+    id: mockImageId,
+    brandId: mockBrandId,
     category: IngredientCategory.IMAGE,
     isDeleted: false,
     metadata: {
-      _id: mockMetadataId,
+      id: mockMetadataId,
       height: 1080,
       model: MODEL_KEYS.LEONARDOAI,
       width: 1920,
     },
-    organization: mockOrgId,
+    organizationId: mockOrgId,
     status: IngredientStatus.GENERATED,
-    user: mockUserId,
+    userId: mockUserId,
   };
 
   const mockActivity = {
@@ -214,7 +214,7 @@ describe('ImagesOperationsController', () => {
     category: TagCategory.INGREDIENT,
     key: TagKey.SPLITTED,
     label: 'Splitted',
-    organization: mockOrgId,
+    organizationId: mockOrgId,
   };
 
   const mockFrameBuffer = Buffer.from(
@@ -396,7 +396,7 @@ describe('ImagesOperationsController', () => {
           provide: PromptsService,
           useValue: {
             create: vi.fn().mockResolvedValue({
-              _id: mockPromptId,
+              id: mockPromptId,
               original: 'Test prompt',
             }),
           },
@@ -407,6 +407,10 @@ describe('ImagesOperationsController', () => {
             generateTextToImage: vi
               .fn()
               .mockResolvedValue('replicate-generation-id'),
+            getPrediction: vi.fn().mockResolvedValue({
+              output: ['https://replicate.example.com/generated.png'],
+              status: 'succeeded',
+            }),
           },
         },
         {
@@ -422,7 +426,7 @@ describe('ImagesOperationsController', () => {
         {
           provide: SharedService,
           useValue: {
-            saveDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
+            createMediaDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
             updateDocuments: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -565,7 +569,6 @@ describe('ImagesOperationsController', () => {
       const result = await controller.create(mockRequest, dto, mockUser);
 
       expect(replicateService.generateTextToImage).toHaveBeenCalled();
-      expect(metadataService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
 
@@ -828,7 +831,7 @@ describe('ImagesOperationsController', () => {
 
       const result = await controller.create(mockRequest, dto, mockUser);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           height: 1080,
@@ -970,7 +973,7 @@ describe('ImagesOperationsController', () => {
 
       expect(imagesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: expect.any(String),
+          id: mockImageId,
           isDeleted: false,
         }),
         expect.any(Array),
@@ -980,7 +983,7 @@ describe('ImagesOperationsController', () => {
       expect(result.data.frames).toBeDefined();
     });
 
-    it('should throw error for invalid ObjectId', async () => {
+    it('should throw error for an invalid entity ID', async () => {
       await expect(
         controller.splitContactSheet(
           mockRequest,
@@ -1129,10 +1132,10 @@ describe('ImagesOperationsController', () => {
         mockUser,
       );
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          parent: expect.any(String),
+          parentId: mockImageId,
         }),
       );
     });

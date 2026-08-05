@@ -99,7 +99,7 @@ export class UserStripeController {
 
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        _id: user.id,
+        id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -119,17 +119,14 @@ export class UserStripeController {
         stripeCustomerId = stripeCustomer.id;
 
         // Update user with Stripe customer ID
-        await this.usersService.patch(
-          // @ts-expect-error TS2345
-          { _id: dbUser.id },
-          { stripeCustomerId },
-        );
+        await this.usersService.patch(dbUser.id.toString(), {
+          stripeCustomerId,
+        });
       }
 
       // Get or create user subscription record
       await this.userSubscriptionsService.getOrCreateSubscription(
         dbUser.id.toString(),
-        stripeCustomerId,
       );
 
       // Create checkout session
@@ -201,7 +198,7 @@ export class UserStripeController {
     try {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        _id: user.id,
+        id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -243,7 +240,7 @@ export class UserStripeController {
     try {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
-        _id: user.id,
+        id: user.id,
         isDeleted: false,
       });
       if (!dbUser) {
@@ -268,11 +265,6 @@ export class UserStripeController {
           creatorOrg.id.toString(),
         );
       }
-      const subscriptionPlan =
-        subscription && 'type' in subscription
-          ? ((subscription as { type?: string | null }).type ?? null)
-          : null;
-
       return {
         data: {
           credits: {
@@ -284,7 +276,7 @@ export class UserStripeController {
                 cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
                 currentPeriodEnd: subscription.currentPeriodEnd,
                 status: subscription.status,
-                type: subscriptionPlan,
+                plan: subscription.plan,
               }
             : null,
         },

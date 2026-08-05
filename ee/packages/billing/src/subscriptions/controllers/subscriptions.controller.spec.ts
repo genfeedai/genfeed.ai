@@ -3,12 +3,13 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { SubscriptionPlan } from '@genfeedai/enums';
+import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import type { CreateSubscriptionPreviewDto } from '../dto/create-subscription.dto';
+import type { SubscriptionDocument } from '../schemas/subscription.schema';
 import { SubscriptionsService } from '../services/subscriptions.service';
 import { SubscriptionsController } from './subscriptions.controller';
 
@@ -27,15 +28,21 @@ describe('SubscriptionsController', () => {
   } as unknown as User;
 
   const mockSubscription = {
-    _id: '507f1f77bcf86cd799439014',
+    cancelAtPeriodEnd: false,
     createdAt: new Date(),
+    currentPeriodStart: new Date(),
     currentPeriodEnd: new Date(),
-    organization: '507f1f77bcf86cd799439012',
-    status: 'active',
+    customerId: null,
+    id: '507f1f77bcf86cd799439014',
+    isDeleted: false,
+    organizationId: '507f1f77bcf86cd799439012',
+    plan: SubscriptionPlan.MONTHLY,
+    status: SubscriptionStatus.ACTIVE,
+    stripePriceId: 'price_monthly',
     stripeSubscriptionId: 'sub_123',
-    type: SubscriptionPlan.MONTHLY,
     updatedAt: new Date(),
-  };
+    userId: '507f1f77bcf86cd799439011',
+  } satisfies SubscriptionDocument;
 
   const mockSubscriptionsService = {
     changeSubscriptionPlan: vi.fn(),
@@ -216,7 +223,7 @@ describe('SubscriptionsController', () => {
       mockSubscriptionsService.findByOrganizationId.mockResolvedValue({
         ...mockSubscription,
         currentPeriodEnd: new Date('2026-03-31T00:00:00.000Z'),
-        type: SubscriptionPlan.MONTHLY,
+        plan: SubscriptionPlan.MONTHLY,
       });
 
       const result = await controller.getCreditsBreakdown(mockUser, request);

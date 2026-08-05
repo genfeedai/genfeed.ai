@@ -10,7 +10,7 @@ describe('AdminFleetCharacterService', () => {
   let personasService: Record<string, ReturnType<typeof vi.fn>>;
   let loggerService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const persona = { _id: { toString: () => 'persona-1' }, slug: 'alice' };
+  const persona = { id: 'persona-1', slug: 'alice' };
 
   beforeEach(async () => {
     personasService = {

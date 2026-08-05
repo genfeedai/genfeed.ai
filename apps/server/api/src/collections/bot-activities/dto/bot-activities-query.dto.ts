@@ -17,7 +17,7 @@ export class BotActivitiesQueryDto {
     description: 'Filter by reply bot config ID',
     required: false,
   })
-  replyBotConfig?: string;
+  replyBotConfigId?: string;
 
   @IsEntityId()
   @IsOptional()
@@ -25,7 +25,7 @@ export class BotActivitiesQueryDto {
     description: 'Filter by monitored account ID',
     required: false,
   })
-  monitoredAccount?: string;
+  monitoredAccountId?: string;
 
   @IsEnum(ReplyBotType)
   @IsOptional()

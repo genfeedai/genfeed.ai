@@ -37,7 +37,7 @@ describe('DevtoService', () => {
   };
 
   const mockArticle = {
-    _id: 'article-1',
+    id: 'article-1',
     content: '# Hello dev.to\n\nBody in markdown.',
     coverImageUrl: 'https://cdn.example.com/cover.png',
     excerpt: 'A short summary',

@@ -30,8 +30,13 @@ vi.mock('@genfeedai/helpers', () => ({
   ),
 }));
 
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelCategory } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@workers/config/config.service';
+import type { IModelDiscoveryInput } from '@workers/interfaces/model-discovery.interface';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
+import type { ModelPricingService } from '@workers/services/model-pricing.service';
 
 describe('ModelDiscoveryService', () => {
   let service: ModelDiscoveryService;
@@ -88,15 +93,15 @@ describe('ModelDiscoveryService', () => {
     };
 
     service = new ModelDiscoveryService(
-      mockLoggerService as any,
-      mockModelsService as any,
-      mockModelPricingService as any,
-      mockConfigService as any,
+      mockLoggerService as unknown as LoggerService,
+      mockModelsService as unknown as ModelsService,
+      mockModelPricingService as unknown as ModelPricingService,
+      mockConfigService as unknown as ConfigService,
     );
   });
 
   describe('createDraftModel', () => {
-    const modelInfo = {
+    const modelInfo: IModelDiscoveryInput = {
       category: ModelCategory.IMAGE,
       description: 'A test image model',
       name: 'test-model',
@@ -105,9 +110,9 @@ describe('ModelDiscoveryService', () => {
     };
 
     it('should return null if model already exists', async () => {
-      mockModelsService.findOne.mockResolvedValue({ _id: 'existing' });
+      mockModelsService.findOne.mockResolvedValue({ id: 'existing' });
 
-      const result = await service.createDraftModel(modelInfo as any);
+      const result = await service.createDraftModel(modelInfo);
 
       expect(result).toBeNull();
       expect(mockModelsService.create).not.toHaveBeenCalled();
@@ -117,7 +122,7 @@ describe('ModelDiscoveryService', () => {
       const draftDoc = { id: 'draft-id', key: 'acme-labs/test-model' };
       mockModelsService.create.mockResolvedValue(draftDoc);
 
-      const result = await service.createDraftModel(modelInfo as any);
+      const result = await service.createDraftModel(modelInfo);
 
       expect(result).toBe(draftDoc);
       expect(mockModelsService.create).toHaveBeenCalledWith(
@@ -138,7 +143,7 @@ describe('ModelDiscoveryService', () => {
       await service.createDraftModel({
         ...modelInfo,
         providerCostUsd: 0.1,
-      } as any);
+      });
 
       expect(
         mockModelPricingService.estimateFromProviderCost,
@@ -156,7 +161,7 @@ describe('ModelDiscoveryService', () => {
       const draftDoc = { id: 'draft-id' };
       mockModelsService.create.mockResolvedValue(draftDoc);
 
-      await service.createDraftModel(modelInfo as any);
+      await service.createDraftModel(modelInfo);
 
       expect(mockModelsService.patch).toHaveBeenCalledWith(
         'draft-id',
@@ -167,7 +172,7 @@ describe('ModelDiscoveryService', () => {
     it('should return null on creation error', async () => {
       mockModelsService.create.mockRejectedValue(new Error('DB error'));
 
-      const result = await service.createDraftModel(modelInfo as any);
+      const result = await service.createDraftModel(modelInfo);
 
       expect(result).toBeNull();
       expect(mockLoggerService.error).toHaveBeenCalled();
@@ -181,7 +186,7 @@ describe('ModelDiscoveryService', () => {
         ...modelInfo,
         name: 'flux-2-pro',
         owner: 'black-forest-labs',
-      } as any);
+      });
 
       const createCall = mockModelsService.create.mock.calls[0][0];
       expect(createCall.label).toBe('Flux 2 Pro');

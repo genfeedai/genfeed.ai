@@ -57,9 +57,11 @@ export class WorkflowMarketplaceController {
 
     const aggregate = {
       where: {
+        AND: [
+          { config: { equals: true, path: ['isPublic'] } },
+          { config: { equals: true, path: ['isTemplate'] } },
+        ],
         isDeleted: false,
-        isPublic: true,
-        isTemplate: true,
       },
       orderBy: handleQuerySort(query.sort || '-executionCount'),
     };

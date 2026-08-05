@@ -1,10 +1,8 @@
-import type { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class MetadataEntity extends BaseEntity implements Metadata {
   declare readonly promptId: string | null;
-  declare readonly prompt?: string;
 
   declare readonly label: string;
   declare readonly description: string;
@@ -30,7 +28,4 @@ export class MetadataEntity extends BaseEntity implements Metadata {
   // Template tracking fields
   declare readonly promptTemplate: Metadata['promptTemplate'];
   declare readonly templateVersion: Metadata['templateVersion'];
-
-  // Populated
-  declare readonly ingredient?: Ingredient;
 }

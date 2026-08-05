@@ -14,7 +14,7 @@ export class StartTrainingDto {
   // Validate each id at the HTTP boundary so a malformed id can never reach
   // EntityIdUtil.toValidId (which returns null) and get non-null-asserted into
   // a null entry in the persisted `sources` array. @IsEntityId mirrors exactly
-  // what toValidId accepts (ObjectId / UUID / CUID / CUID2 / ULID).
+  // the entity-id formats accepted by toValidId.
   @IsArray()
   @IsEntityId({ each: true })
   @ApiProperty({ description: 'Source ingredient IDs', type: [String] })

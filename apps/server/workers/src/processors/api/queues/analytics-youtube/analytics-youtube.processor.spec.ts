@@ -78,10 +78,10 @@ describe('AnalyticsYouTubeProcessor', () => {
     const job = makeJob({
       posts: [
         {
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'video-1',
           id: 'post-1',
-          organization: 'org-1',
+          organizationId: 'org-1',
         },
       ],
     });

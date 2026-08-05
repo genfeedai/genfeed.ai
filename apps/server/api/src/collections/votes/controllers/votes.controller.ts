@@ -71,9 +71,9 @@ export class VotesController {
 
     await this.votesService.patchAll(
       {
-        entity: entityId,
+        entityId,
         isDeleted: false,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       },
       { isDeleted: true },
     );

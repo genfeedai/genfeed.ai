@@ -9,7 +9,7 @@ import {
 } from '@ui/primitives/select';
 
 type TextSectionProps = {
-  enabledModels: string[];
+  enabledModelIds: string[];
   defaultModel: string;
   defaultModelReview: string;
   defaultModelUpdate: string;
@@ -19,7 +19,7 @@ type TextSectionProps = {
 };
 
 export default function OrganizationGenerationDefaultsTextSection({
-  enabledModels,
+  enabledModelIds,
   defaultModel,
   defaultModelReview,
   defaultModelUpdate,
@@ -59,7 +59,7 @@ export default function OrganizationGenerationDefaultsTextSection({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Use system default</SelectItem>
-              {enabledModels.map((model) => (
+              {enabledModelIds.map((model) => (
                 <SelectItem key={model} value={model}>
                   {model}
                 </SelectItem>
@@ -89,7 +89,7 @@ export default function OrganizationGenerationDefaultsTextSection({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Use system default</SelectItem>
-              {enabledModels.map((model) => (
+              {enabledModelIds.map((model) => (
                 <SelectItem key={model} value={model}>
                   {model}
                 </SelectItem>
@@ -119,7 +119,7 @@ export default function OrganizationGenerationDefaultsTextSection({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Use system default</SelectItem>
-              {enabledModels.map((model) => (
+              {enabledModelIds.map((model) => (
                 <SelectItem key={model} value={model}>
                   {model}
                 </SelectItem>

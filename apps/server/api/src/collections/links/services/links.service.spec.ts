@@ -24,7 +24,7 @@ describe('LinksService', () => {
     service = new LinksService(prisma, logger);
   });
 
-  it('maps brand → brandId on create so Prisma does not see unknown `brand`', async () => {
+  it('passes canonical brandId through on create', async () => {
     create.mockResolvedValue({
       brandId: 'brand_1',
       category: 'WEBSITE',
@@ -35,7 +35,7 @@ describe('LinksService', () => {
     });
 
     await service.create({
-      brand: 'brand_1',
+      brandId: 'brand_1',
       category: 'website' as never,
       label: 'Website',
       url: 'https://example.com',
@@ -50,11 +50,9 @@ describe('LinksService', () => {
         }),
       }),
     );
-    const data = create.mock.calls[0]?.[0]?.data as Record<string, unknown>;
-    expect(data).not.toHaveProperty('brand');
   });
 
-  it('maps brand → brandId on patch', async () => {
+  it('passes canonical brandId through on patch', async () => {
     update.mockResolvedValue({
       brandId: 'brand_2',
       category: 'WEBSITE',
@@ -65,7 +63,7 @@ describe('LinksService', () => {
     });
 
     await service.patch('link_1', {
-      brand: 'brand_2',
+      brandId: 'brand_2',
       label: 'Site',
     } as never);
 
@@ -79,6 +77,5 @@ describe('LinksService', () => {
         label: 'Site',
       }),
     );
-    expect(call?.data).not.toHaveProperty('brand');
   });
 });

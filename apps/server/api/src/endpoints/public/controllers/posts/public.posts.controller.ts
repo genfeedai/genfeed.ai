@@ -21,7 +21,10 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { IngredientSerializer, PostSerializer } from '@genfeedai/serializers';
+import {
+  IngredientSerializer,
+  PublicPostSerializer,
+} from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { PrismaWhereQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -69,23 +72,28 @@ export class PublicPostsController {
 
     // Filter by ingredient if provided
     if (ingredient && isEntityId(ingredient)) {
-      matchQuery.ingredient = ingredient;
+      matchQuery.OR = [
+        { entityIngredientId: ingredient },
+        { ingredients: { some: { id: ingredient } } },
+      ];
     }
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      matchQuery.brand = brand;
+      matchQuery.brandId = brand;
     }
 
-    // Filter by tag if provided (assuming tags are stored in metadata)
+    // Filter by related tag label.
     if (tag) {
-      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      matchQuery.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
 
     const data = await this.postsService.findAll(aggregate, options);
-    return serializeCollection(request, PostSerializer, data);
+    return serializeCollection(request, PublicPostSerializer, data);
   }
 
   @Get('ingredients')
@@ -126,12 +134,14 @@ export class PublicPostsController {
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      matchQuery.brand = brand;
+      matchQuery.brandId = brand;
     }
 
     // Filter by tag if provided
     if (tag) {
-      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      matchQuery.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     // `totalPosts` was computed by the former Mongo aggregation and is not an
@@ -173,16 +183,19 @@ export class PublicPostsController {
     this.logger.log(url, { params: { postId } });
     // Posts carry no `scope` column — `status` is their visibility, and this
     // matches what the public list endpoint above returns.
-    const post = await this.postsService.findOne({
-      _id: postId,
-      isDeleted: false,
-      status: PostStatus.PUBLIC,
-    });
+    const post = await this.postsService.findOne(
+      {
+        id: postId,
+        isDeleted: false,
+        status: PostStatus.PUBLIC,
+      },
+      [],
+    );
 
     if (!post) {
       return returnNotFound(this.constructorName, postId);
     }
 
-    return serializeSingle(request, PostSerializer, post);
+    return serializeSingle(request, PublicPostSerializer, post);
   }
 }

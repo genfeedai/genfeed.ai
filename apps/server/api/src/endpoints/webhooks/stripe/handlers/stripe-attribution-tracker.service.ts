@@ -1,8 +1,5 @@
 import { UsersService } from '@api/collections/users/services/users.service';
-import {
-  extractAttributionMetadata,
-  normalizeObjectId,
-} from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
+import { extractAttributionMetadata } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import {
   type StripeCheckoutSession,
   type StripeCustomer,
@@ -45,11 +42,11 @@ export class StripeAttributionTrackerService {
       );
 
       const primaryItem = stripeSubscription.items.data[0];
-      const organizationId = normalizeObjectId(subscription.organization);
-      const userId = normalizeObjectId(subscription.user);
+      const organizationId = subscription.organizationId;
+      const userId = subscription.userId;
 
       const user = await this.usersService.findOne({
-        id: subscription.user,
+        id: userId,
         isDeleted: false,
       });
 

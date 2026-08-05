@@ -2,13 +2,13 @@ import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflo
 import { UpdateWorkflowDto } from '@api/collections/workflows/dto/update-workflow.dto';
 import { WorkflowEntity } from '@api/collections/workflows/entities/workflow.entity';
 import { type WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import {
   WorkflowExecutionQueueService,
   type WorkflowSchedulerSyncRow,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import {
   buildSystemWorkflowDuplicateMetadata,
   isProtectedSystemWorkflowMetadata,
@@ -21,6 +21,7 @@ import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-a
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import {
   ListingType,
   WorkflowExecutionTrigger,
@@ -38,14 +39,30 @@ import {
   Optional,
 } from '@nestjs/common';
 
-type WorkflowCreateExtras = CreateWorkflowDto & {
-  brandId?: string | null;
-  brands?: unknown;
-  config?: Record<string, unknown>;
-  defaultRecurringBrandId?: string | null;
-  lifecycle?: string | null;
-  lockedNodeIds?: string[];
-};
+const WORKFLOW_CONFIG_FIELDS = [
+  'comfyuiTemplate',
+  'isPublic',
+  'isTemplate',
+  'scheduledFor',
+  'sourceAsset',
+  'sourceAssetModel',
+  'tags',
+  'templateId',
+  'webhookAuthType',
+  'webhookId',
+  'webhookLastTriggeredAt',
+  'webhookSecret',
+  'webhookTriggerCount',
+] as const;
+
+type WorkflowCreateExtras = CreateWorkflowDto &
+  Partial<Record<(typeof WORKFLOW_CONFIG_FIELDS)[number], unknown>> & {
+    brandId?: string | null;
+    config?: Record<string, unknown>;
+    defaultRecurringBrandId?: string | null;
+    lifecycle?: string | null;
+    lockedNodeIds?: string[];
+  };
 
 /**
  * Core workflow service: CRUD/templating, lifecycle transitions, node locks,
@@ -53,7 +70,7 @@ type WorkflowCreateExtras = CreateWorkflowDto & {
  *
  * Sibling concerns split out in #754:
  * - `WorkflowTemplateSeederService` — idempotent per-org system workflow seeding
- * - `LegacyWorkflowStepRunner` — step-based (pre-node) execution engine
+ * - `WorkflowStepRunnerService` — step-based execution engine
  * - `WorkflowRunControlService` — partial runs, resume, credits, execution logs
  * - `WorkflowWebhookService` — inbound webhook credentials + trigger path
  */
@@ -67,7 +84,7 @@ export class WorkflowsService extends BaseService<
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
     @Optional()
-    private readonly legacyWorkflowStepRunner?: LegacyWorkflowStepRunner,
+    private readonly workflowStepRunner?: WorkflowStepRunnerService,
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
     @Optional()
@@ -90,39 +107,57 @@ export class WorkflowsService extends BaseService<
     );
   }
 
-  private normalizeWorkflowBrandId(
+  protected override normalizeDocument(document: unknown): WorkflowDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config =
+      record.config !== null &&
+      typeof record.config === 'object' &&
+      !Array.isArray(record.config)
+        ? (record.config as Record<string, unknown>)
+        : {};
+
+    return { ...config, ...record } as WorkflowDocument;
+  }
+
+  override async patch(
+    id: string,
+    updateDto: Partial<UpdateWorkflowDto> | Record<string, unknown>,
+  ): Promise<WorkflowDocument> {
+    const workflowPatch = updateDto as Record<string, unknown>;
+    const configPatch = pickDefinedFields(
+      workflowPatch,
+      WORKFLOW_CONFIG_FIELDS,
+    );
+    const hasConfigPatch = Object.keys(configPatch).length > 0;
+    let config: Record<string, unknown> | undefined;
+
+    if (hasConfigPatch) {
+      const existing = await this.findOne({ id });
+      if (!existing) {
+        throw new NotFoundException('Workflow');
+      }
+      config = { ...(existing.config ?? {}), ...configPatch };
+    }
+
+    const scalarPatch = { ...workflowPatch };
+    for (const field of WORKFLOW_CONFIG_FIELDS) {
+      delete scalarPatch[field];
+    }
+
+    return super.patch(id, {
+      ...scalarPatch,
+      ...(config ? { config } : {}),
+    });
+  }
+
+  private resolveWorkflowBrandId(
     value: unknown,
-    legacyBrands?: unknown,
     fallbackBrandId?: string,
   ): string | undefined {
     if (typeof value === 'string' && value.length > 0) {
       return value;
     }
-
-    const rawLegacyValues = Array.isArray(legacyBrands)
-      ? legacyBrands
-      : typeof legacyBrands === 'string'
-        ? [legacyBrands]
-        : [];
-    const legacyIds = rawLegacyValues
-      .map((entry) => {
-        if (typeof entry === 'string') {
-          return entry;
-        }
-        if (entry && typeof entry === 'object') {
-          const record = entry as Record<string, unknown>;
-          if (typeof record.id === 'string') {
-            return record.id;
-          }
-          if (typeof record._id === 'string') {
-            return record._id;
-          }
-        }
-        return '';
-      })
-      .filter((id) => id.length > 0);
-
-    return legacyIds[0] ?? fallbackBrandId;
+    return fallbackBrandId;
   }
 
   private async assertWorkflowBrandAccess(
@@ -178,10 +213,14 @@ export class WorkflowsService extends BaseService<
   }): Record<string, unknown> {
     const { brandId, defaultLabel, organizationId, steps, userId } = input;
     const workflowData = input.workflowData;
+    const config = {
+      ...(workflowData.config ?? {}),
+      ...pickDefinedFields(workflowData, WORKFLOW_CONFIG_FIELDS),
+    };
 
     return this.omitUndefinedPayload({
       brandId,
-      config: workflowData.config,
+      config,
       defaultRecurringBrandId: workflowData.defaultRecurringBrandId,
       description: workflowData.description,
       edges: workflowData.edges ?? [],
@@ -204,6 +243,7 @@ export class WorkflowsService extends BaseService<
       thumbnail: workflowData.thumbnail,
       thumbnailNodeId: workflowData.thumbnailNodeId,
       timezone: workflowData.timezone,
+      trigger: workflowData.trigger,
       userId,
     });
   }
@@ -262,7 +302,7 @@ export class WorkflowsService extends BaseService<
    */
   override async remove(id: string): Promise<WorkflowDocument | null> {
     const workflow = await this.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
     });
     if (workflow) {
@@ -293,9 +333,8 @@ export class WorkflowsService extends BaseService<
         workflowData.sourceWorkflowId,
         userId,
         organizationId,
-        this.normalizeWorkflowBrandId(
+        this.resolveWorkflowBrandId(
           (workflowData as WorkflowCreateExtras).brandId,
-          (workflowData as WorkflowCreateExtras).brands,
           defaultBrandId,
         ),
       );
@@ -320,9 +359,8 @@ export class WorkflowsService extends BaseService<
         );
       }
 
-      const brandId = this.normalizeWorkflowBrandId(
+      const brandId = this.resolveWorkflowBrandId(
         (workflowData as WorkflowCreateExtras).brandId,
-        (workflowData as WorkflowCreateExtras).brands,
         defaultBrandId,
       );
       await this.assertWorkflowBrandAccess(brandId, organizationId);
@@ -354,9 +392,8 @@ export class WorkflowsService extends BaseService<
             ...(workflowData.metadata ?? {}),
           }
         : undefined;
-    const brandId = this.normalizeWorkflowBrandId(
+    const brandId = this.resolveWorkflowBrandId(
       (workflowData as WorkflowCreateExtras).brandId,
-      (workflowData as WorkflowCreateExtras).brands,
       defaultBrandId,
     );
     await this.assertWorkflowBrandAccess(brandId, organizationId);
@@ -378,9 +415,7 @@ export class WorkflowsService extends BaseService<
 
     // Register the BullMQ job scheduler when the workflow is created with an
     // enabled schedule (template-seeded or explicit).
-    await this.syncWorkflowScheduler(
-      workflow as unknown as WorkflowSchedulerSyncRow,
-    );
+    await this.syncWorkflowScheduler(workflow);
 
     // If trigger is manual, start execution immediately when all required
     // inputs have defaults. Required-input templates must wait for a run form.
@@ -393,7 +428,7 @@ export class WorkflowsService extends BaseService<
       );
 
       if (missingRequiredInputs.length === 0) {
-        this.executeWorkflowCompat(
+        this.executeWorkflow(
           String(workflow.id),
           userId,
           organizationId,
@@ -469,22 +504,22 @@ export class WorkflowsService extends BaseService<
   /**
    * Dispatches a manual execution to the right engine: node-based workflows
    * run through `WorkflowExecutorService`, step-based workflows through the
-   * `LegacyWorkflowStepRunner`.
+   * `WorkflowStepRunnerService`.
    */
-  @HandleErrors('execute workflow compat', 'workflows')
-  async executeWorkflowCompat(
+  @HandleErrors('execute workflow', 'workflows')
+  async executeWorkflow(
     workflowId: string,
     userId: string,
     organizationId: string,
     inputValues: Record<string, unknown> = {},
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
-  ): Promise<{ executionId?: string; mode: 'legacy' | 'node' }> {
+  ): Promise<{ executionId?: string; mode: 'node' | 'step' }> {
     const workflowDoc = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
-      user: userId,
+      organizationId: organizationId,
+      userId: userId,
     });
 
     if (!workflowDoc) {
@@ -492,14 +527,14 @@ export class WorkflowsService extends BaseService<
     }
 
     if (!this.shouldUseNodeExecutor(workflowDoc)) {
-      if (!this.legacyWorkflowStepRunner) {
+      if (!this.workflowStepRunner) {
         throw new Error(
-          'Legacy workflow step runner is not available - cannot execute step workflow',
+          'Workflow step runner is not available - cannot execute step workflow',
         );
       }
 
-      await this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
-      return { mode: 'legacy' };
+      await this.workflowStepRunner.executeWorkflow(workflowId);
+      return { mode: 'step' };
     }
 
     if (!this.workflowExecutorService) {
@@ -544,21 +579,17 @@ export class WorkflowsService extends BaseService<
     targetBrandId?: string,
   ): Promise<WorkflowEntity> {
     const workflowDoc = await this.findVisibleOrThrow(workflowId, {
-      organization: organizationId,
-      user: userId,
+      organizationId,
+      userId,
     });
     const isProtectedSystemWorkflow = isProtectedSystemWorkflowMetadata(
       workflowDoc.metadata,
     );
-    const sourceWorkflowId = String(workflowDoc._id ?? workflowDoc.id);
-    const sourceLabel = workflowDoc.label ?? workflowDoc.name ?? 'Workflow';
+    const sourceWorkflowId = workflowDoc.id;
+    const sourceLabel = workflowDoc.label ?? 'Workflow';
 
     const brandId =
-      targetBrandId ??
-      this.normalizeWorkflowBrandId(
-        workflowDoc.brandId,
-        (workflowDoc as WorkflowCreateExtras).brands,
-      );
+      targetBrandId ?? this.resolveWorkflowBrandId(workflowDoc.brandId);
     await this.assertWorkflowBrandAccess(brandId, organizationId);
 
     const clonedWorkflow = await this.create(
@@ -616,10 +647,10 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
-      user: userId,
+      organizationId: organizationId,
+      userId: userId,
     });
 
     if (!workflow) {
@@ -638,7 +669,7 @@ export class WorkflowsService extends BaseService<
   async getWorkflowStatistics(
     userId: string,
     organizationId: string,
-  ): Promise<Array<{ _id: string; count: number }>> {
+  ): Promise<Array<{ id: string; count: number }>> {
     const workflows = await this.prisma.workflow.findMany({
       select: { status: true },
       where: scopedWhere(organizationId, { userId }),
@@ -650,9 +681,9 @@ export class WorkflowsService extends BaseService<
       return acc;
     }, new Map());
 
-    return Array.from(counts.entries()).map(([_id, count]) => ({
-      _id,
+    return Array.from(counts.entries()).map(([id, count]) => ({
       count,
+      id,
     }));
   }
 
@@ -665,9 +696,9 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -691,9 +722,9 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -722,8 +753,8 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
   ): Promise<WorkflowEntity> {
     const workflow = await this.findMutableOwnedOrThrow(workflowId, {
-      organization: organizationId,
-      user: userId,
+      organizationId,
+      userId,
     });
 
     const updated = await this.patch(workflowId, {
@@ -745,11 +776,11 @@ export class WorkflowsService extends BaseService<
           {
             description:
               workflow.description ||
-              workflow.name ||
+              workflow.label ||
               'A workflow published from the builder',
             downloadData: {
               edges,
-              name: workflow.name,
+              name: workflow.label,
               nodes,
               version: 1,
             },
@@ -761,10 +792,10 @@ export class WorkflowsService extends BaseService<
             price: 0,
             shortDescription:
               workflow.description?.slice(0, 300) ||
-              workflow.name ||
+              workflow.label ||
               'Workflow',
             tags: ['community', 'workflow'],
-            title: workflow.name || 'Untitled Workflow',
+            title: workflow.label || 'Untitled Workflow',
             type: ListingType.WORKFLOW,
           },
         );
@@ -792,9 +823,9 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -822,9 +853,9 @@ export class WorkflowsService extends BaseService<
     organizationId: string,
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -850,13 +881,13 @@ export class WorkflowsService extends BaseService<
    */
   async findOwnedOrThrow(
     workflowId: string,
-    scope: { organization: string; user?: string },
+    scope: { organizationId: string; userId?: string },
   ): Promise<WorkflowDocument> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: scope.organization,
-      ...(scope.user ? { user: scope.user } : {}),
+      organizationId: scope.organizationId,
+      ...(scope.userId ? { userId: scope.userId } : {}),
     });
 
     if (!workflow) {
@@ -873,14 +904,14 @@ export class WorkflowsService extends BaseService<
    */
   async findVisibleOrThrow(
     workflowId: string,
-    scope: { organization: string; user: string },
+    scope: { organizationId: string; userId: string },
   ): Promise<WorkflowDocument> {
     const workflow = await this.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: scope.organization,
+      organizationId: scope.organizationId,
       OR: [
-        { user: scope.user },
+        { userId: scope.userId },
         {
           metadata: {
             equals: 'organization',
@@ -903,7 +934,7 @@ export class WorkflowsService extends BaseService<
    */
   async findMutableOwnedOrThrow(
     workflowId: string,
-    scope: { organization: string; user?: string },
+    scope: { organizationId: string; userId?: string },
   ): Promise<WorkflowDocument> {
     const workflow = await this.findOwnedOrThrow(workflowId, scope);
     this.assertWorkflowMutable(workflow);

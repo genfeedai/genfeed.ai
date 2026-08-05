@@ -56,7 +56,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveMongoUserId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
       const parsedStatus = Object.values(AgentThreadStatus).includes(
         status as AgentThreadStatus,
       )
@@ -147,10 +147,10 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const message = await this.agentMessagesService.findOne({
-        _id: messageId,
+        id: messageId,
         isDeleted: false,
-        organization: organizationId,
-        room: threadId,
+        organizationId: organizationId,
+        threadId,
       });
 
       return serializeSingle(req, ThreadMessageSerializer, message);
@@ -169,9 +169,9 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const thread = await this.agentThreadsService.findOne({
-        _id: threadId,
+        id: threadId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
       return serializeSingle(req, AgentThreadSerializer, thread);
     } catch (error: unknown) {
@@ -188,7 +188,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveMongoUserId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
       const preparedScope = await this.agentScopeContextService.prepareForTurn({
         organizationId,
         requestedBrandId: body.brandId,
@@ -217,7 +217,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const userId = await this.resolveMongoUserId(user);
+      const userId = await this.resolveDatabaseUserId(user);
       const updated = await this.agentScopeContextService.mutateBrandScope({
         brandId: body.brandId,
         expectedContextVersion: body.expectedContextVersion,
@@ -255,7 +255,7 @@ export class AgentThreadsController {
       }
 
       const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveMongoUserId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
       const brandId = body.brandId?.trim() ? body.brandId.trim() : undefined;
 
       return {
@@ -284,7 +284,7 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
-      const dbUserId = await this.resolveMongoUserId(user);
+      const dbUserId = await this.resolveDatabaseUserId(user);
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
         organizationId,
@@ -363,7 +363,7 @@ export class AgentThreadsController {
    * `user.id` as the canonical primary key; an unresolved subject fails with
    * 401 rather than being reinterpreted as an external identifier.
    */
-  private async resolveMongoUserId(user: User): Promise<string> {
+  private async resolveDatabaseUserId(user: User): Promise<string> {
     const { user: metadataUserId } = getPublicMetadata(user);
     if (metadataUserId) {
       return metadataUserId;
@@ -377,7 +377,7 @@ export class AgentThreadsController {
     }
 
     const dbUser = await this.usersService.findOne(
-      { _id: userId, isDeleted: false },
+      { id: userId, isDeleted: false },
       [],
     );
     const fallbackUserId = dbUser?.id;

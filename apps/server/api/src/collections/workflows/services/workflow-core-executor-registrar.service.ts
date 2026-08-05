@@ -50,6 +50,61 @@ const FALLBACK_EXECUTOR_TYPES = [
   'process-trim',
 ] as const;
 
+type WorkflowBrandContext = {
+  brandId: string;
+  colors: {
+    background: string;
+    primary: string;
+    secondary: string;
+  };
+  fonts: string | null;
+  label: string;
+  models: {
+    image: string | null;
+    imageToVideo: string | null;
+    music: string | null;
+    video: string | null;
+  };
+  slug: string;
+  voice: string | null;
+};
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function optionalString(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function toWorkflowBrandContext(brand: unknown): WorkflowBrandContext {
+  const row = asRecord(brand);
+  const agentConfig = asRecord(row.agentConfig);
+  const voiceConfig = asRecord(agentConfig.voice);
+
+  return {
+    brandId: String(row.id),
+    colors: {
+      background: String(row.backgroundColor ?? 'transparent'),
+      primary: String(row.primaryColor ?? '#000000'),
+      secondary: String(row.secondaryColor ?? '#FFFFFF'),
+    },
+    fonts: optionalString(row.fontFamily),
+    label: String(row.label ?? ''),
+    models: {
+      image: optionalString(row.defaultImageModel),
+      imageToVideo: optionalString(row.defaultImageToVideoModel),
+      music: optionalString(row.defaultMusicModel),
+      video: optionalString(row.defaultVideoModel),
+    },
+    slug: String(row.slug ?? ''),
+    voice:
+      optionalString(voiceConfig.style) ?? optionalString(voiceConfig.tone),
+  };
+}
+
 export class WorkflowCoreExecutorRegistrarService {
   private readonly logContext = 'WorkflowEngineAdapterService';
 
@@ -76,25 +131,17 @@ export class WorkflowCoreExecutorRegistrarService {
     if (!this.brandsService) return;
     const brandsService = this.brandsService;
     const executor = createBrandExecutor(async (brandId, organizationId) => {
-      const brand = await brandsService.findOne(
-        { _id: brandId, isDeleted: false, organization: organizationId },
-        ['detail'],
-      );
+      const brand = await brandsService.findOne({
+        id: brandId,
+        isDeleted: false,
+        organizationId,
+      });
       if (!brand) return null;
-      const brandDoc = brand as unknown as Record<string, unknown>;
+      const context = toWorkflowBrandContext(brand);
+      const { slug, ...brandContext } = context;
       return {
-        brandId: String(brandDoc.id),
-        colors:
-          (brandDoc.colors as {
-            primary: string;
-            secondary: string;
-            background: string;
-          } | null) ?? null,
-        fonts: (brandDoc.fonts as string | null) ?? null,
-        handle: String(brandDoc.slug ?? brandDoc.handle ?? ''),
-        label: String(brandDoc.name ?? brandDoc.label ?? ''),
-        models: null,
-        voice: (brandDoc.voice as string | null) ?? null,
+        ...brandContext,
+        handle: slug,
       };
     });
     engine.registerExecutor(
@@ -209,26 +256,13 @@ export class WorkflowCoreExecutorRegistrarService {
     const brandsService = this.brandsService;
     const executor = createBrandContextExecutor(
       async (brandId, organizationId) => {
-        const brand = await brandsService.findOne(
-          { _id: brandId, isDeleted: false, organization: organizationId },
-          ['detail'],
-        );
+        const brand = await brandsService.findOne({
+          id: brandId,
+          isDeleted: false,
+          organizationId,
+        });
         if (!brand) return null;
-        const brandDoc = brand as unknown as Record<string, unknown>;
-        return {
-          brandId: String(brandDoc.id),
-          colors:
-            (brandDoc.colors as {
-              primary: string;
-              secondary: string;
-              background: string;
-            } | null) ?? null,
-          fonts: (brandDoc.fonts as string | null) ?? null,
-          label: String(brandDoc.name ?? brandDoc.label ?? ''),
-          models: null,
-          slug: String(brandDoc.slug ?? ''),
-          voice: (brandDoc.voice as string | null) ?? null,
-        };
+        return toWorkflowBrandContext(brand);
       },
     );
     engine.registerExecutor(

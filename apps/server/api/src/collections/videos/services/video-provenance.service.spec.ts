@@ -118,13 +118,17 @@ describe('VideoProvenanceService', () => {
     });
 
     expect(videosService.findOne).toHaveBeenCalledWith({
-      OR: [{ user: 'user-1' }, { organization: 'org-1' }],
-      _id: 'video-1',
+      OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+      id: 'video-1',
       isDeleted: false,
     });
     // Soft-deleted metadata must never leak into the provenance package.
     expect(metadataService.findOne).toHaveBeenCalledWith({
-      _id: 'meta-1',
+      id: 'meta-1',
+      isDeleted: false,
+    });
+    expect(captionsService.find).toHaveBeenCalledWith({
+      ingredientId: 'video-1',
       isDeleted: false,
     });
   });
@@ -216,8 +220,8 @@ describe('VideoProvenanceService', () => {
     );
 
     expect(videosService.findOne).toHaveBeenCalledWith({
-      OR: [{ user: 'user-1' }, { organization: 'org-1' }],
-      _id: 'video-1',
+      OR: [{ userId: 'user-1' }, { organizationId: 'org-1' }],
+      id: 'video-1',
       isDeleted: false,
     });
     expect(evaluation.primaryApproach).toBe('provenance_manifest');

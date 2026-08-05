@@ -9,18 +9,6 @@ import {
 } from 'class-validator';
 
 export class CreateWatchlistDto {
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value : value))
-  brand?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value : value))
-  organization?: string;
-
-  @IsOptional()
-  @Transform(({ value }) => (typeof value === 'string' ? value : value))
-  user?: string;
-
   /**
    * Defaults to `@{handle}` server-side when omitted (quick-add semantics).
    */

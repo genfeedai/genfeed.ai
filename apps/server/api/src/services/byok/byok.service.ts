@@ -104,7 +104,7 @@ export class ByokService {
   ): Promise<{ apiKey: string; apiSecret?: string } | undefined> {
     try {
       const settings = await this.organizationSettingsService.findOne({
-        organization: orgId,
+        organizationId: orgId,
       });
 
       if (!settings) {
@@ -147,8 +147,7 @@ export class ByokService {
 
   async isByokBillingInGoodStanding(orgId: string): Promise<boolean> {
     const orgSettings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
     if (!orgSettings) {
@@ -350,7 +349,7 @@ export class ByokService {
   async getStatus(orgId: string): Promise<IByokProviderStatus[]> {
     try {
       const settings = await this.organizationSettingsService.findOne({
-        organization: orgId,
+        organizationId: orgId,
       });
 
       const byokKeys = settings ? this.getByokKeys(settings) : {};

@@ -1,3 +1,4 @@
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { formatPlatformLabel } from '@genfeedai/enums';
@@ -33,7 +34,7 @@ export class AgentReviewToolHandler {
     if (params.batchId != null && !batchId) {
       return {
         creditsUsed: 0,
-        error: 'batchId must be a 24 character hex string',
+        error: 'batchId must be a valid entity id',
         success: false,
       };
     }
@@ -231,6 +232,6 @@ export class AgentReviewToolHandler {
       return undefined;
     }
 
-    return normalized;
+    return isEntityId(normalized) ? normalized : undefined;
   }
 }

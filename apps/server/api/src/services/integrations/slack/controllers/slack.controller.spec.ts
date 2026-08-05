@@ -1,3 +1,9 @@
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -22,8 +28,8 @@ describe('SlackController', () => {
   };
 
   const mockCredentialsService = {
-    create: vi.fn(),
-    findOne: vi.fn(),
+    beginOAuthForBrand: vi.fn(),
+    findPendingOAuthCredential: vi.fn(),
     patch: vi.fn(),
   };
 
@@ -49,46 +55,59 @@ describe('SlackController', () => {
       mockBrandsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.connect(mockUser, mockBrandId),
+        controller.connect({} as never, mockUser, mockBrandId),
       ).rejects.toBeInstanceOf(HttpException);
 
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: mockBrandId,
-          organization: mockOrganization,
+          id: mockBrandId,
+          organizationId: mockOrganization,
         }),
       );
-      expect(mockCredentialsService.create).not.toHaveBeenCalled();
+      expect(mockCredentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
     });
 
-    it('creates credential using metadata userId, not user.id', async () => {
-      mockBrandsService.findOne.mockResolvedValue({ _id: mockBrandId });
-      mockCredentialsService.findOne.mockResolvedValue(null);
-      mockCredentialsService.create.mockResolvedValue({});
+    it('starts OAuth using the authenticated tenant scope', async () => {
+      const brand = { id: mockBrandId, organizationId: mockOrganization };
+      mockBrandsService.findOne.mockResolvedValue(brand);
+      mockCredentialsService.beginOAuthForBrand.mockResolvedValue({
+        credential: { id: 'credential-id' },
+        state: 'opaque-oauth-state',
+      });
 
-      const result = await controller.connect(mockUser, mockBrandId);
-
-      expect(mockCredentialsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          oauthState: result.state,
-          user: mockUserId,
-        }),
+      const result = await controller.connect(
+        {} as never,
+        mockUser,
+        mockBrandId,
       );
-      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+      expect(mockCredentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+        brand,
+        mockUserId,
+        'slack',
+        { isConnected: false },
+      );
+      expect(result).toEqual({ url: 'https://slack.com/oauth' });
       expect(mockSlackService.generateAuthUrl).toHaveBeenCalledWith(
-        result.state,
+        'opaque-oauth-state',
       );
     });
   });
 
   describe('verify', () => {
-    it('rejects when brand does not belong to user organization', async () => {
-      mockBrandsService.findOne.mockResolvedValue(null);
+    it('rejects a state outside the authenticated tenant scope', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue(null);
 
       await expect(
-        controller.verify(mockUser, mockBrandId, 'code', 'state'),
+        controller.verify({} as never, mockUser, 'code', 'state'),
       ).rejects.toBeInstanceOf(HttpException);
 
+      expect(
+        mockCredentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('state', 'slack', {
+        organizationId: mockOrganization,
+        userId: mockUserId,
+      });
       expect(mockSlackService.exchangeCodeForToken).not.toHaveBeenCalled();
     });
   });

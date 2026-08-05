@@ -7,47 +7,39 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   IngredientCategory,
-  IngredientExtension,
   IngredientStatus,
+  MetadataExtension,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('SharedService', () => {
   let service: SharedService;
-  let ingredientsService: Partial<IngredientsService>;
-  let metadataService: Partial<MetadataService>;
-  let promptsService: Partial<PromptsService>;
-  let moduleRef: ModuleRef;
+  let ingredientsService: Pick<
+    IngredientsService,
+    'create' | 'findOne' | 'patch'
+  >;
+  let metadataService: Pick<MetadataService, 'create' | 'patch'>;
+  let promptsService: Pick<PromptsService, 'patch'>;
 
+  const owner = {
+    brandId: '550e8400-e29b-41d4-a716-446655440003',
+    organizationId: '550e8400-e29b-41d4-a716-446655440002',
+    userId: '550e8400-e29b-41d4-a716-446655440001',
+  };
   const mockUser = {
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439016',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: owner.brandId,
+      organization: owner.organizationId,
+      user: owner.userId,
     },
   } as unknown as User;
-
-  const mockMetadata = {
-    id: '507f1f77bcf86cd799439013',
-    brand: null,
-    prompt: null,
-    user: '507f1f77bcf86cd799439011',
-  };
-
+  const mockMetadata = { id: '550e8400-e29b-41d4-a716-446655440004' };
   const mockIngredient = {
-    id: '507f1f77bcf86cd799439014',
-    brand: null,
-    frame: null,
-    isDefault: false,
-    metadata: '507f1f77bcf86cd799439013',
-    organization: null,
-    parent: null,
-    prompt: null,
-    script: null,
+    id: '550e8400-e29b-41d4-a716-446655440005',
+    metadataId: mockMetadata.id,
     status: IngredientStatus.PROCESSING,
-    user: '507f1f77bcf86cd799439011',
     version: 1,
   };
 
@@ -56,613 +48,209 @@ describe('SharedService', () => {
       create: vi.fn(),
       findOne: vi.fn(),
       patch: vi.fn(),
-    };
-
+    } as unknown as typeof ingredientsService;
     metadataService = {
       create: vi.fn(),
       patch: vi.fn(),
-    };
-
+    } as unknown as typeof metadataService;
     promptsService = {
       patch: vi.fn(),
-    };
+    } as unknown as typeof promptsService;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SharedService,
         {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-          },
-        },
-        {
           provide: ModuleRef,
           useValue: {
-            get: vi.fn(),
+            get: vi.fn((token) => {
+              if (token === MetadataService) return metadataService;
+              if (token === IngredientsService) return ingredientsService;
+              if (token === PromptsService) return promptsService;
+              return null;
+            }),
           },
         },
       ],
     }).compile();
 
-    service = module.get<SharedService>(SharedService);
-    moduleRef = module.get<ModuleRef>(ModuleRef);
-
-    (moduleRef.get as vi.Mock).mockImplementation((token) => {
-      if (token === MetadataService) return metadataService;
-      if (token === IngredientsService) return ingredientsService;
-      if (token === PromptsService) return promptsService;
-      return null;
-    });
+    service = module.get(SharedService);
+    vi.mocked(metadataService.create).mockResolvedValue(mockMetadata as never);
+    vi.mocked(ingredientsService.create).mockResolvedValue(
+      mockIngredient as never,
+    );
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
+  describe('createMediaDocuments', () => {
+    it('persists a canonical metadata and ingredient pair', async () => {
+      const promptId = '550e8400-e29b-41d4-a716-446655440006';
+      const sourceIds = [
+        '550e8400-e29b-41d4-a716-446655440007',
+        '550e8400-e29b-41d4-a716-446655440008',
+      ];
 
-  describe('saveDocuments', () => {
-    it('should create metadata and ingredient documents', async () => {
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        frame: '507f1f77bcf86cd799439018',
-        organization: '507f1f77bcf86cd799439017',
-        prompt: '507f1f77bcf86cd799439015',
-        script: '507f1f77bcf86cd799439019',
-        status: IngredientStatus.PROCESSING,
-      };
+      const result = await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.IMAGE,
+        extension: MetadataExtension.JPG,
+        generationPrompt: 'A boxer in a dark arena',
+        generationSeed: 42,
+        model: 'black-forest-labs/flux-schnell',
+        promptId,
+        sourceIds,
+      });
 
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
-
-      const result = await service.saveDocuments(mockUser, body);
-
-      expect(metadataService.create).toHaveBeenCalled();
-      expect(ingredientsService.create).toHaveBeenCalled();
+      expect(metadataService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          extension: MetadataExtension.JPG,
+          label: 'A boxer in a dark arena',
+          model: 'black-forest-labs/flux-schnell',
+          promptId,
+          seed: 42,
+        }),
+      );
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: owner.brandId,
+          generationPrompt: 'A boxer in a dark arena',
+          generationSeed: 42,
+          metadataId: mockMetadata.id,
+          modelUsed: 'black-forest-labs/flux-schnell',
+          organizationId: owner.organizationId,
+          promptId,
+          sources: sourceIds,
+          userId: owner.userId,
+        }),
+      );
       expect(result).toEqual({
         ingredientData: mockIngredient,
         metadataData: mockMetadata,
       });
     });
 
-    it('should write metadataId (scalar FK) not metadata (relation key) on ingredient create', async () => {
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        organization: '507f1f77bcf86cd799439017',
-        status: IngredientStatus.PROCESSING,
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.saveDocuments(mockUser, body);
-
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ metadataId: mockMetadata.id }),
-      );
-      expect(ingredientsService.create).not.toHaveBeenCalledWith(
-        expect.objectContaining({ metadata: mockMetadata.id }),
-      );
-    });
-
-    it('should handle parent versioning', async () => {
-      const body = {
-        parent: '507f1f77bcf86cd799439020',
-        status: IngredientStatus.PROCESSING,
-      };
-
-      const parentIngredient = {
-        id: '507f1f77bcf86cd799439020',
-        version: 5,
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.findOne as vi.Mock).mockResolvedValue(
-        parentIngredient,
-      );
-      (ingredientsService.create as vi.Mock).mockResolvedValue({
-        ...mockIngredient,
-        parent: '507f1f77bcf86cd799439020',
-        version: 6,
+    it('derives a compact metadata label from a multiline prompt', async () => {
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.IMAGE,
+        generationPrompt: 'SCENE:\nA boxer in a dark arena',
       });
 
-      await service.saveDocuments(mockUser, body);
-
-      expect(ingredientsService.findOne).toHaveBeenCalledWith({
-        _id: '507f1f77bcf86cd799439020',
-      });
-      expect(ingredientsService.create).toHaveBeenCalledWith(
+      expect(metadataService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          parent: '507f1f77bcf86cd799439020',
-          version: 6,
+          extension: MetadataExtension.JPEG,
+          label: 'SCENE: A boxer in a dark arena',
         }),
       );
     });
 
-    it('should create ingredient with PROCESSING status by default', async () => {
-      const body = { status: IngredientStatus.PROCESSING };
+    it('increments the version from the canonical parent row', async () => {
+      const parentId = '550e8400-e29b-41d4-a716-446655440009';
+      vi.mocked(ingredientsService.findOne).mockResolvedValue({
+        id: parentId,
+        version: 5,
+      } as never);
 
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
+      await service.createMediaDocuments(mockUser, {
+        category: IngredientCategory.VIDEO,
+        parentId,
+      });
 
-      await service.saveDocuments(mockUser, body);
-
-      expect(metadataService.create).toHaveBeenCalled();
-      expect(ingredientsService.create).toHaveBeenCalled();
+      expect(ingredientsService.findOne).toHaveBeenCalledWith({ id: parentId });
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ parentId, version: 6 }),
+      );
     });
 
-    it('should handle invalid ObjectIds gracefully', async () => {
-      const body = {
-        brand: 'invalid-id',
-        frame: 'invalid-id',
-        organization: 'invalid-id',
-        prompt: 'invalid-id',
-        script: 'invalid-id',
-        status: IngredientStatus.PROCESSING,
-      };
+    it('rejects malformed canonical relation IDs before writing', async () => {
+      await expect(
+        service.createMediaDocuments(mockUser, {
+          category: IngredientCategory.IMAGE,
+          promptId: 'not-an-id',
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
 
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
+      expect(metadataService.create).not.toHaveBeenCalled();
+      expect(ingredientsService.create).not.toHaveBeenCalled();
+    });
 
-      const result = await service.saveDocuments(mockUser, body);
+    it('soft-deletes metadata when ingredient persistence fails', async () => {
+      vi.mocked(ingredientsService.create).mockRejectedValue(
+        new Error('Ingredient create failed'),
+      );
 
-      expect(metadataService.create).toHaveBeenCalled();
-      expect(ingredientsService.create).toHaveBeenCalled();
-      expect(result).toBeDefined();
+      await expect(
+        service.createMediaDocuments(mockUser, {
+          category: IngredientCategory.IMAGE,
+        }),
+      ).rejects.toThrow('Ingredient create failed');
+
+      expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
+        isDeleted: true,
+      });
+    });
+  });
+
+  describe('createMediaDocumentsInternal', () => {
+    it('requires and persists explicit canonical ownership IDs', async () => {
+      await service.createMediaDocumentsInternal({
+        brandId: owner.brandId,
+        category: IngredientCategory.VOICE,
+        organizationId: owner.organizationId,
+        userId: owner.userId,
+      });
+
+      expect(metadataService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ extension: MetadataExtension.MP3 }),
+      );
+      expect(ingredientsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...owner,
+          isDefault: false,
+          metadataId: mockMetadata.id,
+          status: IngredientStatus.PROCESSING,
+          version: 1,
+        }),
+      );
     });
   });
 
   describe('updateDocuments', () => {
-    it('should update metadata and ingredient documents', async () => {
-      const metadataData = new MetadataEntity({
-        id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-      const promptId = '507f1f77bcf86cd799439015';
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
+    it('completes both documents and links the prompt bidirectionally', async () => {
+      const promptId = '550e8400-e29b-41d4-a716-446655440006';
+      const metadata = new MetadataEntity({ id: mockMetadata.id });
+      const ingredient = new IngredientEntity({ id: mockIngredient.id });
 
       await service.updateDocuments(
-        metadataData,
-        ingredientData,
-        result,
-        promptId,
-      );
-
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData.id,
-        expect.objectContaining({
-          prompt: promptId,
-          result,
-        }),
-      );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: promptId,
-        status: IngredientStatus.GENERATED,
-      });
-    });
-
-    it('should handle updates without promptId', async () => {
-      const metadataData = new MetadataEntity({
-        id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.updateDocuments(metadataData, ingredientData, result);
-
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData.id,
-        expect.objectContaining({
-          prompt: undefined,
-          result,
-        }),
-      );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: undefined,
-        status: IngredientStatus.GENERATED,
-      });
-    });
-
-    it('should handle invalid promptId', async () => {
-      const metadataData = new MetadataEntity({
-        id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-      const invalidPromptId = 'invalid-id';
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.updateDocuments(
-        metadataData,
-        ingredientData,
-        result,
-        invalidPromptId as unknown as string,
-      );
-
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData.id,
-        expect.objectContaining({
-          prompt: undefined,
-          result,
-        }),
-      );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: undefined,
-        status: IngredientStatus.GENERATED,
-      });
-    });
-
-    it('should persist trimmed promptId after validation', async () => {
-      const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-      const promptId = '507f1f77bcf86cd799439015';
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.updateDocuments(
-        metadataData,
-        ingredientData,
-        result,
+        metadata,
+        ingredient,
+        'https://cdn.example/media.jpg',
         ` ${promptId} `,
       );
 
-      expect(metadataService.patch).toHaveBeenCalledWith(
-        metadataData.id,
-        expect.objectContaining({
-          prompt: promptId,
-          result,
-        }),
-      );
-      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientData.id, {
-        prompt: promptId,
+      expect(metadataService.patch).toHaveBeenCalledWith(metadata.id, {
+        promptId,
+        result: 'https://cdn.example/media.jpg',
+      });
+      expect(ingredientsService.patch).toHaveBeenCalledWith(ingredient.id, {
+        promptId,
         status: IngredientStatus.GENERATED,
       });
-    });
-  });
-
-  describe('saveDocumentsInternal', () => {
-    it('should create metadata and ingredient without user context', async () => {
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
-
-      const result = await service.saveDocumentsInternal(body);
-
-      expect(metadataService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brand: body.brand,
-          extension: body.extension,
-          organization: body.organization,
-          user: body.user,
-        }),
-      );
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          brand: body.brand,
-          isDefault: false,
-          metadataId: '507f1f77bcf86cd799439013',
-          organization: body.organization,
-          status: IngredientStatus.PROCESSING,
-          user: body.user,
-          version: 1,
-        }),
-      );
-      expect(ingredientsService.create).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          metadata: '507f1f77bcf86cd799439013',
-        }),
-      );
-      expect(result).toEqual({
-        ingredientData: mockIngredient,
-        metadataData: mockMetadata,
+      expect(promptsService.patch).toHaveBeenCalledWith(promptId, {
+        ingredientId: ingredient.id,
       });
     });
 
-    it('should handle parent versioning in saveDocumentsInternal', async () => {
-      const parentId = '507f1f77bcf86cd799439020';
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        parent: parentId,
-        user: '507f1f77bcf86cd799439011',
-      };
+    it('rejects a malformed prompt ID', async () => {
+      await expect(
+        service.updateDocuments(
+          new MetadataEntity({ id: mockMetadata.id }),
+          new IngredientEntity({ id: mockIngredient.id }),
+          'result',
+          'not-an-id',
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
 
-      const parentIngredient = {
-        _id: parentId,
-        version: 3,
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.findOne as vi.Mock).mockResolvedValue(
-        parentIngredient,
-      );
-      (ingredientsService.create as vi.Mock).mockResolvedValue({
-        ...mockIngredient,
-        parent: parentId,
-        version: 4,
-      });
-
-      const result = await service.saveDocumentsInternal(body);
-
-      expect(ingredientsService.findOne).toHaveBeenCalledWith({
-        _id: parentId,
-      });
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          parent: parentId,
-          version: 4,
-        }),
-      );
-      expect(result.ingredientData.version).toBe(4);
-    });
-
-    it('should default to version 1 when parent not found', async () => {
-      const parentId = '507f1f77bcf86cd799439020';
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        parent: parentId,
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.findOne as vi.Mock).mockResolvedValue(null);
-      (ingredientsService.create as vi.Mock).mockResolvedValue({
-        ...mockIngredient,
-        parent: parentId,
-        version: 1,
-      });
-
-      const result = await service.saveDocumentsInternal(body);
-
-      expect(result.ingredientData.version).toBe(1);
-    });
-
-    it('should handle custom status in saveDocumentsInternal', async () => {
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        status: IngredientStatus.UPLOADED,
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue({
-        ...mockIngredient,
-        status: IngredientStatus.UPLOADED,
-      });
-
-      await service.saveDocumentsInternal(body);
-
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          status: IngredientStatus.UPLOADED,
-        }),
-      );
-    });
-
-    it('should include prompt when provided', async () => {
-      const promptId = '507f1f77bcf86cd799439015';
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        prompt: promptId,
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.saveDocumentsInternal(body);
-
-      expect(metadataService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          prompt: promptId,
-        }),
-      );
-    });
-
-    it('should include sources when provided', async () => {
-      const sourceIds = [
-        '507f1f77bcf86cd799439021',
-        '507f1f77bcf86cd799439022',
-      ];
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        sources: sourceIds,
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.saveDocumentsInternal(body);
-
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sources: sourceIds,
-        }),
-      );
-    });
-
-    it('should pass through additional body properties', async () => {
-      const body = {
-        brand: '507f1f77bcf86cd799439016',
-        category: IngredientCategory.IMAGE,
-        customField: 'custom value',
-        extension: IngredientExtension.JPG,
-        organization: '507f1f77bcf86cd799439017',
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      (metadataService.create as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.create as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.saveDocumentsInternal(body);
-
-      expect(ingredientsService.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          customField: 'custom value',
-        }),
-      );
-    });
-  });
-
-  describe('updateDocuments - prompt linking', () => {
-    it('should link prompt bidirectionally when promptId is valid', async () => {
-      const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-      const promptId = '507f1f77bcf86cd799439015';
-
-      const mockPromptsService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      Object.defineProperty(service, 'promptsService', {
-        configurable: true,
-        get: () => mockPromptsService,
-      });
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.updateDocuments(
-        metadataData,
-        ingredientData,
-        result,
-        promptId,
-      );
-
-      expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: ingredientData.id,
-      });
-    });
-
-    it('should link prompt with the normalized promptId', async () => {
-      const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-      const promptId = '507f1f77bcf86cd799439015';
-
-      const mockPromptsService = {
-        patch: vi.fn().mockResolvedValue({}),
-      };
-
-      Object.defineProperty(service, 'promptsService', {
-        configurable: true,
-        get: () => mockPromptsService,
-      });
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.updateDocuments(
-        metadataData,
-        ingredientData,
-        result,
-        ` ${promptId} `,
-      );
-
-      expect(mockPromptsService.patch).toHaveBeenCalledWith(promptId, {
-        ingredient: ingredientData.id,
-      });
-    });
-
-    it('should not update prompt when promptId is invalid', async () => {
-      const metadataData = new MetadataEntity({
-        _id: '507f1f77bcf86cd799439013',
-      });
-      const ingredientData = new IngredientEntity({
-        _id: '507f1f77bcf86cd799439014',
-      });
-      const result = 'Updated result';
-      const invalidPromptId = 'not-a-valid-id';
-
-      const mockPromptsService = {
-        patch: vi.fn(),
-      };
-
-      Object.defineProperty(service, 'promptsService', {
-        configurable: true,
-        get: () => mockPromptsService,
-      });
-
-      (metadataService.patch as vi.Mock).mockResolvedValue(mockMetadata);
-      (ingredientsService.patch as vi.Mock).mockResolvedValue(mockIngredient);
-
-      await service.updateDocuments(
-        metadataData,
-        ingredientData,
-        result,
-        invalidPromptId as unknown as string,
-      );
-
-      expect(mockPromptsService.patch).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('private methods', () => {
-    it('should get metadataService through moduleRef', () => {
-      const metadataServiceGetter = Object.getOwnPropertyDescriptor(
-        Object.getPrototypeOf(service),
-        'metadataService',
-      )?.get;
-
-      if (metadataServiceGetter) {
-        const result = metadataServiceGetter.call(service);
-        expect(result).toBe(metadataService);
-        expect(moduleRef.get).toHaveBeenCalledWith(MetadataService, {
-          strict: false,
-        });
-      }
+      expect(metadataService.patch).not.toHaveBeenCalled();
+      expect(ingredientsService.patch).not.toHaveBeenCalled();
+      expect(promptsService.patch).not.toHaveBeenCalled();
     });
   });
 });

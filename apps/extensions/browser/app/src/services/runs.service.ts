@@ -19,8 +19,7 @@ export interface RunEventRecord {
 }
 
 export interface RunRecord {
-  _id?: string;
-  id?: string;
+  id: string;
   actionType: RunActionType;
   status: RunStatus;
   progress: number;
@@ -89,13 +88,7 @@ export class RunsService extends HTTPBaseService {
     options: CreateAndExecuteOptions = {},
   ): Promise<RunRecord> {
     const created = await this.createRun(actionType, input, options);
-    const runId = created._id || created.id;
-
-    if (!runId) {
-      throw new Error('Run id missing from create response.');
-    }
-
-    return this.executeRun(runId);
+    return this.executeRun(created.id);
   }
 }
 

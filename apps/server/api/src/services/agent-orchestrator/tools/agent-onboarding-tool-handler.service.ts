@@ -109,9 +109,9 @@ export class AgentOnboardingToolHandler {
     const voice = (params.voice as string) || 'conversational';
 
     const existing = await this.brandsService.findOne({
-      handle: normalizedHandle,
       isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
+      slug: normalizedHandle,
     });
 
     if (existing) {
@@ -130,13 +130,14 @@ export class AgentOnboardingToolHandler {
       backgroundColor: '#000000',
       description: `${description} Voice: ${voice}.`,
       fontFamily: 'montserrat_black',
-      handle: normalizedHandle,
       isSelected: false,
       label: name,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
+      slug: normalizedHandle,
       text: (params.niche as string) || undefined,
+      userId: ctx.userId,
     } as never);
 
     const onboardingStatus = await this.checkOnboardingStatus(ctx);
@@ -157,44 +158,43 @@ export class AgentOnboardingToolHandler {
   async checkOnboardingStatus(
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const organizationObjectId = ctx.organizationId;
+    const organizationId = ctx.organizationId;
 
     const [brand, credential, firstImage, firstVideo, publishedPost, settings] =
       await Promise.all([
         this.brandsService.findOne({
           isDeleted: false,
-          organization: organizationObjectId,
+          organizationId,
         }),
         this.credentialsService
           ? this.credentialsService.findOne({
               isConnected: true,
               isDeleted: false,
-              organization: organizationObjectId,
+              organizationId,
             })
           : null,
         this.imagesService
           ? this.imagesService.findOne({
               isDeleted: false,
-              organization: organizationObjectId,
+              organizationId,
             })
           : null,
         this.internalApi.callInternalFindOne(
           '/v1/videos',
-          organizationObjectId.toString(),
+          organizationId,
           ctx.authToken,
         ),
         this.postsService.findOne(
           {
             isDeleted: false,
-            organization: organizationObjectId,
+            organizationId,
             status: PostStatus.PUBLIC,
           },
           [],
         ),
         this.organizationSettingsService
           ? this.organizationSettingsService.findOne({
-              isDeleted: false,
-              organization: organizationObjectId,
+              organizationId,
             })
           : null,
       ]);
@@ -352,8 +352,7 @@ export class AgentOnboardingToolHandler {
     }
 
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (!settings?.id) {
@@ -438,8 +437,7 @@ export class AgentOnboardingToolHandler {
       (mission) => mission.isCompleted,
     );
     const currentSettings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: ctx.organizationId,
+      organizationId: ctx.organizationId,
     });
 
     if (currentSettings?.id) {
@@ -470,7 +468,7 @@ export class AgentOnboardingToolHandler {
 
       if (this.usersService) {
         const dbUser = await this.usersService.findOne({
-          _id: ctx.userId,
+          id: ctx.userId,
           isDeleted: false,
         });
 
@@ -510,7 +508,7 @@ export class AgentOnboardingToolHandler {
     let dbUserId: string | null = null;
     if (this.usersService) {
       const dbUser = await this.usersService.findOne({
-        _id: ctx.userId,
+        id: ctx.userId,
         isDeleted: false,
       });
 

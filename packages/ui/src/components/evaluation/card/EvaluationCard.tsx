@@ -140,9 +140,10 @@ export default function EvaluationCard({
   isEvaluating = false,
   isPublished = false,
 }: EvaluationCardProps) {
+  const evaluationData = evaluation?.data;
   // When published, start collapsed by default
   const [isCardCollapsed, setIsCardCollapsed] = useState(
-    () => isPublished && evaluation?.status === Status.COMPLETED,
+    () => isPublished && evaluationData?.status === Status.COMPLETED,
   );
   const [isScoresCollapsed, setIsScoresCollapsed] = useState(false);
   const [isAnalysisCollapsed, setIsAnalysisCollapsed] = useState(false);
@@ -152,14 +153,14 @@ export default function EvaluationCard({
 
   // Get the 3 lowest scores for "Focus Areas"
   const getLowestScores = () => {
-    if (!evaluation?.scores) {
+    if (!evaluationData?.scores) {
       return [];
     }
 
     const allScores: [string, number][] = [
-      ...Object.entries(evaluation.scores.technical ?? {}),
-      ...Object.entries(evaluation.scores.brand ?? {}),
-      ...Object.entries(evaluation.scores.engagement ?? {}),
+      ...Object.entries(evaluationData.scores.technical ?? {}),
+      ...Object.entries(evaluationData.scores.brand ?? {}),
+      ...Object.entries(evaluationData.scores.engagement ?? {}),
     ].filter(([key, val]) => key !== 'overall' && typeof val === 'number') as [
       string,
       number,
@@ -172,17 +173,17 @@ export default function EvaluationCard({
 
   // Determine header action based on state
   const getHeaderAction = () => {
-    if (!evaluation || evaluation.status === Status.FAILED) {
+    if (!evaluation || evaluationData?.status === Status.FAILED) {
       return undefined;
     }
-    if (evaluation.status === Status.PROCESSING || isEvaluating) {
+    if (evaluationData?.status === Status.PROCESSING || isEvaluating) {
       return undefined;
     }
 
-    const { overallScore } = evaluation;
+    const { overallScore } = evaluationData ?? {};
 
     // When published, show collapsed summary with score
-    if (isPublished && evaluation.status === Status.COMPLETED) {
+    if (isPublished && evaluationData?.status === Status.COMPLETED) {
       return (
         <Button
           type="button"
@@ -238,7 +239,7 @@ export default function EvaluationCard({
       label="Quality Evaluation"
       headerAction={getHeaderAction()}
       bodyClassName={
-        !evaluation || evaluation.status !== Status.COMPLETED
+        !evaluation || evaluationData?.status !== Status.COMPLETED
           ? undefined
           : 'space-y-4'
       }
@@ -293,6 +294,8 @@ function EvaluationCardContent({
   setIsSuggestionsCollapsed,
   onEvaluate,
 }: EvaluationCardContentProps): React.ReactNode {
+  const evaluationData = evaluation?.data;
+
   // No evaluation yet
   if (!evaluation) {
     return (
@@ -317,13 +320,13 @@ function EvaluationCardContent({
   }
 
   // Evaluation in progress
-  if (evaluation.status === Status.PROCESSING || isEvaluating) {
+  if (evaluationData?.status === Status.PROCESSING || isEvaluating) {
     return (
       <div className="flex items-center gap-3">
         <span className="animate-spin size-5 border-2 border-primary border-t-transparent rounded-full" />
         <div>
           <p className="text-sm font-medium">
-            {evaluation?.scores
+            {evaluationData?.scores
               ? 'Re-evaluating content…'
               : 'Analyzing content…'}
           </p>
@@ -337,7 +340,7 @@ function EvaluationCardContent({
   }
 
   // Evaluation failed
-  if (evaluation.status === Status.FAILED) {
+  if (evaluationData?.status === Status.FAILED) {
     return (
       <>
         <div className="flex items-center gap-3 text-error mb-4">
@@ -358,7 +361,7 @@ function EvaluationCardContent({
   }
 
   // Evaluation complete - show full results
-  const { scores, analysis, flags } = evaluation;
+  const { scores, analysis, flags } = evaluationData ?? {};
 
   // When published and collapsed, show summary
   if (isPublished && isCardCollapsed) {

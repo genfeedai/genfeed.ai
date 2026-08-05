@@ -279,7 +279,7 @@ describe('BrandsService', () => {
       await service.findBrandPosts(mockBrandId);
 
       expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('/posts'), {
-        params: { brand: mockBrandId },
+        params: { brandId: mockBrandId },
       });
     });
 

@@ -148,14 +148,14 @@ export class WorkflowCrudController {
       ? {
           ...(query.brandId ? { brandId: query.brandId } : {}),
           isDeleted,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
         }
       : {
           ...(query.brandId ? { brandId: query.brandId } : {}),
           isDeleted,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           OR: [
-            { user: publicMetadata.user },
+            { userId: publicMetadata.user },
             {
               metadata: {
                 equals: 'organization',
@@ -183,8 +183,8 @@ export class WorkflowCrudController {
   ): Promise<{ data: Record<string, unknown> | null }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     const template = (workflow as WorkflowDocument).comfyuiTemplate;
@@ -209,8 +209,8 @@ export class WorkflowCrudController {
     const workflow = await this.workflowsService.findVisibleOrThrow(
       workflowId,
       {
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
     );
 
@@ -259,8 +259,8 @@ export class WorkflowCrudController {
     const workflow = await this.workflowsService.findMutableOwnedOrThrow(
       workflowId,
       {
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
     );
 
@@ -304,8 +304,8 @@ export class WorkflowCrudController {
         const updated = await this.workflowsService.findOwnedOrThrow(
           workflowId,
           {
-            organization: publicMetadata.organization,
-            user: publicMetadata.user,
+            organizationId: publicMetadata.organization,
+            userId: publicMetadata.user,
           },
         );
 
@@ -333,8 +333,8 @@ export class WorkflowCrudController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
     await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
+      organizationId: publicMetadata.organization,
+      userId: publicMetadata.user,
     });
 
     const data = await this.workflowsService.remove(workflowId);

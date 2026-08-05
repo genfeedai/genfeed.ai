@@ -57,10 +57,10 @@ describe('AnalyticsSocialProcessor', () => {
     const job = makeJob({
       posts: [
         {
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'ig-123',
           id: 'post-1',
-          organization: 'org-1',
+          organizationId: 'org-1',
           platform: CredentialPlatform.INSTAGRAM,
         },
       ],

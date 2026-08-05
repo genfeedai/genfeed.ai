@@ -93,12 +93,36 @@ const BASELINE_HEADER = `/**
 const ROW_TYPE_PATTERN = /(?:Document|Entity)$/;
 
 const ROW_READ_METHODS = new Set([
+  'find',
   'findAll',
   'findById',
   'findFirst',
   'findMany',
   'findOne',
   'findOneById',
+]);
+const FILTER_METHODS = new Set([
+  'count',
+  'delete',
+  'deleteMany',
+  'find',
+  'findAll',
+  'findById',
+  'findFirst',
+  'findMany',
+  'findOne',
+  'findOneById',
+  'patchAll',
+  'removeAll',
+  'updateMany',
+]);
+const ROW_ARRAY_CALLBACK_METHODS = new Set([
+  'every',
+  'filter',
+  'find',
+  'flatMap',
+  'map',
+  'some',
 ]);
 
 const SUPPRESSION_COMMENT = 'relation-alias-ok';
@@ -171,6 +195,11 @@ export function collectRelationAliases(
     aliases.delete(name);
   }
 
+  // `_id` was the Mongo document identifier. Prisma rows expose only `id`;
+  // treating it as a canonical pair lets the same coercion/filter rules catch
+  // stale row reads without conflating intentional external `_id` payloads.
+  aliases.set('_id', 'id');
+
   return aliases;
 }
 
@@ -216,9 +245,23 @@ function isRowReadCall(expression: ts.Expression | undefined): boolean {
     return false;
   }
   const callee = call.expression;
+  if (
+    !ts.isPropertyAccessExpression(callee) ||
+    !ROW_READ_METHODS.has(callee.name.text)
+  ) {
+    return false;
+  }
+
+  if (callee.name.text !== 'find') {
+    return true;
+  }
+
+  const receiver = callee.expression;
   return (
-    ts.isPropertyAccessExpression(callee) &&
-    ROW_READ_METHODS.has(callee.name.text)
+    receiver.kind === ts.SyntaxKind.ThisKeyword ||
+    (ts.isIdentifier(receiver) && /service$/i.test(receiver.text)) ||
+    (ts.isPropertyAccessExpression(receiver) &&
+      /service$/i.test(receiver.name.text))
   );
 }
 
@@ -231,6 +274,7 @@ function isRowReadCall(expression: ts.Expression | undefined): boolean {
  */
 function collectRowBindings(sourceFile: ts.SourceFile): Set<string> {
   const bindings = new Set<string>();
+  const ambiguousCallbackBindings = new Set<string>();
 
   const visit = (node: ts.Node): void => {
     if (
@@ -269,6 +313,32 @@ function collectRowBindings(sourceFile: ts.SourceFile): Set<string> {
           isRowReadCall(source)
         ) {
           bindings.add(declaration.name.text);
+        }
+      }
+    }
+
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ROW_ARRAY_CALLBACK_METHODS.has(node.expression.name.text) &&
+      ts.isIdentifier(node.expression.expression)
+    ) {
+      const callback = node.arguments[0];
+      if (
+        callback &&
+        (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback))
+      ) {
+        const parameter = callback.parameters[0];
+        if (parameter && ts.isIdentifier(parameter.name)) {
+          const name = parameter.name.text;
+          if (bindings.has(node.expression.expression.text)) {
+            if (!ambiguousCallbackBindings.has(name)) {
+              bindings.add(name);
+            }
+          } else if (bindings.has(name)) {
+            ambiguousCallbackBindings.add(name);
+            bindings.delete(name);
+          }
         }
       }
     }
@@ -353,27 +423,140 @@ function isIdCoercion(access: ts.PropertyAccessExpression): boolean {
  * key fed from a relation alias. `normalizeWhere` drops `undefined` values, so
  * the tenant filter silently disappears instead of failing.
  */
-function isIdShapedFilterValue(
-  access: ts.PropertyAccessExpression,
-  alias: string,
-): boolean {
+function isIdShapedFilterValue(access: ts.Expression, alias: string): boolean {
   const value = unwrapValueExpression(access);
   const parent = value.parent;
-  if (
-    !parent ||
-    !ts.isPropertyAssignment(parent) ||
-    parent.initializer !== value
-  ) {
+  if (!parent) {
     return false;
   }
 
-  const key = ts.isIdentifier(parent.name)
-    ? parent.name.text
-    : ts.isStringLiteral(parent.name)
+  let key: string | null = null;
+  if (ts.isPropertyAssignment(parent) && parent.initializer === value) {
+    key = ts.isIdentifier(parent.name)
       ? parent.name.text
-      : null;
+      : ts.isStringLiteral(parent.name)
+        ? parent.name.text
+        : null;
+  } else if (
+    ts.isShorthandPropertyAssignment(parent) &&
+    parent.name === value
+  ) {
+    key = parent.name.text;
+  }
 
-  return key === '_id' || key === 'id' || key === alias || key === `${alias}Id`;
+  const isIdShaped =
+    key === '_id' || key === 'id' || key === alias || key === `${alias}Id`;
+  return isIdShaped && isFilterArgumentUsage(value);
+}
+
+function isFilterArgumentUsage(expression: ts.Expression): boolean {
+  let current: ts.Node = expression;
+  while (current.parent) {
+    const parent = current.parent;
+    if (ts.isCallExpression(parent)) {
+      if (
+        ts.isPropertyAccessExpression(parent.expression) &&
+        FILTER_METHODS.has(parent.expression.name.text) &&
+        parent.arguments[0] &&
+        expression.getStart() >= parent.arguments[0].getStart() &&
+        expression.getEnd() <= parent.arguments[0].getEnd()
+      ) {
+        return true;
+      }
+      return (
+        ts.isIdentifier(parent.expression) &&
+        parent.expression.text === 'scopedWhere' &&
+        parent.arguments[1] !== undefined &&
+        expression.getStart() >= parent.arguments[1].getStart() &&
+        expression.getEnd() <= parent.arguments[1].getEnd()
+      );
+    }
+
+    if (
+      ts.isFunctionLike(parent) ||
+      ts.isSourceFile(parent) ||
+      ts.isReturnStatement(parent)
+    ) {
+      return false;
+    }
+    current = parent;
+  }
+  return false;
+}
+
+type AliasValueBinding = {
+  alias: string;
+  receiver: string;
+  scalar: string;
+};
+
+function unwrapInputExpression(expression: ts.Expression): ts.Expression {
+  let current = expression;
+  while (
+    ts.isAsExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isParenthesizedExpression(current) ||
+    ts.isNonNullExpression(current)
+  ) {
+    current = current.expression;
+  }
+  return current;
+}
+
+/** Track one-hop locals such as `const organizationId = post.organization`. */
+function collectAliasValueBindings(
+  sourceFile: ts.SourceFile,
+  rowBindings: ReadonlySet<string>,
+  aliases: ReadonlyMap<string, string>,
+): Map<string, AliasValueBinding> {
+  const bindings = new Map<string, AliasValueBinding | null>();
+
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
+      const value = unwrapInputExpression(node.initializer);
+      if (
+        ts.isPropertyAccessExpression(value) &&
+        ts.isIdentifier(value.expression) &&
+        rowBindings.has(value.expression.text)
+      ) {
+        const scalar = aliases.get(value.name.text);
+        if (scalar) {
+          const name = node.name.text;
+          bindings.set(
+            name,
+            bindings.has(name)
+              ? null
+              : {
+                  alias: value.name.text,
+                  receiver: value.expression.text,
+                  scalar,
+                },
+          );
+        }
+      }
+    }
+
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+      ts.isIdentifier(node.left)
+    ) {
+      bindings.set(node.left.text, null);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+
+  return new Map(
+    [...bindings].filter(
+      (entry): entry is [string, AliasValueBinding] => entry[1] !== null,
+    ),
+  );
 }
 
 function isSuppressed(sourceFile: ts.SourceFile, position: number): boolean {
@@ -405,6 +588,11 @@ function checkFile(
   }
 
   const violations: RelationAliasViolation[] = [];
+  const aliasValueBindings = collectAliasValueBindings(
+    sourceFile,
+    rowBindings,
+    aliases,
+  );
 
   const visit = (node: ts.Node): void => {
     if (
@@ -431,6 +619,25 @@ function checkFile(
           receiver: node.expression.text,
           rule,
           scalar,
+        });
+      }
+    }
+
+    if (ts.isIdentifier(node)) {
+      const binding = aliasValueBindings.get(node.text);
+      if (
+        binding &&
+        isIdShapedFilterValue(node, binding.alias) &&
+        !isSuppressed(sourceFile, node.getStart())
+      ) {
+        violations.push({
+          alias: binding.alias,
+          file,
+          line:
+            sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1,
+          receiver: binding.receiver,
+          rule: 'filter-value',
+          scalar: binding.scalar,
         });
       }
     }

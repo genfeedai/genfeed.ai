@@ -7,7 +7,7 @@ import {
   VideoEaseCurve,
   VideoTransition,
 } from '@genfeedai/enums';
-import { ApiProperty, OmitType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -244,9 +244,26 @@ export class ZoomConfigDto {
   readonly endY?: number;
 }
 
-export class CreateVideoDto extends OmitType(CreateIngredientDto, [
-  'metadata',
-]) {
+export class CreateVideoDto extends CreateIngredientDto {
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ description: 'Video generation prompt', required: false })
+  readonly text?: string;
+
+  @IsNumber()
+  @IsOptional()
+  @ApiProperty({ description: 'Random generation seed', required: false })
+  readonly seed?: number;
+
+  @IsEntityId({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Source ingredient IDs used as video references',
+    required: false,
+    type: [String],
+  })
+  readonly references?: string[];
+
   @IsString()
   @IsOptional()
   @ApiProperty({

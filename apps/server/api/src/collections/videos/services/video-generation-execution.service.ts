@@ -154,7 +154,7 @@ export class VideoGenerationExecutionService {
           new MetadataEntity({ externalId: additionalGenerationId }),
         ),
         this.videosService.patch(documents.ingredientData.id, {
-          prompt: context.promptData.id,
+          promptId: context.promptData.id,
         }),
       ]);
       await this.createPlaceholderActivity({
@@ -181,24 +181,31 @@ export class VideoGenerationExecutionService {
   private createAdditionalDocuments(
     context: VideoGenerationContext,
   ): Promise<VideoGenerationSaveDocumentsResult> {
-    return this.sharedService.saveDocuments(context.user, {
-      ...context.createVideoDto,
-      brand: context.brand.id,
+    return this.sharedService.createMediaDocuments(context.user, {
+      brandId: context.brand.id,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.VIDEO,
       ),
+      duration: context.createVideoDto.duration,
       extension: MetadataExtension.MP4,
+      generationPrompt: context.promptData.original,
+      generationSeed: context.createVideoDto.seed,
+      hasAudio: context.createVideoDto.isAudioEnabled,
       height: context.height,
+      language: context.createVideoDto.language,
       model: context.model,
-      organization: context.brand.organizationId,
-      prompt: context.promptData.id,
-      references:
-        context.referenceIds.length > 0 ? context.referenceIds : undefined,
+      negativePrompt: context.createVideoDto.negativePrompt,
+      organizationId: context.brand.organizationId,
+      promptId: context.promptData.id,
+      resolution: context.createVideoDto.resolution,
+      scope: context.createVideoDto.scope,
+      sourceIds: context.referenceIds,
       status: IngredientStatus.PROCESSING,
       style:
         context.createVideoDto.style === ''
           ? null
           : context.createVideoDto.style,
+      tagIds: context.createVideoDto.tags,
       width: context.width,
     });
   }
@@ -244,11 +251,11 @@ export class VideoGenerationExecutionService {
           context.user.id,
           getUserRoomName(context.user.id),
           {
-            brand: context.brand.id.toString(),
+            brandId: context.brand.id.toString(),
             key: ActivityKey.VIDEO_FAILED,
-            organization: context.publicMetadata.organization,
+            organizationId: context.publicMetadata.organization,
             source: ActivitySource.VIDEO_GENERATION,
-            user: context.publicMetadata.user,
+            userId: context.publicMetadata.user,
             value: JSON.stringify({
               error: (error as Error)?.message || 'Generation failed',
               ingredientId: pendingId,
@@ -264,13 +271,13 @@ export class VideoGenerationExecutionService {
   ): Promise<void> {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: params.brandId,
+        brandId: params.brandId,
         entityId: params.ingredientId,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: params.organization,
+        organizationId: params.organization,
         source: ActivitySource.VIDEO_GENERATION,
-        user: params.user,
+        userId: params.user,
         value: JSON.stringify({
           ingredientId: params.ingredientId.toString(),
           model: params.model,

@@ -68,9 +68,8 @@ export abstract class BaseCRUDController<
   ) {
     this.constructorName = this.constructor.name;
 
-    // Convert string populate fields to optimized versions.
-    // NOTE: 'user' is excluded because User data lives on the AUTH database.
-    // Use relationInclude-based aggregation when a CLOUD record needs user details.
+    // Convert known relation names to explicit projections. Unknown relations
+    // retain full loading because their serializer requirements are domain-specific.
     this.optimizedPopulateFields = populateFields
       .filter((field) => field !== 'user')
       .map((field) => {
@@ -88,8 +87,7 @@ export abstract class BaseCRUDController<
             case 'parent':
               return PopulatePatterns.parentMinimal;
             default:
-              // For unknown fields, populate minimally
-              return PopulateBuilder.minimal(field);
+              return PopulateBuilder.create(field);
           }
         }
         return field;
@@ -201,7 +199,7 @@ export abstract class BaseCRUDController<
     // Only populate user if the entity might have one (can be overridden by child controllers)
     const populateForOwnershipCheck = this.getPopulateForOwnershipCheck();
     const existing = await this.service.findOne(
-      { _id: id },
+      { id },
       populateForOwnershipCheck,
     );
 
@@ -222,13 +220,13 @@ export abstract class BaseCRUDController<
     if (!canModifyEntity) {
       const existingRecord = existing as Record<string, unknown>;
       const existingOrganizationId = resolveScopeId(
-        existingRecord.organizationId ?? existingRecord.organization,
+        existingRecord.organizationId,
       );
       const enrichedRecord = enrichedDto as Record<string, unknown>;
       if (existingOrganizationId) {
-        enrichedRecord.organization = existingOrganizationId;
+        enrichedRecord.organizationId = existingOrganizationId;
       } else {
-        delete enrichedRecord.organization;
+        delete enrichedRecord.organizationId;
       }
     }
     const data = await this.service.patch(
@@ -322,7 +320,7 @@ export abstract class BaseCRUDController<
     if (adminFilter) {
       Object.assign(matchFilter, adminFilter);
     } else {
-      matchFilter.user = publicMetadata.user;
+      matchFilter.userId = publicMetadata.user;
     }
 
     return {
@@ -335,13 +333,11 @@ export abstract class BaseCRUDController<
    * Build the single-record lookup used by findOne and remove.
    *
    * Tenancy is NOT enforced here — see canUserReadEntity. `service.findOne`
-   * runs no unknown-field audit, so an `organizationId` key would throw on
-   * models that lack the column while the `organization` alias would be
-   * silently dropped (fail-open). Soft deletes are safe to filter because
+   * runs no unknown-field audit. Soft deletes are safe to filter because
    * processSearchParams drops `isDeleted` for models without the field.
    */
   public buildFindOneQuery(_user: User, id: string): Record<string, unknown> {
-    return { _id: id, isDeleted: false };
+    return { id, isDeleted: false };
   }
 
   /**
@@ -365,16 +361,12 @@ export abstract class BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as Record<string, unknown>;
 
-    const entityOrganizationId = resolveScopeId(
-      entityRecord.organizationId ?? entityRecord.organization,
-    );
+    const entityOrganizationId = resolveScopeId(entityRecord.organizationId);
     if (entityOrganizationId) {
       return entityOrganizationId === publicMetadata.organization;
     }
 
-    const entityBrandId = resolveScopeId(
-      entityRecord.brandId ?? entityRecord.brand,
-    );
+    const entityBrandId = resolveScopeId(entityRecord.brandId);
     if (entityBrandId) {
       return entityBrandId === publicMetadata.brand;
     }
@@ -391,82 +383,60 @@ export abstract class BaseCRUDController<
    * DELETED rather than preferred: `BaseService.normalizeData` remaps the
    * `organization` alias onto the real `organizationId` column, so honouring
    * a client value would let any authenticated caller write rows into another
-   * tenant. `brand` stays caller-selectable — a user legitimately picks among
-   * their own brands, and the row is still pinned to the caller's org.
+   * tenant. Canonical `brandId` stays caller-selectable — a user legitimately
+   * picks among their own brands, and the row is still pinned to the caller's
+   * organization.
    */
   public enrichCreateDto(createDto: Partial<CreateDto>, user: User): CreateDto {
     const publicMetadata = getPublicMetadata(user);
+    const dto = { ...(createDto as Record<string, unknown>) };
 
-    const dtoRecord = { ...createDto } as Record<string, unknown>;
-
-    let brand: string | undefined;
-    if (publicMetadata.brand) {
-      brand = publicMetadata.brand;
-    }
-    if (Object.hasOwn(dtoRecord, 'brand') && dtoRecord.brand) {
-      brand = String(dtoRecord.brand);
-    }
-
-    delete dtoRecord.organization;
-    delete dtoRecord.organizationId;
-    delete dtoRecord.user;
-    delete dtoRecord.userId;
-
-    return {
-      ...dtoRecord,
-      brand,
-      organization: publicMetadata.organization || undefined,
-      user: publicMetadata.user,
-    } as CreateDto;
-  }
-
-  public async enrichUpdateDto(
-    updateDto: Partial<UpdateDto>,
-    user: User,
-  ): Promise<UpdateDto> {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Convert common relationship ObjectId fields from various input types
-    const dto: Record<string, unknown> = { ...updateDto } as Record<
-      string,
-      unknown
-    >;
-
-    // Handle common relationship fields that might need ObjectId conversion.
-    // `organization` is deliberately absent: it is never taken from the body,
-    // so there is nothing to convert (see enrichCreateDto for the rationale).
-    const relationshipFields = ['parent', 'folder', 'brand'];
-    for (const field of relationshipFields) {
-      if (Object.hasOwn(dto, field)) {
-        dto[field] = await EntityIdUtil.convertRelationshipField(
-          dto[field],
-          field,
-        );
-      }
-    }
-
-    let brand: string | undefined;
-    if (publicMetadata.brand) {
-      brand = publicMetadata.brand;
-    }
-    if (Object.hasOwn(dto, 'brand')) {
-      brand = dto.brand as string | undefined;
-    }
-
-    // Tenant/identity scope is authoritative from the auth token — a body
-    // value would otherwise let a caller re-parent an existing row into
-    // another tenant on update, which is the same bypass as on create.
+    delete dto.brand;
     delete dto.organization;
     delete dto.organizationId;
     delete dto.user;
     delete dto.userId;
 
-    return await Promise.resolve({
-      ...dto,
-      brand,
-      organization: publicMetadata.organization || undefined,
-      user: publicMetadata.user,
-    } as UpdateDto);
+    if (this.serviceSupportsField('brandId')) {
+      dto.brandId = dto.brandId ?? publicMetadata.brand;
+    }
+    if (this.serviceSupportsField('organizationId')) {
+      dto.organizationId = publicMetadata.organization;
+    }
+    if (this.serviceSupportsField('userId')) {
+      dto.userId = publicMetadata.user;
+    }
+
+    return dto as CreateDto;
+  }
+
+  /**
+   * Keep controller unit doubles compatible while production services use the
+   * Prisma metadata-backed field check. Older focused controller specs provide
+   * only the service methods exercised by the endpoint; treating an omitted
+   * capability method as supported preserves their historical BaseService
+   * contract without weakening the production path.
+   */
+  private serviceSupportsField(fieldName: string): boolean {
+    const supportsField = this.service.supportsField;
+    return typeof supportsField === 'function'
+      ? supportsField.call(this.service, fieldName)
+      : true;
+  }
+
+  public async enrichUpdateDto(
+    updateDto: Partial<UpdateDto>,
+    _user: User,
+  ): Promise<UpdateDto> {
+    const dto = { ...(updateDto as Record<string, unknown>) };
+
+    delete dto.brand;
+    delete dto.organization;
+    delete dto.organizationId;
+    delete dto.user;
+    delete dto.userId;
+
+    return await Promise.resolve(dto as UpdateDto);
   }
 
   /**
@@ -476,14 +446,9 @@ export abstract class BaseCRUDController<
   public canUserModifyEntity(user: User, entity: T): boolean {
     const publicMetadata = getPublicMetadata(user);
 
-    // Default: user can only modify their own entities. Read the scalar
-    // `userId` FK first — `user` is a Mongo-era alias, undefined unless a
-    // child controller populates it via getPopulateForOwnershipCheck().
+    // Default: user can only modify their own entities through the scalar FK.
     const entityRecord = entity as Record<string, unknown>;
-    const entityUser = (entityRecord.userId ?? entityRecord.user) as
-      | { id?: { toString(): string }; toString(): string }
-      | undefined;
-    const entityUserId = entityUser?.id?.toString() || entityUser?.toString();
+    const entityUserId = resolveScopeId(entityRecord.userId);
     return entityUserId === publicMetadata.user;
   }
 

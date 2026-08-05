@@ -11,15 +11,7 @@ export class ReplyBotConfigsQueryDto extends BaseQueryDto {
   })
   @IsString()
   @IsOptional()
-  declare organization?: string;
-
-  @ApiPropertyOptional({
-    description: 'Filter by brand ID',
-    example: '507f1f77bcf86cd799439011',
-  })
-  @IsString()
-  @IsOptional()
-  declare brand?: string;
+  declare organizationId?: string;
 
   @ApiPropertyOptional({
     description: 'Filter by bot type',
@@ -47,14 +39,4 @@ export class ReplyBotConfigsQueryDto extends BaseQueryDto {
   @IsOptional()
   @Transform(({ value }) => value === 'true' || value === true)
   isActive?: boolean;
-
-  @ApiPropertyOptional({
-    description: 'Include deleted items',
-    example: false,
-  })
-  @IsBoolean()
-  @IsOptional()
-  @Transform(({ value }) => value === 'true' || value === true)
-  // @ts-expect-error TS2416
-  isDeleted?: boolean;
 }

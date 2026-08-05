@@ -158,7 +158,7 @@
           "brandId": {
             "description": "Brand scope for this turn",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "content": {
             "description": "The user message content for this turn",
@@ -203,11 +203,13 @@
         "properties": {
           "agentDailyCreditCap": {
             "description": "Optional per-agent daily cap enforced against the pooled org balance",
-            "type": "object"
+            "nullable": true,
+            "type": "number"
           },
           "brandDailyCreditCap": {
             "description": "Optional per-brand daily cap enforced against the pooled org balance",
-            "type": "object"
+            "nullable": true,
+            "type": "number"
           },
           "useOrganizationPool": {
             "default": true,
@@ -243,7 +245,8 @@
           },
           "generationModelOverride": {
             "description": "Optional advanced override for generation model selection",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "qualityTierDefault": {
             "default": "balanced",
@@ -257,11 +260,13 @@
           },
           "reviewModelOverride": {
             "description": "Optional advanced override for review model selection",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "thinkingModelOverride": {
             "description": "Optional advanced override for the planner/thinking model",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -1189,6 +1194,51 @@
         ],
         "type": "object"
       },
+      "ConnectCredentialDto": {
+        "properties": {
+          "brandId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId"
+        ],
+        "type": "object"
+      },
+      "ConnectMastodonCredentialDto": {
+        "properties": {
+          "brandId": {
+            "type": "string"
+          },
+          "instanceUrl": {
+            "description": "Public Mastodon instance URL or hostname",
+            "example": "mastodon.social",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "instanceUrl"
+        ],
+        "type": "object"
+      },
+      "ConnectShopifyCredentialDto": {
+        "properties": {
+          "brandId": {
+            "type": "string"
+          },
+          "shop": {
+            "description": "Canonical Shopify store domain",
+            "example": "acme.myshopify.com",
+            "type": "string"
+          }
+        },
+        "required": [
+          "brandId",
+          "shop"
+        ],
+        "type": "object"
+      },
       "ContentDraftRejectDto": {
         "properties": {},
         "type": "object"
@@ -1365,7 +1415,7 @@
       },
       "CreateAgentGoalDto": {
         "properties": {
-          "brand": {
+          "brandId": {
             "description": "Brand ID",
             "type": "string"
           },
@@ -1394,10 +1444,6 @@
             ],
             "type": "string"
           },
-          "organization": {
-            "description": "Organization ID",
-            "type": "string"
-          },
           "startDate": {
             "description": "Optional start date",
             "format": "date-time",
@@ -1406,10 +1452,6 @@
           "targetValue": {
             "description": "Target metric value",
             "type": "number"
-          },
-          "user": {
-            "description": "User ID",
-            "type": "string"
           }
         },
         "required": [
@@ -1525,10 +1567,10 @@
               }
             ]
           },
-          "parent": {
+          "parentId": {
             "type": "string"
           },
-          "parentModel": {
+          "parentType": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/AssetParent"
@@ -1537,7 +1579,7 @@
           }
         },
         "required": [
-          "parentModel",
+          "parentType",
           "category"
         ],
         "type": "object"
@@ -1668,7 +1710,7 @@
             "maxLength": 200,
             "type": "string"
           },
-          "brand": {
+          "brandId": {
             "description": "Brand ID associated with the bookmark",
             "type": "string"
           },
@@ -1690,7 +1732,7 @@
             "maxLength": 2000,
             "type": "string"
           },
-          "folder": {
+          "folderId": {
             "description": "Folder ID to organize the bookmark",
             "type": "string"
           },
@@ -1721,7 +1763,7 @@
             "description": "Platform-specific data (engagement metrics, IDs, etc.)",
             "type": "object"
           },
-          "tags": {
+          "tagIds": {
             "description": "Array of tag IDs",
             "items": {
               "type": "string"
@@ -1882,7 +1924,7 @@
             "default": "srt",
             "description": "The format of the caption file"
           },
-          "ingredient": {
+          "ingredientId": {
             "description": "The ingredient ID that this caption belongs to",
             "type": "string"
           },
@@ -1893,7 +1935,7 @@
           }
         },
         "required": [
-          "ingredient",
+          "ingredientId",
           "language",
           "format"
         ],
@@ -1980,10 +2022,6 @@
       },
       "CreateClipProjectDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
           "brandId": {
             "description": "Brand context for clip identity and downstream ownership",
             "type": "string"
@@ -1998,8 +2036,7 @@
             "description": "Project name",
             "type": "string"
           },
-          "organization": {
-            "description": "The organization ID that owns this resource",
+          "organizationId": {
             "type": "string"
           },
           "referenceFrames": {
@@ -2030,14 +2067,11 @@
             ],
             "description": "Project processing status"
           },
-          "user": {
-            "description": "The user ID who created this resource",
+          "userId": {
             "type": "string"
           }
         },
         "required": [
-          "user",
-          "organization",
           "sourceVideoUrl"
         ],
         "type": "object"
@@ -2105,10 +2139,6 @@
       },
       "CreateClipResultDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
           "clipType": {
             "description": "Clip type classification",
             "enum": [
@@ -2146,11 +2176,10 @@
             ],
             "description": "Clip generation mode (defaults to avatar)"
           },
-          "organization": {
-            "description": "The organization ID that owns this resource",
+          "organizationId": {
             "type": "string"
           },
-          "project": {
+          "projectId": {
             "description": "The clip project ID",
             "type": "string"
           },
@@ -2191,14 +2220,15 @@
           },
           "terminalAt": {
             "description": "Timestamp when the clip reached a terminal status",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "title": {
             "description": "Clip title",
             "type": "string"
           },
-          "user": {
-            "description": "The user ID who created this resource",
+          "userId": {
             "type": "string"
           },
           "viralityScore": {
@@ -2207,9 +2237,7 @@
           }
         },
         "required": [
-          "user",
-          "organization",
-          "project",
+          "projectId",
           "index",
           "title",
           "startTime",
@@ -2220,7 +2248,7 @@
       },
       "CreateContentPerformanceDto": {
         "properties": {
-          "brand": {
+          "brandId": {
             "description": "Brand ID",
             "type": "string"
           },
@@ -2304,7 +2332,7 @@
             ],
             "type": "string"
           },
-          "post": {
+          "postId": {
             "type": "string"
           },
           "promptUsed": {
@@ -2338,7 +2366,7 @@
           }
         },
         "required": [
-          "brand",
+          "brandId",
           "platform",
           "contentType",
           "measuredAt"
@@ -2753,7 +2781,7 @@
           "label": {
             "type": "string"
           },
-          "organization": {
+          "organizationId": {
             "type": "string"
           }
         },
@@ -2844,7 +2872,7 @@
             "description": "The ingredient ID to copy from",
             "type": "string"
           },
-          "parent": {
+          "parentId": {
             "description": "The parent brand ID",
             "type": "string"
           }
@@ -2852,7 +2880,7 @@
         "required": [
           "ingredientId",
           "category",
-          "parent"
+          "parentId"
         ],
         "type": "object"
       },
@@ -2933,6 +2961,12 @@
       },
       "CreateImageDto": {
         "properties": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
           "autoSelectModel": {
             "default": false,
             "description": "Automatically select the best model based on the prompt. If true, the model parameter will be ignored.",
@@ -2945,7 +2979,11 @@
             },
             "type": "array"
           },
-          "brand": {
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "brandingMode": {
@@ -2978,8 +3016,8 @@
             ],
             "type": "string"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
           },
           "fontFamily": {
@@ -2990,6 +3028,12 @@
             "default": "landscape",
             "description": "The format for image generation",
             "type": "string"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
+            "type": "number"
           },
           "groupId": {
             "description": "Group ID for batch operations (e.g., interpolation pairs)",
@@ -3017,6 +3061,12 @@
             "default": false,
             "type": "boolean"
           },
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
+          },
           "lens": {
             "description": "The lens type for image generation",
             "type": "string"
@@ -3034,7 +3084,7 @@
             "description": "Optional metadata associated with the image"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "model": {
@@ -3042,21 +3092,32 @@
             "description": "The model to use for image generation. Can be a ModelKey enum value or a custom model path (e.g., Replicate destination or training model ID).",
             "type": "string"
           },
+          "modelUsed": {
+            "type": "string"
+          },
           "mood": {
             "description": "The mood for image generation",
+            "type": "string"
+          },
+          "negativePrompt": {
             "type": "string"
           },
           "order": {
             "default": 0,
             "type": "number"
           },
+          "organizationId": {
+            "type": "string"
+          },
           "outputs": {
             "default": 1,
             "description": "Number of images to generate",
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
             "type": "string"
           },
           "prioritize": {
@@ -3068,7 +3129,7 @@
             "default": "balanced",
             "description": "Priority for auto model routing: quality, speed, cost, or balanced."
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "promptTemplate": {
@@ -3096,7 +3157,7 @@
             "type": "string"
           },
           "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
+            "description": "Source ingredient IDs used as image references",
             "items": {
               "type": "string"
             },
@@ -3122,6 +3183,7 @@
             ]
           },
           "seed": {
+            "description": "Random generation seed",
             "type": "number"
           },
           "sources": {
@@ -3155,9 +3217,10 @@
             "type": "array"
           },
           "text": {
+            "description": "Image generation prompt",
             "type": "string"
           },
-          "training": {
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -3172,9 +3235,15 @@
             "description": "Whether to use prompt templates",
             "type": "boolean"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           },
           "waitForCompletion": {
             "default": false,
@@ -3191,6 +3260,7 @@
           "category",
           "order",
           "version",
+          "text",
           "style",
           "width",
           "height",
@@ -3217,7 +3287,7 @@
       },
       "CreateLinkDto": {
         "properties": {
-          "brand": {
+          "brandId": {
             "description": "The brand ID this link belongs to",
             "type": "string"
           },
@@ -3240,7 +3310,7 @@
           }
         },
         "required": [
-          "brand",
+          "brandId",
           "label",
           "category",
           "url"
@@ -3513,7 +3583,7 @@
             "description": "Required if assistant is not provided",
             "type": "string"
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "result": {
@@ -3521,11 +3591,51 @@
             "type": "string"
           },
           "style": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/MetadataStyle"
-              }
-            ]
+            "enum": [
+              "3d-model",
+              "analog-film",
+              "anime",
+              "asmr",
+              "authentic",
+              "bold",
+              "branded",
+              "cinematic",
+              "comic-book",
+              "commercial",
+              "corporate",
+              "cyberpunk",
+              "digital-art",
+              "documentary",
+              "editorial",
+              "educational",
+              "fantasy-art",
+              "fashion",
+              "infographic",
+              "isometric",
+              "lifestyle",
+              "line-art",
+              "lowpoly",
+              "meme",
+              "metal",
+              "minimal",
+              "modeling-compound",
+              "neonpunk",
+              "origami",
+              "photographic",
+              "pixel-art",
+              "portrait",
+              "promotional",
+              "social-media",
+              "space",
+              "steampunk",
+              "surrealism",
+              "thumbnail",
+              "transformation",
+              "vintage",
+              "watercolor"
+            ],
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -3535,12 +3645,22 @@
       },
       "CreateMusicDto": {
         "properties": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
           "autoSelectModel": {
             "default": false,
             "description": "Automatically select the best model based on the prompt. If true, the model parameter will be ignored.",
             "type": "boolean"
           },
-          "brand": {
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "category": {
@@ -3572,9 +3692,15 @@
             "minimum": 4,
             "type": "number"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
+            "type": "number"
           },
           "groupId": {
             "description": "Group ID for batch operations (e.g., interpolation pairs)",
@@ -3592,15 +3718,21 @@
             "default": false,
             "type": "boolean"
           },
-          "metadata": {
-            "$ref": "#/components/schemas/CreateMetadataDto"
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "model": {
             "description": "Model key or genfeedai/<id>",
+            "type": "string"
+          },
+          "modelUsed": {
             "type": "string"
           },
           "modelVersion": {
@@ -3608,9 +3740,15 @@
             "description": "Model version: melody, large, etc.",
             "type": "string"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
+          },
+          "organizationId": {
+            "type": "string"
           },
           "outputs": {
             "default": 1,
@@ -3619,8 +3757,10 @@
             "minimum": 1,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
             "type": "string"
           },
           "prioritize": {
@@ -3632,7 +3772,7 @@
             "default": "balanced",
             "description": "Priority for auto model routing: quality, speed, cost, or balanced."
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "qualityFeedback": {
@@ -3654,13 +3794,6 @@
               "needs_review"
             ],
             "type": "string"
-          },
-          "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           "reviewStatus": {
             "allOf": [
@@ -3721,7 +3854,7 @@
             "description": "Top-p sampling parameter",
             "type": "number"
           },
-          "training": {
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -3731,9 +3864,15 @@
             },
             "type": "array"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           },
           "waitForCompletion": {
             "default": false,
@@ -3743,9 +3882,9 @@
         },
         "required": [
           "category",
-          "text",
           "order",
-          "version"
+          "version",
+          "text"
         ],
         "type": "object"
       },
@@ -3825,7 +3964,8 @@
           },
           "authProviderOrganizationId": {
             "description": "legacy auth provider organization ID used to synchronize organization state",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "category": {
             "allOf": [
@@ -3870,13 +4010,13 @@
             "minLength": 2,
             "type": "string"
           },
-          "user": {
+          "userId": {
             "description": "The user ID who owns this organization",
             "type": "string"
           }
         },
         "required": [
-          "user",
+          "userId",
           "label",
           "isSelected"
         ],
@@ -3892,10 +4032,6 @@
             ],
             "description": "AI configuration for reply generation"
           },
-          "brand": {
-            "description": "Brand this campaign is scoped to",
-            "type": "string"
-          },
           "campaignType": {
             "allOf": [
               {
@@ -3905,7 +4041,7 @@
             "description": "Type of campaign",
             "example": "manual"
           },
-          "credential": {
+          "credentialId": {
             "description": "Credential to use for posting replies",
             "type": "string"
           },
@@ -3939,10 +4075,6 @@
             "example": "Product Launch Campaign",
             "type": "string"
           },
-          "organization": {
-            "description": "Organization that owns this campaign",
-            "type": "string"
-          },
           "platform": {
             "allOf": [
               {
@@ -3967,14 +4099,10 @@
               }
             ],
             "description": "Schedule configuration"
-          },
-          "user": {
-            "description": "User that created this campaign",
-            "type": "string"
           }
         },
         "required": [
-          "credential",
+          "credentialId",
           "label",
           "platform",
           "campaignType"
@@ -4043,7 +4171,7 @@
             "description": "Creative revision or experiment version label",
             "type": "string"
           },
-          "credential": {
+          "credentialId": {
             "description": "The credential ID (platform account) to use for publishing",
             "type": "string"
           },
@@ -4101,7 +4229,7 @@
             "description": "Position/order within thread",
             "type": "number"
           },
-          "parent": {
+          "parentId": {
             "description": "Parent post ID for thread replies",
             "type": "string"
           },
@@ -4198,7 +4326,7 @@
         },
         "required": [
           "ingredients",
-          "credential",
+          "credentialId",
           "description",
           "status"
         ],
@@ -4213,7 +4341,7 @@
             },
             "type": "array"
           },
-          "brand": {
+          "brandId": {
             "description": "The brand ID for the preset (null for org-wide presets)",
             "type": "string"
           },
@@ -4234,7 +4362,7 @@
             "example": "A detailed description of the element",
             "type": "string"
           },
-          "ingredient": {
+          "ingredientId": {
             "description": "Ingredient image ID used as thumbnail for the preset",
             "type": "string"
           },
@@ -4261,7 +4389,7 @@
             "description": "Mood key to auto-select",
             "type": "string"
           },
-          "organization": {
+          "organizationId": {
             "description": "The organization ID for the preset",
             "type": "string"
           },
@@ -4330,7 +4458,8 @@
             },
             "type": "array"
           },
-          "brand": {
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "camera": {
@@ -4370,7 +4499,8 @@
           "mood": {
             "type": "string"
           },
-          "organization": {
+          "organizationId": {
+            "nullable": true,
             "type": "string"
           },
           "original": {
@@ -4428,6 +4558,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "userId": {
+            "type": "string"
           }
         },
         "required": [
@@ -4710,7 +4843,7 @@
           "bio": {
             "type": "string"
           },
-          "credential": {
+          "credentialId": {
             "type": "string"
           },
           "displayName": {
@@ -4812,11 +4945,19 @@
             "type": "string"
           },
           "assigneeUserId": {
-            "description": "legacy auth provider user ID of the assignee",
+            "description": "Canonical user ID of the assignee",
+            "type": "string"
+          },
+          "brandId": {
+            "description": "Canonical brand ID for the task",
             "type": "string"
           },
           "description": {
             "description": "Detailed task description",
+            "type": "string"
+          },
+          "elevenlabsVoiceId": {
+            "description": "ElevenLabs voice ID for facecam tasks",
             "type": "string"
           },
           "goalId": {
@@ -4895,7 +5036,7 @@
             "type": "string"
           },
           "voiceId": {
-            "description": "Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or Voice document _id)",
+            "description": "Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or canonical Voice ID)",
             "type": "string"
           },
           "voiceProvider": {
@@ -5045,7 +5186,7 @@
             "type": "number"
           },
           "sources": {
-            "description": "Array of source ObjectIds",
+            "description": "Array of source ingredient IDs",
             "items": {
               "type": "string"
             },
@@ -5141,6 +5282,12 @@
       },
       "CreateVideoDto": {
         "properties": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
           "audioUrl": {
             "description": "Audio file URL for avatar/talking-head generation (Kling Avatar V2). Duration matches audio length.",
             "type": "string"
@@ -5169,7 +5316,11 @@
             "description": "The bookmark ID that this video was generated from",
             "type": "string"
           },
-          "brand": {
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "brandingMode": {
@@ -5217,8 +5368,8 @@
             "description": "The end frame image ID for video interpolation. When provided with a reference image, generates video that interpolates between the start and end frames.",
             "type": "string"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
           },
           "fontFamily": {
@@ -5228,6 +5379,12 @@
           "format": {
             "description": "The format for video generation",
             "type": "string"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
+            "type": "number"
           },
           "groupId": {
             "description": "Group ID for batch operations (e.g., interpolation pairs)",
@@ -5259,6 +5416,9 @@
             "default": false,
             "type": "boolean"
           },
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
           "language": {
             "description": "The language code for the video content",
             "type": "string"
@@ -5280,11 +5440,14 @@
             "description": "Optional metadata associated with the video"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "model": {
             "description": "The model to use for video generation",
+            "type": "string"
+          },
+          "modelUsed": {
             "type": "string"
           },
           "mood": {
@@ -5303,9 +5466,15 @@
             "description": "Mute the original video audio when adding background music",
             "type": "boolean"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
+          },
+          "organizationId": {
+            "type": "string"
           },
           "outputs": {
             "default": 1,
@@ -5314,8 +5483,10 @@
             "minimum": 1,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
             "type": "string"
           },
           "prioritize": {
@@ -5327,7 +5498,7 @@
             "default": "balanced",
             "description": "Priority for auto model routing: quality, speed, cost, or balanced."
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "promptTemplate": {
@@ -5355,7 +5526,7 @@
             "type": "string"
           },
           "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
+            "description": "Source ingredient IDs used as video references",
             "items": {
               "type": "string"
             },
@@ -5389,6 +5560,7 @@
             ]
           },
           "seed": {
+            "description": "Random generation seed",
             "type": "number"
           },
           "sounds": {
@@ -5443,9 +5615,10 @@
             "type": "string"
           },
           "text": {
+            "description": "Video generation prompt",
             "type": "string"
           },
-          "training": {
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -5460,9 +5633,15 @@
             "description": "Whether to use prompt templates",
             "type": "boolean"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           },
           "waitForCompletion": {
             "default": false,
@@ -5530,13 +5709,6 @@
             "description": "Brand ID this workflow is scoped to",
             "type": "string"
           },
-          "brands": {
-            "description": "Deprecated legacy brand IDs input. Only the first brand ID is used.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "completedAt": {
             "description": "Workflow completion timestamp",
             "format": "date-time",
@@ -5595,10 +5767,6 @@
               "$ref": "#/components/schemas/WorkflowVisualNodeDto"
             },
             "type": "array"
-          },
-          "organization": {
-            "description": "The organization ID that owns this resource. Server-owned.",
-            "type": "string"
           },
           "progress": {
             "description": "Workflow progress percentage",
@@ -5687,10 +5855,6 @@
               }
             ],
             "description": "When the workflow should trigger"
-          },
-          "user": {
-            "description": "The user ID who created this resource. Server-owned.",
-            "type": "string"
           }
         },
         "type": "object"
@@ -5722,13 +5886,13 @@
             "default": "manual",
             "description": "What triggered this execution"
           },
-          "workflow": {
+          "workflowId": {
             "description": "Workflow ID to execute",
             "type": "string"
           }
         },
         "required": [
-          "workflow",
+          "workflowId",
           "trigger"
         ],
         "type": "object"
@@ -5873,7 +6037,7 @@
           "preview": {
             "description": "Preview audio URL for catalog voices",
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "provider": {
             "enum": [
@@ -6334,7 +6498,7 @@
             "minimum": 1,
             "type": "number"
           },
-          "credential": {
+          "credentialId": {
             "description": "Credential ID for the selected account",
             "type": "string"
           },
@@ -6380,7 +6544,7 @@
         "required": [
           "topic",
           "count",
-          "credential",
+          "credentialId",
           "format"
         ],
         "type": "object"
@@ -6401,10 +6565,10 @@
           "model": {
             "type": "string"
           },
-          "parent": {
+          "parentId": {
             "type": "string"
           },
-          "parentModel": {
+          "parentType": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/AssetParent"
@@ -6416,8 +6580,8 @@
           }
         },
         "required": [
-          "parent",
-          "parentModel",
+          "parentId",
+          "parentType",
           "category",
           "text",
           "model"
@@ -7509,7 +7673,7 @@
           "lastName": {
             "type": "string"
           },
-          "role": {
+          "roleId": {
             "type": "string"
           }
         },
@@ -7717,7 +7881,7 @@
       },
       "ManualInputDto": {
         "properties": {
-          "brand": {
+          "brandId": {
             "description": "Brand ID",
             "type": "string"
           },
@@ -7731,7 +7895,7 @@
           }
         },
         "required": [
-          "brand",
+          "brandId",
           "entries"
         ],
         "type": "object"
@@ -7804,7 +7968,7 @@
             ],
             "type": "string"
           },
-          "post": {
+          "postId": {
             "type": "string"
           },
           "revenue": {
@@ -7944,52 +8108,6 @@
           "avi",
           "mp3",
           "wav"
-        ],
-        "type": "string"
-      },
-      "MetadataStyle": {
-        "enum": [
-          "3d-model",
-          "analog-film",
-          "anime",
-          "asmr",
-          "authentic",
-          "bold",
-          "branded",
-          "cinematic",
-          "comic-book",
-          "commercial",
-          "corporate",
-          "cyberpunk",
-          "digital-art",
-          "documentary",
-          "editorial",
-          "educational",
-          "fantasy-art",
-          "fashion",
-          "infographic",
-          "isometric",
-          "lifestyle",
-          "line-art",
-          "lowpoly",
-          "meme",
-          "metal",
-          "minimal",
-          "modeling-compound",
-          "neonpunk",
-          "origami",
-          "photographic",
-          "pixel-art",
-          "portrait",
-          "promotional",
-          "social-media",
-          "space",
-          "steampunk",
-          "surrealism",
-          "thumbnail",
-          "transformation",
-          "vintage",
-          "watercolor"
         ],
         "type": "string"
       },
@@ -8220,7 +8338,9 @@
       "OnboardingJourneyMissionStateDto": {
         "properties": {
           "completedAt": {
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "id": {
             "enum": [
@@ -8739,7 +8859,7 @@
       },
       "PostsBatchDto": {
         "properties": {
-          "credential": {
+          "credentialId": {
             "description": "Credential ID (Twitter account) to use for publishing",
             "type": "string"
           },
@@ -8754,7 +8874,7 @@
         },
         "required": [
           "items",
-          "credential"
+          "credentialId"
         ],
         "type": "object"
       },
@@ -9665,7 +9785,8 @@
       "SocialConversationUpdateDto": {
         "properties": {
           "assignedOwnerId": {
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "status": {
             "enum": [
@@ -10391,11 +10512,8 @@
       },
       "UpdateActivityDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
-          "brand": {
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "entityId": {
@@ -10425,15 +10543,13 @@
           "key": {
             "type": "string"
           },
-          "organization": {
-            "description": "The organization ID that owns this resource",
+          "organizationId": {
             "type": "string"
           },
           "source": {
             "type": "string"
           },
-          "user": {
-            "description": "The user ID who created this resource",
+          "userId": {
             "type": "string"
           },
           "value": {
@@ -10444,14 +10560,14 @@
       },
       "UpdateAgentCampaignDto": {
         "properties": {
-          "agents": {
+          "agentStrategyIds": {
             "description": "Agent strategy IDs included in this campaign",
             "items": {
               "type": "string"
             },
             "type": "array"
           },
-          "brand": {
+          "brandId": {
             "description": "Brand ID",
             "type": "string"
           },
@@ -10520,6 +10636,10 @@
       },
       "UpdateAgentGoalDto": {
         "properties": {
+          "brandId": {
+            "description": "Brand ID",
+            "type": "string"
+          },
           "description": {
             "description": "Goal description",
             "type": "string"
@@ -10590,7 +10710,7 @@
             ],
             "type": "string"
           },
-          "brand": {
+          "brandId": {
             "description": "Brand ID",
             "type": "string"
           },
@@ -10696,10 +10816,6 @@
             ],
             "description": "Opportunity source controls"
           },
-          "organization": {
-            "description": "Organization ID",
-            "type": "string"
-          },
           "platforms": {
             "description": "Target platforms",
             "items": {
@@ -10785,10 +10901,6 @@
               "type": "string"
             },
             "type": "array"
-          },
-          "user": {
-            "description": "User ID",
-            "type": "string"
           },
           "voice": {
             "description": "Brand voice description",
@@ -11012,10 +11124,10 @@
             "description": "Whether the asset is marked as deleted",
             "type": "boolean"
           },
-          "parent": {
+          "parentId": {
             "type": "string"
           },
-          "parentModel": {
+          "parentType": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/AssetParent"
@@ -11041,7 +11153,7 @@
             "maxLength": 200,
             "type": "string"
           },
-          "brand": {
+          "brandId": {
             "description": "Brand ID associated with the bookmark",
             "type": "string"
           },
@@ -11063,7 +11175,7 @@
             "maxLength": 2000,
             "type": "string"
           },
-          "folder": {
+          "folderId": {
             "description": "Folder ID to organize the bookmark",
             "type": "string"
           },
@@ -11094,7 +11206,7 @@
             "description": "Platform-specific data (engagement metrics, IDs, etc.)",
             "type": "object"
           },
-          "tags": {
+          "tagIds": {
             "description": "Array of tag IDs",
             "items": {
               "type": "string"
@@ -11607,7 +11719,7 @@
             "default": "srt",
             "description": "The format of the caption file"
           },
-          "ingredient": {
+          "ingredientId": {
             "description": "The ingredient ID that this caption belongs to",
             "type": "string"
           },
@@ -11686,17 +11798,14 @@
       },
       "UpdateClipProjectDto": {
         "properties": {
-          "_id": {
-            "description": "The unique identifier of the document",
-            "type": "string"
-          },
           "brandId": {
             "description": "Brand context for clip identity and downstream ownership",
             "type": "string"
           },
           "error": {
             "description": "Error message if processing failed",
-            "type": "object"
+            "nullable": true,
+            "type": "string"
           },
           "failedClipCount": {
             "description": "Number of failed clips in the project",
@@ -11714,10 +11823,6 @@
           "name": {
             "default": "",
             "description": "Project name",
-            "type": "string"
-          },
-          "organization": {
-            "description": "The organization ID that owns this resource",
             "type": "string"
           },
           "pendingClipCount": {
@@ -11766,7 +11871,9 @@
           },
           "terminalAt": {
             "description": "Timestamp when the project reached a terminal status",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "transcriptSegments": {
             "description": "Transcript segments with timestamps",
@@ -11781,10 +11888,6 @@
           },
           "transcriptText": {
             "description": "Full transcript text",
-            "type": "string"
-          },
-          "user": {
-            "description": "The user ID who created this resource",
             "type": "string"
           },
           "videoMetadata": {
@@ -11854,7 +11957,9 @@
           },
           "terminalAt": {
             "description": "Timestamp when the clip reached a terminal status",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "thumbnailUrl": {
             "description": "Thumbnail URL",
@@ -11934,13 +12039,9 @@
             "type": "string"
           },
           "accessTokenExpiry": {
-            "format": "date-time",
             "type": "string"
           },
           "accessTokenSecret": {
-            "type": "string"
-          },
-          "brand": {
             "type": "string"
           },
           "description": {
@@ -11968,42 +12069,24 @@
           "label": {
             "type": "string"
           },
-          "oauthState": {
-            "type": "string"
-          },
           "oauthToken": {
             "type": "string"
           },
           "oauthTokenSecret": {
             "type": "string"
           },
-          "organization": {
-            "type": "string"
-          },
-          "platform": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/CredentialPlatform"
-              }
-            ],
-            "example": "youtube"
-          },
           "refreshToken": {
             "type": "string"
           },
           "refreshTokenExpiry": {
-            "format": "date-time",
             "type": "string"
           },
-          "tags": {
+          "tagIds": {
             "description": "Array of tag IDs",
             "items": {
               "type": "string"
             },
             "type": "array"
-          },
-          "user": {
-            "type": "string"
           }
         },
         "type": "object"
@@ -12230,7 +12313,7 @@
           "label": {
             "type": "string"
           },
-          "organization": {
+          "organizationId": {
             "type": "string"
           }
         },
@@ -12277,7 +12360,7 @@
       },
       "UpdateFolderDto": {
         "properties": {
-          "brand": {
+          "brandId": {
             "description": "Brand ID if folder is brand-specific",
             "type": "string"
           },
@@ -12384,7 +12467,17 @@
       },
       "UpdateIngredientDto": {
         "properties": {
-          "brand": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "category": {
@@ -12408,8 +12501,8 @@
             ],
             "type": "string"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
           },
           "generationCompletedAt": {
@@ -12423,6 +12516,12 @@
           },
           "generationProgress": {
             "description": "Generation progress percentage",
+            "type": "number"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
             "type": "number"
           },
           "generationSource": {
@@ -12458,26 +12557,37 @@
             "default": false,
             "type": "boolean"
           },
-          "metadata": {
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
             "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "modelUsed": {
             "description": "Resolved model key used for generation",
             "type": "string"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "organizationId": {
             "type": "string"
           },
-          "prompt": {
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
+            "type": "string"
+          },
+          "promptId": {
             "type": "string"
           },
           "qualityFeedback": {
@@ -12500,13 +12610,6 @@
             ],
             "type": "string"
           },
-          "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "reviewStatus": {
             "allOf": [
               {
@@ -12525,9 +12628,6 @@
                 "$ref": "#/components/schemas/AssetScope"
               }
             ]
-          },
-          "seed": {
-            "type": "number"
           },
           "sources": {
             "description": "Source ingredient IDs (for tracking merged content)",
@@ -12550,11 +12650,7 @@
             },
             "type": "array"
           },
-          "text": {
-            "type": "string"
-          },
-          "training": {
-            "description": "Reference to the training that uses this ingredient",
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -12564,9 +12660,15 @@
             },
             "type": "array"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -12598,7 +12700,7 @@
       },
       "UpdateLinkDto": {
         "properties": {
-          "brand": {
+          "brandId": {
             "description": "The brand ID this link belongs to",
             "type": "string"
           },
@@ -12682,20 +12784,14 @@
       },
       "UpdateMemberDto": {
         "properties": {
-          "authProviderMembershipId": {
-            "description": "legacy auth provider organization membership ID used to synchronize state",
-            "type": "object"
-          },
-          "brands": {
-            "default": [],
-            "description": "Array of brand IDs assigned to this member",
+          "brandIds": {
+            "description": "Brand IDs assigned to this member",
             "items": {
               "type": "string"
             },
             "type": "array"
           },
           "isActive": {
-            "default": true,
             "description": "Whether this member is currently active",
             "type": "boolean"
           },
@@ -12703,16 +12799,8 @@
             "description": "Whether the member is marked as deleted",
             "type": "boolean"
           },
-          "organization": {
-            "description": "The organization ID this member belongs to",
-            "type": "string"
-          },
-          "role": {
+          "roleId": {
             "description": "The role ID assigned to this member",
-            "type": "string"
-          },
-          "user": {
-            "description": "The user ID of this member",
             "type": "string"
           }
         },
@@ -12735,6 +12823,10 @@
           },
           "description": {
             "description": "Description of when and where to use this model",
+            "type": "string"
+          },
+          "externalId": {
+            "description": "Provider-side model or version identifier",
             "type": "string"
           },
           "isActive": {
@@ -12783,11 +12875,11 @@
             "description": "Commercial margin applied above provider cost",
             "type": "number"
           },
-          "organization": {
+          "organizationId": {
             "description": "Owning organization for private/custom models",
             "type": "string"
           },
-          "parentModel": {
+          "parentModelId": {
             "description": "Parent/base model id for trained or derivative models",
             "type": "string"
           },
@@ -12820,8 +12912,23 @@
             "description": "Replacement model key or id when marking a model legacy",
             "type": "string"
           },
-          "training": {
+          "supportsFeatures": {
+            "description": "Features supported by the model",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "trainingId": {
             "description": "Training id that produced this model",
+            "type": "string"
+          },
+          "trigger": {
+            "description": "Provider trigger used by trained models",
+            "type": "string"
+          },
+          "triggerWord": {
+            "description": "Prompt trigger word used by trained models",
             "type": "string"
           }
         },
@@ -12849,12 +12956,22 @@
       },
       "UpdateMusicDto": {
         "properties": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
           "autoSelectModel": {
             "default": false,
             "description": "Automatically select the best model based on the prompt. If true, the model parameter will be ignored.",
             "type": "boolean"
           },
-          "brand": {
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "category": {
@@ -12886,9 +13003,15 @@
             "minimum": 4,
             "type": "number"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
+            "type": "number"
           },
           "groupId": {
             "description": "Group ID for batch operations (e.g., interpolation pairs)",
@@ -12910,15 +13033,21 @@
             "default": false,
             "type": "boolean"
           },
-          "metadata": {
-            "$ref": "#/components/schemas/CreateMetadataDto"
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "model": {
             "description": "Model key or genfeedai/<id>",
+            "type": "string"
+          },
+          "modelUsed": {
             "type": "string"
           },
           "modelVersion": {
@@ -12926,9 +13055,15 @@
             "description": "Model version: melody, large, etc.",
             "type": "string"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
+          },
+          "organizationId": {
+            "type": "string"
           },
           "outputs": {
             "default": 1,
@@ -12937,8 +13072,10 @@
             "minimum": 1,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
             "type": "string"
           },
           "prioritize": {
@@ -12950,7 +13087,7 @@
             "default": "balanced",
             "description": "Priority for auto model routing: quality, speed, cost, or balanced."
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "qualityFeedback": {
@@ -12972,13 +13109,6 @@
               "needs_review"
             ],
             "type": "string"
-          },
-          "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           "reviewStatus": {
             "allOf": [
@@ -13039,7 +13169,7 @@
             "description": "Top-p sampling parameter",
             "type": "number"
           },
-          "training": {
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -13049,9 +13179,15 @@
             },
             "type": "array"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           },
           "waitForCompletion": {
             "default": false,
@@ -13210,7 +13346,7 @@
             ],
             "description": "Provider-aware default voice reference for identity generation"
           },
-          "enabledModels": {
+          "enabledModelIds": {
             "default": [],
             "description": "Array of enabled model IDs for the organization",
             "items": {
@@ -13316,7 +13452,9 @@
           },
           "onboardingJourneyCompletedAt": {
             "description": "Timestamp when the onboarding journey was fully completed",
-            "type": "object"
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
           },
           "onboardingJourneyMissions": {
             "description": "Tracked onboarding journey mission state for the organization",
@@ -13325,7 +13463,7 @@
             },
             "type": "array"
           },
-          "organization": {
+          "organizationId": {
             "type": "string"
           },
           "seatsLimit": {
@@ -13376,10 +13514,6 @@
             ],
             "description": "AI configuration for reply generation"
           },
-          "brand": {
-            "description": "Brand this campaign is scoped to",
-            "type": "string"
-          },
           "campaignType": {
             "allOf": [
               {
@@ -13389,7 +13523,7 @@
             "description": "Type of campaign",
             "example": "manual"
           },
-          "credential": {
+          "credentialId": {
             "description": "Credential to use for posting replies",
             "type": "string"
           },
@@ -13421,10 +13555,6 @@
           "label": {
             "description": "Name of the campaign",
             "example": "Product Launch Campaign",
-            "type": "string"
-          },
-          "organization": {
-            "description": "Organization that owns this campaign",
             "type": "string"
           },
           "platform": {
@@ -13459,10 +13589,6 @@
               }
             ],
             "description": "Campaign status"
-          },
-          "user": {
-            "description": "User that created this campaign",
-            "type": "string"
           }
         },
         "type": "object"
@@ -13613,7 +13739,7 @@
             },
             "type": "array"
           },
-          "brand": {
+          "brandId": {
             "description": "The brand ID for the preset (null for org-wide presets)",
             "type": "string"
           },
@@ -13634,7 +13760,7 @@
             "example": "A detailed description of the element",
             "type": "string"
           },
-          "ingredient": {
+          "ingredientId": {
             "description": "Ingredient image ID used as thumbnail for the preset",
             "type": "string"
           },
@@ -13670,7 +13796,7 @@
             "description": "Mood key to auto-select",
             "type": "string"
           },
-          "organization": {
+          "organizationId": {
             "description": "The organization ID for the preset",
             "type": "string"
           },
@@ -13735,7 +13861,8 @@
             },
             "type": "array"
           },
-          "brand": {
+          "brandId": {
+            "nullable": true,
             "type": "string"
           },
           "camera": {
@@ -13759,7 +13886,7 @@
           "fps": {
             "type": "number"
           },
-          "ingredient": {
+          "ingredientId": {
             "type": "string"
           },
           "isDeleted": {
@@ -13782,7 +13909,8 @@
           "mood": {
             "type": "string"
           },
-          "organization": {
+          "organizationId": {
+            "nullable": true,
             "type": "string"
           },
           "original": {
@@ -13840,6 +13968,9 @@
               "type": "string"
             },
             "type": "array"
+          },
+          "userId": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -14163,7 +14294,7 @@
           "bio": {
             "type": "string"
           },
-          "credential": {
+          "credentialId": {
             "type": "string"
           },
           "displayName": {
@@ -14211,11 +14342,19 @@
             "type": "string"
           },
           "assigneeUserId": {
-            "description": "legacy auth provider user ID of the assignee",
+            "description": "Canonical user ID of the assignee",
+            "type": "string"
+          },
+          "brandId": {
+            "description": "Canonical brand ID for the task",
             "type": "string"
           },
           "description": {
             "description": "Detailed task description",
+            "type": "string"
+          },
+          "elevenlabsVoiceId": {
+            "description": "ElevenLabs voice ID for facecam tasks",
             "type": "string"
           },
           "goalId": {
@@ -14311,7 +14450,7 @@
             "type": "string"
           },
           "voiceId": {
-            "description": "Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or Voice document _id)",
+            "description": "Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or canonical Voice ID)",
             "type": "string"
           },
           "voiceProvider": {
@@ -14466,11 +14605,13 @@
           },
           "onboardingCompletedAt": {
             "description": "Timestamp for when onboarding completed",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStartedAt": {
             "description": "Timestamp for when onboarding started",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStepsCompleted": {
             "description": "Completed onboarding step keys",
@@ -14504,11 +14645,13 @@
           },
           "onboardingCompletedAt": {
             "description": "Timestamp for when onboarding completed",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStartedAt": {
             "description": "Timestamp for when onboarding started",
-            "type": "object"
+            "format": "date-time",
+            "type": "string"
           },
           "onboardingStepsCompleted": {
             "description": "Completed onboarding step keys",
@@ -14559,13 +14702,6 @@
           "brandId": {
             "description": "Brand ID this workflow is scoped to",
             "type": "string"
-          },
-          "brands": {
-            "description": "Deprecated legacy brand IDs input. Only the first brand ID is used.",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           "completedAt": {
             "description": "Workflow completion timestamp",
@@ -14633,10 +14769,6 @@
               "$ref": "#/components/schemas/WorkflowVisualNodeDto"
             },
             "type": "array"
-          },
-          "organization": {
-            "description": "The organization ID that owns this resource. Server-owned.",
-            "type": "string"
           },
           "progress": {
             "description": "Workflow progress percentage",
@@ -14725,10 +14857,6 @@
               }
             ],
             "description": "When the workflow should trigger"
-          },
-          "user": {
-            "description": "The user ID who created this resource. Server-owned.",
-            "type": "string"
           }
         },
         "type": "object"
@@ -15750,7 +15878,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -15759,7 +15887,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -18865,7 +18993,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -18874,7 +19002,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -18928,7 +19056,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19005,7 +19133,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19086,7 +19214,7 @@
           {
             "description": "Brand ID to filter by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19140,7 +19268,7 @@
           {
             "description": "Brand ID to filter by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19189,7 +19317,7 @@
           {
             "description": "Organization ID (superadmin only)",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19234,7 +19362,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19294,7 +19422,7 @@
           {
             "description": "Brand ID to filter by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19303,7 +19431,7 @@
           {
             "description": "Organization ID to filter by",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19348,7 +19476,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19425,7 +19553,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19491,7 +19619,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19536,7 +19664,7 @@
           {
             "description": "Brand ID to filter analytics by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19613,7 +19741,7 @@
           {
             "description": "Brand ID to filter by",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19742,7 +19870,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -19751,7 +19879,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -20516,7 +20644,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -20525,7 +20653,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -20550,9 +20678,9 @@
             }
           },
           {
-            "description": "Filter by parent model type",
+            "description": "Filter by parent type",
             "in": "query",
-            "name": "parentModel",
+            "name": "parentType",
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/AssetParent"
@@ -20561,7 +20689,7 @@
           {
             "description": "Filter by parent ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -20919,7 +21047,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -20928,7 +21056,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21299,7 +21427,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21308,7 +21436,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21362,7 +21490,7 @@
           {
             "description": "Filter bookmarks by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21513,7 +21641,7 @@
           {
             "description": "Filter by reply bot config ID",
             "in": "query",
-            "name": "replyBotConfig",
+            "name": "replyBotConfigId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21522,7 +21650,7 @@
           {
             "description": "Filter by monitored account ID",
             "in": "query",
-            "name": "monitoredAccount",
+            "name": "monitoredAccountId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21606,7 +21734,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "replyBotConfig",
+            "name": "replyBotConfigId",
             "required": true,
             "schema": {
               "type": "string"
@@ -21980,7 +22108,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -21989,7 +22117,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -22445,7 +22573,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -22454,7 +22582,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -23354,7 +23482,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -23363,7 +23491,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -24007,7 +24135,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -24016,7 +24144,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -24222,7 +24350,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -24231,7 +24359,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -25159,7 +25287,7 @@
           {
             "description": "Filter by source creator",
             "in": "query",
-            "name": "sourceCreator",
+            "name": "sourceCreatorId",
             "required": false,
             "schema": {
               "type": "string"
@@ -25449,7 +25577,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -26564,7 +26692,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -26573,7 +26701,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -26864,14 +26992,6 @@
           {
             "in": "path",
             "name": "credentialId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "organizationId",
             "required": true,
             "schema": {
               "type": "string"
@@ -27388,7 +27508,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -27397,7 +27517,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -29632,7 +29752,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -29641,7 +29761,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -29659,7 +29779,7 @@
           {
             "description": "Filter by parent GIF ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -29720,7 +29840,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30348,7 +30468,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30357,7 +30477,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30375,7 +30495,7 @@
           {
             "description": "Filter by parent image ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30409,7 +30529,7 @@
           {
             "description": "Filter by reference image ID",
             "in": "query",
-            "name": "references",
+            "name": "referenceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30445,7 +30565,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30454,7 +30574,7 @@
           {
             "description": "Filter by training ID",
             "in": "query",
-            "name": "training",
+            "name": "trainingId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30762,7 +30882,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30771,7 +30891,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30789,7 +30909,7 @@
           {
             "description": "Filter by parent image ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30823,7 +30943,7 @@
           {
             "description": "Filter by reference image ID",
             "in": "query",
-            "name": "references",
+            "name": "referenceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30859,7 +30979,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -30868,7 +30988,7 @@
           {
             "description": "Filter by training ID",
             "in": "query",
-            "name": "training",
+            "name": "trainingId",
             "required": false,
             "schema": {
               "type": "string"
@@ -31134,7 +31254,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -31143,7 +31263,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -31262,7 +31382,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -31271,7 +31391,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -31917,7 +32037,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -31926,7 +32046,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32004,7 +32124,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32012,7 +32132,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32041,7 +32161,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32049,7 +32169,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32078,7 +32198,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32086,7 +32206,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32189,7 +32309,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32198,7 +32318,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32510,7 +32630,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32519,7 +32639,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32709,7 +32829,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32718,7 +32838,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32761,14 +32881,6 @@
                 "cancelled",
                 "failed"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "brandId",
-            "required": false,
-            "schema": {
               "type": "string"
             }
           }
@@ -32983,7 +33095,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -32992,7 +33104,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -33141,16 +33253,16 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Filter by brand ID",
+            "description": "Optional brand filter. When omitted, session brand scope still applies unless allBrands is true.",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -33177,15 +33289,6 @@
                 "linkedin",
                 "unipile"
               ],
-              "type": "string"
-            }
-          },
-          {
-            "description": "Optional brand filter. When omitted, session brand scope still applies unless allBrands is true.",
-            "in": "query",
-            "name": "brandId",
-            "required": false,
-            "schema": {
               "type": "string"
             }
           },
@@ -33603,7 +33706,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -33612,7 +33715,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -33751,9 +33854,9 @@
             }
           },
           {
-            "description": "Filter by organization ID",
+            "description": "Filter by organization - only return models enabled for this organization",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -33762,7 +33865,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -33784,15 +33887,6 @@
             "required": false,
             "schema": {
               "$ref": "#/components/schemas/ModelCategory"
-            }
-          },
-          {
-            "description": "Filter by organization - only return models enabled for this organization",
-            "in": "query",
-            "name": "organizationId",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -34170,7 +34264,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -34179,7 +34273,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -34239,7 +34333,7 @@
             "name": "format",
             "required": false,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/MetadataExtension"
             }
           },
           {
@@ -34439,7 +34533,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -34448,7 +34542,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35292,7 +35386,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35301,7 +35395,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35921,7 +36015,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35930,7 +36024,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35948,16 +36042,17 @@
           {
             "description": "Filter ingredients by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
+              "nullable": true,
               "type": "string"
             }
           },
           {
             "description": "Filter by parent video ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -36003,7 +36098,7 @@
             "name": "format",
             "required": false,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/MetadataExtension"
             }
           }
         ],
@@ -36244,7 +36339,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -36253,7 +36348,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -37908,7 +38003,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -37917,7 +38012,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -37995,7 +38090,7 @@
           {
             "description": "Filter posts by credential ID",
             "in": "query",
-            "name": "credential",
+            "name": "credentialId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39035,7 +39130,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39044,7 +39139,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39356,7 +39451,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39365,7 +39460,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39834,7 +39929,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39843,7 +39938,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -39861,6 +39956,14 @@
           {
             "in": "query",
             "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand",
             "required": true,
             "schema": {
               "type": "string"
@@ -40066,7 +40169,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40075,7 +40178,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40093,6 +40196,14 @@
           {
             "in": "query",
             "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand",
             "required": true,
             "schema": {
               "type": "string"
@@ -40218,7 +40329,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40227,7 +40338,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40245,6 +40356,14 @@
           {
             "in": "query",
             "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand",
             "required": true,
             "schema": {
               "type": "string"
@@ -40330,7 +40449,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40339,7 +40458,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40357,6 +40476,14 @@
           {
             "in": "query",
             "name": "category",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand",
             "required": true,
             "schema": {
               "type": "string"
@@ -40553,7 +40680,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40562,7 +40689,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40580,6 +40707,14 @@
           {
             "in": "query",
             "name": "tag",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brand",
             "required": true,
             "schema": {
               "type": "string"
@@ -40916,7 +41051,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -40925,7 +41060,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -41231,7 +41366,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -41240,7 +41375,7 @@
           {
             "description": "Filter by brand id",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -41318,7 +41453,7 @@
           {
             "description": "Filter by agent strategy id",
             "in": "query",
-            "name": "strategy",
+            "name": "strategyId",
             "required": false,
             "schema": {
               "type": "string"
@@ -42040,6 +42175,16 @@
       "post": {
         "operationId": "FacebookController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -42345,6 +42490,16 @@
       "post": {
         "operationId": "GoogleAdsController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -42510,6 +42665,16 @@
       "post": {
         "operationId": "GoogleSearchConsoleController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -42628,6 +42793,16 @@
       "post": {
         "operationId": "InstagramController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -42673,6 +42848,16 @@
       "post": {
         "operationId": "LinkedInController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -42699,79 +42884,26 @@
         ]
       }
     },
-    "/services/mastodon/auth": {
-      "get": {
-        "operationId": "MastodonController.getAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "instanceUrl",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "clientId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "redirectUri",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "getAuthUrl",
-        "tags": [
-          "services/mastodon"
-        ]
-      }
-    },
-    "/services/mastodon/register": {
+    "/services/mastodon/connect": {
       "post": {
-        "operationId": "MastodonController.registerApp",
+        "operationId": "MastodonController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectMastodonCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "registerApp",
-        "tags": [
-          "services/mastodon"
-        ]
-      }
-    },
-    "/services/mastodon/token": {
-      "post": {
-        "operationId": "MastodonController.exchangeToken",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "exchangeToken",
+        "summary": "connect",
         "tags": [
           "services/mastodon"
         ]
@@ -42779,14 +42911,14 @@
     },
     "/services/mastodon/verify": {
       "post": {
-        "operationId": "MastodonController.verifyCredentials",
+        "operationId": "MastodonController.verify",
         "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "verifyCredentials",
+        "summary": "verify",
         "tags": [
           "services/mastodon"
         ]
@@ -42796,6 +42928,16 @@
       "post": {
         "operationId": "MediumController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43565,25 +43707,26 @@
         ]
       }
     },
-    "/services/pinterest/auth": {
-      "get": {
-        "operationId": "PinterestController.getAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
+    "/services/pinterest/connect": {
+      "post": {
+        "operationId": "PinterestController.connect",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "getAuthUrl",
+        "summary": "connect",
         "tags": [
           "services/pinterest"
         ]
@@ -43668,16 +43811,16 @@
         ]
       }
     },
-    "/services/pinterest/token": {
+    "/services/pinterest/verify": {
       "post": {
-        "operationId": "PinterestController.exchangeToken",
+        "operationId": "PinterestController.verify",
         "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "exchangeToken",
+        "summary": "verify",
         "tags": [
           "services/pinterest"
         ]
@@ -43687,6 +43830,16 @@
       "post": {
         "operationId": "RedditController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43713,33 +43866,26 @@
         ]
       }
     },
-    "/services/shopify/auth": {
-      "get": {
-        "operationId": "ShopifyController.getAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "shop",
-            "required": true,
-            "schema": {
-              "type": "string"
+    "/services/shopify/connect": {
+      "post": {
+        "operationId": "ShopifyController.connect",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectShopifyCredentialDto"
+              }
             }
           },
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "getAuthUrl",
+        "summary": "connect",
         "tags": [
           "services/shopify"
         ]
@@ -43760,55 +43906,56 @@
         ]
       }
     },
-    "/services/shopify/token": {
+    "/services/shopify/verify": {
       "post": {
-        "operationId": "ShopifyController.exchangeToken",
+        "operationId": "ShopifyController.verify",
         "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "exchangeToken",
+        "summary": "verify",
         "tags": [
           "services/shopify"
         ]
       }
     },
-    "/services/snapchat/auth": {
-      "get": {
-        "operationId": "SnapchatController.getAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
+    "/services/snapchat/connect": {
+      "post": {
+        "operationId": "SnapchatController.connect",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "getAuthUrl",
+        "summary": "connect",
         "tags": [
           "services/snapchat"
         ]
       }
     },
-    "/services/snapchat/token": {
+    "/services/snapchat/verify": {
       "post": {
-        "operationId": "SnapchatController.exchangeToken",
+        "operationId": "SnapchatController.verify",
         "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "exchangeToken",
+        "summary": "verify",
         "tags": [
           "services/snapchat"
         ]
@@ -43936,6 +44083,16 @@
       "post": {
         "operationId": "ThreadsController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -43981,6 +44138,16 @@
       "post": {
         "operationId": "TiktokController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -44026,6 +44193,16 @@
       "post": {
         "operationId": "TwitterController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -44362,25 +44539,26 @@
         ]
       }
     },
-    "/services/wordpress/auth": {
-      "get": {
-        "operationId": "WordpressController.getAuthUrl",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "state",
-            "required": true,
-            "schema": {
-              "type": "string"
+    "/services/wordpress/connect": {
+      "post": {
+        "operationId": "WordpressController.connect",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "getAuthUrl",
+        "summary": "connect",
         "tags": [
           "services/wordpress"
         ]
@@ -44401,16 +44579,16 @@
         ]
       }
     },
-    "/services/wordpress/token": {
+    "/services/wordpress/verify": {
       "post": {
-        "operationId": "WordpressController.exchangeToken",
+        "operationId": "WordpressController.verify",
         "parameters": [],
         "responses": {
           "200": {
             "description": ""
           }
         },
-        "summary": "exchangeToken",
+        "summary": "verify",
         "tags": [
           "services/wordpress"
         ]
@@ -44420,6 +44598,16 @@
       "post": {
         "operationId": "YoutubeController.connect",
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectCredentialDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": ""
@@ -44784,7 +44972,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -44793,7 +44981,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -44839,7 +45027,7 @@
           },
           {
             "in": "query",
-            "name": "source",
+            "name": "sourceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -44947,7 +45135,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -44956,7 +45144,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45002,7 +45190,7 @@
           },
           {
             "in": "query",
-            "name": "source",
+            "name": "sourceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45034,7 +45222,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45042,7 +45230,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45099,7 +45287,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45107,7 +45295,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45136,7 +45324,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45144,7 +45332,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45173,7 +45361,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45181,7 +45369,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45222,7 +45410,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45230,7 +45418,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45325,7 +45513,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45334,7 +45522,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45364,7 +45552,7 @@
           },
           {
             "in": "query",
-            "name": "source",
+            "name": "sourceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45395,7 +45583,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45403,7 +45591,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45434,7 +45622,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45442,7 +45630,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45483,7 +45671,7 @@
         "parameters": [
           {
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -45491,7 +45679,7 @@
           },
           {
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -46963,7 +47151,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -46972,7 +47160,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47207,7 +47395,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47216,7 +47404,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47234,7 +47422,7 @@
           {
             "description": "Filter by parent image ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47268,7 +47456,7 @@
           {
             "description": "Filter by reference image ID",
             "in": "query",
-            "name": "references",
+            "name": "referenceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47304,7 +47492,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47313,7 +47501,7 @@
           {
             "description": "Filter by training ID",
             "in": "query",
-            "name": "training",
+            "name": "trainingId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47429,7 +47617,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -47438,7 +47626,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48314,7 +48502,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48323,7 +48511,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48463,7 +48651,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48472,7 +48660,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48583,7 +48771,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48592,7 +48780,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48909,7 +49097,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48918,7 +49106,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48952,7 +49140,7 @@
           {
             "description": "Filter by training ID",
             "in": "query",
-            "name": "training",
+            "name": "trainingId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48970,7 +49158,7 @@
           {
             "description": "Filter by reference video ID",
             "in": "query",
-            "name": "reference",
+            "name": "referenceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48988,7 +49176,7 @@
           {
             "description": "Filter by parent video ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -48997,7 +49185,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49032,7 +49220,7 @@
             }
           },
           {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "description": "Return the most recent items using the /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
             "in": "query",
             "name": "latest",
             "required": false,
@@ -49305,7 +49493,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49314,7 +49502,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49441,7 +49629,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49450,7 +49638,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49484,7 +49672,7 @@
           {
             "description": "Filter by training ID",
             "in": "query",
-            "name": "training",
+            "name": "trainingId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49502,7 +49690,7 @@
           {
             "description": "Filter by reference video ID",
             "in": "query",
-            "name": "reference",
+            "name": "referenceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49520,7 +49708,7 @@
           {
             "description": "Filter by parent video ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49529,7 +49717,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49564,7 +49752,7 @@
             }
           },
           {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "description": "Return the most recent items using the /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
             "in": "query",
             "name": "latest",
             "required": false,
@@ -49725,7 +49913,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49734,7 +49922,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49768,7 +49956,7 @@
           {
             "description": "Filter by training ID",
             "in": "query",
-            "name": "training",
+            "name": "trainingId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49786,7 +49974,7 @@
           {
             "description": "Filter by reference video ID",
             "in": "query",
-            "name": "reference",
+            "name": "referenceId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49804,7 +49992,7 @@
           {
             "description": "Filter by parent video ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49813,7 +50001,7 @@
           {
             "description": "Filter by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
               "type": "string"
@@ -49848,7 +50036,7 @@
             }
           },
           {
-            "description": "Return the most recent items using the legacy /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
+            "description": "Return the most recent items using the /latest filter (brand-scoped user assets, training sources excluded), ordered by createdAt desc and capped at 50. Bypasses the standard list filters (status/scope/folder/parent/search/organization).",
             "in": "query",
             "name": "latest",
             "required": false,
@@ -50181,7 +50369,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -50190,7 +50378,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -50469,7 +50657,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -50478,7 +50666,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -50682,7 +50870,24 @@
     "/watchlists": {
       "get": {
         "operationId": "WatchlistsController.findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organizationId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -50695,7 +50900,24 @@
       },
       "post": {
         "operationId": "WatchlistsController.create",
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organizationId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "brandId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -51211,7 +51433,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -51220,7 +51442,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -51238,7 +51460,7 @@
           {
             "description": "Filter by workflow ID",
             "in": "query",
-            "name": "workflow",
+            "name": "workflowId",
             "required": false,
             "schema": {
               "type": "string"
@@ -51478,16 +51700,16 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
             }
           },
           {
-            "description": "Filter by brand ID",
+            "description": "Restrict visible workflows to the active brand for an authorized picker.",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -51500,15 +51722,6 @@
             "required": false,
             "schema": {
               "type": "boolean"
-            }
-          },
-          {
-            "description": "Restrict visible workflows to the active brand for an authorized picker.",
-            "in": "query",
-            "name": "brandId",
-            "required": false,
-            "schema": {
-              "type": "string"
             }
           },
           {
@@ -51745,7 +51958,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -51754,7 +51967,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"

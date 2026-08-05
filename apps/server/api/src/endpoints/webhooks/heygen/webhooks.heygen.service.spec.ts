@@ -283,7 +283,7 @@ describe('HeygenWebhookService', () => {
 
     deps.clipResultsService.findOne.mockResolvedValue({
       id: clipResultId,
-      project: projectId,
+      projectId,
     });
     deps.clipResultsService.findByProject.mockResolvedValue([
       { status: 'completed' },
@@ -318,7 +318,7 @@ describe('HeygenWebhookService', () => {
 
     deps.clipResultsService.findOne.mockResolvedValue({
       id: clipResultId,
-      project: projectId,
+      projectId,
     });
     deps.clipResultsService.findByProject.mockResolvedValue([
       { status: 'failed' },

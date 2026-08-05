@@ -88,7 +88,7 @@ export default function ModalMonitoredAccount({
       followersCount: 0,
       isActive: true,
       platform: ReplyBotPlatform.TWITTER,
-      platformUserId: '',
+      externalId: '',
       username: '',
     },
     entity: account || null,
@@ -99,14 +99,14 @@ export default function ModalMonitoredAccount({
     serviceFactory: (token) => MonitoredAccountsService.getInstance(token),
     transformSubmitData: (data) => ({
       ...data,
-      replyBotConfig: replyBotConfigId,
+      botConfigId: replyBotConfigId,
     }),
   });
 
   useEffect(() => {
     if (account) {
       form.setValue('platform', account.platform);
-      form.setValue('platformUserId', account.externalId ?? '');
+      form.setValue('externalId', account.externalId ?? '');
       form.setValue('username', account.username ?? '');
       form.setValue('displayName', account.displayName ?? '');
       form.setValue('avatarUrl', account.avatarUrl ?? '');
@@ -184,7 +184,7 @@ export default function ModalMonitoredAccount({
           <FormControl label="Platform User ID">
             <Input
               type="text"
-              name="platformUserId"
+              name="externalId"
               control={form.control}
               onChange={updateModalMonitoredAccount}
               placeholder="Platform-specific user ID"

@@ -132,7 +132,7 @@ export function useOutreachCampaignWizard() {
           useAiGeneration: formData.useAiGeneration,
         },
         campaignType: formData.campaignType,
-        credential: formData.credential,
+        credentialId: formData.credential,
         description: formData.description,
         discoveryConfig:
           formData.campaignType === CampaignType.DISCOVERY
@@ -155,7 +155,6 @@ export function useOutreachCampaignWizard() {
               }
             : undefined,
         label: formData.label,
-        organization: organizationId,
         platform: formData.platform,
         rateLimits: {
           delayBetweenRepliesSeconds: formData.delayBetweenRepliesSeconds,

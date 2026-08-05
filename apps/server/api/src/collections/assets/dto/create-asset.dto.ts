@@ -7,7 +7,7 @@ export class CreateAssetDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly parent?: string;
+  readonly parentId?: string;
 
   @IsString()
   @IsEnum(AssetParent)
@@ -16,7 +16,7 @@ export class CreateAssetDto {
     enumName: 'AssetParent',
     required: true,
   })
-  readonly parentModel!: AssetParent;
+  readonly parentType!: AssetParent;
 
   @IsString()
   @IsEnum(AssetCategory)

@@ -26,7 +26,7 @@ describe('WhatsappController', () => {
 
   const mockUser = {} as User;
   const mockBrandId = 'test-object-id';
-  const mockBrand = { _id: 'test-object-id', isDeleted: false };
+  const mockBrand = { id: 'test-object-id', isDeleted: false };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

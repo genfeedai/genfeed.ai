@@ -80,17 +80,17 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
       for (const post of posts) {
         try {
           const credential = await this.credentialsService.findOne(
-            post.credential
+            post.credentialId
               ? {
-                  _id: post.credential,
+                  id: post.credentialId,
                   isDeleted: false,
-                  organization: post.organization,
+                  organizationId: post.organizationId,
                   platform: CredentialPlatform.FACEBOOK,
                 }
               : {
-                  brand: post.brand,
+                  brandId: post.brandId,
                   isDeleted: false,
-                  organization: post.organization,
+                  organizationId: post.organizationId,
                   platform: CredentialPlatform.FACEBOOK,
                 },
           );
@@ -122,9 +122,9 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
           });
           readyTargets.push({
             attemptKey: job.data.attemptKey,
-            brandId: post.brand,
+            brandId: post.brandId,
             id: post.id,
-            organizationId: post.organization,
+            organizationId: post.organizationId,
             platform: post.platform,
           });
           processed++;
@@ -142,10 +142,10 @@ export class AnalyticsFacebookProcessor extends WorkerHost {
 
           failedTargets.push({
             attemptKey: job.data.attemptKey,
-            brandId: post.brand,
+            brandId: post.brandId,
             failure,
             id: post.id,
-            organizationId: post.organization,
+            organizationId: post.organizationId,
             platform: post.platform,
           });
 

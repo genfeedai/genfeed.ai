@@ -132,7 +132,7 @@ export class ProactiveOnboardingService {
       if (lead.proactiveOrganizationId) {
         // Reuse existing shadow org
         shadowOrg = await this.organizationsService.findOne({
-          _id: lead.proactiveOrganizationId,
+          id: lead.proactiveOrganizationId,
         });
       }
 
@@ -152,16 +152,16 @@ export class ProactiveOnboardingService {
           isSelected: false,
           label: dto.brandName || lead.data.company || name,
           onboardingCompleted: true,
-          user: placeholderUser.id,
+          userId: placeholderUser.id,
         });
 
         // Create member record (inactive until signup)
         const roleId = await this.resolveDefaultRoleId();
         await this.membersService.create({
           isActive: false,
-          organization: shadowOrg.id,
-          role: roleId,
-          user: placeholderUser.id,
+          organizationId: shadowOrg.id,
+          roleId: roleId,
+          userId: placeholderUser.id,
         });
       }
 
@@ -257,12 +257,12 @@ export class ProactiveOnboardingService {
           handle: brandSlug,
           isSelected: true,
           label: brandLabel,
-          organization: shadowOrgId,
+          organizationId: shadowOrgId,
           primaryColor: scrapedData.primaryColor ?? '#000000',
           secondaryColor: scrapedData.secondaryColor ?? '#FFFFFF',
           slug: brandSlug,
           text: buildProactiveBrandSystemPrompt(scrapedData, dto),
-          user: shadowOrgUserId,
+          userId: shadowOrgUserId,
         }) as unknown as Parameters<BrandsService['create']>[0],
       );
 
@@ -390,7 +390,7 @@ export class ProactiveOnboardingService {
 
       // Find the shadow org to get user ID
       const shadowOrg = await this.organizationsService.findOne({
-        _id: shadowOrgId,
+        id: shadowOrgId,
       });
 
       if (!shadowOrg) {
@@ -466,7 +466,7 @@ export class ProactiveOnboardingService {
   async sendInvitation(
     leadId: string,
     organizationId: string,
-    dto: SendInvitationDto,
+    _dto: SendInvitationDto,
   ): Promise<{ success: boolean; invitedAt: Date }> {
     const lead = await this.getLead(leadId, organizationId);
 
@@ -492,7 +492,7 @@ export class ProactiveOnboardingService {
     try {
       // Find the placeholder user in the shadow org
       const shadowOrg = await this.organizationsService.findOne({
-        _id: lead.proactiveOrganizationId,
+        id: lead.proactiveOrganizationId,
       });
 
       if (!shadowOrg) {
@@ -575,7 +575,7 @@ export class ProactiveOnboardingService {
     // Fetch brand details if available
     if (lead.proactiveBrandId) {
       const brand = await this.brandsService.findOne(
-        { _id: lead.proactiveBrandId, isDeleted: false },
+        { id: lead.proactiveBrandId, isDeleted: false },
         'none',
       );
 
@@ -632,7 +632,7 @@ export class ProactiveOnboardingService {
     // Fetch organization details
     if (lead.proactiveOrganizationId) {
       const org = await this.organizationsService.findOne({
-        _id: lead.proactiveOrganizationId,
+        id: lead.proactiveOrganizationId,
       });
 
       if (org) {
@@ -811,7 +811,7 @@ export class ProactiveOnboardingService {
 
     const posts = await this.postsService.find({
       isDeleted: false,
-      organization: lead.proactiveOrganizationId,
+      organizationId: lead.proactiveOrganizationId,
     });
 
     return { posts };
@@ -923,11 +923,9 @@ export class ProactiveOnboardingService {
 
   private resolveOrganizationOwnerId(shadowOrg: {
     id?: string;
-    user?: unknown;
     userId?: unknown;
   }): string {
-    const ownerId =
-      this.toIdString(shadowOrg.user) ?? this.toIdString(shadowOrg.userId);
+    const ownerId = this.toIdString(shadowOrg.userId);
 
     if (!ownerId) {
       throw new BadRequestException(
@@ -944,11 +942,8 @@ export class ProactiveOnboardingService {
     }
 
     if (value && typeof value === 'object') {
-      const candidate = value as { _id?: unknown; id?: unknown };
+      const candidate = value as { id?: unknown };
 
-      if (typeof candidate.id === 'string') {
-        return candidate.id;
-      }
       if (typeof candidate.id === 'string') {
         return candidate.id;
       }
@@ -984,7 +979,7 @@ export class ProactiveOnboardingService {
 
     const posts = await this.postsService.find({
       isDeleted: false,
-      organization: lead.proactiveOrganizationId,
+      organizationId: lead.proactiveOrganizationId,
     });
 
     return posts.slice(0, 3);

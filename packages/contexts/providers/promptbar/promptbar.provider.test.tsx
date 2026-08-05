@@ -42,7 +42,7 @@ describe('PromptBarProvider', () => {
     useBrandMock.mockReturnValue({
       organizationId: 'org_123',
       settings: {
-        enabledModels: ['model_enabled'],
+        enabledModelIds: ['model_enabled'],
       },
     });
 

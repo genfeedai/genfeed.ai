@@ -19,30 +19,29 @@ export class PresetFilterUtil {
    * Build scope OR conditions for three-tier filtering
    *
    * Presets have three tiers of scope:
-   * 1. Global items (no organization, no user)
+   * 1. Global items (no organization)
    * 2. Organization items (specific organization)
-   * 3. User items (specific user)
    *
    * This method builds OR conditions that include all accessible presets.
    *
    * @param publicMetadata - User metadata containing organization and user IDs
-   * @returns Array of OR conditions for MongoDB query
+   * @returns Array of Prisma OR conditions
    *
    * @example
    * // User with org and user ID
    * PresetFilterUtil.buildScopeOrConditions({ organization: '123', user: '456' })
    * // Returns: [
-   * //   { organization: { not: false }, user: { not: false } }, // global
-   * //   { organization: ObjectId('123') },                                // org-specific
-   * //   { user: ObjectId('456') }                                         // user-specific
+   * //   { organizationId: null, userId: null },
+   * //   { organizationId: '123' },
+   * //   { userId: '456' }
    * // ]
    *
    * @example
    * // User without organization (just user)
    * PresetFilterUtil.buildScopeOrConditions({ user: '456' })
    * // Returns: [
-   * //   { organization: { not: false }, user: { not: false } }, // global
-   * //   { user: ObjectId('456') }                                         // user-specific
+   * //   { organizationId: null, userId: null },
+   * //   { userId: '456' }
    * // ]
    */
   static buildScopeOrConditions(publicMetadata: {
@@ -50,17 +49,13 @@ export class PresetFilterUtil {
     user?: string;
   }): Array<Record<string, unknown>> {
     const orConditions: Array<Record<string, unknown>> = [
-      { organization: null, user: null }, // global items (no owner)
+      { organizationId: null },
     ];
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
-    }
-
-    if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
     }
 
     return orConditions;
@@ -82,7 +77,7 @@ export class PresetFilterUtil {
    * // Superadmin modifying any preset
    * PresetFilterUtil.canUserModifyPreset(
    *   { publicMetadata: { isSuperAdmin: true } },
-   *   { organization: null }
+   *   { organizationId: null }
    * )
    * // Returns: true
    *
@@ -90,7 +85,7 @@ export class PresetFilterUtil {
    * // Regular user modifying global preset
    * PresetFilterUtil.canUserModifyPreset(
    *   { publicMetadata: { isSuperAdmin: false, organization: '123' } },
-   *   { organization: null }
+   *   { organizationId: null }
    * )
    * // Returns: false
    *
@@ -98,7 +93,7 @@ export class PresetFilterUtil {
    * // Regular user modifying their org preset
    * PresetFilterUtil.canUserModifyPreset(
    *   { publicMetadata: { isSuperAdmin: false, organization: '123' } },
-   *   { organization: '123' }
+   *   { organizationId: '123' }
    * )
    * // Returns: true
    */
@@ -109,7 +104,7 @@ export class PresetFilterUtil {
         organization?: string;
       };
     },
-    preset: { organization?: string | null },
+    preset: { organizationId?: string | null },
   ): boolean {
     const { isSuperAdmin, organization } = user.publicMetadata ?? {};
 
@@ -119,12 +114,12 @@ export class PresetFilterUtil {
     }
 
     // Default/global presets (null organization) can only be modified by admins
-    if (!preset.organization) {
+    if (!preset.organizationId) {
       return false;
     }
 
     // Check organization ownership for non-default presets
-    const presetOrgId = preset.organization?.toString();
+    const presetOrgId = preset.organizationId;
     return presetOrgId === organization;
   }
 
@@ -142,10 +137,10 @@ export class PresetFilterUtil {
    * @example
    * // Regular user creating preset
    * PresetFilterUtil.enrichPresetDto(
-   *   { label: 'My Preset', brand: '123' },
+   *   { label: 'My Preset', brandId: '123' },
    *   { publicMetadata: { isSuperAdmin: false, organization: '456' } }
    * )
-   * // Returns: { label: 'My Preset', organization: ObjectId('456'), brand: ObjectId('123') }
+   * // Returns the API DTO with canonical ownership identifiers assigned.
    *
    * @example
    * // Superadmin creating global preset
@@ -153,15 +148,15 @@ export class PresetFilterUtil {
    *   { label: 'Global Preset' },
    *   { publicMetadata: { isSuperAdmin: true } }
    * )
-   * // Returns: { label: 'Global Preset', organization: null, brand: null }
+   * // Returns: { label: 'Global Preset', organizationId: null, brandId: null }
    *
    * @example
    * // Superadmin creating org-specific preset
    * PresetFilterUtil.enrichPresetDto(
-   *   { label: 'Org Preset', organization: '456' },
+   *   { label: 'Org Preset', organizationId: '456' },
    *   { publicMetadata: { isSuperAdmin: true } }
    * )
-   * // Returns: { label: 'Org Preset', organization: '456', brand: null }
+   * // Returns: { label: 'Org Preset', organizationId: '456', brandId: null }
    */
   static enrichPresetDto(
     createDto: Record<string, unknown>,
@@ -178,14 +173,14 @@ export class PresetFilterUtil {
 
     // Non-root users always get their organization assigned
     if (!isSuperAdmin) {
-      enriched.organization = organization;
+      enriched.organizationId = organization;
     } else {
       // Superadmins can create:
       // 1. App-wide presets (no org, no brand)
       // 2. Org-wide presets (org but no brand)
       // 3. Brand-specific presets (org and brand)
-      enriched.organization = enriched.organization || null;
-      enriched.brand = enriched.brand || null;
+      enriched.organizationId = enriched.organizationId || null;
+      enriched.brandId = enriched.brandId || null;
     }
 
     return enriched;
@@ -200,7 +195,7 @@ export class PresetFilterUtil {
    * @param publicMetadata - User metadata
    * @param query - Query params with optional filters
    * @param isDeleted - Whether to include deleted items
-   * @returns Match stage object for MongoDB aggregation
+   * @returns Prisma where object
    *
    * @example
    * PresetFilterUtil.buildBaseMatch(

@@ -75,5 +75,5 @@ export class PostsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  credential?: string;
+  credentialId?: string;
 }

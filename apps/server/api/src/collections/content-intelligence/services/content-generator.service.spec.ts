@@ -23,7 +23,7 @@ const BASE_DTO = {
 const MOCK_PATTERN = {
   id: PATTERN_ID,
   extractedFormula: '[HOOK] — [PROOF] — [CTA]',
-  organization: ORG_ID,
+  organizationId: ORG_ID,
   placeholders: ['HOOK', 'PROOF', 'CTA'],
   rawExample: 'From broke to $10k/mo — here is what changed',
   templateCategory: 'educational',
@@ -213,7 +213,7 @@ describe('ContentGeneratorService', () => {
       expect.objectContaining({
         id: expect.any(String),
         isDeleted: false,
-        organization: ORG_ID,
+        organizationId: ORG_ID,
       }),
     );
   });

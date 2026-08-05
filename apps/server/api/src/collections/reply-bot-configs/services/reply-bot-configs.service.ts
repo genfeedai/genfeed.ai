@@ -1,4 +1,5 @@
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
+import type { ReplyBotRateLimitsDto } from '@api/collections/reply-bot-configs/dto/reply-bot-rate-limits.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
 import type {
   ReplyBotConfigDocument,
@@ -7,11 +8,50 @@ import type {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { ReplyBotType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+const REPLY_BOT_CREATE_SCALAR_FIELDS = [
+  'actionType',
+  'brandId',
+  'isActive',
+  'organizationId',
+  'type',
+  'userId',
+] as const;
+
+const REPLY_BOT_UPDATE_SCALAR_FIELDS = [
+  'actionType',
+  'isActive',
+  'type',
+] as const;
+
+const REPLY_BOT_CONFIG_FIELDS = [
+  'context',
+  'credentialId',
+  'description',
+  'dmConfig',
+  'filters',
+  'name',
+  'platform',
+  'rateLimits',
+  'replyInstructions',
+  'replyLength',
+  'replyTone',
+  'schedule',
+] as const;
+
+type ReplyBotOwnershipInput = {
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+};
+
+type ReplyBotCreateInput = CreateReplyBotConfigDto & ReplyBotOwnershipInput;
 
 // ---------------------------------------------------------------------------
 // Helper: defensively parse the `config` JSON column
@@ -44,8 +84,65 @@ export class ReplyBotConfigsService extends BaseService<
     super(prisma, 'replyBotConfig', logger);
   }
 
+  protected override normalizeDocument(
+    document: unknown,
+  ): ReplyBotConfigDocument {
+    const normalized = super.normalizeDocument(document) as Record<
+      string,
+      unknown
+    >;
+    const monitoredAccounts = normalized.monitoredAccounts;
+
+    if (Array.isArray(monitoredAccounts)) {
+      normalized.monitoredAccountIds = monitoredAccounts.flatMap((account) => {
+        if (typeof account === 'string') {
+          return [account];
+        }
+        if (
+          account &&
+          typeof account === 'object' &&
+          typeof (account as { id?: unknown }).id === 'string'
+        ) {
+          return [(account as { id: string }).id];
+        }
+        return [];
+      });
+    }
+
+    return normalized as unknown as ReplyBotConfigDocument;
+  }
+
+  private async syncMonitoredAccounts(
+    configId: string,
+    organizationId: string,
+    accountIds: string[],
+  ): Promise<void> {
+    const uniqueAccountIds = [...new Set(accountIds)];
+    const operations = [
+      this.prisma.monitoredAccount.updateMany({
+        data: { botConfigId: null },
+        where: scopedWhere(organizationId, { botConfigId: configId }),
+      }),
+    ];
+
+    if (uniqueAccountIds.length > 0) {
+      operations.push(
+        this.prisma.monitoredAccount.updateMany({
+          data: { botConfigId: configId },
+          where: {
+            id: { in: uniqueAccountIds },
+            isDeleted: false,
+            organizationId,
+          },
+        }),
+      );
+    }
+
+    await this.prisma.$transaction(operations);
+  }
+
   private normalizeRateLimits(
-    rateLimits?: ReplyBotRateLimits,
+    rateLimits?: ReplyBotRateLimits | ReplyBotRateLimitsDto,
   ): ReplyBotRateLimits & {
     currentDayCount: number;
     currentHourCount: number;
@@ -63,58 +160,115 @@ export class ReplyBotConfigsService extends BaseService<
     };
   }
 
-  create(
-    createDto: CreateReplyBotConfigDto,
+  override async create(
+    input: ReplyBotCreateInput,
     populate: (string | PopulateOption)[] = [],
   ): Promise<ReplyBotConfigDocument> {
-    const rateLimits = this.normalizeRateLimits(
-      (createDto as unknown as Record<string, unknown>).rateLimits as
-        | ReplyBotRateLimits
-        | undefined,
-    );
+    if (!input.organizationId || !input.userId) {
+      throw new BadRequestException(
+        'Reply bot creation requires an organization and user id',
+      );
+    }
 
-    // Extract Prisma scalar columns from DTO; pack domain fields into `config`.
-    const {
-      organization,
-      organizationId,
-      brand,
-      brandId,
-      user,
-      userId,
-      ...domainFields
-    } = createDto as CreateReplyBotConfigDto & Record<string, unknown>;
+    if (input.isActive && !input.credentialId) {
+      throw new BadRequestException(
+        'An active reply bot requires a credential id',
+      );
+    }
+
+    const domainFields = pickDefinedFields(input, REPLY_BOT_CONFIG_FIELDS);
 
     const config: Record<string, unknown> = {
       ...domainFields,
       lastActivityAt: null,
-      rateLimits,
+      rateLimits: this.normalizeRateLimits(input.rateLimits),
       totalDmsSent: 0,
       totalFailed: 0,
       totalRepliesSent: 0,
       totalSkipped: 0,
     };
 
-    const prismaDto = {
-      ...(brandId || brand ? { brandId: (brandId || brand) as string } : {}),
-      ...(organizationId || organization
-        ? { organizationId: (organizationId || organization) as string }
-        : {}),
-      ...(userId || user ? { userId: (userId || user) as string } : {}),
-      config,
-    };
-
-    return super.create(
-      prismaDto as unknown as CreateReplyBotConfigDto,
+    const created = await super.create(
+      {
+        ...pickDefinedFields(input, REPLY_BOT_CREATE_SCALAR_FIELDS),
+        isActive: input.isActive ?? false,
+        config,
+      } as unknown as CreateReplyBotConfigDto,
       populate,
     );
+
+    if (input.monitoredAccountIds !== undefined) {
+      await this.syncMonitoredAccounts(
+        created.id,
+        input.organizationId,
+        input.monitoredAccountIds,
+      );
+      return (await this.findOne({ id: created.id }, populate)) ?? created;
+    }
+
+    return created;
   }
 
-  patch(
+  override async patch(
     id: string,
-    updateDto: UpdateReplyBotConfigDto,
+    input: UpdateReplyBotConfigDto,
     populate: (string | PopulateOption)[] = [],
   ): Promise<ReplyBotConfigDocument> {
-    return super.patch(id, updateDto, populate);
+    const configPatch = pickDefinedFields(input, REPLY_BOT_CONFIG_FIELDS);
+    const needsExisting =
+      Object.keys(configPatch).length > 0 ||
+      input.isActive === true ||
+      input.monitoredAccountIds !== undefined;
+    let existingOrganizationId: string | undefined;
+    let config: Record<string, unknown> | undefined;
+
+    if (needsExisting) {
+      const existing = await this.findOne({ id });
+      if (!existing) {
+        throw new NotFoundException('ReplyBotConfig', id);
+      }
+      existingOrganizationId = existing.organizationId;
+
+      const storedConfig = parseConfigJson(existing.config);
+      config = {
+        ...storedConfig,
+        ...configPatch,
+        ...(input.rateLimits
+          ? { rateLimits: this.normalizeRateLimits(input.rateLimits) }
+          : {}),
+      };
+
+      if (input.isActive && !config.credentialId) {
+        throw new BadRequestException(
+          'An active reply bot requires a credential id',
+        );
+      }
+    }
+
+    const updated = await super.patch(
+      id,
+      {
+        ...pickDefinedFields(input, REPLY_BOT_UPDATE_SCALAR_FIELDS),
+        ...(config ? { config } : {}),
+      } as unknown as UpdateReplyBotConfigDto,
+      populate,
+    );
+
+    if (input.monitoredAccountIds !== undefined) {
+      if (!existingOrganizationId) {
+        throw new BadRequestException(
+          'Reply bot monitored accounts require an organization id',
+        );
+      }
+      await this.syncMonitoredAccounts(
+        id,
+        existingOrganizationId,
+        input.monitoredAccountIds,
+      );
+      return (await this.findOne({ id }, populate)) ?? updated;
+    }
+
+    return updated;
   }
 
   /**
@@ -180,7 +334,7 @@ export class ReplyBotConfigsService extends BaseService<
   async canReply(id: string, organizationId: string): Promise<boolean> {
     const config = await this.findOne(scopedWhere(organizationId, { id }));
 
-    if (!config || !config.isActive) {
+    if (!config?.isActive) {
       return false;
     }
 
@@ -346,7 +500,7 @@ export class ReplyBotConfigsService extends BaseService<
 
   /**
    * Add a monitored account to the config.
-   * monitoredAccounts lives inside the `config` JSON column.
+   * The Prisma relation is authoritative; no duplicate ID array is stored.
    */
   async addMonitoredAccount(
     configId: string,
@@ -361,29 +515,25 @@ export class ReplyBotConfigsService extends BaseService<
       throw new NotFoundException(`Reply bot config ${configId} not found`);
     }
 
-    const monitoredAccounts: string[] = existing.monitoredAccounts ?? [];
-    if (!monitoredAccounts.includes(accountId)) {
-      monitoredAccounts.push(accountId);
-    }
-
-    const cfg = await this.readConfig(configId);
-    if (!cfg) {
-      throw new NotFoundException(`Reply bot config ${configId} not found`);
-    }
-
-    const updated = await this.prisma.replyBotConfig.update({
-      data: {
-        config: { ...cfg, monitoredAccounts } as never,
-      } as never,
-      where: { id: configId },
+    await this.prisma.monitoredAccount.updateMany({
+      data: { botConfigId: configId },
+      where: {
+        id: accountId,
+        isDeleted: false,
+        organizationId,
+      },
     });
 
-    return this.normalizeDocument(updated) as ReplyBotConfigDocument;
+    return (
+      (await this.findOne(scopedWhere(organizationId, { id: configId }), [
+        { path: 'monitoredAccounts' },
+      ])) ?? existing
+    );
   }
 
   /**
    * Remove a monitored account from the config.
-   * monitoredAccounts lives inside the `config` JSON column.
+   * The Prisma relation is authoritative; no duplicate ID array is stored.
    */
   async removeMonitoredAccount(
     configId: string,
@@ -398,22 +548,20 @@ export class ReplyBotConfigsService extends BaseService<
       throw new NotFoundException(`Reply bot config ${configId} not found`);
     }
 
-    const monitoredAccounts = (existing.monitoredAccounts ?? []).filter(
-      (id: string) => id !== accountId,
-    );
-
-    const cfg = await this.readConfig(configId);
-    if (!cfg) {
-      throw new NotFoundException(`Reply bot config ${configId} not found`);
-    }
-
-    const updated = await this.prisma.replyBotConfig.update({
-      data: {
-        config: { ...cfg, monitoredAccounts } as never,
-      } as never,
-      where: { id: configId },
+    await this.prisma.monitoredAccount.updateMany({
+      data: { botConfigId: null },
+      where: {
+        botConfigId: configId,
+        id: accountId,
+        isDeleted: false,
+        organizationId,
+      },
     });
 
-    return this.normalizeDocument(updated) as ReplyBotConfigDocument;
+    return (
+      (await this.findOne(scopedWhere(organizationId, { id: configId }), [
+        { path: 'monitoredAccounts' },
+      ])) ?? existing
+    );
   }
 }

@@ -3,7 +3,7 @@ import { DefaultRecurringContentService } from '@api/collections/brands/services
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { CronJobsService } from '@api/collections/cron-jobs/services/cron-jobs.service';
 import { LegacyCronJobMigrationService } from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
-import type { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import type { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
@@ -48,7 +48,7 @@ import { Module } from '@nestjs/common';
           prisma,
           legacyCronJobMigrationService,
           workflowsService,
-          {} as LegacyWorkflowStepRunner,
+          {} as WorkflowStepRunnerService,
           {} as AgentRunsService,
           {} as AgentRunQueueService,
           {} as OpenRouterService,

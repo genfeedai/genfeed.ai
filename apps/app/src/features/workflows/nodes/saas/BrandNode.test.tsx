@@ -6,9 +6,9 @@ import { BrandNode } from './BrandNode';
 
 const mocks = vi.hoisted(() => ({
   brands: [
-    { _id: 'brand-1', label: 'First Brand', logoUrl: null },
+    { id: 'brand-1', label: 'First Brand', logoUrl: null },
     {
-      _id: 'brand-2',
+      id: 'brand-2',
       label: 'Second Brand',
       logoUrl: 'https://example.test/brand-2.png',
     },

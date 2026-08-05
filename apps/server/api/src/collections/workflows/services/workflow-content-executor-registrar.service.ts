@@ -121,14 +121,14 @@ export class WorkflowContentExecutorRegistrarService {
         this.helper.readConfigString(node.config, 'timezone') ?? 'UTC';
 
       const credentialQuery: Record<string, unknown> = {
-        brand: brandId,
+        brandId,
         isConnected: true,
         isDeleted: false,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
       };
 
       if (credentialId) {
-        credentialQuery._id = credentialId;
+        credentialQuery.id = credentialId;
       }
       if (platform) {
         credentialQuery.platform = platform as CredentialPlatform;
@@ -154,18 +154,18 @@ export class WorkflowContentExecutorRegistrarService {
         `Daily post draft for ${brandLabel}`;
 
       const post = await postsService.create({
-        brand: brandId,
+        brandId: brandId,
         category: PostCategory.TEXT,
-        credential: credential.id,
+        credentialId: credential.id,
         description,
         ingredients: [],
         label: this.helper.buildPostLabel(description),
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         platform: credential.platform as CredentialPlatform,
         source: 'workflow-post-generator',
         status: PostStatus.DRAFT,
         timezone,
-        user: context.userId,
+        userId: context.userId,
       });
 
       return {

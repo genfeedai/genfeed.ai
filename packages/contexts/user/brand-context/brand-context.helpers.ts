@@ -4,17 +4,7 @@ import type { BrandContextType } from './brand-context';
 export const BRAND_CONTEXT_CACHE_TTL_MS = 60_000;
 
 export function getBrandEntityId(brand: IBrand | null | undefined): string {
-  if (typeof brand?.id === 'string') {
-    return brand.id;
-  }
-
-  const brandWithMongoId = brand as unknown as { _id?: unknown } | null;
-
-  if (typeof brandWithMongoId?._id === 'string') {
-    return brandWithMongoId._id;
-  }
-
-  return '';
+  return typeof brand?.id === 'string' ? brand.id : '';
 }
 
 export function getBrandOrganizationId(
@@ -35,28 +25,13 @@ export function getBrandOrganizationId(
     return organization.id;
   }
 
-  if (
-    organization &&
-    typeof organization === 'object' &&
-    '_id' in organization &&
-    typeof organization._id === 'string'
-  ) {
-    return organization._id;
-  }
-
   // The protected bootstrap serializer nests `organization` as `{ slug }` only,
   // exposing the organization id as the brand's top-level `organizationId`
   // field. Fall back to it so the org scope resolves — otherwise
   // `scopedOrganizationId` stays empty, the access-state query never enables,
   // `accessState` is null, and OnboardingGuard/SubscriptionGuard spin forever.
-  const brandWithOrgId = brand as unknown as {
-    organizationId?: unknown;
-  } | null;
-  if (
-    typeof brandWithOrgId?.organizationId === 'string' &&
-    brandWithOrgId.organizationId.length > 0
-  ) {
-    return brandWithOrgId.organizationId;
+  if (typeof brand?.organizationId === 'string' && brand.organizationId) {
+    return brand.organizationId;
   }
 
   return '';

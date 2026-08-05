@@ -193,10 +193,7 @@ export class ModelDiscoveryService {
     const context = 'ModelDiscoveryService touchLastSyncedAt';
 
     try {
-      await this.modelsService.updateMany(
-        { isDeleted: false, isDiscovered: true, key: { in: keys } },
-        { lastSyncedAt: new Date() },
-      );
+      await this.modelsService.touchDiscoveredModels(keys, new Date());
 
       this.logger.log(
         `${context} updated lastSyncedAt for ${keys.length} models`,

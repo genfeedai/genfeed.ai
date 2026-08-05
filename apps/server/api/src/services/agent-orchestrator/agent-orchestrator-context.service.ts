@@ -100,8 +100,7 @@ export class AgentOrchestratorContextService {
       ? getAgentTypeConfig(request.agentType)
       : null;
     const orgSettings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
     });
     const { policy: basePolicy, strategyModel } =
       resolveEffectiveAgentExecutionConfig({
@@ -129,9 +128,9 @@ export class AgentOrchestratorContextService {
 
     if (isEntityId(request.threadId)) {
       thread = (await this.agentThreadsService.findOne({
-        _id: request.threadId,
+        id: request.threadId,
         isDeleted: false,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
       })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
     }
 

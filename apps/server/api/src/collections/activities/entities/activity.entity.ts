@@ -8,11 +8,7 @@ import type {
 
 export class ActivityEntity extends BaseEntity {
   declare readonly action: string | null;
-  declare readonly user: string | null;
-  declare readonly organization: string | null;
-  declare readonly brand: string | null;
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly organizationId: string;
   declare readonly userId: string;
   declare readonly brandId: string | null;

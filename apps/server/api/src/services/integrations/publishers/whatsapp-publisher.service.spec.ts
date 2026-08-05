@@ -21,27 +21,27 @@ describe('WhatsappPublisherService', () => {
   const ingredientId = '507f1f77bcf86cd799439016';
 
   const mockCredential = {
-    _id: credentialId,
     externalId: '+15551234567',
+    id: credentialId,
     isDeleted: false,
-    organization: orgId,
+    organizationId: orgId,
     platform: CredentialPlatform.WHATSAPP,
   } as unknown as CredentialDocument;
 
   const mockOrganization = {
-    _id: orgId,
-    name: 'Test Org',
+    id: orgId,
+    label: 'Test Org',
   } as unknown as OrganizationDocument;
 
   const makePost = (overrides: Partial<PostEntity> = {}): PostEntity =>
     ({
-      _id: postId,
-      brand: brandId,
+      brandId,
       category: PostCategory.TEXT,
       description: '<p>Hello <strong>WhatsApp</strong></p>',
       ingredients: [],
+      id: postId,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
       status: PostStatus.DRAFT,
       ...overrides,
     }) as unknown as PostEntity;

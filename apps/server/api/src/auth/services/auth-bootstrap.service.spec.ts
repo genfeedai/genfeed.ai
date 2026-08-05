@@ -292,14 +292,13 @@ describe('AuthBootstrapService', () => {
       hasEverHadCredits: true,
       subscriptionTier: SubscriptionTier.PRO,
       toObject: () => ({
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         organization: organizationId,
       }),
     });
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(125);
     brandsService.findForOrganization.mockResolvedValue([
       {
-        _id: brandId,
         id: brandId,
         isFleetEnabled: true,
         label: 'Primary Brand',
@@ -365,7 +364,7 @@ describe('AuthBootstrapService', () => {
       }),
       fleetCapabilities: null,
       settings: expect.objectContaining({
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         organization: organizationId,
       }),
       streak: {
@@ -374,7 +373,7 @@ describe('AuthBootstrapService', () => {
     });
     expect(usersService.findOne).toHaveBeenCalledWith(
       {
-        _id: expect.any(String),
+        id: userId,
         isDeleted: false,
       },
       [],
@@ -397,7 +396,7 @@ describe('AuthBootstrapService', () => {
       settings: { locale: 'en' },
     });
     organizationSettingsService.findOne.mockResolvedValue({
-      enabledModels: ['model_1'],
+      enabledModelIds: ['model_1'],
       hasEverHadCredits: false,
       organization: organizationId,
       subscriptionTier: SubscriptionTier.PRO,
@@ -405,7 +404,6 @@ describe('AuthBootstrapService', () => {
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(10);
     brandsService.findForOrganization.mockResolvedValue([
       {
-        _id: brandId,
         id: brandId,
         isFleetEnabled: false,
         label: 'Primary Brand',
@@ -440,7 +438,7 @@ describe('AuthBootstrapService', () => {
     );
     expect(result.settings).toEqual(
       expect.objectContaining({
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         organization: organizationId,
       }),
     );
@@ -484,7 +482,6 @@ describe('AuthBootstrapService', () => {
 
     brandsService.findForOrganization.mockResolvedValue([
       {
-        _id: brandId,
         id: brandId,
         isFleetEnabled: true,
         label: 'Primary Brand',

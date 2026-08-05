@@ -1,9 +1,11 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 
-describe('MembersService.listTeamMentions', () => {
+describe('MembersService', () => {
   const prisma = {
     member: {
+      create: vi.fn(),
       findMany: vi.fn(),
+      update: vi.fn(),
     },
   };
   const logger = {
@@ -13,8 +15,43 @@ describe('MembersService.listTeamMentions', () => {
   let service: MembersService;
 
   beforeEach(() => {
+    prisma.member.create.mockReset();
     prisma.member.findMany.mockReset();
+    prisma.member.update.mockReset();
     service = new MembersService(prisma as never, logger as never);
+  });
+
+  it('maps canonical brandIds to a Prisma relation set on create', async () => {
+    prisma.member.create.mockResolvedValue({ id: 'member-1' });
+
+    await service.create({
+      brandIds: ['brand-1', 'brand-1', 'brand-2'],
+      organizationId: 'org-1',
+      roleId: 'role-1',
+      userId: 'user-1',
+    });
+
+    expect(prisma.member.create).toHaveBeenCalledWith({
+      data: {
+        brands: {
+          set: [{ id: 'brand-1' }, { id: 'brand-2' }],
+        },
+        organizationId: 'org-1',
+        roleId: 'role-1',
+        userId: 'user-1',
+      },
+    });
+  });
+
+  it('maps canonical brandIds to a Prisma relation set on patch', async () => {
+    prisma.member.update.mockResolvedValue({ id: 'member-1' });
+
+    await service.patch('member-1', { brandIds: [] });
+
+    expect(prisma.member.update).toHaveBeenCalledWith({
+      data: { brands: { set: [] } },
+      where: { id: 'member-1' },
+    });
   });
 
   it('returns active organization members as team mentions', async () => {

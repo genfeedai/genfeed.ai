@@ -11,9 +11,9 @@ import type { components } from '../generated/api.js';
 import {
   dateStringSchema,
   daysOfWeekSchema,
+  entityIdArraySchema,
+  entityIdSchema,
   nonNegativeIntSchema,
-  objectIdArraySchema,
-  objectIdSchema,
   optionalStringSchema,
   timezoneSchema,
 } from '../helpers/common-schemas';
@@ -44,19 +44,19 @@ export type UpdatePostRequest = components['schemas']['UpdatePostDto'];
  */
 export const createPostSchema = z.object({
   category: z.nativeEnum(PostCategory).optional(),
-  credential: objectIdSchema,
+  credentialId: entityIdSchema,
   description: z.string().min(1),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
   groupId: optionalStringSchema,
-  ingredients: objectIdArraySchema({ max: 35 }),
+  ingredients: entityIdArraySchema({ max: 35 }),
   isAnalyticsEnabled: z.boolean().optional(),
   isRepeat: z.boolean().optional(),
   isShareToFeedSelected: z.boolean().optional(),
   label: z.string().min(1),
   maxRepeats: nonNegativeIntSchema.optional(),
   order: z.number().int().optional(),
-  parent: objectIdSchema.optional(),
+  parentId: entityIdSchema.optional(),
   contentRunId: optionalStringSchema,
   personaId: optionalStringSchema,
   variantId: optionalStringSchema,
@@ -73,7 +73,7 @@ export const createPostSchema = z.object({
   scheduledDate: dateStringSchema.optional(),
   source: optionalStringSchema,
   status: z.nativeEnum(PostStatus),
-  tags: objectIdArraySchema().optional(),
+  tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
 }) satisfies z.ZodType<CreatePostRequest>;
 
@@ -83,19 +83,19 @@ export const createPostSchema = z.object({
  */
 export const updatePostSchema = z.object({
   category: z.nativeEnum(PostCategory).optional(),
-  credential: objectIdSchema.optional(),
+  credentialId: entityIdSchema.optional(),
   description: z.string().min(1).optional(),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
   groupId: optionalStringSchema,
-  ingredients: objectIdArraySchema({ max: 35 }).optional(),
+  ingredients: entityIdArraySchema({ max: 35 }).optional(),
   isAnalyticsEnabled: z.boolean().optional(),
   isRepeat: z.boolean().optional(),
   isShareToFeedSelected: z.boolean().optional(),
   label: z.string().min(1).optional(),
   maxRepeats: nonNegativeIntSchema.optional(),
   order: z.number().int().optional(),
-  parent: objectIdSchema.optional(),
+  parentId: entityIdSchema.optional(),
   contentRunId: optionalStringSchema,
   personaId: optionalStringSchema,
   variantId: optionalStringSchema,
@@ -111,7 +111,7 @@ export const updatePostSchema = z.object({
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
   status: z.nativeEnum(PostStatus).optional(),
-  tags: objectIdArraySchema().optional(),
+  tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
 }) satisfies z.ZodType<UpdatePostRequest>;
 

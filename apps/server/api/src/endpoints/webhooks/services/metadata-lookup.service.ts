@@ -3,11 +3,10 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { type MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
-import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 
 export interface MetadataLookupResult {
@@ -84,44 +83,43 @@ export class MetadataLookupService {
         return;
       }
 
-      const ingredient = await this.ingredientsService.findOne(
-        { metadataId: foundMetadata.id },
-        [PopulatePatterns.userMinimal],
-      );
+      const ingredient = await this.ingredientsService.findOne({
+        metadataId: foundMetadata.id,
+      });
 
       if (!ingredient) {
         return;
       }
 
-      const { userId, userRoom } = UserExtractionUtil.extractUserIds(
-        ingredient.user,
+      const userId = ingredient.userId;
+      if (!userId) {
+        return;
+      }
+
+      const userRoom = getUserRoomName(userId);
+      const websocketUrl = `/${categoryToPlural(category)}/${ingredient.id}`;
+      const errorMessage =
+        'Generation failed: Metadata not found. Please contact support if this persists.';
+
+      await this.websocketService.publishMediaFailed(
+        websocketUrl,
+        errorMessage,
+        userId,
+        userRoom,
       );
 
-      if (userId) {
-        const websocketUrl = `/${categoryToPlural(category)}/${ingredient.id}`;
-        const errorMessage =
-          'Generation failed: Metadata not found. Please contact support if this persists.';
+      await this.ingredientsService.patch(ingredient.id.toString(), {
+        status: IngredientStatus.FAILED,
+      });
 
-        await this.websocketService.publishMediaFailed(
-          websocketUrl,
-          errorMessage,
+      this.loggerService.log(
+        `${this.logContext} published websocket error for metadata not found`,
+        {
+          externalId,
+          ingredientId: ingredient.id,
           userId,
-          userRoom,
-        );
-
-        await this.ingredientsService.patch(ingredient.id.toString(), {
-          status: IngredientStatus.FAILED,
-        });
-
-        this.loggerService.log(
-          `${this.logContext} published websocket error for metadata not found`,
-          {
-            externalId,
-            ingredientId: ingredient.id,
-            userId,
-          },
-        );
-      }
+        },
+      );
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.logContext} failed to publish websocket error`,
@@ -149,10 +147,9 @@ export class MetadataLookupService {
 
     await this.metadataService.patch(metadata.id, { result: url });
 
-    const ingredient = await this.ingredientsService.findOne(
-      { metadataId: metadata.id },
-      [PopulatePatterns.userMinimal],
-    );
+    const ingredient = await this.ingredientsService.findOne({
+      metadataId: metadata.id,
+    });
 
     if (!ingredient) {
       this.loggerService.error(

@@ -32,27 +32,14 @@ export class WorkflowStepEntity {
 
 export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare id: string;
-  declare mongoId: string | null;
   declare defaultRecurringBrandId: string | null;
   declare organizationId: string;
   declare brandId: string | null;
   declare userId: string;
-  // Every field below is populated exclusively by BaseEntity's
-  // `Object.assign(this, partial)` constructor call. Under this codebase's
-  // spec-compliant class-field ("define") transpilation, a plain field
-  // declaration with no initializer re-runs after `super()` returns and
-  // resets the assigned value back to `undefined` — silently discarding
-  // everything Object.assign just set. `declare` fields emit zero runtime
-  // code, so they cannot clobber the constructor's assignment. See
-  // .agents/memory/rules/prisma_legacy_alias_fields.md and the identical
-  // pattern in post.entity.ts / post-analytics.entity.ts.
-  declare brand?: string | null;
-  declare user?: string;
-  declare organization?: string;
   declare label: string;
   declare description: WorkflowDocument['description'];
   declare templateId?: string;
-  declare trigger?: WorkflowDocument['trigger'];
+  declare trigger: WorkflowDocument['trigger'];
   declare status: WorkflowDocument['status'];
   declare sourceAsset?: string;
   declare sourceAssetModel?: string;
@@ -77,7 +64,6 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare isScheduleEnabled: boolean;
   declare isPublic: boolean;
 
-  // New workflow engine fields
   declare lifecycle?: WorkflowDocument['lifecycle'];
   declare lockedNodeIds?: string[];
 }

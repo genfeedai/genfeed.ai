@@ -31,8 +31,8 @@ import { of, throwError } from 'rxjs';
 describe('InstagramController', () => {
   let controller: InstagramController;
   let brandsFindOneMock: ReturnType<typeof vi.fn>;
-  let credentialsSaveCredentialsMock: ReturnType<typeof vi.fn>;
-  let credentialsFindOneMock: ReturnType<typeof vi.fn>;
+  let credentialsBeginOAuthForBrandMock: ReturnType<typeof vi.fn>;
+  let credentialsFindPendingOAuthCredentialMock: ReturnType<typeof vi.fn>;
   let credentialsPatchMock: ReturnType<typeof vi.fn>;
   let httpGetMock: ReturnType<typeof vi.fn>;
   let httpPostMock: ReturnType<typeof vi.fn>;
@@ -63,8 +63,16 @@ describe('InstagramController', () => {
     vi.clearAllMocks();
 
     brandsFindOneMock = vi.fn();
-    credentialsSaveCredentialsMock = vi.fn();
-    credentialsFindOneMock = vi.fn();
+    credentialsBeginOAuthForBrandMock = vi.fn().mockResolvedValue({
+      credential: { id: 'test-object-id' },
+      state: 'opaque-oauth-state',
+    });
+    credentialsFindPendingOAuthCredentialMock = vi.fn().mockResolvedValue({
+      brandId: '507f191e810c19729de860ea',
+      id: 'test-object-id',
+      organizationId: '507f191e810c19729de860eb',
+      userId: '507f191e810c19729de860ec',
+    });
     credentialsPatchMock = vi.fn();
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
@@ -78,9 +86,9 @@ describe('InstagramController', () => {
     } as unknown as BrandsService;
 
     const credentialsMock = {
-      findOne: credentialsFindOneMock,
+      beginOAuthForBrand: credentialsBeginOAuthForBrandMock,
+      findPendingOAuthCredential: credentialsFindPendingOAuthCredentialMock,
       patch: credentialsPatchMock,
-      saveCredentials: credentialsSaveCredentialsMock,
     } as unknown as CredentialsService;
 
     const httpServiceMock = {
@@ -114,22 +122,27 @@ describe('InstagramController', () => {
 
     it('should generate Instagram OAuth URL for brand connection', async () => {
       const mockBrand = {
-        _id: brandOid,
-        organization: '507f191e810c19729de860eb',
+        id: brandOid,
+        organizationId: '507f191e810c19729de860eb',
+        userId: '507f191e810c19729de860ec',
       };
       brandsFindOneMock.mockResolvedValue(mockBrand);
-      credentialsSaveCredentialsMock.mockResolvedValue({});
 
       const result = await controller.connect(mockRequest, mockUser, {
-        brand: brandOid,
+        brandId: brandOid,
       });
 
       expect(brandsFindOneMock).toHaveBeenCalledWith({
-        _id: brandOid,
+        id: brandOid,
         isDeleted: false,
-        organization: '507f191e810c19729de860eb',
+        organizationId: '507f191e810c19729de860eb',
       });
-      expect(credentialsSaveCredentialsMock).toHaveBeenCalled();
+      expect(credentialsBeginOAuthForBrandMock).toHaveBeenCalledWith(
+        mockBrand,
+        '507f191e810c19729de860ec',
+        'instagram',
+        expect.objectContaining({ isConnected: false }),
+      );
       expect(result).toHaveProperty('data');
       const data = result.data as unknown as { url: string };
       expect(data).toHaveProperty('url');
@@ -141,7 +154,7 @@ describe('InstagramController', () => {
       brandsFindOneMock.mockResolvedValue(null);
 
       const result = await controller.connect(mockRequest, mockUser, {
-        brand: brandOid,
+        brandId: brandOid,
       });
 
       expect(result).toHaveProperty('errors');
@@ -150,13 +163,13 @@ describe('InstagramController', () => {
 
     it('should include correct scopes in auth URL', async () => {
       brandsFindOneMock.mockResolvedValue({
-        _id: brandOid,
-        organization: '507f191e810c19729de860eb',
+        id: brandOid,
+        organizationId: '507f191e810c19729de860eb',
+        userId: '507f191e810c19729de860ec',
       });
-      credentialsSaveCredentialsMock.mockResolvedValue({});
 
       const result = await controller.connect(mockRequest, mockUser, {
-        brand: brandOid,
+        brandId: brandOid,
       });
 
       const url = (result.data as unknown as { url: string }).url;
@@ -164,26 +177,27 @@ describe('InstagramController', () => {
       expect(url).toContain('instagram_content_publish');
     });
 
-    it('should include state with brand and org IDs', async () => {
+    it('should include only the opaque server-issued state', async () => {
       brandsFindOneMock.mockResolvedValue({
-        _id: brandOid,
-        organization: '507f191e810c19729de860eb',
+        id: brandOid,
+        organizationId: '507f191e810c19729de860eb',
+        userId: '507f191e810c19729de860ec',
       });
-      credentialsSaveCredentialsMock.mockResolvedValue({});
-
       const result = await controller.connect(mockRequest, mockUser, {
-        brand: brandOid,
+        brandId: brandOid,
       });
 
       const url = (result.data as unknown as { url: string }).url;
-      expect(url).toContain('state=');
+      expect(new URL(url).searchParams.get('state')).toBe('opaque-oauth-state');
+      expect(url).not.toContain(brandOid);
+      expect(url).not.toContain('507f191e810c19729de860eb');
     });
   });
 
   describe('verify', () => {
     const brandId = '507f191e810c19729de860ea';
     const orgId = '507f191e810c19729de860eb';
-    const state = JSON.stringify({ brandId, organizationId: orgId });
+    const state = 'opaque-oauth-state';
     const mockRequest = {} as unknown as Request;
 
     it('should exchange code for long-lived token and update credential', async () => {
@@ -196,9 +210,14 @@ describe('InstagramController', () => {
           data: { access_token: 'long-lived-token', expires_in: 5184000 },
         }),
       );
-      credentialsFindOneMock.mockResolvedValue({ id: credId });
+      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+        brandId,
+        id: credId,
+        organizationId: orgId,
+        userId: '507f191e810c19729de860ec',
+      });
       credentialsPatchMock.mockResolvedValue({
-        _id: credId,
+        id: credId,
         isConnected: true,
       });
 
@@ -207,13 +226,14 @@ describe('InstagramController', () => {
         state,
       });
 
-      expect(result.data).toEqual({ _id: credId, isConnected: true });
+      expect(result.data).toEqual({ id: credId, isConnected: true });
       expect(credentialsPatchMock).toHaveBeenCalledWith(
         credId,
         expect.objectContaining({
           accessToken: 'long-lived-token',
           isConnected: true,
           isDeleted: false,
+          oauthState: null,
         }),
       );
     });
@@ -232,9 +252,13 @@ describe('InstagramController', () => {
         emptyConfigMock,
         { findOne: vi.fn() } as unknown as BrandsService,
         {
-          findOne: vi.fn(),
+          findPendingOAuthCredential: vi.fn().mockResolvedValue({
+            brandId,
+            id: 'credential-id',
+            organizationId: orgId,
+            userId: 'user-id',
+          }),
           patch: vi.fn(),
-          saveCredentials: vi.fn(),
         } as unknown as CredentialsService,
         { get: vi.fn(), post: vi.fn() } as unknown as HttpService,
         instagramServiceMock as unknown as InstagramService,
@@ -270,11 +294,7 @@ describe('InstagramController', () => {
     });
 
     it('should return not found when credential does not exist', async () => {
-      httpPostMock.mockReturnValue(of({ data: { access_token: 'short' } }));
-      httpGetMock.mockReturnValue(
-        of({ data: { access_token: 'long', expires_in: 3600 } }),
-      );
-      credentialsFindOneMock.mockResolvedValue(null);
+      credentialsFindPendingOAuthCredentialMock.mockResolvedValue(null);
 
       const result = await controller.verify(mockRequest, {
         code: 'code',

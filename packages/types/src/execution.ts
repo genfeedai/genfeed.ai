@@ -78,6 +78,3 @@ export type SchemaParams = Record<string, unknown>;
 
 /** Input payload sent to the Replicate predictions API. */
 export type ReplicateModelInput = Record<string, unknown>;
-
-/** MongoDB query filter object built dynamically from optional parameters. */
-export type MongoFilterQuery = Record<string, unknown>;

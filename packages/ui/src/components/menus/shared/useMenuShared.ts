@@ -27,6 +27,7 @@ export function useMenuShared({
   const { nestedGroupId, enterNestedGroup, exitNestedGroup } =
     useSidebarNavigation();
   const {
+    activeHref,
     brandSlug,
     href,
     isActive,
@@ -140,6 +141,7 @@ export function useMenuShared({
   }, [nestedGroupId, exitNestedGroup]);
 
   return {
+    activeHref,
     logoUrl,
     href,
     orgHref,

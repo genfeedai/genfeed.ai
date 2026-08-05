@@ -6,7 +6,10 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import {
+  type ISubscriptionOssReadModel,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -56,10 +59,15 @@ describe('StripeSubscriptionWebhookHandler', () => {
   }
 
   const dbSubscription = {
+    cancelAtPeriodEnd: false,
     id: 'sub_db_1',
-    organization: 'org_1',
-    user: 'user_1',
-  };
+    isDeleted: false,
+    organizationId: 'org_1',
+    plan: SubscriptionPlan.MONTHLY,
+    status: 'active',
+    stripePriceId: 'price_1',
+    userId: 'user_1',
+  } satisfies ISubscriptionOssReadModel;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -102,7 +110,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
           status: 'active',
           stripePriceId: 'price_1',
           stripeSubscriptionId: 'sub_stripe_1',
-          type: SubscriptionPlan.MONTHLY,
+          plan: SubscriptionPlan.MONTHLY,
         }),
       );
       expect(subscriptionsService.syncSubscriptionState).toHaveBeenCalledWith(
@@ -117,9 +125,9 @@ describe('StripeSubscriptionWebhookHandler', () => {
         periodStart: new Date(1_747_321_600 * 1000),
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: expect.objectContaining({
-          organization: 'org_1',
+          organizationId: 'org_1',
+          plan: SubscriptionPlan.MONTHLY,
           stripePriceId: 'price_1',
-          type: SubscriptionPlan.MONTHLY,
         }),
         subscriptionStatus: 'active',
         trigger: 'customer.subscription.created',

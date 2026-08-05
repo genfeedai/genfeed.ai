@@ -65,10 +65,10 @@ export class VideosResizeController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
+      id: videoId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
     });
 
@@ -77,12 +77,12 @@ export class VideosResizeController {
     }
 
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: video.brand || publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: video.brandId ?? publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: publicMetadata.organization,
-        parent: videoId,
+        organizationId: publicMetadata.organization,
+        parentId: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });
@@ -144,8 +144,8 @@ export class VideosResizeController {
     const publicMetadata = getPublicMetadata(user);
 
     const video = await this.videosService.findOne({
-      _id: videoId,
-      user: publicMetadata.user,
+      id: videoId,
+      userId: publicMetadata.user,
     });
 
     if (!video) {
@@ -153,12 +153,12 @@ export class VideosResizeController {
     }
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: publicMetadata.organization,
-        parent: videoId,
+        organizationId: publicMetadata.organization,
+        parentId: videoId,
         status: IngredientStatus.PROCESSING,
       });
 

@@ -112,31 +112,33 @@ describe('core schemas', () => {
   describe('inviteMemberSchema', () => {
     it('accepts valid invite', () => {
       expect(
-        inviteMemberSchema.safeParse({ email: 'a@b.com', role: 'admin' })
+        inviteMemberSchema.safeParse({ email: 'a@b.com', roleId: 'admin' })
           .success,
       ).toBe(true);
     });
 
     it('rejects invalid email', () => {
       expect(
-        inviteMemberSchema.safeParse({ email: 'bad', role: 'admin' }).success,
+        inviteMemberSchema.safeParse({ email: 'bad', roleId: 'admin' }).success,
       ).toBe(false);
     });
 
     it('rejects empty role', () => {
       expect(
-        inviteMemberSchema.safeParse({ email: 'a@b.com', role: '' }).success,
+        inviteMemberSchema.safeParse({ email: 'a@b.com', roleId: '' }).success,
       ).toBe(false);
     });
   });
 
   describe('memberEditSchema', () => {
     it('accepts brands array', () => {
-      expect(memberEditSchema.safeParse({ brands: ['b1'] }).success).toBe(true);
+      expect(memberEditSchema.safeParse({ brandIds: ['b1'] }).success).toBe(
+        true,
+      );
     });
 
     it('rejects empty brands', () => {
-      expect(memberEditSchema.safeParse({ brands: [] }).success).toBe(false);
+      expect(memberEditSchema.safeParse({ brandIds: [] }).success).toBe(false);
     });
   });
 

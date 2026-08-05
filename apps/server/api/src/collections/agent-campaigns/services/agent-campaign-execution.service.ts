@@ -100,10 +100,10 @@ export class AgentCampaignExecutionService {
         // Create a run for this strategy
         const run = await this.agentRunsService.create({
           label: `Campaign run: ${campaign.label} - ${strategy.label}`,
-          organization: organizationId,
-          strategy: strategyId,
+          organizationId: organizationId,
+          strategyId: strategyId,
           trigger: AgentExecutionTrigger.MANUAL,
-          user: userId,
+          userId: userId,
         });
 
         // Queue the run
@@ -221,7 +221,7 @@ export class AgentCampaignExecutionService {
       isDeleted: false,
     });
 
-    if (!campaign || campaign.status !== 'active') {
+    if (campaign?.status !== 'active') {
       return false;
     }
 

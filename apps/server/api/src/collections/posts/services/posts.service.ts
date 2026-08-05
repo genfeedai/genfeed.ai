@@ -10,26 +10,30 @@ import {
   batchSchedulePosts,
   type PostBatchScheduleItem,
   type PostBatchScheduleResult,
-  PRISMA_POST_STATUS,
+  type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
+import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  parsePlatform,
+} from '@genfeedai/enums';
 import type {
   AgentContentMentionItem,
   PopulateOption,
 } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -39,22 +43,24 @@ import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
-const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<keyof UpdatePostDto>([
+const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'category',
-  'credential',
+  'credentialId',
   'description',
   'ingredients',
   'isRepeat',
   'isShareToFeedSelected',
   'label',
   'maxRepeats',
-  'parent',
+  'parentId',
+  'platform',
   'publishIntent',
   'repeatDaysOfWeek',
   'repeatEndDate',
   'repeatFrequency',
   'repeatInterval',
   'scheduledDate',
+  'tags',
   'timezone',
 ]);
 
@@ -72,6 +78,116 @@ type ContentMentionPostRecord = {
   id: string;
   label: string | null;
 };
+
+type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
+  agentContextSource?: string;
+  agentContextVersion?: number;
+  agentRunId?: string;
+  agentStrategyId?: string;
+  agentThreadId?: string;
+  brandId?: string;
+  credentialId?: string | null;
+  organizationId?: string;
+  originalPostId?: string;
+  platform?: CredentialPlatform;
+  promptUsed?: string;
+  publishIntent?: string;
+  reviewEvents?: Record<string, unknown>[];
+  reviewFeedback?: string;
+  sourceActionId?: string;
+  sourceWorkflowId?: string;
+  sourceWorkflowName?: string;
+  userId?: string;
+};
+
+type PostUpdateInput = Partial<UpdatePostDto> & {
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+};
+
+const POST_SCALAR_FIELDS = [
+  'agentContextSource',
+  'agentContextVersion',
+  'agentRunId',
+  'agentStrategyId',
+  'agentThreadId',
+  'analyticsCollectedAt',
+  'analyticsCollectionAttemptKey',
+  'analyticsCollectionError',
+  'analyticsCollectionRequestedAt',
+  'analyticsCollectionState',
+  'brandId',
+  'category',
+  'contentRunId',
+  'credentialId',
+  'creativeVersion',
+  'description',
+  'entityArticleId',
+  'entityIngredientId',
+  'entityModel',
+  'externalId',
+  'externalShortcode',
+  'generationId',
+  'groupId',
+  'hookVersion',
+  'isAnalyticsEnabled',
+  'isDeleted',
+  'isRepeat',
+  'isShareToFeedSelected',
+  'label',
+  'lastAttemptAt',
+  'maxRepeats',
+  'nextScheduledDate',
+  'order',
+  'originalPostId',
+  'organizationId',
+  'parentId',
+  'personaId',
+  'platform',
+  'promptUsed',
+  'publicationDate',
+  'publishedAt',
+  'publishApprovalId',
+  'publishIntent',
+  'quoteTweetId',
+  'repeatCount',
+  'repeatDaysOfWeek',
+  'repeatEndDate',
+  'repeatFrequency',
+  'repeatInterval',
+  'reviewFeedback',
+  'reviewBatchId',
+  'reviewDecision',
+  'reviewEvents',
+  'reviewItemId',
+  'reviewVersionPinId',
+  'reviewedAt',
+  'retryCount',
+  'scheduleSlot',
+  'scheduledDate',
+  'seoBreakdown',
+  'seoScore',
+  'source',
+  'sourceActionId',
+  'sourceWorkflowId',
+  'sourceWorkflowName',
+  'status',
+  'targetAttachments',
+  'targetError',
+  'targetExecutionState',
+  'targetIdempotencyKey',
+  'targetReadiness',
+  'targetSettings',
+  'targetValidationIssues',
+  'targetValidationState',
+  'timezone',
+  'uploadedAt',
+  'url',
+  'userId',
+  'variantId',
+  'workflowExecutionId',
+] as const;
 
 @Injectable()
 export class PostsService extends BaseService<
@@ -94,44 +210,35 @@ export class PostsService extends BaseService<
   }
 
   create(
-    dto: CreatePostDto & {
-      user: string;
-      organization: string;
-      brand: string;
-      platform: CredentialPlatform;
-      publishIntent?: string;
-      reviewFeedback?: string;
-    },
-    populate: PopulateOption[] = [
+    dto: PostCreateInput,
+    populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    // Normalize ObjectId fields — DTO fields are Types.ObjectId but may arrive as strings at runtime
-    const normalizedIngredients =
-      dto.ingredients !== undefined
-        ? EntityIdUtil.normalizeIds(dto.ingredients as unknown as Array<string>)
-        : undefined;
-    const normalizedCredential = EntityIdUtil.normalizeId(
-      dto.credential as unknown as string,
-    );
-    const normalizedParent = EntityIdUtil.normalizeId(
-      dto.parent as unknown as string | undefined,
-    );
+    const dtoRecord = dto as unknown as Record<string, unknown>;
+    const {
+      campaign: _campaign,
+      ingredients,
+      tags,
+      threadPosts: _threadPosts,
+    } = dto;
 
-    // Build normalized DTO
-    const normalizedDto = {
-      ...dto,
-      ...(normalizedIngredients !== undefined && {
-        ingredients: normalizedIngredients,
+    const prismaWriteData: Record<string, unknown> = {
+      ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
+      ...(ingredients !== undefined && {
+        ingredients: {
+          connect: ingredients.map((id) => ({ id })),
+        },
       }),
-      ...(normalizedCredential !== undefined && {
-        credential: normalizedCredential,
+      ...(tags !== undefined && {
+        tags: { connect: tags.map((id) => ({ id })) },
       }),
-      parent: normalizedParent,
     };
+
+    this.assertPublishTarget(dto.status, dto.credentialId, dto.platform);
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
     if (dto.scheduledDate && dto.timezone) {
@@ -144,15 +251,15 @@ export class PostsService extends BaseService<
         `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
       );
 
-      normalizedDto.scheduledDate = convertedDate;
+      prismaWriteData.scheduledDate = convertedDate;
     }
 
-    return super.create(normalizedDto, populate);
+    return super.create(prismaWriteData as unknown as CreatePostDto, populate);
   }
 
   findOne(
     params: Record<string, unknown>,
-    populate: PopulateOption[] = [
+    populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -168,7 +275,7 @@ export class PostsService extends BaseService<
   async findByIds(
     ids: string[],
     organizationId: string,
-    populate: PopulateOption[] = [
+    _populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
     ],
@@ -257,8 +364,8 @@ export class PostsService extends BaseService<
 
   async patch(
     id: string,
-    dto: Partial<UpdatePostDto>,
-    populate: PopulateOption[] = [
+    dto: PostUpdateInput,
+    populate: PopulateInput = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -269,7 +376,7 @@ export class PostsService extends BaseService<
       typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
     const isPublishingPost = normalizedStatus === PostStatus.PUBLIC;
     const changesApprovalScope = Object.keys(dto).some((key) =>
-      PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key as keyof UpdatePostDto),
+      PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key),
     );
     const approvalContext = changesApprovalScope
       ? await this.prisma.post.findFirst({
@@ -283,37 +390,53 @@ export class PostsService extends BaseService<
         id,
       );
     }
+
+    let resolvedPlatform: string | undefined;
+    if (dto.credentialId && approvalContext) {
+      const credential = await this.prisma.credential.findFirst({
+        select: { platform: true },
+        where: {
+          id: dto.credentialId,
+          isConnected: true,
+          isDeleted: false,
+          organizationId: approvalContext.organizationId,
+        },
+      });
+      if (!credential) {
+        throw new BadRequestException(
+          'The selected publishing credential is unavailable for this organization.',
+        );
+      }
+      resolvedPlatform = credential.platform;
+    }
+
     let currentPost: PostDocument | null = null;
 
     if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
-      currentPost = await this.findOne({ _id: id });
+      currentPost = await this.findOne({ id: id });
+      if (currentPost) {
+        const targetCredentialId = dto.credentialId ?? currentPost.credentialId;
+        const targetPlatform = resolvedPlatform ?? currentPost.platform;
+        this.assertPublishTarget(
+          normalizedStatus,
+          targetCredentialId,
+          targetPlatform,
+        );
+      }
     }
 
-    // Normalize ObjectId fields — DTO fields are Types.ObjectId but may arrive as strings at runtime
-    const normalizedIngredients =
-      dto.ingredients !== undefined
-        ? (EntityIdUtil.normalizeIds(
-            dto.ingredients as unknown as Array<string>,
-          ) ?? [])
-        : undefined;
-    const normalizedCredential = EntityIdUtil.normalizeId(
-      dto.credential as unknown as string | undefined,
-    );
-    const normalizedParent =
-      dto.parent !== undefined
-        ? EntityIdUtil.normalizeId(dto.parent as unknown as string)
-        : undefined;
+    const { ingredients, tags } = dto;
+    const dtoRecord = dto as unknown as Record<string, unknown>;
 
-    // Build normalized DTO
-    const normalizedDto: Partial<UpdatePostDto> = {
-      ...dto,
-      ...(normalizedIngredients !== undefined && {
-        ingredients: normalizedIngredients,
+    const prismaWriteData: Record<string, unknown> = {
+      ...pickDefinedFields(dtoRecord, POST_SCALAR_FIELDS),
+      ...(resolvedPlatform !== undefined && { platform: resolvedPlatform }),
+      ...(ingredients !== undefined && {
+        ingredients: { set: ingredients.map((id) => ({ id })) },
       }),
-      ...(normalizedCredential !== undefined && {
-        credential: normalizedCredential,
+      ...(tags !== undefined && {
+        tags: { set: tags.map((id) => ({ id })) },
       }),
-      ...(normalizedParent !== undefined && { parent: normalizedParent }),
     };
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
@@ -327,24 +450,27 @@ export class PostsService extends BaseService<
         `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
       );
 
-      (normalizedDto as Record<string, unknown>).scheduledDate = convertedDate;
+      prismaWriteData.scheduledDate = convertedDate;
     }
 
     // If parent post is being scheduled, automatically schedule all children
     if (normalizedStatus === PostStatus.SCHEDULED) {
-      if (currentPost && !currentPost.parent) {
+      if (currentPost && !currentPost.parentId) {
         // Find all children and update them to SCHEDULED
         const updateResult = await this.prisma.post.updateMany({
           data: {
-            status: PRISMA_POST_STATUS.SCHEDULED,
-            ...(normalizedDto.scheduledDate && {
-              scheduledDate: normalizedDto.scheduledDate as Date,
-            }),
-          } as never,
+            credentialId: dto.credentialId ?? currentPost.credentialId,
+            platform: resolvedPlatform ?? currentPost.platform,
+            status: PostStatus.SCHEDULED,
+            ...(prismaWriteData.scheduledDate
+              ? { scheduledDate: prismaWriteData.scheduledDate as Date }
+              : {}),
+          },
           where: {
             isDeleted: false,
+            organizationId: currentPost.organizationId,
             parentId: id,
-            status: { not: PRISMA_POST_STATUS.PUBLIC },
+            status: { not: PostStatus.PUBLIC },
           },
         });
 
@@ -356,7 +482,11 @@ export class PostsService extends BaseService<
       }
     }
 
-    const updatedPost = await super.patch(id, normalizedDto, populate);
+    const updatedPost = await super.patch(
+      id,
+      prismaWriteData as unknown as UpdatePostDto,
+      populate,
+    );
 
     if (approvalContext?.publishApprovalId && this.publishApprovalsService) {
       await this.publishApprovalsService.invalidatePost(
@@ -378,6 +508,26 @@ export class PostsService extends BaseService<
     return updatedPost;
   }
 
+  private assertPublishTarget(
+    status: string | undefined,
+    credentialId: string | null | undefined,
+    platform: string | null | undefined,
+  ): void {
+    const normalizedStatus = status?.toLowerCase();
+    if (
+      normalizedStatus !== PostStatus.SCHEDULED &&
+      normalizedStatus !== PostStatus.PUBLIC
+    ) {
+      return;
+    }
+
+    if (!credentialId || !platform) {
+      throw new BadRequestException(
+        'A credential and platform are required before scheduling or publishing a post.',
+      );
+    }
+  }
+
   /**
    * Schedule a batch of posts in a fixed number of round-trips instead of the
    * 2N–4N serial queries a `patch` per item used to cost. The planning and
@@ -387,6 +537,7 @@ export class PostsService extends BaseService<
   async batchSchedule(
     items: readonly PostBatchScheduleItem[],
     organizationId: string,
+    target: PostBatchScheduleTarget,
   ): Promise<PostBatchScheduleResult> {
     return batchSchedulePosts(
       {
@@ -394,8 +545,8 @@ export class PostsService extends BaseService<
         cacheTags: [
           this.collectionName,
           `collection:${this.collectionName}`,
-          `agg:${this.collectionName}`,
-          'agg:paginated',
+          `query:${this.collectionName}`,
+          'query:paginated',
         ],
         logger: this.logger,
         normalizeData: (data) =>
@@ -406,31 +557,24 @@ export class PostsService extends BaseService<
       },
       items,
       organizationId,
+      target,
     );
   }
 
   private async completePublishFirstPostMission(
-    post: Pick<PostDocument, 'organization'> & { organizationId?: unknown },
+    post: Pick<PostDocument, 'organizationId'>,
   ): Promise<void> {
     if (!this.organizationSettingsService || !this.creditsUtilsService) {
       return;
     }
 
-    // `String(post.organization)` yielded the literal "undefined" (truthy, so
-    // the guard below never fired) whenever the patched post carried no
-    // populated organization — which then looked up settings for a
-    // non-existent organization id.
-    const organizationId = resolveRelationId(
-      post.organizationId,
-      post.organization,
-    );
+    const organizationId = post.organizationId;
     if (!organizationId) {
       return;
     }
 
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!settings?.id) {
@@ -522,22 +666,9 @@ export class PostsService extends BaseService<
     });
 
     try {
-      // Scalar FKs first. Populated relations cannot be stringified safely, so
-      // fail closed rather than enqueueing a job with an unusable owner id.
-      const postRef = `Post ${postId}`;
-      const brandId = requireRelationId(
-        post.brandId,
-        post.brand,
-        'brand',
-        postRef,
-      );
-      const organizationId = requireRelationId(
-        post.organizationId,
-        post.organization,
-        'organization',
-        postRef,
-      );
-      const userId = requireRelationId(post.userId, post.user, 'user', postRef);
+      const brandId = post.brandId;
+      const organizationId = post.organizationId;
+      const userId = post.userId;
       const authProviderUserId = userId;
 
       await this.fileQueueService?.uploadYoutube({
@@ -581,8 +712,13 @@ export class PostsService extends BaseService<
   /**
    * Count posts matching filter
    */
-  async count(filter: Record<string, unknown>): Promise<number> {
-    return this.prisma.post.count({ where: filter as never });
+  async count(
+    organizationId: string,
+    filter: Prisma.PostWhereInput = {},
+  ): Promise<number> {
+    return this.prisma.post.count({
+      where: scopedWhere(organizationId, filter),
+    });
   }
 
   /**
@@ -590,14 +726,7 @@ export class PostsService extends BaseService<
    */
   @HandleErrors('create thread', 'posts')
   async createThread(
-    threadPosts: Array<
-      CreatePostDto & {
-        user: string;
-        organization: string;
-        brand: string;
-        platform: CredentialPlatform;
-      }
-    >,
+    threadPosts: PostCreateInput[],
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -612,11 +741,12 @@ export class PostsService extends BaseService<
     }
 
     // Create root post first (index 0)
-    const { parent: _rootParent, ...rootPostWithoutParent } = threadPosts[0];
+    const { parentId: _rootParentId, ...rootPostWithoutParent } =
+      threadPosts[0];
     const rootPostDto = {
       ...rootPostWithoutParent,
       order: 0,
-      parent: undefined,
+      parentId: undefined,
     };
 
     const rootPost = await this.create(rootPostDto, populate);
@@ -624,12 +754,12 @@ export class PostsService extends BaseService<
     const rootPostId = rootPost.id;
 
     for (let i = 1; i < threadPosts.length; i++) {
-      const { parent: _parent, ...postWithoutParent } = threadPosts[i];
+      const { parentId: _parentId, ...postWithoutParent } = threadPosts[i];
 
       const postDto = {
         ...postWithoutParent,
         order: i,
-        parent: rootPostId,
+        parentId: rootPostId,
       };
 
       const createdPost = await this.create(postDto, populate);
@@ -645,7 +775,7 @@ export class PostsService extends BaseService<
   @HandleErrors('get post children', 'posts')
   async getChildren(
     parentId: string,
-    populate: PopulateOption[] = [
+    _populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
       PopulatePatterns.userMinimal,
@@ -716,10 +846,10 @@ export class PostsService extends BaseService<
 
     const rootRow = ancestors.find((a) => a.parentId === null);
     if (!rootRow) {
-      return this.findOne({ _id: postId }, populate);
+      return this.findOne({ id: postId }, populate);
     }
 
-    return this.findOne({ _id: rootRow.id }, populate);
+    return this.findOne({ id: rootRow.id }, populate);
   }
 
   /**
@@ -728,12 +858,7 @@ export class PostsService extends BaseService<
   @HandleErrors('add thread reply', 'posts')
   async addThreadReply(
     parentId: string,
-    dto: CreatePostDto & {
-      user: string;
-      organization: string;
-      brand: string;
-      platform: CredentialPlatform;
-    },
+    dto: PostCreateInput,
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -741,7 +866,7 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const parentPost = await this.findOne({ _id: parentId });
+    const parentPost = await this.findOne({ id: parentId });
     if (!parentPost) {
       throw new Error(`Parent post with ID ${parentId} not found`);
     }
@@ -756,15 +881,15 @@ export class PostsService extends BaseService<
     const rootPostId = rootPost.id.toString();
 
     const childrenCount = await this.prisma.post.count({
-      where: { isDeleted: false, parentId: rootPostId },
+      where: scopedWhere(parentPost.organizationId, { parentId: rootPostId }),
     });
 
-    const { parent, ...dtoWithoutParent } = dto;
+    const { parentId: _parentId, ...dtoWithoutParent } = dto;
 
     const replyDto = {
       ...dtoWithoutParent,
       order: childrenCount + 1,
-      parent: rootPostId,
+      parentId: rootPostId,
     };
 
     return this.create(replyDto, populate);
@@ -778,10 +903,10 @@ export class PostsService extends BaseService<
     originalPostId: string,
     newDescription: string,
     dto: {
-      user: string;
-      organization: string;
-      brand: string;
+      brandId: string;
       label?: string;
+      organizationId: string;
+      userId: string;
     },
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
@@ -790,7 +915,7 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    const originalPost = await this.findOne({ _id: originalPostId }, populate);
+    const originalPost = await this.findOne({ id: originalPostId }, populate);
     if (!originalPost) {
       throw new Error(`Original post with ID ${originalPostId} not found`);
     }
@@ -804,38 +929,42 @@ export class PostsService extends BaseService<
       return String(ing);
     });
 
-    // Scalar FK: the legacy `credential` alias is undefined unless the query
-    // populated the relation, so coercing it would write the literal string
-    // "undefined" into the remix's credentialId and fail the FK constraint.
-    const credentialId = originalPost.credentialId;
+    const credentialId = originalPost.credentialId ?? undefined;
+    const tagIds = Array.isArray(originalPost.tags)
+      ? originalPost.tags.flatMap((tag) => {
+          if (typeof tag === 'string') {
+            return [tag];
+          }
+          if (
+            tag &&
+            typeof tag === 'object' &&
+            typeof (tag as { id?: unknown }).id === 'string'
+          ) {
+            return [(tag as { id: string }).id];
+          }
+          return [];
+        })
+      : undefined;
 
     const remixDto = {
-      brand: dto.brand,
-      category: originalPost.category,
-      credential: credentialId,
+      brandId: dto.brandId,
+      category: originalPost.category as PostCreateInput['category'],
+      credentialId,
       description: newDescription,
       ingredients: ingredientIds || [],
       isAnalyticsEnabled: originalPost.isAnalyticsEnabled,
       isShareToFeedSelected: originalPost.isShareToFeedSelected,
       label: dto.label || `Remix: ${originalPost.label || 'Untitled'}`,
-      organization: dto.organization,
-      originalPost: originalPostId,
-      platform: originalPost.platform,
+      organizationId: dto.organizationId,
+      originalPostId,
+      platform: parsePlatform(originalPost.platform) ?? undefined,
       status: PostStatus.DRAFT,
-      tags: originalPost.tags,
+      tags: tagIds,
       timezone: originalPost.timezone || 'UTC',
-      user: dto.user,
-    };
+      userId: dto.userId,
+    } satisfies PostCreateInput;
 
-    return this.create(
-      remixDto as unknown as CreatePostDto & {
-        user: string;
-        organization: string;
-        brand: string;
-        platform: CredentialPlatform;
-      },
-      populate,
-    );
+    return this.create(remixDto, populate);
   }
 
   /**
@@ -852,7 +981,7 @@ export class PostsService extends BaseService<
     ],
     maxPosts: number = 500,
   ): Promise<PostDocument[]> {
-    const post = await this.findOne({ _id: postId }, populate);
+    const post = await this.findOne({ id: postId }, populate);
     if (!post) {
       return [];
     }
@@ -922,7 +1051,7 @@ export class PostsService extends BaseService<
 
     this.logger.log('Soft deleting post with cascade deletion', { id });
 
-    const post = await this.findOne({ _id: id });
+    const post = await this.findOne({ id: id });
     if (!post) {
       this.logger.warn(`Post ${id} not found for deletion`);
       return null;
@@ -930,8 +1059,11 @@ export class PostsService extends BaseService<
 
     // Cascade soft delete all children
     const childrenUpdateResult = await this.prisma.post.updateMany({
-      data: { isDeleted: true } as never,
-      where: { isDeleted: false, parentId: id },
+      data: { isDeleted: true },
+      where: scopedWhere(post.organizationId, {
+        isDeleted: false,
+        parentId: id,
+      }),
     });
 
     if (childrenUpdateResult.count > 0) {
@@ -946,8 +1078,8 @@ export class PostsService extends BaseService<
 
     // Soft delete the parent post
     const result = await this.prisma.post.update({
-      data: { isDeleted: true } as never,
-      where: { id },
+      data: { isDeleted: true },
+      where: scopedWhere(post.organizationId, { id }),
     });
 
     if (result) {
@@ -961,8 +1093,8 @@ export class PostsService extends BaseService<
         await this.cacheService.invalidateByTags([
           collectionName,
           `collection:${collectionName}`,
-          `agg:${collectionName}`,
-          'agg:paginated',
+          `query:${collectionName}`,
+          'query:paginated',
         ]);
       }
     } else {

@@ -149,7 +149,7 @@ describe('TrendRemixPage', () => {
       expect(generateTweetsMock).toHaveBeenCalledWith(
         expect.objectContaining({
           count: 1,
-          credential: 'cred-twitter',
+          credentialId: 'cred-twitter',
           topic: expect.stringContaining('AI operating systems'),
         }),
       );

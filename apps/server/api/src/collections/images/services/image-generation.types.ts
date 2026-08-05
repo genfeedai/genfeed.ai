@@ -31,7 +31,7 @@ export type ImageGenerationResolvedPrompt = Awaited<
   ReturnType<PromptsService['create']>
 >;
 export type ImageGenerationSaveDocumentsResult = Awaited<
-  ReturnType<SharedService['saveDocuments']>
+  ReturnType<SharedService['createMediaDocuments']>
 >;
 export type ImageGenerationSavedIngredient =
   ImageGenerationSaveDocumentsResult['ingredientData'];
@@ -60,6 +60,7 @@ export interface ImageGenerationContext {
   };
   promptData: ImageGenerationResolvedPrompt;
   publicMetadata: ImageGenerationPublicMetadata;
+  referenceIds: string[];
   referenceImageUrl: string | null;
   referenceImageUrls: string[];
   request: Request;
@@ -100,6 +101,7 @@ export type ImageGenerationProviderResult =
   | {
       externalId: string;
       kind: 'external-id';
+      outputUrls?: string[];
       promptId?: string;
     };
 

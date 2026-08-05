@@ -92,7 +92,7 @@ describe('GoogleSearchConsoleService', () => {
     );
     expect(result).toEqual([
       {
-        _id: 'https://genfeed.ai/',
+        id: 'https://genfeed.ai/',
         permissionLevel: 'siteOwner',
         siteUrl: 'https://genfeed.ai/',
       },
@@ -149,8 +149,9 @@ describe('GoogleSearchConsoleService', () => {
 
     expect(credentialsService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: 'brand-id',
-        organization: 'org-id',
+        brandId: 'brand-id',
+        isDeleted: false,
+        organizationId: 'org-id',
         platform: 'google_search_console',
       }),
     );

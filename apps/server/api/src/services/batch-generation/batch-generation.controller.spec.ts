@@ -128,7 +128,7 @@ describe('BatchGenerationController', () => {
 
   describe('getBatch', () => {
     it('should call service.getBatch with batchId', async () => {
-      const batchDoc = { _id: 'batch-1', status: 'completed' };
+      const batchDoc = { id: 'batch-1', status: 'completed' };
       service.getBatch.mockResolvedValue(batchDoc as never);
       const user = {
         id: 'user-123',

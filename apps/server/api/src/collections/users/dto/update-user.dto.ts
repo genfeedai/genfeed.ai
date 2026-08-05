@@ -31,7 +31,9 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp for when onboarding started',
+    format: 'date-time',
     required: false,
+    type: String,
   })
   readonly onboardingStartedAt?: string | Date;
 
@@ -39,7 +41,9 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp for when onboarding completed',
+    format: 'date-time',
     required: false,
+    type: String,
   })
   readonly onboardingCompletedAt?: string | Date;
 
@@ -77,6 +81,10 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   // invalidates the access caches. Kept on the DTO type for that internal
   // `usersService.patch` call to stay type-safe.
   readonly hasDismissedAssetGate?: boolean;
+
+  // Internal billing linkage. Deliberately undecorated so it cannot be set via
+  // the public profile update route.
+  readonly stripeCustomerId?: string | null;
 
   @IsOptional()
   @IsString()

@@ -58,9 +58,9 @@ export class WorkflowRunControlService {
     | { runId: string; status: string; message: string }
   > {
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -100,14 +100,12 @@ export class WorkflowRunControlService {
           selectedNodeIds: nodeIds,
         },
         trigger: WorkflowExecutionTrigger.MANUAL,
-        workflow: workflowId,
+        workflowId,
       },
     );
     const startedExecution =
-      await this.workflowExecutionsService.startExecution(
-        execution._id.toString(),
-      );
-    const runId = execution._id.toString();
+      await this.workflowExecutionsService.startExecution(execution.id);
+    const runId = execution.id;
 
     await this.workflowsService.patch(workflowId, {
       status: WorkflowStatus.RUNNING,
@@ -138,7 +136,7 @@ export class WorkflowRunControlService {
   ): Promise<void> {
     try {
       const workflow = await this.workflowsService.findOne({
-        _id: workflowId,
+        id: workflowId,
         isDeleted: false,
       });
       if (!workflow) {
@@ -284,9 +282,9 @@ export class WorkflowRunControlService {
     organizationId: string,
   ): Promise<{ runId: string; status: string; message: string }> {
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -295,10 +293,10 @@ export class WorkflowRunControlService {
 
     // Find the failed execution from the workflow-executions collection
     const failedRun = await this.workflowExecutionsService?.findOne({
-      _id: runId,
+      id: runId,
       isDeleted: false,
-      organization: organizationId,
-      workflow: workflowId,
+      organizationId: organizationId,
+      workflowId: workflowId,
     });
 
     if (!failedRun) {
@@ -330,7 +328,7 @@ export class WorkflowRunControlService {
 
     return {
       message: 'Partial execution started',
-      runId: resumedExecution._id.toString(),
+      runId: resumedExecution.id,
       status: resumedExecution.status,
     };
   }
@@ -345,9 +343,9 @@ export class WorkflowRunControlService {
     nodeIds?: string[],
   ): Promise<CreditEstimate> {
     const workflow = await this.workflowsService.findOne({
-      _id: workflowId,
+      id: workflowId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!workflow) {
@@ -393,10 +391,10 @@ export class WorkflowRunControlService {
     organizationId: string,
   ): Promise<Record<string, unknown>> {
     const execution = await this.workflowExecutionsService?.findOne({
-      _id: runId,
+      id: runId,
       isDeleted: false,
-      organization: organizationId,
-      workflow: workflowId,
+      organizationId: organizationId,
+      workflowId: workflowId,
     });
 
     if (!execution) {
@@ -407,7 +405,7 @@ export class WorkflowRunControlService {
       completedAt: execution.completedAt,
       error: execution.error,
       nodeResults: execution.nodeResults || [],
-      runId: execution._id.toString(),
+      runId: execution.id,
       startedAt: execution.startedAt,
       status: execution.status,
       totalCreditsUsed: execution.creditsUsed,

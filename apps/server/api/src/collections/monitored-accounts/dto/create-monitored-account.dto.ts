@@ -1,12 +1,16 @@
 import { MonitoredAccountFiltersDto } from '@api/collections/monitored-accounts/dto/monitored-account-filters.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import { ReplyBotPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEnum,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -14,73 +18,81 @@ export class CreateMonitoredAccountDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({
-    description: 'Organization that owns this monitored account',
+    description: 'Credential used to access the monitored platform',
     required: false,
   })
-  organization?: string;
+  credentialId?: string;
 
   @IsEntityId()
   @IsOptional()
   @ApiProperty({
-    description: 'Brand this monitored account is scoped to',
+    description: 'Reply bot configuration using this account',
     required: false,
   })
-  brand?: string;
+  botConfigId?: string;
 
-  @IsEntityId()
-  @IsOptional()
+  @IsEnum(ReplyBotPlatform)
   @ApiProperty({
-    description: 'User that created this monitored account',
-    required: false,
+    description: 'Platform containing the account',
+    enum: ReplyBotPlatform,
+    enumName: 'ReplyBotPlatform',
   })
-  user?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Credential used for Twitter API access',
-    required: false,
-  })
-  credential?: string;
+  platform!: ReplyBotPlatform;
 
   @IsString()
-  @MaxLength(15)
   @ApiProperty({
-    description: 'Twitter username to monitor (without @)',
+    description: 'Platform-specific account identifier',
+  })
+  externalId!: string;
+
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty({
+    description: 'Account username to monitor (without @)',
     example: 'elonmusk',
   })
-  twitterUsername!: string;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Twitter user ID (will be fetched if not provided)',
-    required: false,
-  })
-  twitterUserId?: string;
+  username!: string;
 
   @IsString()
   @IsOptional()
   @MaxLength(100)
   @ApiProperty({
-    description: 'Twitter display name',
+    description: 'Account display name',
     required: false,
   })
-  twitterDisplayName?: string;
+  displayName?: string;
 
   @IsString()
   @IsOptional()
   @ApiProperty({
-    description: 'Twitter avatar URL',
+    description: 'Account avatar URL',
     required: false,
   })
-  twitterAvatarUrl?: string;
+  avatarUrl?: string;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Current follower count',
+    minimum: 0,
+    required: false,
+  })
+  followersCount?: number;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({
+    description: 'Account biography',
+    required: false,
+  })
+  bio?: string;
 
   @ValidateNested()
   @Type(() => MonitoredAccountFiltersDto)
   @IsOptional()
   @ApiProperty({
-    description: 'Filter configuration for tweets',
+    description: 'Filter configuration for monitored content',
     required: false,
     type: MonitoredAccountFiltersDto,
   })

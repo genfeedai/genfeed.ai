@@ -54,9 +54,9 @@ export class FacebookPublisherService extends BasePublisherService {
     try {
       // Get Facebook credential with page access token
       const fbCredential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.FACEBOOK,
       });
 

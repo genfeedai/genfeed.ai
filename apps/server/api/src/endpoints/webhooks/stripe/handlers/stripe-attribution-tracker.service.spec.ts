@@ -17,10 +17,14 @@ describe('StripeAttributionTrackerService', () => {
   const subscriptionAttributionsService = { trackSubscription: vi.fn() };
 
   const subscription = {
-    organization: 'org_1',
+    cancelAtPeriodEnd: false,
+    id: 'sub_db_1',
+    isDeleted: false,
+    organizationId: 'org_1',
+    status: 'active',
     stripePriceId: 'price_db',
-    user: 'user_1',
-  } as unknown as ISubscriptionOssReadModel;
+    userId: 'user_1',
+  } satisfies ISubscriptionOssReadModel;
 
   beforeEach(async () => {
     vi.clearAllMocks();

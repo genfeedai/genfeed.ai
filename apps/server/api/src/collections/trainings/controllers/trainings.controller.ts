@@ -105,11 +105,11 @@ export class TrainingsController extends BaseCRUDController<
 
     // Build ownership OR conditions (used when adminFilter is null)
     const ownershipOr = [
-      { user: publicMetadata.user },
-      { brand: publicMetadata.brand },
+      { userId: publicMetadata.user },
+      { brandId: publicMetadata.brand },
       {
-        brand: null,
-        organization: publicMetadata.organization,
+        brandId: null,
+        organizationId: publicMetadata.organization,
       },
     ];
 
@@ -164,9 +164,9 @@ export class TrainingsController extends BaseCRUDController<
 
     const publicMetadata = getPublicMetadata(user);
     const data = await this.trainingsService.findOne({
-      _id: trainingId,
+      id: trainingId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -210,27 +210,16 @@ export class TrainingsController extends BaseCRUDController<
   public canUserModifyEntity(user: User, entity: unknown): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityRecord = entity as {
-      user?: { id?: { toString?: () => string } } | string | null;
-      organization?: { id?: { toString?: () => string } } | string | null;
+      userId?: string | null;
+      organizationId?: string | null;
     };
 
-    const entityUserId =
-      (typeof entityRecord.user === 'object' && entityRecord.user !== null
-        ? entityRecord.user.id?.toString?.()
-        : undefined) ||
-      (typeof entityRecord.user === 'string' ? entityRecord.user : undefined);
+    const entityUserId = entityRecord.userId;
     if (entityUserId === publicMetadata.user) {
       return true;
     }
 
-    const entityOrgId =
-      (typeof entityRecord.organization === 'object' &&
-      entityRecord.organization !== null
-        ? entityRecord.organization.id?.toString?.()
-        : undefined) ||
-      (typeof entityRecord.organization === 'string'
-        ? entityRecord.organization
-        : undefined);
+    const entityOrgId = entityRecord.organizationId;
     if (entityOrgId && entityOrgId === publicMetadata.organization) {
       return true;
     }

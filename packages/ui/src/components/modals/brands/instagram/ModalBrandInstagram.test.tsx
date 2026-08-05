@@ -305,7 +305,7 @@ describe.skip('ModalBrandInstagram', () => {
 
     await waitFor(() => {
       expect(mockServicesService.postConnect).toHaveBeenCalledWith({
-        account: mockBrand.id,
+        brandId: mockBrand.id,
       });
       expect(mockWindowOpen).toHaveBeenCalledWith(
         'https://instagram.com/oauth',

@@ -126,7 +126,7 @@ export class BotGenerationService {
     try {
       // Get brand for default model
       const brand = await this.brandsService.findOne({
-        _id: resolvedUser.brandId,
+        id: resolvedUser.brandId,
         isDeleted: false,
       });
 
@@ -141,8 +141,7 @@ export class BotGenerationService {
         : IngredientCategory.VIDEO;
       const organizationSettings =
         await this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: resolvedUser.organizationId,
+          organizationId: resolvedUser.organizationId,
         });
       const defaultModel = isImage
         ? resolveGenerationDefaultModel<string>({
@@ -172,18 +171,17 @@ export class BotGenerationService {
 
       // Create ingredient with PROCESSING status
       const { ingredientData, metadataData } =
-        await this.sharedService.saveDocuments(
+        await this.sharedService.createMediaDocuments(
           syntheticUser as unknown as User,
           {
-            brand: resolvedUser.brandId,
+            brandId: resolvedUser.brandId,
             category,
             extension: isImage ? MetadataExtension.JPEG : MetadataExtension.MP4,
             model: defaultModel,
-            organization: resolvedUser.organizationId,
-            prompt,
+            organizationId: resolvedUser.organizationId,
+            generationPrompt: prompt,
             status: IngredientStatus.PROCESSING,
-            text: prompt,
-            user: resolvedUser.userId,
+            userId: resolvedUser.userId,
           },
         );
 

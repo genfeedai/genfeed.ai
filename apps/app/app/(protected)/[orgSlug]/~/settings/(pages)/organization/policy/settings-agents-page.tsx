@@ -223,7 +223,7 @@ export default function SettingsAgentsPage() {
     [persistPolicy],
   );
 
-  const enabledModels = settings?.enabledModels ?? [];
+  const enabledModelIds = settings?.enabledModelIds ?? [];
 
   return (
     <div className="space-y-4">
@@ -253,7 +253,7 @@ export default function SettingsAgentsPage() {
 
       <AdvancedRoutingCard
         allowAdvancedOverrides={allowAdvancedOverrides}
-        enabledModels={enabledModels}
+        enabledModelIds={enabledModelIds}
         generationModelOverride={generationModelOverride}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>

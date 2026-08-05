@@ -75,12 +75,14 @@ export class PublicMusicsController {
 
     // Filter by brand if provided
     if (brand && isEntityId(brand)) {
-      matchQuery.brand = brand;
+      matchQuery.brandId = brand;
     }
 
-    // Filter by tag if provided (assuming tags are stored in metadata)
+    // Filter by related tag label.
     if (tag) {
-      matchQuery['metadata.tags'] = { mode: 'insensitive', contains: tag };
+      matchQuery.tags = {
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      };
     }
 
     const aggregate = { where: matchQuery, orderBy: { createdAt: -1 } };
@@ -108,7 +110,7 @@ export class PublicMusicsController {
     this.logger.log(url, { params: { musicId } });
     const music = await this.musicsService.findOne(
       {
-        _id: musicId,
+        id: musicId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.MUSIC,
         ),
@@ -132,7 +134,7 @@ export class PublicMusicsController {
     @Res() res: ExpressResponse,
   ): Promise<void> {
     const music = await this.musicsService.findOne({
-      _id: musicId,
+      id: musicId,
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.MUSIC,
       ),

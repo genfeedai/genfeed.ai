@@ -1,4 +1,5 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SELF_HOSTED_MODELS } from '@genfeedai/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 
@@ -18,6 +19,7 @@ describe('SelfHostedSeedService', () => {
   const userId = 'user_owner';
   let prisma: {
     organization: { findFirst: ReturnType<typeof vi.fn> };
+    model: { upsert: ReturnType<typeof vi.fn> };
     member: {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
@@ -33,6 +35,9 @@ describe('SelfHostedSeedService', () => {
         create: vi.fn().mockResolvedValue({ id: 'member_owner' }),
         findFirst: vi.fn().mockResolvedValue(null),
         update: vi.fn(),
+      },
+      model: {
+        upsert: vi.fn().mockResolvedValue({ id: 'model' }),
       },
       organization: {
         findFirst: vi.fn().mockResolvedValue({
@@ -82,6 +87,9 @@ describe('SelfHostedSeedService', () => {
         userId,
       },
     });
+    expect(prisma.model.upsert).toHaveBeenCalledTimes(
+      SELF_HOSTED_MODELS.length,
+    );
   });
 
   it('does not duplicate an existing default workspace member', async () => {

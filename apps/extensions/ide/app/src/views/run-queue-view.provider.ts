@@ -291,7 +291,7 @@ export class RunQueueViewProvider implements vscode.WebviewViewProvider {
 
       empty.style.display = 'none';
       runList.innerHTML = runs.map((run) => {
-        const runId = run._id || run.id || 'unknown';
+        const runId = run.id;
         return \`
           <div class="card">
             <div class="run-meta">

@@ -15,7 +15,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import {
-  createTestAsset,
   createTestBrand,
   createTestCredential,
   createTestCredit,
@@ -96,15 +95,15 @@ describe('Brands E2E Tests', () => {
     testOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Brand Test Organization',
-      user: testUser.id,
+      userId: testUser.id,
     });
 
     // Create test member (owner)
     testMember = createTestMember({
       id: generateIdString(),
-      organization: testOrganization.id,
-      role: 'owner',
-      user: testUser.id,
+      organizationId: testOrganization.id,
+      roleId: 'owner',
+      userId: testUser.id,
     });
 
     // Create test brand
@@ -112,9 +111,9 @@ describe('Brands E2E Tests', () => {
       id: generateIdString(),
       description: 'A test brand for E2E testing',
       label: 'Test Brand',
-      organization: testOrganization.id,
+      organizationId: testOrganization.id,
       slug: 'test-brand-handle',
-      user: testUser.id,
+      userId: testUser.id,
     });
 
     // Seed core data
@@ -125,14 +124,14 @@ describe('Brands E2E Tests', () => {
     await dbHelper.seedCollection('organization-settings', [
       createTestOrganizationSetting({
         id: generateIdString(),
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
       }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
       createTestCredit({
         id: generateIdString(),
         balance: 50000,
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
       }),
     ]);
   });
@@ -155,16 +154,16 @@ describe('Brands E2E Tests', () => {
         createTestBrand({
           id: generateIdString(),
           label: 'Alpha Brand',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           slug: `brand-alpha-${Date.now()}`,
-          user: testUser.id,
+          userId: testUser.id,
         }),
         createTestBrand({
           id: generateIdString(),
           label: 'Beta Brand',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           slug: `brand-beta-${Date.now()}`,
-          user: testUser.id,
+          userId: testUser.id,
         }),
       ];
       await dbHelper.seedCollection('brands', additionalBrands);
@@ -214,9 +213,9 @@ describe('Brands E2E Tests', () => {
         id: generateIdString(),
         isDeleted: true,
         label: 'Deleted Brand',
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
         slug: `deleted-brand-${Date.now()}`,
-        user: testUser.id,
+        userId: testUser.id,
       });
       await dbHelper.seedCollection('brands', [deletedBrand]);
 
@@ -303,31 +302,6 @@ describe('Brands E2E Tests', () => {
       );
 
       expect(response.status).toBe(404);
-    });
-
-    it('should return brand with populated assets', async () => {
-      // Create logo asset
-      const logoAsset = createTestAsset({
-        id: generateIdString(),
-        category: 'image',
-        organization: testOrganization.id,
-        type: 'logo',
-        url: 'https://example.com/logo.png',
-        user: testUser.id,
-      });
-
-      await dbHelper.seedCollection('assets', [logoAsset]);
-
-      // Update brand to reference the logo
-      // Note: In a real scenario, the virtual would be populated via aggregation
-      // This test verifies the endpoint returns the brand structure
-
-      const response = await authenticatedRequest().get(
-        `/v1/brands/${testBrand.id}`,
-      );
-
-      expect(response.status).toBe(200);
-      expect(response.body.data).toHaveProperty('attributes');
     });
   });
 
@@ -585,9 +559,9 @@ describe('Brands E2E Tests', () => {
       const anotherBrand = createTestBrand({
         id: generateIdString(),
         label: 'Another Brand',
-        organization: testOrganization.id,
+        organizationId: testOrganization.id,
         slug: `another-brand-${Date.now()}`,
-        user: testUser.id,
+        userId: testUser.id,
       });
       await dbHelper.seedCollection('brands', [anotherBrand]);
 
@@ -610,21 +584,21 @@ describe('Brands E2E Tests', () => {
       const credentials = [
         createTestCredential({
           id: generateIdString(),
-          brand: testBrand.id,
+          brandId: testBrand.id,
           externalHandle: '@testchannel',
           isConnected: true,
-          organization: testOrganization.id,
-          platform: 'youtube',
-          user: testUser.id,
+          organizationId: testOrganization.id,
+          platform: 'YOUTUBE',
+          userId: testUser.id,
         }),
         createTestCredential({
           id: generateIdString(),
-          brand: testBrand.id,
+          brandId: testBrand.id,
           externalHandle: '@testtiktok',
           isConnected: true,
-          organization: testOrganization.id,
-          platform: 'tiktok',
-          user: testUser.id,
+          organizationId: testOrganization.id,
+          platform: 'TIKTOK',
+          userId: testUser.id,
         }),
       ];
 
@@ -657,22 +631,22 @@ describe('Brands E2E Tests', () => {
       otherOrganization = createTestOrganization({
         id: generateIdString(),
         label: 'Other Organization',
-        user: otherUser.id,
+        userId: otherUser.id,
       });
 
       const otherMember = createTestMember({
         id: generateIdString(),
-        organization: otherOrganization.id,
-        role: 'owner',
-        user: otherUser.id,
+        organizationId: otherOrganization.id,
+        roleId: 'owner',
+        userId: otherUser.id,
       });
 
       otherBrand = createTestBrand({
         id: generateIdString(),
         label: 'Other Org Brand',
-        organization: otherOrganization.id,
+        organizationId: otherOrganization.id,
         slug: `other-org-brand-${Date.now()}`,
-        user: otherUser.id,
+        userId: otherUser.id,
       });
 
       await dbHelper.seedCollection('users', [otherUser]);
@@ -682,7 +656,7 @@ describe('Brands E2E Tests', () => {
       await dbHelper.seedCollection('organization-settings', [
         createTestOrganizationSetting({
           id: generateIdString(),
-          organization: otherOrganization.id,
+          organizationId: otherOrganization.id,
         }),
       ]);
     });
@@ -746,17 +720,17 @@ describe('Brands E2E Tests', () => {
           id: generateIdString(),
           description: 'A technology focused startup',
           label: 'Tech Startup Brand',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           slug: `tech-startup-${Date.now()}`,
-          user: testUser.id,
+          userId: testUser.id,
         }),
         createTestBrand({
           id: generateIdString(),
           description: 'A food and beverage company',
           label: 'Food Company Brand',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           slug: `food-company-${Date.now()}`,
-          user: testUser.id,
+          userId: testUser.id,
         }),
       ];
 

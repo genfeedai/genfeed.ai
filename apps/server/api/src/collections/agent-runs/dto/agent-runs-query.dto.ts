@@ -17,7 +17,7 @@ export class AgentRunsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  declare brandId?: string;
 
   @ApiProperty({
     description: 'Exclude pending and running runs from the response',
@@ -80,7 +80,7 @@ export class AgentRunsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  strategy?: string;
+  strategyId?: string;
 
   @ApiProperty({
     description: 'Filter by trigger',

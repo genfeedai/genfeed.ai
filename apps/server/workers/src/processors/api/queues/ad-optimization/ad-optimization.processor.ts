@@ -46,7 +46,7 @@ export class AdOptimizationProcessor extends WorkerHost {
 
   async process(job: Job<AdOptimizationJobData>): Promise<void> {
     const startTime = Date.now();
-    const { organizationId, configId, runId } = job.data;
+    const { organizationId, runId } = job.data;
 
     this.logger.log(
       `Processing ad optimization run ${runId} for org ${organizationId}`,
@@ -326,7 +326,7 @@ export class AdOptimizationProcessor extends WorkerHost {
         roas: ad.avgRoas,
         spend: ad.totalSpend,
       },
-      organization: organizationId,
+      organizationId,
       reason,
       recommendationType: type,
       runDate: new Date(),

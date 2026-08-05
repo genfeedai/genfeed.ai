@@ -22,7 +22,7 @@ export class CreateBookmarkDto {
   })
   @IsOptional()
   @IsEntityId()
-  folder?: string;
+  folderId?: string;
 
   @ApiProperty({
     description: 'Array of tag IDs',
@@ -32,7 +32,7 @@ export class CreateBookmarkDto {
   @IsOptional()
   @IsArray()
   @IsEntityId({ each: true })
-  tags?: string[];
+  tagIds?: string[];
 
   @ApiProperty({
     description: 'Brand ID associated with the bookmark',
@@ -40,7 +40,7 @@ export class CreateBookmarkDto {
   })
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  brandId?: string;
 
   @ApiProperty({
     description: 'Category of bookmark',

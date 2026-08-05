@@ -34,7 +34,6 @@ import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapte
 import { YoutubeSocialAdapter } from '@api/collections/workflows/services/adapters/youtube-social.adapter';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import { BatchWorkflowQueueService } from '@api/collections/workflows/services/batch-workflow-queue.service';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
 import { ReplyPollingWorkflowService } from '@api/collections/workflows/services/reply-polling-workflow.service';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
@@ -46,6 +45,7 @@ import { WorkflowFormatConverterService } from '@api/collections/workflows/servi
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
 import { WorkflowRunControlService } from '@api/collections/workflows/services/workflow-run-control.service';
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowTemplateSeederService } from '@api/collections/workflows/services/workflow-template-seeder.service';
 import { WorkflowWebhookService } from '@api/collections/workflows/services/workflow-webhook.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -87,7 +87,7 @@ import { forwardRef, Module } from '@nestjs/common';
   exports: [
     BatchWorkflowQueueService,
     BatchWorkflowService,
-    LegacyWorkflowStepRunner,
+    WorkflowStepRunnerService,
     SystemWorkflowCatalogService,
     WorkflowsService,
     WorkflowRunControlService,
@@ -161,7 +161,7 @@ import { forwardRef, Module } from '@nestjs/common';
     SocialAdapterFactory,
     BatchWorkflowQueueService,
     BatchWorkflowService,
-    LegacyWorkflowStepRunner,
+    WorkflowStepRunnerService,
     WorkflowEngineAdapterService,
     WorkflowExecutionAuthorizationService,
     WorkflowExecutorService,

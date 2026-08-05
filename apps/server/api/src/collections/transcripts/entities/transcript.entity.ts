@@ -7,9 +7,6 @@ export class TranscriptEntity extends BaseEntity implements Transcript {
   userId!: string;
   articleId!: string | null;
   content!: string | null;
-  user!: string;
-  organization!: string;
-  article?: string;
   youtubeUrl!: string;
   youtubeId!: string;
   videoTitle?: string;

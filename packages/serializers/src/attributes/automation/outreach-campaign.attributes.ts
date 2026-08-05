@@ -2,17 +2,17 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const outreachCampaignAttributes = createEntityAttributes([
   'aiConfig',
-  'brand',
+  'brandId',
   'campaignType',
   'completedAt',
-  'credential',
+  'credentialId',
   'description',
   'discoveryConfig',
   'dmConfig',
   'isActive',
   'label',
   'lastActivityAt',
-  'organization',
+  'organizationId',
   'platform',
   'rateLimits',
   'schedule',
@@ -24,5 +24,5 @@ export const outreachCampaignAttributes = createEntityAttributes([
   'totalSkipped',
   'totalSuccessful',
   'totalTargets',
-  'user',
+  'userId',
 ]);

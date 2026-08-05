@@ -1,7 +1,4 @@
-/**
- * Analytics aggregation result interfaces
- * Used for type-safe aggregation results in analytics services
- */
+/** Shared analytics response contracts. */
 
 export interface IEntityAnalyticsStats {
   avgEngagementRate: number;
@@ -11,217 +8,45 @@ export interface IEntityAnalyticsStats {
   activePlatforms?: string[];
 }
 
-export interface IAggregatedAnalyticsResult {
-  _id: string;
-  avgEngagementRate: number;
-  totalLikes: number;
-  totalComments: number;
-  totalShares: number;
-  totalSaves: number;
-  totalViews: number;
-  posts: string[];
-  platforms?: string[];
-}
-
-export interface IAggregatedEngagementResult {
-  _id: string;
-  totalEngagement: number;
-}
-
 export interface IOrganizationWithStats {
-  _id: string;
+  id: string;
   name: string;
-  label?: string;
   logo?: string;
-  isActive?: boolean;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;
+  totalBrands: number;
+  totalMembers: number;
   avgEngagementRate: number;
-  engagementGrowth: number;
-  rank?: number;
+  growth: number;
 }
 
 export interface IBrandWithStats {
-  _id: string;
+  id: string;
   name: string;
-  label?: string;
   logo?: string;
-  organization: string;
-  isActive?: boolean;
+  organizationId: string;
+  organizationName: string;
   totalPosts: number;
   totalViews: number;
   totalEngagement: number;
   avgEngagementRate: number;
   activePlatforms: string[];
-  engagementGrowth: number;
-  rank?: number;
+  growth: number;
 }
 
-export interface ITimeSeriesAggregationResult {
-  _id: {
-    date: Date;
-    platform?: string;
-  };
-  totalViews: number;
-  totalLikes: number;
-  totalComments: number;
-  totalShares: number;
-  totalSaves: number;
-  avgEngagementRate: number;
-  postCount: number;
-}
-
-export interface IPlatformAggregationResult {
-  _id: string;
-  totalViews: number;
-  totalLikes: number;
-  totalComments: number;
-  totalShares: number;
-  totalSaves: number;
-  avgEngagementRate: number;
-  postCount: number;
-}
-
-export interface IPostCountAggregationResult {
-  _id: string;
-  count: number;
-}
-
-export interface ITrendAggregationResult {
-  platform: string;
-  name: string;
-  tweetVolume?: number;
-  url?: string;
-  query?: string;
-  promoted?: boolean;
-}
-
-export interface ILeaderboardEntry {
-  id: string;
-  name: string;
-  label?: string;
-  logo?: string;
+export interface IOrgLeaderboardItem {
   rank: number;
-  totalPosts: number;
-  totalViews: number;
-  totalEngagement: number;
-  avgEngagementRate: number;
-  engagementGrowth: number;
-  activePlatforms?: string[];
-}
-
-export interface IAnalyticsMatchStage {
-  organization?: string;
-  brand?: string;
-  date?: {
-    gte?: Date;
-    lte?: Date;
+  organization: {
+    id: string;
+    name: string;
+    logo?: string;
   };
-  platform?: string;
-  isDeleted?: boolean;
-}
-
-export interface IAnalyticsGroupFields {
-  _id: string;
-  avgEngagementRate?: { avg: string };
-  totalViews?: { sum: string };
-  totalLikes?: { sum: string };
-  totalComments?: { sum: string };
-  totalShares?: { sum: string };
-  totalSaves?: { sum: string };
-  posts?: { addToSet: string };
-  platforms?: { addToSet: string };
-}
-
-/**
- * Result interfaces for analytics aggregation service methods.
- * Each interface maps to the output shape of a specific analytics query.
- */
-
-/** Result of getTimeSeriesData after projection */
-export interface ITimeSeriesProjectedResult {
-  date: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
+  totalPosts: number;
   totalEngagement: number;
-}
-
-/** Platform metrics within a grouped time series result */
-export interface ITimeSeriesPlatformAggMetrics {
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-}
-
-/** Result of getTimeSeriesDataWithPlatforms grouped by date */
-export interface ITimeSeriesGroupedByDateResult {
-  _id: string;
-  platforms: ITimeSeriesPlatformAggMetrics[];
-}
-
-/** Result of getPlatformComparison after projection */
-export interface IPlatformComparisonProjectedResult {
-  _id: string;
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-  postCount: number;
-  avgViewsPerPost: number;
-}
-
-/** Result of getTopPerformingContent after projection */
-export interface ITopContentProjectedResult {
-  _id: string;
-  postId: string;
-  ingredientId: string;
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  engagementRate: number;
-  title: string;
-  description: string;
-  publishDate: Date;
-  url?: string;
-}
-
-/** Platform metrics in viral hooks aggregation */
-export interface IViralHookPlatformAggResult {
-  platform: string;
-  views: number;
-  likes: number;
-  comments: number;
-  shares: number;
-  saves: number;
-  engagementRate: number;
-}
-
-/** Result of getViralHooksSummary after projection */
-export interface IViralHookAggResult {
-  _id: string;
-  platforms: IViralHookPlatformAggResult[];
-  post: {
-    createdAt: Date;
-    description: string;
-    label: string;
-    publicationDate: Date;
-    url: string;
-  } | null;
   totalViews: number;
+  avgEngagementRate: number;
+  growth: number;
 }
 
 /** YouTube video statistics result */

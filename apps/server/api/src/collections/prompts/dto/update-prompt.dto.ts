@@ -7,7 +7,7 @@ export class UpdatePromptDto extends PartialType(CreatePromptDto) {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly ingredient?: string;
+  readonly ingredientId?: string;
 
   @IsBoolean()
   @IsOptional()

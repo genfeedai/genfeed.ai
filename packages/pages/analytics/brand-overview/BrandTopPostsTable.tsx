@@ -99,7 +99,9 @@ export default function BrandTopPostsTable({
               key: 'platform',
               render: (post) => (
                 <div className="flex items-center justify-center">
-                  {getPlatformIcon(post.platform, 'size-5')}
+                  {post.platform
+                    ? getPlatformIcon(post.platform, 'size-5')
+                    : null}
                 </div>
               ),
             },

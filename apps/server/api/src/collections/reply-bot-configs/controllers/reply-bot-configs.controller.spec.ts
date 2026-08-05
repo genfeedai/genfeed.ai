@@ -23,11 +23,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ReplyBotConfigsController', () => {
   let controller: ReplyBotConfigsController;
-  let replyBotConfigsService: ReplyBotConfigsService;
   let replyBotQueueService: ReplyBotQueueService;
   let replyBotOrchestratorService: ReplyBotOrchestratorService;
 
-  const mockRequest = {} as never;
   const mockUser = { id: 'user-123' } as never;
 
   const mockReplyBotConfigsService = {
@@ -95,9 +93,6 @@ describe('ReplyBotConfigsController', () => {
 
     controller = module.get<ReplyBotConfigsController>(
       ReplyBotConfigsController,
-    );
-    replyBotConfigsService = module.get<ReplyBotConfigsService>(
-      ReplyBotConfigsService,
     );
     replyBotQueueService =
       module.get<ReplyBotQueueService>(ReplyBotQueueService);

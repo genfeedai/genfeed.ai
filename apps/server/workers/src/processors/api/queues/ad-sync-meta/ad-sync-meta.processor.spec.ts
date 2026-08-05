@@ -1,10 +1,8 @@
+import type { MetaAdSyncJobData } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { AdPerformanceService } from '@server/collections/ad-performance/services/ad-performance.service';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
-import {
-  AdSyncMetaProcessor,
-  type MetaAdSyncJobData,
-} from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
+import { AdSyncMetaProcessor } from '@workers/processors/api/queues/ad-sync-meta/ad-sync-meta.processor';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -91,6 +89,37 @@ describe('AdSyncMetaProcessor', () => {
       );
       expect(adPerformanceService.upsertBatch).toHaveBeenCalled();
       expect(job.updateProgress).toHaveBeenCalledWith(100);
+    });
+
+    it('should persist canonical identity fields with provider payload fields intact', async () => {
+      const jobData: MetaAdSyncJobData = {
+        accessToken: 'token-abc',
+        adAccountIds: ['act_111'],
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        organizationId: 'org-1',
+      };
+      const job = {
+        data: jobData,
+        id: 'job-canonical-identity',
+        updateProgress: vi.fn(),
+      } as unknown as Job<MetaAdSyncJobData>;
+
+      await processor.process(job);
+
+      const records = adPerformanceService.upsertBatch.mock
+        .calls[0][0] as Array<Record<string, unknown>>;
+      expect(records).toHaveLength(1);
+      expect(records[0]).toMatchObject({
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        externalAccountId: 'act_111',
+        externalCampaignId: 'cmp_123',
+        organizationId: 'org-1',
+      });
+      expect(records[0]).not.toHaveProperty('brand');
+      expect(records[0]).not.toHaveProperty('credential');
+      expect(records[0]).not.toHaveProperty('organization');
     });
 
     it('should handle missing lastSyncDate and use default 30 days', async () => {

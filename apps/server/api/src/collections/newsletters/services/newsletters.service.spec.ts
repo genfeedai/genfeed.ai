@@ -43,7 +43,6 @@ const NEWSLETTER_WRITE_FIELDS = new Set([
   'id',
   'isDeleted',
   'label',
-  'mongoId',
   'organizationId',
   'publishedAt',
   'publishedByUserId',

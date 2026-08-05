@@ -20,7 +20,6 @@ describe('FleetWebhookService', () => {
   };
 
   const voice = {
-    _id: 'voice-asset-1',
     id: 'voice-asset-1',
     organizationId: 'org-1',
     providerData: { fleet: { jobId: 'old-job' } },
@@ -66,7 +65,7 @@ describe('FleetWebhookService', () => {
     });
     expect(voicesService.patchAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        OR: [{ id: 'voice-asset-1' }, { mongoId: 'voice-asset-1' }],
+        id: 'voice-asset-1',
         organizationId: 'org-1',
       }),
       expect.objectContaining({

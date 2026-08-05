@@ -80,6 +80,25 @@ describe('SocialSourcesService', () => {
     });
   });
 
+  it('forwards the canonical sourceId filter to source posts', async () => {
+    socialSource.findMany.mockResolvedValue([]);
+    socialSource.count.mockResolvedValue(0);
+    sourcePostsService.listByBrand.mockResolvedValue({
+      docs: [],
+      total: 0,
+    });
+
+    await service.getFeed(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      { sourceId: 'source-1' },
+    );
+
+    expect(sourcePostsService.listByBrand).toHaveBeenCalledWith(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      expect.objectContaining({ sourceId: 'source-1' }),
+    );
+  });
+
   it('rejects profile URLs outside the selected platform', async () => {
     brand.findFirst.mockResolvedValue({ id: 'brand-1' });
 
@@ -103,7 +122,7 @@ describe('SocialSourcesService', () => {
     await expect(
       service.createScoped(
         {
-          credential: 'credential-2',
+          credentialId: 'credential-2',
           handle: '@OpenAI',
           platform: SocialSourcePlatform.TWITTER,
         },

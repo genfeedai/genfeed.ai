@@ -16,12 +16,12 @@ export class CreateAgentRunDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsEntityId()
-  organization?: string;
+  organizationId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsEntityId()
-  user?: string;
+  userId?: string;
 
   @ApiProperty()
   @IsEnum(AgentExecutionTrigger)
@@ -39,12 +39,12 @@ export class CreateAgentRunDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsEntityId()
-  strategy?: string;
+  strategyId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  brandId?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

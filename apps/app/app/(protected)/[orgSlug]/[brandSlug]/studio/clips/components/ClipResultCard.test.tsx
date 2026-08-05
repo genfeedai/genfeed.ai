@@ -28,7 +28,7 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
 
 function makeClip(overrides?: Partial<ClipResult>): ClipResult {
   return {
-    _id: 'clip-1',
+    id: 'clip-1',
     captionedVideoUrl: undefined,
     clipType: 'hook',
     duration: 30,

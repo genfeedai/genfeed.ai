@@ -272,20 +272,20 @@ describe('EvaluationResultProjection', () => {
 
       expect(result).toEqual([
         {
-          _id: '2026-07-01',
           avgBrandScore: 75,
           avgEngagementScore: 0,
           avgScore: 75,
           avgTechnicalScore: 0,
           count: 1,
+          date: '2026-07-01',
         },
         {
-          _id: '2026-07-02',
           avgBrandScore: 70,
           avgEngagementScore: 90,
           avgScore: 80,
           avgTechnicalScore: 80,
           count: 2,
+          date: '2026-07-02',
         },
       ]);
     });

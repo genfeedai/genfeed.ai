@@ -69,7 +69,8 @@ export class LinksController extends BaseCRUDController<
     if (
       !isSuperAdmin &&
       (!publicMetadata.brand ||
-        (scope.brand && String(scope.brand) !== String(publicMetadata.brand)))
+        (scope.brandId &&
+          String(scope.brandId) !== String(publicMetadata.brand)))
     ) {
       throw new ForbiddenException({
         detail: 'Access denied to this brand',
@@ -78,16 +79,12 @@ export class LinksController extends BaseCRUDController<
     }
 
     // `model Link` has no `organizationId` — `brandId` is the only tenancy
-    // boundary, so this filter must always be present and must always be the
-    // scalar FK. `LinksService.normalizeData` only remaps the `brand` alias on
-    // write, and an unresolved alias reaches `normalizeWhere` as `undefined`,
-    // which drops the key and widens the read to every brand in the database.
-    // `requireRelationId` fails closed instead: no brand id, no query.
+    // boundary, so this filter must always be present. `requireRelationId`
+    // fails closed instead of allowing an empty tenant filter.
     const brandId = requireRelationId(
       isSuperAdmin
-        ? (scope.brand ?? publicMetadata.brand)
+        ? (scope.brandId ?? publicMetadata.brand)
         : publicMetadata.brand,
-      undefined,
       'brand',
       'Link list query',
     );
@@ -108,7 +105,7 @@ export class LinksController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const enriched: CreateLinkDto = {
       ...createDto,
-      brand: publicMetadata.brand ?? createDto.brand,
+      brandId: publicMetadata.brand ?? createDto.brandId,
     };
 
     // Links are associated with accounts, not users

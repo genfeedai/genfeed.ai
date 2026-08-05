@@ -43,7 +43,7 @@ describe('VideoMusicOrchestrationService', () => {
   let pollingService: { waitForIngredientCompletion: ReturnType<typeof vi.fn> };
   let routerService: { getDefaultModel: ReturnType<typeof vi.fn> };
   let promptsService: { create: ReturnType<typeof vi.fn> };
-  let sharedService: { saveDocumentsInternal: ReturnType<typeof vi.fn> };
+  let sharedService: { createMediaDocumentsInternal: ReturnType<typeof vi.fn> };
   let activitiesService: {
     create: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
@@ -75,7 +75,7 @@ describe('VideoMusicOrchestrationService', () => {
       create: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
     };
     sharedService = {
-      saveDocumentsInternal: vi.fn().mockResolvedValue({
+      createMediaDocumentsInternal: vi.fn().mockResolvedValue({
         ingredientData: { id: 'test-object-id' },
         metadataData: { id: 'test-object-id' },
       }),

@@ -387,7 +387,7 @@ export function useWorkflowBuilder({
       const token = await resolveAuthToken(getToken);
       const response = await fetch(`${apiBaseUrl}/workflow-executions`, {
         body: JSON.stringify({
-          workflow: workflowId,
+          workflowId,
         }),
         headers: {
           Authorization: `Bearer ${token}`,

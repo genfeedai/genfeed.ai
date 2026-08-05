@@ -8,9 +8,14 @@ import type {
 } from '@genfeedai/interfaces';
 
 export class Member extends BaseEntity implements IMember {
-  public declare organization: IOrganization;
-  public declare user: IUser;
-  public declare role: IRole;
+  public declare organizationId: string;
+  public declare userId: string;
+  public declare roleId: string;
+  public declare lastUsedBrandId?: string | null;
+  public declare roleKey?: string | null;
+  public declare organization?: IOrganization;
+  public declare user?: IUser;
+  public declare role?: IRole;
   public declare brands?: IBrand[];
   public declare isActive: boolean;
 

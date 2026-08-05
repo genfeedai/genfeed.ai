@@ -76,10 +76,10 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
       for (const post of posts) {
         try {
           const analytics = await this.threadsService.getThreadInsights(
-            post.organization,
-            post.brand,
+            post.organizationId,
+            post.brandId,
             post.externalId,
-            post.credential,
+            post.credentialId,
           );
 
           await this.postAnalyticsService.processThreadsAnalytics(
@@ -88,9 +88,9 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
           );
           readyTargets.push({
             attemptKey: job.data.attemptKey,
-            brandId: post.brand,
+            brandId: post.brandId,
             id: post.id,
-            organizationId: post.organization,
+            organizationId: post.organizationId,
             platform: post.platform,
           });
           processed++;
@@ -108,10 +108,10 @@ export class AnalyticsThreadsProcessor extends WorkerHost {
 
           failedTargets.push({
             attemptKey: job.data.attemptKey,
-            brandId: post.brand,
+            brandId: post.brandId,
             failure,
             id: post.id,
-            organizationId: post.organization,
+            organizationId: post.organizationId,
             platform: post.platform,
           });
 

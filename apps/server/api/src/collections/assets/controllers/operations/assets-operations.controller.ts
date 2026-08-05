@@ -11,6 +11,7 @@ import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
 import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
 import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { getAssetParentId } from '@api/collections/assets/utils/asset-parent.util';
 import { type BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -48,7 +49,6 @@ import {
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { AssetSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
-import { ValidationConfigService } from '@libs/config/services/validation.config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -105,7 +105,6 @@ export class AssetsOperationsController {
     private readonly metadataService: MetadataService,
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
-    private readonly validationConfigService: ValidationConfigService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
@@ -126,21 +125,15 @@ export class AssetsOperationsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
 
-    let parentId: string;
-    if (generateAssetDto.parentModel === AssetParent.BRAND) {
-      const parentIdString =
-        generateAssetDto.parent === '__never__'
-          ? generateAssetDto.parent.toString()
-          : String(generateAssetDto.parent || '');
-
-      parentId = await EntityIdUtil.validate(parentIdString, 'parent');
-    } else {
-      if (!publicMetadata.brand) {
-        throw new ValidationException('Brand ID is required');
-      }
-
-      parentId = publicMetadata.brand;
+    if (generateAssetDto.parentType !== AssetParent.BRAND) {
+      throw new ValidationException(
+        'Logo and banner generation requires a brand parent',
+      );
     }
+    const parentId = await EntityIdUtil.validate(
+      generateAssetDto.parentId,
+      'parentId',
+    );
 
     const category = InputValidationUtil.validateString(
       generateAssetDto.category,
@@ -164,21 +157,15 @@ export class AssetsOperationsController {
         ? { height: 1080, width: 1920 }
         : { height: 1024, width: 1024 };
 
-    // Fetch brand - use parentId if parentModel is Brand, otherwise use publicMetadata.brand
     let brand: BrandDocument | null = null;
-    const brandIdToUse =
-      generateAssetDto.parentModel === AssetParent.BRAND
-        ? parentId
-        : publicMetadata.brand
-          ? publicMetadata.brand
-          : null;
+    const brandIdToUse = parentId;
 
     if (brandIdToUse) {
       try {
         brand = await this.brandsService.findOne({
-          _id: brandIdToUse,
+          id: brandIdToUse,
           isDeleted: false,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
         });
       } catch (error) {
         this.loggerService.error(`${url} - Failed to fetch brand`, error);
@@ -212,18 +199,19 @@ export class AssetsOperationsController {
     await this.assetsService.patchAll(
       {
         category,
-        parent: parentId,
-        user: publicMetadata.user,
+        parentBrandId: parentId,
+        parentType: AssetParent.BRAND,
+        userId: publicMetadata.user,
       },
       { isDeleted: true },
     );
 
     const assetData = await this.assetsService.create({
       category,
-      parent: parentId,
-      parentModel: generateAssetDto.parentModel,
-      user: publicMetadata.user,
-    } as unknown as CreateAssetDto);
+      parentId,
+      parentType: generateAssetDto.parentType,
+      userId: publicMetadata.user,
+    });
 
     const { input: promptParams } = await this.promptBuilderService.buildPrompt(
       selectedModel as string,
@@ -304,34 +292,34 @@ export class AssetsOperationsController {
     try {
       const entityData = {
         category: uploadDto.category,
-        parent:
-          uploadDto.parent && isEntityId(uploadDto.parent)
-            ? uploadDto.parent
+        parentId:
+          uploadDto.parentId && isEntityId(uploadDto.parentId)
+            ? uploadDto.parentId
             : undefined,
-        parentModel: uploadDto.parentModel,
-        user: publicMetadata.user,
+        parentType: uploadDto.parentType,
+        userId: publicMetadata.user,
       };
 
       this.loggerService.log(`${url} - Creating asset with data`, {
         entityData: {
           ...entityData,
-          parent: entityData.parent?.toString(),
-          user: entityData.user.toString(),
+          parentId: entityData.parentId,
+          userId: entityData.userId,
         },
       });
 
       if (
         (uploadDto.category === AssetCategory.LOGO ||
           uploadDto.category === AssetCategory.BANNER) &&
-        entityData.parent &&
-        uploadDto.parentModel === AssetParent.BRAND
+        entityData.parentId &&
+        uploadDto.parentType === AssetParent.BRAND
       ) {
         await this.assetsService.patchAll(
           {
             category: uploadDto.category,
             isDeleted: false,
-            parent: entityData.parent,
-            parentModel: AssetParent.BRAND,
+            parentBrandId: entityData.parentId,
+            parentType: AssetParent.BRAND,
           },
           { isDeleted: true },
         );
@@ -343,24 +331,22 @@ export class AssetsOperationsController {
           'public',
         ]);
 
-        if (uploadDto.parent) {
+        if (uploadDto.parentId) {
           try {
-            await this.cacheService.del(`brand:${uploadDto.parent}`);
+            await this.cacheService.del(`brand:${uploadDto.parentId}`);
           } catch (_error) {
             // Ignore if key doesn't exist
           }
         }
       }
 
-      const assetData = await this.assetsService.create(
-        entityData as unknown as CreateAssetDto,
-      );
+      const assetData = await this.assetsService.create(entityData);
 
       this.loggerService.log(`${url} - Asset created successfully`, {
         assetId: assetData.id,
         category: assetData.category,
-        parent: assetData.parent?.toString(),
-        parentModel: assetData.parentModel,
+        parentId: getAssetParentId(assetData),
+        parentType: assetData.parentType,
       });
 
       await this.filesClientService.uploadToS3(
@@ -382,19 +368,19 @@ export class AssetsOperationsController {
           {
             assetId: assetData.id.toString(),
             category: assetData.category,
-            parent: assetData.parent?.toString(),
-            parentModel: assetData.parentModel,
+            parentId: getAssetParentId(assetData),
+            parentType: assetData.parentType,
           },
         );
 
         if (
-          uploadDto.parent &&
+          uploadDto.parentId &&
           [AssetCategory.LOGO, AssetCategory.BANNER].includes(
             uploadDto.category,
           )
         ) {
           await this.websocketService.publishBrandRefresh(
-            uploadDto.parent.toString(),
+            uploadDto.parentId,
             userId,
             {
               assetId: assetData.id.toString(),
@@ -431,7 +417,7 @@ export class AssetsOperationsController {
     const publicMetadata = getPublicMetadata(user);
 
     // Validate inputs
-    const validatedIngredientId = InputValidationUtil.validateObjectId(
+    const validatedIngredientId = InputValidationUtil.validateEntityId(
       createFromIngredientDto.ingredientId,
       'ingredientId',
     );
@@ -444,16 +430,16 @@ export class AssetsOperationsController {
       throw new ValidationException('Category must be logo or banner');
     }
 
-    const validatedParent = InputValidationUtil.validateObjectId(
-      createFromIngredientDto.parent,
-      'parent',
+    const validatedParent = InputValidationUtil.validateEntityId(
+      createFromIngredientDto.parentId,
+      'parentId',
     );
 
     // Get ingredient with metadata
     const ingredient = await this.ingredientsService.findOne({
-      _id: validatedIngredientId,
+      id: validatedIngredientId,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!ingredient) {
@@ -464,12 +450,12 @@ export class AssetsOperationsController {
       throw new ValidationException('Only images can be set as logo or banner');
     }
 
-    if (!ingredient.metadata) {
+    if (!ingredient.metadataId) {
       throw new ValidationException('Ingredient metadata not found');
     }
 
     const metadata = await this.metadataService.findOne({
-      _id: ingredient.metadata,
+      id: ingredient.metadataId,
       isDeleted: false,
     });
 
@@ -480,23 +466,23 @@ export class AssetsOperationsController {
     const ingredientType = 'images';
     const sourceKey = `ingredients/${ingredientType}/${validatedIngredientId}`;
 
-    const parentObjectId = validatedParent;
+    const parentId = validatedParent;
     await this.assetsService.patchAll(
       {
         category: validatedCategory,
         isDeleted: false,
-        parent: parentObjectId,
-        parentModel: AssetParent.BRAND,
+        parentBrandId: parentId,
+        parentType: AssetParent.BRAND,
       },
       { isDeleted: true },
     );
 
     const assetData = await this.assetsService.create({
       category: validatedCategory,
-      parent: parentObjectId,
-      parentModel: AssetParent.BRAND,
-      user: publicMetadata.user,
-    } as unknown as CreateAssetDto);
+      parentId,
+      parentType: AssetParent.BRAND,
+      userId: publicMetadata.user,
+    });
 
     const destinationKey = `ingredients/${validatedCategory}s/${assetData.id}`;
 
@@ -555,8 +541,8 @@ export class AssetsOperationsController {
         {
           assetId: assetData.id.toString(),
           category: assetData.category,
-          parent: assetData.parent?.toString(),
-          parentModel: assetData.parentModel,
+          parentId: getAssetParentId(assetData),
+          parentType: assetData.parentType,
         },
       );
 

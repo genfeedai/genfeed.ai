@@ -70,16 +70,12 @@ export interface BotDocument
     Bot,
     'config' | 'settings' | 'targets' | 'category' | 'platforms'
   > {
-  _id: string;
-  brand?: string | null;
   category?: string;
   config?: Record<string, unknown>;
   description?: string;
   livestreamSettings?: BotLivestreamSettings;
-  organization: string;
   platforms?: string[];
   settings?: BotSettings | Record<string, unknown>;
   targets: BotTarget[];
-  user: string;
   [key: string]: unknown;
 }

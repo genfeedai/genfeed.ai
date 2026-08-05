@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, type ReactNode, use, useEffect } from 'react';
+import { configureWorkflowRefApi } from '../nodes/composition/workflow-ref-node.helpers';
 import {
   configureExecutionApiBaseUrl,
   configureExecutionHeaders,
@@ -66,6 +67,10 @@ export function WorkflowUIProvider({
   useEffect(() => {
     configureWorkflowPersistence(config.workflowPersistence);
   }, [config.workflowPersistence]);
+
+  useEffect(() => {
+    configureWorkflowRefApi(config.workflowReferences);
+  }, [config.workflowReferences]);
 
   // Register the chat/agent edit-operations applier. Resets to a no-op when
   // unset (matching the package's standalone behavior).

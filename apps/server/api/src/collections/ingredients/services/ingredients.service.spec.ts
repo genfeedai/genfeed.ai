@@ -37,14 +37,13 @@ describe('IngredientsService', () => {
   let prisma: PrismaService;
 
   const mockIngredient = {
-    _id: 'test-id',
-    brand: 'test-object-id',
-    id: 'test-id',
+    brandId: '507f1f77bcf86cd799439013',
+    id: '507f1f77bcf86cd799439011',
     isDeleted: false,
-    metadata: 'metadata-id',
-    organization: 'test-object-id',
+    metadataId: '507f1f77bcf86cd799439014',
+    organizationId: '507f1f77bcf86cd799439012',
     title: 'Test Ingredient',
-    user: 'test-object-id',
+    userId: '507f1f77bcf86cd799439015',
   };
 
   beforeEach(async () => {
@@ -86,8 +85,9 @@ describe('IngredientsService', () => {
   describe('create', () => {
     it('should create an ingredient successfully', async () => {
       const createDto: CreateIngredientDto = {
-        brand: 'test-object-id',
-        status: 'pending',
+        brandId: '507f1f77bcf86cd799439013',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.PROCESSING,
       };
 
       const result = await service.create(createDto);
@@ -98,8 +98,9 @@ describe('IngredientsService', () => {
 
     it('should handle creation errors', async () => {
       const createDto: CreateIngredientDto = {
-        brand: 'test-object-id',
-        status: 'pending',
+        brandId: '507f1f77bcf86cd799439013',
+        category: IngredientCategory.IMAGE,
+        status: IngredientStatus.PROCESSING,
       };
 
       const error = new Error('Creation failed');
@@ -109,16 +110,28 @@ describe('IngredientsService', () => {
         'Creation failed',
       );
     });
-  });
 
-  describe('findLatest', () => {
-    it('should find latest ingredient for a user', async () => {
-      const params = { user: 'user-id' };
+    it('writes canonical provenance and source relations', async () => {
+      const sourceId = '507f1f77bcf86cd799439021';
 
-      const result = await service.findLatest(params);
+      await service.create({
+        category: IngredientCategory.IMAGE,
+        generationPrompt: 'A boxer in a dark arena',
+        generationSeed: 42,
+        modelUsed: 'black-forest-labs/flux-schnell',
+        sources: [sourceId],
+      });
 
-      expect(ingredientDelegate.findFirst).toHaveBeenCalled();
-      expect(result).toBeDefined();
+      expect(ingredientDelegate.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            generationPrompt: 'A boxer in a dark arena',
+            generationSeed: 42,
+            modelUsed: 'black-forest-labs/flux-schnell',
+            sources: { connect: [{ id: sourceId }] },
+          }),
+        }),
+      );
     });
   });
 
@@ -174,6 +187,48 @@ describe('IngredientsService', () => {
       );
     });
 
+    it('replaces source and tag relations with deduplicated canonical IDs', async () => {
+      const sourceId = '507f1f77bcf86cd799439021';
+      const tagId = '507f1f77bcf86cd799439022';
+
+      await service.patch('ingredient-1', {
+        sources: [sourceId, sourceId],
+        tags: [tagId, tagId],
+      });
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sources: { set: [{ id: sourceId }] },
+            tags: { set: [{ id: tagId }] },
+          }),
+        }),
+      );
+    });
+
+    it('clears source and tag relations when empty arrays are supplied', async () => {
+      await service.patch('ingredient-1', { sources: [], tags: [] });
+
+      expect(ingredientDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            sources: { set: [] },
+            tags: { set: [] },
+          }),
+        }),
+      );
+    });
+
+    it('does not mutate source or tag relations when they are omitted', async () => {
+      await service.patch('ingredient-1', { isFavorite: true });
+
+      const update = ingredientDelegate.update.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      expect(update.data).not.toHaveProperty('sources');
+      expect(update.data).not.toHaveProperty('tags');
+    });
+
     it('should handle update errors', async () => {
       const id = 'test-id';
       const updateDto: UpdateIngredientDto = {
@@ -186,6 +241,50 @@ describe('IngredientsService', () => {
 
       await expect(service.patch(id, updateDto)).rejects.toThrow(
         'Update failed',
+      );
+    });
+  });
+
+  describe('patchAll', () => {
+    it('rejects relation updates that Prisma updateMany cannot apply', async () => {
+      const ingredientId = '507f1f77bcf86cd799439011';
+      const tagId = '507f1f77bcf86cd799439022';
+
+      await expect(
+        service.patchAll({ id: ingredientId }, { tags: [tagId] }),
+      ).rejects.toThrow(
+        'Bulk ingredient updates do not support sources or tags',
+      );
+
+      expect(ingredientDelegate.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('keeps bulk writes on the canonical scalar boundary', async () => {
+      const brandId = '507f1f77bcf86cd799439013';
+      const ingredientId = '507f1f77bcf86cd799439011';
+      ingredientDelegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.patchAll(
+        { id: ingredientId },
+        {
+          brand: brandId,
+          brandId,
+          status: IngredientStatus.PROCESSING,
+        },
+      );
+
+      expect(ingredientDelegate.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            brandId,
+            status: IngredientStatus.PROCESSING,
+          }),
+        }),
+      );
+      expect(ingredientDelegate.updateMany).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ brand: expect.anything() }),
+        }),
       );
     });
   });

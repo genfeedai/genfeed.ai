@@ -15,7 +15,7 @@ import {
 export class CreateContentPerformanceDto {
   @ApiProperty({ description: 'Brand ID', required: true })
   @IsEntityId()
-  brand!: string;
+  brandId!: string;
 
   @ApiProperty({
     description: 'Platform',
@@ -43,7 +43,7 @@ export class CreateContentPerformanceDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsEntityId()
-  post?: string;
+  postId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

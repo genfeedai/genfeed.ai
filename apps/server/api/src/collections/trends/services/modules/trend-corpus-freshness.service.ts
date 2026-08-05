@@ -45,7 +45,6 @@ interface TrendHealthDoc {
   createdAt?: Date;
   data: unknown;
   id: string;
-  lastSeenAt?: Date | null;
   platform?: string | null;
   updatedAt?: Date;
 }
@@ -115,7 +114,6 @@ export class TrendCorpusFreshnessService {
           createdAt: true,
           data: true,
           id: true,
-          lastSeenAt: true,
           platform: true,
           updatedAt: true,
         },
@@ -312,7 +310,6 @@ export class TrendCorpusFreshnessService {
       const observedAt =
         cachedAt ??
         this.readDate(doc.updatedAt) ??
-        this.readDate(doc.lastSeenAt) ??
         this.readDate(doc.createdAt);
       const platform =
         this.readString(doc.platform) ??

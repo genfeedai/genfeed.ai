@@ -295,13 +295,12 @@ export function useModelsList({
         return false;
       }
 
-      // Strict mode: if no settings or empty enabledModels array, no models are enabled
-      if (!settings?.enabledModels || settings.enabledModels.length === 0) {
+      // Strict mode: an absent or empty allowlist enables no models.
+      if (!settings?.enabledModelIds || settings.enabledModelIds.length === 0) {
         return false;
       }
 
-      // Normalize enabledModels array items and check for match
-      return settings.enabledModels.some(
+      return settings.enabledModelIds.some(
         (enabledId) => String(enabledId || '').trim() === normalizedModelId,
       );
     },

@@ -17,6 +17,28 @@ import type { ModalReplyBotProps } from '@genfeedai/props/modals/modal.props';
 import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import { type ChangeEvent, useEffect } from 'react';
 
+const DEFAULT_ACTIVE_DAYS = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+] as const;
+
+type ActiveDay = NonNullable<
+  ReplyBotConfigSchema['schedule']
+>['activeDays'][number];
+
+const ACTIVE_DAYS = [
+  'sunday',
+  ...DEFAULT_ACTIVE_DAYS,
+  'saturday',
+] as const satisfies readonly ActiveDay[];
+
+function isActiveDay(value: string): value is ActiveDay {
+  return ACTIVE_DAYS.some((day) => day === value);
+}
+
 export function useModalReplyBot({
   replyBot,
   onConfirm,
@@ -32,9 +54,10 @@ export function useModalReplyBot({
   } = useCrudModal<IReplyBotConfig, ReplyBotConfigSchema>({
     defaultValues: {
       actionType: ReplyBotActionType.REPLY_ONLY,
+      credentialId: undefined,
       description: '',
       isActive: false,
-      monitoredAccounts: [],
+      monitoredAccountIds: [],
       name: '',
       platform: ReplyBotPlatform.TWITTER,
       rateLimits: {
@@ -59,6 +82,7 @@ export function useModalReplyBot({
   useEffect(() => {
     if (replyBot) {
       form.setValue('name', replyBot.name ?? '');
+      form.setValue('credentialId', replyBot.credentialId);
       form.setValue('description', replyBot.description ?? '');
       form.setValue('type', replyBot.type);
       form.setValue('platform', replyBot.platform);
@@ -91,14 +115,18 @@ export function useModalReplyBot({
       if (replyBot.schedule) {
         const schedule = replyBot.schedule as {
           timezone?: string;
-          activeHoursStart?: number;
-          activeHoursEnd?: number;
-          activeDays?: number[];
+          activeHoursStart?: string;
+          activeHoursEnd?: string;
+          activeDays?: string[];
+          enabled?: boolean;
         };
         form.setValue('schedule', {
-          activeDays: schedule.activeDays ?? [1, 2, 3, 4, 5],
-          activeHoursEnd: schedule.activeHoursEnd ?? 17,
-          activeHoursStart: schedule.activeHoursStart ?? 9,
+          activeDays: schedule.activeDays?.filter(isActiveDay) ?? [
+            ...DEFAULT_ACTIVE_DAYS,
+          ],
+          activeHoursEnd: schedule.activeHoursEnd ?? '17:00',
+          activeHoursStart: schedule.activeHoursStart ?? '09:00',
+          enabled: schedule.enabled ?? false,
           timezone: schedule.timezone ?? 'UTC',
         });
       }
@@ -130,7 +158,7 @@ export function useModalReplyBot({
           mustHaveBio: filters.mustHaveBio ?? false,
         });
       }
-      form.setValue('monitoredAccounts', replyBot.monitoredAccounts ?? []);
+      form.setValue('monitoredAccountIds', replyBot.monitoredAccountIds ?? []);
     }
   }, [replyBot, form]);
 

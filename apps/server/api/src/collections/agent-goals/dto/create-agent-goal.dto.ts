@@ -18,18 +18,8 @@ import {
 export class CreateAgentGoalDto {
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ description: 'Organization ID', required: false })
-  organization?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ description: 'User ID', required: false })
-  user?: string;
-
-  @IsEntityId()
-  @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
-  brand?: string;
+  brandId?: string;
 
   @IsString()
   @ApiProperty({ description: 'Goal label' })

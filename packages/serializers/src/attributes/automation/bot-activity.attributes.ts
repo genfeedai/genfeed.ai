@@ -1,9 +1,11 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const botActivityAttributes = createEntityAttributes([
-  'organization',
-  'replyBotConfig',
-  'monitoredAccount',
+  'organizationId',
+  'brandId',
+  'userId',
+  'replyBotConfigId',
+  'monitoredAccountId',
   'platform',
   'status',
   'triggerContentId',

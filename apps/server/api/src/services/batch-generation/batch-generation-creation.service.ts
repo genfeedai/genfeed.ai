@@ -57,9 +57,9 @@ export class BatchGenerationCreationService {
   ): Promise<IBatchSummary> {
     // Verify brand exists and belongs to org
     const brand = await this.brandsService.findOne({
-      _id: dto.brandId,
+      id: dto.brandId,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
     if (!brand) {
@@ -140,9 +140,9 @@ export class BatchGenerationCreationService {
     orgId: string,
   ): Promise<IBatchSummary> {
     const brand = await this.brandsService.findOne({
-      _id: dto.brandId,
+      id: dto.brandId,
       isDeleted: false,
-      organization: orgId,
+      organizationId: orgId,
     });
 
     if (!brand) {
@@ -244,7 +244,7 @@ export class BatchGenerationCreationService {
           ? String(reviewItem.contentRunId)
           : undefined;
         const post = await this.postsService.create({
-          brand: dto.brandId,
+          brandId: dto.brandId,
           contentRunId,
           creativeVersion: reviewItem.creativeVersion,
           description:
@@ -254,7 +254,7 @@ export class BatchGenerationCreationService {
           hookVersion: reviewItem.hookVersion,
           ingredients: reviewItem.ingredientId ? [reviewItem.ingredientId] : [],
           label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
-          organization: orgId,
+          organizationId: orgId,
           platform: reviewItem.platform as never,
           publishIntent: reviewItem.publishIntent,
           promptUsed: reviewItem.prompt,
@@ -263,14 +263,14 @@ export class BatchGenerationCreationService {
           sourceWorkflowId: reviewItem.sourceWorkflowId,
           sourceWorkflowName: reviewItem.sourceWorkflowName,
           status: PostStatus.DRAFT,
-          user: userId,
+          userId: userId,
           variantId: reviewItem.variantId,
         } as never);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
 
         batchItems.push({
-          _id: crypto.randomUUID(),
+          id: crypto.randomUUID(),
           caption: reviewItem.caption,
           contentRunId,
           creativeVersion: reviewItem.creativeVersion,
@@ -313,7 +313,7 @@ export class BatchGenerationCreationService {
         return this.prisma.post.updateMany({
           data: {
             reviewBatchId: batchId,
-            reviewItemId: item._id,
+            reviewItemId: item.id,
           },
           where: scopedWhere(orgId, { id: item.postId }),
         });
@@ -379,7 +379,7 @@ export class BatchGenerationCreationService {
     for (const [format, formatCount] of Object.entries(formatCounts)) {
       for (let i = 0; i < formatCount; i++) {
         items.push({
-          _id: crypto.randomUUID(),
+          id: crypto.randomUUID(),
           createdAt: now,
           format: format as ContentFormat,
           platform: platforms[index % platforms.length],

@@ -1,3 +1,4 @@
+import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
@@ -41,7 +42,7 @@ export class AuthWhoamiController {
     const context = req.context;
     const contextUserId = context?.userId ?? meta.user;
     const contextOrganizationId = context?.organizationId ?? meta.organization;
-    const mongoUserId = EntityIdUtil.isValid(contextUserId)
+    const databaseUserId = EntityIdUtil.isValid(contextUserId)
       ? String(contextUserId)
       : '';
     const authUserId = user?.id || '';
@@ -63,7 +64,7 @@ export class AuthWhoamiController {
         user: {
           authUserId,
           email: user?.emailAddresses?.[0]?.emailAddress || user?.email || '',
-          id: mongoUserId,
+          id: databaseUserId,
           name: user?.firstName
             ? `${user.firstName} ${user.lastName || ''}`.trim()
             : '',
@@ -91,18 +92,17 @@ export class AuthWhoamiController {
     }
 
     try {
-      const member = await this.membersService.findOne(
+      const member = (await this.membersService.findOne(
         {
           isActive: true,
           isDeleted: false,
-          organization: String(organizationId),
-          user: String(userId),
+          organizationId: String(organizationId),
+          userId: String(userId),
         },
-        [PopulateBuilder.withFields('role', ['_id', 'key', 'label'])],
-      );
+        [PopulateBuilder.withFields('role', ['id', 'key', 'label'])],
+      )) as (MemberDocument & { role?: { key?: string } | null }) | null;
 
-      const role = member?.role as unknown as { key?: string } | undefined;
-      return role?.key ?? '';
+      return member?.role?.key ?? '';
     } catch (error: unknown) {
       // Fail closed: an unresolved role denies admin-gated tools downstream.
       // Log so a persistent membership-lookup failure (e.g. DB outage) is

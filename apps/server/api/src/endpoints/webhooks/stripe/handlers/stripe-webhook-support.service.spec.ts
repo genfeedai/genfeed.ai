@@ -17,7 +17,10 @@ import {
   SubscriptionPlan,
   SubscriptionTier,
 } from '@genfeedai/enums';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import {
+  type ISubscriptionOssReadModel,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -387,11 +390,11 @@ describe('StripeWebhookSupportService', () => {
       });
 
       expect(activitiesService.create).toHaveBeenCalledWith({
-        brand: 'brand_1',
+        brandId: 'brand_1',
         key: ActivityKey.CREDITS_ADD,
-        organization: 'org_1',
+        organizationId: 'org_1',
         source: ActivitySource.PAY_AS_YOU_GO,
-        user: 'user_1',
+        userId: 'user_1',
         value: '100',
       });
     });
@@ -405,9 +408,9 @@ describe('StripeWebhookSupportService', () => {
       });
 
       expect(activitiesService.create).toHaveBeenCalledWith({
-        brand: 'org_1',
+        brandId: 'org_1',
         key: ActivityKey.CREDITS_ADD,
-        organization: 'org_1',
+        organizationId: 'org_1',
         source: ActivitySource.SUBSCRIPTION,
         value: 'BYOK platform fee paid: $12.50',
       });
@@ -500,10 +503,17 @@ describe('StripeWebhookSupportService', () => {
     });
 
     it('persists the tier through updateOrganizationTierAndModels when given', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        organization: 'org_1',
-        user: 'user_1',
-      });
+      const subscription = {
+        cancelAtPeriodEnd: false,
+        id: 'sub_db_1',
+        isDeleted: false,
+        organizationId: 'org_1',
+        status: 'active',
+        userId: 'user_1',
+      } satisfies ISubscriptionOssReadModel;
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue(
+        subscription,
+      );
       usersService.findOne.mockResolvedValue({
         id: 'user_1',
         email: 'ada@example.com',
@@ -522,7 +532,7 @@ describe('StripeWebhookSupportService', () => {
         isDeleted: false,
       });
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         subscriptionTier: SubscriptionTier.BYOK,
       });
     });
@@ -712,7 +722,7 @@ describe('StripeWebhookSupportService', () => {
       );
 
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
-        enabledModels: ['model_1'],
+        enabledModelIds: ['model_1'],
         subscriptionTier: SubscriptionTier.PRO,
       });
       expect(

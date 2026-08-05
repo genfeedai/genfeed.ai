@@ -15,6 +15,18 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
+const SHOPIFY_SHOP_DOMAIN_PATTERN = /^[a-z0-9][a-z0-9-]{0,62}\.myshopify\.com$/;
+
+export function normalizeShopifyShopDomain(value: string): string {
+  const shop = value.trim().toLowerCase();
+
+  if (!SHOPIFY_SHOP_DOMAIN_PATTERN.test(shop)) {
+    throw new TypeError('shop must be a valid *.myshopify.com domain');
+  }
+
+  return shop;
+}
+
 @Injectable()
 export class ShopifyService {
   private readonly constructorName = String(this.constructor.name);
@@ -28,6 +40,7 @@ export class ShopifyService {
   ) {}
 
   public generateAuthUrl(shop: string, state: string): string {
+    const normalizedShop = normalizeShopifyShopDomain(shop);
     const clientId = this.configService.get('SHOPIFY_CLIENT_ID');
     const redirectUri = this.configService.get('SHOPIFY_REDIRECT_URI');
     const scopes = 'write_products,read_products';
@@ -37,7 +50,7 @@ export class ShopifyService {
       scope: scopes,
       state,
     } as Record<string, string>);
-    return `https://${shop}/admin/oauth/authorize?${params.toString()}`;
+    return `https://${normalizedShop}/admin/oauth/authorize?${params.toString()}`;
   }
 
   public async exchangeCodeForToken(
@@ -46,12 +59,13 @@ export class ShopifyService {
   ): Promise<{ accessToken: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
+      const normalizedShop = normalizeShopifyShopDomain(shop);
       const clientId = this.configService.get('SHOPIFY_CLIENT_ID');
       const clientSecret = this.configService.get('SHOPIFY_CLIENT_SECRET');
 
       const response = await firstValueFrom(
         this.httpService.post<IShopifyTokenResponse>(
-          `https://${shop}/admin/oauth/access_token`,
+          `https://${normalizedShop}/admin/oauth/access_token`,
           {
             client_id: clientId,
             client_secret: clientSecret,
@@ -62,7 +76,7 @@ export class ShopifyService {
 
       this.loggerService.log(`${url} success`, {
         scope: response.data.scope,
-        shop,
+        shop: normalizedShop,
       });
 
       return {
@@ -81,9 +95,9 @@ export class ShopifyService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.SHOPIFY,
       });
 
@@ -94,7 +108,7 @@ export class ShopifyService {
       const decryptedAccessToken = EncryptionUtil.decrypt(
         credential.accessToken,
       );
-      const shop = credential.externalHandle;
+      const shop = normalizeShopifyShopDomain(credential.externalHandle);
 
       // Verify by making a simple GraphQL query
       const query = `{ shop { name } }`;
@@ -135,12 +149,15 @@ export class ShopifyService {
   ): Promise<IShopifyProduct | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      const imageInputs = images.map((src) => `{ src: "${src}" }`).join(', ');
+      const normalizedShop = normalizeShopifyShopDomain(shop);
+      const imageInputs = images
+        .map((src) => `{ src: ${JSON.stringify(src)} }`)
+        .join(', ');
       const variantInputs = variants
         ? variants
             .map(
               (v) =>
-                `{ price: "${v.price}"${v.title ? `, title: "${v.title}"` : ''} }`,
+                `{ price: ${JSON.stringify(v.price)}${v.title ? `, title: ${JSON.stringify(v.title)}` : ''} }`,
             )
             .join(', ')
         : '';
@@ -171,7 +188,7 @@ export class ShopifyService {
 
       const response = await firstValueFrom(
         this.httpService.post<IShopifyProductCreateResponse>(
-          `https://${shop}/admin/api/${this.apiVersion}/graphql.json`,
+          `https://${normalizedShop}/admin/api/${this.apiVersion}/graphql.json`,
           { query: mutation },
           {
             headers: {
@@ -193,7 +210,7 @@ export class ShopifyService {
 
       this.loggerService.log(`${url} success`, {
         productId: result.product?.id,
-        shop,
+        shop: normalizedShop,
       });
 
       return result.product;
@@ -211,6 +228,7 @@ export class ShopifyService {
   ): Promise<IShopifyProduct | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
+      const normalizedShop = normalizeShopifyShopDomain(shop);
       const inputParts: string[] = [`id: ${JSON.stringify(productId)}`];
 
       if (updates.title) {
@@ -244,7 +262,7 @@ export class ShopifyService {
 
       const response = await firstValueFrom(
         this.httpService.post<IShopifyProductUpdateResponse>(
-          `https://${shop}/admin/api/${this.apiVersion}/graphql.json`,
+          `https://${normalizedShop}/admin/api/${this.apiVersion}/graphql.json`,
           { query: mutation },
           {
             headers: {
@@ -266,7 +284,7 @@ export class ShopifyService {
 
       this.loggerService.log(`${url} success`, {
         productId: result.product?.id,
-        shop,
+        shop: normalizedShop,
       });
 
       return result.product;
@@ -283,6 +301,7 @@ export class ShopifyService {
   ): Promise<IShopifyProduct | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
+      const normalizedShop = normalizeShopifyShopDomain(shop);
       const query = `
         query {
           product(id: ${JSON.stringify(productId)}) {
@@ -296,7 +315,7 @@ export class ShopifyService {
 
       const response = await firstValueFrom(
         this.httpService.post<IShopifyProductQueryResponse>(
-          `https://${shop}/admin/api/${this.apiVersion}/graphql.json`,
+          `https://${normalizedShop}/admin/api/${this.apiVersion}/graphql.json`,
           { query },
           {
             headers: {
@@ -309,7 +328,7 @@ export class ShopifyService {
 
       this.loggerService.log(`${url} success`, {
         productId,
-        shop,
+        shop: normalizedShop,
       });
 
       return response.data.data.product;

@@ -86,7 +86,7 @@ describe('content schemas', () => {
     it('accepts valid link', () => {
       expect(
         linkSchema.safeParse({
-          brand: 'b',
+          brandId: 'b',
           category: 'c',
           label: 'L',
           url: 'https://example.com',
@@ -97,7 +97,7 @@ describe('content schemas', () => {
     it('rejects invalid URL', () => {
       expect(
         linkSchema.safeParse({
-          brand: 'b',
+          brandId: 'b',
           category: 'c',
           label: 'L',
           url: 'bad',
@@ -151,7 +151,7 @@ describe('content schemas', () => {
       expect(
         postModalSchema.safeParse({
           contentRunId: 'run-1',
-          credential: 'c',
+          credentialId: 'c',
           creativeVersion: 'creative-v2',
           description: 'D',
           hookVersion: 'hook-v1',
@@ -166,7 +166,7 @@ describe('content schemas', () => {
     it('rejects empty credential', () => {
       expect(
         postModalSchema.safeParse({
-          credential: '',
+          credentialId: '',
           description: 'D',
         }).success,
       ).toBe(false);
@@ -210,7 +210,7 @@ describe('content schemas', () => {
     it('accepts valid thread', () => {
       expect(
         threadModalSchema.safeParse({
-          credential: 'c',
+          credentialId: 'c',
           ingredient: 'i',
           posts: [{ description: 'P' }],
           scheduledDate: '2024-01-01',
@@ -221,7 +221,7 @@ describe('content schemas', () => {
     it('rejects empty posts', () => {
       expect(
         threadModalSchema.safeParse({
-          credential: 'c',
+          credentialId: 'c',
           ingredient: 'i',
           posts: [],
           scheduledDate: '2024-01-01',

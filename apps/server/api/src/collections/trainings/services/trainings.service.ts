@@ -12,6 +12,10 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import {
+  requireRelationId,
+  resolveEntityId,
+} from '@api/shared/utils/relation-id/relation-id.util';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
@@ -72,6 +76,63 @@ export class TrainingsService extends BaseService<
     super(prisma, 'training', logger);
   }
 
+  override create(
+    createInput: CreateTrainingDto | Record<string, unknown>,
+  ): Promise<TrainingDocument> {
+    const input = createInput as CreateTrainingDto & Record<string, unknown>;
+    const config =
+      input.config &&
+      typeof input.config === 'object' &&
+      !Array.isArray(input.config)
+        ? { ...(input.config as Record<string, unknown>) }
+        : {};
+    const configFields = [
+      'baseModel',
+      'category',
+      'learningRate',
+      'loraName',
+      'loraRank',
+      'model',
+      'personaSlug',
+      'progress',
+      'provider',
+      'seed',
+      'status',
+      'steps',
+      'trigger',
+    ] as const;
+
+    for (const field of configFields) {
+      if (input[field] !== undefined) {
+        config[field] = input[field];
+      }
+    }
+
+    const sourceIds = Array.isArray(input.sources)
+      ? input.sources.filter(
+          (sourceId): sourceId is string => typeof sourceId === 'string',
+        )
+      : [];
+
+    return super.create({
+      brandId: input.brandId,
+      config,
+      description: input.description,
+      externalId: input.externalId,
+      isDeleted: input.isDeleted,
+      label: input.label,
+      organizationId: input.organizationId,
+      personaId: input.personaId,
+      ...(sourceIds.length > 0
+        ? { sources: { connect: sourceIds.map((id) => ({ id })) } }
+        : input.sources && !Array.isArray(input.sources)
+          ? { sources: input.sources }
+          : {}),
+      stage: input.stage,
+      userId: input.userId,
+    } as unknown as CreateTrainingDto);
+  }
+
   /**
    * Resolve+validate source images, create the training record, and bind the
    * source images to it via a single bounded bulk update.
@@ -86,6 +147,19 @@ export class TrainingsService extends BaseService<
     sourceImages: TrainingSourceImage[];
     training: TrainingDocument;
   }> {
+    const ownerIds = {
+      brandId: resolveEntityId(publicMetadata.brand) ?? null,
+      organizationId: requireRelationId(
+        publicMetadata.organization,
+        'organizationId',
+        'Training owner',
+      ),
+      userId: requireRelationId(
+        publicMetadata.user,
+        'userId',
+        'Training owner',
+      ),
+    };
     const sources = createDto.sources || [];
 
     if (sources.length < 10) {
@@ -98,22 +172,17 @@ export class TrainingsService extends BaseService<
       );
     }
 
-    const sourceIds = sources.map((source) => source);
-
     const sourceResult = await this.ingredientsService.findAll(
       {
         where: {
-          // `_id` expands to `OR: [{ id }, { mongoId }]` in
-          // `processSearchParams`, so a sibling `OR` key on the same object
-          // overwrites it and silently drops the id filter (matching every
-          // image the caller owns). Both predicates are nested under `AND`
-          // so the id restriction and the ownership restriction coexist.
+          // Keep the source restriction and ownership restriction under
+          // separate `AND` branches so neither predicate overwrites the other.
           AND: [
-            { _id: { in: sourceIds } },
+            { id: { in: sources } },
             {
               OR: [
-                { user: publicMetadata.user },
-                { organization: publicMetadata.organization },
+                { userId: ownerIds.userId },
+                { organizationId: ownerIds.organizationId },
               ],
             },
           ],
@@ -130,7 +199,6 @@ export class TrainingsService extends BaseService<
     const sourceImages = (
       (sourceResult.docs as TrainingSourceImage[]) ?? []
     ).map((image) => ({
-      _id: image.id,
       id: image.id,
       metadata: image.metadata ?? {},
     }));
@@ -160,7 +228,7 @@ export class TrainingsService extends BaseService<
     }
 
     const training = await this.create({
-      brandId: publicMetadata.brand ?? null,
+      brandId: ownerIds.brandId,
       config: {
         category: createDto.category || 'subject',
         model:
@@ -173,11 +241,11 @@ export class TrainingsService extends BaseService<
       },
       description: createDto.description || '',
       label: createDto.label || 'Custom Model',
-      organizationId: publicMetadata.organization,
+      organizationId: ownerIds.organizationId,
       sources: {
         connect: sourceImages.map((img) => ({ id: img.id })),
       },
-      userId: publicMetadata.user,
+      userId: ownerIds.userId,
     } as unknown as Parameters<TrainingsService['create']>[0]);
 
     if (!training) {
@@ -198,8 +266,8 @@ export class TrainingsService extends BaseService<
       {
         id: { in: sourceImages.map((img) => img.id) },
         OR: [
-          { userId: publicMetadata.user },
-          { organizationId: publicMetadata.organization },
+          { userId: ownerIds.userId },
+          { organizationId: ownerIds.organizationId },
         ],
       },
       {
@@ -228,8 +296,24 @@ export class TrainingsService extends BaseService<
     sourceImages: TrainingSourceImage[];
     training: TrainingDocument;
   }> {
+    const ownerIds = {
+      brandId: resolveEntityId(publicMetadata.brand) ?? null,
+      organizationId: requireRelationId(
+        publicMetadata.organization,
+        'organizationId',
+        'Training owner',
+      ),
+      userId: requireRelationId(
+        publicMetadata.user,
+        'userId',
+        'Training owner',
+      ),
+    };
     const sourceIds = Array.isArray(existingTraining.sources)
-      ? existingTraining.sources
+      ? existingTraining.sources.flatMap((source) => {
+          const sourceId = resolveEntityId(source);
+          return sourceId ? [sourceId] : [];
+        })
       : [];
 
     let sourceImages: TrainingSourceImage[] = [];
@@ -237,15 +321,13 @@ export class TrainingsService extends BaseService<
       const sourceResult = await this.ingredientsService.findAll(
         {
           where: {
-            _id: {
-              in: sourceIds.map((sid: unknown) =>
-                typeof sid === 'string' ? sid : sid,
-              ),
+            id: {
+              in: sourceIds,
             },
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.SOURCE,
             ),
-            user: publicMetadata.user,
+            userId: ownerIds.userId,
           },
         },
         {
@@ -256,7 +338,6 @@ export class TrainingsService extends BaseService<
 
       sourceImages = ((sourceResult.docs as TrainingSourceImage[]) ?? []).map(
         (image) => ({
-          _id: image.id,
           id: image.id,
           metadata: image.metadata ?? {},
         }),
@@ -282,7 +363,7 @@ export class TrainingsService extends BaseService<
     >;
 
     const newTraining = await this.create({
-      brandId: existingTraining.brandId ?? publicMetadata.brand ?? null,
+      brandId: existingTraining.brandId ?? ownerIds.brandId,
       config: {
         category: (existingConfig.category as string | undefined) || 'subject',
         model:
@@ -301,11 +382,11 @@ export class TrainingsService extends BaseService<
       },
       description: existingTraining.description || '',
       label: existingTraining.label || 'Custom Model',
-      organizationId: publicMetadata.organization,
+      organizationId: ownerIds.organizationId,
       sources: {
         connect: sourceImages.map((img) => ({ id: img.id })),
       },
-      userId: publicMetadata.user,
+      userId: ownerIds.userId,
     } as unknown as Parameters<TrainingsService['create']>[0]);
 
     if (!newTraining) {
@@ -325,7 +406,7 @@ export class TrainingsService extends BaseService<
     await this.ingredientsService.patchAll(
       {
         id: { in: sourceImages.map((img) => img.id) },
-        userId: publicMetadata.user,
+        userId: ownerIds.userId,
       },
       {
         category: CategoryPrismaUtil.toIngredientCategory(
@@ -547,9 +628,7 @@ export class TrainingsService extends BaseService<
         this.readString(this.readTrainingField(trainingRecord, 'trigger')) ??
         'TOK',
       type: this.readString(this.readTrainingField(trainingRecord, 'type')),
-      user:
-        this.readString(trainingRecord.user ?? trainingRecord.userId) ??
-        'unknown',
+      user: this.readString(trainingRecord.userId) ?? 'unknown',
     };
   }
 

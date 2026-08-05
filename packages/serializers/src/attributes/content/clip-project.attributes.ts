@@ -1,8 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const clipProjectAttributes = createEntityAttributes([
-  'user',
-  'organization',
+  'userId',
+  'organizationId',
+  'brandId',
   'name',
   'sourceVideoUrl',
   'sourceVideoS3Key',

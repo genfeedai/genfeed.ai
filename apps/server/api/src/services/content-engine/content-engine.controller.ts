@@ -109,7 +109,7 @@ export class ContentEngineController {
     const { organization } = getPublicMetadata(user);
     const data = await this.contentPlansService.patch(planId, {
       ...dto,
-      organization,
+      organizationId: organization,
     });
     return serializeSingle(req, ContentPlanSerializer, data);
   }
@@ -202,7 +202,6 @@ export class ContentEngineController {
 
   @Post('queue/bulk-approve')
   async bulkApproveDrafts(
-    @Req() req: Request,
     @CurrentUser() user: User,
     @Body() dto: BulkApproveContentDraftsDto,
   ) {

@@ -36,23 +36,8 @@ export interface OverviewBootstrapPayload {
   timeSeries: unknown[];
 }
 
-function getBrandId(
-  record: { id?: unknown; _id?: unknown } | null | undefined,
-): string {
-  if (typeof record?.id === 'string') {
-    return record.id;
-  }
-
-  if (
-    record &&
-    typeof record === 'object' &&
-    '_id' in record &&
-    typeof record.id === 'string'
-  ) {
-    return record.id;
-  }
-
-  return '';
+function getBrandId(record: { id?: unknown } | null | undefined): string {
+  return typeof record?.id === 'string' ? record.id : '';
 }
 
 type BootstrapBaseData = Pick<
@@ -162,8 +147,8 @@ export class AuthBootstrapService {
     if (!isSuperAdmin) {
       await this.membersService.findOne({
         isDeleted: false,
-        organization: organizationId,
-        user: userId,
+        organizationId: organizationId,
+        userId: userId,
       });
     }
 
@@ -232,7 +217,7 @@ export class AuthBootstrapService {
         hasValidUserId
           ? this.usersService.findOne(
               {
-                _id: userId,
+                id: userId,
                 isDeleted: false,
               },
               [],
@@ -240,8 +225,7 @@ export class AuthBootstrapService {
           : null,
         hasValidOrganizationId
           ? this.organizationSettingsService.findOne({
-              isDeleted: false,
-              organization: organizationId,
+              organizationId: organizationId,
             })
           : null,
         organizationId

@@ -7,7 +7,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { PollTimeoutException } from '@server/shared/services/poll-until/poll-until.exception';
 import { PollUntilService } from '@server/shared/services/poll-until/poll-until.service';
-import pLimit from 'p-limit';
+import { createConcurrencyLimit } from '@server/shared/utils/create-concurrency-limit.util';
 import { firstValueFrom } from 'rxjs';
 
 interface HiggsFieldJobStatus {
@@ -24,7 +24,7 @@ export class HiggsFieldService {
   private readonly endpoint = 'https://platform.higgsfield.ai';
   private readonly apiKey: string;
   private readonly apiSecret: string;
-  private readonly limit = pLimit(3);
+  private readonly limit = createConcurrencyLimit(3);
 
   private readonly defaultModelId = 'kling-video/v3/pro/image-to-video';
 
@@ -276,7 +276,13 @@ export class HiggsFieldService {
       );
 
       this.loggerService.log(`${caller} job ${requestId} completed`);
-      return { videoUrl: status.output!.video_url! };
+      const videoUrl = status.output?.video_url;
+      if (!videoUrl) {
+        throw new Error(
+          `Higgsfield job ${requestId} completed without a video URL`,
+        );
+      }
+      return { videoUrl };
     } catch (err: unknown) {
       if (err instanceof PollTimeoutException) {
         throw new Error(

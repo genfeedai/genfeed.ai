@@ -70,7 +70,7 @@ export class QuotaService {
     organization: OrganizationDocument,
   ): Promise<QuotaCheckResult> {
     const settings = await this.organizationSettingsService.findOne({
-      organization: organization.id.toString(),
+      organizationId: organization.id.toString(),
     });
 
     if (!settings) {
@@ -93,18 +93,20 @@ export class QuotaService {
     const endOfDay = new Date();
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    const currentCount = await this.getPostsService().count({
-      createdAt: {
-        gte: startOfDay,
-        lte: endOfDay,
+    const currentCount = await this.getPostsService().count(
+      organization.id.toString(),
+      {
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        credentialId: credential.id.toString(),
+        platform: credential.platform,
+        status: {
+          in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+        },
       },
-      credential: credential.id.toString(),
-      isDeleted: false,
-      platform: credential.platform,
-      status: {
-        in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-      },
-    });
+    );
 
     const result: QuotaCheckResult = {
       allowed: currentCount < dailyLimit,
@@ -133,7 +135,7 @@ export class QuotaService {
     organizationId: string,
   ): Promise<void> {
     const organization = await this.organizationsService.findOne({
-      _id: organizationId,
+      id: organizationId,
     });
 
     if (!organization) {
@@ -174,10 +176,10 @@ export class QuotaService {
   ): Promise<QuotaCheckResult | null> {
     try {
       const credential = await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
       });
       const organization = await this.organizationsService.findOne({
-        _id: organizationId,
+        id: organizationId,
       });
 
       if (!credential || !organization) {

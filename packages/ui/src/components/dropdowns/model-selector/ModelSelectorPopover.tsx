@@ -4,17 +4,12 @@ import { getBrandConfig } from '@genfeedai/constants';
 import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
-import type { IModel } from '@genfeedai/interfaces';
 import type { ModelSelectorPopoverProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import ModelSelectorProviderSidebar from '@ui/dropdowns/model-selector/ModelSelectorProviderSidebar';
 import ModelSelectorTrigger from '@ui/dropdowns/model-selector/ModelSelectorTrigger';
-import {
-  AUTO_MODEL_OPTION_VALUE,
-  AUTO_PRIORITY_LABELS,
-  AUTO_PRIORITY_OPTIONS,
-} from '@ui/dropdowns/model-selector/model-selector.constants';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   collectBrandsFromOptions,
   transformModelsToOptions,
@@ -25,6 +20,7 @@ import {
   CommandEmpty,
   CommandGroup,
   CommandInput,
+  CommandItem,
   CommandList,
 } from '@ui/primitives/command';
 import {
@@ -32,20 +28,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { Check, Sparkles } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
-
-const AUTO_MODEL = {
-  key: AUTO_MODEL_OPTION_VALUE,
-  label: 'Auto',
-} as unknown as IModel;
 
 type GroupedFamilies = Array<{
   brandSlug: string;
@@ -71,8 +55,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   values,
   onChange,
   autoLabel,
-  prioritize = RouterPriority.BALANCED,
-  onPrioritizeChange,
+  prioritize: _prioritize = RouterPriority.BALANCED,
+  onPrioritizeChange: _onPrioritizeChange,
   currentModelCategory,
   favoriteModelKeys,
   onFavoriteToggle,
@@ -305,15 +289,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     [models, values],
   );
 
-  const displayedModels = useMemo(() => {
-    if (isAutoSelected) {
-      return [AUTO_MODEL];
-    }
+  const displayedModels = selectedModels;
 
-    return selectedModels;
-  }, [isAutoSelected, selectedModels]);
-
-  const shouldShowManualCatalog = !isAutoSelected;
+  // Auto is one option in the same catalog as manual models. Keeping the
+  // catalog open when Auto is selected avoids a useless second-level panel
+  // that only repeats the current selection.
+  const shouldShowManualCatalog = true;
 
   const shouldShowAuto = useMemo(() => {
     if (activeBrand === 'favorites') {
@@ -337,22 +318,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
   }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
 
-  const shouldShowAutoCard = isAutoSelected || shouldShowAuto;
+  const shouldShowAutoCard = shouldShowAuto;
 
   const handleToggle = useCallback(
     (modelKey: string) => {
-      if (modelKey === AUTO_MODEL_OPTION_VALUE) {
-        if (isAutoSelected) {
-          onChange(
-            name,
-            values.filter((value) => value !== AUTO_MODEL_OPTION_VALUE),
-          );
-        } else {
-          onChange(name, [AUTO_MODEL_OPTION_VALUE]);
-        }
-        return;
-      }
-
       const currentValues = values.filter(
         (value) => value !== AUTO_MODEL_OPTION_VALUE,
       );
@@ -366,8 +335,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         onChange(name, [...currentValues, modelKey]);
       }
     },
-    [isAutoSelected, name, onChange, values],
+    [name, onChange, values],
   );
+
+  const handleAutoSelect = useCallback(() => {
+    if (!isAutoSelected) {
+      onChange(name, [AUTO_MODEL_OPTION_VALUE]);
+    }
+    setIsOpen(false);
+  }, [isAutoSelected, name, onChange]);
 
   const handleFamilyToggle = useCallback((familyKey: string) => {
     setExpandedFamilyKeys((currentKeys) =>
@@ -396,6 +372,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         <ModelSelectorTrigger
           ref={buttonRef}
           selectedModels={displayedModels}
+          isAutoSelected={isAutoSelected}
           isOpen={isOpen}
           shouldFlash={shouldFlash}
           className={className}
@@ -409,15 +386,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         sideOffset={8}
         className={cn(
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
-          shouldShowManualCatalog ? 'sm:w-[440px]' : 'sm:w-[320px]',
+          'sm:w-[380px]',
         )}
       >
-        <div
-          className={cn(
-            'flex',
-            shouldShowManualCatalog && 'h-[min(500px,calc(100vh-4rem))]',
-          )}
-        >
+        <div className={cn('flex', 'h-[min(500px,calc(100vh-4rem))]')}>
           {shouldShowManualCatalog && (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -459,81 +431,31 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
               <CommandList
                 className={cn(
-                  'max-h-none flex-1 px-2 py-2',
+                  'max-h-none flex-1 px-1 py-1',
                   shouldShowManualCatalog && 'overflow-y-auto',
                 )}
               >
                 {shouldShowAutoCard && (
                   <CommandGroup heading="Auto">
-                    <div className="mb-1 rounded-lg bg-background-secondary shadow-border">
-                      <div
-                        className={cn(
-                          'transition-colors',
-                          isAutoSelected && 'bg-accent',
-                        )}
-                      >
-                        <Button
-                          onClick={() => handleToggle(AUTO_MODEL_OPTION_VALUE)}
-                          className={cn(
-                            'flex min-h-11 w-full items-center gap-2.5 rounded px-3 py-3 text-left transition-colors lg:min-h-0',
-                            'hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                          )}
-                          type="button"
-                          variant={ButtonVariant.UNSTYLED}
-                          withWrapper={false}
-                        >
-                          <div
-                            className={cn(
-                              'flex size-4 items-center justify-center rounded-sm border transition-colors',
-                              isAutoSelected
-                                ? 'border-foreground bg-foreground text-background'
-                                : 'border-border bg-transparent text-transparent',
-                            )}
-                          >
-                            <Check className="size-3" />
-                          </div>
-                          <div className="mt-0.5 flex size-4 shrink-0 items-center justify-center text-primary">
-                            <Sparkles className="size-4" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-medium text-foreground">
-                              Auto
-                            </div>
-                            <div className="text-xs text-foreground/50">
-                              Optimize for {AUTO_PRIORITY_LABELS[prioritize]}
-                            </div>
-                          </div>
-                        </Button>
-                      </div>
-
-                      {isAutoSelected && onPrioritizeChange && (
-                        <div className="space-y-2 border-t border-border px-3 pb-3 pt-2">
-                          <div className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">
-                            Priority
-                          </div>
-                          <Select
-                            value={prioritize}
-                            onValueChange={(value) =>
-                              onPrioritizeChange(value as RouterPriority)
-                            }
-                          >
-                            <SelectTrigger
-                              aria-label="Auto routing priority"
-                              className="min-h-11 border-border bg-background-tertiary text-sm lg:min-h-9"
-                            >
-                              <SelectValue placeholder="Select priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {AUTO_PRIORITY_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {AUTO_PRIORITY_LABELS[option]}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                    <CommandItem
+                      value={autoLabel}
+                      onSelect={handleAutoSelect}
+                      className={cn(
+                        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
+                        isAutoSelected && 'bg-background-tertiary',
                       )}
-                    </div>
+                    >
+                      <span className="size-3.5 shrink-0" aria-hidden="true" />
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">
+                        <Sparkles className="size-3.5" />
+                      </span>
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {autoLabel}
+                      </span>
+                      {isAutoSelected ? (
+                        <Check className="size-3.5 shrink-0 text-foreground" />
+                      ) : null}
+                    </CommandItem>
                   </CommandGroup>
                 )}
 
@@ -571,10 +493,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 expandedFamilyKeys.includes(family.familyKey);
 
                               return (
-                                <div
-                                  key={family.familyKey}
-                                  className="mb-1 rounded-lg bg-background-secondary shadow-border"
-                                >
+                                <div key={family.familyKey}>
                                   <ModelSelectorFamilyItem
                                     brandColor={brandConfig.color}
                                     brandIcon={getModelBrandIcon(
@@ -590,7 +509,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                   />
 
                                   {isExpanded && (
-                                    <div className="space-y-0.5 px-2 pb-2">
+                                    <div>
                                       {family.options.map((option) => (
                                         <ModelSelectorModelItem
                                           key={option.model.key}
@@ -615,10 +534,6 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
                 {shouldShowManualCatalog && !hasVisibleFamilies && (
                   <CommandEmpty>No models found</CommandEmpty>
-                )}
-
-                {!shouldShowManualCatalog && !shouldShowAutoCard && (
-                  <CommandEmpty>No auto options available</CommandEmpty>
                 )}
               </CommandList>
             </Command>
@@ -646,8 +561,8 @@ function SourceTabButton({
       className={cn(
         'min-h-11 rounded px-2.5 py-1.5 text-xs font-medium transition-colors lg:min-h-0',
         isActive
-          ? 'bg-accent text-foreground'
-          : 'text-foreground/55 hover:bg-accent hover:text-foreground',
+          ? 'bg-accent text-accent-foreground'
+          : 'text-foreground/55 hover:bg-accent hover:text-accent-foreground',
       )}
     >
       {label}

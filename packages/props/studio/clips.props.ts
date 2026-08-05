@@ -39,7 +39,7 @@ export interface IHighlight {
 }
 
 export interface ClipResult {
-  _id: string;
+  id: string;
   title: string;
   summary: string;
   viralityScore: number;

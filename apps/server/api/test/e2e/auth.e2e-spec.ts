@@ -75,14 +75,14 @@ describe('Authentication E2E Tests', () => {
     testOrganization = createTestOrganization({
       id: generateIdString(),
       label: 'Auth Test Organization',
-      user: testUser.id,
+      userId: testUser.id,
     });
 
     // Create test member
     testMember = createTestMember({
-      organization: testOrganization.id,
-      role: 'owner',
-      user: testUser.id,
+      organizationId: testOrganization.id,
+      roleId: 'owner',
+      userId: testUser.id,
     });
 
     // Seed database
@@ -90,10 +90,10 @@ describe('Authentication E2E Tests', () => {
     await dbHelper.seedCollection('organizations', [testOrganization]);
     await dbHelper.seedCollection('members', [testMember]);
     await dbHelper.seedCollection('organization-settings', [
-      createTestOrganizationSetting({ organization: testOrganization.id }),
+      createTestOrganizationSetting({ organizationId: testOrganization.id }),
     ]);
     await dbHelper.seedCollection('credit-balances', [
-      createTestCredit({ organization: testOrganization.id }),
+      createTestCredit({ organizationId: testOrganization.id }),
     ]);
   });
 
@@ -159,13 +159,13 @@ describe('Authentication E2E Tests', () => {
       const secondOrg = createTestOrganization({
         id: generateIdString(),
         label: 'Second Organization',
-        user: testUser.id,
+        userId: testUser.id,
       });
 
       const secondMember = createTestMember({
-        organization: secondOrg.id,
-        role: 'owner',
-        user: testUser.id,
+        organizationId: secondOrg.id,
+        roleId: 'owner',
+        userId: testUser.id,
       });
 
       await dbHelper.seedCollection('organizations', [secondOrg]);
@@ -185,9 +185,9 @@ describe('Authentication E2E Tests', () => {
       });
 
       const memberInTestOrg = createTestMember({
-        organization: testOrganization.id,
-        role: 'member', // Not owner
-        user: anotherUser.id,
+        organizationId: testOrganization.id,
+        roleId: 'member', // Not owner
+        userId: anotherUser.id,
       });
 
       await dbHelper.seedCollection('users', [anotherUser]);

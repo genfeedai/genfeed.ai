@@ -56,6 +56,7 @@ describe('check-relation-alias-reads', () => {
       expect(aliases.get('organization')).toBe('organizationId');
       expect(aliases.get('brand')).toBe('brandId');
       expect(aliases.get('credential')).toBe('credentialId');
+      expect(aliases.get('_id')).toBe('id');
     });
 
     it('drops names that are a plain column on any other model', () => {
@@ -81,6 +82,39 @@ describe('check-relation-alias-reads', () => {
   });
 
   describe('id-coercion rule', () => {
+    it('recognizes rows returned by BaseService.find and iterated by callbacks', () => {
+      writeFixture(
+        'apps/server/api/src/posts/posts.service.ts',
+        [
+          'export async function track(postsService) {',
+          '  const posts = await postsService.find({});',
+          '  return posts.map((post) => String(post.organization));',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({ alias: 'organization', receiver: 'post' }),
+      ]);
+    });
+
+    it('flags String(row._id)', () => {
+      writeFixture(
+        'apps/server/api/src/posts/posts.service.ts',
+        [
+          "import type { PostDocument } from './post.schema';",
+          '',
+          'export function track(post: PostDocument) {',
+          '  return String(post._id);',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({ alias: '_id', scalar: 'id' }),
+      ]);
+    });
+
     it('flags String(row.alias)', () => {
       writeFixture(
         'apps/server/api/src/posts/posts.service.ts',
@@ -158,6 +192,43 @@ describe('check-relation-alias-reads', () => {
   });
 
   describe('filter-value rule', () => {
+    it('flags row._id used in a service id filter', () => {
+      writeFixture(
+        'apps/server/api/src/posts/posts.controller.ts',
+        [
+          'export async function refresh(service) {',
+          '  const post = await service.findOne({ id });',
+          '  return service.findOne({ id: post._id });',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({ alias: '_id', scalar: 'id' }),
+      ]);
+    });
+
+    it('tracks relation aliases through one assignment-free local', () => {
+      writeFixture(
+        'apps/server/api/src/posts/posts.controller.ts',
+        [
+          'export async function refresh(service) {',
+          '  const post = await service.findOne({ id });',
+          '  const organizationId = post.organization;',
+          '  return service.findOne({ organizationId });',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([
+        expect.objectContaining({
+          alias: 'organization',
+          receiver: 'post',
+          scalar: 'organizationId',
+        }),
+      ]);
+    });
+
     it('flags relation aliases used as id-shaped filter values', () => {
       writeFixture(
         'apps/server/api/src/posts/posts.controller.ts',
@@ -235,6 +306,21 @@ describe('check-relation-alias-reads', () => {
   });
 
   describe('non-violations', () => {
+    it('allows canonical id and scalar relation reads', () => {
+      writeFixture(
+        'apps/server/api/src/posts/posts.service.ts',
+        [
+          "import type { PostDocument } from './post.schema';",
+          '',
+          'export function track(post: PostDocument) {',
+          '  return { id: post.id, organizationId: post.organizationId };',
+          '}',
+        ].join('\n'),
+      );
+
+      expect(runCheckRelationAliasReads().violations).toEqual([]);
+    });
+
     it('ignores sub-property reads, which only work when the relation is populated', () => {
       writeFixture(
         'apps/server/api/src/posts/posts.service.ts',

@@ -103,12 +103,10 @@ export interface BrandDocument extends PrismaBrand {
   description: PrismaBrand['description'];
   fontFamily: PrismaBrand['fontFamily'];
   label: PrismaBrand['label'];
-  organization?: string | null;
   primaryColor: PrismaBrand['primaryColor'];
   referenceImages: PrismaBrand['referenceImages'];
   secondaryColor: PrismaBrand['secondaryColor'];
   text: PrismaBrand['text'];
-  user?: string | null;
   [key: string]: unknown;
 }
 

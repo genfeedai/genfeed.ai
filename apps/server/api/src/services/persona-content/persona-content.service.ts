@@ -11,23 +11,23 @@ import { ElevenLabsService } from '@server/services/integrations/elevenlabs/serv
 
 export interface GeneratePhotoInput {
   personaId: string;
-  organization: string;
-  user: string;
+  organizationId: string;
+  userId: string;
   prompt?: string;
 }
 
 export interface GenerateVideoInput {
   personaId: string;
-  organization: string;
-  user: string;
+  organizationId: string;
+  userId: string;
   script: string;
   aspectRatio?: string;
 }
 
 export interface GenerateVoiceInput {
   personaId: string;
-  organization: string;
-  user: string;
+  organizationId: string;
+  userId: string;
   text: string;
   ingredientId?: string;
 }
@@ -69,11 +69,9 @@ export class PersonaContentService {
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
-      input.organization,
+      input.organizationId,
     );
     const metadataId = String(persona.id);
-    const organizationId = String(input.organization);
-    const userId = String(input.user);
     const avatarExternalId = this.requireString(
       persona.avatarExternalId,
       'Persona avatarExternalId',
@@ -87,8 +85,8 @@ export class PersonaContentService {
           avatarExternalId,
           this.readString(persona.voiceExternalId),
           '1:1',
-          organizationId,
-          userId,
+          input.organizationId,
+          input.userId,
         );
 
         return {
@@ -108,8 +106,8 @@ export class PersonaContentService {
             'Persona voiceExternalId',
           ),
         },
-        organizationId,
-        userId,
+        input.organizationId,
+        input.userId,
         undefined,
         '1:1',
       );
@@ -136,11 +134,9 @@ export class PersonaContentService {
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
-      input.organization,
+      input.organizationId,
     );
     const metadataId = String(persona.id);
-    const organizationId = String(input.organization);
-    const userId = String(input.user);
     const avatarExternalId = this.requireString(
       persona.avatarExternalId,
       'Persona avatarExternalId',
@@ -154,8 +150,8 @@ export class PersonaContentService {
           avatarExternalId,
           this.readString(persona.voiceExternalId),
           input.aspectRatio ?? '16:9',
-          organizationId,
-          userId,
+          input.organizationId,
+          input.userId,
         );
 
         return {
@@ -170,8 +166,8 @@ export class PersonaContentService {
         avatarExternalId,
         this.requireString(persona.voiceExternalId, 'Persona voiceExternalId'),
         input.script,
-        organizationId,
-        userId,
+        input.organizationId,
+        input.userId,
       );
 
       return {
@@ -196,11 +192,9 @@ export class PersonaContentService {
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
-      input.organization,
+      input.organizationId,
     );
     const metadataId = String(persona.id);
-    const organizationId = String(input.organization);
-    const userId = String(input.user);
     const voiceExternalId = this.readString(persona.voiceExternalId);
 
     try {
@@ -212,8 +206,8 @@ export class PersonaContentService {
           voiceExternalId,
           input.text,
           input.ingredientId ? String(input.ingredientId) : metadataId,
-          organizationId,
-          userId,
+          input.organizationId,
+          input.userId,
         );
 
         return {
@@ -232,8 +226,8 @@ export class PersonaContentService {
           ),
           voiceExternalId,
           input.text,
-          organizationId,
-          userId,
+          input.organizationId,
+          input.userId,
         );
 
         return {
@@ -259,12 +253,12 @@ export class PersonaContentService {
 
   private async getPersonaOrFail(
     personaId: string,
-    organization: string,
+    organizationId: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: personaId,
+      id: personaId,
       isDeleted: false,
-      organization,
+      organizationId,
     });
 
     if (!persona) {

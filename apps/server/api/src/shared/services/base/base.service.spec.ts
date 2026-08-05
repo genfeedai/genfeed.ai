@@ -9,6 +9,8 @@ const { getModelMetaMock } = vi.hoisted(() => {
   const BASE_META: ModelFieldMeta = {
     allFields: ['id', 'isDeleted', 'organizationId'],
     enumFields: {},
+    listFields: [],
+    relationIdFields: {},
   };
   return {
     getModelMetaMock: vi.fn<[string], ModelFieldMeta | undefined>(
@@ -24,6 +26,8 @@ const { getModelMetaMock } = vi.hoisted(() => {
 const BASE_META: ModelFieldMeta = {
   allFields: ['id', 'isDeleted', 'organizationId'],
   enumFields: {},
+  listFields: [],
+  relationIdFields: {},
 };
 
 // ---------------------------------------------------------------------------
@@ -62,6 +66,7 @@ type FieldSpec =
 
 function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
   const allFields: string[] = [];
+  const listFields: string[] = [];
   const enumFields: Record<string, { enumType: string; isRequired: boolean }> =
     {};
 
@@ -69,7 +74,11 @@ function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
     if (typeof f === 'string') {
       allFields.push(f);
     } else {
-      allFields.push(f.name);
+      if (f.kind === 'list') {
+        listFields.push(f.name);
+      } else {
+        allFields.push(f.name);
+      }
       if (f.kind === 'enum' && f.type) {
         enumFields[f.name] = {
           enumType: f.type,
@@ -79,7 +88,7 @@ function makeModelMeta(...fields: FieldSpec[]): ModelFieldMeta {
     }
   }
 
-  return { allFields, enumFields };
+  return { allFields, enumFields, listFields, relationIdFields: {} };
 }
 
 describe('BaseService', () => {
@@ -160,6 +169,9 @@ describe('BaseService', () => {
     });
 
     it('creates a document with include when populate is provided', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'organizationId', 'user'),
+      );
       const created = { id: 'id_1', foo: 'bar', user: { id: 'u1' } };
       delegate.create.mockResolvedValue(created);
 
@@ -266,11 +278,11 @@ describe('BaseService', () => {
       cacheService.get.mockResolvedValue(null);
 
       await service.findAll(
-        { where: { organization: 'org-1' } },
+        { where: { organizationId: 'org-1' } },
         { page: 1, limit: 10 },
       );
       await service.findAll(
-        { where: { organization: 'org-2' } },
+        { where: { organizationId: 'org-2' } },
         { page: 1, limit: 10 },
       );
 
@@ -281,6 +293,16 @@ describe('BaseService', () => {
     });
 
     it('applies explicit Prisma where, orderBy, and include options', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta(
+          'id',
+          'isDeleted',
+          'organizationId',
+          'organization',
+          'label',
+          'status',
+        ),
+      );
       delegate.findMany.mockResolvedValue([{ id: '1' }]);
       delegate.count.mockResolvedValue(1);
 
@@ -289,7 +311,7 @@ describe('BaseService', () => {
           include: { organization: true },
           orderBy: { label: 'asc' },
           where: {
-            organization: 'org-1',
+            organizationId: 'org-1',
             status: { in: ['active', 'pending'] },
           },
         },
@@ -317,6 +339,9 @@ describe('BaseService', () => {
     });
 
     it('applies explicit Prisma select options', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'organizationId', 'platformRole'),
+      );
       delegate.findMany.mockResolvedValue([{ id: '1', platformRole: 'USER' }]);
       delegate.count.mockResolvedValue(1);
 
@@ -324,7 +349,7 @@ describe('BaseService', () => {
         {
           orderBy: { id: 'asc' },
           select: { id: true, platformRole: true },
-          where: { organization: 'org-1' },
+          where: { organizationId: 'org-1' },
         },
         { page: 1, limit: 10 },
       );
@@ -368,14 +393,14 @@ describe('BaseService', () => {
           where: {
             AND: [
               {
-                brand: 'brand-1',
+                brandId: 'brand-1',
                 category: 'video',
-                folder: null,
+                folderId: null,
                 scope: 'public',
                 status: {
                   in: ['generated', 'processing', 'validated', 'completed'],
                 },
-                training: null,
+                trainingId: null,
               },
             ],
           },
@@ -405,7 +430,7 @@ describe('BaseService', () => {
       });
     });
 
-    it('maps scalar operator filters on legacy relation aliases to scalar FK fields', async () => {
+    it('normalizes scalar operators on canonical relation ID fields', async () => {
       getModelMetaMock.mockReturnValue(
         makeModelMeta(
           'id',
@@ -423,7 +448,7 @@ describe('BaseService', () => {
           where: {
             AND: [
               {
-                brand: { not: null },
+                brandId: { not: null },
                 category: 'image',
                 status: {
                   in: ['generated', 'processing', 'validated'],
@@ -483,7 +508,10 @@ describe('BaseService', () => {
       await service.findAll(
         {
           where: {
-            OR: [{ brand: null, organization: 'org-1' }, { brand: 'brand-1' }],
+            OR: [
+              { brandId: null, organizationId: 'org-1' },
+              { brandId: 'brand-1' },
+            ],
             scope: { not: null },
           },
         },
@@ -511,6 +539,38 @@ describe('BaseService', () => {
           isDeleted: false,
         },
       });
+    });
+
+    it('preserves a Prisma JSON path alongside equals', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'data'),
+      );
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        {
+          where: {
+            data: {
+              equals: '@creator',
+              path: ['handle'],
+            },
+          },
+        },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            data: {
+              equals: '@creator',
+              path: ['handle'],
+            },
+            isDeleted: false,
+          },
+        }),
+      );
     });
 
     it('maps legacy public article status to Prisma PUBLISHED', async () => {
@@ -795,11 +855,53 @@ describe('BaseService', () => {
     });
 
     it('passes include to findFirst when populate is provided', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'brand'),
+      );
       delegate.findFirst.mockResolvedValue({ id: '1', brand: {} });
       await service.findOne({ id: '1' }, ['brand']);
       expect(delegate.findFirst).toHaveBeenCalledWith({
         where: { id: '1' },
         include: { brand: true },
+      });
+    });
+
+    it('converts populated field lists into nested Prisma selects', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'brand'),
+      );
+      delegate.findFirst.mockResolvedValue({
+        brand: { id: 'brand_1', label: 'Brand' },
+        id: '1',
+      });
+
+      await service.findOne({ id: '1' }, [
+        { path: 'brand', select: ['id', 'label'] },
+      ]);
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: '1' },
+        include: {
+          brand: { select: { id: true, label: true } },
+        },
+      });
+    });
+
+    it('preserves nested population through Prisma includes', async () => {
+      getModelMetaMock.mockReturnValue(
+        makeModelMeta('id', 'isDeleted', 'ingredient'),
+      );
+      delegate.findFirst.mockResolvedValue({ id: '1', ingredient: {} });
+
+      await service.findOne({ id: '1' }, [
+        { path: 'ingredient', populate: { path: 'metadata' } },
+      ]);
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: '1' },
+        include: {
+          ingredient: { include: { metadata: true } },
+        },
       });
     });
 
@@ -809,20 +911,9 @@ describe('BaseService', () => {
       ).rejects.toThrow(ValidationException);
     });
 
-    it('converts _id to id in params', async () => {
-      delegate.findFirst.mockResolvedValue(null);
-      await service.findOne({ _id: 'abc123' });
-      expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'abc123' },
-      });
-    });
-
-    // normalizeWhere drops undefined values, so without the guard a lookup
-    // like findOne({ _id: undefined }) degrades to an unscoped findFirst and
-    // returns the first row in the table — a cross-tenant read.
-    it('returns null (without querying) when _id is undefined', async () => {
+    it('returns null without querying when id is undefined', async () => {
       const result = await service.findOne({
-        _id: undefined,
+        id: undefined,
         isDeleted: false,
       });
 
@@ -975,127 +1066,6 @@ describe('BaseService', () => {
     });
   });
 
-  describe('processSearchParams', () => {
-    it('remaps _id to id', () => {
-      const result = service.processSearchParams({
-        _id: 'abc123',
-        status: 'ok',
-      });
-      expect(result).toEqual({ id: 'abc123', status: 'ok' });
-    });
-
-    it('matches legacy _id against both id and mongoId when available', () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'mongoId', 'organizationId', 'isDeleted'),
-      );
-
-      const result = service.processSearchParams({
-        _id: 'legacy_123',
-        organization: 'org1',
-      });
-
-      expect(result).toEqual({
-        OR: [{ id: 'legacy_123' }, { mongoId: 'legacy_123' }],
-        organizationId: 'org1',
-      });
-    });
-
-    it('remaps legacy organization string filters to organizationId', () => {
-      const result = service.processSearchParams({
-        organization: 'org1',
-        type: 'post',
-      });
-      expect(result).toEqual({ organizationId: 'org1', type: 'post' });
-    });
-
-    it('remaps legacy user string filters to userId', () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'organizationId', 'userId', 'isDeleted'),
-      );
-
-      const result = service.processSearchParams({
-        status: 'active',
-        user: 'user1',
-      });
-
-      expect(result).toEqual({ status: 'active', userId: 'user1' });
-    });
-
-    it('remaps legacy organization null filters to organizationId null', () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'organizationId', 'isDeleted'),
-      );
-
-      const result = service.processSearchParams({
-        organization: null,
-        type: 'post',
-      });
-
-      expect(result).toEqual({ organizationId: null, type: 'post' });
-    });
-
-    it('drops a legacy relation filter when the model has neither the scalar FK nor the relation', () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'organizationId', 'isDeleted'),
-      );
-
-      const result = service.processSearchParams({
-        organization: null,
-        user: null,
-      });
-
-      // organizationId mapped; user dropped (model has no userId / user field)
-      expect(result).toEqual({ organizationId: null });
-    });
-
-    it('preserves organization relation filters when they are objects', () => {
-      const result = service.processSearchParams({
-        organization: { is: { id: 'org1' } },
-      });
-      expect(result).toEqual({
-        organization: { is: { id: 'org1' } },
-      });
-    });
-
-    it('preserves user relation filters when they are objects', () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'organizationId', 'user', 'isDeleted'),
-      );
-
-      const result = service.processSearchParams({
-        user: { is: { id: 'user1' } },
-      });
-
-      expect(result).toEqual({
-        user: { is: { id: 'user1' } },
-      });
-    });
-
-    it('remaps scalar operator objects on legacy relation aliases to scalar FK fields', () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta(
-          'id',
-          'isDeleted',
-          'organizationId',
-          'brandId',
-          'folderId',
-        ),
-      );
-
-      const result = service.processSearchParams({
-        brand: { not: null },
-        folder: { equals: 'folder1' },
-        organization: { not: null },
-      });
-
-      expect(result).toEqual({
-        brandId: { not: null },
-        folderId: { equals: 'folder1' },
-        organizationId: { not: null },
-      });
-    });
-  });
-
   describe('auditUnknownFilterFields (stage-4 runtime guard)', () => {
     it('warns when a filter references a field the model lacks', async () => {
       getModelMetaMock.mockReturnValue(
@@ -1129,25 +1099,6 @@ describe('BaseService', () => {
       );
 
       expect(logger.warn).not.toHaveBeenCalled();
-    });
-
-    it('drops isDeleted filters for models without soft-delete support', () => {
-      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
-
-      const result = service.processSearchParams({
-        isDeleted: false,
-        status: 'ok',
-      });
-
-      expect(result).toEqual({ status: 'ok' });
-    });
-
-    it('passes through other fields unchanged', () => {
-      const result = service.processSearchParams({
-        organizationId: 'org1',
-        type: 'post',
-      });
-      expect(result).toEqual({ organizationId: 'org1', type: 'post' });
     });
   });
 
@@ -1262,52 +1213,7 @@ describe('BaseService', () => {
     });
   });
 
-  describe('normalizeData — metadata→metadataId remap', () => {
-    it('remaps metadata string to metadataId on create', async () => {
-      const created = { id: 'ing_1', metadataId: 'meta_1' };
-      delegate.create.mockResolvedValue(created);
-
-      await service.create({ metadata: 'meta_1' } as TestDocument);
-
-      expect(delegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ metadataId: 'meta_1' }),
-        }),
-      );
-      expect(delegate.create).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ metadata: 'meta_1' }),
-        }),
-      );
-    });
-
-    it('does not remap metadata when value is not a string', async () => {
-      const created = { id: 'ing_2' };
-      delegate.create.mockResolvedValue(created);
-
-      // metadata as an object (e.g. populated relation) must pass through untouched
-      await service.create({ metadata: { id: 'meta_1' } } as TestDocument);
-
-      expect(delegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ metadata: { id: 'meta_1' } }),
-        }),
-      );
-    });
-
-    it('leaves organization untouched on create (no tenancy side-effect)', async () => {
-      const created = { id: 'ing_3', organizationId: 'org_1' };
-      delegate.create.mockResolvedValue(created);
-
-      await service.create({ organization: 'org_1' } as TestDocument);
-
-      expect(delegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ organization: 'org_1' }),
-        }),
-      );
-    });
-
+  describe('normalizeData', () => {
     it('drops undefined write keys so Prisma does not receive them', async () => {
       const created = { id: 'ing_undefined_keys', label: 'kept' };
       delegate.create.mockResolvedValue(created);
@@ -1321,95 +1227,6 @@ describe('BaseService', () => {
       expect(delegate.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: { label: 'kept' },
-        }),
-      );
-    });
-
-    it('remaps metadata string to metadataId on patch', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'metadataId'),
-      );
-      const updated = { id: 'ing_4', metadataId: 'meta_2' };
-      delegate.update.mockResolvedValue(updated);
-
-      await service.patch('ing_4', { metadata: 'meta_2' } as TestDocument);
-
-      expect(delegate.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ metadataId: 'meta_2' }),
-        }),
-      );
-      expect(delegate.update).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ metadata: 'meta_2' }),
-        }),
-      );
-    });
-  });
-
-  describe('normalizeData — enabledModels→enabledModelIds remap', () => {
-    it('remaps enabledModels to enabledModelIds when only the Prisma field exists', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'enabledModelIds'),
-      );
-      const created = {
-        id: 'org_setting_1',
-        enabledModelIds: ['model_1'],
-      };
-      delegate.create.mockResolvedValue(created);
-
-      await service.create({
-        enabledModels: ['model_1'],
-      } as TestDocument);
-
-      expect(delegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ enabledModelIds: ['model_1'] }),
-        }),
-      );
-      expect(delegate.create).not.toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ enabledModels: ['model_1'] }),
-        }),
-      );
-    });
-
-    it('leaves enabledModels untouched when the model still exposes that field', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'enabledModels'),
-      );
-      const created = { id: 'org_setting_2', enabledModels: ['model_1'] };
-      delegate.create.mockResolvedValue(created);
-
-      await service.create({
-        enabledModels: ['model_1'],
-      } as TestDocument);
-
-      expect(delegate.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ enabledModels: ['model_1'] }),
-        }),
-      );
-    });
-  });
-
-  describe('normalizeDocument — enabledModelIds→enabledModels alias', () => {
-    it('exposes enabledModels from enabledModelIds for domain consumers', async () => {
-      getModelMetaMock.mockReturnValue(
-        makeModelMeta('id', 'isDeleted', 'enabledModelIds'),
-      );
-      delegate.findFirst.mockResolvedValue({
-        enabledModelIds: ['model_a', 'model_b'],
-        id: 'org_setting_3',
-      });
-
-      const result = await service.findOne({ id: 'org_setting_3' });
-
-      expect(result).toEqual(
-        expect.objectContaining({
-          enabledModelIds: ['model_a', 'model_b'],
-          enabledModels: ['model_a', 'model_b'],
-          id: 'org_setting_3',
         }),
       );
     });

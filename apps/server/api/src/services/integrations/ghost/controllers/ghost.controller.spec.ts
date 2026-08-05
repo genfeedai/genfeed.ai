@@ -28,7 +28,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 const mockOrgId = 'test-object-id';
 const mockUserId = 'test-object-id';
 const mockBrandId = 'test-object-id';
-const mockBrand = { _id: mockBrandId, name: 'TestBrand' };
+const mockBrand = { id: mockBrandId, name: 'TestBrand' };
 
 const mockUser = {} as User;
 const mockRequest = {} as Request;
@@ -57,7 +57,7 @@ describe('GhostController', () => {
         },
         {
           provide: CredentialsService,
-          useValue: { saveCredentials: vi.fn() },
+          useValue: { upsertForBrand: vi.fn() },
         },
         {
           provide: LoggerService,
@@ -114,10 +114,10 @@ describe('GhostController', () => {
         title: 'My Ghost Blog',
       } as never);
       const mockCredential = {
-        _id: 'cred1',
+        id: 'cred1',
         platform: CredentialPlatform.GHOST,
       };
-      credentialsService.saveCredentials.mockResolvedValue(
+      credentialsService.upsertForBrand.mockResolvedValue(
         mockCredential as never,
       );
 
@@ -127,8 +127,9 @@ describe('GhostController', () => {
         validBody.ghostUrl,
         validBody.apiKey,
       );
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.upsertForBrand).toHaveBeenCalledWith(
         mockBrand,
+        mockUserId,
         CredentialPlatform.GHOST,
         expect.objectContaining({ accessToken: validBody.apiKey }),
       );

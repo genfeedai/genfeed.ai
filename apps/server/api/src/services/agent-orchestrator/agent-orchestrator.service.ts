@@ -1,22 +1,13 @@
-import { type AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import {
-  type AgentFeedbackMemoryDocument,
-  type AgentFeedbackMemoryInfluence,
-  AgentMemoriesService,
-} from '@api/collections/agent-memories/services/agent-memories.service';
-import { type AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
@@ -27,38 +18,23 @@ import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrat
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { getAgentTurnCost } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
-import {
-  DEFAULT_AGENT_CHAT_MODEL,
-  LOCAL_DEFAULT_AGENT_CHAT_MODEL,
-} from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
-import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
-import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
-import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
+import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type {
-  AgentChatAttachment,
   AgentChatContext,
   AgentChatRequest,
   AgentChatResult,
   AgentThreadUiActionRequest,
   ThreadResolutionResult,
-  ToolCallSummary,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
   type AgentGenerationPriority,
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import { extractBatchTopic } from '@api/services/agent-orchestrator/utils/agent-orchestrator-input-parsing.util';
-import { buildPageContextPrompt } from '@api/services/agent-orchestrator/utils/agent-page-context.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
-  buildAgentScopeMetadata,
   recordAgentRunScope,
   withAgentScopeResult,
 } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
-import {
-  applyAgentReplyStyle,
-  buildAgentSystemPrompt,
-} from '@api/services/agent-orchestrator/utils/agent-system-prompt.util';
 import {
   buildSeedThreadTitle,
   maybeUpdateThreadTitle,
@@ -72,7 +48,6 @@ import {
 import type { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import {
-  ActivitySource,
   AgentExecutionTrigger,
   AgentMessageRole,
   AgentType,
@@ -81,7 +56,6 @@ import {
   toAgentScopeMetadata,
   type ValidatedAgentScope,
 } from '@genfeedai/interfaces';
-import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import {
   AgentScopeContextService,
   type PreparedAgentScope,
@@ -135,7 +109,7 @@ export class AgentOrchestratorService {
     try {
       const userSettings = await this.settingsService.findOne({
         isDeleted: false,
-        user: context.userId,
+        userId: context.userId,
       });
 
       const resolved = await this.contextService.resolveSystemPromptAndModel(
@@ -342,7 +316,7 @@ export class AgentOrchestratorService {
     // Look up user's generation priority setting
     const userSettings = await this.settingsService.findOne({
       isDeleted: false,
-      user: context.userId,
+      userId: context.userId,
     });
 
     const resolved = await this.contextService.resolveSystemPromptAndModel(
@@ -408,7 +382,7 @@ export class AgentOrchestratorService {
     const scopeMetadata = toAgentScopeMetadata(scope);
 
     const createdRun = await this.agentRunsService.create({
-      brand: scope.brandId,
+      brandId: scope.brandId,
       label: request.content.slice(0, 120),
       metadata: {
         agentScope: scopeMetadata,
@@ -423,10 +397,10 @@ export class AgentOrchestratorService {
         threadId,
       },
       objective: request.content,
-      organization: context.organizationId,
-      thread: threadId,
+      organizationId: context.organizationId,
+      threadId: threadId,
       trigger: AgentExecutionTrigger.MANUAL,
-      user: context.userId,
+      userId: context.userId,
     } as unknown as CreateAgentRunDto);
     const runId = String((createdRun as { id: string }).id);
     const startedRun = await this.agentRunsService.start(

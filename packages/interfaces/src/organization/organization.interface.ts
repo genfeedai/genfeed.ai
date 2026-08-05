@@ -21,7 +21,7 @@ export interface IOrganization extends IBaseEntity {
 }
 
 export interface UpdateMemberData {
-  brands?: string[];
+  brandIds?: string[];
 }
 
 export interface IOrganizationSettings {

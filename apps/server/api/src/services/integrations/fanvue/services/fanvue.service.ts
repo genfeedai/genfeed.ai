@@ -163,9 +163,9 @@ export class FanvueService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
+      brandId: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.FANVUE,
     });
 

@@ -15,7 +15,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 
 const makeCampaign = (overrides = {}) => ({
   id: '507f191e810c19729de860ee',
-  organization: '507f191e810c19729de860ee',
+  organizationId: '507f191e810c19729de860ee',
   status: CampaignStatus.ACTIVE,
   ...overrides,
 });
@@ -88,6 +88,16 @@ describe('CampaignQueueService', () => {
       await service.scheduledProcessing();
 
       expect(mockCampaignQueue.add).toHaveBeenCalledTimes(2);
+      expect(mockCampaignQueue.add).toHaveBeenCalledWith(
+        'process',
+        {
+          campaignId: '507f191e810c19729de860ee',
+          organizationId: '507f191e810c19729de860ee',
+        },
+        expect.objectContaining({
+          jobId: 'campaign-507f191e810c19729de860ee',
+        }),
+      );
     });
 
     it('should query only active, non-deleted campaigns', async () => {

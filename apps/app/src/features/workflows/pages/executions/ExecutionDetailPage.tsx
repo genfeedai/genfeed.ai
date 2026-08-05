@@ -55,12 +55,12 @@ interface ExecutionDetail {
 function mapNodeResult(node: ExecutionNodeResult): NodeResult {
   return {
     completedAt: node.completedAt,
-    creditsUsed: 0,
+    creditsUsed: node.creditsUsed ?? 0,
     error: node.error,
     nodeId: node.nodeId,
     nodeLabel: node.nodeType,
     output: node.output,
-    retryCount: 0,
+    retryCount: node.retryCount ?? 0,
     startedAt: node.startedAt || new Date().toISOString(),
     status:
       (node.status as NodeResult['status']) || WorkflowExecutionStatus.PENDING,
@@ -68,12 +68,7 @@ function mapNodeResult(node: ExecutionNodeResult): NodeResult {
 }
 
 function mapExecution(result: ExecutionResult): ExecutionDetail {
-  const workflowId =
-    typeof result.workflow === 'string' ? result.workflow : result.workflow._id;
-  const workflowLabel =
-    typeof result.workflow === 'string'
-      ? result.workflow
-      : result.workflow.label || result.workflow._id;
+  const workflowLabel = result.workflow?.label ?? result.workflowId;
 
   return {
     completedAt: result.completedAt,
@@ -81,16 +76,13 @@ function mapExecution(result: ExecutionResult): ExecutionDetail {
     error: result.error,
     metadata: result.metadata,
     nodeResults: (result.nodeResults || []).map(mapNodeResult),
-    runId: result._id,
+    runId: result.id,
     startedAt: result.startedAt || result.createdAt,
     status:
       (result.status as WorkflowExecutionStatus) ||
       WorkflowExecutionStatus.PENDING,
-    totalCreditsUsed:
-      typeof result.metadata?.creditsUsed === 'number'
-        ? result.metadata.creditsUsed
-        : 0,
-    workflowId,
+    totalCreditsUsed: result.creditsUsed ?? 0,
+    workflowId: result.workflowId,
     workflowLabel,
   };
 }

@@ -304,7 +304,7 @@ describe('authenticated feature flags', () => {
     expect(mocks.posthogFeatureFlagUnsubscribe).toHaveBeenCalledTimes(1);
   });
 
-  it('fails subscribed flags closed when PostHog cannot load them', async () => {
+  it('preserves product fallbacks when PostHog cannot load flags', async () => {
     mocks.posthogGetFeatureFlagResult.mockReturnValue({
       enabled: true,
       key: 'app_switcher_agent',
@@ -324,9 +324,7 @@ describe('authenticated feature flags', () => {
     ) => void;
     featureFlagsReady([], {}, { errorsLoading: true });
 
-    expect(listener).toHaveBeenCalledWith({
-      app_switcher_agent: false,
-    });
+    expect(listener).toHaveBeenCalledWith({});
   });
 });
 

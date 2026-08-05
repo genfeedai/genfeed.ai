@@ -95,7 +95,7 @@ export interface ITimestamps {
 }
 
 /**
- * Entity with ID and timestamps (used by non-MongoDB entities)
+ * Entity with an ID and timestamps.
  */
 export interface IIdentifiable extends ITimestamps {
   id: string;

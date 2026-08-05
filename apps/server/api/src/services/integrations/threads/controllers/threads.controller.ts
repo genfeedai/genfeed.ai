@@ -1,7 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import {
-  CreateCredentialDto,
+  ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -77,7 +77,7 @@ export class ThreadsController {
   async connect(
     @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+    @Body() createCredentialDto: ConnectCredentialDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -86,9 +86,9 @@ export class ThreadsController {
     const publicMetadata = getPublicMetadata(user);
 
     const brand = await this.brandsService.findOne({
-      _id: createCredentialDto.brand,
+      id: createCredentialDto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -98,9 +98,9 @@ export class ThreadsController {
       });
     }
 
-    // Save a placeholder credential so we can update it after verification
-    await this.credentialsService.saveCredentials(
+    const { state } = await this.credentialsService.beginOAuthForBrand(
       brand,
+      publicMetadata.user,
       CredentialPlatform.THREADS,
       {
         accessToken: undefined,
@@ -111,11 +111,6 @@ export class ThreadsController {
     );
 
     const appId = this.configService.get('THREADS_CLIENT_ID');
-    const state = JSON.stringify({
-      brandId: brand.id,
-      organizationId: brand.organizationId,
-      userId: publicMetadata.user,
-    });
 
     this.loggerService.log(`${url} - Generating OAuth URL`, {
       appId: appId ? 'configured' : 'missing',
@@ -155,7 +150,17 @@ export class ThreadsController {
         });
       }
 
-      const { brandId, organizationId } = JSON.parse(state);
+      const existingCredential =
+        await this.credentialsService.findPendingOAuthCredential(
+          state,
+          CredentialPlatform.THREADS,
+        );
+
+      if (!existingCredential) {
+        return returnNotFound('Pending OAuth credential', state);
+      }
+
+      const { organizationId } = existingCredential;
 
       const appId = this.configService.get('THREADS_CLIENT_ID');
       const appSecret = this.configService.get('THREADS_CLIENT_SECRET');
@@ -260,17 +265,6 @@ export class ThreadsController {
         username?: string;
       };
 
-      // Find and update the existing credential
-      const existingCredential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
-        platform: CredentialPlatform.THREADS,
-      });
-
-      if (!existingCredential) {
-        return returnNotFound('Credential', brandId);
-      }
-
       // Update the credential with the access token
       let credential = await this.credentialsService.patch(
         existingCredential.id,
@@ -281,6 +275,7 @@ export class ThreadsController {
             : undefined,
           isConnected: true,
           isDeleted: false,
+          oauthState: null,
         },
       );
 

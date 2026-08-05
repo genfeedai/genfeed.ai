@@ -428,9 +428,9 @@ export class AdsGatewayController {
     organizationId: string,
   ): Promise<string> {
     const credential = await this.credentialsService.findOne({
-      _id: credentialId,
+      id: credentialId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!credential?.accessToken) {

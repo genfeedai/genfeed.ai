@@ -40,7 +40,7 @@ export class CreatePostDto {
     description: 'The credential ID (platform account) to use for publishing',
     required: true,
   })
-  readonly credential!: string;
+  readonly credentialId!: string;
 
   @ApiProperty({
     description: 'The title/label of the post',
@@ -79,9 +79,11 @@ export class CreatePostDto {
   @ApiProperty({
     description: 'Optional tags/hashtags to include with the post',
     required: false,
+    type: [String],
   })
   @IsOptional()
   @IsArray()
+  @IsEntityId({ each: true })
   readonly tags?: string[];
 
   @ApiProperty({
@@ -207,7 +209,7 @@ export class CreatePostDto {
   })
   @IsOptional()
   @IsEntityId()
-  readonly parent?: string;
+  readonly parentId?: string;
 
   @ApiProperty({
     description: 'Position/order within thread',

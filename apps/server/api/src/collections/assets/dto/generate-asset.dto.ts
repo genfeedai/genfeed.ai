@@ -6,12 +6,12 @@ import { IsEnum, IsString } from 'class-validator';
 export class GenerateAssetDto {
   @IsEntityId()
   @ApiProperty({ required: true })
-  readonly parent!: string;
+  readonly parentId!: string;
 
   @IsString()
   @IsEnum(AssetParent)
   @ApiProperty({ enum: AssetParent, enumName: 'AssetParent', required: true })
-  readonly parentModel!: AssetParent;
+  readonly parentType!: AssetParent;
 
   @IsString()
   @IsEnum(AssetCategory)

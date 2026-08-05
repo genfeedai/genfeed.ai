@@ -14,7 +14,15 @@ export class OutreachCampaignsQueryDto {
     description: 'Filter by organization',
     required: false,
   })
-  organization?: string;
+  organizationId?: string;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
+    description: 'Filter by brand',
+    required: false,
+  })
+  brandId?: string;
 
   @IsOptional()
   @IsEnum(CampaignPlatform)

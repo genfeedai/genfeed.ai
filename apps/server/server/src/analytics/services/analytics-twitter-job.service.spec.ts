@@ -56,16 +56,16 @@ function createJob(): AnalyticsQueueJob<TwitterAnalyticsJobData> {
       credentialId: 'credential-1',
       posts: [
         {
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'tweet-1',
           id: 'target-1',
-          organization: 'org-1',
+          organizationId: 'org-1',
         },
         {
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'tweet-2',
           id: 'target-2',
-          organization: 'org-1',
+          organizationId: 'org-1',
         },
       ],
     },

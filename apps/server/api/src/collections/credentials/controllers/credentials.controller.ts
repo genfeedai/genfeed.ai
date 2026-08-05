@@ -10,7 +10,6 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
-import { TagsService } from '@api/collections/tags/services/tags.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -21,7 +20,6 @@ import {
   getPublicMetadata,
 } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import {
@@ -41,7 +39,6 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
@@ -130,7 +127,6 @@ export class CredentialsController {
     private readonly pinterestService: PinterestService,
     private readonly quotaService: QuotaService,
     private readonly redditService: RedditService,
-    private readonly tagsService: TagsService,
     private readonly tiktokService: TiktokService,
     private readonly twitterService: TwitterService,
     private readonly youtubeService: YoutubeService,
@@ -254,19 +250,19 @@ export class CredentialsController {
     // the default so the list stays tenant-safe for members. Reject foreign org.
     const where: Record<string, unknown> = {
       isDeleted,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     };
-    if (query.brand || query.organization) {
+    if (query.brandId || query.organizationId) {
       const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
         query,
         publicMetadata,
         getIsSuperAdmin(user, request),
       );
-      if (scope.brand) {
-        where.brand = scope.brand;
+      if (scope.brandId) {
+        where.brandId = scope.brandId;
       }
-      if (scope.organization) {
-        where.organization = scope.organization;
+      if (scope.organizationId) {
+        where.organizationId = scope.organizationId;
       }
     }
 
@@ -289,7 +285,7 @@ export class CredentialsController {
     const credentials = await this.credentialsService.find({
       isConnected: true,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     const seen = new Set<string>();
@@ -319,7 +315,7 @@ export class CredentialsController {
   ): Promise<JsonApiSingleResponse> {
     const data: CredentialDocument | null =
       await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
       });
 
     return data
@@ -337,9 +333,9 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
 
     const credential = await this.credentialsService.findOne({
-      _id: credentialId,
+      id: credentialId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -360,14 +356,8 @@ export class CredentialsController {
       );
     }
 
-    const credentialOrganizationId = resolveRelationId(
-      credential.organizationId,
-      credential.organization,
-    );
-    const credentialBrandId = resolveRelationId(
-      credential.brandId,
-      credential.brand,
-    );
+    const credentialOrganizationId = credential.organizationId ?? undefined;
+    const credentialBrandId = credential.brandId ?? undefined;
 
     if (!credentialOrganizationId || !credentialBrandId) {
       throw new HttpException(
@@ -383,7 +373,7 @@ export class CredentialsController {
       await refresher.refreshToken(credentialOrganizationId, credentialBrandId);
 
       const updatedCredential = await this.credentialsService.findOne({
-        _id: credential.id,
+        id: credential.id,
       });
 
       return updatedCredential
@@ -416,9 +406,9 @@ export class CredentialsController {
 
       // Get the Instagram credential for this brand
       const credential = await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         platform: CredentialPlatform.INSTAGRAM,
       });
 
@@ -432,7 +422,7 @@ export class CredentialsController {
         );
       }
 
-      const brandId = resolveRelationId(credential.brandId, credential.brand);
+      const brandId = credential.brandId ?? undefined;
       if (!brandId) {
         throw new HttpException(
           {
@@ -444,9 +434,9 @@ export class CredentialsController {
       }
 
       const brand = await this.brandsService.findOne({
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       });
 
       if (!brand) {
@@ -490,9 +480,9 @@ export class CredentialsController {
         // Find the credential and mark it as disconnected
         const publicMetadata = getPublicMetadata(user);
         const credential = await this.credentialsService.findOne({
-          _id: credentialId,
+          id: credentialId,
           isDeleted: false,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           platform: CredentialPlatform.INSTAGRAM,
         });
 
@@ -527,9 +517,9 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
 
     const credential = await this.credentialsService.findOne({
-      _id: credentialId,
+      id: credentialId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -552,7 +542,7 @@ export class CredentialsController {
       'oauthTokenSecret',
       'refreshToken',
       'refreshTokenExpiry',
-      'tags',
+      'tagIds',
     ];
 
     const sanitizedUpdate: Partial<
@@ -618,9 +608,9 @@ export class CredentialsController {
 
     // Verify ownership before deletion
     const credential = await this.credentialsService.findOne({
-      _id: credentialId,
+      id: credentialId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -646,33 +636,29 @@ export class CredentialsController {
     @CurrentUser() user: User,
   ) {
     const publicMetadata = getPublicMetadata(user);
-
-    const enrichedBody = EntityIdUtil.enrichWithUserContext(
-      // @ts-expect-error TS2345
+    const data = await this.credentialsService.createAndAttachTag(
+      credentialId,
+      publicMetadata.organization,
+      publicMetadata.user,
       createTagDto,
-      publicMetadata,
     );
 
-    // @ts-expect-error TS2345
-    const data = await this.tagsService.create(enrichedBody);
-    return data
-      ? serializeSingle(request, CredentialSerializer, data)
-      : returnNotFound(this.constructorName, credentialId);
+    return serializeSingle(request, CredentialSerializer, data);
   }
 
   @Get(':credentialId/quota')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getQuotaStatus(
     @Param('credentialId') credentialId: string,
-    @Query('organizationId') organizationId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
     // Verify ownership
     const credential = await this.credentialsService.findOne({
-      _id: credentialId,
-      user: publicMetadata.user,
+      id: credentialId,
+      isDeleted: false,
+      organizationId: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -686,7 +672,8 @@ export class CredentialsController {
     }
 
     const organization = await this.organizationsService.findOne({
-      _id: organizationId || publicMetadata.organization,
+      id: publicMetadata.organization,
+      isDeleted: false,
     });
 
     if (!organization) {

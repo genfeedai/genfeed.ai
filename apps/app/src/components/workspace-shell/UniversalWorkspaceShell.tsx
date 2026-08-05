@@ -773,7 +773,7 @@ function UniversalWorkspaceShellContent({
     (workflow?: WorkflowSummary) => {
       const destinationHref = href(
         workflow
-          ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`
+          ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`
           : APP_ROUTES.AUTOMATE.WORKFLOWS,
       );
       const launch = resolveWorkspaceSurfaceLaunch({
@@ -795,7 +795,7 @@ function UniversalWorkspaceShellContent({
   const handleAttachWorkflow = useCallback(
     (workflow: WorkflowSummary) => {
       seedComposer(
-        `Use the deterministic workflow “${workflow.name}” (workflow ID: ${workflow._id}) for this request: `,
+        `Use the deterministic workflow “${workflow.label}” (workflow ID: ${workflow.id}) for this request: `,
         effectiveThreadId ?? activeThreadId,
       );
       overlayCompletedRef.current = true;
@@ -1076,7 +1076,9 @@ function UniversalWorkspaceShellContent({
         }
         brandId={
           isSurfaceScopeAligned
-            ? (surfaceBrandId ?? resolvedWorkspaceSurfaceAdapter?.brandId)
+            ? (surfaceBrandId ??
+              resolvedWorkspaceSurfaceAdapter?.brandId ??
+              (isUnthreadedConversation ? brandId || undefined : undefined))
             : undefined
         }
         contextLabel={composerContextLabel}

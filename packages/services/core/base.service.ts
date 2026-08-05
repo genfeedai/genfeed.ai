@@ -353,7 +353,7 @@ export abstract class BaseService<
    * ```typescript
    * // Type-safe with @genfeedai/api-types
    * const post = await postsService.post({
-   *   credential: '...', // Required - TypeScript enforces this
+   *   credentialId: '...', // Required - TypeScript enforces this
    *   label: '...',
    *   description: '...',
    *   status: PostStatus.DRAFT,

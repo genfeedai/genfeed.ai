@@ -15,6 +15,8 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 describe('MusicsService', () => {
+  const sourceId = 'cmingredient000000000000001';
+  const tagId = 'cmtag000000000000000000001';
   let markFirstAssetGenerated: ReturnType<typeof vi.fn>;
   let service: MusicsService;
   let ingredientDelegate: {
@@ -79,9 +81,37 @@ describe('MusicsService', () => {
   it('does not mark the organization for a non-GENERATED update', async () => {
     await service.patch('music-1', {
       status: IngredientStatus.PROCESSING,
+      tags: [tagId],
     });
 
     expect(markFirstAssetGenerated).not.toHaveBeenCalled();
+    expect(ingredientDelegate.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          tags: { set: [{ id: tagId }] },
+        }),
+      }),
+    );
+  });
+
+  it('normalizes relations for non-GENERATED creates', async () => {
+    await service.create({
+      sources: [sourceId],
+      status: IngredientStatus.PROCESSING,
+      tags: [tagId],
+      text: 'Ambient focus track',
+    });
+
+    expect(ingredientDelegate.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          sources: {
+            connect: [{ id: sourceId }],
+          },
+          tags: { connect: [{ id: tagId }] },
+        }),
+      }),
+    );
   });
 
   it('uses create-context population for a GENERATED create by default', async () => {
@@ -93,9 +123,9 @@ describe('MusicsService', () => {
     expect(ingredientDelegate.create).toHaveBeenCalledWith(
       expect.objectContaining({
         include: {
-          brand: true,
-          metadata: true,
-          prompt: true,
+          brand: expect.objectContaining({ select: expect.any(Object) }),
+          metadata: expect.objectContaining({ select: expect.any(Object) }),
+          prompt: expect.objectContaining({ select: expect.any(Object) }),
         },
       }),
     );

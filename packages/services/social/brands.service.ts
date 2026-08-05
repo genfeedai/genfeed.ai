@@ -138,7 +138,7 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .get<JsonApiResponseDocument>(
         `${EnvironmentService.apiEndpoint}${API_ENDPOINTS.POSTS}`,
-        { params: { ...query, brand: id } },
+        { params: { ...query, brandId: id } },
       )
       .then((response) => {
         const document = response.data;

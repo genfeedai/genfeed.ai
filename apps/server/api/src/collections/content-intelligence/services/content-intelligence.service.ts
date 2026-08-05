@@ -6,6 +6,7 @@ import type { CreatorAnalysisDocument } from '@api/collections/content-intellige
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { CreatorAnalysisStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -13,14 +14,37 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class ContentIntelligenceService extends BaseService<
   CreatorAnalysisDocument,
-  AddCreatorDto,
-  Partial<AddCreatorDto>
+  Prisma.CreatorAnalysisUncheckedCreateInput,
+  Prisma.CreatorAnalysisUncheckedUpdateInput,
+  Prisma.CreatorAnalysisWhereInput
 > {
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
     super(prisma, 'creatorAnalysis', logger);
+  }
+
+  protected override normalizeDocument(
+    document: unknown,
+  ): CreatorAnalysisDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const data = this.readJsonRecord(record.data);
+    return { ...data, ...record, data } as CreatorAnalysisDocument;
+  }
+
+  private readJsonRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private pickDefined(
+    values: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return Object.fromEntries(
+      Object.entries(values).filter(([, value]) => value !== undefined),
+    );
   }
 
   addCreator(
@@ -34,20 +58,20 @@ export class ContentIntelligenceService extends BaseService<
       maxPosts: dto.scrapeConfig?.maxPosts ?? 100,
     };
 
-    const creatorData = {
-      createdBy: userId,
-      displayName: dto.displayName,
-      handle: dto.handle,
-      niche: dto.niche,
+    return this.create({
+      createdById: userId,
+      data: this.pickDefined({
+        displayName: dto.displayName,
+        handle: dto.handle,
+        niche: dto.niche,
+        platform: dto.platform,
+        profileUrl: dto.profileUrl,
+        scrapeConfig,
+        status: CreatorAnalysisStatus.PENDING,
+        tags: dto.tags ?? [],
+      }) as Prisma.InputJsonObject,
       organizationId,
-      platform: dto.platform,
-      profileUrl: dto.profileUrl,
-      scrapeConfig,
-      status: CreatorAnalysisStatus.PENDING,
-      tags: dto.tags ?? [],
-    };
-
-    return this.create(creatorData as AddCreatorDto);
+    });
   }
 
   findByHandle(
@@ -55,7 +79,14 @@ export class ContentIntelligenceService extends BaseService<
     platform: string,
     handle: string,
   ): Promise<CreatorAnalysisDocument | null> {
-    return this.findOne(scopedWhere(organizationId, { handle, platform }));
+    return this.findOne(
+      scopedWhere(organizationId, {
+        AND: [
+          { data: { path: ['handle'], equals: handle } },
+          { data: { path: ['platform'], equals: platform } },
+        ],
+      }),
+    );
   }
 
   findByOrganization(
@@ -74,9 +105,9 @@ export class ContentIntelligenceService extends BaseService<
       updateData.errorMessage = errorMessage;
     }
     if (status === CreatorAnalysisStatus.COMPLETED) {
-      updateData.lastScrapedAt = new Date();
+      updateData.lastScrapedAt = new Date().toISOString();
     }
-    return this.patch(id, updateData);
+    return this.updateData(id, updateData);
   }
 
   updateMetrics(
@@ -85,11 +116,11 @@ export class ContentIntelligenceService extends BaseService<
     postsScraped: number,
     patternsExtracted: number,
   ): Promise<CreatorAnalysisDocument> {
-    return this.patch(id, {
+    return this.updateData(id, {
       metrics,
       patternsExtracted,
       postsScraped,
-    } as Partial<AddCreatorDto>);
+    });
   }
 
   updateCreatorProfile(
@@ -102,6 +133,22 @@ export class ContentIntelligenceService extends BaseService<
       followingCount?: number;
     },
   ): Promise<CreatorAnalysisDocument> {
-    return this.patch(id, profileData as Partial<AddCreatorDto>);
+    return this.updateData(id, profileData);
+  }
+
+  private async updateData(
+    id: string,
+    update: Record<string, unknown>,
+  ): Promise<CreatorAnalysisDocument> {
+    const existing = await this.delegate.findUnique({ where: { id } });
+    if (!existing) {
+      throw new Error('Creator analysis not found');
+    }
+    return this.patch(id, {
+      data: {
+        ...this.readJsonRecord(existing.data),
+        ...this.pickDefined(update),
+      } as Prisma.InputJsonObject,
+    });
   }
 }

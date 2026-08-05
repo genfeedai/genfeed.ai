@@ -161,8 +161,8 @@ export function WorkspaceTaskInspectorBody({
           <p>
             Review state: {task.reviewState?.replaceAll('_', ' ') ?? 'none'}
           </p>
-          <p>Organization: {task.organization}</p>
-          {task.brand ? <p>Brand: {task.brand}</p> : null}
+          <p>Organization: {task.organizationId}</p>
+          {task.brandId ? <p>Brand: {task.brandId}</p> : null}
         </Card>
 
         <Card

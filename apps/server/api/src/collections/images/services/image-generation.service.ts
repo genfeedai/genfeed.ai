@@ -140,6 +140,7 @@ export class ImageGenerationService {
         promptBuilderBrand,
         promptOriginalText,
         publicMetadata,
+        referenceIds,
         referenceImageUrls,
         style,
         user,
@@ -161,6 +162,7 @@ export class ImageGenerationService {
       promptBuilderBrand,
       promptData,
       publicMetadata,
+      referenceIds,
       referenceImageUrl,
       referenceImageUrls,
       request,
@@ -203,7 +205,7 @@ export class ImageGenerationService {
     });
     const publicMetadata = getPublicMetadata(user);
 
-    if (!createImageDto.prompt && !createImageDto.text) {
+    if (!createImageDto.text) {
       throw new HttpException(
         {
           detail: 'Prompt is required',
@@ -213,17 +215,13 @@ export class ImageGenerationService {
       );
     }
 
-    const promptOriginal = createImageDto.text || createImageDto.prompt;
-    const promptOriginalText =
-      typeof promptOriginal === 'string'
-        ? promptOriginal
-        : String(promptOriginal ?? '');
+    const promptOriginalText = createImageDto.text;
 
-    const brandId = createImageDto.brand || publicMetadata.brand;
+    const brandId = createImageDto.brandId || publicMetadata.brand;
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -238,8 +236,7 @@ export class ImageGenerationService {
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     );
 
@@ -297,6 +294,7 @@ export class ImageGenerationService {
     promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
     promptOriginalText: string;
     publicMetadata: ImageGenerationPublicMetadata;
+    referenceIds: string[];
     referenceImageUrls: string[];
     style?: string;
     user: User;
@@ -315,25 +313,42 @@ export class ImageGenerationService {
       promptBuilderBrand,
       promptOriginalText,
       publicMetadata,
+      referenceIds,
       referenceImageUrls,
       style,
       user,
       width,
     } = params;
 
-    const promptData = await this.promptsService.create(
-      new PromptEntity({
-        brand: isEntityId(createImageDto.brand)
-          ? createImageDto.brand
-          : publicMetadata.brand,
-        category: PromptCategory.MODELS_PROMPT_IMAGE,
-        model,
-        organization: publicMetadata.organization,
-        original: promptOriginalText,
-        status: PromptStatus.PROCESSING,
-        user: publicMetadata.user,
-      }),
-    );
+    const submittedPromptId = isEntityId(createImageDto.promptId)
+      ? createImageDto.promptId
+      : undefined;
+    const submittedPrompt = submittedPromptId
+      ? await this.promptsService.findOne({
+          id: submittedPromptId,
+          isDeleted: false,
+          organizationId: publicMetadata.organization,
+          userId: publicMetadata.user,
+        })
+      : null;
+    const promptData = submittedPrompt
+      ? await this.promptsService.patch(submittedPrompt.id, {
+          model,
+          status: PromptStatus.PROCESSING,
+        })
+      : await this.promptsService.create(
+          new PromptEntity({
+            brandId: isEntityId(createImageDto.brandId)
+              ? createImageDto.brandId
+              : publicMetadata.brand,
+            category: PromptCategory.MODELS_PROMPT_IMAGE,
+            model,
+            organizationId: publicMetadata.organization,
+            original: promptOriginalText,
+            status: PromptStatus.PROCESSING,
+            userId: publicMetadata.user,
+          }),
+        );
 
     // Build prompt early to get template tracking info
     const {
@@ -369,27 +384,33 @@ export class ImageGenerationService {
     );
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...createImageDto,
-        brand: brand.id,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: brand.id,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
+        generationPrompt: promptOriginalText,
+        generationSeed: createImageDto.seed,
         height,
+        isDefault: createImageDto.isDefault,
         model,
-        organization: publicMetadata.organization,
-        parent: isEntityId(createImageDto.parent)
-          ? createImageDto.parent
+        negativePrompt: createImageDto.negativePrompt,
+        organizationId: publicMetadata.organization,
+        parentId: isEntityId(createImageDto.parentId)
+          ? createImageDto.parentId
           : undefined,
-        prompt: promptData.id,
+        promptId: promptData.id,
         // Template tracking
         promptTemplate: imageTemplateUsed,
+        scope: createImageDto.scope,
+        sourceIds: referenceIds,
         style,
+        tagIds: createImageDto.tags,
         templateVersion: imageTemplateVersion,
         width,
       });
 
     await this.imagesService.patch(ingredientData.id, {
-      prompt: promptData.id,
+      promptId: promptData.id,
     });
 
     return { ingredientData, metadataData, promptData };
@@ -516,7 +537,7 @@ export class ImageGenerationService {
   ): Promise<unknown> {
     if (plan.kind === 'inline') {
       return this.imagesService.findOne(
-        { _id: context.ingredientData.id },
+        { id: context.ingredientData.id },
         IMAGE_POPULATE,
       );
     }
@@ -555,7 +576,7 @@ export class ImageGenerationService {
     }
 
     const ingredient = await this.imagesService.findOne(
-      { _id: context.ingredientData.id },
+      { id: context.ingredientData.id },
       IMAGE_POPULATE,
     );
 

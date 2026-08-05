@@ -42,9 +42,9 @@ export class LaunchCopyController {
     this.loggerService.log(url, { brandId: dto.brandId, channel: dto.channel });
 
     const brand = await this.brandsService.findOne({
-      _id: dto.brandId,
+      id: dto.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {

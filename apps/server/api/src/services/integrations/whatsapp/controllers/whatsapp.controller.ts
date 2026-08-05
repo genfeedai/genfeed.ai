@@ -42,9 +42,9 @@ export class WhatsappController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: body.brandId,
+      id: body.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -84,9 +84,9 @@ export class WhatsappController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: body.brandId,
+      id: body.brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -119,9 +119,9 @@ export class WhatsappController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {

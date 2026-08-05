@@ -1,8 +1,5 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import {
-  type IngredientDocument,
-  type IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
+import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
@@ -15,18 +12,16 @@ import {
   categoryToPlural,
   normalizeCategory,
 } from '@api/helpers/utils/category-conversion/category-conversion.util';
-import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';
+import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
   FileInputType,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
-import type { IIngredientNotificationData } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
@@ -55,58 +50,6 @@ export class WebhooksService {
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
-  private getDocumentId(
-    value:
-      | {
-          id?: string | { toString(): string };
-        }
-      | null
-      | undefined,
-  ): string | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    if (typeof value.id === 'string') {
-      return value.id;
-    }
-
-    if (value.id && typeof value.id.toString === 'function') {
-      return value.id.toString();
-    }
-
-    return undefined;
-  }
-
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString();
-  }
-
-  private toUserReference(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | { id: string } | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    if (!ref) {
-      return undefined;
-    }
-
-    const userId = this.getRefId(ref);
-    if (!userId) {
-      return undefined;
-    }
-
-    return { id: userId };
-  }
-
   async processMediaFromWebhook(
     integration: string,
     category: IngredientCategory | string,
@@ -130,12 +73,8 @@ export class WebhooksService {
       { externalId, url },
     );
 
-    const ingredientId = this.getDocumentId(
-      rawIngredient as { _id?: string; id?: string } | null,
-    );
-    const metadataId = this.getDocumentId(
-      metadata as { _id?: string; id?: string } | null,
-    );
+    const ingredientId = rawIngredient.id;
+    const metadataId = metadata.id;
 
     if (!ingredientId || !metadataId) {
       throw new Error('Webhook lookup returned records without stable ids');
@@ -158,23 +97,16 @@ export class WebhooksService {
     externalId?: string,
   ): Promise<void> {
     const categoryValue = normalizeCategory(category);
-    const ingredient = await this.ingredientsService.findOne(
-      { _id: ingredientId, isDeleted: false },
-      [PopulatePatterns.userMinimal],
-    );
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+      isDeleted: false,
+    });
 
     if (!ingredient) {
       throw new Error(`Ingredient ${ingredientId} not found`);
     }
 
-    const metadataId =
-      ingredient.metadata &&
-      typeof ingredient.metadata === 'object' &&
-      'id' in ingredient.metadata
-        ? String(
-            (ingredient.metadata as { id: string | { toString(): string } }).id,
-          )
-        : String(ingredient.metadata);
+    const metadataId = ingredient.metadataId;
 
     if (!metadataId) {
       throw new Error(
@@ -217,12 +149,11 @@ export class WebhooksService {
     );
 
     // Re-populate the user after patch to preserve the canonical relation.
-    const ingredient = await this.ingredientsService.findOne(
-      { _id: input.ingredientId },
-      [PopulatePatterns.userMinimal],
-    );
+    const ingredient = await this.ingredientsService.findOne({
+      id: input.ingredientId,
+    });
     const metadata = await this.metadataService.findOne({
-      _id: input.metadataId,
+      id: input.metadataId,
       isDeleted: false,
     });
 
@@ -259,18 +190,19 @@ export class WebhooksService {
     );
 
     // 5. Resolve the canonical user identity and compatibility room fields.
-    const { dbUserId, authProviderUserId, userId, userRoom } =
-      UserExtractionUtil.extractUserIds(this.toUserReference(ingredient.user));
+    const { dbUserId, authProviderUserId, userId, userRoom } = extractUserIds(
+      ingredient.userId,
+    );
 
     // 6. Activity update
     if (dbUserId) {
       await this.activityUpdateService.updateSuccessActivity({
-        brandId: this.getRefId(ingredient.brand),
+        brandId: ingredient.brandId ?? undefined,
         category: ingredient.category as IngredientCategory | string,
         dbUserId,
         ingredientId: ingredient.id.toString(),
         metadataExtension: metadata?.extension,
-        organizationId: this.getRefId(ingredient.organization),
+        organizationId: ingredient.organizationId ?? undefined,
         transformations: ingredient.transformations || [],
         userId,
         userRoom,
@@ -308,7 +240,7 @@ export class WebhooksService {
     } else {
       this.loggerService.warn(
         `${logContext} no userId available for WebSocket notification`,
-        { ingredientId, ingredientUser: ingredient.user },
+        { ingredientId, ingredientUserId: ingredient.userId },
       );
     }
 
@@ -340,9 +272,7 @@ export class WebhooksService {
       }
 
       if (errorMessage) {
-        const metadataId = this.getDocumentId(
-          metadata as { _id?: string; id?: string } | null,
-        );
+        const metadataId = metadata.id;
         if (metadataId) {
           await this.metadataService.patch(metadataId, {
             error: errorMessage,
@@ -350,12 +280,8 @@ export class WebhooksService {
         }
       }
 
-      const metadataId = this.getDocumentId(
-        metadata as { _id?: string; id?: string } | null,
-      );
-      const ingredient = await this.ingredientsService.findOne({ metadataId }, [
-        PopulatePatterns.userMinimal,
-      ]);
+      const metadataId = metadata.id;
+      const ingredient = await this.ingredientsService.findOne({ metadataId });
 
       if (!ingredient) {
         return;
@@ -365,19 +291,17 @@ export class WebhooksService {
         status: IngredientStatus.FAILED,
       });
 
-      const { dbUserId, userId, userRoom } = UserExtractionUtil.extractUserIds(
-        this.toUserReference(ingredient.user),
-      );
+      const { dbUserId, userId, userRoom } = extractUserIds(ingredient.userId);
 
       // Activity update via decomposed service
       if (dbUserId) {
         await this.activityUpdateService.updateFailureActivity({
-          brandId: this.getRefId(ingredient.brand),
+          brandId: ingredient.brandId ?? undefined,
           category: ingredient.category as IngredientCategory | string,
           dbUserId,
           errorMessage,
           ingredientId: ingredient.id.toString(),
-          organizationId: this.getRefId(ingredient.organization),
+          organizationId: ingredient.organizationId ?? undefined,
           userId,
           userRoom,
         });
@@ -434,14 +358,21 @@ export class WebhooksService {
     integration: string,
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne(
-      { _id: ingredientId },
+      { id: ingredientId },
       [
-        { path: 'prompt', select: 'original' },
+        { path: 'prompt', select: ['original'] },
         {
           path: 'metadata',
-          select: 'width height duration model externalProvider hasAudio',
+          select: [
+            'width',
+            'height',
+            'duration',
+            'model',
+            'externalProvider',
+            'hasAudio',
+          ],
         },
-        { path: 'brand', select: 'label' },
+        { path: 'brand', select: ['label'] },
       ],
     );
 
@@ -451,124 +382,62 @@ export class WebhooksService {
 
     const ingredientCategory = categoryToMediaType(categoryValue);
     const cdnUrl = `${this.configService.ingredientsEndpoint}/${ingredientCategory}s/${ingredientId}`;
+    const metadata = ingredient.metadata as
+      | {
+          width?: number;
+          height?: number;
+          duration?: number;
+          model?: string;
+          externalProvider?: string;
+        }
+      | undefined;
+    const prompt = ingredient.prompt as { original?: string } | undefined;
+    const brand = ingredient.brand as { label?: string } | undefined;
+    let thumbnailUrl: string | undefined;
 
-    const metadata = ingredient.metadata as {
-      width?: number;
-      height?: number;
-      duration?: number;
-      model?: string;
-      externalProvider?: string;
-      hasAudio?: boolean;
-    };
-
-    const discordEmbed: {
-      title: string;
-      description: string;
-      fields: Array<{ name: string; value: string; inline: boolean }>;
-      image?: string;
-      videoUrl?: string;
-      thumbnailUrl?: string;
-    } = {
-      description: `\`${(ingredient.prompt as unknown as { original?: string })?.original || 'N/A'}\``,
-      fields: [],
-      title: `New ${ingredientCategory.charAt(0).toUpperCase() + ingredientCategory.slice(1)} Generated`,
-    };
-
-    if (ingredientCategory === 'image') {
-      discordEmbed.image = cdnUrl;
-      discordEmbed.fields.push(
-        {
-          inline: true,
-          name: 'Resolution',
-          value: `${metadata?.width || 0}x${metadata?.height || 0}`,
-        },
-        {
-          inline: true,
-          name: 'Model',
-          value: metadata?.model || integration || 'N/A',
-        },
-      );
-      if (metadata?.externalProvider) {
-        discordEmbed.fields.push({
-          inline: true,
-          name: 'Provider',
-          value: metadata.externalProvider,
-        });
-      }
-    } else if (ingredientCategory === 'video') {
-      let thumbnailUrl: string | undefined;
+    if (ingredientCategory === 'video') {
       const thumbnailStartTime = Date.now();
       try {
-        const thumbnailResult = await this.filesClientService.generateThumbnail(
+        const thumbnail = await this.filesClientService.generateThumbnail(
           cdnUrl,
           ingredientId,
           1,
           720,
         );
-        thumbnailUrl = thumbnailResult.thumbnailUrl;
-        const thumbnailDuration = Date.now() - thumbnailStartTime;
+        thumbnailUrl = thumbnail.thumbnailUrl;
         this.loggerService.log(
           `${this.constructorName} generated thumbnail for video`,
           {
             ingredientId,
-            thumbnailDuration: `${thumbnailDuration}ms`,
+            thumbnailDuration: `${Date.now() - thumbnailStartTime}ms`,
             thumbnailUrl,
           },
         );
       } catch (error: unknown) {
-        const thumbnailDuration = Date.now() - thumbnailStartTime;
         this.loggerService.warn(
           `${this.constructorName} thumbnail generation failed (non-fatal)`,
           {
-            duration: `${thumbnailDuration}ms`,
+            duration: `${Date.now() - thumbnailStartTime}ms`,
             error: getErrorMessage(error),
             ingredientId,
           },
         );
-      }
-
-      discordEmbed.videoUrl = cdnUrl;
-      if (thumbnailUrl) {
-        discordEmbed.thumbnailUrl = thumbnailUrl;
-      }
-
-      discordEmbed.fields.push(
-        {
-          inline: true,
-          name: 'Duration',
-          value: metadata?.duration ? `${metadata.duration}s` : 'N/A',
-        },
-        {
-          inline: true,
-          name: 'Resolution',
-          value: `${metadata?.width || 0}x${metadata?.height || 0}`,
-        },
-      );
-      if (metadata?.hasAudio !== undefined) {
-        discordEmbed.fields.push({
-          inline: true,
-          name: 'Audio',
-          value: metadata.hasAudio ? 'Yes' : 'No',
-        });
-      }
-      discordEmbed.fields.push({
-        inline: true,
-        name: 'Model',
-        value: metadata?.model || integration || 'N/A',
-      });
-      if (metadata?.externalProvider) {
-        discordEmbed.fields.push({
-          inline: true,
-          name: 'Provider',
-          value: metadata.externalProvider,
-        });
       }
     }
 
     await this.notificationsService.sendIngredientNotification(
       categoryValue as IngredientCategory,
       cdnUrl,
-      ingredient as unknown as IIngredientNotificationData,
+      {
+        brand,
+        id: ingredient.id,
+        metadata: {
+          ...metadata,
+          model: metadata?.model || integration,
+        },
+        prompt,
+        thumbnailUrl,
+      },
     );
   }
 
@@ -580,9 +449,7 @@ export class WebhooksService {
     const logContext = `${this.constructorName} processAssetFromWebhook`;
 
     try {
-      const asset = await this.assetsService.findOne({ _id: assetId }, [
-        { path: 'user', select: 'id' },
-      ]);
+      const asset = await this.assetsService.findOne({ id: assetId });
 
       if (!asset) {
         this.loggerService.error(`${logContext} asset not found`, { assetId });
@@ -600,15 +467,9 @@ export class WebhooksService {
         { type: FileInputType.URL, url },
       );
 
-      const { userId } = UserExtractionUtil.extractUserIds(
-        asset.user ?? undefined,
-      );
+      const userId = asset.userId ?? undefined;
 
       if (userId) {
-        // `parent`/`parentModel` are Mongo-era compat fields — the Prisma
-        // `Asset` row has no such columns. They only ever hold a value because
-        // `BaseService.normalizeDocument` back-fills them from `parentType` and
-        // the four typed parent FKs, so read those scalars directly instead.
         const parentId =
           asset.parentBrandId ??
           asset.parentOrgId ??
@@ -623,8 +484,8 @@ export class WebhooksService {
           {
             assetId: assetId.toString(),
             category: asset.category,
-            parent: parentId,
-            parentModel: asset.parentType,
+            parentId,
+            parentType: asset.parentType,
           },
         );
 

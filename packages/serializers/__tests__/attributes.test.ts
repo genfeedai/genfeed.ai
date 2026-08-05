@@ -6,6 +6,7 @@ import { monitoredAccountAttributes } from '@serializers/attributes/automation/m
 import { replyBotConfigAttributes } from '@serializers/attributes/automation/reply-bot-config.attributes';
 import { taskAttributes } from '@serializers/attributes/automation/task.attributes';
 import { workflowAttributes } from '@serializers/attributes/automation/workflow.attributes';
+import { workflowExecutionAttributes } from '@serializers/attributes/automation/workflow-execution.attributes';
 import {
   subscriptionAttributes,
   subscriptionPreviewAttributes,
@@ -196,7 +197,45 @@ describe('Serializer Attributes', () => {
     });
   });
 
+  describe('workflowExecutionAttributes', () => {
+    it('uses canonical relation IDs and exposes persisted runtime state', () => {
+      expect(workflowExecutionAttributes).toEqual(
+        expect.arrayContaining([
+          'workflowId',
+          'userId',
+          'organizationId',
+          'inputValues',
+          'nodeResults',
+          'failedNodeId',
+          'creditsUsed',
+          'result',
+        ]),
+      );
+      expect(workflowExecutionAttributes).not.toEqual(
+        expect.arrayContaining(['workflow', 'user', 'organization']),
+      );
+    });
+
+    it('should not contain duplicates', () => {
+      const unique = new Set(workflowExecutionAttributes);
+      expect(unique.size).toBe(workflowExecutionAttributes.length);
+    });
+  });
+
   describe('evaluationAttributes', () => {
+    it('uses the canonical Prisma relation IDs and nested data payload', () => {
+      expect(evaluationAttributes).toEqual([
+        'organizationId',
+        'userId',
+        'contentType',
+        'contentId',
+        'data',
+        'createdAt',
+        'updatedAt',
+        'isDeleted',
+      ]);
+    });
+
     it('should be a non-empty array of strings', () => {
       expect(Array.isArray(evaluationAttributes)).toBe(true);
       expect(evaluationAttributes.length).toBeGreaterThan(0);
@@ -945,6 +984,21 @@ describe('Serializer Attributes', () => {
       const unique = new Set(musicAttributes);
       expect(unique.size).toBe(musicAttributes.length);
     });
+
+    it('exposes canonical ownership and persistence IDs', () => {
+      expect(musicAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'folderId',
+          'metadataId',
+          'organizationId',
+          'parentId',
+          'promptId',
+          'trainingId',
+          'userId',
+        ]),
+      );
+    });
   });
 
   describe('ingredientAttributes', () => {
@@ -959,6 +1013,21 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(ingredientAttributes);
       expect(unique.size).toBe(ingredientAttributes.length);
+    });
+
+    it('exposes canonical ownership and persistence IDs', () => {
+      expect(ingredientAttributes).toEqual(
+        expect.arrayContaining([
+          'brandId',
+          'folderId',
+          'metadataId',
+          'organizationId',
+          'parentId',
+          'promptId',
+          'trainingId',
+          'userId',
+        ]),
+      );
     });
   });
 
@@ -1334,6 +1403,10 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(captionAttributes);
       expect(unique.size).toBe(captionAttributes.length);
+    });
+
+    it('should not expose a nonexistent brand field', () => {
+      expect(captionAttributes).not.toContain('brand');
     });
   });
 

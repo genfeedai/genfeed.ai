@@ -1,4 +1,3 @@
-import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import type {
   OpenRouterChatCompletionParams,
@@ -204,13 +203,13 @@ export class SeoScorerService {
       return;
     }
     // Plural collection name matches the tag convention used by @Cache decorators
-    // and BaseService (e.g. 'articles', 'collection:articles', 'agg:articles').
+    // and BaseService (e.g. 'articles', 'collection:articles', 'query:articles').
     const name = collection === 'article' ? 'articles' : 'posts';
     await this.cacheService.invalidateByTags([
       name,
       `collection:${name}`,
-      `agg:${name}`,
-      'agg:paginated',
+      `query:${name}`,
+      'query:paginated',
     ]);
   }
 

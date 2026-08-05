@@ -77,7 +77,7 @@ describe('VideosEffectsController', () => {
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
         metadataData: { id: metadataId },
       }),
@@ -135,7 +135,7 @@ describe('VideosEffectsController', () => {
       '507f1f77bcf86cd799439011',
     );
     expect(result).toBeDefined();
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'reverse-video' }),
     );
@@ -171,7 +171,9 @@ describe('VideosEffectsController', () => {
       mockUser,
       '507f1f77bcf86cd799439011',
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({ status: 'processing' }),
     );
@@ -198,9 +200,9 @@ describe('VideosEffectsController', () => {
     ).rejects.toThrow(HttpException);
   });
 
-  it('should propagate error when saveDocuments fails for mirror', async () => {
+  it('should propagate error when createMediaDocuments fails for mirror', async () => {
     mockServices.videosService.findOne.mockResolvedValue(mockVideo);
-    mockServices.sharedService.saveDocuments.mockRejectedValueOnce(
+    mockServices.sharedService.createMediaDocuments.mockRejectedValueOnce(
       new Error('DB error'),
     );
     await expect(
@@ -216,7 +218,9 @@ describe('VideosEffectsController', () => {
       mockUser,
       '507f1f77bcf86cd799439011',
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
         parent: '507f1f77bcf86cd799439011',

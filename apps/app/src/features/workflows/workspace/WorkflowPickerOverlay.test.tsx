@@ -14,11 +14,11 @@ const picker = vi.hoisted(() => ({
   setSearch: vi.fn(),
   visibleWorkflows: [
     {
-      _id: 'workflow-1',
+      id: 'workflow-1',
       brandId: 'brand-1',
       createdAt: '2026-07-13T08:00:00.000Z',
       lifecycle: 'published',
-      name: 'Launch brief',
+      label: 'Launch brief',
       nodeCount: 3,
       updatedAt: '2026-07-13T08:00:00.000Z',
     },

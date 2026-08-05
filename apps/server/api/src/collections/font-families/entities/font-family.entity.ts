@@ -3,8 +3,7 @@ import { ModelCategory } from '@genfeedai/enums';
 import { type FontFamilyRecord as FontFamily } from '@genfeedai/prisma';
 
 export class FontFamilyEntity extends BaseEntity implements FontFamily {
-  declare readonly user: string;
-  declare readonly organization: string;
+  declare readonly organizationId: string | null;
 
   declare readonly key: string;
   declare readonly label: string;

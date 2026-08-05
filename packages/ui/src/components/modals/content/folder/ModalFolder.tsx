@@ -39,7 +39,7 @@ export default function ModalFolder({
     FolderSchema
   >({
     defaultValues: {
-      brand: '',
+      brandId: '',
       description: '',
       label: '',
       tags: [],
@@ -51,10 +51,7 @@ export default function ModalFolder({
     },
     schema: folderSchema,
     serviceFactory: (token) => FoldersService.getInstance(token),
-    transformSubmitData: (formData) => ({
-      ...formData,
-      brand: formData.brand,
-    }),
+    transformSubmitData: (formData) => formData,
   });
 
   // Ensure brand field stores the brand id (not the entire brand object)
@@ -65,11 +62,11 @@ export default function ModalFolder({
         shouldValidate: true,
       });
       form.setValue('tags', item.tags || [], { shouldValidate: true });
-      form.setValue('brand', item.brand?.id, { shouldValidate: true });
+      form.setValue('brandId', item.brand?.id, { shouldValidate: true });
     } else {
       // Set default brand if provided via props
       if (scope === PageScope.BRAND && propBrandId) {
-        form.setValue('brand', propBrandId, { shouldValidate: true });
+        form.setValue('brandId', propBrandId, { shouldValidate: true });
       }
     }
   }, [item, form, propBrandId, scope]);
@@ -134,7 +131,7 @@ export default function ModalFolder({
         {brands.length > 0 && !isManagerApp && (
           <FormControl label="Brand (Optional)">
             <SelectField
-              name="brand"
+              name="brandId"
               control={form.control}
               onChange={updateModalFolder}
               isDisabled={isSubmitting}

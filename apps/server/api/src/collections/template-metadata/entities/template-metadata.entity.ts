@@ -7,10 +7,8 @@ export class TemplateMetadataEntity
   implements TemplateMetadata
 {
   declare id: string;
-  declare mongoId: string | null;
   templateId!: string;
   data!: TemplateMetadata['data'];
-  template!: string;
   estimatedTime?: number;
   difficulty?: TemplateDifficulty;
   goals?: string[];

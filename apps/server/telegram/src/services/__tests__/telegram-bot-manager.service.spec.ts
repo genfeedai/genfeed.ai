@@ -35,6 +35,11 @@ vi.mock('grammy', () => ({
   }),
 }));
 
+function toApiIntegration(integration: OrgIntegration) {
+  const { orgId, ...fields } = integration;
+  return { ...fields, organizationId: orgId };
+}
+
 describe('TelegramBotManager', () => {
   let service: TelegramBotManager;
   let _configService: Mocked<ConfigService>;
@@ -116,8 +121,9 @@ describe('TelegramBotManager', () => {
 
   describe('initialize', () => {
     it('should initialize with active integrations', async () => {
-      const mockIntegrations = [mockIntegration];
-      httpService.get.mockReturnValue(of({ data: mockIntegrations }) as any);
+      httpService.get.mockReturnValue(
+        of({ data: [toApiIntegration(mockIntegration)] }) as any,
+      );
       mockBot.start.mockResolvedValue(undefined);
 
       await service.initialize();
@@ -180,7 +186,9 @@ describe('TelegramBotManager', () => {
   describe('shutdown', () => {
     it('should shutdown all bots and clear state', async () => {
       // Setup a bot first
-      httpService.get.mockReturnValue(of({ data: [mockIntegration] }) as any);
+      httpService.get.mockReturnValue(
+        of({ data: [toApiIntegration(mockIntegration)] }) as any,
+      );
       mockBot.start.mockResolvedValue(undefined);
       mockBot.stop.mockResolvedValue(undefined);
 
@@ -390,7 +398,9 @@ describe('TelegramBotManager', () => {
   describe('fetchAndAddIntegration', () => {
     it('should fetch integration and add it', async () => {
       mockBot.start.mockResolvedValue(undefined);
-      httpService.get.mockReturnValue(of({ data: mockIntegration }) as any);
+      httpService.get.mockReturnValue(
+        of({ data: toApiIntegration(mockIntegration) }) as any,
+      );
 
       await service.fetchAndAddIntegration('test-id');
 
@@ -424,7 +434,9 @@ describe('TelegramBotManager', () => {
       // Add initial integration
       await service.addIntegration(mockIntegration);
 
-      httpService.get.mockReturnValue(of({ data: mockIntegration }) as any);
+      httpService.get.mockReturnValue(
+        of({ data: toApiIntegration(mockIntegration) }) as any,
+      );
 
       await service.fetchAndUpdateIntegration('test-id');
 
@@ -451,7 +463,9 @@ describe('TelegramBotManager', () => {
   describe('fetchActiveIntegrations', () => {
     it('should fetch integrations from API', async () => {
       const mockIntegrations = [mockIntegration];
-      httpService.get.mockReturnValue(of({ data: mockIntegrations }) as any);
+      httpService.get.mockReturnValue(
+        of({ data: mockIntegrations.map(toApiIntegration) }) as any,
+      );
 
       const result = await service.fetchActiveIntegrations();
 
@@ -540,7 +554,7 @@ describe('TelegramBotManager', () => {
             '/v1/internal/integrations/telegram/telegram-integration-1',
           )
         ) {
-          return of({ data: mockIntegration }) as any;
+          return of({ data: toApiIntegration(mockIntegration) }) as any;
         }
 
         return of({ data: [] }) as any;
@@ -625,11 +639,11 @@ describe('TelegramBotManager', () => {
       );
 
       const integrationFromApi = {
-        _id: 'telegram-integration-1',
+        id: 'telegram-integration-1',
         botToken: 'bot-token-123',
         config: {},
         createdAt: new Date('2024-01-01').toISOString(),
-        organization: 'org-123',
+        organizationId: 'org-123',
         platform: 'telegram',
         status: 'active',
         updatedAt: new Date('2024-01-01').toISOString(),
@@ -793,7 +807,7 @@ describe('TelegramBotManager', () => {
             promptNode: 'cinematic city skyline at dusk',
           },
           metadata: undefined,
-          workflow: 'wf-1',
+          workflowId: 'wf-1',
         },
         {
           headers: { Authorization: 'Bearer test-key' },

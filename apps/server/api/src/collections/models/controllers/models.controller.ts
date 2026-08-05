@@ -149,7 +149,7 @@ export class ModelsController extends BaseCRUDController<
     return {
       orderBy: query.sort
         ? handleQuerySort(query.sort)
-        : ({ createdAt: -1, key: 1, label: 1, type: 1 } as SortObject),
+        : ({ createdAt: -1, key: 1, label: 1 } as SortObject),
       where: matchConditions,
     };
   }
@@ -184,7 +184,7 @@ export class ModelsController extends BaseCRUDController<
   }
 
   private async assertCanDisableModel(modelId: string): Promise<void> {
-    const model = await this.modelsService.findOne({ _id: modelId });
+    const model = await this.modelsService.findOne({ id: modelId });
     if (!model) {
       ErrorResponse.notFound(this.entityName, modelId);
     }
@@ -194,7 +194,7 @@ export class ModelsController extends BaseCRUDController<
     }
 
     const otherDefaults = await this.modelsService.count({
-      _id: { not: modelId },
+      id: { not: modelId },
       category: model.category,
       isDefault: true,
       isDeleted: false,
@@ -214,7 +214,7 @@ export class ModelsController extends BaseCRUDController<
 
   /**
    * Override findAll to add organization filtering support
-   * When organizationId is provided, filter by organization's enabledModels
+   * When organizationId is provided, filter by its enabled model IDs.
    */
   @Get()
   async findAll(
@@ -229,28 +229,23 @@ export class ModelsController extends BaseCRUDController<
     if (query.organizationId) {
       const organizationSettings =
         await this.getOrganizationSettingsService().findOne({
-          organization: query.organizationId,
+          organizationId: query.organizationId,
         });
 
-      const rawEnabledModels = (
-        organizationSettings as Record<string, unknown> | undefined
-      )?.enabledModels;
       const rawEnabledModelIds = (
         organizationSettings as Record<string, unknown> | undefined
       )?.enabledModelIds;
-      const enabledModelIds = Array.isArray(rawEnabledModels)
-        ? rawEnabledModels.filter((id): id is string => typeof id === 'string')
-        : Array.isArray(rawEnabledModelIds)
-          ? rawEnabledModelIds.filter(
-              (id): id is string => typeof id === 'string',
-            )
-          : [];
+      const enabledModelIds = Array.isArray(rawEnabledModelIds)
+        ? rawEnabledModelIds.filter(
+            (id): id is string => typeof id === 'string',
+          )
+        : [];
 
       if (enabledModelIds.length > 0) {
-        where._id = { in: enabledModelIds };
+        where.id = { in: enabledModelIds };
       } else {
-        // Strict mode: if no organization settings or empty enabledModels, return no models
-        where._id = { in: [] };
+        // Strict mode: no settings or an empty allowlist enables no models.
+        where.id = { in: [] };
       }
     }
 
@@ -261,7 +256,10 @@ export class ModelsController extends BaseCRUDController<
       : null;
 
     if (authenticatedOrgId) {
-      where.OR = [{ organization: null }, { organization: authenticatedOrgId }];
+      where.OR = [
+        { organizationId: null },
+        { organizationId: authenticatedOrgId },
+      ];
     }
 
     const options = {
@@ -302,7 +300,7 @@ export class ModelsController extends BaseCRUDController<
       return this.applyRegistryReview(request, user, modelId, updateDto);
     }
 
-    const model = await this.modelsService.findOne({ _id: modelId });
+    const model = await this.modelsService.findOne({ id: modelId });
     if (!model) {
       ErrorResponse.notFound(this.entityName, modelId);
     }
@@ -310,10 +308,11 @@ export class ModelsController extends BaseCRUDController<
     // If turning OFF isDefault, check if it's the only default in category
     if (updateDto.isDefault === false && model.isDefault) {
       const otherDefaults = await this.modelsService.count({
-        _id: { not: modelId },
+        id: { not: modelId },
         category: model.category,
         isDefault: true,
         isDeleted: false,
+        organizationId: model.organizationId ?? null,
       });
       if (otherDefaults === 0) {
         ErrorResponse.validationFailed([
@@ -329,15 +328,10 @@ export class ModelsController extends BaseCRUDController<
 
     // If setting isDefault to true, clear other defaults in same category
     if (updateDto.isDefault === true) {
-      // sql-risk-audit: ignore bulk-write-tenant-review -- Wrapped service call is constrained to non-deleted models in the same registry category.
-      await this.modelsService.updateMany(
-        {
-          _id: { not: modelId },
-          category: model.category,
-          isDefault: true,
-          isDeleted: false,
-        },
-        { isDefault: false },
+      await this.modelsService.clearOtherDefaults(
+        model.category,
+        model.organizationId ?? null,
+        modelId,
       );
     }
 

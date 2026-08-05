@@ -103,10 +103,10 @@ export class VideosCaptionsController {
 
     // Verify video exists and user has access
     const video = await this.videosService.findOne({
-      _id: videoId,
+      id: videoId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -123,8 +123,9 @@ export class VideosCaptionsController {
     // Build aggregation pipeline to get captions for this video (ingredient)
     const aggregate = {
       where: {
-        ingredient: videoId,
+        ingredientId: videoId,
         isDeleted: false,
+        organizationId: publicMetadata.organization,
       },
       orderBy: { createdAt: -1 },
     };
@@ -142,7 +143,7 @@ export class VideosCaptionsController {
     @Body() createVideoWithCaptionsDto: CreateVideoWithCaptionsDto,
   ) {
     const url = `videos-captions:${this.constructorName}:createVideoWithCaptions:user:${user.id}:videoId:${videoId}`;
-    const video = await this.videosService.findOne({ _id: videoId }, [
+    const video = await this.videosService.findOne({ id: videoId }, [
       { path: 'captions' },
     ]);
 
@@ -154,7 +155,7 @@ export class VideosCaptionsController {
     if (isEntityId(createVideoWithCaptionsDto.caption)) {
       caption =
         (await this.captionsService.findOne({
-          _id: createVideoWithCaptionsDto.caption,
+          id: createVideoWithCaptionsDto.caption,
         })) ?? undefined;
     } else {
       caption = (video as unknown as { captions?: Array<{ id: string }> })
@@ -167,13 +168,13 @@ export class VideosCaptionsController {
 
     const publicMetadata = getPublicMetadata(user);
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocuments(user, {
-        brand: publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         label: generateLabel(),
-        organization: publicMetadata.organization,
-        parent: videoId,
+        organizationId: publicMetadata.organization,
+        parentId: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });

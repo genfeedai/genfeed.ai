@@ -17,9 +17,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
 describe('PublicBrandsController', () => {
+  const brandId = 'clz1a2b3c4d5e6f7g8h9i0j1k';
   let controller: PublicBrandsController;
   let articlesService: vi.Mocked<ArticlesService>;
   let brandsService: vi.Mocked<BrandsService>;
+  let imagesService: vi.Mocked<ImagesService>;
+  let linksService: vi.Mocked<LinksService>;
+  let videosService: vi.Mocked<VideosService>;
 
   // Rows come back with the Prisma enum casing ('PUBLIC'), not the TS enum
   // value ('public'). Mocking the TS value hid a production bug where the
@@ -29,11 +33,11 @@ describe('PublicBrandsController', () => {
   const PRISMA_SCOPE_USER = 'USER';
 
   const mockBrand = {
-    _id: '507f191e810c19729de860ee',
+    id: brandId,
     description: 'A public test brand',
     handle: 'test-brand',
     isDeleted: false,
-    logo: '507f191e810c19729de860ee',
+    logo: brandId,
     name: 'Test Brand',
     scope: PRISMA_SCOPE_PUBLIC,
   };
@@ -89,6 +93,9 @@ describe('PublicBrandsController', () => {
     controller = module.get<PublicBrandsController>(PublicBrandsController);
     articlesService = module.get(ArticlesService);
     brandsService = module.get(BrandsService);
+    imagesService = module.get(ImagesService);
+    linksService = module.get(LinksService);
+    videosService = module.get(VideosService);
   });
 
   afterEach(() => {
@@ -150,13 +157,10 @@ describe('PublicBrandsController', () => {
         mockBrand as unknown as BrandEntity,
       );
 
-      const result = await controller.findOne(
-        mockReq,
-        '507f191e810c19729de860ee',
-      );
+      const result = await controller.findOne(mockReq, brandId);
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        _id: '507f191e810c19729de860ee',
+        id: brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       });
@@ -168,10 +172,7 @@ describe('PublicBrandsController', () => {
         scopeFilteringFindOne(PRISMA_SCOPE_USER),
       );
 
-      const result = await controller.findOne(
-        mockReq,
-        '507f191e810c19729de860ee',
-      );
+      const result = await controller.findOne(mockReq, brandId);
 
       expect(result).toMatchObject({ data: null });
     });
@@ -194,12 +195,12 @@ describe('PublicBrandsController', () => {
         totalDocs: 0,
       } as never);
 
-      await controller.findBrandArticles('507f191e810c19729de860ee', mockReq);
+      await controller.findBrandArticles(brandId, mockReq);
 
       expect(articlesService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            brand: '507f191e810c19729de860ee',
+            brandId,
             isDeleted: false,
             scope: AssetScope.PUBLIC,
             status: 'PUBLISHED',
@@ -207,6 +208,43 @@ describe('PublicBrandsController', () => {
         }),
         expect.any(Object),
       );
+    });
+  });
+
+  describe('public brand asset filters', () => {
+    it('uses brandId for links, videos, images, and articles', async () => {
+      brandsService.findOne.mockResolvedValue(
+        mockBrand as unknown as BrandEntity,
+      );
+      linksService.findAll.mockResolvedValue({ docs: [] } as never);
+      videosService.findAll.mockResolvedValue({ docs: [] } as never);
+      imagesService.findAll.mockResolvedValue({ docs: [] } as never);
+      articlesService.findAll.mockResolvedValue({ docs: [] } as never);
+
+      await controller.findBrandLinks(mockReq, brandId);
+      await controller.findBrandVideos(brandId, mockReq);
+      await controller.findBrandImages(brandId, mockReq);
+      await controller.findBrandArticles(brandId, mockReq);
+
+      for (const findAll of [
+        linksService.findAll,
+        videosService.findAll,
+        imagesService.findAll,
+        articlesService.findAll,
+      ]) {
+        expect(findAll).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ brandId }),
+          }),
+          expect.any(Object),
+        );
+        expect(findAll).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: expect.objectContaining({ brand: expect.anything() }),
+          }),
+          expect.any(Object),
+        );
+      }
     });
   });
 });

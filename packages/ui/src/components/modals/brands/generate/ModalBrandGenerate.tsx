@@ -75,8 +75,8 @@ export default function ModalBrandGenerate({
       await service.postGenerate({
         category: type === 'logo' ? AssetCategory.LOGO : AssetCategory.BANNER,
         model: '', // Will be set by backend based on brand default
-        parent: brandId,
-        parentModel: AssetParent.BRAND,
+        parentId: brandId,
+        parentType: AssetParent.BRAND,
         text: text,
       });
 

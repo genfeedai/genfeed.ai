@@ -92,7 +92,7 @@ export class RolesController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(@Req() request: Request, @Param('roleId') roleId: string) {
     try {
-      const data = await this.rolesService.findOne({ _id: roleId });
+      const data = await this.rolesService.findOne({ id: roleId });
       if (!data) {
         throw new HttpException('Role not found', HttpStatus.NOT_FOUND);
       }

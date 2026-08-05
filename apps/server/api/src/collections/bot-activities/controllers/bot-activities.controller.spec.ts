@@ -78,7 +78,7 @@ describe('BotActivitiesController', () => {
 
   describe('findAll', () => {
     it('should return paginated activities from the service', async () => {
-      const mockActivities = [{ _id: '1' }, { _id: '2' }];
+      const mockActivities = [{ id: '1' }, { id: '2' }];
       const mockResult = { activities: mockActivities, total: 2 };
       vi.mocked(botActivitiesService.findWithFilters).mockResolvedValue(
         mockResult as never,
@@ -101,7 +101,7 @@ describe('BotActivitiesController', () => {
 
   describe('findOne', () => {
     it('should return a single activity by id', async () => {
-      const mockActivity = { _id: 'act-1', type: 'reply' };
+      const mockActivity = { id: 'act-1', type: 'reply' };
       vi.mocked(botActivitiesService.findOne).mockResolvedValue(
         mockActivity as never,
       );
@@ -109,10 +109,10 @@ describe('BotActivitiesController', () => {
       const result = await controller.findOne(mockRequest, 'act-1', mockUser);
 
       expect(botActivitiesService.findOne).toHaveBeenCalledWith({
-        _id: 'act-1',
-        brand: 'brand-123',
+        brandId: 'brand-123',
+        id: 'act-1',
         isDeleted: false,
-        organization: 'org-123',
+        organizationId: 'org-123',
       });
       expect(result).toEqual(mockActivity);
     });

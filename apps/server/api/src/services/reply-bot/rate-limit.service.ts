@@ -20,7 +20,6 @@ interface RateLimitCounter {
 }
 
 interface ReplyBotConfigData {
-  isActive?: boolean;
   rateLimits?: {
     maxRepliesPerHour?: number;
     maxRepliesPerDay?: number;
@@ -71,7 +70,7 @@ export class RateLimitService {
 
       const botConfig = (record.config ?? {}) as ReplyBotConfigData;
 
-      if (!botConfig.isActive) {
+      if (!record.isActive) {
         return {
           allowed: false,
           reason: 'Bot is paused',

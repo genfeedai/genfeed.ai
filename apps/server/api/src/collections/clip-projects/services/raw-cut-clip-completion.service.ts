@@ -50,7 +50,7 @@ export class RawCutClipCompletionService {
     }
 
     const clipResult = await this.clipResultsService.findOne(
-      scopedWhere(organizationId, { _id: event.ingredientId }),
+      scopedWhere(organizationId, { id: event.ingredientId }),
     );
 
     if (clipResult?.mode !== 'raw-cut') {
@@ -58,9 +58,7 @@ export class RawCutClipCompletionService {
     }
 
     const clipResultId = this.readId(clipResult);
-    const projectId = this.readString(
-      clipResult.projectId ?? clipResult.project,
-    );
+    const projectId = this.readString(clipResult.projectId);
     const currentJobId = this.readString(clipResult.providerJobId);
     const eventJobId = this.readString(event.result?.jobId);
     const eventJobType = this.readString(event.result?.jobType);
@@ -379,7 +377,7 @@ export class RawCutClipCompletionService {
   }
 
   private readId(clipResult: ClipResultDocument): string {
-    return String(clipResult.id ?? clipResult._id);
+    return String(clipResult.id);
   }
 
   private requireProjectId(clipResult: ClipResultDocument): string {
@@ -465,11 +463,11 @@ export class RawCutClipCompletionService {
   private readCanonicalUserId(
     clipResult: ClipResultDocument,
   ): string | undefined {
-    return this.readString(clipResult.userId ?? clipResult.user);
+    return this.readString(clipResult.userId);
   }
 
   private readProjectId(clipResult: ClipResultDocument): string | undefined {
-    return this.readString(clipResult.projectId ?? clipResult.project);
+    return this.readString(clipResult.projectId);
   }
 
   private readNumber(value: unknown): number | undefined {

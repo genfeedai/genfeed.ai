@@ -29,17 +29,17 @@ export class AgentProfileResolverService {
     const typeConfig = context.agentType
       ? getAgentTypeConfig(context.agentType)
       : null;
-    const campaignObjectId = EntityIdUtil.normalizeId(context.campaignId);
-    const strategyObjectId = EntityIdUtil.normalizeId(context.strategyId);
+    const campaignId = EntityIdUtil.normalizeId(context.campaignId);
+    const strategyId = EntityIdUtil.normalizeId(context.strategyId);
     const routeKey = [
       context.agentType ?? 'general',
-      campaignObjectId?.toString() ?? 'none',
-      strategyObjectId?.toString() ?? 'none',
+      campaignId ?? 'none',
+      strategyId ?? 'none',
     ].join(':');
 
     return {
       agentType: context.agentType,
-      campaign: campaignObjectId,
+      campaign: campaignId,
       enabledTools: [...(typeConfig?.defaultTools ?? [])],
       hooks: {
         after_tool_call: true,
@@ -62,7 +62,7 @@ export class AgentProfileResolverService {
         'Persist work log, tool results, plans, and input requests as thread state.',
       ],
       routeKey,
-      strategy: strategyObjectId,
+      strategy: strategyId,
     };
   }
 }

@@ -10,6 +10,8 @@ import { Button } from '@ui/primitives/button';
 import { Image, RefreshCw, Video } from 'lucide-react';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
+import { AgentErrorMessage } from './AgentErrorMessage';
+
 interface IngredientAlternativesCardProps {
   action: AgentUiAction;
   apiService: AgentApiService;
@@ -149,9 +151,7 @@ export function IngredientAlternativesCard({
         {/* Error state */}
         {status === 'error' && (
           <div className="space-y-2">
-            <div className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-              {error}
-            </div>
+            <AgentErrorMessage message={error ?? 'Generation failed'} />
             <Button
               variant={ButtonVariant.SECONDARY}
               onClick={handleRetry}

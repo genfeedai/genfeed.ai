@@ -5,7 +5,6 @@ import { AccountPublishingContextService } from '@api/collections/credentials/se
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { TagsService } from '@api/collections/tags/services/tags.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleSearchConsoleService } from '@api/services/integrations/google-search-console/services/google-search-console.service';
@@ -31,7 +30,6 @@ describe('CredentialsController', () => {
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
   let brandsService: Record<string, ReturnType<typeof vi.fn>>;
   let organizationsService: Record<string, ReturnType<typeof vi.fn>>;
-  let tagsService: Record<string, ReturnType<typeof vi.fn>>;
   let instagramService: Record<string, ReturnType<typeof vi.fn>>;
   let quotaService: Record<string, ReturnType<typeof vi.fn>>;
 
@@ -112,6 +110,7 @@ describe('CredentialsController', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
+      createAndAttachTag: vi.fn(),
       updateExternalProfile: vi.fn(),
     };
     accountPublishingContextService = {
@@ -139,7 +138,6 @@ describe('CredentialsController', () => {
     };
     brandsService = { findOne: vi.fn() };
     organizationsService = { findOne: vi.fn() };
-    tagsService = { create: vi.fn() };
     instagramService = {
       ...createMockPlatformService(),
       getInstagramPages: vi.fn().mockResolvedValue([]),
@@ -161,7 +159,6 @@ describe('CredentialsController', () => {
       createMockPlatformService() as unknown as PinterestService,
       quotaService as unknown as QuotaService,
       createMockPlatformService() as unknown as RedditService,
-      tagsService as unknown as TagsService,
       createMockPlatformService() as unknown as TiktokService,
       createMockPlatformService() as unknown as TwitterService,
       createMockPlatformService() as unknown as YoutubeService,
@@ -179,7 +176,7 @@ describe('CredentialsController', () => {
   describe('findAll', () => {
     it('should return credentials for the current user', async () => {
       credentialsService.findAll.mockResolvedValue({
-        docs: [{ _id: credId }],
+        docs: [{ id: credId }],
         totalDocs: 1,
       });
 
@@ -197,7 +194,7 @@ describe('CredentialsController', () => {
   describe('findOne', () => {
     it('should return a credential when found', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
       });
 
       const result = await controller.findOne(mockRequest, credId);
@@ -246,7 +243,7 @@ describe('CredentialsController', () => {
     it('should skip credentials without a handle', async () => {
       credentialsService.find.mockResolvedValue([
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           externalHandle: null,
           platform: CredentialPlatform.TWITTER,
         },
@@ -371,13 +368,13 @@ describe('CredentialsController', () => {
     it('should refresh token for supported platform', async () => {
       credentialsService.findOne
         .mockResolvedValueOnce({
-          _id: credId,
-          brand: '507f191e810c19729de860ee',
-          organization: orgId,
+          brandId: '507f191e810c19729de860ee',
+          id: credId,
+          organizationId: orgId,
           platform: CredentialPlatform.TWITTER,
         })
         .mockResolvedValueOnce({
-          _id: credId,
+          id: credId,
           platform: CredentialPlatform.TWITTER,
         });
 
@@ -418,16 +415,15 @@ describe('CredentialsController', () => {
         createMockPlatformService() as unknown as PinterestService,
         quotaService as unknown as QuotaService,
         createMockPlatformService() as unknown as RedditService,
-        tagsService as unknown as TagsService,
         createMockPlatformService() as unknown as TiktokService,
         failingTwitter as unknown as TwitterService,
         createMockPlatformService() as unknown as YoutubeService,
       );
 
       credentialsService.findOne.mockResolvedValueOnce({
+        brandId: '507f191e810c19729de860ee',
         id: credId,
-        brand: '507f191e810c19729de860ee',
-        organization: orgId,
+        organizationId: orgId,
         platform: CredentialPlatform.TWITTER,
       });
 
@@ -444,10 +440,10 @@ describe('CredentialsController', () => {
   describe('update', () => {
     it('should update allowed fields on a credential', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
       });
       credentialsService.patch.mockResolvedValue({
-        _id: credId,
+        id: credId,
         label: 'Updated',
       });
 
@@ -512,10 +508,10 @@ describe('CredentialsController', () => {
   describe('remove', () => {
     it('should soft-delete a credential owned by the user', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
       });
       credentialsService.remove.mockResolvedValue({
-        _id: credId,
+        id: credId,
         isDeleted: true,
       });
 
@@ -535,13 +531,36 @@ describe('CredentialsController', () => {
     });
   });
 
+  describe('createCredentialTag', () => {
+    it('creates and attaches a tag inside the authenticated organization', async () => {
+      credentialsService.createAndAttachTag.mockResolvedValue({
+        id: credId,
+        tags: [{ id: 'tag-1', label: 'Creator' }],
+      });
+
+      await controller.createCredentialTag(
+        mockRequest,
+        credId,
+        { label: 'Creator' } as never,
+        mockUser,
+      );
+
+      expect(credentialsService.createAndAttachTag).toHaveBeenCalledWith(
+        credId,
+        orgId,
+        userId,
+        { label: 'Creator' },
+      );
+    });
+  });
+
   describe('getQuotaStatus', () => {
     it('should return quota status for a credential', async () => {
       credentialsService.findOne.mockResolvedValue({
         id: credId,
       });
       organizationsService.findOne.mockResolvedValue({
-        _id: orgId,
+        id: orgId,
         label: 'Test Org',
       });
       quotaService.checkQuota.mockResolvedValue({
@@ -549,7 +568,7 @@ describe('CredentialsController', () => {
         remaining: 100,
       });
 
-      const result = await controller.getQuotaStatus(credId, orgId, mockUser);
+      const result = await controller.getQuotaStatus(credId, mockUser);
 
       expect(result.data.type).toBe('quota-status');
       expect(result.data.attributes).toEqual({
@@ -561,20 +580,20 @@ describe('CredentialsController', () => {
     it('should throw NOT_FOUND when credential not found for quota', async () => {
       credentialsService.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.getQuotaStatus(credId, orgId, mockUser),
-      ).rejects.toThrow(HttpException);
+      await expect(controller.getQuotaStatus(credId, mockUser)).rejects.toThrow(
+        HttpException,
+      );
     });
 
     it('should throw NOT_FOUND when organization not found for quota', async () => {
       credentialsService.findOne.mockResolvedValue({
-        _id: credId,
+        id: credId,
       });
       organizationsService.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.getQuotaStatus(credId, orgId, mockUser),
-      ).rejects.toThrow(HttpException);
+      await expect(controller.getQuotaStatus(credId, mockUser)).rejects.toThrow(
+        HttpException,
+      );
     });
   });
 });

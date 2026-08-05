@@ -63,10 +63,10 @@ describe('AnalyticsSyncWorkflowService', () => {
     postsService.findAll.mockResolvedValue({
       docs: Array.from({ length: 51 }, (_, index) => ({
         id: `post-${index}`,
-        brand: 'brand-1',
-        credential: { id: 'credential-1' },
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
         externalId: `facebook-${index}`,
-        organization: 'org-1',
+        organizationId: 'org-1',
         platform: CredentialPlatform.FACEBOOK,
       })),
     });
@@ -75,7 +75,6 @@ describe('AnalyticsSyncWorkflowService', () => {
 
     expect(postsService.findAll).toHaveBeenCalledWith(
       {
-        include: { credential: true },
         where: expect.objectContaining({
           isAnalyticsEnabled: { not: false },
           organizationId: 'org-1',
@@ -98,8 +97,8 @@ describe('AnalyticsSyncWorkflowService', () => {
         posts: expect.arrayContaining([
           expect.objectContaining({
             id: 'post-0',
-            credential: 'credential-1',
-            organization: 'org-1',
+            credentialId: 'credential-1',
+            organizationId: 'org-1',
             platform: CredentialPlatform.FACEBOOK,
           }),
         ]),
@@ -130,19 +129,19 @@ describe('AnalyticsSyncWorkflowService', () => {
   it('pages through analytics posts instead of one unbounded findMany', async () => {
     const firstPage = Array.from({ length: 500 }, (_, index) => ({
       id: `post-${index}`,
-      brand: 'brand-1',
-      credential: { id: 'credential-1' },
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
       externalId: `facebook-${index}`,
-      organization: 'org-1',
+      organizationId: 'org-1',
       platform: CredentialPlatform.FACEBOOK,
     }));
     const secondPage = [
       {
         id: 'post-500',
-        brand: 'brand-1',
-        credential: { id: 'credential-1' },
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
         externalId: 'facebook-500',
-        organization: 'org-1',
+        organizationId: 'org-1',
         platform: CredentialPlatform.FACEBOOK,
       },
     ];
@@ -181,21 +180,21 @@ describe('AnalyticsSyncWorkflowService', () => {
       docs: [
         {
           id: 'post-1',
-          brand: 'brand-1',
-          credential: { id: 'credential-1' },
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
           externalId: 'tweet-1',
           platform: CredentialPlatform.TWITTER,
         },
         {
           id: 'post-2',
-          brand: 'brand-1',
-          credential: { id: 'credential-1' },
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
           externalId: 'tweet-2',
           platform: CredentialPlatform.TWITTER,
         },
         {
           id: 'post-without-credential',
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'tweet-3',
           platform: CredentialPlatform.TWITTER,
         },
@@ -206,7 +205,6 @@ describe('AnalyticsSyncWorkflowService', () => {
 
     expect(postsService.findAll).toHaveBeenCalledWith(
       {
-        include: { credential: true },
         orderBy: { publishedAt: 'desc' },
         where: expect.objectContaining({
           organizationId: 'org-1',
@@ -228,15 +226,15 @@ describe('AnalyticsSyncWorkflowService', () => {
         posts: [
           {
             id: 'post-1',
-            brand: 'brand-1',
+            brandId: 'brand-1',
             externalId: 'tweet-1',
-            organization: 'org-1',
+            organizationId: 'org-1',
           },
           {
             id: 'post-2',
-            brand: 'brand-1',
+            brandId: 'brand-1',
             externalId: 'tweet-2',
-            organization: 'org-1',
+            organizationId: 'org-1',
           },
         ],
       }),
@@ -281,13 +279,13 @@ describe('AnalyticsSyncWorkflowService', () => {
       docs: [
         {
           id: 'post-1',
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'video-1',
           platform: CredentialPlatform.YOUTUBE,
         },
         {
           id: 'post-2',
-          brand: 'brand-1',
+          brandId: 'brand-1',
           externalId: 'video-2',
           platform: CredentialPlatform.YOUTUBE,
         },
@@ -310,15 +308,15 @@ describe('AnalyticsSyncWorkflowService', () => {
         posts: [
           {
             id: 'post-1',
-            brand: 'brand-1',
+            brandId: 'brand-1',
             externalId: 'video-1',
-            organization: 'org-1',
+            organizationId: 'org-1',
           },
           {
             id: 'post-2',
-            brand: 'brand-1',
+            brandId: 'brand-1',
             externalId: 'video-2',
-            organization: 'org-1',
+            organizationId: 'org-1',
           },
         ],
       }),
@@ -338,10 +336,10 @@ describe('AnalyticsSyncWorkflowService', () => {
       docs: [
         {
           id: 'post-1',
-          brand: 'brand-1',
-          credential: { id: 'credential-1' },
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
           externalId: 'facebook-1',
-          organization: 'org-1',
+          organizationId: 'org-1',
           platform: CredentialPlatform.FACEBOOK,
         },
       ],
@@ -377,10 +375,10 @@ describe('AnalyticsSyncWorkflowService', () => {
       docs: [
         {
           id: 'post-1',
-          brand: 'brand-1',
-          credential: { id: 'credential-1' },
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
           externalId: 'facebook-1',
-          organization: 'org-1',
+          organizationId: 'org-1',
           platform: CredentialPlatform.FACEBOOK,
         },
       ],

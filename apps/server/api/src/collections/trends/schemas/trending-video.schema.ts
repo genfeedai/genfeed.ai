@@ -1,5 +1,4 @@
 export interface TrendingVideoDocument {
-  _id?: string;
   id?: string;
   externalId?: string;
   platform?: string;

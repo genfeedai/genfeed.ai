@@ -43,14 +43,12 @@ function normalizeOrganizationCategoryFields<T extends Record<string, unknown>>(
   const normalized: Record<string, unknown> = { ...dto };
 
   if ('category' in normalized) {
-    normalized['category'] = normalizeOrganizationCategory(
-      normalized['category'],
-    );
+    normalized.category = normalizeOrganizationCategory(normalized.category);
   }
 
   if ('accountType' in normalized) {
-    normalized['accountType'] = normalizeOrganizationCategory(
-      normalized['accountType'],
+    normalized.accountType = normalizeOrganizationCategory(
+      normalized.accountType,
     );
   }
 
@@ -72,7 +70,7 @@ export class OrganizationsService extends BaseService<
     {
       path: 'settings',
       select: [
-        '_id',
+        'id',
         'isWhitelabelEnabled',
         'isVoiceControlEnabled',
         'isWatermarkEnabled',
@@ -96,8 +94,8 @@ export class OrganizationsService extends BaseService<
         'quotaTiktok',
         'quotaTwitter',
         'quotaInstagram',
-        'enabledModels',
-      ].join(' '),
+        'enabledModelIds',
+      ],
     },
   ];
 
@@ -214,7 +212,7 @@ export class OrganizationsService extends BaseService<
       const prefix = updateDto.prefix.toUpperCase();
 
       // Prefix is immutable once set — reject if the org already has one.
-      const org = await this.findOne({ _id: id, isDeleted: false });
+      const org = await this.findOne({ id: id, isDeleted: false });
       if (!org) {
         throw new NotFoundException('Organization');
       }
@@ -243,8 +241,8 @@ export class OrganizationsService extends BaseService<
   /**
    * Count organizations matching filter
    */
-  count(filter: Record<string, unknown>): Promise<number> {
-    return this.prisma.organization.count({ where: filter as never });
+  count(filter: Prisma.OrganizationWhereInput): Promise<number> {
+    return this.prisma.organization.count({ where: filter });
   }
 
   /**

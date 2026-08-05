@@ -64,14 +64,6 @@ export {
 export { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
 export type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 export { AGENT_SLASH_COMMANDS } from '@genfeedai/agent/constants/agent-slash-commands.constant';
-export type { ComposerMode } from '@genfeedai/agent/constants/composer-mode.constant';
-export {
-  COMPOSER_GENERATION_AUTO_MODEL_KEY,
-  COMPOSER_MODES,
-  DEFAULT_COMPOSER_MODE,
-  getComposerModeDefinition,
-  isGenerationComposerMode,
-} from '@genfeedai/agent/constants/composer-mode.constant';
 export {
   CONVERSATION_COMPOSER_ACTIONS,
   getConversationComposerAction,
@@ -165,7 +157,6 @@ export type {
   ConversationComposerContextReferenceKind,
   ConversationComposerDispatchResult,
   ConversationComposerDispatchStatus,
-  ConversationComposerMode,
   ConversationComposerScope,
   ConversationComposerSendOptions,
   ParsedConversationComposerCommand,

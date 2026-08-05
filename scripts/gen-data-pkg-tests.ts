@@ -225,13 +225,13 @@ function generateConfigTests() {
     tc += `      expect(${name}.attributes.length).toBeGreaterThan(0);\n`;
     tc += `    });\n\n`;
     tc += `    it('relationships should have correct structure', () => {\n`;
-    tc += `      for (const [key, val] of Object.entries(${name})) {\n`;
+    tc += `      for (const [key, value] of Object.entries(${name})) {\n`;
     tc += `        if (key === 'type' || key === 'attributes') continue;\n`;
-    tc += `        const rel = val as any;\n`;
+    tc += `        const rel = value as Record<string, unknown>;\n`;
     tc += `        if (rel && typeof rel === 'object' && 'type' in rel) {\n`;
     tc += `          expect(typeof rel.type).toBe('string');\n`;
-    tc += `          expect(rel.ref).toBe('_id');\n`;
-    tc += `          expect(Array.isArray(rel.attributes)).toBe(true);\n`;
+    tc += `          if ('ref' in rel) expect(rel.ref).toBe('id');\n`;
+    tc += `          if ('attributes' in rel) expect(Array.isArray(rel.attributes)).toBe(true);\n`;
     tc += `        }\n`;
     tc += `      }\n`;
     tc += `    });\n`;

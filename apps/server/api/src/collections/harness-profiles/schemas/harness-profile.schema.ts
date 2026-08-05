@@ -3,7 +3,6 @@ import type { Profile as PrismaProfile } from '@genfeedai/prisma';
 
 export type HarnessProfileData = Omit<
   IHarnessProfile,
-  | '_id'
   | 'createdAt'
   | 'createdBy'
   | 'createdById'
@@ -17,7 +16,6 @@ export type HarnessProfileData = Omit<
 export interface HarnessProfileDocument
   extends PrismaProfile,
     HarnessProfileData {
-  _id: string;
   organization?: string;
   createdBy?: string | null;
 }

@@ -122,7 +122,7 @@ describe('VideosUpscaleController', () => {
         .mockResolvedValue('replicate-topaz-video-upscale'),
     },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
           brand: mockVideo.brand,
           id: ingredientId,
@@ -342,7 +342,9 @@ describe('VideosUpscaleController', () => {
       '507f1f77bcf86cd799439011',
       dto,
     );
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+    expect(
+      mockServices.sharedService.createMediaDocuments,
+    ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({ transformations: ['upscaled'] }),
     );

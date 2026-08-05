@@ -47,7 +47,7 @@ describe('BetterAuthIdentityResolverService', () => {
       UnauthorizedException,
     );
     expect(usersService.findOne).toHaveBeenCalledWith(
-      { _id: 'missing', isDeleted: false },
+      { id: 'missing', isDeleted: false },
       [],
     );
   });
@@ -70,10 +70,10 @@ describe('BetterAuthIdentityResolverService', () => {
     });
     expect(organizationsService.findOne).toHaveBeenCalledWith({
       isDeleted: false,
-      user: 'user_1',
+      userId: 'user_1',
     });
     expect(usersService.findOne).toHaveBeenCalledWith(
-      { _id: 'user_1', isDeleted: false },
+      { id: 'user_1', isDeleted: false },
       [],
     );
   });
@@ -132,9 +132,9 @@ describe('BetterAuthIdentityResolverService', () => {
 
     expect(identity.brandId).toBe('brand_last');
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      _id: 'brand_last',
+      id: 'brand_last',
       isDeleted: false,
-      organization: 'org_3',
+      organizationId: 'org_3',
     });
   });
 

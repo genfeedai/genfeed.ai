@@ -63,7 +63,7 @@ describe('VideosLipSyncController', () => {
   } as unknown as User;
 
   const mockImageIngredient = {
-    brand: '507f1f77bcf86cd799439014',
+    brandId: '507f1f77bcf86cd799439099',
     category: IngredientCategory.IMAGE,
     id: '507f1f77bcf86cd799439001',
     organization: '507f1f77bcf86cd799439013',
@@ -97,7 +97,7 @@ describe('VideosLipSyncController', () => {
   let heygenService: { generatePhotoAvatarVideo: ReturnType<typeof vi.fn> };
   let ingredientsService: { findOne: ReturnType<typeof vi.fn> };
   let metadataService: { patch: ReturnType<typeof vi.fn> };
-  let sharedService: { saveDocuments: ReturnType<typeof vi.fn> };
+  let sharedService: { createMediaDocuments: ReturnType<typeof vi.fn> };
   let websocketService: {
     publishFileProcessing: ReturnType<typeof vi.fn>;
   };
@@ -120,7 +120,7 @@ describe('VideosLipSyncController', () => {
     };
     metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
     sharedService = {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: mockIngredientData,
         metadataData: mockMetadataData,
       }),
@@ -211,6 +211,15 @@ describe('VideosLipSyncController', () => {
         );
 
         expect(result).toEqual(mockIngredientData);
+      });
+
+      it('should inherit ownership from the image ingredient brandId', async () => {
+        await controller.createLipSyncVideo(mockReq, mockUser, mockDto);
+
+        expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+          mockUser,
+          expect.objectContaining({ brandId: mockImageIngredient.brandId }),
+        );
       });
 
       it('should call HeyGen with resolved photo and audio URLs', async () => {

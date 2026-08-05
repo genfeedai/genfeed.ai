@@ -1,9 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const activityAttributes = createEntityAttributes([
-  'user',
-  'organization',
-  'brand',
+  'userId',
+  'organizationId',
+  'brandId',
   'entityModel',
   'entityId',
   'key',

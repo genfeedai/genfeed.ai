@@ -9,6 +9,7 @@ import {
   isReplicateDestination,
 } from '@api/collections/models/utils/model-key.util';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { isCloudDeployment } from '@genfeedai/config';
 import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
@@ -20,6 +21,27 @@ const REPLICATE_IMAGE_MODELS: readonly string[] = [
   MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
   MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
 ];
+
+const LOCAL_PREDICTION_POLL_INTERVAL_MS = 2_000;
+const LOCAL_PREDICTION_TIMEOUT_MS = 180_000;
+
+type ReplicatePrediction = {
+  error?: string;
+  output?: unknown;
+  status?: string;
+};
+
+const extractOutputUrls = (output: unknown): string[] => {
+  if (typeof output === 'string') {
+    return [output];
+  }
+
+  if (!Array.isArray(output)) {
+    return [];
+  }
+
+  return output.filter((value): value is string => typeof value === 'string');
+};
 
 @Injectable()
 export class ReplicateImageGenerationProviderAdapter
@@ -37,6 +59,43 @@ export class ReplicateImageGenerationProviderAdapter
       !isFalDestination(model) &&
       !isGenfeedAiDestination(model) &&
       (REPLICATE_IMAGE_MODELS.includes(model) || isReplicateDestination(model))
+    );
+  }
+
+  private async waitForLocalPrediction(
+    predictionId: string,
+  ): Promise<string[]> {
+    const deadline = Date.now() + LOCAL_PREDICTION_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      const prediction = (await this.replicateService.getPrediction(
+        predictionId,
+      )) as ReplicatePrediction;
+
+      if (prediction.status === 'succeeded') {
+        const outputUrls = extractOutputUrls(prediction.output);
+        if (outputUrls.length === 0) {
+          throw new Error(
+            `Replicate prediction ${predictionId} succeeded without an output URL`,
+          );
+        }
+        return outputUrls;
+      }
+
+      if (prediction.status === 'failed' || prediction.status === 'canceled') {
+        throw new Error(
+          prediction.error ||
+            `Replicate prediction ${predictionId} ${prediction.status}`,
+        );
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, LOCAL_PREDICTION_POLL_INTERVAL_MS),
+      );
+    }
+
+    throw new Error(
+      `Replicate prediction ${predictionId} timed out after ${LOCAL_PREDICTION_TIMEOUT_MS}ms`,
     );
   }
 
@@ -89,7 +148,15 @@ export class ReplicateImageGenerationProviderAdapter
         if (!generationId) {
           throw new Error('No generation ID returned from Replicate');
         }
-        return { externalId: generationId, kind: 'external-id' };
+        const outputUrls = isCloudDeployment()
+          ? undefined
+          : await this.waitForLocalPrediction(generationId);
+
+        return {
+          externalId: generationId,
+          kind: 'external-id',
+          ...(outputUrls ? { outputUrls } : {}),
+        };
       },
       outputStrategy: isBatchSupported ? 'batch' : 'sequential',
       trackAdditionalOutputsInResponse: false,

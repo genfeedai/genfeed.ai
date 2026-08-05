@@ -44,17 +44,20 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 describe('ElementsLightingsController', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+  const brandId = '550e8400-e29b-41d4-a716-446655440003';
+  const lightingId = '550e8400-e29b-41d4-a716-446655440004';
   let controller: ElementsLightingsController;
   let lightingsService: vi.Mocked<ElementsLightingsService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: brandId,
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: organizationId,
+      user: userId,
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -84,6 +87,7 @@ describe('ElementsLightingsController', () => {
             findOne: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
+            supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
         },
       ],
@@ -96,7 +100,6 @@ describe('ElementsLightingsController', () => {
       ElementsLightingsController,
     );
     lightingsService = module.get(ElementsLightingsService);
-    loggerService = module.get(LoggerService);
 
     vi.spyOn(LightingSerializer, 'serialize').mockImplementation((data) => ({
       data: data as never,
@@ -119,8 +122,9 @@ describe('ElementsLightingsController', () => {
       } as unknown as CreateElementLightingDto;
 
       const mockCreatedLighting = {
-        _id: '507f191e810c19729de860ee',
+        id: lightingId,
         ...createDto,
+        organizationId,
       };
 
       lightingsService.create.mockResolvedValue(mockCreatedLighting as never);
@@ -138,15 +142,15 @@ describe('ElementsLightingsController', () => {
 
   describe('update', () => {
     it('should update a lighting for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementLightingDto = {
         label: 'Updated Lighting',
       } as unknown as UpdateElementLightingDto;
 
       const mockExistingLighting = {
-        _id: id,
+        id: lightingId,
         key: 'old-lighting',
         label: 'Old Lighting',
+        organizationId,
       };
 
       const mockUpdatedLighting = {
@@ -160,12 +164,12 @@ describe('ElementsLightingsController', () => {
       const result = await controller.update(
         mockRequest,
         mockSuperAdminUser,
-        id,
+        lightingId,
         updateDto,
       );
 
       expect(lightingsService.findOne).toHaveBeenCalledWith(
-        { _id: id },
+        { id: lightingId },
         expect.anything(),
       );
       expect(lightingsService.patch).toHaveBeenCalled();
@@ -173,7 +177,6 @@ describe('ElementsLightingsController', () => {
     });
 
     it('should throw error if lighting not found', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementLightingDto = {
         label: 'Updated Lighting',
       } as unknown as UpdateElementLightingDto;
@@ -181,19 +184,23 @@ describe('ElementsLightingsController', () => {
       lightingsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.update(mockRequest, mockSuperAdminUser, id, updateDto),
+        controller.update(
+          mockRequest,
+          mockSuperAdminUser,
+          lightingId,
+          updateDto,
+        ),
       ).rejects.toThrow(HttpException);
     });
   });
 
   describe('remove', () => {
     it('should remove a lighting for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
       const mockLighting = {
-        _id: id,
+        id: lightingId,
         key: 'delete-lighting',
         label: 'Lighting to Delete',
-        user: mockSuperAdminUser.publicMetadata.user as string,
+        organizationId,
       };
 
       lightingsService.findOne.mockResolvedValue(mockLighting as never);
@@ -202,14 +209,14 @@ describe('ElementsLightingsController', () => {
       const result = await controller.remove(
         mockRequest,
         mockSuperAdminUser,
-        id,
+        lightingId,
       );
 
       expect(lightingsService.findOne).toHaveBeenCalledWith({
-        _id: id,
+        id: lightingId,
         isDeleted: false,
       });
-      expect(lightingsService.remove).toHaveBeenCalledWith(id);
+      expect(lightingsService.remove).toHaveBeenCalledWith(lightingId);
       expect(result).toBeDefined();
     });
   });
@@ -218,8 +225,8 @@ describe('ElementsLightingsController', () => {
     it('should return paginated lightings', async () => {
       const mockLightings = {
         docs: [
-          { _id: '1', key: 'lighting-1', label: 'Lighting 1' },
-          { _id: '2', key: 'lighting-2', label: 'Lighting 2' },
+          { id: 'lighting-1', key: 'lighting-1', label: 'Lighting 1' },
+          { id: 'lighting-2', key: 'lighting-2', label: 'Lighting 2' },
         ],
         hasNextPage: false,
         hasPrevPage: false,

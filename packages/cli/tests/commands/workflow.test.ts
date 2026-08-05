@@ -94,9 +94,9 @@ describe('workflow command', () => {
     );
 
     expect(mockPost).toHaveBeenCalledWith('/workflow-executions', {
-      inputs: { topic: 'launch' },
+      inputValues: { topic: 'launch' },
       trigger: 'manual',
-      workflow: 'workflow-1',
+      workflowId: 'workflow-1',
     });
     expect(mockPrintJson).toHaveBeenCalledWith({
       executionId: 'exec-1',

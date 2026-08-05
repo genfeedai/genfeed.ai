@@ -31,15 +31,15 @@ export class VideoCacheStrategy {
 
   cacheVideo(
     videoId: string,
-    videoData: { user: string; brand: string } & Record<string, unknown>,
+    videoData: { userId: string; brandId: string } & Record<string, unknown>,
   ): Promise<boolean> {
     const key = this.cacheService.generateKey('video', videoId);
     return this.cacheService.set(key, videoData, {
       tags: [
         'videos',
         `video:${videoId}`,
-        `user:${videoData.user}`,
-        `brand:${videoData.brand}`,
+        `user:${videoData.userId}`,
+        `brand:${videoData.brandId}`,
       ],
       ttl: 900,
     });

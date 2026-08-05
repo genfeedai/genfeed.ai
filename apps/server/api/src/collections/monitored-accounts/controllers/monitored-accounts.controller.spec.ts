@@ -20,11 +20,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 describe('MonitoredAccountsController', () => {
   let controller: MonitoredAccountsController;
-  let monitoredAccountsService: MonitoredAccountsService;
   let apifyService: ApifyService;
-
-  const mockRequest = {} as never;
-  const mockUser = { id: 'user-123' } as never;
 
   const mockMonitoredAccountsService = {
     create: vi.fn(),
@@ -70,9 +66,6 @@ describe('MonitoredAccountsController', () => {
 
     controller = module.get<MonitoredAccountsController>(
       MonitoredAccountsController,
-    );
-    monitoredAccountsService = module.get<MonitoredAccountsService>(
-      MonitoredAccountsService,
     );
     apifyService = module.get<ApifyService>(ApifyService);
   });

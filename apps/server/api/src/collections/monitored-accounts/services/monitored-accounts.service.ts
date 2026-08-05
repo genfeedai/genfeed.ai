@@ -1,15 +1,43 @@
 import { CreateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/create-monitored-account.dto';
 import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/update-monitored-account.dto';
 import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+
+const MONITORED_ACCOUNT_CREATE_SCALAR_FIELDS = [
+  'botConfigId',
+  'brandId',
+  'credentialId',
+  'isActive',
+  'organizationId',
+  'userId',
+] as const;
+
+const MONITORED_ACCOUNT_UPDATE_SCALAR_FIELDS = [
+  'botConfigId',
+  'credentialId',
+  'isActive',
+] as const;
+
+const MONITORED_ACCOUNT_CONFIG_FIELDS = [
+  'avatarUrl',
+  'bio',
+  'displayName',
+  'externalId',
+  'filters',
+  'followersCount',
+  'platform',
+  'username',
+] as const;
 
 type AccountConfig = {
-  twitterUserId?: string;
+  externalId?: string;
   lastCheckedAt?: string;
   lastCheckedTweetId?: string;
   lastProcessedAt?: string;
@@ -17,6 +45,15 @@ type AccountConfig = {
   tweetsProcessedCount?: number;
   repliesSentCount?: number;
 };
+
+type MonitoredAccountOwnershipInput = {
+  brandId?: string;
+  organizationId?: string;
+  userId?: string;
+};
+
+type MonitoredAccountCreateInput = CreateMonitoredAccountDto &
+  MonitoredAccountOwnershipInput;
 
 @Injectable()
 export class MonitoredAccountsService extends BaseService<
@@ -31,27 +68,84 @@ export class MonitoredAccountsService extends BaseService<
     super(prisma, 'monitoredAccount', logger);
   }
 
-  create(
-    createDto: CreateMonitoredAccountDto,
-    populate: (string | PopulateOption)[] = [
-      { path: 'organization' },
-      { path: 'brand' },
-      { path: 'credential' },
-    ],
-  ): Promise<MonitoredAccountDocument> {
-    return super.create(createDto, populate);
+  protected override normalizeDocument(
+    document: unknown,
+  ): MonitoredAccountDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config =
+      record.config !== null &&
+      typeof record.config === 'object' &&
+      !Array.isArray(record.config)
+        ? (record.config as Record<string, unknown>)
+        : {};
+
+    return { ...config, ...record } as MonitoredAccountDocument;
   }
 
-  patch(
-    id: string,
-    updateDto: UpdateMonitoredAccountDto,
+  override create(
+    input: MonitoredAccountCreateInput,
     populate: (string | PopulateOption)[] = [
       { path: 'organization' },
       { path: 'brand' },
       { path: 'credential' },
     ],
   ): Promise<MonitoredAccountDocument> {
-    return super.patch(id, updateDto, populate);
+    if (!input.organizationId || !input.userId) {
+      throw new BadRequestException(
+        'Monitored account creation requires an organization and user id',
+      );
+    }
+
+    return super.create(
+      {
+        ...pickDefinedFields(input, MONITORED_ACCOUNT_CREATE_SCALAR_FIELDS),
+        config: pickDefinedFields(input, MONITORED_ACCOUNT_CONFIG_FIELDS),
+      } as unknown as CreateMonitoredAccountDto,
+      populate,
+    );
+  }
+
+  override async patch(
+    id: string,
+    input: UpdateMonitoredAccountDto,
+    populate: (string | PopulateOption)[] = [
+      { path: 'organization' },
+      { path: 'brand' },
+      { path: 'credential' },
+    ],
+  ): Promise<MonitoredAccountDocument> {
+    const configPatch = pickDefinedFields(
+      input,
+      MONITORED_ACCOUNT_CONFIG_FIELDS,
+    );
+    const hasConfigPatch = Object.keys(configPatch).length > 0;
+    let config: Record<string, unknown> | undefined;
+
+    if (hasConfigPatch) {
+      const existing = await this.prisma.monitoredAccount.findUnique({
+        where: { id },
+      });
+      if (!existing) {
+        throw new NotFoundException('MonitoredAccount', id);
+      }
+
+      const storedConfig =
+        existing.config &&
+        typeof existing.config === 'object' &&
+        !Array.isArray(existing.config)
+          ? (existing.config as Record<string, unknown>)
+          : {};
+      config = { ...storedConfig, ...configPatch };
+    }
+
+    return super.patch(
+      id,
+      {
+        ...pickDefinedFields(input, MONITORED_ACCOUNT_UPDATE_SCALAR_FIELDS),
+        ...(config ? { config } : {}),
+      } as unknown as UpdateMonitoredAccountDto,
+      populate,
+    );
   }
 
   /**
@@ -97,9 +191,7 @@ export class MonitoredAccountsService extends BaseService<
    * Increment the tweets processed count
    */
   async incrementProcessedCount(id: string): Promise<void> {
-    const existing = await this.prisma.monitoredAccount.findUnique({
-      where: { id },
-    });
+    const existing = await this.findOne({ id });
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({
@@ -117,9 +209,7 @@ export class MonitoredAccountsService extends BaseService<
    * Increment the replies sent count
    */
   async incrementRepliesCount(id: string): Promise<void> {
-    const existing = await this.prisma.monitoredAccount.findUnique({
-      where: { id },
-    });
+    const existing = await this.findOne({ id });
     const config = (existing?.config as AccountConfig) ?? {};
 
     await this.prisma.monitoredAccount.update({
@@ -134,10 +224,10 @@ export class MonitoredAccountsService extends BaseService<
   }
 
   /**
-   * Find by Twitter user ID (stored in config JSON)
+   * Find by platform account ID (stored in config JSON)
    */
-  async findByTwitterUserId(
-    twitterUserId: string,
+  async findByExternalId(
+    externalId: string,
     organizationId: string,
   ): Promise<MonitoredAccountDocument | null> {
     const accounts = await this.prisma.monitoredAccount.findMany({
@@ -145,7 +235,7 @@ export class MonitoredAccountsService extends BaseService<
     });
 
     const match = accounts.find(
-      (a) => (a.config as AccountConfig)?.twitterUserId === twitterUserId,
+      (account) => (account.config as AccountConfig)?.externalId === externalId,
     );
 
     return (match ?? null) as unknown as MonitoredAccountDocument | null;

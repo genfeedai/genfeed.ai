@@ -74,10 +74,10 @@ export class BotActivitiesController {
     const publicMetadata = getPublicMetadata(user);
 
     const activity = await this.botActivitiesService.findOne({
-      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
-      _id: id,
+      ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
     return serializeSingle(req, BotActivitySerializer, activity);
   }
@@ -92,7 +92,7 @@ export class BotActivitiesController {
     status: 200,
   })
   getStats(
-    @Query('replyBotConfig') replyBotConfigId: string,
+    @Query('replyBotConfigId') replyBotConfigId: string,
     @Query('fromDate') fromDate: string,
     @Query('toDate') toDate: string,
     @CurrentUser() user: User,

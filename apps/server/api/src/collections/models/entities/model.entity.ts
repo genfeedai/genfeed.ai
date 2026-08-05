@@ -1,27 +1,25 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { ModelCategory, ModelProvider, PricingType } from '@genfeedai/enums';
-import { type Model } from '@genfeedai/prisma';
 
-export class ModelEntity extends BaseEntity implements Model {
-  declare readonly organizationId: string;
+export class ModelEntity extends BaseEntity {
+  declare readonly organizationId: string | null;
   declare readonly externalId: string | null;
-  declare readonly config: Model['config'];
+  declare readonly providerConfig: Record<string, unknown>;
   declare readonly trainingId: string | null;
   declare readonly parentModelId: string | null;
-  declare readonly label: string | null;
+  declare readonly label: string;
   declare readonly provider: ModelProvider;
   declare readonly key: string;
   declare readonly category: ModelCategory;
   declare readonly cost: number;
   declare readonly isActive: boolean;
-  declare readonly description?: string;
+  declare readonly description: string | null;
   declare readonly isHighlighted: boolean;
   declare readonly isDefault: boolean;
 
-  // Dynamic pricing fields
-  declare readonly pricingType?: PricingType | 'per-token';
-  declare readonly costPerUnit?: number;
-  declare readonly minCost?: number;
-  declare readonly inputCostPerMillionTokens?: number;
-  declare readonly outputCostPerMillionTokens?: number;
+  declare readonly pricingType: PricingType | 'per-token' | null;
+  declare readonly costPerUnit: number | null;
+  declare readonly minCost: number | null;
+  declare readonly inputCostPerMillionTokens: number | null;
+  declare readonly outputCostPerMillionTokens: number | null;
 }

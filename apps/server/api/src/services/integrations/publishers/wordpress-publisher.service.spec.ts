@@ -73,15 +73,15 @@ describe('WordpressPublisherService', () => {
         settings: {},
         brandId: mockBrandId,
         credential: {
-          _id: '507f1f77bcf86cd799439011',
+          id: '507f1f77bcf86cd799439011',
           platform: CredentialPlatform.WORDPRESS,
         } as unknown as CredentialDocument,
         organization: {
-          _id: mockOrgId,
+          id: mockOrgId,
         } as unknown as OrganizationDocument,
         organizationId: mockOrgId,
         post: {
-          _id: '507f1f77bcf86cd799439012',
+          id: '507f1f77bcf86cd799439012',
           description: 'This is a test post',
           label: 'Test Post',
         } as unknown as PostEntity,
@@ -89,7 +89,7 @@ describe('WordpressPublisherService', () => {
       };
 
       const mockCredential = {
-        _id: '507f1f77bcf86cd799439011',
+        id: '507f1f77bcf86cd799439011',
         accessToken: 'encrypted-token',
         externalId: 'site-123',
         platform: CredentialPlatform.WORDPRESS,
@@ -111,15 +111,15 @@ describe('WordpressPublisherService', () => {
         settings: {},
         brandId: mockBrandId,
         credential: {
-          _id: '507f1f77bcf86cd799439011',
+          id: '507f1f77bcf86cd799439011',
           platform: CredentialPlatform.WORDPRESS,
         } as unknown as CredentialDocument,
         organization: {
-          _id: mockOrgId,
+          id: mockOrgId,
         } as unknown as OrganizationDocument,
         organizationId: mockOrgId,
         post: {
-          _id: '507f1f77bcf86cd799439012',
+          id: '507f1f77bcf86cd799439012',
           description: 'Test post',
         } as unknown as PostEntity,
         postId: 'post-123',
@@ -138,22 +138,22 @@ describe('WordpressPublisherService', () => {
         settings: {},
         brandId: mockBrandId,
         credential: {
-          _id: '507f1f77bcf86cd799439011',
+          id: '507f1f77bcf86cd799439011',
           platform: CredentialPlatform.WORDPRESS,
         } as unknown as CredentialDocument,
         organization: {
-          _id: mockOrgId,
+          id: mockOrgId,
         } as unknown as OrganizationDocument,
         organizationId: mockOrgId,
         post: {
-          _id: '507f1f77bcf86cd799439012',
+          id: '507f1f77bcf86cd799439012',
           description: 'Test post',
         } as unknown as PostEntity,
         postId: 'post-123',
       };
 
       const mockCredential = {
-        _id: '507f1f77bcf86cd799439011',
+        id: '507f1f77bcf86cd799439011',
         platform: CredentialPlatform.WORDPRESS,
         // Missing accessToken
       };
@@ -173,15 +173,15 @@ describe('WordpressPublisherService', () => {
         settings: {},
         brandId: mockBrandId,
         credential: {
-          _id: '507f1f77bcf86cd799439011',
+          id: '507f1f77bcf86cd799439011',
           platform: CredentialPlatform.WORDPRESS,
         } as unknown as CredentialDocument,
         organization: {
-          _id: mockOrgId,
+          id: mockOrgId,
         } as unknown as OrganizationDocument,
         organizationId: mockOrgId,
         post: {
-          _id: '507f1f77bcf86cd799439012',
+          id: '507f1f77bcf86cd799439012',
           description: 'Test content',
           label: 'Test Post',
         } as unknown as PostEntity,
@@ -189,7 +189,7 @@ describe('WordpressPublisherService', () => {
       };
 
       const mockCredential = {
-        _id: '507f1f77bcf86cd799439011',
+        id: '507f1f77bcf86cd799439011',
         accessToken: 'encrypted-token',
         externalId: 'site-123',
         platform: CredentialPlatform.WORDPRESS,

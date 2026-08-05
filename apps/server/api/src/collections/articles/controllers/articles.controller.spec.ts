@@ -35,21 +35,21 @@ describe('ArticlesController', () => {
   } as Request;
 
   const mockArticle = {
+    brandId: '507f1f77bcf86cd799439013',
     id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
     category: ArticleCategory.POST,
     content: 'This is the article content',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Test Article',
-    organization: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439012',
     scope: AssetScope.USER,
     slug: 'test-article',
     status: 'draft',
     summary: 'A test article summary',
     tags: [],
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439011',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as Article;
 
   const mockArticlesService = {
@@ -124,6 +124,25 @@ describe('ArticlesController', () => {
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  describe('findOne', () => {
+    it('queries the canonical article id and enforces organization access', async () => {
+      const articleId = '507f1f77bcf86cd799439014';
+
+      await controller.findOne(mockRequest, mockUser, articleId);
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            id: articleId,
+            isDeleted: false,
+            organizationId: mockPublicMetadata.organization,
+          },
+        },
+        { pagination: false },
+      );
+    });
   });
 
   describe('getVersions', () => {

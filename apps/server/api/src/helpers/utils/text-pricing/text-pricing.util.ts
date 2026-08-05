@@ -1,9 +1,9 @@
 type TextPricedModel = {
-  cost?: number;
-  pricingType?: string;
-  minCost?: number;
-  inputCostPerMillionTokens?: number;
-  outputCostPerMillionTokens?: number;
+  cost?: number | null;
+  pricingType?: string | null;
+  minCost?: number | null;
+  inputCostPerMillionTokens?: number | null;
+  outputCostPerMillionTokens?: number | null;
 };
 
 export function extractBillableText(value: unknown): string {

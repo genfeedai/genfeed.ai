@@ -52,7 +52,11 @@ export default function OutreachCampaignWizard() {
             campaignType={formData.campaignType}
             credential={formData.credential}
             description={formData.description}
-            filteredCredentials={filteredCredentials}
+            filteredCredentials={filteredCredentials.map((credential) => ({
+              externalHandle: credential.externalHandle ?? '',
+              id: credential.id,
+              platform: credential.platform,
+            }))}
             hashtags={formData.hashtags}
             keywords={formData.keywords}
             label={formData.label}

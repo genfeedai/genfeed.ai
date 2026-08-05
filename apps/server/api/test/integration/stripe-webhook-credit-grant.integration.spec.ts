@@ -313,18 +313,20 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     const organization = createTestOrganization({
       id: organizationId,
       label: `Test Org ${params.plan} ${organizationId}`,
-      user: userId,
+      userId,
     });
 
     await dbHelper.seedCollection('organizations', [organization]);
 
     const subscription: ISubscriptionOssReadModel = {
+      cancelAtPeriodEnd: false,
       id: generateIdString(),
-      organization: organizationId,
+      isDeleted: false,
+      organizationId,
+      plan: params.plan,
       status: 'active',
       stripeSubscriptionId: params.stripeSubscriptionId,
-      type: params.plan,
-      user: userId,
+      userId,
     };
     subscriptionsById.set(params.stripeSubscriptionId, subscription);
 

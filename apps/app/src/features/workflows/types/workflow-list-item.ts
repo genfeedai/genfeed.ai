@@ -4,8 +4,8 @@
  * to reduce payload size.
  */
 export interface WorkflowListItem {
-  _id: string;
-  name: string;
+  id: string;
+  label: string;
   description?: string;
   lifecycle: 'draft' | 'published' | 'archived';
   brandId?: string | null;

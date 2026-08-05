@@ -198,7 +198,7 @@ describe('ArticleFilterUtil', () => {
         },
         {
           isDeleted: false,
-          organization: '507f191e810c19729de860ee',
+          organizationId: '507f191e810c19729de860ee',
         },
       );
 
@@ -208,7 +208,7 @@ describe('ArticleFilterUtil', () => {
         where: {
           category: 'blog',
           isDeleted: false,
-          organization: '507f191e810c19729de860ee',
+          organizationId: '507f191e810c19729de860ee',
           scope: 'organization',
           status: 'DRAFT',
           tags: { some: { id: tag } },

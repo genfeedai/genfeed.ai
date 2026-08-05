@@ -58,7 +58,7 @@ export class PublicArticlesController {
       search,
       category,
       tag,
-      brand,
+      brandId,
       sortBy = 'publishedAt',
       sortOrder = 'desc',
     } = query;
@@ -89,8 +89,8 @@ export class PublicArticlesController {
     }
 
     // Filter by brand if provided
-    if (brand) {
-      matchQuery.brand = brand;
+    if (brandId) {
+      matchQuery.brandId = brandId;
     }
 
     const aggregate = {
@@ -153,7 +153,7 @@ export class PublicArticlesController {
     this.logger.log(url, { params: { articleId } });
 
     const article = await this.articlesService.findOne({
-      _id: articleId,
+      id: articleId,
       isDeleted: false,
       publishedAt: { not: null },
       ...ArticleFilterUtil.buildPublicArticleStatusFilter(),

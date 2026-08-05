@@ -159,7 +159,7 @@ export interface IChromaticNotificationPayload {
 }
 
 export interface IUserCreatedPayload {
-  _id: string;
+  id: string;
   email?: string;
   firstName?: string;
   lastName?: string;
@@ -174,8 +174,17 @@ export interface IIngredientNotificationPayload {
 }
 
 export interface IIngredientNotificationData {
-  _id: string;
+  id: string;
+  brand?: { label?: string };
   label?: string;
+  metadata?: {
+    duration?: number;
+    externalProvider?: string;
+    height?: number;
+    model?: string;
+    width?: number;
+  };
+  prompt?: { original?: string };
   type?: string;
   status?: string;
   thumbnailUrl?: string;

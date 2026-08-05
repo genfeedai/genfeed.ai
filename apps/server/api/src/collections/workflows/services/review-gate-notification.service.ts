@@ -253,10 +253,7 @@ export class ReviewGateNotificationService {
       ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
     } as CreateTaskDto & Record<string, unknown>);
 
-    return (
-      (created as { id?: string; _id?: string })?.id ??
-      (created as { _id?: string })?._id
-    );
+    return created.id;
   }
 
   private async resolveOwnerEmail(

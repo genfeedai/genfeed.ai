@@ -10,6 +10,8 @@ import type {
 import type { IBrandAgentPrompting } from './brand-profile.interface';
 
 export interface IBrand extends IBaseEntity {
+  organizationId?: string;
+  userId?: string;
   user: IUser;
   organization: IOrganization;
   credentials: ICredential[];

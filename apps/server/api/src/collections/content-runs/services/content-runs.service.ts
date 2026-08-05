@@ -182,14 +182,14 @@ export class ContentRunsService {
   async createRun(
     payload: CreateContentRunInput,
   ): Promise<Record<string, unknown>> {
-    const { brand, organization, status, ...config } = payload;
+    const { brandId, organizationId, status, ...config } = payload;
 
     const run = await this.prisma.contentRun.create({
       data: {
-        brandId: brand,
+        brandId,
         config: toContentRunJsonValue(config),
         isDeleted: false,
-        organizationId: organization,
+        organizationId,
         status,
       },
     });
@@ -203,14 +203,14 @@ export class ContentRunsService {
     input: CreateContentRunBriefDto,
   ): Promise<Record<string, unknown>> {
     return this.createRun({
-      brand: brandId,
+      brandId,
       brief: this.buildResearchBrief(input),
       creditsUsed: 0,
       input: {
         ...input,
         handoffType: 'research-to-brief',
       },
-      organization: organizationId,
+      organizationId,
       publish: this.buildResearchPublishContext(input),
       skillSlug: 'trend-remix',
       source: ContentRunSource.HOSTED,

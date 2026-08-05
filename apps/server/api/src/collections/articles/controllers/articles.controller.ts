@@ -86,10 +86,10 @@ export class ArticlesController extends BaseCRUDController<
         tag: query.tag,
       },
       {
-        brand: scope.brand ?? publicMetadata.brand,
+        brandId: scope.brandId ?? publicMetadata.brand,
         isDeleted: query.isDeleted ?? false,
-        organization: scope.organization ?? publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: scope.organizationId ?? publicMetadata.organization,
+        userId: publicMetadata.user,
       },
     );
   }
@@ -107,12 +107,17 @@ export class ArticlesController extends BaseCRUDController<
     @Param('id') articleId: string,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    const isSuperAdmin = getIsSuperAdmin(user, request);
 
-    // Build findAll query to fetch article with evaluation
+    // Scope the database read for regular users instead of hydrating another
+    // organization's article and rejecting it after the query.
     const pipeline = {
       where: {
-        _id: articleId,
+        id: articleId,
         isDeleted: false,
+        ...(!isSuperAdmin && {
+          organizationId: publicMetadata.organization.toString(),
+        }),
       },
     };
 
@@ -129,9 +134,8 @@ export class ArticlesController extends BaseCRUDController<
 
     // Check organization access
     if (
-      String(article.organization ?? article.organizationId) !==
-        publicMetadata.organization.toString() &&
-      !getIsSuperAdmin(user, request)
+      article.organizationId !== publicMetadata.organization.toString() &&
+      !isSuperAdmin
     ) {
       ErrorResponse.notFound(this.entityName, articleId);
     }
@@ -157,7 +161,7 @@ export class ArticlesController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const article = await this.articlesService.findOne({
-      _id: articleId,
+      id: articleId,
       isDeleted: false,
     });
 
@@ -166,8 +170,7 @@ export class ArticlesController extends BaseCRUDController<
     }
 
     if (
-      String(article.organization ?? article.organizationId) !==
-        publicMetadata.organization.toString() &&
+      article.organizationId !== publicMetadata.organization.toString() &&
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(this.entityName, articleId);

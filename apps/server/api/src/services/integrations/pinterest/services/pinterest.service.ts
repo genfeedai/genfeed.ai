@@ -37,9 +37,11 @@ export class PinterestService {
     return `https://www.pinterest.com/oauth/?${params.toString()}`;
   }
 
-  public async exchangeCodeForToken(
-    code: string,
-  ): Promise<{ accessToken: string; refreshToken?: string }> {
+  public async exchangeCodeForToken(code: string): Promise<{
+    accessToken: string;
+    expiresIn?: number;
+    refreshToken?: string;
+  }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       const clientId = this.configService.get('PINTEREST_CLIENT_ID');
@@ -66,9 +68,16 @@ export class PinterestService {
         ),
       );
 
-      this.loggerService.log(`${url} success`, response.data);
+      this.loggerService.log(`${url} success`, {
+        expiresIn: response.data.expires_in,
+        hasAccessToken: !!response.data.access_token,
+        hasRefreshToken: !!response.data.refresh_token,
+      });
       return {
         accessToken: response.data.access_token,
+        ...(typeof response.data.expires_in === 'number'
+          ? { expiresIn: response.data.expires_in }
+          : {}),
         refreshToken: response.data.refresh_token,
       };
     } catch (error: unknown) {
@@ -84,9 +93,9 @@ export class PinterestService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.PINTEREST,
       });
 
@@ -216,8 +225,8 @@ export class PinterestService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
-        organization: organizationId,
+        brandId: brandId,
+        organizationId: organizationId,
         platform: CredentialPlatform.PINTEREST,
       });
 

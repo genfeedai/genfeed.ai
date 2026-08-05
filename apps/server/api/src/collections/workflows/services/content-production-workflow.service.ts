@@ -284,8 +284,7 @@ export class ContentProductionWorkflowService {
     organizationId: string,
   ): Promise<void> {
     const brandId = String(brand.id);
-    const userId =
-      this.optionalString(brand.user ?? brand.userId) ?? organizationId;
+    const userId = this.optionalString(brand.userId) ?? organizationId;
     const strategy = this.readRecord(
       this.readRecord(brand.agentConfig).strategy,
     );

@@ -47,7 +47,7 @@ export class TagsController extends BaseCRUDController<
     // Prefer explicit `organization` query (collection style) over session org,
     // but only when authorized for that tenant.
     const orConditions: MatchConditions[] = [
-      { organization: null, user: null }, // global items (null, not missing)
+      { organizationId: null, userId: null },
     ];
 
     const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
@@ -55,22 +55,22 @@ export class TagsController extends BaseCRUDController<
       publicMetadata,
       getIsSuperAdmin(user),
     );
-    const organizationId = scope.organization;
+    const organizationId = scope.organizationId;
 
     if (organizationId) {
       orConditions.push({
-        organization: organizationId,
+        organizationId,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: publicMetadata.user });
+      orConditions.push({ userId: publicMetadata.user });
     }
 
     const matchConditions: MatchConditions = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
-      ...(scope.brand ? { brand: scope.brand } : {}),
+      ...(scope.brandId ? { brandId: scope.brandId } : {}),
       OR: orConditions,
     };
 
@@ -78,7 +78,7 @@ export class TagsController extends BaseCRUDController<
     // If both search and label are provided, search takes precedence
     // Note: category is a TagCategory enum — Prisma does not support `contains` on enum fields
     if (query.search) {
-      // Add search OR condition - MongoDB will AND it with the organization OR
+      // Prisma ANDs this search group with the ownership OR above.
       matchConditions.AND = [
         {
           OR: [
@@ -99,31 +99,5 @@ export class TagsController extends BaseCRUDController<
         : { createdAt: -1, key: 1, label: 1 },
       where: matchConditions,
     };
-  }
-
-  /**
-   * Override enrichCreateDto to support global tags
-   * If user is explicitly null, create global tag (all org/user/brand set to null)
-   * Otherwise, enrich with authenticated user context (normal tag)
-   */
-  public enrichCreateDto(
-    createDto: Partial<CreateTagDto> & { user?: string | null },
-    user: User,
-  ): CreateTagDto {
-    const dtoRecord = createDto as Record<string, unknown>;
-
-    // Check if explicitly requesting global tag (user explicitly set to null)
-    if (dtoRecord.user === null) {
-      // Create global tag - set user/org/brand to null
-      return {
-        ...createDto,
-        brand: null,
-        organization: null,
-        user: null,
-      } as unknown as CreateTagDto;
-    }
-
-    // Normal tag creation - enrich with authenticated user context
-    return super.enrichCreateDto(createDto, user);
   }
 }

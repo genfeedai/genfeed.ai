@@ -19,8 +19,6 @@ describe('content-run-data.util', () => {
       hydrateContentRun({
         brandId: 'brand-row',
         config: {
-          brand: 'brand-config',
-          organization: 'org-config',
           source: 'hosted',
           status: 'config-status',
         },
@@ -29,37 +27,28 @@ describe('content-run-data.util', () => {
         status: 'row-status',
       }),
     ).toEqual({
-      _id: 'run-1',
-      brand: 'brand-row',
       brandId: 'brand-row',
       config: {
-        brand: 'brand-config',
-        organization: 'org-config',
         source: 'hosted',
         status: 'config-status',
       },
       id: 'run-1',
-      organization: 'org-row',
       organizationId: 'org-row',
       source: 'hosted',
       status: 'row-status',
     });
   });
 
-  it('hydrates config fallback fields when row fields are missing', () => {
+  it('does not synthesize persistence fields from config', () => {
     expect(
       hydrateContentRun({
         config: {
-          brand: 'brand-config',
-          organization: 'org-config',
           status: 'config-status',
         },
         id: 'run-2',
       }),
     ).toMatchObject({
-      _id: 'run-2',
-      brand: 'brand-config',
-      organization: 'org-config',
+      id: 'run-2',
       status: 'config-status',
     });
   });

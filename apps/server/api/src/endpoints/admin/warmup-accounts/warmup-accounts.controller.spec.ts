@@ -53,7 +53,6 @@ const makeUser = () => ({
 });
 
 const makeWarmupAccount = () => ({
-  _id: 'warmup_1',
   brandName: 'Acme',
   diagnostics: { steps: [] },
   id: 'warmup_1',

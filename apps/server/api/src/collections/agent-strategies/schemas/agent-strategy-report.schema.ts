@@ -3,7 +3,6 @@ import type { AgentStrategyReport as PrismaAgentStrategyReport } from '@genfeeda
 
 export interface AgentStrategyReportDocument
   extends Omit<PrismaAgentStrategyReport, 'data'> {
-  _id: string;
   allocationChanges?: string[];
   bestPlatformFormatPairs?: Array<Record<string, unknown>>;
   bestPostingWindows?: string[];

@@ -81,7 +81,7 @@ describe('VideosEditsController', () => {
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { findOne: vi.fn(), patch: vi.fn() },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
         metadataData: { id: metadataId },
       }),
@@ -142,7 +142,7 @@ describe('VideosEditsController', () => {
       { endTime: 10, startTime: 2 },
     );
     expect(result).toBeDefined();
-    expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+    expect(mockServices.sharedService.createMediaDocuments).toHaveBeenCalled();
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalled();
   });
 

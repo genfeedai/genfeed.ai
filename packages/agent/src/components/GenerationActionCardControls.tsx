@@ -1,9 +1,17 @@
 import type { GenerationModel } from '@genfeedai/agent/services/agent-api.service';
-import type { RouterPriority } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  DropdownDirection,
+  type RouterPriority,
+} from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,
@@ -12,6 +20,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import { Play } from 'lucide-react';
 import type { ReactElement, RefObject } from 'react';
 
 type GenerationActionCardControlsProps = {
@@ -34,6 +43,10 @@ type GenerationActionCardControlsProps = {
   duration: number;
   durationOptions: number[];
   onDurationChange: (value: number) => void;
+  isImage: boolean;
+  isPromptEmpty: boolean;
+  showGenerate: boolean;
+  onGenerate: () => void;
 };
 
 export function GenerationActionCardControls({
@@ -56,6 +69,10 @@ export function GenerationActionCardControls({
   duration,
   durationOptions,
   onDurationChange,
+  isImage,
+  isPromptEmpty,
+  showGenerate,
+  onGenerate,
 }: GenerationActionCardControlsProps): ReactElement {
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
@@ -82,14 +99,17 @@ export function GenerationActionCardControls({
       </div>
 
       {/* Model & Aspect Ratio row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
+      <div className="flex items-end gap-3">
+        {/* Every control in this row sizes to its own content — flex-1 here let
+            the model picker eat ~80% of the row and stretched its label away
+            from the chevron while the siblings stayed compact. */}
+        <div className="min-w-0 shrink-0">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Model
           </span>
           {modelsLoading ? (
             <Select disabled value="loading-models">
-              <SelectTrigger className="w-full">
+              <SelectTrigger className={cn('w-44', SHELL_CONTROL_HEIGHT_CLASS)}>
                 <SelectValue placeholder="Loading Genfeed models…" />
               </SelectTrigger>
               <SelectContent>
@@ -102,7 +122,7 @@ export function GenerationActionCardControls({
             <div className={isDisabled ? 'pointer-events-none opacity-50' : ''}>
               <ModelSelectorPopover
                 name="models"
-                className="w-full justify-between border border-border bg-background hover:bg-accent/50"
+                className="border border-border bg-background hover:bg-accent/50"
                 models={filteredModels}
                 values={
                   isAutoMode
@@ -121,7 +141,7 @@ export function GenerationActionCardControls({
             </div>
           )}
         </div>
-        <div>
+        <div className="shrink-0">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Aspect Ratio
           </span>
@@ -130,40 +150,56 @@ export function GenerationActionCardControls({
             value={aspectRatio}
             ratios={availableAspectRatios}
             onChange={onAspectRatioChange}
-            className="w-full justify-between border border-border bg-background hover:bg-accent/50"
+            className="border border-border bg-background hover:bg-accent/50"
             isDisabled={isDisabled}
+            direction={DropdownDirection.UP}
             placeholder="Aspect ratio"
           />
         </div>
-      </div>
+        {/* Duration (video only, if model supports it) */}
+        {showDuration ? (
+          <div className="shrink-0">
+            <label
+              htmlFor="gen-action-duration"
+              className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+            >
+              Duration (seconds)
+            </label>
+            <Select
+              value={String(duration)}
+              onValueChange={(value) => onDurationChange(Number(value))}
+              disabled={isDisabled}
+            >
+              <SelectTrigger
+                id="gen-action-duration"
+                className={cn('w-28', SHELL_CONTROL_HEIGHT_CLASS)}
+              >
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent>
+                {durationOptions.map((option) => (
+                  <SelectItem key={option} value={String(option)}>
+                    {option}s
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
 
-      {/* Duration (video only, if model supports it) */}
-      {showDuration && (
-        <div>
-          <label
-            htmlFor="gen-action-duration"
-            className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+        {showGenerate ? (
+          <Button
+            className={cn('shrink-0 px-3 text-xs', SHELL_CONTROL_HEIGHT_CLASS)}
+            isDisabled={isPromptEmpty}
+            onClick={onGenerate}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
           >
-            Duration (seconds)
-          </label>
-          <Select
-            value={String(duration)}
-            onValueChange={(value) => onDurationChange(Number(value))}
-            disabled={isDisabled}
-          >
-            <SelectTrigger id="gen-action-duration" className="w-full">
-              <SelectValue placeholder="Select duration" />
-            </SelectTrigger>
-            <SelectContent>
-              {durationOptions.map((option) => (
-                <SelectItem key={option} value={String(option)}>
-                  {option}s
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+            <Play className="size-3.5" />
+            Generate {isImage ? 'Image' : 'Video'}
+          </Button>
+        ) : null}
+      </div>
     </>
   );
 }

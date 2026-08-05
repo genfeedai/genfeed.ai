@@ -14,7 +14,6 @@ export interface CreativePatternExample {
 }
 
 export interface CreativePatternDocument extends Omit<CreativePattern, 'data'> {
-  _id: string;
   avgPerformanceScore?: number;
   brand?: string | null;
   data?: Record<string, unknown>;

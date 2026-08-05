@@ -473,9 +473,9 @@ describe('InputValidationUtil', () => {
     });
   });
 
-  describe('validateObjectId', () => {
+  describe('validateEntityId', () => {
     it('should validate supported entity id strings', () => {
-      const result = InputValidationUtil.validateObjectId(
+      const result = InputValidationUtil.validateEntityId(
         'clv2f9w8d000008l4h9a1b2c3',
         'idField',
       );
@@ -485,21 +485,21 @@ describe('InputValidationUtil', () => {
 
     it('should throw error for invalid id format', () => {
       expectValidationDetail(
-        () => InputValidationUtil.validateObjectId('not-an-id', 'idField'),
+        () => InputValidationUtil.validateEntityId('not-an-id', 'idField'),
         'Invalid idField format. Must be a valid entity id.',
       );
     });
 
     it('should throw error for non-string value', () => {
       expectValidationDetail(
-        () => InputValidationUtil.validateObjectId(123, 'idField'),
+        () => InputValidationUtil.validateEntityId(123, 'idField'),
         'idField is required and must be a string',
       );
     });
 
     it('should throw error for null value', () => {
       expectValidationDetail(
-        () => InputValidationUtil.validateObjectId(null, 'idField'),
+        () => InputValidationUtil.validateEntityId(null, 'idField'),
         'idField is required and must be a string',
       );
     });

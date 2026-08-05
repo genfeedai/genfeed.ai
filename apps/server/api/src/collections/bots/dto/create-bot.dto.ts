@@ -4,7 +4,6 @@ import { BotMonitoringSettingsDto } from '@api/collections/bots/dto/bot-monitori
 import { BotPublishingSettingsDto } from '@api/collections/bots/dto/bot-publishing-settings.dto';
 import { BotSettingsDto } from '@api/collections/bots/dto/bot-settings.dto';
 import { BotTargetDto } from '@api/collections/bots/dto/bot-target.dto';
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { BotCategory, BotPlatform, BotStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -18,30 +17,6 @@ import {
 } from 'class-validator';
 
 export class CreateBotDto {
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Organization that owns the bot',
-    required: false,
-  })
-  organization?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Brand the bot is scoped to',
-    required: false,
-  })
-  brand?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'User that configured the bot',
-    required: false,
-  })
-  user?: string;
-
   @IsString()
   @MaxLength(120)
   @ApiProperty({

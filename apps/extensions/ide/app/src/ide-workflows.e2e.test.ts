@@ -446,7 +446,7 @@ mock.module('@services/api.service', () => ({
     ): Promise<RunRecord> {
       apiCalls.createAndExecuteRun.push({ actionType, input, options });
       return {
-        _id: `run-${actionType}`,
+        id: `run-${actionType}`,
         actionType,
         output: {
           text: 'Generated post content',
@@ -462,7 +462,7 @@ mock.module('@services/api.service', () => ({
 
     async getRun(runId: string): Promise<RunRecord> {
       return {
-        _id: runId,
+        id: runId,
         actionType: 'generate',
         progress: 100,
         status: 'completed',

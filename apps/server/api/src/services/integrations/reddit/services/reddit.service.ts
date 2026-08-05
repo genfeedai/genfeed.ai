@@ -44,8 +44,8 @@ export class RedditService {
     brandId: string,
   ): Promise<CredentialDocument> {
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
+      brandId: brandId,
+      organizationId: organizationId,
       platform: CredentialPlatform.REDDIT,
     });
 

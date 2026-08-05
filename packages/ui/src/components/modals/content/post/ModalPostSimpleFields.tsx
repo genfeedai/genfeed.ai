@@ -42,16 +42,17 @@ export default function ModalPostSimpleFields({
         </Alert>
       )}
 
-      {!isEditMode && credentials.length > 0 && (
-        <FormControl error={form.formState.errors.credential?.message}>
-          <PlatformSelector
-            credentials={credentials}
-            selectedCredentialId={form.watch('credential')}
-            onSelect={onCredentialSelect}
-            isDisabled={isSubmitting}
-          />
-        </FormControl>
-      )}
+      {(!isEditMode || !form.watch('credentialId')) &&
+        credentials.length > 0 && (
+          <FormControl error={form.formState.errors.credentialId?.message}>
+            <PlatformSelector
+              credentials={credentials}
+              selectedCredentialId={form.watch('credentialId')}
+              onSelect={onCredentialSelect}
+              isDisabled={isSubmitting}
+            />
+          </FormControl>
+        )}
 
       {selectedPlatform !== Platform.TWITTER && (
         <FormControl

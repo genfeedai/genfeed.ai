@@ -105,7 +105,7 @@ export class DevtoService {
     try {
       const apiKey = await this.getDecryptedApiKey(organizationId, brandId);
 
-      const article = await this.articlesService.findOne({ _id: articleId });
+      const article = await this.articlesService.findOne({ id: articleId });
 
       if (!article) {
         throw new Error('Article not found');
@@ -170,9 +170,9 @@ export class DevtoService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
+      brandId: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.DEV_TO,
     });
 

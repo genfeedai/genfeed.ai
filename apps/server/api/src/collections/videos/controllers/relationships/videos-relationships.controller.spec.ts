@@ -42,9 +42,9 @@ describe('VideosRelationshipsController', () => {
 
   const mockVideo = {
     id: '507f1f77bcf86cd799439011',
-    organization: '507f1f77bcf86cd799439013',
-    parent: '507f1f77bcf86cd799439010',
-    user: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439013',
+    parentId: '507f1f77bcf86cd799439010',
+    userId: '507f1f77bcf86cd799439012',
   };
 
   const mockUser = {
@@ -71,7 +71,7 @@ describe('VideosRelationshipsController', () => {
     loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
     metadataService: { patch: vi.fn() },
     postsService: { findAll: vi.fn() },
-    sharedService: { saveDocuments: vi.fn() },
+    sharedService: { createMediaDocuments: vi.fn() },
     videosService: { findAll: vi.fn(), findOne: vi.fn() },
     websocketService: {
       publishBackgroundTaskUpdate: vi.fn(),
@@ -156,7 +156,12 @@ describe('VideosRelationshipsController', () => {
 
       const result = await controller.findChildren(mockReq, videoId, query);
 
-      expect(videosService.findAll).toHaveBeenCalled();
+      expect(videosService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ parentId: videoId }),
+        }),
+        expect.anything(),
+      );
       expect(result).toBeDefined();
     });
   });
@@ -169,8 +174,8 @@ describe('VideosRelationshipsController', () => {
       const mockData = {
         docs: [
           {
-            _id: '507f1f77bcf86cd799439020',
-            ingredient: videoId,
+            id: '507f1f77bcf86cd799439020',
+            ingredients: [{ id: videoId }],
             platform: 'twitter',
             status: 'published',
           },
@@ -190,7 +195,16 @@ describe('VideosRelationshipsController', () => {
         query,
       );
 
-      expect(postsService.findAll).toHaveBeenCalled();
+      expect(postsService.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            ingredients: { some: { id: videoId } },
+            organizationId: mockUser.publicMetadata.organization,
+            userId: mockUser.publicMetadata.user,
+          }),
+        }),
+        expect.anything(),
+      );
       expect(result).toBeDefined();
     });
   });
@@ -207,7 +221,7 @@ describe('VideosRelationshipsController', () => {
         docs: [mockVideo, { ...mockVideo, id: '507f1f77bcf86cd799439012' }],
         total: 2,
       });
-      mockServices.sharedService.saveDocuments.mockResolvedValue({
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: {
           id: '507f1f77bcf86cd799439015',
         },

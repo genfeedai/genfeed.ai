@@ -38,8 +38,11 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import {
+  invalidateAllPaginatedQueryCaches,
+  invalidateCollectionQueryCache,
+} from '@api/shared/utils/query-cache/query-cache.util';
 import {
   ArticleScope,
   ArticleStatus,
@@ -168,8 +171,8 @@ export class ArticlesService extends BaseService<
       CACHE_TAGS.ARTICLES,
       collectionName,
       `collection:${collectionName}`,
-      `agg:${collectionName}`,
-      'agg:paginated',
+      `query:${collectionName}`,
+      'query:paginated',
     ];
 
     if (includePublic) {
@@ -646,18 +649,13 @@ export class ArticlesService extends BaseService<
     if (this.cacheService) {
       const collectionName = this.collectionName;
       // Invalidate all possible cache tags
-      await AggregationCacheUtil.invalidateCollectionCache(
-        this.cacheService,
-        collectionName,
-      );
-      await AggregationCacheUtil.invalidateAllAggregationCache(
-        this.cacheService,
-      );
+      await invalidateCollectionQueryCache(this.cacheService, collectionName);
+      await invalidateAllPaginatedQueryCaches(this.cacheService);
       await this.cacheService.invalidateByTags([
         'articles',
         `collection:${collectionName}`,
-        `agg:${collectionName}`,
-        'agg:paginated',
+        `query:${collectionName}`,
+        'query:paginated',
       ]);
     }
 
@@ -924,16 +922,10 @@ export class ArticlesService extends BaseService<
     }
 
     const userIds = [
-      ...new Set(
-        docs.map((d) => (d.userId ?? d.user)?.toString()).filter(Boolean),
-      ),
+      ...new Set(docs.map((d) => d.userId?.toString()).filter(Boolean)),
     ] as string[];
     const orgIds = [
-      ...new Set(
-        docs
-          .map((d) => (d.organizationId ?? d.organization)?.toString())
-          .filter(Boolean),
-      ),
+      ...new Set(docs.map((d) => d.organizationId?.toString()).filter(Boolean)),
     ] as string[];
 
     // Scope by id. Never load the full users/orgs tables — that is both an
@@ -977,8 +969,8 @@ export class ArticlesService extends BaseService<
     );
 
     for (const doc of docs) {
-      const docUserId = (doc.userId ?? doc.user)?.toString();
-      const docOrgId = (doc.organizationId ?? doc.organization)?.toString();
+      const docUserId = doc.userId?.toString();
+      const docOrgId = doc.organizationId?.toString();
       if (docUserId && usersMap.has(docUserId)) {
         doc.user = usersMap.get(docUserId);
       }

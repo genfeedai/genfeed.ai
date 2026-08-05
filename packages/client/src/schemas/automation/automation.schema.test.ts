@@ -76,7 +76,7 @@ describe('automation schemas', () => {
       expect(
         monitoredAccountSchema.safeParse({
           platform: ReplyBotPlatform.TWITTER,
-          platformUserId: '123',
+          externalId: '123',
           username: 'user',
         }).success,
       ).toBe(true);
@@ -86,7 +86,7 @@ describe('automation schemas', () => {
       expect(
         monitoredAccountSchema.safeParse({
           platform: ReplyBotPlatform.TWITTER,
-          platformUserId: '123',
+          externalId: '123',
           username: '',
         }).success,
       ).toBe(false);
@@ -97,7 +97,7 @@ describe('automation schemas', () => {
         monitoredAccountSchema.safeParse({
           avatarUrl: '',
           platform: ReplyBotPlatform.TWITTER,
-          platformUserId: '123',
+          externalId: '123',
           username: 'u',
         }).success,
       ).toBe(true);

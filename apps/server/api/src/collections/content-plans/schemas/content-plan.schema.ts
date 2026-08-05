@@ -17,7 +17,6 @@ export interface ContentPlanConfig {
 export interface ContentPlanDocument
   extends Omit<PrismaContentPlan, 'config'>,
     ContentPlanConfig {
-  _id: string;
   brand?: string | null;
   config?: Record<string, unknown>;
   createdBy?: string | null;

@@ -4,7 +4,7 @@ import { HTTPBaseService } from '@services/core/interceptor.service';
 export type AgentGoalMetric = 'engagement_rate' | 'posts' | 'views';
 
 export interface AgentGoal {
-  brand?: string;
+  brandId?: string;
   currentValue: number;
   description?: string;
   endDate?: string;
@@ -19,7 +19,7 @@ export interface AgentGoal {
 }
 
 export interface CreateAgentGoalInput {
-  brand?: string;
+  brandId?: string;
   description?: string;
   endDate?: string;
   isActive?: boolean;

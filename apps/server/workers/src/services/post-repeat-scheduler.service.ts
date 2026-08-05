@@ -74,11 +74,8 @@ export class PostRepeatSchedulerService {
         return;
       }
 
-      const organizationId = this.readPostString(post, [
-        'organizationId',
-        'organization',
-      ]);
-      const actorUserId = this.readPostString(post, ['userId', 'user']);
+      const organizationId = post.organizationId;
+      const actorUserId = post.userId;
       // Occurrence #2+ must carry a version-bound PublishApproval so the
       // scheduled sweep can enqueue approvalId + operationId + versionPinId.
       // Without this, cron.posts.service terminal-fails non-retryably.
@@ -87,7 +84,7 @@ export class PostRepeatSchedulerService {
           'Legacy repeat requires organization and user to create publish approval.',
         );
       }
-      const timezone = this.readPostString(post, ['timezone']);
+      const timezone = post.timezone;
 
       const postData = {
         ...(post.agentThreadId
@@ -97,17 +94,16 @@ export class PostRepeatSchedulerService {
               agentThreadId: post.agentThreadId,
             }
           : {}),
-        brand: this.readPostString(post, ['brandId', 'brand']) ?? '',
+        brandId: post.brandId,
         category: (post.category as PostCategory) || PostCategory.VIDEO,
-        credential:
-          this.readPostString(post, ['credentialId', 'credential']) ?? '',
+        credentialId: post.credentialId,
         description: post.description,
         ingredients: post.ingredients || [],
         isRepeat: true,
         label: post.label,
         maxRepeats: post.maxRepeats,
-        organization: organizationId,
-        platform: post.platform,
+        organizationId,
+        platform: post.platform ?? undefined,
         repeatCount: nextRepeatCount,
         repeatDaysOfWeek: post.repeatDaysOfWeek,
         repeatEndDate: post.repeatEndDate,
@@ -117,7 +113,7 @@ export class PostRepeatSchedulerService {
         status: PostStatus.SCHEDULED,
         tags: post.tags,
         ...(timezone ? { timezone } : {}),
-        user: actorUserId,
+        userId: actorUserId,
       };
 
       const newPost = await this.postsService.create(postData);
@@ -162,11 +158,8 @@ export class PostRepeatSchedulerService {
   }
 
   async materializeRecurrence(post: PostEntity): Promise<void> {
-    const groupId = this.readPostString(post, ['groupId']);
-    const organizationId = this.readPostString(post, [
-      'organizationId',
-      'organization',
-    ]);
+    const groupId = post.groupId ?? undefined;
+    const organizationId = post.organizationId;
     if (
       !groupId ||
       !organizationId ||
@@ -192,7 +185,7 @@ export class PostRepeatSchedulerService {
         organizationId,
         source: 'PostRepeatSchedulerService.materializeRecurrence',
         trigger: WorkflowExecutionTrigger.SCHEDULED,
-        userId: this.readPostString(post, ['userId', 'user']),
+        userId: post.userId,
       },
       (provenance) =>
         this.releaseRecurrenceMaterializerService.materializeNext({
@@ -228,29 +221,20 @@ export class PostRepeatSchedulerService {
                 agentThreadId: originalParent.agentThreadId,
               }
             : {}),
-          brand:
-            this.readPostString(originalParent, ['brandId', 'brand']) ?? '',
+          brandId: originalParent.brandId,
           category:
             (child.category as PostCategory | undefined) || PostCategory.TEXT,
-          credential:
-            this.readPostString(originalParent, [
-              'credentialId',
-              'credential',
-            ]) ?? '',
+          credentialId: originalParent.credentialId,
           description: child.description || '',
           ingredients: ingredientIds,
           label: child.label || '',
           order: child.order || 0,
-          organization:
-            this.readPostString(originalParent, [
-              'organizationId',
-              'organization',
-            ]) ?? '',
-          parent: newParentId,
+          organizationId: originalParent.organizationId,
+          parentId: newParentId,
           platform: originalParent.platform as never,
           scheduledDate: newScheduledDate,
           status: PostStatus.SCHEDULED,
-          user: this.readPostString(originalParent, ['userId', 'user']) ?? '',
+          userId: originalParent.userId,
         });
       } catch (error: unknown) {
         this.logger.error(`${url} failed to clone child for repeat`, {
@@ -305,26 +289,5 @@ export class PostRepeatSchedulerService {
     }
 
     return nextDate;
-  }
-
-  private readPostString(
-    post: PostEntity,
-    keys: readonly string[],
-  ): string | undefined {
-    const record = post as unknown as Record<string, unknown>;
-    for (const key of keys) {
-      const value = record[key];
-      if (typeof value === 'string' && value.length > 0) {
-        return value;
-      }
-      if (value && typeof value === 'object' && 'id' in value) {
-        const id = (value as { id?: unknown }).id;
-        if (typeof id === 'string' && id.length > 0) {
-          return id;
-        }
-      }
-    }
-
-    return undefined;
   }
 }

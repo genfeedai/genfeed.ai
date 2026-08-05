@@ -1,3 +1,4 @@
+export * from './agent-chat-models.constant';
 export * from './api.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
@@ -23,6 +24,7 @@ export * from './platform-settings.constant';
 export * from './platforms.constant';
 export * from './post-quick-actions.constant';
 export * from './routes.constant';
+export * from './self-hosted-models.constant';
 export * from './settings-scope.constant';
 export * from './theme.constant';
 export * from './trends.constant';

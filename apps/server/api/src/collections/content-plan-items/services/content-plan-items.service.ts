@@ -162,7 +162,6 @@ export class ContentPlanItemsService {
 
     return {
       ...doc,
-      _id: doc.mongoId ?? doc.id,
       brand: doc.brandId,
       confidence: asNumber(data.confidence),
       contentDraftId: asString(data.contentDraftId) ?? null,

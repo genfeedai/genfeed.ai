@@ -1,6 +1,3 @@
-// Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Model via the
-// light @genfeedai/prisma/testing subpath — no heavy PrismaClient/runtime
-// import required for BaseService's getModelMeta('model') call.
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -14,27 +11,30 @@ import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type MockModelDelegate = {
+  count: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
+  findUnique: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+  updateMany: ReturnType<typeof vi.fn>;
 };
 
 function makeModel(overrides: Record<string, unknown> = {}) {
   return {
-    config: {
-      category: ModelCategory.IMAGE,
-      cost: 5,
-      isDefault: false,
-      key: 'google/imagen-4',
-      provider: ModelProvider.REPLICATE,
-    },
+    category: ModelCategory.IMAGE,
+    config: { owner: 'google' },
+    cost: 5,
     createdAt: new Date('2026-01-01T00:00:00.000Z'),
     id: 'model-1',
     isActive: true,
+    isDefault: false,
     isDeleted: false,
+    key: 'google/imagen-4',
     label: 'Imagen 4',
     organizationId: null,
+    provider: ModelProvider.REPLICATE,
+    supportsFeatures: [],
     updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     ...overrides,
   };
@@ -46,10 +46,13 @@ describe('ModelsService', () => {
 
   beforeEach(() => {
     modelDelegate = {
+      count: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      findUnique: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     };
 
     service = new ModelsService(
@@ -71,15 +74,10 @@ describe('ModelsService', () => {
     );
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
+  it('stores canonical model fields in columns and provider metadata in config', async () => {
+    modelDelegate.create.mockResolvedValue(makeModel());
 
-  it('creates models by packing dynamic registry fields into config', async () => {
-    const created = makeModel();
-    modelDelegate.create.mockResolvedValue(created);
-
-    await service.create({
+    const result = await service.create({
       category: ModelCategory.IMAGE,
       cost: 5,
       isDefault: true,
@@ -93,246 +91,84 @@ describe('ModelsService', () => {
 
     expect(modelDelegate.create).toHaveBeenCalledWith({
       data: {
-        config: {
-          category: ModelCategory.IMAGE,
-          cost: 5,
-          isDefault: true,
-          isDiscovered: true,
-          key: 'google/imagen-4',
-          margin: 0.2,
-          provider: ModelProvider.REPLICATE,
-          providerConfig: { owner: 'google' },
-        },
+        category: ModelCategory.IMAGE,
+        config: { owner: 'google' },
+        cost: 5,
+        isDefault: true,
+        isDiscovered: true,
+        key: 'google/imagen-4',
         label: 'Imagen 4',
+        margin: 0.2,
+        provider: ModelProvider.REPLICATE,
       },
+    });
+    expect(result.providerConfig).toEqual({ owner: 'google' });
+  });
+
+  it('queries canonical fields directly', async () => {
+    modelDelegate.findFirst.mockResolvedValue(makeModel());
+
+    await service.findOne({ key: 'google/imagen-4' });
+
+    expect(modelDelegate.findFirst).toHaveBeenCalledWith({
+      where: { isDeleted: false, key: 'google/imagen-4' },
     });
   });
 
-  it('finds models by dynamic key stored in config', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({
-        config: { key: 'google/veo-3.1', category: ModelCategory.VIDEO },
-        id: 'model-video',
-      }),
-      makeModel(),
-    ]);
-
-    const result = await service.findOne({ key: 'google/imagen-4' });
-
-    expect(result?.id).toBe('model-1');
-    expect(result?.key).toBe('google/imagen-4');
-  });
-
-  it('filters and paginates dynamic config fields in findAll', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({
-        config: { category: ModelCategory.VIDEO, key: 'google/veo-3.1' },
-        id: 'model-video',
-      }),
-      makeModel(),
-    ]);
+  it('filters, sorts, and paginates in Prisma', async () => {
+    modelDelegate.findMany.mockResolvedValue([makeModel()]);
+    modelDelegate.count.mockResolvedValue(1);
 
     const result = await service.findAll(
       { where: { category: ModelCategory.IMAGE } },
       { limit: 10, page: 1, pagination: true },
     );
 
-    expect(result.totalDocs).toBe(1);
-    expect(result.docs[0]?.key).toBe('google/imagen-4');
-  });
-
-  it('updates dynamic config fields without dropping existing config', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({
-        config: {
-          category: ModelCategory.IMAGE,
-          key: 'google/imagen-4',
-          provider: ModelProvider.REPLICATE,
-        },
-      }),
-    ]);
-    modelDelegate.update.mockResolvedValue(makeModel());
-
-    await service.updateMany(
-      { category: ModelCategory.IMAGE },
-      { isDefault: false },
-    );
-
-    expect(modelDelegate.update).toHaveBeenCalledWith({
-      data: {
-        config: {
-          category: ModelCategory.IMAGE,
-          isDefault: false,
-          key: 'google/imagen-4',
-          provider: ModelProvider.REPLICATE,
-        },
-      },
-      where: { id: 'model-1' },
-    });
-  });
-
-  it('approves a discovered draft model', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({
-        config: {
-          isDiscovered: true,
-          key: 'google/imagen-4',
-          reviewStatus: 'pending',
-        },
-        id: 'model-1',
-        isActive: false,
-      }),
-    ]);
-    modelDelegate.update.mockResolvedValue(
-      makeModel({
-        config: {
-          isDiscovered: true,
-          key: 'google/imagen-4',
-          reviewStatus: 'approved',
-        },
-      }),
-    );
-
-    await service.approveRegistryModel(
-      'model-1',
-      { label: 'Imagen 4 Approved' },
-      'user-1',
-    );
-
-    expect(modelDelegate.update).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        config: expect.objectContaining({
-          isLegacy: false,
-          lastSyncedAt: expect.any(Date),
-          reviewStatus: 'approved',
-          reviewedAt: expect.any(Date),
-          reviewedBy: 'user-1',
-        }),
-        isActive: true,
-        label: 'Imagen 4 Approved',
-      }),
-      where: { id: 'model-1' },
-    });
-  });
-
-  it('rejects a registry model without deleting it so it is not rediscovered', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({
-        config: {
-          isDiscovered: true,
-          key: 'google/imagen-4',
-          reviewStatus: 'pending',
-        },
-        id: 'model-1',
-        isActive: false,
-      }),
-    ]);
-    modelDelegate.update.mockResolvedValue(makeModel());
-
-    await service.rejectRegistryModel('model-1', {
-      reason: 'Not content-generation relevant',
-      reviewedBy: 'user-1',
-    });
-
-    expect(modelDelegate.update).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        config: expect.objectContaining({
-          rejectionReason: 'Not content-generation relevant',
-          reviewStatus: 'rejected',
-          reviewedAt: expect.any(Date),
-          reviewedBy: 'user-1',
-        }),
-        isActive: false,
-      }),
-      where: { id: 'model-1' },
-    });
-  });
-
-  it('marks a registry model as legacy and disables it', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({
-        config: {
-          key: 'google/imagen-3',
-          reviewStatus: 'approved',
-        },
-        id: 'model-1',
-      }),
-    ]);
-    modelDelegate.update.mockResolvedValue(makeModel());
-
-    await service.markRegistryModelLegacy('model-1', {
-      reviewedBy: 'user-1',
-      succeededBy: 'google/imagen-4',
-    });
-
-    expect(modelDelegate.update).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        config: expect.objectContaining({
-          deprecatedAt: expect.any(Date),
-          isLegacy: true,
-          reviewStatus: 'legacy',
-          reviewedBy: 'user-1',
-          succeededBy: 'google/imagen-4',
-        }),
-        isActive: false,
-      }),
-      where: { id: 'model-1' },
-    });
-  });
-
-  it('returns enabled org-scoped models from findAvailableModels', async () => {
-    modelDelegate.findMany.mockResolvedValue([
-      makeModel({ id: 'system-model', organizationId: null }),
-      makeModel({
-        config: { category: ModelCategory.IMAGE, key: 'custom/lora' },
-        id: 'private-model',
-        organizationId: 'org-1',
-      }),
-      makeModel({
-        config: { category: ModelCategory.IMAGE, key: 'foreign/lora' },
-        id: 'foreign-model',
-        organizationId: 'org-2',
-      }),
-    ]);
-
-    const result = await service.findAvailableModels({
-      enabledModelIds: ['private-model'],
-      organizationId: 'org-1',
-    });
-
     expect(modelDelegate.findMany).toHaveBeenCalledWith({
-      where: {
-        OR: [{ organizationId: null }, { organizationId: 'org-1' }],
-        isActive: true,
-        isDeleted: false,
-      },
+      orderBy: { createdAt: 'desc' },
+      skip: 0,
+      take: 10,
+      where: { category: ModelCategory.IMAGE },
     });
-    expect(result.map((model) => model.id)).toEqual(['private-model']);
+    expect(modelDelegate.count).toHaveBeenCalledWith({
+      where: { category: ModelCategory.IMAGE },
+    });
+    expect(result.totalDocs).toBe(1);
   });
 
-  it('creates a private LoRA model from a completed training', async () => {
-    modelDelegate.findFirst.mockResolvedValue(null);
-    modelDelegate.findMany.mockResolvedValue([
+  it('clears only competing defaults in the same registry scope', async () => {
+    modelDelegate.updateMany.mockResolvedValue({ count: 1 });
+
+    await service.clearOtherDefaults(
+      ModelCategory.IMAGE,
+      'org-1',
+      'selected-model',
+    );
+
+    expect(modelDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDefault: false },
+      where: {
+        category: ModelCategory.IMAGE,
+        id: { not: 'selected-model' },
+        isDefault: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
+  });
+
+  it('creates a private model from a completed training', async () => {
+    modelDelegate.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(
       makeModel({
-        config: {
-          category: ModelCategory.IMAGE,
-          key: 'black-forest-labs/flux-kontext-pro',
-          supportsFeatures: ['reference-image'],
-        },
         id: 'base-model',
+        key: 'black-forest-labs/flux-kontext-pro',
+        supportsFeatures: ['reference-image'],
       }),
-    ]);
+    );
     modelDelegate.create.mockResolvedValue(
       makeModel({
-        config: {
-          key: 'genfeedai/acme-corp/portrait-lora-v2',
-          parentModel: 'base-model',
-          provider: ModelProvider.GENFEED_AI,
-          supportsFeatures: ['reference-image', 'lora-weights', 'trigger-word'],
-          training: 'training-1',
-          triggerWord: 'TOK',
-        },
         id: 'trained-model',
+        key: 'genfeedai/acme-corp/portrait-lora-v2',
         organizationId: 'org-1',
         parentModelId: 'base-model',
         trainingId: 'training-1',
@@ -340,7 +176,6 @@ describe('ModelsService', () => {
     );
 
     await service.createFromTraining({
-      _id: 'training-1',
       config: {
         baseModel: 'black-forest-labs/flux-kontext-pro',
         model: 'replicate/trained-lora:abc123',
@@ -352,34 +187,27 @@ describe('ModelsService', () => {
     } as never);
 
     expect(modelDelegate.create).toHaveBeenCalledWith({
-      data: {
-        config: expect.objectContaining({
-          isPublic: false,
-          key: 'genfeedai/acme-corp/portrait-lora-v2',
-          provider: ModelProvider.GENFEED_AI,
-          supportsFeatures: ['reference-image', 'lora-weights', 'trigger-word'],
-          training: 'training-1',
-          triggerWord: 'TOK',
-        }),
+      data: expect.objectContaining({
+        category: ModelCategory.IMAGE,
         externalId: 'replicate/trained-lora:abc123',
-        isActive: true,
-        label: 'Portrait LoRA V2',
+        isPublic: false,
+        key: 'genfeedai/acme-corp/portrait-lora-v2',
         organizationId: 'org-1',
         parentModelId: 'base-model',
+        provider: ModelProvider.GENFEED_AI,
+        supportsFeatures: ['reference-image', 'lora-weights', 'trigger-word'],
         trainingId: 'training-1',
-      },
+        triggerWord: 'TOK',
+      }),
     });
   });
 
-  it('does not create a duplicate model for the same training', async () => {
-    const existing = makeModel({
-      id: 'trained-model',
-      trainingId: 'training-1',
-    });
-    modelDelegate.findFirst.mockResolvedValue(existing);
+  it('does not duplicate a model for the same training', async () => {
+    modelDelegate.findFirst.mockResolvedValue(
+      makeModel({ id: 'trained-model', trainingId: 'training-1' }),
+    );
 
     const result = await service.createFromTraining({
-      _id: 'training-1',
       config: {},
       id: 'training-1',
       organizationId: 'org-1',

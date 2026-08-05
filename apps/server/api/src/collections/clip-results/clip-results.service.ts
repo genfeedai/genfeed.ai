@@ -5,35 +5,32 @@ import {
   buildClipResultReadiness,
   isTerminalClipStatus,
 } from '@api/collections/clip-shared/clip-terminal-contract.util';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BaseService } from '@api/shared/services/base/base.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
+import {
+  BaseService,
+  type PopulateInput,
+} from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-type PopulateInput = (string | PopulateOption)[] | 'none';
-
 type ClipResultWriteDto = Partial<CreateClipResultDto & UpdateClipResultDto> &
   Record<string, unknown>;
 
 const RESULT_SCALAR_KEYS = new Set([
-  '_id',
   'data',
-  'id',
   'isDeleted',
   'isSelected',
   'mode',
-  'mongoId',
-  'organization',
   'organizationId',
-  'project',
   'projectId',
   'providerJobId',
   'readiness',
   'status',
   'terminalAt',
+  'userId',
   'viralityScore',
 ]);
 
@@ -51,6 +48,13 @@ export class ClipResultsService extends BaseService<
     super(prisma, 'clipResult', logger);
   }
 
+  protected override normalizeDocument(document: unknown): ClipResultDocument {
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const payload = this.readRecord(record.data);
+
+    return { ...payload, ...record } as ClipResultDocument;
+  }
+
   override async create(
     createDto: CreateClipResultDto,
     populate: PopulateInput = [],
@@ -64,12 +68,35 @@ export class ClipResultsService extends BaseService<
     );
   }
 
+  async createForOrganization(
+    createDto: CreateClipResultDto & {
+      organizationId: string;
+      userId: string;
+    },
+    populate: PopulateInput = [],
+  ): Promise<ClipResultDocument> {
+    const project = await this.prisma.clipProject.findFirst({
+      select: { id: true },
+      where: {
+        id: createDto.projectId,
+        isDeleted: false,
+        organizationId: createDto.organizationId,
+      },
+    });
+
+    if (!project) {
+      throw new NotFoundException('ClipProject', createDto.projectId);
+    }
+
+    return this.create(createDto, populate);
+  }
+
   override async patch(
     id: string,
     updateDto: Partial<UpdateClipResultDto> | Record<string, unknown>,
     populate: PopulateInput = [],
   ): Promise<ClipResultDocument> {
-    const existing = await this.findOne({ _id: id, isDeleted: false });
+    const existing = await this.findOne({ id: id, isDeleted: false });
     const existingData = this.readRecord(
       (existing as Record<string, unknown> | null)?.data,
     );
@@ -112,6 +139,17 @@ export class ClipResultsService extends BaseService<
     });
 
     return result ? this.normalizeDocument(result) : null;
+  }
+
+  async findAllByOrganization(
+    organizationId: string,
+  ): Promise<ClipResultDocument[]> {
+    const results = await this.delegate.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: { isDeleted: false, organizationId },
+    });
+
+    return this.normalizeDocuments(results);
   }
 
   async countActiveRawCuts(): Promise<number> {
@@ -185,11 +223,7 @@ export class ClipResultsService extends BaseService<
   }): Promise<ClipResultDocument | null> {
     const result = await this.delegate.findFirst({
       where: scopedWhere(input.organizationId, {
-        OR: [
-          { id: input.clipResultId },
-          { mongoId: input.clipResultId },
-          { providerJobId: input.clipResultId },
-        ],
+        OR: [{ id: input.clipResultId }, { providerJobId: input.clipResultId }],
         projectId: input.projectId,
       }),
     });
@@ -203,30 +237,18 @@ export class ClipResultsService extends BaseService<
     existingData: Record<string, unknown> = {},
   ): Record<string, unknown> {
     const data: Record<string, unknown> = {};
-    const legacyData: Record<string, unknown> = { ...existingData };
-
-    if (typeof dto.id === 'string' && dto.id.length > 0) {
-      data.mongoId = dto.id;
-    }
-
-    if (typeof dto.mongoId === 'string' && dto.mongoId.length > 0) {
-      data.mongoId = dto.mongoId;
-    }
-
-    if (typeof dto.organization === 'string') {
-      data.organizationId = dto.organization;
-    }
+    const payloadData: Record<string, unknown> = { ...existingData };
 
     if (typeof dto.organizationId === 'string') {
       data.organizationId = dto.organizationId;
     }
 
-    if (Object.hasOwn(dto, 'project')) {
-      data.projectId = dto.project ?? null;
-    }
-
     if (Object.hasOwn(dto, 'projectId')) {
       data.projectId = dto.projectId ?? null;
+    }
+
+    if (Object.hasOwn(dto, 'userId')) {
+      data.userId = dto.userId ?? null;
     }
 
     this.assignIfOwn(data, dto, 'providerJobId');
@@ -242,11 +264,11 @@ export class ClipResultsService extends BaseService<
       if (RESULT_SCALAR_KEYS.has(key) || value === undefined) {
         continue;
       }
-      legacyData[key] = value;
+      payloadData[key] = value;
     }
 
     const suppliedData = this.readRecord(dto.data);
-    data.data = { ...legacyData, ...suppliedData };
+    data.data = { ...payloadData, ...suppliedData };
 
     this.applyTerminalDefaults(data, mode);
 

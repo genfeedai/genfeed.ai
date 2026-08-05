@@ -44,9 +44,7 @@ export class ProjectsController extends BaseCRUDController<
 
     const doc = await this.projectsService.create({
       ...createDto,
-      organization: organizationId,
-    } as CreateProjectDto & {
-      organization: string;
+      organizationId,
     });
 
     return serializeSingle(request, ProjectSerializer, doc);
@@ -56,7 +54,7 @@ export class ProjectsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     };
 
     if (query.status) {

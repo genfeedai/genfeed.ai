@@ -38,7 +38,7 @@ function toInstagramCredentialResponse(
   credential: CredentialDocument,
 ): InstagramCredentialResponse {
   return {
-    _id: credential.id,
+    id: credential.id,
     accessToken: requireString(credential.accessToken, 'accessToken'),
     externalId: credential.externalId ?? undefined,
     isConnected: credential.isConnected,
@@ -90,8 +90,8 @@ export class InstagramService {
     brandId: string,
   ): Promise<InstagramCredentialResponse> {
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
+      brandId: brandId,
+      organizationId: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -130,7 +130,9 @@ export class InstagramService {
         }),
       );
 
-      this.loggerService.log(`${url} succeeded`, response.data);
+      this.loggerService.log(`${url} succeeded`, {
+        accountId: response.data.id,
+      });
 
       return response.data;
     } catch (error: unknown) {
@@ -181,7 +183,7 @@ export class InstagramService {
               profile_picture_url: string;
             };
           }) => ({
-            _id: page.instagram_business_account.id, // _id is required by the serializer
+            id: page.instagram_business_account.id,
             image: page.instagram_business_account.profile_picture_url,
             label: page.instagram_business_account.name,
             username: page.instagram_business_account.username,
@@ -249,8 +251,8 @@ export class InstagramService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
-      brand: brandId,
-      organization: organizationId,
+      brandId: brandId,
+      organizationId: organizationId,
       platform: CredentialPlatform.INSTAGRAM,
     });
 
@@ -292,7 +294,10 @@ export class InstagramService {
         throw new Error('Instagram refresh response missing access token');
       }
 
-      this.loggerService.log(`${url} succeeded`, response.data);
+      this.loggerService.log(`${url} succeeded`, {
+        expiresIn: expires_in,
+        hasAccessToken: true,
+      });
 
       const updatedCredential = await this.credentialsService.patch(
         credential.id,
@@ -302,8 +307,8 @@ export class InstagramService {
             ? new Date(Date.now() + expires_in * 1000)
             : undefined,
           isConnected: true,
-          refreshToken: undefined,
-          refreshTokenExpiry: undefined,
+          refreshToken: null,
+          refreshTokenExpiry: null,
         },
       );
 

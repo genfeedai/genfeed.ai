@@ -6,10 +6,12 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+type ProjectCreateInput = CreateProjectDto & { organizationId: string };
+
 @Injectable()
 export class ProjectsService extends BaseService<
   ProjectDocument,
-  CreateProjectDto,
+  ProjectCreateInput,
   UpdateProjectDto
 > {
   constructor(
@@ -19,7 +21,9 @@ export class ProjectsService extends BaseService<
     super(prisma, 'project', logger);
   }
 
-  override async create(createDto: CreateProjectDto): Promise<ProjectDocument> {
+  override async create(
+    createDto: ProjectCreateInput,
+  ): Promise<ProjectDocument> {
     return super.create(createDto);
   }
 

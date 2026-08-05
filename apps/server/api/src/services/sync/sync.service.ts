@@ -163,9 +163,9 @@ export class SyncService {
 
     // 1. Find the local workflow
     const workflow = (await this.workflowsService.findOne({
-      _id: localWorkflowId,
+      id: localWorkflowId,
       isDeleted: false,
-      organization,
+      organizationId: organization,
     })) as WorkflowDocument | null;
 
     if (!workflow) {
@@ -175,7 +175,7 @@ export class SyncService {
     // 2. Convert to portable cloud format
     const cloudFormat = this.formatConverterService.ensureCloudFormat({
       edges: workflow.edges ?? [],
-      name: workflow.name ?? workflow.label ?? undefined,
+      name: workflow.label ?? undefined,
       nodes: workflow.nodes ?? [],
     });
 
@@ -316,8 +316,6 @@ export class SyncService {
         edges: cloudFormat.workflow.edges,
         label: cloudFormat.workflow.name ?? 'Pulled Workflow',
         nodes: cloudFormat.workflow.nodes,
-        organization,
-        user: userId,
       },
     );
 

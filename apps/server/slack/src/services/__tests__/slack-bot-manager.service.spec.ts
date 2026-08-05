@@ -29,6 +29,11 @@ vi.mock('@slack/bolt', () => ({
   App: MockAppConstructor,
 }));
 
+function toApiIntegration(integration: OrgIntegration) {
+  const { orgId, ...fields } = integration;
+  return { ...fields, organizationId: orgId };
+}
+
 describe('SlackBotManager', () => {
   let service: SlackBotManager;
   let _configService: Mocked<ConfigService>;
@@ -401,7 +406,9 @@ describe('SlackBotManager', () => {
   describe('fetchAndAddIntegration', () => {
     it('should fetch integration and add it', async () => {
       mockApp.start.mockResolvedValue(undefined);
-      httpService.get.mockReturnValue(of({ data: mockIntegration } as any));
+      httpService.get.mockReturnValue(
+        of({ data: toApiIntegration(mockIntegration) } as any),
+      );
 
       await service['fetchAndAddIntegration']('slack-integration-1');
 
@@ -441,7 +448,9 @@ describe('SlackBotManager', () => {
         ...mockIntegration,
         status: 'paused' as const,
       };
-      httpService.get.mockReturnValue(of({ data: updatedIntegration } as any));
+      httpService.get.mockReturnValue(
+        of({ data: toApiIntegration(updatedIntegration) } as any),
+      );
 
       await service['fetchAndUpdateIntegration']('slack-integration-1');
 
@@ -488,7 +497,7 @@ describe('SlackBotManager', () => {
         if (
           url.endsWith('/v1/internal/integrations/slack/slack-integration-1')
         ) {
-          return of({ data: mockIntegration } as any);
+          return of({ data: toApiIntegration(mockIntegration) } as any);
         }
 
         return of({ data: [] } as any);

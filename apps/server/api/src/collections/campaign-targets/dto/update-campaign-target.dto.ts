@@ -1,11 +1,8 @@
-import { CreateCampaignTargetDto } from '@api/collections/campaign-targets/dto/create-campaign-target.dto';
 import { CampaignSkipReason, CampaignTargetStatus } from '@genfeedai/enums';
-import { ApiProperty, PartialType } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 
-export class UpdateCampaignTargetDto extends PartialType(
-  CreateCampaignTargetDto,
-) {
+export class UpdateCampaignTargetDto {
   @IsEnum(CampaignTargetStatus)
   @IsOptional()
   @ApiProperty({

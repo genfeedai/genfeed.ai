@@ -16,9 +16,9 @@ describe('FailedGenerationService', () => {
   let activitiesService: vi.Mocked<ActivitiesService>;
   let websocketService: vi.Mocked<NotificationsPublisherService>;
 
-  const mockIngredientId = '507f1f77bcf86cd799439011';
-  const mockUserId = '507f1f77bcf86cd799439012';
-  const mockOrganizationId = '507f1f77bcf86cd799439013';
+  const mockIngredientId = '550e8400-e29b-41d4-a716-446655440001';
+  const mockUserId = '550e8400-e29b-41d4-a716-446655440002';
+  const mockOrganizationId = '550e8400-e29b-41d4-a716-446655440003';
   const mockWebsocketUrl = 'ws://genfeed.localhost:3111';
 
   const mockService = {
@@ -33,6 +33,7 @@ describe('FailedGenerationService', () => {
           provide: ActivitiesService,
           useValue: {
             create: vi.fn(),
+            findByActionValue: vi.fn().mockResolvedValue(null),
             findOne: vi.fn().mockResolvedValue(null),
             patch: vi.fn(),
           },
@@ -70,6 +71,7 @@ describe('FailedGenerationService', () => {
       await service.handleFailedGeneration(mockService, options);
 
       expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
     });
@@ -78,9 +80,9 @@ describe('FailedGenerationService', () => {
       const options: FailedGenerationOptions = {
         activityMetadata: {
           key: ActivityKey.VIDEO_FAILED,
-          organization: mockOrganizationId,
+          organizationId: mockOrganizationId,
           source: ActivitySource.SCRIPT,
-          user: mockUserId,
+          userId: mockUserId,
           value: mockIngredientId,
         },
         ingredientId: mockIngredientId,
@@ -95,9 +97,9 @@ describe('FailedGenerationService', () => {
       expect(activitiesService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           key: ActivityKey.VIDEO_FAILED,
-          organization: expect.any(String),
+          organizationId: expect.any(String),
           source: ActivitySource.SCRIPT,
-          user: expect.any(String),
+          userId: expect.any(String),
         }),
       );
     });
@@ -176,6 +178,7 @@ describe('FailedGenerationService', () => {
       await service.handleFailedGeneration(mockService, options);
 
       expect(mockService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.ARCHIVED,
       });
     });
@@ -196,6 +199,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(voicesService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -218,6 +222,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(avatarsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -242,6 +247,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(videosService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Processing failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -274,6 +280,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(imagesService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 
@@ -347,6 +354,7 @@ describe('FailedGenerationService', () => {
       );
 
       expect(musicsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        generationError: 'Generation failed',
         status: IngredientStatus.FAILED,
       });
 

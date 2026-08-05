@@ -5,6 +5,10 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { ModelSelectorTriggerProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
+import {
+  SHELL_CONTROL_HEIGHT_CLASS,
+  SHELL_ICON_CLASS,
+} from '@ui/constants/shell-chrome.constant';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
@@ -14,6 +18,7 @@ import type { ButtonHTMLAttributes, Ref } from 'react';
 function ModelSelectorTrigger({
   ref,
   selectedModels,
+  isAutoSelected,
   isOpen,
   shouldFlash,
   className,
@@ -22,16 +27,39 @@ function ModelSelectorTrigger({
 }: ModelSelectorTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
   const ChevronIcon = isOpen ? ChevronUp : ChevronDown;
+  // Same trigger metrics as ButtonDropdown so a model picker sitting next to an
+  // aspect-ratio / duration control lines up instead of standing a few pixels taller.
   const triggerClassName = cn(
     buttonVariants({
       size: ButtonSize.SM,
       variant: ButtonVariant.GHOST,
     }),
-    'font-medium',
+    SHELL_CONTROL_HEIGHT_CLASS,
+    'gap-1.5 px-2.5 font-medium',
     className,
   );
 
   if (selectedModels.length === 0) {
+    // Auto carries no IModel row, so an empty selection with Auto active is a
+    // real selection — label it instead of falling through to the empty state.
+    if (isAutoSelected) {
+      return (
+        <Button
+          ref={ref}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          className={cn(triggerClassName, 'text-foreground')}
+          {...buttonProps}
+        >
+          <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
+          <span className="text-xs font-medium truncate max-w-[148px]">
+            {autoLabel ?? 'Auto'}
+          </span>
+          <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
+        </Button>
+      );
+    }
+
     return (
       <Button
         ref={ref}
@@ -44,34 +72,15 @@ function ModelSelectorTrigger({
         )}
         {...buttonProps}
       >
-        <Cpu className="size-4" />
+        <Cpu className={SHELL_ICON_CLASS} />
         <span className="text-xs font-medium">Select models…</span>
-        <ChevronIcon className="size-3 text-foreground/50" />
+        <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
       </Button>
     );
   }
 
   if (selectedModels.length === 1) {
     const model = selectedModels[0];
-
-    if (String(model.key) === '__auto_model__') {
-      return (
-        <Button
-          ref={ref}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          className={cn(triggerClassName, 'text-foreground')}
-          {...buttonProps}
-        >
-          <Sparkles className="size-4 shrink-0 text-primary" />
-          <span className="text-xs font-medium truncate max-w-[148px]">
-            {autoLabel ?? model.label}
-          </span>
-          <ChevronIcon className="size-3 text-foreground/50" />
-        </Button>
-      );
-    }
-
     const brandSlug = extractBrandFromKey(model.key);
     const brandConfig = getBrandConfig(brandSlug);
     const BrandIcon = getModelBrandIcon(brandConfig.iconKey);
@@ -102,7 +111,7 @@ function ModelSelectorTrigger({
           {model.label}
         </span>
         <ModelSelectorCostBadge costTier={model.costTier} />
-        <ChevronIcon className="size-3 text-foreground/50" />
+        <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
       </Button>
     );
   }
@@ -115,11 +124,11 @@ function ModelSelectorTrigger({
       className={cn(triggerClassName, 'text-foreground')}
       {...buttonProps}
     >
-      <Cpu className="size-4" />
+      <Cpu className={SHELL_ICON_CLASS} />
       <span className="text-xs font-medium">
         {selectedModels.length} models
       </span>
-      <ChevronIcon className="size-3 text-foreground/50" />
+      <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
     </Button>
   );
 }

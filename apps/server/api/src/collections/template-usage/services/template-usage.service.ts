@@ -10,10 +10,6 @@ export class TemplateUsageService {
   private normalizeUsage(usage: TemplateUsageDocument): TemplateUsageEntity {
     return {
       ...(usage as unknown as TemplateUsageEntity),
-      _id:
-        typeof usage.mongoId === 'string' && usage.mongoId.length > 0
-          ? usage.mongoId
-          : usage.id,
       organization: usage.organizationId,
       template: usage.templateId,
       user: usage.userId,

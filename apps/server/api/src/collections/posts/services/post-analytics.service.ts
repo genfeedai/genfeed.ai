@@ -13,7 +13,6 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import type { IPlatformAnalyticsTotals } from '@genfeedai/interfaces';
 import type { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -60,13 +59,19 @@ export class PostAnalyticsService extends BaseService<
   ): Promise<PostAnalyticsEntity> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const { ingredients, ...scalarData } = data;
 
     try {
       // Use upsert to avoid race conditions
       const result = await this.prisma.postAnalytics.upsert({
         create: {
-          ...data,
+          ...scalarData,
           date: today,
+          ...(ingredients !== undefined && {
+            ingredients: {
+              connect: ingredients.map((id) => ({ id })),
+            },
+          }),
           platform,
           postId,
           totalComments: 0,
@@ -141,15 +146,13 @@ export class PostAnalyticsService extends BaseService<
         : 0;
 
     // Fetch post to get required fields for upsert
-    const post = await this.postsService.findOne({ _id: postId });
+    const post = await this.postsService.findOne({ id: postId });
     if (!post) {
       this.logger.error(`Post ${postId} not found for analytics update`);
       return null;
     }
 
-    // Scalar FKs only. The relation aliases are populated objects on this call
-    // path (PostsService.findOne populates brand + user), so `String(post.brand)`
-    // wrote "[object Object]" and every upsert failed with a P2003 FK violation.
+    // Analytics ownership always comes from canonical scalar foreign keys.
     const owner = this.resolvePostOwner(post);
     if (!owner) {
       return null;
@@ -355,10 +358,7 @@ export class PostAnalyticsService extends BaseService<
       // truthiness guard above narrows it to `{}` rather than `string`.
       const externalId = String(post.externalId);
 
-      // Scalar FKs, never the relation aliases: depending on the caller's
-      // populate those aliases are objects, id strings, or undefined, so
-      // `post.brand.toString()` silently produced "[object Object]" and
-      // queried the wrong brand's analytics.
+      // Analytics ownership always comes from canonical scalar foreign keys.
       const owner = this.resolvePostOwner(post);
       if (!owner) {
         return;
@@ -428,25 +428,12 @@ export class PostAnalyticsService extends BaseService<
     }
   }
 
-  /**
-   * Resolves the post's owning brand/organization/user from its scalar foreign
-   * keys, falling back to the legacy relation aliases only when they carry a
-   * usable id. Returns null (and logs) rather than letting an unresolvable id
-   * reach a non-nullable FK column or a platform analytics lookup.
-   *
-   * @see .agents/memory/rules/prisma_legacy_alias_fields.md
-   */
   private resolvePostOwner(post: PostDocument): {
     brandId: string;
     organizationId: string;
     userId: string;
   } | null {
-    const brandId = resolveRelationId(post.brandId, post.brand);
-    const organizationId = resolveRelationId(
-      post.organizationId,
-      post.organization,
-    );
-    const userId = resolveRelationId(post.userId, post.user);
+    const { brandId, organizationId, userId } = post;
 
     if (!brandId || !organizationId || !userId) {
       this.logger.error(

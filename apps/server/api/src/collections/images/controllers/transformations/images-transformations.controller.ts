@@ -35,7 +35,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -125,8 +124,8 @@ export class ImagesTransformationsController {
     const publicMetadata = getPublicMetadata(user);
 
     const image = await this.imagesService.findOne({
-      _id: imageId,
-      user: publicMetadata.user,
+      id: imageId,
+      userId: publicMetadata.user,
     });
 
     if (!image) {
@@ -135,14 +134,14 @@ export class ImagesTransformationsController {
 
     try {
       const { metadataData, ingredientData } =
-        await this.sharedService.saveDocuments(user, {
-          brand: publicMetadata.brand,
+        await this.sharedService.createMediaDocuments(user, {
+          brandId: publicMetadata.brand,
           category: CategoryPrismaUtil.toIngredientCategory(
             IngredientCategory.IMAGE,
           ),
           extension: MetadataExtension.JPG,
-          organization: publicMetadata.organization,
-          parent: imageId,
+          organizationId: publicMetadata.organization,
+          parentId: imageId,
           status: IngredientStatus.PROCESSING,
         });
 
@@ -224,11 +223,11 @@ export class ImagesTransformationsController {
 
     const parent = await this.imagesService.findOne(
       {
-        _id: imageId,
+        id: imageId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -265,47 +264,48 @@ export class ImagesTransformationsController {
 
     // Create prompt for reframing - use text field from body
     const promptText =
-      createImageDto.text ||
-      createImageDto.prompt ||
-      `Reframe image to ${format} format`;
+      createImageDto.text || `Reframe image to ${format} format`;
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: parent.brandId ?? publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         original:
           typeof promptText === 'string'
             ? promptText
             : String(promptText ?? ''),
         status: PromptStatus.PROCESSING,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
       }),
     );
 
     // Create new ingredient for reframed image
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...createImageDto,
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: parent.brandId ?? publicMetadata.brand,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
         extension: MetadataExtension.JPEG,
+        generationPrompt: promptData.original,
+        generationSeed: createImageDto.seed,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-        organization: isEntityId(parent.organization)
-          ? parent.organization
-          : publicMetadata.organization,
-        parent: parent.id,
-        prompt: promptData.id,
+        negativePrompt: createImageDto.negativePrompt,
+        organizationId: parent.organizationId ?? publicMetadata.organization,
+        parentId: parent.id,
+        promptId: promptData.id,
+        scope: createImageDto.scope,
+        sourceIds: createImageDto.references,
         status: IngredientStatus.PROCESSING,
+        tagIds: createImageDto.tags,
         transformations: [TransformationCategory.REFRAMED],
         width: targetWidth,
       });
 
     await this.imagesService.patch(ingredientData.id, {
-      prompt: promptData.id,
+      promptId: promptData.id,
     });
 
     const websocketUrl = WebSocketPaths.image(ingredientData.id);
@@ -313,13 +313,13 @@ export class ImagesTransformationsController {
     // Create activity for image reframe start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: parent.brandId ?? publicMetadata.brand,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_REFRAME_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.IMAGE_REFRAME,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
@@ -387,7 +387,7 @@ export class ImagesTransformationsController {
           metadataData.id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: promptData.id,
+            promptId: promptData.id,
           }),
         );
       } else {
@@ -438,10 +438,10 @@ export class ImagesTransformationsController {
 
     const parent = await this.imagesService.findOne(
       {
-        _id: imageId,
+        id: imageId,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
@@ -471,18 +471,15 @@ export class ImagesTransformationsController {
       )) as string);
 
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocuments(user, {
-        ...imageEditDto,
-        brand: isEntityId(parent.brand) ? parent.brand : null,
+      await this.sharedService.createMediaDocuments(user, {
+        brandId: parent.brandId ?? undefined,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
-        extension: imageEditDto.outputFormat || 'jpg',
+        extension: imageEditDto.outputFormat || MetadataExtension.JPG,
         model,
-        organization: isEntityId(parent.organization)
-          ? parent.organization
-          : null,
-        parent: parent.id,
+        organizationId: parent.organizationId ?? undefined,
+        parentId: parent.id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.UPSCALED],
       });
@@ -492,13 +489,13 @@ export class ImagesTransformationsController {
     // Create activity for image upscale start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: isEntityId(parent.brand) ? parent.brand : publicMetadata.brand,
+        brandId: parent.brandId ?? publicMetadata.brand,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_UPSCALE_PROCESSING,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
         source: ActivitySource.IMAGE_UPSCALE,
-        user: publicMetadata.user,
+        userId: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           model,

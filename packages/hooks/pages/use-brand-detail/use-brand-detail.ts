@@ -429,8 +429,8 @@ export function useBrandDetail(): UseBrandDetailReturn {
         const response = await assetsService.postGenerate({
           category: isBanner ? AssetCategory.BANNER : AssetCategory.LOGO,
           model: modelKey,
-          parent: state.brand.id,
-          parentModel: AssetParent.BRAND,
+          parentId: state.brand.id,
+          parentType: AssetParent.BRAND,
           text: state.brand.label,
         });
 

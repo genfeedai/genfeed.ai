@@ -1,9 +1,8 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const workflowAttributes = createEntityAttributes([
-  'organization',
-  'user',
-  'brand',
+  'organizationId',
+  'userId',
   'brandId',
   'tasks',
   'label',

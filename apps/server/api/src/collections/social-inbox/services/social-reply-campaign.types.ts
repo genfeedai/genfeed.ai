@@ -6,27 +6,9 @@ import type {
 export type SocialReplyCampaign = PrismaSocialReplyCampaign;
 export type SocialReplyCampaignRecipient = PrismaSocialReplyCampaignRecipient;
 
-/**
- * Serializer-facing shapes. The serializer configs declare relation aliases
- * (`organization`, `brand`, `campaign`, …) alongside the scalar FKs, so the
- * document adds the alias keys without ever reading one back — see
- * `rules/prisma_legacy_alias_fields.md`.
- */
-export type SocialReplyCampaignDocument = PrismaSocialReplyCampaign & {
-  _id: string;
-  brand?: string | null;
-  organization: string;
-  user?: string | null;
-};
-
+export type SocialReplyCampaignDocument = PrismaSocialReplyCampaign;
 export type SocialReplyCampaignRecipientDocument =
-  PrismaSocialReplyCampaignRecipient & {
-    _id: string;
-    campaign: string;
-    conversation: string;
-    message?: string | null;
-    organization: string;
-  };
+  PrismaSocialReplyCampaignRecipient;
 
 export interface SocialReplyCampaignCreateInput {
   bodyTemplate: string;

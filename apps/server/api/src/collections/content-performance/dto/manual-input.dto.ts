@@ -46,7 +46,7 @@ export class ManualMetricEntryDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsEntityId()
-  post?: string;
+  postId?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -103,7 +103,7 @@ export class ManualMetricEntryDto {
 export class ManualInputDto {
   @ApiProperty({ description: 'Brand ID', required: true })
   @IsEntityId()
-  brand!: string;
+  brandId!: string;
 
   @ApiProperty({
     description: 'Array of metric entries',

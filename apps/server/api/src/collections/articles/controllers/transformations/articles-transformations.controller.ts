@@ -168,7 +168,7 @@ export class ArticlesTransformationsController {
     const results = await this.articlesService.findAll(
       {
         where: {
-          _id: articleId,
+          id: articleId,
           isDeleted: false,
         },
       },
@@ -184,8 +184,7 @@ export class ArticlesTransformationsController {
     const article = results.docs[0];
 
     if (
-      String(article.organization ?? article.organizationId) !==
-        publicMetadata.organization.toString() &&
+      article.organizationId !== publicMetadata.organization.toString() &&
       !getIsSuperAdmin(user, request)
     ) {
       ErrorResponse.notFound(ARTICLE_ENTITY_NAME, articleId);
@@ -200,7 +199,7 @@ export class ArticlesTransformationsController {
     const updatedResults = await this.articlesService.findAll(
       {
         where: {
-          _id: articleId,
+          id: articleId,
           isDeleted: false,
         },
       },
@@ -290,10 +289,10 @@ export class ArticlesTransformationsController {
 
     // Get the article
     const article = await this.articlesService.findOne({
-      _id: articleId,
+      id: articleId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -305,16 +304,15 @@ export class ArticlesTransformationsController {
     // Get brand for default model
     const brand = article.brandId
       ? await this.brandsService.findOne({
-          _id: article.brandId,
+          id: article.brandId,
           isDeleted: false,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
         })
       : null;
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     );
     const model = resolveGenerationDefaultModel<string>({
@@ -348,10 +346,10 @@ export class ArticlesTransformationsController {
 
     // Get the article
     const article = await this.articlesService.findOne({
-      _id: articleId,
+      id: articleId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -363,16 +361,15 @@ export class ArticlesTransformationsController {
     // Get brand for default model
     const brand = article.brandId
       ? await this.brandsService.findOne({
-          _id: article.brandId,
+          id: article.brandId,
           isDeleted: false,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
         })
       : null;
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: publicMetadata.organization,
+        organizationId: publicMetadata.organization,
       },
     );
     const model = resolveGenerationDefaultModel<string>({

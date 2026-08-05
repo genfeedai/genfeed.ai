@@ -4,7 +4,6 @@
  */
 export interface PopulateOption {
   path: string;
-  select?: string;
-  model?: string;
+  select?: readonly string[];
   populate?: PopulateOption;
 }

@@ -146,9 +146,9 @@ describe('AgentRunProcessor', () => {
     );
     expect(agentRunsService.patch).toHaveBeenCalledTimes(1);
     const patchPayload = agentRunsService.patch.mock.calls[0]?.[1] as
-      | { thread?: { toString(): string } }
+      | { threadId?: string }
       | undefined;
-    expect(patchPayload?.thread?.toString()).toBe(threadId);
+    expect(patchPayload?.threadId).toBe(threadId);
     expect(agentRunsService.mergeMetadata).toHaveBeenCalledWith(
       runId,
       organizationId,

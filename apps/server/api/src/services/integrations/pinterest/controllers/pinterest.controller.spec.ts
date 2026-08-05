@@ -14,6 +14,32 @@ describe('PinterestController', () => {
     searchPins: vi.fn(),
   } as PinterestService;
   const loggerMock = { log: vi.fn() } as LoggerService;
+  const brandsServiceMock = {
+    findOne: vi.fn().mockResolvedValue({
+      id: 'brand-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
+  };
+  const credentialsServiceMock = {
+    beginOAuthForBrand: vi.fn().mockResolvedValue({
+      credential: { id: 'credential-id' },
+      state: 'opaque-oauth-state',
+    }),
+    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      brandId: 'brand-id',
+      id: 'credential-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
+    patch: vi.fn().mockResolvedValue({
+      id: 'credential-id',
+      isConnected: true,
+    }),
+  };
+  const user = {
+    publicMetadata: { organization: 'organization-id', user: 'user-id' },
+  } as unknown as User;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,6 +47,8 @@ describe('PinterestController', () => {
       providers: [
         { provide: PinterestService, useValue: serviceMock },
         { provide: LoggerService, useValue: loggerMock },
+        { provide: BrandsService, useValue: brandsServiceMock },
+        { provide: CredentialsService, useValue: credentialsServiceMock },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -35,10 +63,36 @@ describe('PinterestController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('returns auth url', () => {
-    const result = controller.getAuthUrl('state');
-    expect(serviceMock.generateAuthUrl).toHaveBeenCalledWith('state');
-    expect(result).toEqual({ data: { url: 'url' } });
+  it('returns an auth URL with server-issued state', async () => {
+    const result = await controller.connect({} as never, user, {
+      brandId: 'brand-id',
+    });
+    expect(serviceMock.generateAuthUrl).toHaveBeenCalledWith(
+      'opaque-oauth-state',
+    );
+    expect(result).toEqual({ url: 'url' });
+  });
+
+  it('persists exchanged tokens on the pending credential', async () => {
+    (serviceMock.exchangeCodeForToken as vi.Mock).mockResolvedValue({
+      accessToken: 'pinterest-token',
+      refreshToken: 'pinterest-refresh-token',
+    });
+
+    const result = await controller.verify({} as never, {
+      code: 'auth-code',
+      state: 'opaque-oauth-state',
+    });
+
+    expect(credentialsServiceMock.patch).toHaveBeenCalledWith(
+      'credential-id',
+      expect.objectContaining({
+        accessToken: 'pinterest-token',
+        oauthState: null,
+        refreshToken: 'pinterest-refresh-token',
+      }),
+    );
+    expect(result).toEqual({ id: 'credential-id', isConnected: true });
   });
 
   it('creates pin via service', async () => {
@@ -53,3 +107,12 @@ describe('PinterestController', () => {
     expect(res).toEqual({ data: { id: '1' } });
   });
 });
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';

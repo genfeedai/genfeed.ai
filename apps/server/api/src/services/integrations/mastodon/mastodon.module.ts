@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { MastodonController } from '@api/services/integrations/mastodon/controllers/mastodon.controller';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
@@ -6,7 +7,11 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(MastodonService, {
-  additionalImports: [HttpModule, forwardRef(() => CredentialsCoreModule)],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+  ],
 });
 
 @Module({

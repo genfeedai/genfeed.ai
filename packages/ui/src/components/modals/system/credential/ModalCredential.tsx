@@ -56,8 +56,8 @@ export default function ModalCredential({
   // Populate form when editing
   useEffect(() => {
     if (credential) {
-      form.setValue('label', credential.label);
-      form.setValue('description', credential.description);
+      form.setValue('label', credential.label ?? undefined);
+      form.setValue('description', credential.description ?? undefined);
     }
   }, [credential, form]);
 

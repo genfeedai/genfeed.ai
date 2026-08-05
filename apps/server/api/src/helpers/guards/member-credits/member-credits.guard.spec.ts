@@ -18,7 +18,7 @@ vi.mock('@api/helpers/utils/auth/auth.util', async (importOriginal) => {
   };
 });
 
-const orgId = '507f191e810c19729de860ee'.toString();
+const orgId = '550e8400-e29b-41d4-a716-446655440001';
 
 function createContext(): ExecutionContext {
   const req: Record<string, unknown> = {
@@ -167,7 +167,7 @@ describe('MemberCreditsGuard', () => {
       {
         where: {
           isDeleted: false,
-          organization: orgId,
+          organizationId: orgId,
         },
       },
       { pagination: false },

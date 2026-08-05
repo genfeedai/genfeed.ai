@@ -53,9 +53,9 @@ export class GhostPublisherService extends BasePublisherService {
     try {
       // Get Ghost credential with API key
       const ghostCredential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.GHOST,
       });
 

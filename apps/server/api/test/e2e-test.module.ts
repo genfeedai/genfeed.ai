@@ -81,7 +81,7 @@ export class MockBetterAuthGuard {
         };
       };
     }>();
-    const organizationId = request.params?.['organizationId'];
+    const organizationId = request.params?.organizationId;
     request.user = {
       id: 'authProvider_e2e_test_user',
       publicMetadata: {
@@ -360,7 +360,7 @@ export class TestDatabaseHelper {
     }
 
     for (const document of documents) {
-      const data = await this.normalizeDocument(delegateName, document);
+      const data = await this.prepareDocument(delegateName, document);
       await this.delegate(delegateName).create({ data });
     }
   }
@@ -392,80 +392,24 @@ export class TestDatabaseHelper {
     ];
   }
 
-  private async normalizeDocument(
+  private async prepareDocument(
     delegateName: string,
     document: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
     const data = { ...document };
 
-    this.rename(data, '_id', 'id');
-    this.rename(data, 'organization', 'organizationId');
-    this.rename(data, 'user', 'userId');
-    this.rename(data, 'brand', 'brandId');
-    this.rename(data, 'credential', 'credentialId');
-
-    if (delegateName === 'user') {
-      // Removed during the Prisma identity migration. Some legacy E2E fixtures
-      // still pass this Mongo-era field, so strip it at the shared seed boundary
-      // instead of letting Prisma reject every suite during beforeEach.
-      delete data.isActive;
-    }
-
     if (delegateName === 'organization') {
-      data['slug'] ??= this.slugify(String(data['label'] ?? data['id']));
-      data['userId'] ??= 'e2e-test-user';
-      data['category'] = this.upper(data['category'] ?? 'BUSINESS');
-      await this.ensureUser(String(data['userId']));
-    }
-
-    if (delegateName === 'orgIntegration') {
-      data['platform'] = this.upper(data['platform']);
-      data['status'] = this.upper(data['status'] ?? 'ACTIVE');
+      data.slug ??= this.slugify(String(data.label ?? data.id));
+      data.userId ??= 'e2e-test-user';
+      await this.ensureUser(String(data.userId));
     }
 
     if (delegateName === 'member') {
-      data['roleId'] ??= this.lower(data['role'] ?? 'member');
-      delete data['role'];
-      await this.ensureRole(String(data['roleId']));
-    }
-
-    if (delegateName === 'brand') {
-      data['slug'] ??= this.slugify(String(data['label'] ?? data['id']));
-      data['scope'] = this.upper(data['scope'] ?? 'USER');
-      data['fontFamily'] = this.upper(data['fontFamily'] ?? 'MONTSERRAT_BLACK');
-      data['isSelected'] ??= false;
-    }
-
-    if (delegateName === 'organizationSetting') {
-      this.rename(data, 'enabledModels', 'enabledModelIds');
-      delete data['isDeleted'];
-      delete data['isNotificationsTelegramEnabled'];
-    }
-
-    if (delegateName === 'creditBalance') {
-      data['balance'] = Number(data['balance'] ?? 0);
+      data.roleId ??= 'member';
+      await this.ensureRole(String(data.roleId));
     }
 
     return data;
-  }
-
-  private rename(
-    data: Record<string, unknown>,
-    from: string,
-    to: string,
-  ): void {
-    if (data[from] !== undefined && data[to] === undefined) {
-      data[to] = data[from];
-    }
-    delete data[from];
-  }
-
-  private upper(value: unknown): string {
-    return String(value).toUpperCase();
-  }
-
-  private lower(value: unknown): string {
-    return String(value).toLowerCase();
   }
 
   private slugify(value: string): string {

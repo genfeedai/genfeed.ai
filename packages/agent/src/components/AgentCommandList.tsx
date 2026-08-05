@@ -96,7 +96,7 @@ export function AgentCommandList({
   }
 
   return (
-    <div className="max-h-64 overflow-y-auto border border-white/[0.12] bg-background shadow-lg">
+    <div className="w-80 max-w-[calc(100vw-2rem)] max-h-64 overflow-y-auto border border-white/[0.12] bg-background shadow-lg">
       {items.map((item, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}
@@ -104,7 +104,7 @@ export function AgentCommandList({
           key={item.name}
           onClick={() => command(item)}
           className={cn(
-            'flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors',
+            'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0',
             index === selectedIndex
               ? 'bg-accent text-accent-foreground'
               : 'text-popover-foreground hover:bg-accent/50',
@@ -113,9 +113,11 @@ export function AgentCommandList({
           <span className="flex shrink-0 text-muted-foreground">
             {COMMAND_ICONS[item.name] ?? <Zap className="size-4" />}
           </span>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium">/{item.name}</span>
-            <span className="text-xs text-muted-foreground">
+          <div className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">
+              /{item.name}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
               {item.description}
             </span>
           </div>

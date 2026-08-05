@@ -5,7 +5,7 @@ import AgentProfilePlatformOverrideFields from './AgentProfilePlatformOverrideFi
 import AgentProfilePlatformOverrideWideFields from './AgentProfilePlatformOverrideWideFields';
 
 export default function AgentProfilePlatformOverride({
-  enabledModels,
+  enabledModelIds,
   isDisabled,
   label,
   onSave,
@@ -27,7 +27,7 @@ export default function AgentProfilePlatformOverride({
 
       <div className="grid gap-4 md:grid-cols-2">
         <AgentProfilePlatformOverrideFields
-          enabledModels={enabledModels}
+          enabledModelIds={enabledModelIds}
           isDisabled={isDisabled}
           onSave={onSave}
           onSelectChange={onSelectChange}

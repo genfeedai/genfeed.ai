@@ -126,8 +126,8 @@ function WorkflowSelectorSection({
           <SelectContent>
             <SelectItem value="none">Select a workflow…</SelectItem>
             {workflows.map((workflow) => (
-              <SelectItem key={workflow._id} value={workflow._id}>
-                {workflow.name}
+              <SelectItem key={workflow.id} value={workflow.id}>
+                {workflow.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -324,7 +324,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         return;
       }
 
-      const selectedWorkflow = workflows.find((w) => w._id === selectedId);
+      const selectedWorkflow = workflows.find((w) => w.id === selectedId);
       if (!selectedWorkflow) return;
 
       // Validate reference (check for circular dependency)
@@ -355,10 +355,10 @@ function WorkflowRefNodeComponent(props: NodeProps) {
       updateNodeData<WorkflowRefNodeData>(id, {
         cachedInterface: selectedWorkflow.interface,
         inputMappings,
-        label: `Subworkflow: ${selectedWorkflow.name}`,
+        label: `Subworkflow: ${selectedWorkflow.label}`,
         outputMappings,
         referencedWorkflowId: selectedId,
-        referencedWorkflowName: selectedWorkflow.name,
+        referencedWorkflowName: selectedWorkflow.label,
       });
       setWorkflowListState((state) => ({ ...state, error: null }));
     },

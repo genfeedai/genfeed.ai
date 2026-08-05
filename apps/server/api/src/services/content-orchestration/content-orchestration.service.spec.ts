@@ -91,7 +91,7 @@ describe('ContentOrchestrationService', () => {
     };
 
     mockSharedService = {
-      saveDocumentsInternal: vi.fn().mockResolvedValue({
+      createMediaDocumentsInternal: vi.fn().mockResolvedValue({
         ingredientData: { id: ingredientId },
         metadataData: { id: metadataId },
       }),
@@ -147,7 +147,9 @@ describe('ContentOrchestrationService', () => {
     it('should create ingredient for each step result', async () => {
       await service.generateAndPublish(baseConfig);
 
-      expect(mockSharedService.saveDocumentsInternal).toHaveBeenCalledWith(
+      expect(
+        mockSharedService.createMediaDocumentsInternal,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           status: IngredientStatus.PROCESSING,
         }),
@@ -187,7 +189,10 @@ describe('ContentOrchestrationService', () => {
 
       expect(mockPublisherService.publishToAll).toHaveBeenCalledWith(
         expect.objectContaining({
+          brandId: baseConfig.brandId,
           ingredientIds: expect.arrayContaining([ingredientId]),
+          organizationId: baseConfig.organizationId,
+          userId: baseConfig.userId,
         }),
       );
     });

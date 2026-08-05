@@ -8,12 +8,21 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('WorkflowBatchController', () => {
+  const organizationId = '550e8400-e29b-41d4-a716-446655440001';
+  const userId = '550e8400-e29b-41d4-a716-446655440002';
+  const batchId = '550e8400-e29b-41d4-a716-446655440003';
+  const batchItemId = '550e8400-e29b-41d4-a716-446655440004';
+  const ingredientId = '550e8400-e29b-41d4-a716-446655440005';
+  const outputIngredientId = '550e8400-e29b-41d4-a716-446655440006';
+  const workflowId = '550e8400-e29b-41d4-a716-446655440007';
+  const listedBatchId = '550e8400-e29b-41d4-a716-446655440008';
+  const listedWorkflowId = '550e8400-e29b-41d4-a716-446655440009';
   let controller: WorkflowBatchController;
 
   const mockUser: User = {
     publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      organization: organizationId,
+      user: userId,
     },
   } as unknown as User;
 
@@ -66,26 +75,24 @@ describe('WorkflowBatchController', () => {
   describe('getBatchStatus', () => {
     it('should return batch status scoped to the current organization with additive output metadata', async () => {
       mockBatchWorkflowService.getBatchJobForOrg.mockResolvedValue({
-        id: '507f1f77bcf86cd799439099',
+        id: batchId,
         completedCount: 1,
         createdAt: new Date('2026-03-15T12:00:00.000Z'),
         failedCount: 0,
         items: [
           {
-            id: '507f1f77bcf86cd799439091',
+            id: batchItemId,
             completedAt: new Date('2026-03-15T12:01:00.000Z'),
             executionId: 'exec-1',
-            ingredientId: '507f1f77bcf86cd799439092',
+            ingredientId,
             outputCategory: 'video',
-            outputIngredientId: '507f1f77bcf86cd799439093',
+            outputIngredientId,
             outputSummary: {
               category: 'video',
-              id: '507f1f77bcf86cd799439093',
-              ingredientUrl:
-                'https://cdn.example.com/videos/507f1f77bcf86cd799439093',
+              id: outputIngredientId,
+              ingredientUrl: `https://cdn.example.com/videos/${outputIngredientId}`,
               status: 'generated',
-              thumbnailUrl:
-                'https://cdn.example.com/thumbnails/507f1f77bcf86cd799439093.jpg',
+              thumbnailUrl: `https://cdn.example.com/thumbnails/${outputIngredientId}.jpg`,
             },
             startedAt: new Date('2026-03-15T12:00:30.000Z'),
             status: 'completed',
@@ -94,30 +101,25 @@ describe('WorkflowBatchController', () => {
         status: 'completed',
         totalCount: 1,
         updatedAt: new Date('2026-03-15T12:01:00.000Z'),
-        workflowId: '507f1f77bcf86cd799439094',
+        workflowId,
       });
 
-      const result = await controller.getBatchStatus(
-        '507f1f77bcf86cd799439099',
-        mockUser,
-      );
+      const result = await controller.getBatchStatus(batchId, mockUser);
 
       expect(mockBatchWorkflowService.getBatchJobForOrg).toHaveBeenCalledWith(
-        '507f1f77bcf86cd799439099',
+        batchId,
         mockUser.publicMetadata.organization,
       );
       expect(result.data.items[0]).toMatchObject({
         executionId: 'exec-1',
         outputCategory: 'video',
-        outputIngredientId: '507f1f77bcf86cd799439093',
+        outputIngredientId,
         outputSummary: {
           category: 'video',
-          id: '507f1f77bcf86cd799439093',
-          ingredientUrl:
-            'https://cdn.example.com/videos/507f1f77bcf86cd799439093',
+          id: outputIngredientId,
+          ingredientUrl: `https://cdn.example.com/videos/${outputIngredientId}`,
           status: 'generated',
-          thumbnailUrl:
-            'https://cdn.example.com/thumbnails/507f1f77bcf86cd799439093.jpg',
+          thumbnailUrl: `https://cdn.example.com/thumbnails/${outputIngredientId}.jpg`,
         },
       });
     });
@@ -127,13 +129,13 @@ describe('WorkflowBatchController', () => {
     it('should list batch jobs scoped to the current organization', async () => {
       mockBatchWorkflowService.listBatchJobs.mockResolvedValue([
         {
-          id: '507f1f77bcf86cd799439095',
+          id: listedBatchId,
           completedCount: 2,
           createdAt: new Date('2026-03-15T12:00:00.000Z'),
           failedCount: 1,
           status: 'completed',
           totalCount: 3,
-          workflowId: '507f1f77bcf86cd799439096',
+          workflowId: listedWorkflowId,
         },
       ]);
 
@@ -146,13 +148,13 @@ describe('WorkflowBatchController', () => {
       );
       expect(result.data).toEqual([
         {
-          _id: '507f1f77bcf86cd799439095',
+          id: listedBatchId,
           completedCount: 2,
           createdAt: '2026-03-15T12:00:00.000Z',
           failedCount: 1,
           status: 'completed',
           totalCount: 3,
-          workflowId: '507f1f77bcf86cd799439096',
+          workflowId: listedWorkflowId,
         },
       ]);
     });

@@ -1,8 +1,8 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const taskCommentAttributes = createEntityAttributes([
-  'organization',
-  'task',
+  'organizationId',
+  'taskId',
   'authorUserId',
   'authorAgentId',
   'body',

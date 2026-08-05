@@ -74,10 +74,10 @@ export class AgentContextAssemblyService {
       async () => {
         const filter: Record<string, unknown> = {
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         };
         if (params.brandId) {
-          filter._id = params.brandId;
+          filter.id = params.brandId;
         } else {
           filter.isSelected = true;
         }
@@ -104,8 +104,7 @@ export class AgentContextAssemblyService {
       this.cacheService.generateKey('org-settings', organizationId),
       async () =>
         this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         }),
       { ttl: CACHE_TTL_BRAND },
     );
@@ -639,15 +638,10 @@ export class AgentContextAssemblyService {
       bannerUrl: assets.banner?.url,
       description: this.readTextField(brand.description),
       fontFamily: this.readTextField(brand.fontFamily),
-      id:
-        this.readTextField(brand.id) ??
-        this.readTextField(brand.id) ??
-        'unknown-brand',
+      id: this.readTextField(brand.id) ?? 'unknown-brand',
       label: this.readTextField(brand.label),
       logoUrl: assets.logo?.url,
-      organization:
-        this.readTextField(brand.organizationId) ??
-        this.readTextField(brand.organization),
+      organization: this.readTextField(brand.organizationId),
       primaryColor: this.readTextField(brand.primaryColor),
       referenceImages: this.mergeReferenceImages(brand.referenceImages, assets),
       secondaryColor: this.readTextField(brand.secondaryColor),
@@ -785,9 +779,9 @@ export class AgentContextAssemblyService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
 
       if (!credential) return;

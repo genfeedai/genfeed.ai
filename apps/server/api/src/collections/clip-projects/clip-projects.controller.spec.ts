@@ -129,7 +129,7 @@ function createProject(
     ],
     id: projectId,
     isDeleted: false,
-    organization: organizationId,
+    organizationId,
     status: 'analyzed',
     transcriptText: 'Original title. Original summary',
   } as unknown as ClipProjectDocument;
@@ -242,13 +242,13 @@ describe('ClipProjectsController', () => {
       ).toHaveBeenCalledWith(organizationId, 12);
       expect(clipProjectsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(String),
+          organizationId,
           settings: expect.objectContaining({
             maxClips: 12,
             mode: 'avatar',
           }),
           sourceVideoUrl: dto.youtubeUrl,
-          user: expect.any(String),
+          userId,
         }),
       );
       expect(clipFactoryQueueService.enqueue).toHaveBeenCalledWith(

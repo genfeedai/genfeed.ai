@@ -90,7 +90,10 @@ export class Brand extends BaseBrand {
   }
 
   get youtubeHandle(): string | undefined {
-    return this.findCredential(CredentialPlatform.YOUTUBE)?.externalHandle;
+    return (
+      this.findCredential(CredentialPlatform.YOUTUBE)?.externalHandle ??
+      undefined
+    );
   }
 
   get youtubeUrl(): string | undefined {
@@ -101,7 +104,10 @@ export class Brand extends BaseBrand {
   }
 
   get tiktokHandle(): string | undefined {
-    return this.findCredential(CredentialPlatform.TIKTOK)?.externalHandle;
+    return (
+      this.findCredential(CredentialPlatform.TIKTOK)?.externalHandle ??
+      undefined
+    );
   }
 
   get tiktokUrl(): string | undefined {
@@ -112,7 +118,10 @@ export class Brand extends BaseBrand {
   }
 
   get instagramHandle(): string | undefined {
-    return this.findCredential(CredentialPlatform.INSTAGRAM)?.externalHandle;
+    return (
+      this.findCredential(CredentialPlatform.INSTAGRAM)?.externalHandle ??
+      undefined
+    );
   }
 
   get instagramUrl(): string | undefined {
@@ -123,7 +132,10 @@ export class Brand extends BaseBrand {
   }
 
   get twitterHandle(): string | undefined {
-    return this.findCredential(CredentialPlatform.TWITTER)?.externalHandle;
+    return (
+      this.findCredential(CredentialPlatform.TWITTER)?.externalHandle ??
+      undefined
+    );
   }
 
   get twitterUrl(): string | undefined {
@@ -134,7 +146,10 @@ export class Brand extends BaseBrand {
   }
 
   get linkedinHandle(): string | undefined {
-    return this.findCredential(CredentialPlatform.LINKEDIN)?.externalHandle;
+    return (
+      this.findCredential(CredentialPlatform.LINKEDIN)?.externalHandle ??
+      undefined
+    );
   }
 
   get linkedinUrl(): string | undefined {

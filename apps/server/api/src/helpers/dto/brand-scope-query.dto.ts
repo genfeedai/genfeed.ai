@@ -6,10 +6,10 @@ export class BrandScopeQueryDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  organization?: string;
+  organizationId?: string;
 
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  brand?: string;
+  brandId?: string;
 }

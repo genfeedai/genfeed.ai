@@ -140,8 +140,8 @@ export class AnalyticsSocialJobService {
     for (const post of posts) {
       try {
         const analytics = await this.instagramService.getMediaAnalytics(
-          post.organization,
-          post.brand,
+          post.organizationId,
+          post.brandId,
           post.externalId,
         );
 
@@ -190,8 +190,8 @@ export class AnalyticsSocialJobService {
     for (const post of posts) {
       try {
         const analytics = await this.tiktokService.getMediaAnalytics(
-          post.organization,
-          post.brand,
+          post.organizationId,
+          post.brandId,
           post.externalId,
         );
 
@@ -226,8 +226,8 @@ export class AnalyticsSocialJobService {
     for (const post of posts) {
       try {
         const analytics = await this.pinterestService.getMediaAnalytics(
-          post.organization,
-          post.brand,
+          post.organizationId,
+          post.brandId,
           post.externalId,
         );
 
@@ -262,8 +262,8 @@ export class AnalyticsSocialJobService {
     for (const post of posts) {
       try {
         const analytics = await this.linkedInService.getMediaAnalytics(
-          post.organization,
-          post.brand,
+          post.organizationId,
+          post.brandId,
           post.externalId,
         );
 
@@ -305,8 +305,8 @@ export class AnalyticsSocialJobService {
     for (const post of posts) {
       try {
         const analytics = await this.mastodonService.getMediaAnalytics(
-          post.organization,
-          post.brand,
+          post.organizationId,
+          post.brandId,
           post.externalId,
         );
 
@@ -346,9 +346,9 @@ export class AnalyticsSocialJobService {
     await this.analyticsCollectionState.markFailed(
       {
         attemptKey,
-        brandId: post.brand,
+        brandId: post.brandId,
         id: post.id,
-        organizationId: post.organization,
+        organizationId: post.organizationId,
         platform: post.platform,
       },
       failure,
@@ -381,9 +381,9 @@ export class AnalyticsSocialJobService {
     try {
       await this.analyticsCollectionState.markReady({
         attemptKey,
-        brandId: post.brand,
+        brandId: post.brandId,
         id: post.id,
-        organizationId: post.organization,
+        organizationId: post.organizationId,
         platform: post.platform,
       });
     } catch (error: unknown) {

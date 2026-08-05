@@ -84,20 +84,20 @@ describe('AgentRunsController', () => {
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
         where: {
-          brand: '507f1f77bcf86cd799439013',
+          brandId: '507f1f77bcf86cd799439013',
           isDeleted: false,
-          organization: '507f1f77bcf86cd799439012',
+          organizationId: '507f1f77bcf86cd799439012',
         },
       });
     });
 
     it('should not let a query brand override auth metadata brand', () => {
       const query = buildQuery({
-        brand: '507f1f77bcf86cd799439099',
+        brandId: '507f1f77bcf86cd799439099',
       });
 
       expect(query.where).toMatchObject({
-        brand: '507f1f77bcf86cd799439013',
+        brandId: '507f1f77bcf86cd799439013',
       });
     });
 
@@ -108,12 +108,12 @@ describe('AgentRunsController', () => {
       };
 
       const query = controller.buildFindAllQuery(organizationUser, {
-        brand: '507f1f77bcf86cd799439099',
+        brandId: '507f1f77bcf86cd799439099',
       } as AgentRunsQueryDto);
 
       expect(query.where).toMatchObject({
-        brand: '507f1f77bcf86cd799439099',
-        organization: '507f1f77bcf86cd799439012',
+        brandId: '507f1f77bcf86cd799439099',
+        organizationId: '507f1f77bcf86cd799439012',
       });
     });
 
@@ -234,7 +234,7 @@ describe('AgentRunsController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when organization matches', () => {
-      const entity = { organization: { id: '507f1f77bcf86cd799439012' } };
+      const entity = { organizationId: '507f1f77bcf86cd799439012' };
       expect(
         controller.canUserModifyEntity(mockUser, entity as AgentRunDocument),
       ).toBe(true);
@@ -245,7 +245,7 @@ describe('AgentRunsController', () => {
         ...mockUser,
         publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
       };
-      const entity = { organization: { _id: 'different_org' } };
+      const entity = { organizationId: 'different_org' };
       expect(
         controller.canUserModifyEntity(superAdmin, entity as AgentRunDocument),
       ).toBe(true);
@@ -257,8 +257,8 @@ describe('AgentRunsController', () => {
         publicMetadata: { ...mockUser.publicMetadata, isSuperAdmin: true },
       };
       const entity = {
-        brand: '507f1f77bcf86cd799439099',
-        organization: { _id: 'different_org' },
+        brandId: '507f1f77bcf86cd799439099',
+        organizationId: 'different_org',
       };
 
       expect(
@@ -267,7 +267,7 @@ describe('AgentRunsController', () => {
     });
 
     it('should return false for non-matching organization', () => {
-      const entity = { organization: { _id: 'different_org' } };
+      const entity = { organizationId: 'different_org' };
       expect(
         controller.canUserModifyEntity(mockUser, entity as AgentRunDocument),
       ).toBe(false);
@@ -275,8 +275,8 @@ describe('AgentRunsController', () => {
 
     it('should return false for a different brand in the same organization', () => {
       const entity = {
-        brand: '507f1f77bcf86cd799439099',
-        organization: { id: '507f1f77bcf86cd799439012' },
+        brandId: '507f1f77bcf86cd799439099',
+        organizationId: '507f1f77bcf86cd799439012',
       };
 
       expect(
@@ -288,15 +288,12 @@ describe('AgentRunsController', () => {
   describe('enrichCreateDto', () => {
     it('replaces body supplied scope with authenticated scope', () => {
       const bodySuppliedScope = {
-        brand: 'other-brand',
         brandId: 'other-brand-id',
         label: 'Run',
-        organization: 'other-org',
         organizationId: 'other-org-id',
         trigger: 'manual',
-        user: 'other-user',
         userId: 'other-user-id',
-      } satisfies Partial<CreateAgentRunDto> & Record<string, unknown>;
+      } satisfies Partial<CreateAgentRunDto>;
 
       const dto = controller.enrichCreateDto(
         bodySuppliedScope,
@@ -308,15 +305,12 @@ describe('AgentRunsController', () => {
         organizationId: '507f1f77bcf86cd799439012',
         userId: '507f1f77bcf86cd799439014',
       });
-      expect(dto).not.toHaveProperty('brand');
-      expect(dto).not.toHaveProperty('organization');
-      expect(dto).not.toHaveProperty('user');
     });
   });
 
   describe('getActiveRuns', () => {
     it('should return active runs for organization', async () => {
-      const mockRuns = [{ _id: 'run1', status: 'running' }];
+      const mockRuns = [{ id: 'run1', status: 'running' }];
       mockServiceMethods.getActiveRuns.mockResolvedValue(mockRuns);
 
       await controller.getActiveRuns(mockRequest, mockUser);
@@ -388,10 +382,10 @@ describe('AgentRunsController', () => {
       );
 
       expect(mockServiceMethods.findOne).toHaveBeenCalledWith({
-        _id: 'run1',
-        brand: 'selected-brand',
+        brandId: 'selected-brand',
+        id: 'run1',
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439012',
+        organizationId: '507f1f77bcf86cd799439012',
       });
     });
 
@@ -406,7 +400,7 @@ describe('AgentRunsController', () => {
       );
 
       expect(mockServiceMethods.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ brand: '507f1f77bcf86cd799439013' }),
+        expect.objectContaining({ brandId: '507f1f77bcf86cd799439013' }),
       );
     });
   });

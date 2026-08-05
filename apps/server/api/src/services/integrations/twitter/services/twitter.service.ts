@@ -128,9 +128,9 @@ export class TwitterService {
     brandId: string,
   ): Promise<CredentialDocument> {
     const queryCredentials = {
-      brand: brandId,
+      brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform: CredentialPlatform.TWITTER,
     };
 
@@ -186,11 +186,11 @@ export class TwitterService {
       // Create activity for social integration disconnection
       await this.activitiesService.create(
         new ActivityEntity({
-          brand: brandId,
+          brandId: brandId,
           key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,
-          organization: organizationId,
+          organizationId: organizationId,
           source: ActivitySource.SOCIAL_INTEGRATION,
-          user: credentials.userId,
+          userId: credentials.userId ?? undefined,
           value: `Twitter integration disconnected: ${(error as Error)?.message ?? 'Token refresh failed'}`,
         }),
       );
@@ -268,9 +268,9 @@ export class TwitterService {
   ): Promise<string | null> {
     try {
       const credentials = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.TWITTER,
       });
       if (!credentials?.accessToken || credentials.isConnected === false) {

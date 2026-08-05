@@ -72,14 +72,14 @@ export class CreateSubscriptionDto {
     description: 'The organization ID that owns the subscription',
     required: true,
   })
-  readonly organization!: string;
+  readonly organizationId!: string;
 
   @IsEntityId()
   @ApiProperty({
     description: 'The customer ID associated with the subscription',
     required: true,
   })
-  readonly customer!: string;
+  readonly customerId!: string;
 
   // admin user id
   @IsEntityId()
@@ -87,17 +87,12 @@ export class CreateSubscriptionDto {
     description: 'The admin user ID who created the subscription',
     required: true,
   })
-  readonly user!: string;
+  readonly userId!: string;
 
   @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'The Stripe customer ID', required: true })
-  readonly stripeCustomerId!: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty({ description: 'The Stripe subscription ID', required: true })
-  readonly stripeSubscriptionId!: string;
+  @IsOptional()
+  @ApiProperty({ description: 'The Stripe subscription ID', required: false })
+  readonly stripeSubscriptionId?: string;
 
   @IsOptional()
   @IsString()
@@ -126,6 +121,14 @@ export class CreateSubscriptionDto {
   })
   readonly currentPeriodEnd?: Date;
 
+  @IsDate()
+  @IsOptional()
+  @ApiProperty({
+    description: 'When the current billing period starts',
+    required: false,
+  })
+  readonly currentPeriodStart?: Date;
+
   @IsBoolean()
   @IsOptional()
   @ApiProperty({
@@ -137,8 +140,8 @@ export class CreateSubscriptionDto {
   @IsString()
   @IsOptional()
   @ApiProperty({
-    description: 'The type/category of the subscription',
+    description: 'The billing plan for the subscription',
     required: false,
   })
-  readonly type?: string;
+  readonly plan?: string;
 }

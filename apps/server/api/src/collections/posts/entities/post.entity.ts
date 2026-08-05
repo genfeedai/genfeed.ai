@@ -23,17 +23,10 @@ export interface PostAnalyticsSummary {
 
 export class PostEntity extends BaseEntity {
   declare readonly ingredients: string[];
-  // Scalar FKs are the only ids present on a Prisma row. The `credential`,
-  // `user`, `brand`, and `organization` aliases below are Mongo-era leftovers
-  // that stay undefined unless the query explicitly populated the relation.
   declare readonly brandId: string;
-  declare readonly credentialId: string;
+  declare readonly credentialId?: string | null;
   declare readonly organizationId: string;
   declare readonly userId: string;
-  declare readonly credential: string;
-  declare readonly user: string;
-  declare readonly brand: string;
-  declare readonly organization: string;
   declare readonly groupId?: string | null;
   declare readonly children?: string[];
   declare readonly agentContextSource?: string;
@@ -55,7 +48,7 @@ export class PostEntity extends BaseEntity {
   declare readonly publishedAt?: Date;
   declare readonly uploadedAt?: Date;
 
-  declare readonly platform: CredentialPlatform;
+  declare readonly platform?: CredentialPlatform | null;
   // Per-channel publishing settings captured at schedule time. Stored as
   // untyped JSON, so the publish path must run it through
   // `resolveChannelTargetSettings` before acting on any key.

@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, DropdownDirection } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ButtonDropdownProps } from '@genfeedai/props/ui/forms/button.props';
 import { Button as PrimitiveButton } from '@ui/primitives/button';
@@ -30,6 +30,7 @@ export default function ButtonDropdown({
   tooltip,
   triggerDisplay = 'default',
   variant = ButtonVariant.GHOST,
+  direction = DropdownDirection.DOWN,
 }: ButtonDropdownProps) {
   const selectedOption = options.find((opt) => opt.value === value);
   const displayLabel = selectedOption?.label || placeholder;
@@ -86,6 +87,7 @@ export default function ButtonDropdown({
 
       <DropdownMenuContent
         align="end"
+        side={direction === DropdownDirection.UP ? 'top' : 'bottom'}
         className="min-w-40 max-w-48 max-h-64 overflow-y-auto"
       >
         {options.map((option) => (
@@ -93,8 +95,9 @@ export default function ButtonDropdown({
             key={option.value}
             onSelect={() => handleSelect(option.value)}
             className={cn(
-              'cursor-pointer',
-              option.value === value && 'bg-accent font-medium',
+              'cursor-pointer text-foreground hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
+              option.value === value &&
+                'bg-background-tertiary font-medium text-foreground',
             )}
           >
             {option.icon && (

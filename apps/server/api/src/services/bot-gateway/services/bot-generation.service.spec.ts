@@ -32,7 +32,7 @@ describe('BotGenerationService', () => {
   let organizationSettingsService: vi.Mocked<
     Pick<OrganizationSettingsService, 'findOne'>
   >;
-  let sharedService: vi.Mocked<Pick<SharedService, 'saveDocuments'>>;
+  let sharedService: vi.Mocked<Pick<SharedService, 'createMediaDocuments'>>;
   let configService: vi.Mocked<Pick<ConfigService, 'ingredientsEndpoint'>>;
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
 
@@ -63,7 +63,7 @@ describe('BotGenerationService', () => {
       findOne: vi.fn().mockResolvedValue(mockSettings),
     };
     sharedService = {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: mockIngredientData,
         metadataData: mockMetadataData,
       }),
@@ -147,7 +147,7 @@ describe('BotGenerationService', () => {
         'a beautiful sunset',
         callbackCtx as never,
       );
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         expect.objectContaining({ id: userId }),
         expect.objectContaining({ category: IngredientCategory.IMAGE }),
       );
@@ -171,7 +171,7 @@ describe('BotGenerationService', () => {
         'cinematic slow motion',
         callbackCtx as never,
       );
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         expect.objectContaining({ id: userId }),
         expect.objectContaining({ category: IngredientCategory.VIDEO }),
       );
@@ -210,8 +210,8 @@ describe('BotGenerationService', () => {
       ).rejects.toThrow('Brand not found');
     });
 
-    it('propagates errors from saveDocuments', async () => {
-      sharedService.saveDocuments.mockRejectedValue(
+    it('propagates errors from createMediaDocuments', async () => {
+      sharedService.createMediaDocuments.mockRejectedValue(
         new Error('DB write failed'),
       );
       await expect(

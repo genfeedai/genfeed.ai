@@ -85,7 +85,7 @@ export class AgentPrepareToolHandler {
       {
         where: {
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         },
         orderBy: { updatedAt: -1 },
       },
@@ -128,16 +128,15 @@ export class AgentPrepareToolHandler {
       {
         isDeleted: false,
         isSelected: true,
-        organization: ctx.organizationId,
-        user: ctx.userId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
       },
       'none',
     );
 
     const orgSettings = this.organizationSettingsService
       ? await this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         })
       : null;
 
@@ -272,8 +271,8 @@ export class AgentPrepareToolHandler {
       {
         isDeleted: false,
         isSelected: true,
-        organization: ctx.organizationId,
-        user: ctx.userId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
       },
       'none',
     );
@@ -282,8 +281,7 @@ export class AgentPrepareToolHandler {
       : null;
     const orgSettings = this.organizationSettingsService
       ? await this.organizationSettingsService.findOne({
-          isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         })
       : null;
     const identity = this.resolveClipWorkflowIdentity(
@@ -314,7 +312,7 @@ export class AgentPrepareToolHandler {
       {
         where: {
           isDeleted: false,
-          organization: ctx.organizationId,
+          organizationId: ctx.organizationId,
         },
         orderBy: { updatedAt: -1 },
       },
@@ -346,9 +344,9 @@ export class AgentPrepareToolHandler {
       !workflowList.some((wf) => wf.id === selectedWorkflow)
     ) {
       const workflow = await this.workflowsService.findOne({
-        _id: selectedWorkflow,
+        id: selectedWorkflow,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (!workflow) {

@@ -3,14 +3,10 @@ import { type Bookmark } from '@genfeedai/prisma';
 
 export class BookmarkEntity extends BaseEntity implements Bookmark {
   id!: string;
-  mongoId!: string | null;
   userId!: string;
   organizationId!: string;
   brandId!: string | null;
   folderId!: string | null;
-  user!: string;
-  organization!: string;
-  brand?: string;
   category!: Bookmark['category'];
   url!: string;
   platform!: Bookmark['platform'];
@@ -25,8 +21,6 @@ export class BookmarkEntity extends BaseEntity implements Bookmark {
   platformData!: Bookmark['platformData'];
   intent!: Bookmark['intent'];
   generatedIngredients!: string[];
-  folder?: string;
-  tags!: string[];
   savedAt!: Date;
   processedAt!: Date | null;
 }

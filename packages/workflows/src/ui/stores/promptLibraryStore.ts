@@ -104,9 +104,8 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
     try {
       await _promptApi.delete(id, signal);
       set((state) => ({
-        items: state.items.filter((i) => i._id !== id),
-        selectedItem:
-          state.selectedItem?._id === id ? null : state.selectedItem,
+        items: state.items.filter((item) => item.id !== id),
+        selectedItem: state.selectedItem?.id === id ? null : state.selectedItem,
       }));
     } catch (error) {
       set({ error: (error as Error).message });
@@ -182,7 +181,9 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
       const item = await _promptApi.use(id, signal);
       set((state) => ({
         isPickerOpen: false,
-        items: state.items.map((i) => (i._id === id ? item : i)),
+        items: state.items.map((current) =>
+          current.id === id ? item : current,
+        ),
       }));
       return item;
     } catch (error) {
@@ -209,9 +210,10 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
         editingItem: null,
         isCreateModalOpen: false,
         isLoading: false,
-        items: state.items.map((i) => (i._id === id ? item : i)),
-        selectedItem:
-          state.selectedItem?._id === id ? item : state.selectedItem,
+        items: state.items.map((current) =>
+          current.id === id ? item : current,
+        ),
+        selectedItem: state.selectedItem?.id === id ? item : state.selectedItem,
       }));
       return item;
     } catch (error) {

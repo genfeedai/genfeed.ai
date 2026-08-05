@@ -334,8 +334,6 @@ export function useAgentChatContainer({
         artifactReferences: options?.artifactReferences,
         attachments,
         ...(options?.brandId ? { brandId: options.brandId } : {}),
-        composerMode: options?.composerMode,
-        generationModelKey: options?.generationModelKey,
         planModeEnabled: options?.planModeEnabled ?? false,
       });
     },

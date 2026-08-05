@@ -1,12 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementMoodDto } from '@api/collections/elements/moods/dto/create-mood.dto';
 import { UpdateElementMoodDto } from '@api/collections/elements/moods/dto/update-mood.dto';
-import {
-  ElementMood,
-  type ElementMoodDocument,
-} from '@api/collections/elements/moods/schemas/mood.schema';
+import type { ElementMoodDocument } from '@api/collections/elements/moods/schemas/mood.schema';
 import { ElementsMoodsService } from '@api/collections/elements/moods/services/moods.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -113,5 +111,12 @@ export class ElementsMoodsController extends BaseCRUDController<
       },
       query,
     });
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementMoodDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

@@ -27,10 +27,7 @@ import {
 } from '@api/services/agent-campaign/orchestrator.constants';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
+import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { AgentExecutionTrigger, type AgentType } from '@genfeedai/enums';
 import type { IAgentCampaignContentRotation } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -147,9 +144,9 @@ export class ContentEngineService {
     organizationId: string,
   ): Promise<ContentEngineCycleResult> {
     const campaign = await this.agentCampaignsService.findOne({
-      _id: campaignId,
+      id: campaignId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!campaign) {
@@ -279,10 +276,10 @@ export class ContentEngineService {
           reason,
         },
         objective,
-        organization: organizationId,
-        strategy: String(strategy.id),
+        organizationId: organizationId,
+        strategyId: String(strategy.id),
         trigger: AgentExecutionTrigger.CRON,
-        user: userId,
+        userId: userId,
       });
 
       runRecords.push(run);
@@ -457,10 +454,10 @@ export class ContentEngineService {
           triggerType: input.triggerType,
         },
         objective,
-        organization: organizationId,
-        strategy: String(strategy.id),
+        organizationId: organizationId,
+        strategyId: String(strategy.id),
         trigger: AgentExecutionTrigger.CRON,
-        user: userId,
+        userId: userId,
       });
 
       await this.agentRunQueueService.queueRun({
@@ -605,12 +602,7 @@ export class ContentEngineService {
     campaign: AgentCampaignDocument,
     campaignId: string,
   ): string {
-    return requireRelationId(
-      campaign.userId,
-      campaign.user,
-      'user',
-      `Campaign ${campaignId}`,
-    );
+    return requireRelationId(campaign.userId, 'user', `Campaign ${campaignId}`);
   }
 
   private async loadAnalyticsOverview(
@@ -625,10 +617,9 @@ export class ContentEngineService {
       // Scalar FKs: the relation aliases are `undefined` on an unpopulated read
       // and stringify to "[object Object]" on a populated one — either way the
       // overview gets scoped to a brand/organization that does not exist.
-      resolveRelationId(campaign.brandId, campaign.brand),
+      campaign.brandId ?? undefined,
       requireRelationId(
         campaign.organizationId,
-        campaign.organization,
         'organization',
         `Campaign ${campaign.id}`,
       ),
@@ -799,12 +790,11 @@ export class ContentEngineService {
       this.requireCampaignUserId(campaign, String(campaign.id)),
       requireRelationId(
         campaign.organizationId,
-        campaign.organization,
         'organization',
         `Campaign ${campaign.id}`,
       ),
       {
-        brandId: resolveRelationId(campaign.brandId, campaign.brand),
+        brandId: campaign.brandId ?? undefined,
         campaignId: String(campaign.id),
         confidence: 0.7,
         content: summary,

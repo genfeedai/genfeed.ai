@@ -251,7 +251,8 @@ export class AvatarsController {
       where: {
         category: IngredientCategory.AVATAR,
         isDeleted,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
       orderBy: handleQuerySort(query.sort),
     };

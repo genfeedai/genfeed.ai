@@ -28,9 +28,9 @@ describe('TiktokController', () => {
   let controller: TiktokController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
+    beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
-    saveCredentials: ReturnType<typeof vi.fn>;
     updateExternalProfile: ReturnType<typeof vi.fn>;
   };
   let tiktokService: {
@@ -46,21 +46,33 @@ describe('TiktokController', () => {
   const credentialId = 'test-object-id';
 
   // A real Prisma row carries the scalar FK, never the populated-only alias.
-  const mockBrand = { id: brandId, organizationId: orgId };
+  const mockBrand = {
+    id: brandId,
+    organizationId: orgId,
+    userId: '507f1f77bcf86cd799439013',
+  };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     credentialsService = {
-      findOne: vi.fn().mockResolvedValue({ id: credentialId }),
+      beginOAuthForBrand: vi.fn().mockResolvedValue({
+        credential: { id: credentialId },
+        state: 'opaque-oauth-state',
+      }),
+      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+        brandId,
+        id: credentialId,
+        organizationId: orgId,
+        userId: '507f1f77bcf86cd799439013',
+      }),
       patch: vi
         .fn()
-        .mockImplementation((_id, data) =>
+        .mockImplementation((_credentialId, data) =>
           Promise.resolve({ id: credentialId, ...data }),
         ),
-      saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
       updateExternalProfile: vi
         .fn()
-        .mockImplementation((_id, _organizationId, data) =>
+        .mockImplementation((_credentialId, _organizationId, data) =>
           Promise.resolve({
             externalAvatar: data.avatarUrl,
             externalHandle: data.handle,
@@ -112,7 +124,7 @@ describe('TiktokController', () => {
   });
 
   describe('connect', () => {
-    const dto = { brand: brandId.toString() };
+    const dto = { brandId: brandId.toString() };
 
     it('should return TikTok OAuth URL', async () => {
       const result = await controller.connect(mockRequest, mockUser, dto);
@@ -123,8 +135,9 @@ describe('TiktokController', () => {
 
     it('should save unconnected credential', async () => {
       await controller.connect(mockRequest, mockUser, dto);
-      expect(credentialsService.saveCredentials).toHaveBeenCalledWith(
+      expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
         mockBrand,
+        '507f1f77bcf86cd799439013',
         'tiktok',
         expect.objectContaining({ isConnected: false }),
       );
@@ -137,27 +150,20 @@ describe('TiktokController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should include state with brandId and organizationId in URL', async () => {
+    it('should include only the opaque server-issued state in the URL', async () => {
       const result = (await controller.connect(mockRequest, mockUser, dto)) as {
         url: string;
       };
       const url = new URL(result.url);
       const stateParam = url.searchParams.get('state');
-      expect(stateParam).toBeTruthy();
-      const state = JSON.parse(decodeURIComponent(stateParam ?? '')) as {
-        brandId: string;
-        organizationId: string;
-      };
-      expect(state.brandId).toBe(brandId.toString());
-      expect(state.organizationId).toBe(orgId.toString());
+      expect(stateParam).toBe('opaque-oauth-state');
+      expect(result.url).not.toContain(brandId);
+      expect(result.url).not.toContain(orgId);
     });
   });
 
   describe('verify', () => {
-    const state = JSON.stringify({
-      brandId: brandId.toString(),
-      organizationId: orgId.toString(),
-    });
+    const state = 'opaque-oauth-state';
     const dto = { code: 'tiktok_code_123', state };
 
     beforeEach(() => {
@@ -181,6 +187,7 @@ describe('TiktokController', () => {
           accessToken: 'tt_access',
           isConnected: true,
           isDeleted: false,
+          oauthState: null,
           refreshToken: 'tt_refresh',
         }),
       );
@@ -224,7 +231,7 @@ describe('TiktokController', () => {
     });
 
     it('should throw NOT_FOUND when no pending credential found', async () => {
-      credentialsService.findOne.mockResolvedValueOnce(null);
+      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );

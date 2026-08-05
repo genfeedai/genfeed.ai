@@ -38,7 +38,7 @@ describe('BrandCacheStrategy', () => {
       cacheService.generateKey.mockReturnValue('cache:brand:brand-123');
       cacheService.set.mockResolvedValue(true);
 
-      const brandData = { name: 'Acme', user: 'user-1' };
+      const brandData = { name: 'Acme', userId: 'user-1' };
       const result = await strategy.cacheBrand('brand-123', brandData);
 
       expect(cacheService.generateKey).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe('BrandCacheStrategy', () => {
       cacheService.generateKey.mockReturnValue('cache:brand:brand-456');
       cacheService.set.mockResolvedValue(false);
 
-      const result = await strategy.cacheBrand('brand-456', { user: 'u2' });
+      const result = await strategy.cacheBrand('brand-456', { userId: 'u2' });
       expect(result).toBe(false);
     });
 
@@ -68,7 +68,10 @@ describe('BrandCacheStrategy', () => {
       cacheService.generateKey.mockReturnValue('k');
       cacheService.set.mockResolvedValue(true);
 
-      await strategy.cacheBrand('b1', { extra: 'data', user: 'my-user' });
+      await strategy.cacheBrand('b1', {
+        extra: 'data',
+        userId: 'my-user',
+      });
 
       const callArgs = cacheService.set.mock.calls[0];
       expect(callArgs[2].tags).toContain('user:my-user');
@@ -78,7 +81,7 @@ describe('BrandCacheStrategy', () => {
       cacheService.generateKey.mockReturnValue('k');
       cacheService.set.mockResolvedValue(true);
 
-      await strategy.cacheBrand('b2', { user: 'u' });
+      await strategy.cacheBrand('b2', { userId: 'u' });
 
       expect(cacheService.set.mock.calls[0][2].ttl).toBe(1800);
     });

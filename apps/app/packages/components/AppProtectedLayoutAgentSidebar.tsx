@@ -23,8 +23,8 @@ type Props = {
  * nav panel identity and remount the list.
  */
 export default function AgentSidebarContent({ renderConversations }: Props) {
-  const { orgHref } = useOrgUrl();
-  const newThreadHref = orgHref(APP_ROUTES.AGENT.NEW);
+  const { activeHref } = useOrgUrl();
+  const newThreadHref = activeHref(APP_ROUTES.AGENT.NEW);
   const newThreadAction = useMemo(
     () => (
       <Link

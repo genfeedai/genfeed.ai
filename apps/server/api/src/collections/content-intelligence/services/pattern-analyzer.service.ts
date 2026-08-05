@@ -53,7 +53,7 @@ export class PatternAnalyzerService {
     patterns: CreatePatternDto[];
   }> {
     const creator = await this.contentIntelligenceService.findOne({
-      _id: creatorId,
+      id: creatorId,
       isDeleted: false,
     });
 

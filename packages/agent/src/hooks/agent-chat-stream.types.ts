@@ -15,8 +15,6 @@ export interface SendStreamMessageOptions {
   signal?: AbortSignal;
   attachments?: ChatAttachment[];
   brandId?: string;
-  composerMode?: 'chat' | 'image' | 'video' | 'voice';
-  generationModelKey?: string | null;
   planModeEnabled?: boolean;
 }
 

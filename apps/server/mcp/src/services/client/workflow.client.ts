@@ -39,7 +39,7 @@ function asArray(value: unknown): unknown[] {
 
 function resourceId(resource: JsonApiResource | undefined): string {
   const attrs = asRecord(resource?.attributes);
-  return String(resource?.id ?? attrs.id ?? attrs._id ?? '');
+  return String(resource?.id ?? attrs.id ?? '');
 }
 
 function mapWorkflowResource(
@@ -117,7 +117,7 @@ function mapWorkflowRunResource(
     status: asString(attrs.status),
     trigger: asString(attrs.trigger),
     updatedAt: asString(attrs.updatedAt),
-    workflow: attrs.workflow,
+    workflowId: asString(attrs.workflowId),
   };
 }
 
@@ -172,7 +172,7 @@ export class WorkflowClient {
       async (http) => {
         const response = await http.post('/workflow-executions', {
           inputValues: params.variables,
-          workflow: params.workflowId,
+          workflowId: params.workflowId,
         });
 
         const execution = response.data?.data;
@@ -324,7 +324,7 @@ export class WorkflowClient {
           offset: params.offset ?? 0,
         };
 
-        if (params.workflowId) queryParams.workflow = params.workflowId;
+        if (params.workflowId) queryParams.workflowId = params.workflowId;
         if (params.status) queryParams.status = params.status;
         if (params.trigger) queryParams.trigger = params.trigger;
 

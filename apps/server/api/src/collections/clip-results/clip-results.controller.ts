@@ -51,11 +51,12 @@ export class ClipResultsController {
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    const data: ClipResultDocument = await this.clipResultsService.create({
-      ...createClipResultDto,
-      organization: publicMetadata.organization,
-      user: publicMetadata.user,
-    } as CreateClipResultDto);
+    const data: ClipResultDocument =
+      await this.clipResultsService.createForOrganization({
+        ...createClipResultDto,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
+      });
 
     return serializeSingle(request, ClipResultSerializer, data);
   }
@@ -118,9 +119,9 @@ export class ClipResultsController {
     const publicMetadata = getPublicMetadata(user);
 
     const data = await this.clipResultsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -141,9 +142,9 @@ export class ClipResultsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.clipResultsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {

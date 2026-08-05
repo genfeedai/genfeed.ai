@@ -31,6 +31,12 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 // Simple serializer for pattern playbook
 const PatternPlaybookSerializer = {
   serialize: (data: unknown) => {
@@ -42,21 +48,24 @@ const PatternPlaybookSerializer = {
         ? ((data as { toObject: () => Record<string, unknown> }).toObject() ??
           {})
         : ((data as Record<string, unknown>) ?? {});
+    const persistedData = readJsonRecord(doc.data);
     const sourceCreators = Array.isArray(doc.sourceCreators)
-      ? doc.sourceCreators
+      ? doc.sourceCreators.filter(
+          (entry): entry is string => typeof entry === 'string',
+        )
       : [];
 
     return {
       attributes: {
-        description: doc.description,
-        insights: doc.insights,
-        isActive: doc.isActive,
-        lastUpdatedAt: doc.lastUpdatedAt,
-        name: doc.name,
-        niche: doc.niche,
-        patternsCount: doc.patternsCount,
-        platform: doc.platform,
-        sourceCreators: sourceCreators.map((id: unknown) => String(id)),
+        description: persistedData.description,
+        insights: persistedData.insights,
+        isActive: persistedData.isActive,
+        lastUpdatedAt: persistedData.lastUpdatedAt,
+        name: persistedData.name,
+        niche: persistedData.niche,
+        patternsCount: persistedData.patternsCount,
+        platform: persistedData.platform,
+        sourceCreators,
       },
       id: String(doc.id ?? ''),
       type: 'pattern-playbook',
@@ -81,9 +90,10 @@ export class PlaybooksController {
     const organizationId = publicMetadata.organization;
 
     const pipeline = {
+      include: { sourceCreators: { select: { id: true } } },
       where: {
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
       },
       orderBy: { createdAt: -1 },
     };
@@ -108,11 +118,14 @@ export class PlaybooksController {
     }
 
     const publicMetadata = getPublicMetadata(user);
-    const data = await this.playbookBuilderService.findOne({
-      _id: id,
-      isDeleted: false,
-      organization: publicMetadata.organization,
-    });
+    const data = await this.playbookBuilderService.findOne(
+      {
+        id: id,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      },
+      ['sourceCreators'],
+    );
 
     if (!data) {
       ErrorResponse.notFound('PatternPlaybook', id);
@@ -152,17 +165,23 @@ export class PlaybooksController {
     }
 
     const publicMetadata = getPublicMetadata(user);
-    const existing = await this.playbookBuilderService.findOne({
-      _id: id,
-      isDeleted: false,
-      organization: publicMetadata.organization,
-    });
+    const existing = await this.playbookBuilderService.findOne(
+      {
+        id: id,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      },
+      ['sourceCreators'],
+    );
 
     if (!existing) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
-    const data = await this.playbookBuilderService.patch(id, dto);
+    const data = await this.playbookBuilderService.updatePlaybook(
+      existing,
+      dto,
+    );
 
     return serializeSingle(request, PatternPlaybookSerializer, data);
   }
@@ -178,18 +197,23 @@ export class PlaybooksController {
     }
 
     const publicMetadata = getPublicMetadata(user);
-    const existing = await this.playbookBuilderService.findOne({
-      _id: id,
-      isDeleted: false,
-      organization: publicMetadata.organization,
-    });
+    const existing = await this.playbookBuilderService.findOne(
+      {
+        id: id,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      },
+      ['sourceCreators'],
+    );
 
     if (!existing) {
       ErrorResponse.notFound('PatternPlaybook', id);
     }
 
-    // @ts-expect-error TS2554
-    const data = await this.playbookBuilderService.buildInsights(id);
+    const data = await this.playbookBuilderService.buildInsights(
+      id,
+      publicMetadata.organization,
+    );
 
     return serializeSingle(request, PatternPlaybookSerializer, data);
   }
@@ -205,11 +229,14 @@ export class PlaybooksController {
     }
 
     const publicMetadata = getPublicMetadata(user);
-    const existing = await this.playbookBuilderService.findOne({
-      _id: id,
-      isDeleted: false,
-      organization: publicMetadata.organization,
-    });
+    const existing = await this.playbookBuilderService.findOne(
+      {
+        id: id,
+        isDeleted: false,
+        organizationId: publicMetadata.organization,
+      },
+      ['sourceCreators'],
+    );
 
     if (!existing) {
       ErrorResponse.notFound('PatternPlaybook', id);

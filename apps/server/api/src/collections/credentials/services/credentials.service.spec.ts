@@ -21,7 +21,12 @@ const CIPHERTEXT_PATTERN = /^[0-9a-f]{32}:(?:[0-9a-f]{2})+:[0-9a-f]{32}$/i;
 describe('CredentialsService', () => {
   let service: CredentialsService;
   let crypto: CredentialCryptoService;
-  let prisma: Record<string, Record<string, ReturnType<typeof vi.fn>>>;
+  let prisma: {
+    $transaction: ReturnType<typeof vi.fn>;
+    credential: Record<string, ReturnType<typeof vi.fn>>;
+    organizationSetting: Record<string, ReturnType<typeof vi.fn>>;
+    tag: Record<string, ReturnType<typeof vi.fn>>;
+  };
   let logger: Record<string, ReturnType<typeof vi.fn>>;
   let filesClient: { uploadToS3: ReturnType<typeof vi.fn> };
 
@@ -30,6 +35,7 @@ describe('CredentialsService', () => {
 
   beforeEach(() => {
     prisma = {
+      $transaction: vi.fn(),
       credential: {
         count: vi.fn().mockResolvedValue(0),
         create: vi.fn((args: { data: Record<string, unknown> }) =>
@@ -46,7 +52,13 @@ describe('CredentialsService', () => {
           subscriptionTier: SubscriptionTier.FREE,
         }),
       },
+      tag: {
+        create: vi.fn().mockResolvedValue({ id: 'tag-1' }),
+      },
     };
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: typeof prisma) => Promise<unknown>) => callback(prisma),
+    );
     logger = { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() };
     crypto = new CredentialCryptoService({
       tokenEncryptionKey: KEY,
@@ -227,10 +239,11 @@ describe('CredentialsService', () => {
     });
   });
 
-  describe('saveCredentials', () => {
+  describe('upsertForBrand', () => {
     it('encrypts secrets when creating a new credential', async () => {
-      await service.saveCredentials(
-        { id: brandId, organizationId: orgId, userId: 'u1' },
+      await service.upsertForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
         'twitter' as never,
         { accessToken: 'save-raw' },
       );
@@ -243,9 +256,10 @@ describe('CredentialsService', () => {
       expect(crypto.decrypt(data.accessToken)).toBe('save-raw');
     });
 
-    it('writes real foreign keys when the brand carries legacy relation aliases', async () => {
-      await service.saveCredentials(
-        { _id: brandId, organization: { id: orgId }, user: 'u1' } as never,
+    it('writes canonical credential relation IDs', async () => {
+      await service.upsertForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
         'twitter' as never,
         { accessToken: 'save-raw' },
       );
@@ -255,9 +269,6 @@ describe('CredentialsService', () => {
         string
       >;
 
-      // `String(brand.organization)` used to write "[object Object]" and
-      // `String(undefined)` the literal "undefined" — both rejected by
-      // Postgres with a P2003 foreign-key violation.
       expect(data.brandId).toBe(brandId);
       expect(data.organizationId).toBe(orgId);
       expect(data.userId).toBe('u1');
@@ -268,14 +279,158 @@ describe('CredentialsService', () => {
       }
     });
 
+    it('does not let provider fields override credential ownership or platform', async () => {
+      await service.upsertForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        'twitter' as never,
+        {
+          accessToken: 'save-raw',
+          brandId: 'foreign-brand',
+          organizationId: 'foreign-org',
+          platform: 'facebook',
+          userId: 'foreign-user',
+        } as never,
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        string
+      >;
+
+      expect(data.brandId).toBe(brandId);
+      expect(data.organizationId).toBe(orgId);
+      expect(data.platform).toBe('TWITTER');
+      expect(data.userId).toBe('u1');
+    });
+
     it('fails closed rather than writing an unresolvable foreign key', async () => {
       await expect(
-        service.saveCredentials({ id: brandId } as never, 'twitter' as never, {
-          accessToken: 'save-raw',
-        }),
+        service.upsertForBrand(
+          { id: brandId } as never,
+          'u1',
+          'twitter' as never,
+          { accessToken: 'save-raw' },
+        ),
       ).rejects.toThrow(/organization/);
 
       expect(prisma.credential.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('OAuth state', () => {
+    it('stores an opaque state nonce on the pending credential', async () => {
+      const result = await service.beginOAuthForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        'twitter' as never,
+        { isConnected: false },
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+
+      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(data.oauthState).toBe(result.state);
+      expect(result.state).not.toContain(brandId);
+      expect(result.state).not.toContain(orgId);
+    });
+
+    it('resolves pending OAuth state inside the caller tenant scope', async () => {
+      prisma.credential.findFirst.mockResolvedValueOnce({
+        brandId,
+        id: 'credential-1',
+        organizationId: orgId,
+        userId: 'u1',
+      });
+
+      const credential = await service.findPendingOAuthCredential(
+        'opaque-state',
+        'twitter' as never,
+        { organizationId: orgId, userId: 'u1' },
+      );
+
+      expect(prisma.credential.findFirst).toHaveBeenCalledWith({
+        where: {
+          isDeleted: false,
+          oauthState: 'opaque-state',
+          organizationId: orgId,
+          platform: 'TWITTER',
+          updatedAt: { gte: expect.any(Date) },
+          userId: 'u1',
+        },
+      });
+      expect(credential).toEqual(
+        expect.objectContaining({ id: 'credential-1' }),
+      );
+    });
+
+    it('rejects an empty OAuth state without querying credentials', async () => {
+      await expect(
+        service.findPendingOAuthCredential('  ', 'twitter' as never, {
+          organizationId: orgId,
+        }),
+      ).resolves.toBeNull();
+
+      expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('credential tags', () => {
+    it('creates and attaches a tenant-scoped tag atomically', async () => {
+      prisma.credential.findFirst.mockResolvedValueOnce({
+        brandId,
+        id: 'credential-1',
+      });
+
+      await service.createAndAttachTag('credential-1', orgId, 'user-1', {
+        label: 'Creator',
+      } as never);
+
+      expect(prisma.$transaction).toHaveBeenCalledOnce();
+      expect(prisma.credential.findFirst).toHaveBeenCalledWith({
+        select: { brandId: true, id: true },
+        where: {
+          id: 'credential-1',
+          isDeleted: false,
+          organizationId: orgId,
+        },
+      });
+      expect(prisma.tag.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            brandId,
+            label: 'Creator',
+            organizationId: orgId,
+            userId: 'user-1',
+          }),
+        }),
+      );
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { tags: { connect: { id: 'tag-1' } } },
+          where: {
+            id: 'credential-1',
+            isDeleted: false,
+            organizationId: orgId,
+          },
+        }),
+      );
+    });
+
+    it('does not create a tag for a foreign credential', async () => {
+      prisma.credential.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.createAndAttachTag('credential-1', 'foreign-org', 'user-1', {
+          label: 'Creator',
+        } as never),
+      ).rejects.toThrow(/Credential/);
+
+      expect(prisma.tag.create).not.toHaveBeenCalled();
+      expect(prisma.credential.update).not.toHaveBeenCalled();
     });
   });
 
@@ -368,11 +523,11 @@ describe('CredentialsService', () => {
 
   describe('connected channels', () => {
     const connectedCredentialDto = {
-      brand: brandId,
+      brandId,
       isConnected: true,
-      organization: orgId,
+      organizationId: orgId,
       platform: 'twitter',
-      user: 'u1',
+      userId: 'u1',
     };
 
     it('creates connected credentials without product-plan channel caps', async () => {

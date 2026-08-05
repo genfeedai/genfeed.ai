@@ -35,7 +35,6 @@ import {
 import type { Request } from 'express';
 
 type SerializableDocument = Record<string, unknown> & {
-  _id?: string | { toString(): string };
   toObject?: () => unknown;
 };
 
@@ -116,17 +115,25 @@ export class CreatorsController {
 
     const match: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     };
+    const dataFilters: Record<string, unknown>[] = [];
 
     if (query.platform) {
-      match.platform = query.platform;
+      dataFilters.push({
+        data: { path: ['platform'], equals: query.platform },
+      });
     }
     if (query.niche) {
-      match.niche = query.niche;
+      dataFilters.push({ data: { path: ['niche'], equals: query.niche } });
     }
     if (query.tags && query.tags.length > 0) {
-      match.tags = { in: query.tags };
+      dataFilters.push({
+        data: { path: ['tags'], array_contains: query.tags },
+      });
+    }
+    if (dataFilters.length > 0) {
+      match.AND = dataFilters;
     }
 
     const pipeline = { where: match, orderBy: { createdAt: -1 } };
@@ -150,9 +157,9 @@ export class CreatorsController {
 
     const publicMetadata = getPublicMetadata(user);
     const data = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -249,9 +256,9 @@ export class CreatorsController {
 
     const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!creator) {
@@ -263,7 +270,7 @@ export class CreatorsController {
 
     // Return updated creator
     const updated = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
     });
 
@@ -291,9 +298,9 @@ export class CreatorsController {
 
     const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!creator) {

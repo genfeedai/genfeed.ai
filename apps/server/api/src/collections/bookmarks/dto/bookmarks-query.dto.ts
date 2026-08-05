@@ -53,5 +53,5 @@ export class BookmarksQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  folder?: string;
+  folderId?: string;
 }

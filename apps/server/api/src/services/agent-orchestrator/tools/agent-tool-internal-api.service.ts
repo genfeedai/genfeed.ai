@@ -17,8 +17,9 @@ export class AgentToolInternalApiService {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
   ) {
-    this.apiBaseUrl =
-      this.configService.get('API_BASE_URL') || 'http://localhost:3010';
+    this.apiBaseUrl = String(
+      this.configService.get('GENFEEDAI_API_URL') || 'http://localhost:3010',
+    ).replace(/\/+$/, '');
   }
 
   async callInternalApi(
@@ -62,7 +63,7 @@ export class AgentToolInternalApiService {
             : undefined,
           params: {
             'filters[isDeleted]': false,
-            'filters[organization]': organizationId,
+            'filters[organizationId]': organizationId,
             'pagination[pageSize]': 1,
           },
         }),

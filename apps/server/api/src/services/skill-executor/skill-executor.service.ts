@@ -72,11 +72,11 @@ export class SkillExecutorService {
     );
 
     const run = await this.contentRunsService.createRun({
-      brand: context.brandId,
+      brandId: context.brandId,
       brief: this.buildRunBrief(params),
       creditsUsed: 0,
       input: params,
-      organization: context.organizationId,
+      organizationId: context.organizationId,
       publish: this.buildRunPublishContext(params),
       skillSlug,
       source: ContentRunSource.HOSTED,
@@ -180,11 +180,11 @@ export class SkillExecutorService {
     };
 
     const run = await this.contentRunsService.createRun({
-      brand: context.brandId,
+      brandId: context.brandId,
       brief: this.buildRunBrief(params ?? {}),
       creditsUsed: 0,
       input: params ?? {},
-      organization: context.organizationId,
+      organizationId: context.organizationId,
       publish: this.buildRunPublishContext(params ?? {}),
       skillSlug,
       source: ContentRunSource.HOSTED,

@@ -47,7 +47,7 @@ export function triggerWorkflowEffect(
       body: JSON.stringify({
         inputValues: inputValues ?? {},
         ...(scope ?? {}),
-        workflow: workflowId,
+        workflowId,
       }),
       method: 'POST',
       signal,

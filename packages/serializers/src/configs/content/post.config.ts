@@ -1,9 +1,12 @@
 import { personaAttributes } from '@serializers/attributes/content/persona.attributes';
-import { postAttributes } from '@serializers/attributes/content/post.attributes';
+import {
+  postAttributes,
+  publicPostAttributes,
+} from '@serializers/attributes/content/post.attributes';
 import { ingredientAttributes } from '@serializers/attributes/ingredients/ingredient.attributes';
 import { metadataAttributes } from '@serializers/attributes/ingredients/metadata.attributes';
 import { credentialAttributes } from '@serializers/attributes/organizations/credential.attributes';
-import { nestedRel, rel } from '@serializers/builders';
+import { nestedRel, rel, simpleConfig } from '@serializers/builders';
 import {
   CONTENT_ENTITY_RELS,
   MINIMAL_ENTITY_RELS,
@@ -27,3 +30,8 @@ export const postListSerializerConfig = {
   type: 'post',
   ...MINIMAL_ENTITY_RELS,
 };
+
+export const publicPostSerializerConfig = simpleConfig(
+  'post',
+  publicPostAttributes,
+);

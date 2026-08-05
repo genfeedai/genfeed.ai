@@ -40,7 +40,7 @@ const userId = 'c'.repeat(24);
 const commandId = 'cmd-abc';
 
 const mockThread = {
-  _id: threadId,
+  id: threadId,
   source: 'discord',
   status: 'active',
   title: 'Test thread',
@@ -124,9 +124,7 @@ describe('AgentThreadEngineService', () => {
 
     agentThreadsService = { findOne: vi.fn().mockResolvedValue(mockThread) };
     agentMemoriesService = {
-      createMemory: vi
-        .fn()
-        .mockResolvedValue({ _id: 'mem-id-1', id: 'mem-id-1' }),
+      createMemory: vi.fn().mockResolvedValue({ id: 'mem-id-1' }),
     };
     runtimeSessionService = {
       markCancelled: vi.fn().mockResolvedValue(undefined),
@@ -179,6 +177,16 @@ describe('AgentThreadEngineService', () => {
       expect(mockPrisma.agentThreadEvent.create).toHaveBeenCalled();
       expect(result).toBeDefined();
       expect(result.type).toBe('work.started');
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockEventRow.id,
+          organizationId: orgId,
+          threadId,
+        }),
+      );
+      expect(result).not.toHaveProperty('_id');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('thread');
     });
 
     it('exposes an Effect-based append path', async () => {
@@ -313,6 +321,16 @@ describe('AgentThreadEngineService', () => {
       const result = await service.getSnapshot(threadId, orgId, userId);
       expect(mockPrisma.agentThreadSnapshot.create).not.toHaveBeenCalled();
       expect(result).toBeDefined();
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockSnapshotRow.id,
+          organizationId: orgId,
+          threadId,
+        }),
+      );
+      expect(result).not.toHaveProperty('_id');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('thread');
     });
   });
 
@@ -352,6 +370,16 @@ describe('AgentThreadEngineService', () => {
         userId: orgId,
       });
       expect(result.status).toBe('resolved');
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: `${mockSnapshotRow.id}:req-1`,
+          organizationId: orgId,
+          threadId,
+        }),
+      );
+      expect(result).not.toHaveProperty('_id');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('thread');
       expect(mockPrisma.agentThreadSnapshot.update).toHaveBeenCalled();
     });
 
@@ -441,6 +469,16 @@ describe('AgentThreadEngineService', () => {
       );
 
       expect(result).toBeDefined();
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockSnapshotRow.id,
+          organizationId: orgId,
+          threadId,
+        }),
+      );
+      expect(result).not.toHaveProperty('_id');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('thread');
       expect(mockPrisma.agentThreadSnapshot.update).toHaveBeenCalled();
     });
   });

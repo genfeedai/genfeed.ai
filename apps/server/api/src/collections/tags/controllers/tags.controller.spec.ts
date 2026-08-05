@@ -38,6 +38,9 @@ describe('TagsController', () => {
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
+      supportsField: vi.fn((field: string) =>
+        ['brandId', 'organizationId', 'userId'].includes(field),
+      ),
     };
 
     controller = new TagsController(
@@ -84,7 +87,7 @@ describe('TagsController', () => {
       } as unknown as TagsQueryDto;
       const query = controller.buildFindAllQuery(mockUser, inputQuery);
 
-      expect(query.where.brand).toEqual(expect.any(String));
+      expect(query.where.brandId).toBe(brandId);
     });
 
     it('should add search condition with AND when search is provided', () => {
@@ -141,21 +144,20 @@ describe('TagsController', () => {
   });
 
   describe('enrichCreateDto', () => {
-    it('should create a global tag when user is explicitly null', () => {
-      const dto = { key: 'global-tag', label: 'Global', user: null };
-      const result = controller.enrichCreateDto(dto, mockUser);
-
-      expect(result.user).toBeNull();
-      expect(result.organization).toBeNull();
-      expect(result.brand).toBeNull();
-    });
-
-    it('should enrich with user context for normal tags', () => {
+    it('should enrich new tags with canonical ownership fields', () => {
       const dto = { key: 'my-tag', label: 'My Tag' };
       const result = controller.enrichCreateDto(dto, mockUser);
 
-      // enrichCreateDto from BaseCRUDController adds user context
-      expect(result).toHaveProperty('label', 'My Tag');
+      expect(result).toMatchObject({
+        brandId,
+        key: 'my-tag',
+        label: 'My Tag',
+        organizationId: orgId,
+        userId,
+      });
+      expect(result).not.toHaveProperty('brand');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('user');
     });
   });
 });

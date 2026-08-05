@@ -28,13 +28,13 @@ export class Post extends BaseEntity implements IPost {
   public declare organization: IOrganization;
   public declare brand: IBrand;
   public declare ingredients: IIngredient[];
-  public declare credential: ICredential;
+  public declare credential?: ICredential;
   public declare tags?: ITag[];
   public declare label: string;
   public declare description?: string;
   public declare category: PostCategory;
   public declare status: PostStatus;
-  public declare platform: CredentialPlatform;
+  public declare platform?: CredentialPlatform;
   public declare externalId?: string;
   public declare externalShortcode?: string;
   public declare groupId?: string;

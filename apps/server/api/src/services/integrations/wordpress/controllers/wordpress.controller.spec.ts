@@ -11,6 +11,32 @@ describe('WordpressController', () => {
     exchangeCodeForToken: ReturnType<typeof vi.fn>;
     generateAuthUrl: ReturnType<typeof vi.fn>;
   };
+  const brandsService = {
+    findOne: vi.fn().mockResolvedValue({
+      id: 'brand-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
+  };
+  const credentialsService = {
+    beginOAuthForBrand: vi.fn().mockResolvedValue({
+      credential: { id: 'credential-id' },
+      state: 'opaque-oauth-state',
+    }),
+    findPendingOAuthCredential: vi.fn().mockResolvedValue({
+      brandId: 'brand-id',
+      id: 'credential-id',
+      organizationId: 'organization-id',
+      userId: 'user-id',
+    }),
+    patch: vi.fn().mockResolvedValue({
+      id: 'credential-id',
+      isConnected: true,
+    }),
+  };
+  const user = {
+    publicMetadata: { organization: 'organization-id', user: 'user-id' },
+  } as unknown as User;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -21,8 +47,9 @@ describe('WordpressController', () => {
           useValue: {
             createPost: vi.fn().mockResolvedValue('post-123'),
             exchangeCodeForToken: vi.fn().mockResolvedValue({
-              access_token: 'wp-token',
-              blog_id: 'site-1',
+              accessToken: 'wp-token',
+              blogId: 'site-1',
+              blogUrl: 'https://example.wordpress.com',
             }),
             generateAuthUrl: vi
               .fn()
@@ -40,6 +67,8 @@ describe('WordpressController', () => {
             warn: vi.fn(),
           },
         },
+        { provide: BrandsService, useValue: brandsService },
+        { provide: CredentialsService, useValue: credentialsService },
       ],
     }).compile();
 
@@ -55,40 +84,40 @@ describe('WordpressController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('getAuthUrl', () => {
-    it('should return auth URL with provided state', () => {
-      const result = controller.getAuthUrl('my-state');
-
-      expect(wordpressService.generateAuthUrl).toHaveBeenCalledWith('my-state');
-      expect(result).toEqual({
-        data: {
-          url: 'https://public-api.wordpress.com/oauth2/authorize?...',
-        },
+  describe('connect', () => {
+    it('should return auth URL with server-issued state', async () => {
+      const result = await controller.connect({} as never, user, {
+        brandId: 'brand-id',
       });
-    });
 
-    it('should use empty string when state is not provided', () => {
-      const result = controller.getAuthUrl(undefined as unknown as string);
-
-      expect(wordpressService.generateAuthUrl).toHaveBeenCalledWith('');
+      expect(wordpressService.generateAuthUrl).toHaveBeenCalledWith(
+        'opaque-oauth-state',
+      );
       expect(result).toEqual({
-        data: {
-          url: 'https://public-api.wordpress.com/oauth2/authorize?...',
-        },
+        url: 'https://public-api.wordpress.com/oauth2/authorize?...',
       });
     });
   });
 
-  describe('exchangeToken', () => {
-    it('should exchange code for token and return result', async () => {
-      const result = await controller.exchangeToken({ code: 'auth-code-123' });
+  describe('verify', () => {
+    it('should exchange code and persist the credential', async () => {
+      const result = await controller.verify({} as never, {
+        code: 'auth-code-123',
+        state: 'opaque-oauth-state',
+      });
 
       expect(wordpressService.exchangeCodeForToken).toHaveBeenCalledWith(
         'auth-code-123',
       );
-      expect(result).toEqual({
-        data: { access_token: 'wp-token', blog_id: 'site-1' },
-      });
+      expect(credentialsService.patch).toHaveBeenCalledWith(
+        'credential-id',
+        expect.objectContaining({
+          accessToken: 'wp-token',
+          externalId: 'site-1',
+          oauthState: null,
+        }),
+      );
+      expect(result).toEqual({ id: 'credential-id', isConnected: true });
     });
 
     it('should propagate errors from token exchange', async () => {
@@ -97,7 +126,10 @@ describe('WordpressController', () => {
       );
 
       await expect(
-        controller.exchangeToken({ code: 'bad-code' }),
+        controller.verify({} as never, {
+          code: 'bad-code',
+          state: 'opaque-oauth-state',
+        }),
       ).rejects.toThrow('Invalid code');
     });
   });
@@ -166,3 +198,12 @@ describe('WordpressController', () => {
     });
   });
 });
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  serializeSingle: vi.fn(
+    (_request: unknown, _serializer: unknown, data: unknown) => data,
+  ),
+}));
+
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';

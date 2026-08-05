@@ -11,6 +11,7 @@ import {
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -45,25 +46,60 @@ export class CreateIngredientDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly prompt?: string;
+  readonly userId?: string;
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({
-    description: 'Parent ingredient ID (for tracking origin/hierarchy)',
-    required: false,
-  })
-  readonly parent?: string;
+  @ApiProperty({ required: false })
+  readonly organizationId?: string;
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({
-    description: 'Folder ID for organizing ingredients',
-    required: false,
-  })
-  readonly folder?: string;
+  @ApiProperty({ nullable: true, required: false, type: String })
+  readonly brandId?: string | null;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly promptId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly parentId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ nullable: true, required: false, type: String })
+  readonly folderId?: string | null;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly trainingId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly bookmarkId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly personaId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly agentRunId?: string;
+
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly agentStrategyId?: string;
 
   @IsEntityId({ each: true })
+  @IsArray()
   @IsOptional()
   @ApiProperty({
     description: 'Source ingredient IDs (for tracking merged content)',
@@ -74,35 +110,11 @@ export class CreateIngredientDto {
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
-  readonly metadata?: string;
-
-  @IsEntityId()
-  @IsOptional()
   @ApiProperty({
-    description: 'Metadata ID — preferred over the legacy `metadata` field',
+    description: 'Metadata ID',
     required: false,
   })
   readonly metadataId?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
-  readonly brand?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({ required: false })
-  readonly training?: string;
-
-  @IsEntityId({ each: true })
-  @IsOptional()
-  @ApiProperty({
-    description: 'References to asset(s) or ingredient image(s) for generation',
-    required: false,
-    type: [String],
-  })
-  readonly references?: string[];
 
   @IsString()
   @IsOptional()
@@ -120,9 +132,19 @@ export class CreateIngredientDto {
   @IsString()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly text?: string;
+  readonly generationPrompt?: string;
 
-  @IsString({ each: true })
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly modelUsed?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly negativePrompt?: string;
+
+  @IsArray()
   @IsOptional()
   @IsEnum(TransformationCategory, { each: true })
   @ApiProperty({
@@ -171,9 +193,25 @@ export class CreateIngredientDto {
   @IsNumber()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly seed?: number;
+  readonly generationSeed?: number;
 
-  @IsString({ each: true })
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly isMergeEnabled?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly language?: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly voiceSource?: string;
+
+  @IsArray()
+  @IsEntityId({ each: true })
   @IsOptional()
   @ApiProperty({
     description: 'Array of tag IDs for this ingredient',

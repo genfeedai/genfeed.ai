@@ -34,8 +34,9 @@ export interface ImageHistoryItem {
 // =============================================================================
 
 export interface WorkflowData {
-  _id: string;
-  name: string;
+  id: string;
+  label: string;
+  description?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle: string;
@@ -46,7 +47,8 @@ export interface WorkflowData {
 
 /** Payload sent to the persistence service on create / update. */
 export interface WorkflowSaveInput {
-  name: string;
+  label: string;
+  description?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle?: string;
@@ -56,10 +58,11 @@ export interface WorkflowSaveInput {
 
 /** Lightweight workflow projection returned by the list endpoint (no graph). */
 export interface WorkflowSummary {
-  _id: string;
-  name: string;
+  id: string;
+  label: string;
   description?: string;
   lifecycle: 'draft' | 'published' | 'archived';
+  brandId?: string | null;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
   createdAt: string;

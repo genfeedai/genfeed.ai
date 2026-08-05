@@ -3,6 +3,10 @@ import { AssetQueryDto } from '@api/collections/assets/dto/assets-query.dto';
 import { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import { type AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import {
+  getAssetParentId,
+  getAssetParentIdField,
+} from '@api/collections/assets/utils/asset-parent.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -73,31 +77,41 @@ export class AssetsController {
     };
 
     // Use CollectionFilterUtil for common filtering patterns
-    const parent = CollectionFilterUtil.buildBrandFilter(
-      query.brand,
-      publicMetadata,
-      'user',
-    );
-
     // Build match conditions
     const matchConditions: AssetMatchConditions = {
       isDeleted: QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted),
-      parent,
+      userId: publicMetadata.user,
     };
+
+    if (!query.parentType || query.parentType === AssetParent.BRAND) {
+      matchConditions.parentBrandId = CollectionFilterUtil.buildBrandFilter(
+        query.brandId,
+        publicMetadata,
+        'user',
+      );
+    }
 
     // Add category filter if provided
     if (query.category) {
       matchConditions.category = query.category;
     }
 
-    // Add parentModel filter if provided
-    if (query.parentModel) {
-      matchConditions.parentModel = query.parentModel;
+    if (query.parentType) {
+      matchConditions.parentType = query.parentType;
     }
 
-    // Add parent filter if provided
-    if (query.parent) {
-      matchConditions.parent = query.parent;
+    if (query.parentId) {
+      if (query.parentType) {
+        matchConditions[getAssetParentIdField(query.parentType)] =
+          query.parentId;
+      } else {
+        matchConditions.OR = [
+          { parentArticleId: query.parentId },
+          { parentBrandId: query.parentId },
+          { parentIngredientId: query.parentId },
+          { parentOrgId: query.parentId },
+        ];
+      }
     }
 
     // Create secure aggregation pipeline
@@ -118,8 +132,7 @@ export class AssetsController {
     @Param('assetId') assetId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    // Validate ObjectId
-    const validatedId = InputValidationUtil.validateObjectId(
+    const validatedId = InputValidationUtil.validateEntityId(
       assetId,
       'assetId',
     );
@@ -127,9 +140,9 @@ export class AssetsController {
 
     // Find asset with ownership verification
     const asset = await this.assetsService.findOne({
-      _id: validatedId,
+      id: validatedId,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!asset) {
@@ -147,16 +160,16 @@ export class AssetsController {
     @CurrentUser() user: User,
     @Body() updateAssetDto: UpdateAssetDto,
   ): Promise<JsonApiSingleResponse> {
-    const validatedId = InputValidationUtil.validateObjectId(
+    const validatedId = InputValidationUtil.validateEntityId(
       assetId,
       'assetId',
     );
     const publicMetadata = getPublicMetadata(user);
 
     const existingAsset = await this.assetsService.findOne({
-      _id: validatedId,
+      id: validatedId,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!existingAsset) {
@@ -174,17 +187,17 @@ export class AssetsController {
       ) as AssetCategory;
     }
 
-    if (updateAssetDto.parentModel) {
-      sanitizedUpdate.parentModel = InputValidationUtil.validateString(
-        updateAssetDto.parentModel,
-        'parentModel',
+    if (updateAssetDto.parentType) {
+      sanitizedUpdate.parentType = InputValidationUtil.validateString(
+        updateAssetDto.parentType,
+        'parentType',
         { maxLength: 50 },
       ) as AssetParent;
     }
 
-    if (updateAssetDto.parent) {
-      EntityIdUtil.validate(updateAssetDto.parent.toString(), 'parent');
-      sanitizedUpdate.parent = updateAssetDto.parent;
+    if (updateAssetDto.parentId) {
+      EntityIdUtil.validate(updateAssetDto.parentId, 'parentId');
+      sanitizedUpdate.parentId = updateAssetDto.parentId;
     }
 
     if (updateAssetDto.isDeleted !== undefined) {
@@ -194,17 +207,17 @@ export class AssetsController {
     const isSettingAsLogoOrBanner =
       (updateAssetDto.category === AssetCategory.LOGO ||
         updateAssetDto.category === AssetCategory.BANNER) &&
-      updateAssetDto.parent &&
-      updateAssetDto.parentModel === AssetParent.BRAND;
+      updateAssetDto.parentId &&
+      updateAssetDto.parentType === AssetParent.BRAND;
 
     if (isSettingAsLogoOrBanner) {
       await this.assetsService.patchAll(
         {
-          _id: { not: validatedId },
+          id: { not: validatedId },
           category: updateAssetDto.category,
           isDeleted: false,
-          parent: updateAssetDto.parent,
-          parentModel: AssetParent.BRAND,
+          parentBrandId: updateAssetDto.parentId,
+          parentType: AssetParent.BRAND,
         },
         { isDeleted: true },
       );
@@ -216,9 +229,9 @@ export class AssetsController {
         'public',
       ]);
 
-      if (updateAssetDto.parent) {
+      if (updateAssetDto.parentId) {
         try {
-          await this.cacheService.del(`brand:${updateAssetDto.parent}`);
+          await this.cacheService.del(`brand:${updateAssetDto.parentId}`);
         } catch (_error) {
           // Ignore if key doesn't exist
         }
@@ -237,10 +250,11 @@ export class AssetsController {
       [AssetCategory.LOGO, AssetCategory.BANNER].includes(
         String(updatedAsset.category).toLowerCase() as AssetCategory,
       ) &&
-      updatedAsset.parent
+      String(updatedAsset.parentType) === 'BRAND' &&
+      updatedAsset.parentBrandId
     ) {
       await this.websocketService.publishBrandRefresh(
-        updatedAsset.parent.toString(),
+        getAssetParentId(updatedAsset) as string,
         userId,
         {
           action: 'updated',
@@ -262,16 +276,16 @@ export class AssetsController {
     @Param('assetId') assetId: string,
     @CurrentUser() user: User,
   ): Promise<JsonApiSingleResponse> {
-    const validatedId = InputValidationUtil.validateObjectId(
+    const validatedId = InputValidationUtil.validateEntityId(
       assetId,
       'assetId',
     );
     const publicMetadata = getPublicMetadata(user);
 
     const existingAsset = await this.assetsService.findOne({
-      _id: validatedId,
+      id: validatedId,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     if (!existingAsset) {

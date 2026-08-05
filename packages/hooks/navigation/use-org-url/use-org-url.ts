@@ -13,6 +13,8 @@ export interface OrgUrlContext {
   brandSlug: string;
   /** Build a brand-scoped URL: /:orgSlug/:brandSlug/path */
   href: (path: string) => string;
+  /** Build a URL for the selected brand, or organization scope when none is selected. */
+  activeHref: (path: string) => string;
   /** Build an org-level URL: /:orgSlug/~/path */
   orgHref: (path: string) => string;
 }
@@ -57,10 +59,15 @@ export function useOrgUrl(): OrgUrlContext {
 
   const orgSlug = routeOrgSlug || getBrandOrganizationSlug(selectedBrand);
   const brandSlug = routeBrandSlug || (routeOrgSlug ? '' : selectedBrand?.slug);
+  const activeBrandSlug = selectedBrand?.slug || routeBrandSlug;
 
   const orgHref = (path: string) => createOrganizationAppRoute(orgSlug, path);
 
   return {
+    activeHref: (path: string) =>
+      activeBrandSlug
+        ? createBrandAppRoute(orgSlug, activeBrandSlug, path)
+        : orgHref(path),
     brandSlug: brandSlug ?? '',
     href: (path: string) =>
       brandSlug ? createBrandAppRoute(orgSlug, brandSlug, path) : orgHref(path),

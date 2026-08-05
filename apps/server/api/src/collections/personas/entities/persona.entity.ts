@@ -6,9 +6,9 @@ import type {
 } from '@genfeedai/enums';
 
 export class PersonaEntity extends BaseEntity {
-  declare readonly user: string;
-  declare readonly organization: string;
-  declare readonly brand: string;
+  declare readonly userId: string;
+  declare readonly organizationId: string;
+  declare readonly brandId?: string | null;
   declare readonly label: string;
   declare readonly handle?: string;
   declare readonly bio?: string;

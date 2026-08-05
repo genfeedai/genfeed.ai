@@ -58,15 +58,15 @@ export class AdBulkUploadService {
       adAccountId: input.adAccountId,
       adSetId: input.adSetId,
       bodyCopies: input.bodyCopies,
-      brand: input.brandId ? input.brandId : undefined,
+      brandId: input.brandId || undefined,
       callToAction: input.callToAction,
       campaignId: input.campaignId,
       creativeSource: input.creativeSource,
-      credential: input.credentialId,
+      credentialId: input.credentialId,
       headlines: input.headlines,
       images: resolvedMedia.images,
       linkUrl: input.linkUrl,
-      organization: input.organizationId,
+      organizationId: input.organizationId,
       status: 'pending',
       totalPermutations,
       videos: resolvedMedia.videos,
@@ -148,7 +148,6 @@ export class AdBulkUploadService {
         );
         return { images: input.images, videos: input.videos };
 
-      case 'manual-upload':
       default:
         return { images: input.images, videos: input.videos };
     }

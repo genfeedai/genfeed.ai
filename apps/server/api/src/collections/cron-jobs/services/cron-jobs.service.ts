@@ -27,7 +27,7 @@ import {
   LegacyCronJobMigrationService,
 } from '@api/collections/cron-jobs/services/legacy-cron-job-migration.service';
 import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
-import { LegacyWorkflowStepRunner } from '@api/collections/workflows/services/legacy-workflow-step-runner.service';
+import { WorkflowStepRunnerService } from '@api/collections/workflows/services/workflow-step-runner.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
@@ -92,7 +92,7 @@ export class CronJobsService {
     private readonly prisma: PrismaService,
     private readonly legacyCronJobMigrationService: LegacyCronJobMigrationService,
     private readonly workflowsService: WorkflowsService,
-    private readonly legacyWorkflowStepRunner: LegacyWorkflowStepRunner,
+    private readonly workflowStepRunner: WorkflowStepRunnerService,
     private readonly agentRunsService: AgentRunsService,
     private readonly agentRunQueueService: AgentRunQueueService,
     private readonly openRouterService: OpenRouterService,
@@ -119,15 +119,10 @@ export class CronJobsService {
 
     return {
       ...(strategy as unknown as AgentStrategyDocument),
-      _id: asString(raw.mongoId) ?? asString(raw.id) ?? '',
       agentType: asString(config.agentType) ?? asString(raw.agentType),
       autonomyMode: asString(config.autonomyMode) ?? asString(raw.autonomyMode),
-      brand: asString(raw.brandId) ?? asString(raw.brand) ?? null,
       dailyCreditBudget: asNumber(config.dailyCreditBudget, 0),
       model: asString(config.model) ?? null,
-      organization:
-        asString(raw.organizationId) ?? asString(raw.organization) ?? '',
-      user: asString(raw.userId) ?? asString(raw.user) ?? '',
       config,
       policies,
     };
@@ -184,7 +179,7 @@ export class CronJobsService {
   }
 
   async update(
-    _id: string,
+    _cronJobId: string,
     _organizationId: string,
     _dto: UpdateCronJobDto,
   ): Promise<CronJobDocument | null> {
@@ -192,21 +187,21 @@ export class CronJobsService {
   }
 
   async pause(
-    _id: string,
+    _cronJobId: string,
     _organizationId: string,
   ): Promise<CronJobDocument | null> {
     this.throwRetiredMutation();
   }
 
   async resume(
-    _id: string,
+    _cronJobId: string,
     _organizationId: string,
   ): Promise<CronJobDocument | null> {
     this.throwRetiredMutation();
   }
 
   async delete(
-    _id: string,
+    _cronJobId: string,
     _organizationId: string,
   ): Promise<CronJobDocument | null> {
     this.throwRetiredMutation();
@@ -238,7 +233,7 @@ export class CronJobsService {
   }
 
   async runNow(
-    _id: string,
+    _cronJobId: string,
     _organizationId: string,
   ): Promise<CronRunDocument | null> {
     this.throwRetiredMutation();
@@ -272,7 +267,7 @@ export class CronJobsService {
         continue;
       }
 
-      const lockKey = `cron-job:lock:${(job as Record<string, unknown>).id as string}`;
+      const lockKey = `cron-job:lock:${job.id}`;
       const acquired = await this.cacheService.acquireLock(lockKey, 300);
 
       if (!acquired) {
@@ -352,10 +347,7 @@ export class CronJobsService {
     const start = new Date();
     const jobId = job.id;
 
-    await this.assertCreditBalance(
-      (job as Record<string, unknown>).organizationId as string,
-      job.jobType,
-    );
+    await this.assertCreditBalance(job.organizationId, job.jobType);
 
     const run = await this.prisma.cronRun.create({
       data: {
@@ -502,7 +494,7 @@ export class CronJobsService {
           throw new Error('Workflow not found for this tenant');
         }
 
-        await this.legacyWorkflowStepRunner.executeWorkflow(workflowId);
+        await this.workflowStepRunner.executeWorkflow(workflowId);
         return { workflowId };
       }
 
@@ -528,8 +520,8 @@ export class CronJobsService {
   ): Promise<Record<string, unknown>> {
     const typedPayload = payload as AgentStrategyPayload;
     const strategyId = String(typedPayload.strategyId ?? '');
-    const orgId = (job as Record<string, unknown>).organizationId as string;
-    const userId = (job as Record<string, unknown>).userId as string;
+    const orgId = job.organizationId;
+    const userId = job.userId;
 
     const strategy = strategyId
       ? await this.prisma.agentStrategy.findFirst({
@@ -551,10 +543,10 @@ export class CronJobsService {
         ? `Cron: ${normalizedStrategy.label}`
         : `Cron Agent Job: ${job.name}`,
       objective,
-      organization: orgId,
-      strategy: normalizedStrategy?.id,
+      organizationId: orgId,
+      strategyId: normalizedStrategy?.id,
       trigger: AgentExecutionTrigger.CRON,
-      user: userId,
+      userId: userId,
     });
 
     await this.agentRunQueueService.queueRun({

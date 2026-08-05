@@ -1,6 +1,9 @@
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
 import type { StripeCustomer } from '@api/services/integrations/stripe/services/stripe.service';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import {
+  type ISubscriptionOssReadModel,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,7 +46,14 @@ describe('StripeCustomerWebhookHandler', () => {
   });
 
   it('syncs the subscription when the customer is known', async () => {
-    const dbSubscription = { id: 'sub_db_1', organization: 'org_1' };
+    const dbSubscription = {
+      cancelAtPeriodEnd: false,
+      id: 'sub_db_1',
+      isDeleted: false,
+      organizationId: 'org_1',
+      status: 'active',
+      userId: 'user_1',
+    } satisfies ISubscriptionOssReadModel;
     subscriptionsService.findByStripeCustomerId.mockResolvedValue(
       dbSubscription,
     );

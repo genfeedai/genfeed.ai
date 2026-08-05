@@ -22,10 +22,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import {
-  mergeComposerModeIntoPageContext,
-  toAgentRequestPageContext,
-} from '@genfeedai/agent/utils/agent-page-context.util';
+import { toAgentRequestPageContext } from '@genfeedai/agent/utils/agent-page-context.util';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
@@ -296,11 +293,7 @@ export function useAgentChatStream(
 
       try {
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
-        const requestPageContext = mergeComposerModeIntoPageContext(
-          toAgentRequestPageContext(pageContext),
-          sendOptions?.composerMode,
-          sendOptions?.generationModelKey,
-        );
+        const requestPageContext = toAgentRequestPageContext(pageContext);
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === threadIdOverride);
@@ -589,11 +582,7 @@ export function useAgentChatStream(
         );
 
         const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
-        const requestPageContext = mergeComposerModeIntoPageContext(
-          toAgentRequestPageContext(pageContext),
-          sendOptions?.composerMode,
-          sendOptions?.generationModelKey,
-        );
+        const requestPageContext = toAgentRequestPageContext(pageContext);
         const currentThread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === currentActiveThreadId);

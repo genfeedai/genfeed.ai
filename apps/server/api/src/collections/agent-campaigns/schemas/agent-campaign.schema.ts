@@ -5,9 +5,7 @@ import type { AgentCampaign } from '@genfeedai/prisma';
 export type { AgentCampaign } from '@genfeedai/prisma';
 
 export interface AgentCampaignDocument extends AgentCampaign {
-  _id: string;
   agents: Array<string | AgentStrategyDocument>;
-  brand?: string | null;
   brief?: string;
   contentRotation?: IAgentCampaignContentRotation;
   contentQuota?: {
@@ -21,8 +19,6 @@ export interface AgentCampaignDocument extends AgentCampaign {
   lastOrchestrationSummary?: string;
   nextOrchestratedAt?: Date | string | null;
   orchestrationIntervalHours?: number;
-  organization: string;
   status: 'active' | 'completed' | 'draft' | 'paused';
-  user: string;
   [key: string]: unknown;
 }

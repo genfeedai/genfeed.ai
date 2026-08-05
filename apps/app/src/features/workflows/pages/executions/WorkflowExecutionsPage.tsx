@@ -25,16 +25,12 @@ import {
   getStatusIcon,
 } from '@/features/workflows/utils/status-helpers';
 
-function getWorkflowLabel(workflow: ExecutionResult['workflow']): string {
-  if (typeof workflow === 'object' && workflow.label) {
+function getWorkflowLabel(execution: ExecutionResult): string {
+  const { workflow } = execution;
+  if (workflow?.label) {
     return workflow.label;
   }
-  const id = typeof workflow === 'string' ? workflow : workflow._id;
-  return `${id.slice(0, 8)}...`;
-}
-
-function getWorkflowId(workflow: ExecutionResult['workflow']): string {
-  return typeof workflow === 'string' ? workflow : workflow._id;
+  return `${execution.workflowId.slice(0, 8)}...`;
 }
 
 type ExecutionsState = {
@@ -244,20 +240,20 @@ export default function WorkflowExecutionsPage() {
 
                     return (
                       <TableRow
-                        key={execution._id}
+                        key={execution.id}
                         className="hover:bg-muted/30"
                       >
                         <TableCell className="px-4 py-3">
                           <Link
                             href={href(
-                              `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${getWorkflowId(execution.workflow)}`,
+                              `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${execution.workflowId}`,
                             )}
                             className="font-medium hover:text-primary"
                           >
-                            {getWorkflowLabel(execution.workflow)}
+                            {getWorkflowLabel(execution)}
                           </Link>
                           <div className="text-xs text-muted-foreground">
-                            {execution._id.slice(0, 8)}...
+                            {execution.id.slice(0, 8)}...
                           </div>
                         </TableCell>
                         <TableCell className="px-4 py-3">
@@ -306,7 +302,7 @@ export default function WorkflowExecutionsPage() {
                         <TableCell className="px-4 py-3">
                           <Link
                             href={href(
-                              `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${getWorkflowId(execution.workflow)}?execution=${execution._id}`,
+                              `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${execution.workflowId}?execution=${execution.id}`,
                             )}
                             className="text-sm text-primary hover:underline"
                           >

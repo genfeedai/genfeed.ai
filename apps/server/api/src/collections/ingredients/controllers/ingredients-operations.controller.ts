@@ -1,12 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
-import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
-import type {
-  IngredientMetadataDocument,
-  IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
@@ -127,8 +122,8 @@ export class IngredientsOperationsController {
 
     const ingredient = await this.ingredientsService.findOne(
       {
-        _id: ingredientId,
-        organization: callerOrganizationId,
+        id: ingredientId,
+        organizationId: callerOrganizationId,
         isDeleted: false,
       },
       [PopulatePatterns.metadataFull],
@@ -142,22 +137,22 @@ export class IngredientsOperationsController {
 
     // Create ingredient with PROCESSING status under the caller's organization
     const { metadataData, ingredientData } =
-      await this.getSharedService().saveDocuments(user, {
-        brand: publicMetadata.brand,
+      await this.getSharedService().createMediaDocuments(user, {
+        brandId: publicMetadata.brand,
         category: ingredient.category,
         duration: metadata.duration,
         extension: metadata.extension,
         height: metadata.height,
         model: metadata.model,
-        organization: callerOrganizationId,
-        parent: ingredientId,
-        prompt: metadata.prompt,
+        organizationId: callerOrganizationId,
+        parentId: ingredientId,
+        promptId: metadata.promptId ?? undefined,
         result: metadata.result,
         size: metadata.size,
         status: IngredientStatus.PROCESSING,
         style: metadata.style,
         width: metadata.width,
-      } as unknown as Record<string, unknown>);
+      });
 
     // Start async processing (fire and forget)
     this.processCloneAsync(
@@ -273,10 +268,10 @@ export class IngredientsOperationsController {
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne(
       {
-        _id: ingredientId,
+        id: ingredientId,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
         isDeleted: false,
       },
@@ -287,7 +282,7 @@ export class IngredientsOperationsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    if (!ingredient.metadata) {
+    if (!ingredient.metadataId) {
       throw new HttpException(
         {
           detail: 'This ingredient does not have metadata',
@@ -338,22 +333,12 @@ export class IngredientsOperationsController {
       }
 
       // Update the metadata
-      const metadataId = this.getRefId(ingredient.metadata);
-      if (!metadataId) {
-        throw new HttpException(
-          {
-            detail: 'Metadata not found',
-            title: 'Metadata not found',
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-      await this.metadataService.patch(metadataId, updateData);
+      await this.metadataService.patch(ingredient.metadataId, updateData);
 
       // Fetch the updated ingredient with metadata
       const updatedIngredient = await this.ingredientsService.findOne(
         {
-          _id: ingredientId,
+          id: ingredientId,
         },
         [PopulatePatterns.metadataFull],
       );
@@ -386,10 +371,10 @@ export class IngredientsOperationsController {
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne(
       {
-        _id: ingredientId,
+        id: ingredientId,
         OR: [
-          { user: publicMetadata.user },
-          { organization: publicMetadata.organization },
+          { userId: publicMetadata.user },
+          { organizationId: publicMetadata.organization },
         ],
       },
       [PopulatePatterns.metadataFull],
@@ -399,7 +384,7 @@ export class IngredientsOperationsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    if (!ingredient.metadata) {
+    if (!ingredient.metadataId) {
       throw new HttpException(
         {
           detail: 'This ingredient does not have metadata',
@@ -410,23 +395,13 @@ export class IngredientsOperationsController {
     }
 
     // Update the metadata
-    const metadataId = this.getRefId(ingredient.metadata);
-
-    if (!metadataId) {
-      throw new HttpException(
-        {
-          detail: 'Metadata not found',
-          title: 'Metadata not found',
-        },
-        HttpStatus.NOT_FOUND,
-      );
-    }
+    const metadataId = ingredient.metadataId;
 
     await this.metadataService.patch(metadataId, metadataDto);
 
     // Fetch the updated metadata
     const updatedMetadata = await this.metadataService.findOne({
-      _id: metadataId,
+      id: metadataId,
     });
 
     return serializeSingle(request, MetadataSerializer, updatedMetadata);
@@ -445,10 +420,10 @@ export class IngredientsOperationsController {
 
     // Find the ingredient first to ensure it exists and belongs to the user or organization
     const ingredient = await this.ingredientsService.findOne({
-      _id: ingredientId,
+      id: ingredientId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
     });
 
@@ -456,15 +431,10 @@ export class IngredientsOperationsController {
       return returnNotFound(this.constructorName, ingredientId);
     }
 
-    // Convert to ObjectIds
-    const tagObjectIds = updateTagsDto.tags.map((tagId: string) => tagId);
-
-    this.loggerService.log(`Converted to ObjectIds`, { tagObjectIds });
-
     // Now set the new valid tags using service method
     const data = await this.ingredientsService.patch(
       ingredientId,
-      { tags: tagObjectIds } as unknown as UpdateIngredientDto,
+      { tags: updateTagsDto.tags },
       [{ path: 'tags' }],
     );
 
@@ -518,15 +488,5 @@ export class IngredientsOperationsController {
       failed,
       message,
     };
-  }
-
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 }

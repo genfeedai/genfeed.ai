@@ -98,9 +98,7 @@ export class ProcessedTweetsService extends BaseService<
   }
 
   /**
-   * Clean up old processed tweets (beyond TTL)
-   * Note: MongoDB TTL index should handle this automatically,
-   * but this can be used for manual cleanup if needed
+   * Clean up processed-tweet deduplication rows older than the retention window.
    */
   async cleanupOldRecords(olderThanDays: number = 7): Promise<number> {
     const cutoffDate = new Date();

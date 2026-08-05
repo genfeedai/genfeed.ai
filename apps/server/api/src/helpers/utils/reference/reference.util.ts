@@ -29,7 +29,7 @@ export async function buildReferenceImageUrl(params: {
 
   try {
     const imageIngredient = await ingredientsService.findOne({
-      _id: referenceId,
+      id: referenceId,
       category: IngredientCategory.IMAGE,
       isDeleted: false,
     });
@@ -42,7 +42,7 @@ export async function buildReferenceImageUrl(params: {
 
     // If not an image, try to find a VIDEO ingredient and use its thumbnail
     const videoIngredient = await ingredientsService.findOne({
-      _id: referenceId,
+      id: referenceId,
       category: IngredientCategory.VIDEO,
       isDeleted: false,
     });
@@ -55,7 +55,7 @@ export async function buildReferenceImageUrl(params: {
     }
 
     const asset = await assetsService.findOne({
-      _id: referenceId,
+      id: referenceId,
       category: AssetCategory.REFERENCE,
       isDeleted: false,
     });
@@ -69,7 +69,6 @@ export async function buildReferenceImageUrl(params: {
     });
     return null;
   } catch {
-    // Likely invalid ObjectId
     loggerService?.warn('Reference lookup failed', {
       reference: referenceId,
     });

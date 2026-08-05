@@ -11,7 +11,6 @@ function makeClip(
   overrides: Partial<ClipResultDocument> = {},
 ): ClipResultDocument {
   return {
-    _id: 'clip-1',
     authProviderUserId: 'auth-user-1',
     captionSrt: '1\n00:00:00,000 --> 00:00:03,000\nLaunch',
     createdAt: new Date(),

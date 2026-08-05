@@ -4,8 +4,15 @@ import { AccessBootstrapCacheService } from '@api/common/services/access-bootstr
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { ByokBillingStatus, SubscriptionTier } from '@genfeedai/enums';
-import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/interfaces/billing';
+import {
+  ByokBillingStatus,
+  SubscriptionPlan,
+  SubscriptionTier,
+} from '@genfeedai/enums';
+import {
+  type ISubscriptionOssReadModel,
+  SUBSCRIPTIONS_SERVICE,
+} from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -49,13 +56,15 @@ describe('StripeInvoiceWebhookHandler', () => {
   }
 
   const monthlySubscription = {
+    cancelAtPeriodEnd: false,
     id: 'sub_db_1',
-    organization: 'org_1',
+    isDeleted: false,
+    organizationId: 'org_1',
+    plan: SubscriptionPlan.MONTHLY,
     status: 'active',
     stripeSubscriptionId: 'sub_stripe_1',
-    type: 'monthly',
-    user: 'user_1',
-  };
+    userId: 'user_1',
+  } satisfies ISubscriptionOssReadModel;
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -123,11 +132,11 @@ describe('StripeInvoiceWebhookHandler', () => {
     it('resets credits for yearly subscriptions', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
-        type: 'yearly',
+        plan: SubscriptionPlan.YEARLY,
       });
       subscriptionsService.patch.mockResolvedValue({
         ...monthlySubscription,
-        type: 'yearly',
+        plan: SubscriptionPlan.YEARLY,
       });
 
       await handler.handleInvoicePaid(
@@ -216,8 +225,8 @@ describe('StripeInvoiceWebhookHandler', () => {
     it('grants 12x the monthly tier allotment for a yearly Pro subscription (96,000)', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
+        plan: SubscriptionPlan.YEARLY,
         stripePriceId: 'price_pro_yearly',
-        type: 'yearly',
       });
       supportService.resolveTierFromPriceId.mockReturnValue(
         SubscriptionTier.PRO,
@@ -368,7 +377,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     it('#1398: skips a duplicate yearly grant when the invoice reference already exists', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
-        type: 'yearly',
+        plan: SubscriptionPlan.YEARLY,
       });
       supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
 
@@ -417,7 +426,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     it('#1398: treats a P2002 unique-constraint race on the yearly grant as a no-op, not an error', async () => {
       subscriptionsService.findOne.mockResolvedValue({
         ...monthlySubscription,
-        type: 'yearly',
+        plan: SubscriptionPlan.YEARLY,
       });
       const uniqueConstraintError = { code: 'P2002' };
       creditsUtilsService.resetOrganizationCredits.mockRejectedValue(

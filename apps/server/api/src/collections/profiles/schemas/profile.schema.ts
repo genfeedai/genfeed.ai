@@ -16,7 +16,6 @@ export interface ProfileMetadata {
 }
 
 export interface ProfileDocument extends PrismaProfile {
-  _id: string;
   label?: string;
   description?: string;
   tags?: string[];

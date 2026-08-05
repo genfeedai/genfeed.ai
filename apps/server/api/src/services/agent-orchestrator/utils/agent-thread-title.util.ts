@@ -131,10 +131,10 @@ export async function maybeUpdateThreadTitle(params: {
   }
 
   const thread = (await params.agentThreadsService.findOne({
-    _id: params.threadId,
+    id: params.threadId,
     isDeleted: false,
-    organization: params.context.organizationId,
-    user: {
+    organizationId: params.context.organizationId,
+    userId: {
       in: [params.context.userId],
     },
   })) as { title?: string } | null;

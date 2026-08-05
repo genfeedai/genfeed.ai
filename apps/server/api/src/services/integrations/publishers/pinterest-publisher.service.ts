@@ -78,9 +78,9 @@ export class PinterestPublisherService extends BasePublisherService {
     try {
       // Pinterest requires getting credential and board info
       const pinterestCredential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.PINTEREST,
       });
 

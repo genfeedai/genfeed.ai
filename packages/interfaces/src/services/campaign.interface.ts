@@ -4,7 +4,7 @@
  */
 export interface ICampaignScope {
   brandId?: string;
-  /** Config-JSON-backed field on the campaign; callers must guard presence. */
+  /** Nullable for campaigns created before credential ownership was required. */
   credentialId?: string;
   organizationId: string;
   userId?: string;

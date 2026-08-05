@@ -1,17 +1,13 @@
 import {
   Brand,
-  type BrandAgentConfig,
   type BrandDocument,
 } from '@api/collections/brands/schemas/brand.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class BrandEntity extends BaseEntity implements Brand {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly userId: string;
   declare readonly organizationId: string;
-  declare readonly user: string;
-  declare readonly organization: string;
   declare readonly voiceIngredientId: string | null;
   declare readonly musicIngredientId: string | null;
   declare readonly isDefault: boolean;

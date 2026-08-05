@@ -33,8 +33,8 @@ export interface WorkflowInputVariable {
 }
 
 export interface CloudWorkflowData {
-  _id: string;
-  name: string;
+  id: string;
+  label: string;
   description?: string;
   nodes: Node[];
   edges: Edge[];
@@ -44,7 +44,7 @@ export interface CloudWorkflowData {
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
   lifecycle: 'draft' | 'published' | 'archived';
-  organization: string;
+  organizationId: string;
   brandId?: string | null;
   schedule?: string;
   timezone?: string;
@@ -62,8 +62,8 @@ export type WorkflowMetadata = Record<string, unknown> & {
 
 /** Lightweight workflow summary for list views */
 export interface WorkflowSummary {
-  _id: string;
-  name: string;
+  id: string;
+  label: string;
   description?: string;
   lifecycle: 'draft' | 'published' | 'archived';
   brandId?: string | null;
@@ -98,7 +98,7 @@ export interface SetScheduleInput {
 
 /** Payload for creating a new workflow */
 export interface CreateWorkflowInput {
-  name: string;
+  label: string;
   description?: string;
   nodes?: Node[];
   edges?: Edge[];
@@ -120,7 +120,7 @@ export interface CreateWorkflowInput {
 
 /** Payload for updating an existing workflow */
 export interface UpdateWorkflowInput {
-  name?: string;
+  label?: string;
   description?: string;
   nodes?: Node[];
   edges?: Edge[];
@@ -165,7 +165,9 @@ export interface ExecutionNodeResult {
   error?: string;
   startedAt?: string;
   completedAt?: string;
+  creditsUsed?: number;
   progress?: number;
+  retryCount?: number;
 }
 
 export interface ExecutionEtaMetadata {
@@ -186,8 +188,9 @@ interface ExecutionMetadata extends Record<string, unknown> {
 
 /** Execution result returned from the API */
 export interface ExecutionResult {
-  _id: string;
-  workflow: string | { _id: string; label?: string; description?: string };
+  id: string;
+  workflowId: string;
+  workflow?: { id: string; label?: string; description?: string };
   status: string;
   trigger: string;
   inputValues?: Record<string, unknown>;
@@ -196,6 +199,8 @@ export interface ExecutionResult {
   startedAt?: string;
   completedAt?: string;
   durationMs?: number;
+  creditsUsed?: number;
+  failedNodeId?: string | null;
   error?: string;
   metadata?: ExecutionMetadata;
   createdAt: string;
@@ -204,7 +209,7 @@ export interface ExecutionResult {
 
 /** Query params for listing executions */
 export interface ListExecutionsParams {
-  workflow?: string;
+  workflowId?: string;
   status?: string;
   trigger?: string;
   limit?: number;
@@ -231,7 +236,7 @@ interface BatchOutputSummary {
 
 /** Status of a single batch item */
 export interface BatchItemStatus {
-  _id: string;
+  id: string;
   ingredientId: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   executionId?: string;
@@ -245,7 +250,7 @@ export interface BatchItemStatus {
 
 /** Full batch job status with items */
 export interface BatchJobStatus {
-  _id: string;
+  id: string;
   workflowId: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   totalCount: number;
@@ -258,7 +263,7 @@ export interface BatchJobStatus {
 
 /** Batch job summary for list view */
 export interface BatchJobSummary {
-  _id: string;
+  id: string;
   workflowId: string;
   status: string;
   totalCount: number;
@@ -372,7 +377,7 @@ export interface WebhookSecretResponse {
 
 /** Brand summary for BrandNode dropdown */
 export interface BrandSummary {
-  _id: string;
+  id: string;
   label: string;
   slug: string;
   logoUrl?: string;
@@ -439,8 +444,7 @@ export class WorkflowApiService extends HTTPBaseService {
       const response = await this.instance.get<JsonApiResponseDocument>('', {
         params,
       });
-      const items = deserializeCollection<WorkflowSummary>(response.data);
-      return items.map((item) => this.mapLabelToName(this.mapIdField(item)));
+      return deserializeCollection<WorkflowSummary>(response.data);
     } catch (error) {
       logger.error('Failed to list workflows', { error });
       throw error;
@@ -464,13 +468,9 @@ export class WorkflowApiService extends HTTPBaseService {
   /** Create a new workflow */
   async create(data: CreateWorkflowInput): Promise<CloudWorkflowData> {
     try {
-      // Map frontend 'name' → backend 'label'
-      const { name, ...rest } = data;
-      const payload = { ...rest, label: name };
-
       const response = await this.instance.post<JsonApiResponseDocument>(
         '',
-        payload,
+        data,
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);
@@ -486,16 +486,9 @@ export class WorkflowApiService extends HTTPBaseService {
     data: UpdateWorkflowInput,
   ): Promise<CloudWorkflowData> {
     try {
-      // Map frontend 'name' → backend 'label'
-      const { name, ...rest } = data;
-      const payload = {
-        ...rest,
-        ...(name !== undefined ? { label: name } : {}),
-      };
-
       const response = await this.instance.patch<JsonApiResponseDocument>(
         `/${id}`,
-        payload,
+        data,
       );
       const item = deserializeResource<CloudWorkflowData>(response.data);
       return this.normalizeWorkflowData(item);
@@ -629,7 +622,7 @@ export class WorkflowApiService extends HTTPBaseService {
               threadId: options.threadId,
             }
           : {}),
-        workflow: id,
+        workflowId: id,
       });
 
       if (this.isJsonApiResourceDocument(response.data)) {
@@ -878,7 +871,7 @@ export class WorkflowApiService extends HTTPBaseService {
     try {
       return await this.create({
         ...(brandId ? { brandId } : {}),
-        name: canonicalId,
+        label: canonicalId,
         sourceType: 'system-catalog',
         templateId: canonicalId,
       });
@@ -902,7 +895,7 @@ export class WorkflowApiService extends HTTPBaseService {
       const brands = await brandsService.findAll();
 
       return brands.map((brand) => ({
-        _id: String(brand.id ?? ''),
+        id: String(brand.id ?? ''),
         label: brand.label ?? 'Untitled Brand',
         logoUrl: brand.logoUrl,
         primaryColor: brand.primaryColor,
@@ -918,41 +911,16 @@ export class WorkflowApiService extends HTTPBaseService {
   // INTERNAL HELPERS
   // ---------------------------------------------------------------------------
 
-  /**
-   * Map JSON:API `id` field to MongoDB `_id` field.
-   * The deserializer produces `id` but interfaces expect `_id`.
-   */
-  private mapIdField<T extends object>(data: T): T {
-    if (data && 'id' in data && !('_id' in data)) {
-      const { id, ...rest } = data as Record<string, unknown>;
-      return { ...rest, _id: id } as T;
-    }
-    return data;
-  }
-
-  /**
-   * Map backend `label` field to frontend `name` field.
-   * The backend schema uses `label` but the frontend expects `name`.
-   */
-  private mapLabelToName<T extends object>(data: T): T {
-    if (data && 'label' in data && !('name' in data)) {
-      return { ...data, name: data.label };
-    }
-    return data;
-  }
-
   private normalizeWorkflowData(data: CloudWorkflowData): CloudWorkflowData {
-    const mapped = this.mapLabelToName(this.mapIdField(data));
-
     return {
-      ...mapped,
+      ...data,
       edgeStyle:
-        typeof mapped.edgeStyle === 'string' ? mapped.edgeStyle : 'default',
-      edges: Array.isArray(mapped.edges) ? mapped.edges : [],
-      lifecycle: this.workflowLifecycles.has(mapped.lifecycle)
-        ? mapped.lifecycle
+        typeof data.edgeStyle === 'string' ? data.edgeStyle : 'default',
+      edges: Array.isArray(data.edges) ? data.edges : [],
+      lifecycle: this.workflowLifecycles.has(data.lifecycle)
+        ? data.lifecycle
         : 'draft',
-      nodes: Array.isArray(mapped.nodes) ? mapped.nodes : [],
+      nodes: Array.isArray(data.nodes) ? data.nodes : [],
     };
   }
 

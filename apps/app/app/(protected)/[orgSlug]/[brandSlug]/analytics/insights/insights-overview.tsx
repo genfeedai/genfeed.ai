@@ -75,12 +75,12 @@ const InsightsOverview = memo(function InsightsOverview({
     [alerts, router],
   );
 
-  const handleAnomalyDismiss = useCallback((_id: string) => {
+  const handleAnomalyDismiss = useCallback((_anomalyId: string) => {
     // For now, just log - in production this would call an API
     // logger.info('Anomaly dismissed', { id });
   }, []);
 
-  const handleSuggestionApply = useCallback((_id: string) => {
+  const handleSuggestionApply = useCallback((_suggestionId: string) => {
     // For now, just log - in production this would trigger content creation
     // logger.info('Suggestion applied', { id });
   }, []);

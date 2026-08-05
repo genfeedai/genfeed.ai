@@ -107,7 +107,10 @@ export class UpdateClipResultDto {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp when the clip reached a terminal status',
+    format: 'date-time',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly terminalAt?: string | null;
 }

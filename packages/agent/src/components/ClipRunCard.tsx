@@ -6,14 +6,10 @@ import type {
 import { ButtonVariant } from '@genfeedai/enums';
 import type { AgentClipRunIdentity } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
-import {
-  CircleCheck,
-  CircleX,
-  ExternalLink,
-  Film,
-  TriangleAlert,
-} from 'lucide-react';
+import { CircleCheck, ExternalLink, Film, TriangleAlert } from 'lucide-react';
 import type { ReactElement } from 'react';
+
+import { AgentErrorMessage } from './AgentErrorMessage';
 
 interface ClipRunCardProps {
   state: ClipRunCardState;
@@ -199,18 +195,12 @@ export function ClipRunCard({
 
         {/* Error state */}
         {state.status === 'failed' && failedStep && (
-          <div className="flex items-start gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            <CircleX className="mt-0.5 size-4 shrink-0" />
-            <div>
-              <p className="font-medium">Failed at: {failedStep.label}</p>
-              <p>{failedStep.errorMessage}</p>
-              {failedStep.retryable && (
-                <p className="mt-1 text-muted-foreground">
-                  This step can be retried.
-                </p>
-              )}
-            </div>
-          </div>
+          <AgentErrorMessage
+            className="text-xs"
+            message={`Failed at: ${failedStep.label}\n${failedStep.errorMessage}${
+              failedStep.retryable ? '\nThis step can be retried.' : ''
+            }`}
+          />
         )}
 
         {/* Confirmation prompt */}

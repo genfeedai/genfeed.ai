@@ -131,7 +131,7 @@ export class AdminFleetIngestService {
     const failed: AdminFleetIngestFailure[] = [];
 
     for (const persona of personas) {
-      const brandId = AdminFleetValueReader.readReferenceId(persona.brand);
+      const brandId = persona.brandId;
 
       if (!brandId) {
         continue;
@@ -139,9 +139,9 @@ export class AdminFleetIngestService {
 
       const brand = await this.brandsService.findOne(
         {
-          _id: brandId,
+          id: brandId,
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         },
         'none',
       );
@@ -184,12 +184,12 @@ export class AdminFleetIngestService {
       };
     }
 
-    const userObjectId = EntityIdUtil.toValidId(userId);
-    const organizationObjectId = EntityIdUtil.toValidId(organizationId);
-    const brandId = AdminFleetValueReader.readReferenceId(persona.brand);
-    const brandObjectId = brandId ? EntityIdUtil.toValidId(brandId) : null;
+    const validatedUserId = EntityIdUtil.toValidId(userId);
+    const validatedOrganizationId = EntityIdUtil.toValidId(organizationId);
+    const brandId = persona.brandId;
+    const validatedBrandId = brandId ? EntityIdUtil.toValidId(brandId) : null;
 
-    if (!userObjectId || !organizationObjectId || !brandObjectId) {
+    if (!validatedUserId || !validatedOrganizationId || !validatedBrandId) {
       throw new BadRequestException('Invalid fleet ingest context');
     }
 
@@ -211,7 +211,7 @@ export class AdminFleetIngestService {
           }
 
           const existing = await this.ingredientsService.findOne({
-            brand: brandObjectId,
+            brandId: validatedBrandId,
             category:
               post.mediaType === 'video'
                 ? IngredientCategory.VIDEO
@@ -219,8 +219,8 @@ export class AdminFleetIngestService {
             cdnUrl: post.mediaUrl,
             generationSource: `fleet-ingest:${source.platform}`,
             isDeleted: false,
-            organization: organizationObjectId,
-            persona: persona.id,
+            organizationId: validatedOrganizationId,
+            personaId: persona.id,
           });
 
           if (existing) {
@@ -228,15 +228,15 @@ export class AdminFleetIngestService {
           }
 
           const created = await this.createFleetIngestAsset({
-            brandId: brandObjectId,
+            brandId: validatedBrandId,
             mediaType: post.mediaType,
-            organizationId: organizationObjectId,
+            organizationId: validatedOrganizationId,
             persona,
             postId: post.id,
             sourcePlatform: source.platform,
             sourceUrl: post.mediaUrl,
             text: post.text,
-            userId: userObjectId,
+            userId: validatedUserId,
           });
 
           if (created) {
@@ -282,19 +282,19 @@ export class AdminFleetIngestService {
         : IngredientCategory.IMAGE;
 
     const ingredient = await this.ingredientsService.create({
-      brand: params.brandId,
+      brandId: params.brandId,
       category,
       cdnUrl: params.sourceUrl,
       ...AdminFleetValueReader.getDefaultFleetModerationState(),
       generationPrompt: params.text || undefined,
       generationSource: `fleet-ingest:${params.sourcePlatform}`,
-      organization: params.organizationId,
-      persona: params.persona.id,
+      organizationId: params.organizationId,
+      personaId: params.persona.id,
       personaSlug: params.persona.slug,
       s3Key: `${params.sourcePlatform}:${params.postId}`,
       status: IngredientStatus.GENERATED,
       text: params.text || undefined,
-      user: params.userId,
+      userId: params.userId,
     } as Parameters<IngredientsService['create']>[0]);
 
     const uploadMeta = await this.filesClientService.uploadToS3(

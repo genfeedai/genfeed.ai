@@ -151,7 +151,7 @@ describe('ContentRunRecommendationsService', () => {
       where: { id: 'run-1' },
     });
     expect(result.updatedRun).toMatchObject({
-      _id: 'run-1',
+      id: 'run-1',
       analyticsSummary: expect.objectContaining({
         winningVariantId: 'variant-a',
       }),

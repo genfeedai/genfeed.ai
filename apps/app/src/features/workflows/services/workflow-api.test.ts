@@ -79,14 +79,14 @@ import {
 
 function workflow(overrides: Record<string, unknown> = {}) {
   return {
-    _id: 'workflow-1',
+    id: 'workflow-1',
     createdAt: '2026-01-01T00:00:00.000Z',
     edgeStyle: 'step',
     edges: [],
     lifecycle: 'draft',
-    name: 'Launch workflow',
+    label: 'Launch workflow',
     nodes: [],
-    organization: 'org-1',
+    organizationId: 'org-1',
     updatedAt: '2026-01-02T00:00:00.000Z',
     ...overrides,
   };
@@ -101,7 +101,7 @@ describe('WorkflowApiService', () => {
     vi.clearAllMocks();
   });
 
-  it('lists workflows and maps JSON:API id/label fields to frontend fields', async () => {
+  it('lists workflows using the canonical JSON:API id and label fields', async () => {
     mocks.get.mockResolvedValueOnce({
       data: {
         data: [
@@ -126,7 +126,7 @@ describe('WorkflowApiService', () => {
 
     await expect(service().list({ lifecycle: 'draft' })).resolves.toEqual([
       expect.objectContaining({
-        _id: 'workflow-1',
+        id: 'workflow-1',
         metadata: {
           systemWorkflow: {
             immutable: true,
@@ -134,7 +134,7 @@ describe('WorkflowApiService', () => {
             owner: 'genfeed',
           },
         },
-        name: 'Launch calendar',
+        label: 'Launch calendar',
       }),
     ]);
     expect(mocks.get).toHaveBeenCalledWith('', {
@@ -228,7 +228,7 @@ describe('WorkflowApiService', () => {
           },
         ],
         isScheduleEnabled: false,
-        name: 'Launch workflow',
+        label: 'Launch workflow',
         nodes: [],
         schedule: '0 9 * * *',
         timezone: 'UTC',
@@ -246,7 +246,7 @@ describe('WorkflowApiService', () => {
       ],
       isScheduleEnabled: false,
       lifecycle: 'draft',
-      name: 'Launch workflow',
+      label: 'Launch workflow',
       nodes: [],
       schedule: '0 9 * * *',
       timezone: 'UTC',
@@ -270,7 +270,7 @@ describe('WorkflowApiService', () => {
     });
   });
 
-  it('updates workflows with optional name mapping and sets thumbnails', async () => {
+  it('updates workflows with canonical labels and sets thumbnails', async () => {
     mocks.patch
       .mockResolvedValueOnce({ data: { data: workflow({ label: 'Updated' }) } })
       .mockResolvedValueOnce({
@@ -288,7 +288,7 @@ describe('WorkflowApiService', () => {
           type: 'text',
         },
       ],
-      name: 'Updated',
+      label: 'Updated',
     });
     await service().setThumbnail('workflow-1', 'x.png', 'node-1');
 
@@ -348,14 +348,14 @@ describe('WorkflowApiService', () => {
 
   it('uses execution endpoints and supports raw and JSON:API responses', async () => {
     const execution = {
-      _id: 'execution-1',
+      id: 'execution-1',
       createdAt: '2026-01-01T00:00:00.000Z',
       nodeResults: [],
       progress: 0,
       status: 'queued',
       trigger: 'manual',
       updatedAt: '2026-01-01T00:00:00.000Z',
-      workflow: 'workflow-1',
+      workflowId: 'workflow-1',
     };
     mocks.post
       .mockResolvedValueOnce({
@@ -368,7 +368,7 @@ describe('WorkflowApiService', () => {
       .mockResolvedValueOnce({ data: execution });
 
     await expect(service().execute('workflow-1')).resolves.toMatchObject({
-      _id: 'execution-1',
+      id: 'execution-1',
     });
     await expect(
       service().execute('workflow-1', {
@@ -377,15 +377,15 @@ describe('WorkflowApiService', () => {
         metadata: { source: 'test' },
         threadId: 'thread-1',
       }),
-    ).resolves.toMatchObject({ _id: 'execution-1' });
+    ).resolves.toMatchObject({ id: 'execution-1' });
     await expect(
       service().executePartial('workflow-1', ['node-1']),
-    ).resolves.toMatchObject({ _id: 'execution-1' });
+    ).resolves.toMatchObject({ id: 'execution-1' });
     await expect(
-      service().listExecutions({ workflow: 'workflow-1' }),
+      service().listExecutions({ workflowId: 'workflow-1' }),
     ).resolves.toEqual([execution]);
     await expect(service().getExecution('execution-1')).resolves.toMatchObject({
-      _id: 'execution-1',
+      id: 'execution-1',
     });
 
     expect(mocks.post).toHaveBeenNthCalledWith(
@@ -394,7 +394,7 @@ describe('WorkflowApiService', () => {
       {
         inputValues: {},
         metadata: undefined,
-        workflow: 'workflow-1',
+        workflowId: 'workflow-1',
       },
     );
     expect(mocks.post).toHaveBeenNthCalledWith(
@@ -405,7 +405,7 @@ describe('WorkflowApiService', () => {
         inputValues: { topic: 'launch' },
         metadata: { source: 'test' },
         threadId: 'thread-1',
-        workflow: 'workflow-1',
+        workflowId: 'workflow-1',
       },
     );
     expect(mocks.post).toHaveBeenNthCalledWith(
@@ -417,7 +417,7 @@ describe('WorkflowApiService', () => {
       1,
       'https://api.test/v1/workflow-executions',
       {
-        params: { workflow: 'workflow-1' },
+        params: { workflowId: 'workflow-1' },
       },
     );
     expect(mocks.get).toHaveBeenNthCalledWith(
@@ -504,8 +504,8 @@ describe('WorkflowApiService', () => {
           ],
         },
       })
-      .mockResolvedValueOnce({ data: { data: { _id: 'batch-1', items: [] } } })
-      .mockResolvedValueOnce({ data: { data: [{ _id: 'batch-1' }] } });
+      .mockResolvedValueOnce({ data: { data: { id: 'batch-1', items: [] } } })
+      .mockResolvedValueOnce({ data: { data: [{ id: 'batch-1' }] } });
     mocks.delete.mockResolvedValueOnce({ data: undefined });
     mocks.brandsFindAll.mockResolvedValueOnce([
       { id: 123, label: null, logoUrl: 'logo.png', slug: null },
@@ -557,7 +557,7 @@ describe('WorkflowApiService', () => {
     ]);
     await expect(service().listBrands()).resolves.toEqual([
       {
-        _id: '123',
+        id: '123',
         label: 'Untitled Brand',
         logoUrl: 'logo.png',
         primaryColor: undefined,
@@ -571,10 +571,10 @@ describe('WorkflowApiService', () => {
       totalCount: 2,
     });
     await expect(service().getBatchStatus('batch-1')).resolves.toMatchObject({
-      _id: 'batch-1',
+      id: 'batch-1',
     });
     await expect(service().listBatchJobs()).resolves.toEqual([
-      { _id: 'batch-1' },
+      { id: 'batch-1' },
     ]);
   });
 
@@ -689,13 +689,13 @@ describe('WorkflowApiService', () => {
         call: () =>
           service().create({
             edges: [],
-            name: 'Workflow',
+            label: 'Workflow',
             nodes: [],
           }),
         rejectWith: mocks.post,
       },
       {
-        call: () => service().update('workflow-1', { name: 'Workflow' }),
+        call: () => service().update('workflow-1', { label: 'Workflow' }),
         rejectWith: mocks.patch,
       },
       {

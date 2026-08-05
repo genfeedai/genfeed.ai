@@ -53,7 +53,7 @@ export function buildAgentGenerationRequestBody({
     autoSelectModel: !modelKey,
     height,
     prioritize,
-    prompt: promptId,
+    promptId,
     text: promptText,
     width,
   };

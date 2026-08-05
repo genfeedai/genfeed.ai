@@ -16,7 +16,7 @@ export interface InstagramAccountDetails {
  * Instagram Business Account page information
  */
 export interface InstagramPageResponse {
-  _id: string;
+  id: string;
   image?: string;
   label?: string;
   username?: string;
@@ -28,7 +28,7 @@ export interface InstagramPageResponse {
  * Instagram credential with decrypted access token
  */
 export interface InstagramCredentialResponse {
-  _id: string;
+  id: string;
   accessToken: string;
   externalId?: string;
   isConnected?: boolean;

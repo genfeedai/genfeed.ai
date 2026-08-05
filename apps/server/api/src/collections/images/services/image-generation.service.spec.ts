@@ -71,7 +71,7 @@ const baseDto = (overrides: Partial<CreateImageDto> = {}): CreateImageDto =>
 const createService = () => {
   let savedDocCount = 0;
   const sharedService = {
-    saveDocuments: vi.fn().mockImplementation(() => {
+    createMediaDocuments: vi.fn().mockImplementation(() => {
       const n = savedDocCount++;
       return Promise.resolve({
         ingredientData: {
@@ -109,6 +109,8 @@ const createService = () => {
   };
   const promptsService = {
     create: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
+    findOne: vi.fn().mockResolvedValue(null),
+    patch: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
   };
   const promptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
@@ -127,6 +129,10 @@ const createService = () => {
   };
   const replicateService = {
     generateTextToImage: vi.fn().mockResolvedValue('rep-gen'),
+    getPrediction: vi.fn().mockResolvedValue({
+      output: ['https://replicate/generated.png'],
+      status: 'succeeded',
+    }),
   };
   const metadataService = { patch: vi.fn().mockResolvedValue(undefined) };
   const imagesService = {
@@ -155,7 +161,15 @@ const createService = () => {
       .fn()
       .mockResolvedValue({ _id: 'ing-0', status: 'completed' }),
   };
-  const filesClientService = { uploadToS3: vi.fn() };
+  const filesClientService = {
+    uploadToS3: vi.fn().mockResolvedValue({
+      height: 1080,
+      publicUrl: 'https://cdn/generated.png',
+      s3Key: 'images/generated.png',
+      size: 1024,
+      width: 1920,
+    }),
+  };
   const assetsService = {};
   const ingredientsService = {};
   const configService = {};
@@ -218,6 +232,7 @@ const createService = () => {
     falService,
     metadataService,
     promptBuilderService,
+    promptsService,
     replicateService,
     service,
   };
@@ -228,6 +243,35 @@ beforeEach(() => {
 });
 
 describe('ImageGenerationService', () => {
+  describe('prompt persistence', () => {
+    it('reuses a submitted prompt document instead of creating a duplicate', async () => {
+      const { service, promptsService } = createService();
+      promptsService.findOne.mockResolvedValue({
+        id: '507f1f77bcf86cd799439015',
+        original: 'a sunset over the ocean',
+      });
+      promptsService.patch.mockResolvedValue({
+        id: '507f1f77bcf86cd799439015',
+        original: 'a sunset over the ocean',
+      });
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({
+          prompt: '507f1f77bcf86cd799439015',
+          text: 'a sunset over the ocean',
+        }),
+        buildRequest(),
+      );
+
+      expect(promptsService.create).not.toHaveBeenCalled();
+      expect(promptsService.patch).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439015',
+        expect.objectContaining({ status: 'processing' }),
+      );
+    });
+  });
+
   describe('deferred credit authorization (multi-output, F1)', () => {
     it('multiplies the authorized amount by outputs for Fal (always fans out)', async () => {
       const { service, creditsUtilsService } = createService();

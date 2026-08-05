@@ -60,7 +60,7 @@ describe('AiInfluencerService', () => {
     ({
       id: mockPersonaId,
       bio: 'A lifestyle influencer sharing daily vibes',
-      brand: mockBrandId,
+      brandId: mockBrandId,
       contentStrategy: {
         platforms: ['instagram', 'twitter'],
         tone: 'casual and fun',
@@ -72,10 +72,10 @@ describe('AiInfluencerService', () => {
       loraModelPath: 's3://models/luna-lora.safetensors',
       loraStatus: LoraStatus.READY,
       niche: 'lifestyle',
-      organization: mockOrganizationId,
+      organizationId: mockOrganizationId,
       slug: 'luna-ai',
       triggerWord: 'luna_trigger',
-      user: mockUserId,
+      userId: mockUserId,
       ...overrides,
     }) as unknown as PersonaDocument;
 
@@ -83,12 +83,12 @@ describe('AiInfluencerService', () => {
   const createMockIngredient = (): IngredientDocument =>
     ({
       id: mockIngredientId,
-      brand: mockBrandId,
+      brandId: mockBrandId,
       cdnUrl: 'https://cdn.fal.ai/generated/test-image.jpg',
-      organization: mockOrganizationId,
-      persona: mockPersonaId,
+      organizationId: mockOrganizationId,
+      personaId: mockPersonaId,
       personaSlug: 'luna-ai',
-      user: mockUserId,
+      userId: mockUserId,
     }) as unknown as IngredientDocument;
 
   // Mock LLM response
@@ -410,28 +410,21 @@ describe('AiInfluencerService', () => {
 
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: mockBrandId,
+          brandId: mockBrandId,
           cdnUrl: 'https://cdn.fal.ai/generated-image.jpg',
           generationSource: 'ai-influencer-luna-ai',
-          organization: mockOrganizationId,
-          persona: mockPersonaId,
+          organizationId: mockOrganizationId,
+          personaId: mockPersonaId,
           personaSlug: 'luna-ai',
-          user: mockUserId,
+          userId: mockUserId,
         }),
       );
     });
 
     it('should source ownership from the persona scalar FKs', async () => {
-      // A persona read without populated relations carries only the scalar
-      // columns. The create payload keys stay Mongo-style — that is the ingredient
-      // create contract — but the values must come from the scalars, otherwise the
-      // ingredient is written with no organization or owner at all.
       const persona = createMockPersona({
-        brand: undefined,
         brandId: 'brand-scalar-id',
-        organization: undefined,
         organizationId: 'org-scalar-id',
-        user: undefined,
         userId: 'user-scalar-id',
       } as unknown as Partial<PersonaDocument>);
       personasService.findOne.mockResolvedValue(persona);
@@ -446,9 +439,9 @@ describe('AiInfluencerService', () => {
 
       expect(ingredientsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-scalar-id',
-          organization: 'org-scalar-id',
-          user: 'user-scalar-id',
+          brandId: 'brand-scalar-id',
+          organizationId: 'org-scalar-id',
+          userId: 'user-scalar-id',
         }),
       );
     });
@@ -457,8 +450,8 @@ describe('AiInfluencerService', () => {
       // `Persona.organizationId` and `Persona.userId` are non-nullable, so an
       // unresolvable owner means the row was read wrong. Never persist the row.
       const persona = createMockPersona({
-        organization: undefined,
-        user: undefined,
+        organizationId: undefined,
+        userId: undefined,
       } as unknown as Partial<PersonaDocument>);
       personasService.findOne.mockResolvedValue(persona);
       openRouterService.chatCompletion.mockResolvedValue(mockCaptionResponse);
@@ -689,18 +682,18 @@ describe('AiInfluencerService', () => {
       expect(personaContentService.generateVoice).toHaveBeenCalledWith(
         expect.objectContaining({
           ingredientId: mockIngredientId,
-          organization: mockOrganizationId,
+          organizationId: mockOrganizationId,
           personaId: mockPersonaId,
-          user: mockUserId,
+          userId: mockUserId,
         }),
       );
       expect(personaContentService.generateVideo).toHaveBeenCalledWith(
         expect.objectContaining({
           aspectRatio: '9:16',
-          organization: mockOrganizationId,
+          organizationId: mockOrganizationId,
           personaId: mockPersonaId,
           script: expect.any(String),
-          user: mockUserId,
+          userId: mockUserId,
         }),
       );
       expect(result.voiceResult).toEqual({

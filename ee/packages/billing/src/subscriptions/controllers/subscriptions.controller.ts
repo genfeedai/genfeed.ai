@@ -44,14 +44,10 @@ interface SubscriptionMutationResponse<T = unknown> {
   data: T;
 }
 
-/** Minimal shape read off a normalized subscription document for the admin
- * credit-usage list. `organizationId` is the real scalar FK — the `organization`
- * field on SubscriptionDocument is a legacy Mongo-era alias that is undefined
- * at runtime (see .agents/memory/rules/prisma_legacy_alias_fields.md). */
+/** Minimal subscription projection used by the admin credit-usage list. */
 interface SubscriptionRowSource {
   id: string;
-  organizationId?: string;
-  organization?: unknown;
+  organizationId: string;
   stripePriceId?: string | null;
   status?: string | null;
   currentPeriodEnd?: Date | null;
@@ -133,8 +129,8 @@ export class SubscriptionsController {
     @CurrentUser() user: User,
     @Body() changeData: ChangePlanDto,
   ): Promise<SubscriptionMutationResponse> {
-    // request.context tracks the ACTIVE organization; legacy auth provider publicMetadata
-    // can lag behind an org switch and bill the wrong org.
+    // Request context tracks the active organization; token metadata can lag
+    // behind an organization switch and bill the wrong tenant.
     const organizationId =
       request.context?.organizationId ?? getPublicMetadata(user).organization;
 
@@ -221,12 +217,7 @@ export class SubscriptionsController {
       ]);
 
       let planLimit = 0;
-      const subscriptionPlan =
-        typeof subscription?.type === 'string'
-          ? subscription.type
-          : typeof subscription?.plan === 'string'
-            ? subscription.plan
-            : undefined;
+      const subscriptionPlan = subscription?.plan ?? undefined;
 
       if (subscriptionPlan === SubscriptionPlan.YEARLY) {
         planLimit =
@@ -421,8 +412,7 @@ export class SubscriptionsController {
     subscription: SubscriptionRowSource,
     organizationNameById: Map<string, string>,
   ): Promise<OrganizationCreditUsageResponse['data'][number]> {
-    const organizationId =
-      subscription.organizationId ?? String(subscription.organization ?? '');
+    const organizationId = subscription.organizationId;
 
     const tier = this.resolveTierFromPriceId(subscription.stripePriceId);
     const planLimit = this.resolvePlanLimit(tier);
@@ -464,10 +454,9 @@ export class SubscriptionsController {
     subscription: {
       currentPeriodEnd?: Date | null;
       plan?: string | null;
-      type?: string | null;
     } | null,
   ): { cycleStartAt: Date; cycleEndAt: Date } | null {
-    const subscriptionPlan = subscription?.type ?? subscription?.plan;
+    const subscriptionPlan = subscription?.plan;
     if (!subscription?.currentPeriodEnd || !subscriptionPlan) {
       return null;
     }

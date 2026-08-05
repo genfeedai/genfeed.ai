@@ -32,27 +32,27 @@ describe('ShopifyPublisherService', () => {
   const postId = '507f1f77bcf86cd799439013';
 
   const mockCredential = {
-    _id: 'test-object-id',
     accessToken: 'encrypted-token',
-    brand: brandId,
+    brandId,
     externalHandle: 'mystore.myshopify.com',
-    organization: orgId,
+    id: 'test-object-id',
+    organizationId: orgId,
     platform: CredentialPlatform.SHOPIFY,
   } as unknown as CredentialDocument;
 
   const mockOrganization = {
-    _id: orgId,
-    name: 'Test Org',
+    id: orgId,
+    label: 'Test Org',
   } as unknown as OrganizationDocument;
 
   const mockPost = {
-    _id: postId,
-    brand: brandId,
+    brandId,
     category: PostCategory.IMAGE,
     description: '<p>Product description</p>',
     ingredients: ['test-object-id'],
+    id: postId,
     label: 'My Product',
-    organization: orgId,
+    organizationId: orgId,
     status: PostStatus.DRAFT,
   } as unknown as PostEntity;
 

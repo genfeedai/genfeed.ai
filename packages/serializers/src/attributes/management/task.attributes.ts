@@ -1,8 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const managementTaskAttributes = createEntityAttributes([
-  'organization',
-  'brand',
+  'organizationId',
+  'brandId',
+  'userId',
   'taskNumber',
   'identifier',
   'title',
@@ -18,6 +19,8 @@ export const managementTaskAttributes = createEntityAttributes([
   'checkoutAgentId',
   'checkedOutAt',
   'linkedEntities',
+  'elevenlabsVoiceId',
+  'heygenAvatarId',
   'request',
   'outputType',
   'platforms',
@@ -30,6 +33,8 @@ export const managementTaskAttributes = createEntityAttributes([
   'skillVariantIds',
   'reviewTriggered',
   'linkedIssueId',
+  'voiceId',
+  'voiceProvider',
   'linkedRunIds',
   'linkedOutputIds',
   'approvedOutputIds',

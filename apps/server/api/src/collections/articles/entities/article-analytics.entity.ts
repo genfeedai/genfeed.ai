@@ -2,7 +2,6 @@ import { type ArticleAnalytics } from '@genfeedai/prisma';
 
 export class ArticleAnalyticsEntity implements ArticleAnalytics {
   declare readonly id: string;
-  declare readonly mongoId: string | null;
   declare readonly articleId: string;
   declare readonly userId: string;
   declare readonly organizationId: string;

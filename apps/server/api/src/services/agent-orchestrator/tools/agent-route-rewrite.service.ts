@@ -68,7 +68,7 @@ export class AgentRouteRewriteService {
 
     try {
       const organization = await this.organizationsService.findOne({
-        _id: ctx.organizationId,
+        id: ctx.organizationId,
         isDeleted: false,
       });
       const orgSlug = this.readRecordString(organization, 'slug');
@@ -98,17 +98,17 @@ export class AgentRouteRewriteService {
   ): Promise<Record<string, unknown> | null> {
     if (ctx.brandId) {
       return this.brandsService.findOne({
-        _id: ctx.brandId,
+        id: ctx.brandId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
     }
 
     return this.brandsService.findOne({
       isDeleted: false,
       isSelected: true,
-      organization: ctx.organizationId,
-      user: ctx.userId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
     });
   }
 

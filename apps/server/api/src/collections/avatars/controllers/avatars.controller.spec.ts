@@ -185,7 +185,7 @@ describe('AvatarsController', () => {
         protocol: 'https',
       }) as unknown as Request;
 
-    it('should filter by category instead of the legacy "type" field', async () => {
+    it('should filter avatars by category and tenant ownership', async () => {
       const controller = buildController();
       vi.mocked(mockAvatarsService.findAll).mockResolvedValue({
         docs: [],
@@ -197,12 +197,12 @@ describe('AvatarsController', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             category: IngredientCategory.AVATAR,
+            organizationId: orgId,
+            userId,
           }),
         }),
         expect.anything(),
       );
-      // Ingredient has no "type" column — this field name previously caused
-      // PrismaClientValidationError ("Invalid `prisma.ingredient.findMany()`").
       const [{ where }] = vi.mocked(mockAvatarsService.findAll).mock.calls[0];
       expect(where).not.toHaveProperty('type');
     });

@@ -89,11 +89,11 @@ export interface TaskEvent {
 export interface CreateTaskInput {
   assigneeAgentId?: string;
   assigneeUserId?: string;
-  brand?: string;
+  brandId?: string;
   description?: string;
   goalId?: string;
+  elevenlabsVoiceId?: string;
   heygenAvatarId?: string;
-  heygenVoiceId?: string;
   linkedEntities?: TaskLinkedEntity[];
   outputType?: TaskOutputType;
   parentId?: string;
@@ -111,7 +111,7 @@ export interface ListTasksParams {
   assigneeAgentId?: string;
   assigneeUserId?: string;
   /** When set, scopes the list to one brand. Omit for org-wide (all brands). */
-  brand?: string;
+  brandId?: string;
   limit?: number;
   page?: number;
   parentId?: string;
@@ -128,8 +128,9 @@ const taskSerializer: IServiceSerializer<Task> = {
 
 export class Task {
   id!: string;
-  organization!: string;
-  brand?: string;
+  organizationId!: string;
+  brandId?: string | null;
+  userId?: string | null;
   taskNumber!: number;
   identifier!: string;
   title!: string;
@@ -145,6 +146,8 @@ export class Task {
   checkoutAgentId?: string;
   checkedOutAt?: string;
   linkedEntities!: TaskLinkedEntity[];
+  elevenlabsVoiceId?: string;
+  heygenAvatarId?: string;
 
   // AI execution fields
   request?: string;
@@ -163,6 +166,8 @@ export class Task {
   approvedOutputIds?: string[];
   linkedApprovalIds?: string[];
   linkedIssueId?: string;
+  voiceId?: string;
+  voiceProvider?: string;
   planningThreadId?: string;
   resultPreview?: string;
   qualityAssessment?: TaskQualityAssessment;

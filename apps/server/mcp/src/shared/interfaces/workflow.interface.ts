@@ -100,7 +100,7 @@ export interface WorkflowRunListParams {
 
 export interface WorkflowRunResponse {
   id: string;
-  workflow?: unknown;
+  workflowId?: string;
   status?: string;
   trigger?: string;
   nodeResults?: unknown[];

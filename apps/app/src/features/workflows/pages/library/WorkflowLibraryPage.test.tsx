@@ -153,12 +153,12 @@ vi.mock('./useWorkflowLibraryPage', () => ({
     error: null,
     filteredWorkflows: [
       {
-        _id: 'workflow-1',
+        id: 'workflow-1',
         cloudSync: true,
         createdAt: '2026-07-01T00:00:00.000Z',
         isScheduleEnabled: true,
         lifecycle: 'published',
-        name: 'Scheduled workflow',
+        label: 'Scheduled workflow',
         schedule: '0 9 * * 1',
         updatedAt: '2026-07-02T00:00:00.000Z',
       },
@@ -173,7 +173,7 @@ vi.mock('./useWorkflowLibraryPage', () => ({
     loadWorkflows: vi.fn(),
     searchInput: '',
     setSearchInput: vi.fn(),
-    workflows: [{ _id: 'workflow-1' }],
+    workflows: [{ id: 'workflow-1' }],
   }),
 }));
 

@@ -14,6 +14,7 @@ vi.mock('@genfeedai/agent/components/AgentThreadList', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
+    activeHref: (path: string) => `/test-org/test-brand${path}`,
     href: (path: string) => `/test-org/test-brand${path}`,
     orgHref: (path: string) => `/test-org/~${path}`,
   }),
@@ -49,7 +50,7 @@ describe('AgentSidebarContent', () => {
     ).toHaveAttribute('href', '/test-org/test-brand/overview');
     expect(
       screen.getByRole('link', { name: 'New agent thread' }),
-    ).toHaveAttribute('href', '/test-org/~/agent/new');
+    ).toHaveAttribute('href', '/test-org/test-brand/agent/new');
   });
 
   it('uses a compact new-thread action beside the conversation controls', () => {

@@ -13,7 +13,7 @@ export class CreateElementSoundDto {
   @ApiProperty({ required: false })
   @IsEntityId()
   @IsOptional()
-  organization?: string;
+  organizationId?: string;
 
   @ApiProperty({
     enum: ModelCategory,

@@ -1,20 +1,14 @@
-import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { IAuthPublicMetadata } from '@libs/interfaces/auth-public-metadata.interface';
 
-// Mock cache decorator
-vi.mock('@helpers/utils/cache/cache.util', () => ({
-  CacheResult:
-    () =>
-    (_target: object, _propertyKey: string, descriptor: PropertyDescriptor) =>
-      descriptor,
-}));
-
 describe('EntityIdUtil', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+
   describe('validate', () => {
-    it('should validate valid ObjectId string', () => {
-      const validId = '507f1f77bcf86cd799439011';
+    it('should validate a supported entity id', () => {
+      const validId = userId;
       const result = EntityIdUtil.validate(validId);
 
       expect(result).toEqual(expect.any(String));
@@ -33,7 +27,7 @@ describe('EntityIdUtil', () => {
       );
     });
 
-    it('should throw error for invalid ObjectId format', () => {
+    it('should throw error for an invalid entity id', () => {
       expect(() => EntityIdUtil.validate('invalid-id')).toThrow(
         ValidationException,
       );
@@ -47,11 +41,11 @@ describe('EntityIdUtil', () => {
   });
 
   describe('validateMany', () => {
-    it('should validate array of valid ObjectIds', () => {
+    it('should validate an array of supported entity ids', () => {
       const validIds = [
-        '507f1f77bcf86cd799439011',
-        '507f1f77bcf86cd799439012',
-        '507f1f77bcf86cd799439013',
+        userId,
+        organizationId,
+        '550e8400-e29b-41d4-a716-446655440003',
       ];
 
       const result = EntityIdUtil.validateMany(validIds);
@@ -74,12 +68,8 @@ describe('EntityIdUtil', () => {
       );
     });
 
-    it('should throw error with index for invalid ObjectId in array', () => {
-      const mixedIds = [
-        '507f1f77bcf86cd799439011',
-        'invalid-id',
-        '507f1f77bcf86cd799439013',
-      ];
+    it('should throw error with the index for an invalid entity id', () => {
+      const mixedIds = [userId, 'invalid-id', organizationId];
 
       expect(() => EntityIdUtil.validateMany(mixedIds, 'ids')).toThrow(
         ValidationException,
@@ -88,11 +78,11 @@ describe('EntityIdUtil', () => {
   });
 
   describe('isValid', () => {
-    it('should return true for valid ObjectId string', () => {
-      expect(EntityIdUtil.isValid('507f1f77bcf86cd799439011')).toBe(true);
+    it('should return true for a supported entity id', () => {
+      expect(EntityIdUtil.isValid(userId)).toBe(true);
     });
 
-    it('should return false for invalid ObjectId string', () => {
+    it('should return false for an invalid entity id', () => {
       expect(EntityIdUtil.isValid('invalid-id')).toBe(false);
     });
 
@@ -106,7 +96,7 @@ describe('EntityIdUtil', () => {
 
   describe('toValidId', () => {
     it('should return valid id string', () => {
-      const result = EntityIdUtil.toValidId('507f1f77bcf86cd799439011');
+      const result = EntityIdUtil.toValidId(userId);
 
       expect(result).toEqual(expect.any(String));
     });
@@ -131,22 +121,14 @@ describe('EntityIdUtil', () => {
   });
 
   describe('resolveCanonicalId', () => {
-    it('returns the canonical Prisma id from a compatibility lookup result', () => {
+    it('returns the canonical Prisma id from a lookup result', () => {
       expect(
-        EntityIdUtil.resolveCanonicalId(
-          { id: 'canonical-cuid', mongoId: '507f1f77bcf86cd799439011' },
-          '507f1f77bcf86cd799439011',
-        ),
+        EntityIdUtil.resolveCanonicalId({ id: 'canonical-cuid' }, userId),
       ).toBe('canonical-cuid');
     });
 
     it('falls back to the requested id when the record has no canonical id', () => {
-      expect(
-        EntityIdUtil.resolveCanonicalId(
-          { _id: '507f1f77bcf86cd799439011' },
-          '507f1f77bcf86cd799439011',
-        ),
-      ).toBe('507f1f77bcf86cd799439011');
+      expect(EntityIdUtil.resolveCanonicalId({}, userId)).toBe(userId);
     });
   });
 
@@ -154,8 +136,8 @@ describe('EntityIdUtil', () => {
     it('should enrich DTO with user and organization', () => {
       const dto = { name: 'Test' };
       const publicMetadata = {
-        organization: '507f1f77bcf86cd799439012',
-        user: '507f1f77bcf86cd799439011',
+        organization: organizationId,
+        user: userId,
       };
 
       const result = EntityIdUtil.enrichWithUserContext(
@@ -164,14 +146,14 @@ describe('EntityIdUtil', () => {
       );
 
       expect(result.name).toBe('Test');
-      expect(result.user).toEqual(expect.any(String));
-      expect(result.organization).toEqual(expect.any(String));
+      expect(result.userId).toEqual(expect.any(String));
+      expect(result.organizationId).toEqual(expect.any(String));
     });
 
     it('should enrich DTO without organization', () => {
       const dto = { name: 'Test' };
       const publicMetadata = {
-        user: '507f1f77bcf86cd799439011',
+        user: userId,
       };
 
       const result = EntityIdUtil.enrichWithUserContext(
@@ -179,8 +161,8 @@ describe('EntityIdUtil', () => {
         publicMetadata as IAuthPublicMetadata,
       );
 
-      expect(result.user).toEqual(expect.any(String));
-      expect(result.organization).toBeUndefined();
+      expect(result.userId).toEqual(expect.any(String));
+      expect(result.organizationId).toBeUndefined();
     });
 
     it('should throw error for missing user context', () => {
@@ -194,9 +176,9 @@ describe('EntityIdUtil', () => {
   });
 
   describe('convertRelationshipField', () => {
-    it('should convert valid ObjectId string', async () => {
+    it('should accept a supported entity id string', async () => {
       const result = await EntityIdUtil.convertRelationshipField(
-        '507f1f77bcf86cd799439011',
+        userId,
         'parent',
       );
 
@@ -233,7 +215,7 @@ describe('EntityIdUtil', () => {
       expect(result).toBeNull();
     });
 
-    it('should throw error for invalid ObjectId string', async () => {
+    it('should throw error for an invalid entity id string', async () => {
       await expect(
         EntityIdUtil.convertRelationshipField('invalid-id', 'parent'),
       ).rejects.toThrow(ValidationException);
@@ -249,123 +231,6 @@ describe('EntityIdUtil', () => {
       await expect(
         EntityIdUtil.convertRelationshipField(123, 'parent'),
       ).rejects.toThrow(ValidationException);
-    });
-  });
-
-  describe('processSearchParams', () => {
-    it('should convert known ObjectId fields', async () => {
-      const params = {
-        _id: '507f1f77bcf86cd799439011',
-        name: 'Test',
-        organization: '507f1f77bcf86cd799439013',
-        user: '507f1f77bcf86cd799439012',
-      };
-
-      const result = await EntityIdUtil.processSearchParams(
-        params as BaseQueryDto,
-      );
-
-      expect(result._id).toEqual(expect.any(String));
-      expect(result.user).toEqual(expect.any(String));
-      expect(result.organization).toEqual(expect.any(String));
-      expect(result.name).toBe('Test');
-    });
-
-    it('should handle array of ObjectIds', async () => {
-      const params = {
-        user: ['507f1f77bcf86cd799439011', '507f1f77bcf86cd799439012'],
-      };
-
-      const result = await EntityIdUtil.processSearchParams(
-        params as BaseQueryDto,
-      );
-
-      expect(Array.isArray(result.user)).toBe(true);
-      (result.user as string[]).forEach((id) => {
-        expect(id).toEqual(expect.any(String));
-      });
-    });
-
-    it('should keep non-ObjectId fields unchanged', async () => {
-      const params = {
-        active: true,
-        age: 25,
-        name: 'Test',
-      };
-
-      const result = await EntityIdUtil.processSearchParams(
-        params as BaseQueryDto,
-      );
-
-      expect(result).toEqual(params);
-    });
-
-    it('should handle invalid ObjectId strings gracefully', async () => {
-      const params = {
-        name: 'Test',
-        user: 'invalid-id',
-      };
-
-      const result = await EntityIdUtil.processSearchParams(
-        params as BaseQueryDto,
-      );
-
-      expect(result.user).toBe('invalid-id'); // Keeps original value
-      expect(result.name).toBe('Test');
-    });
-  });
-
-  describe('createSecureQuery', () => {
-    it('should create secure query with user context', async () => {
-      const baseQuery = {
-        name: 'Test',
-      };
-      const userContext = {
-        organization: '507f1f77bcf86cd799439012',
-        user: '507f1f77bcf86cd799439011',
-      };
-
-      const result = await EntityIdUtil.createSecureQuery(
-        baseQuery,
-        userContext as IAuthPublicMetadata,
-      );
-
-      expect(result.name).toBe('Test');
-      expect(result.user).toEqual(expect.any(String));
-      expect(result.organization).toEqual(expect.any(String));
-      expect(result.isDeleted).toBe(false);
-    });
-
-    it('should add isDeleted false by default', async () => {
-      const baseQuery = {
-        name: 'Test',
-      };
-
-      const result = await EntityIdUtil.createSecureQuery(baseQuery);
-
-      expect(result.isDeleted).toBe(false);
-    });
-
-    it('should not override explicit isDeleted value', async () => {
-      const baseQuery = {
-        isDeleted: true,
-        name: 'Test',
-      };
-
-      const result = await EntityIdUtil.createSecureQuery(baseQuery);
-
-      expect(result.isDeleted).toBe(true);
-    });
-
-    it('should work without user context', async () => {
-      const baseQuery = {
-        name: 'Test',
-      };
-
-      const result = await EntityIdUtil.createSecureQuery(baseQuery);
-
-      expect(result.name).toBe('Test');
-      expect(result.isDeleted).toBe(false);
     });
   });
 });

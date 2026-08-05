@@ -49,7 +49,7 @@ export default function ModalBrandLink({
     handleDelete: deleteModalBrandLink,
   } = useCrudModal<ILink, LinkSchema>({
     defaultValues: {
-      brand: brandId ?? '',
+      brandId: brandId ?? '',
       category: LinkCategory.WEBSITE,
       label: '',
       url: '',
@@ -61,7 +61,7 @@ export default function ModalBrandLink({
     serviceFactory: (token) => LinksService.getInstance(token),
     transformSubmitData: (formData) => {
       if (!link && brandId) {
-        return { ...formData, brand: brandId };
+        return { ...formData, brandId };
       }
       return formData;
     },
@@ -73,7 +73,7 @@ export default function ModalBrandLink({
         link.category === LinkCategory.OTHER
           ? LinkCategory.OTHER
           : LinkCategory.WEBSITE;
-      form.setValue('brand', brandId ?? '', { shouldValidate: true });
+      form.setValue('brandId', brandId ?? '', { shouldValidate: true });
       form.setValue('label', link.label, { shouldValidate: true });
       form.setValue('category', category, { shouldValidate: true });
       form.setValue('url', link.url, { shouldValidate: true });

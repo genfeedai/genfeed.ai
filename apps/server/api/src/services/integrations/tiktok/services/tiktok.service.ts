@@ -151,10 +151,10 @@ export class TiktokService {
     credentialId?: string,
   ): Promise<CredentialDocument | null> {
     return credentialId
-      ? this.credentialsService.findOne({ _id: credentialId })
+      ? this.credentialsService.findOne({ id: credentialId })
       : this.credentialsService.findOne({
-          brand: brandId,
-          organization: organizationId,
+          brandId: brandId,
+          organizationId: organizationId,
           platform: CredentialPlatform.TIKTOK,
         });
   }

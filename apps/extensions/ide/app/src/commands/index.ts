@@ -266,14 +266,6 @@ export function registerCommands(
     }
   };
 
-  const resolveRunId = (run: RunRecord): string => {
-    const runId = run._id || run.id;
-    if (!runId) {
-      throw new Error('Run response is missing an id.');
-    }
-    return runId;
-  };
-
   const getTraceId = (run: RunRecord): string | undefined => {
     if (run.traceId) {
       return run.traceId;
@@ -294,7 +286,7 @@ export function registerCommands(
     campaign: CampaignAuthoringContext | undefined,
     timeline: RunTimelineEvent[],
   ): Promise<void> => {
-    const runId = resolveRunId(run);
+    const runId = run.id;
     const remoteTimeline = await safeLoadTimeline(runId);
     const artifactPath = await WorkspaceService.writeRunArtifacts(runId, {
       campaign,
@@ -404,7 +396,7 @@ export function registerCommands(
       throw error;
     }
 
-    const runId = resolveRunId(run);
+    const runId = run.id;
     log(
       WorkspaceService.createTimelineEvent(
         actionType,
@@ -463,7 +455,7 @@ export function registerCommands(
     const traceId = getTraceId(run);
 
     const details = [
-      `Run: ${resolveRunId(run)}`,
+      `Run: ${run.id}`,
       `Action: ${run.actionType}`,
       `Status: ${run.status}`,
       `Progress: ${run.progress}%`,
@@ -481,7 +473,7 @@ export function registerCommands(
     );
 
     if (followUp === 'Copy Run ID') {
-      await vscode.env.clipboard.writeText(resolveRunId(run));
+      await vscode.env.clipboard.writeText(run.id);
     }
 
     if (followUp === 'Copy Trace ID' && traceId) {
@@ -686,10 +678,7 @@ export function registerCommands(
     if (followUp === 'View Last Run Status') {
       const lastRun = result.runs.at(-1);
       if (lastRun) {
-        await vscode.commands.executeCommand(
-          'genfeed.runStatus',
-          resolveRunId(lastRun),
-        );
+        await vscode.commands.executeCommand('genfeed.runStatus', lastRun.id);
       }
     }
 

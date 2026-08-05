@@ -1,10 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 const publicFields = [
-  'organization',
-  'brand',
-  'user',
-  'tags',
+  'organizationId',
+  'brandId',
+  'userId',
   'platform',
   'externalId',
   'externalHandle',

@@ -89,8 +89,8 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
 
   it('returns empty result and sets FAILED when no posts scraped', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
     mockCreatorScraperService.scrapeCreator.mockResolvedValue({
@@ -111,8 +111,8 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
 
   it('returns empty result when scrapeCreator returns null', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
     mockCreatorScraperService.scrapeCreator.mockResolvedValue(null);
@@ -124,8 +124,8 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
 
   it('calls updateStatus COMPLETED on success', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
 
@@ -143,7 +143,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
       new Error('LLM error'),
     );
     mockPatternStoreService.storeBulkPatterns.mockResolvedValue([
-      { _id: 'test-object-id' },
+      { id: 'test-object-id' },
     ]);
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
     mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);
@@ -158,8 +158,8 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
 
   it('sets FAILED status and re-throws on unexpected error', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
     mockCreatorScraperService.scrapeCreator.mockRejectedValue(
@@ -179,8 +179,8 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
 
   it('falls back to rule-based when LLM throws (platform propagated to pattern)', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.LINKEDIN,
     });
 
@@ -196,7 +196,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
       new Error('LLM timeout'),
     );
     mockPatternStoreService.storeBulkPatterns.mockResolvedValue([
-      { _id: 'test-object-id' },
+      { id: 'test-object-id' },
     ]);
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
     mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);
@@ -234,8 +234,8 @@ describe('PatternAnalyzerService rule-based extraction', () => {
 
   function withPost(text: string) {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
     mockCreatorScraperService.scrapeCreator.mockResolvedValue({
@@ -375,8 +375,8 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     vi.clearAllMocks();
 
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
@@ -557,8 +557,8 @@ describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () =>
 
   it('calculates viral score and includes it in sourceMetrics', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
 
@@ -589,8 +589,8 @@ describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () =>
 
   it('caps bonuses at their max values', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
 
@@ -624,8 +624,8 @@ describe('PatternAnalyzerService post sorting and capping', () => {
     vi.clearAllMocks();
 
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      _id: creatorId,
-      organization: orgId,
+      id: creatorId,
+      organizationId: orgId,
       platform: ContentIntelligencePlatform.TWITTER,
     });
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);

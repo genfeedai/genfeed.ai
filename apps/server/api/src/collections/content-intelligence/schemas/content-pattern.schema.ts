@@ -19,18 +19,15 @@ export interface ContentPatternSourceMetrics {
 
 export interface ContentPatternDocument
   extends Omit<PrismaContentPattern, 'data'> {
-  _id: string;
   data?: Record<string, unknown>;
   description?: string;
   embedding?: number[];
   extractedFormula?: string;
-  organization: string;
   patternType?: ContentPatternType;
   placeholders?: string[];
   platform?: ContentIntelligencePlatform;
   rawExample?: string;
   relevanceWeight?: number;
-  sourceCreator?: string | null;
   sourceMetrics?: ContentPatternSourceMetrics;
   sourcePostDate?: Date | string | null;
   sourcePostId?: string | null;

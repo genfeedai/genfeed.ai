@@ -38,21 +38,30 @@ describe('OrganizationsMembersController', () => {
   let organizationsService: OrganizationsService;
 
   const mockMember = {
-    _id: '507f1f77bcf86cd799439011',
+    id: '507f1f77bcf86cd799439011',
     createdAt: new Date(),
     isActive: true,
     isDeleted: false,
-    organization: '507f1f77bcf86cd799439013',
-    role: '507f1f77bcf86cd799439014',
+    organizationId: '507f1f77bcf86cd799439013',
+    roleId: '507f1f77bcf86cd799439014',
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439012',
   };
 
   const mockOrganization = {
-    _id: '507f1f77bcf86cd799439013',
+    id: '507f1f77bcf86cd799439013',
     isDeleted: false,
     name: 'Test Organization',
+    userId: '507f1f77bcf86cd799439012',
   };
+
+  const mockUser = {
+    id: 'user_123',
+    publicMetadata: {
+      organization: '507f1f77bcf86cd799439013',
+      user: '507f1f77bcf86cd799439012',
+    },
+  } as unknown as User;
 
   const mockLoggerService = {
     debug: vi.fn(),
@@ -87,7 +96,7 @@ describe('OrganizationsMembersController', () => {
 
   const mockUsersService = {
     create: vi.fn().mockResolvedValue({
-      _id: '507f1f77bcf86cd799439012',
+      id: '507f1f77bcf86cd799439012',
     }),
     findOne: vi.fn(),
   };
@@ -219,10 +228,24 @@ describe('OrganizationsMembersController', () => {
         request,
         '507f1f77bcf86cd799439013',
         {},
+        mockUser,
       );
 
       expect(membersService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('rejects a member list outside the authenticated organization', async () => {
+      await expect(
+        controller.findAllMembers(
+          {} as Request,
+          'another-organization',
+          {},
+          mockUser,
+        ),
+      ).rejects.toThrow('Organization not found');
+
+      expect(membersService.findAll).not.toHaveBeenCalled();
     });
   });
 
@@ -253,14 +276,6 @@ describe('OrganizationsMembersController', () => {
         },
       } as unknown as Request;
 
-      const mockUser = {
-        id: 'user_123',
-        publicMetadata: {
-          organization: '507f1f77bcf86cd799439013',
-          user: '507f1f77bcf86cd799439012',
-        },
-      } as unknown as User;
-
       const result = await controller.inviteMember(
         request,
         '507f1f77bcf86cd799439013',
@@ -284,7 +299,7 @@ describe('OrganizationsMembersController', () => {
 
   describe('updateMember', () => {
     const updateDto: UpdateMemberDto = {
-      accounts: [],
+      brandIds: [],
     };
 
     it('should update member details', async () => {
@@ -303,10 +318,28 @@ describe('OrganizationsMembersController', () => {
         '507f1f77bcf86cd799439013',
         '507f1f77bcf86cd799439011',
         updateDto,
+        mockUser,
       );
 
-      expect(membersService.patch).toHaveBeenCalled();
+      expect(membersService.patch).toHaveBeenCalledWith(
+        '507f1f77bcf86cd799439011',
+        { brandIds: [] },
+      );
       expect(result).toBeDefined();
+    });
+
+    it('rejects a member update outside the authenticated organization', async () => {
+      await expect(
+        controller.updateMember(
+          {} as Request,
+          'another-organization',
+          '507f1f77bcf86cd799439011',
+          updateDto,
+          mockUser,
+        ),
+      ).rejects.toThrow('Organization not found');
+
+      expect(membersService.patch).not.toHaveBeenCalled();
     });
   });
 });

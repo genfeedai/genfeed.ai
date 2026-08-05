@@ -445,7 +445,7 @@ describe('WorkspaceTaskComposer', () => {
     await waitFor(() => {
       expect(mocks.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-1',
+          brandId: 'brand-1',
           outputType: 'ingredient',
           request: 'Create a product launch brief',
           title: 'Create a product launch brief',
@@ -566,7 +566,7 @@ describe('WorkspaceTaskComposer', () => {
     await waitFor(() =>
       expect(mocks.createTask).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-2',
+          brandId: 'brand-2',
           request: 'Create a cross-brand caption',
         }),
       ),

@@ -42,14 +42,17 @@ export class VoiceGenerationService {
       1,
     );
 
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      brand: publicMetadata.brand,
-      category: IngredientCategory.VOICE,
-      extension: MetadataExtension.MP3,
-      organization: publicMetadata.organization,
-      status: IngredientStatus.PROCESSING,
-      voiceSource: 'generated',
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        brandId: publicMetadata.brand,
+        category: IngredientCategory.VOICE,
+        extension: MetadataExtension.MP3,
+        organizationId: publicMetadata.organization,
+        status: IngredientStatus.PROCESSING,
+        voiceSource: 'generated',
+      },
+    );
     const ingredientId = String(ingredientData.id);
 
     try {
@@ -62,7 +65,7 @@ export class VoiceGenerationService {
       );
 
       await this.voicesService.patchAll(
-        { OR: [{ id: ingredientId }, { mongoId: ingredientId }] },
+        { id: ingredientId },
         {
           duration: result.duration,
           status: IngredientStatus.GENERATED,
@@ -76,7 +79,7 @@ export class VoiceGenerationService {
       );
 
       const completedIngredient = await this.voicesService.findOne(
-        { _id: ingredientId },
+        { id: ingredientId },
         [PopulatePatterns.metadataFull],
       );
       if (!completedIngredient) {
@@ -118,7 +121,7 @@ export class VoiceGenerationService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.error(`${url} voice generation failed`, error);
     await this.voicesService.patchAll(
-      { OR: [{ id: ingredientId }, { mongoId: ingredientId }] },
+      { id: ingredientId },
       { status: IngredientStatus.FAILED },
     );
 

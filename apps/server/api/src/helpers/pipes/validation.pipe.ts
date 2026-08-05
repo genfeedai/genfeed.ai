@@ -70,8 +70,8 @@ export class ValidationPipe implements PipeTransform<unknown> {
         typeof cleanedValue === 'object' &&
         'id' in cleanedValue
       ) {
-        const { id: _id, ...rest } = cleanedValue;
-        void _id; // Mark as intentionally unused
+        const { id: strippedId, ...rest } = cleanedValue;
+        void strippedId;
         cleanedValue = rest;
       }
 

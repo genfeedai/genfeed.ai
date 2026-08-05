@@ -810,7 +810,7 @@ export class AgentMediaGenerationToolHandler {
         : null;
 
       if (credential) {
-        brandId = String(credential.brand);
+        brandId = credential.brandId ?? undefined;
       } else {
         return {
           creditsUsed: 0,
@@ -824,8 +824,8 @@ export class AgentMediaGenerationToolHandler {
       const selectedBrand = await this.brandsService.findOne({
         isDeleted: false,
         isSelected: true,
-        organization: ctx.organizationId,
-        user: ctx.userId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
       } as never);
 
       if (selectedBrand?.id) {
@@ -1141,7 +1141,7 @@ export class AgentMediaGenerationToolHandler {
               runId: ctx.runId,
               status: 'completed',
               threadId: ctx.threadId!,
-              toolCallId: `batch:${batchId}:item:${String(item._id)}`,
+              toolCallId: `batch:${batchId}:item:${String(item.id)}`,
               toolName: AgentToolName.GENERATE_CONTENT_BATCH,
               userId: ctx.userId!,
             }),
@@ -1173,7 +1173,7 @@ export class AgentMediaGenerationToolHandler {
               runId: ctx.runId,
               status: 'failed',
               threadId: ctx.threadId!,
-              toolCallId: `batch:${batchId}:item:${String(item._id)}`,
+              toolCallId: `batch:${batchId}:item:${String(item.id)}`,
               toolName: AgentToolName.GENERATE_CONTENT_BATCH,
               userId: ctx.userId!,
             }),
@@ -1202,7 +1202,7 @@ export class AgentMediaGenerationToolHandler {
               runId: ctx.runId,
               status: 'running',
               threadId: ctx.threadId!,
-              toolCallId: `batch:${batchId}:item:${String(item._id)}`,
+              toolCallId: `batch:${batchId}:item:${String(item.id)}`,
               toolName: AgentToolName.GENERATE_CONTENT_BATCH,
               userId: ctx.userId!,
             }),

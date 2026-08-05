@@ -1,5 +1,9 @@
 import { IngredientCategory } from '@genfeedai/enums';
-import type { IDiscordEmbed } from '@genfeedai/interfaces';
+import type {
+  IDiscordEmbed,
+  IIngredientNotificationData,
+  IUserCreatedPayload,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -32,19 +36,7 @@ export class DiscordService {
   async sendIngredientNotification(
     category: IngredientCategory,
     cdnUrl: string,
-    ingredient: {
-      _id: string;
-      prompt?: { original?: string };
-      metadata?: {
-        width?: number;
-        height?: number;
-        duration?: number;
-        model?: string;
-        externalProvider?: string;
-      };
-      thumbnailUrl?: string;
-      brand?: { label?: string };
-    },
+    ingredient: IIngredientNotificationData,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const webhookClient = await this.discordBotService.getIngredientsWebhook();
@@ -66,7 +58,7 @@ export class DiscordService {
 
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const ingredientManagerUrl = managerUrl
-        ? `${managerUrl}/ingredients/${categoryString}/${ingredient._id}`
+        ? `${managerUrl}/ingredients/${categoryString}/${ingredient.id}`
         : null;
 
       const buttons = this.buildIngredientButtons(
@@ -141,7 +133,7 @@ export class DiscordService {
       this.loggerService.log(`${url} succeeded`, {
         category,
         cdnUrl,
-        ingredientId: ingredient._id,
+        ingredientId: ingredient.id,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
@@ -386,17 +378,9 @@ export class DiscordService {
     return colorMap[category] ?? 0xff00ff;
   }
 
-  private buildIngredientFields(ingredient: {
-    prompt?: { original?: string };
-    metadata?: {
-      width?: number;
-      height?: number;
-      duration?: number;
-      model?: string;
-      externalProvider?: string;
-    };
-    brand?: { label?: string };
-  }): Array<{ name: string; value: string; inline: boolean }> {
+  private buildIngredientFields(
+    ingredient: IIngredientNotificationData,
+  ): Array<{ name: string; value: string; inline: boolean }> {
     const fields: Array<{ name: string; value: string; inline: boolean }> = [];
 
     if (ingredient.prompt?.original) {
@@ -702,14 +686,7 @@ export class DiscordService {
     }
   }
 
-  async sendUserCreatedNotification(user: {
-    _id: string;
-    email?: string;
-    firstName?: string;
-    lastName?: string;
-    avatar?: string;
-    isInvited?: boolean;
-  }): Promise<void> {
+  async sendUserCreatedNotification(user: IUserCreatedPayload): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const webhookClient = await this.discordBotService.getUsersWebhook();
 
@@ -726,7 +703,7 @@ export class DiscordService {
 
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const userManagerUrl = managerUrl
-        ? `${managerUrl}/admin/users/${user._id}`
+        ? `${managerUrl}/admin/users/${user.id}`
         : null;
 
       const embed: IDiscordEmbed = {
@@ -771,7 +748,7 @@ export class DiscordService {
       this.loggerService.log(`${url} succeeded`, {
         email: user.email,
         isInvited: user.isInvited,
-        userId: user._id,
+        userId: user.id,
       });
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

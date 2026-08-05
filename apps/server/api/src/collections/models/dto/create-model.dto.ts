@@ -1,6 +1,7 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsArray,
   IsBoolean,
   IsNumber,
   IsObject,
@@ -89,7 +90,7 @@ export class CreateModelDto {
     description: 'Owning organization for private/custom models',
     required: false,
   })
-  readonly organization?: string;
+  readonly organizationId?: string;
 
   @IsOptional()
   @IsString()
@@ -97,7 +98,7 @@ export class CreateModelDto {
     description: 'Parent/base model id for trained or derivative models',
     required: false,
   })
-  readonly parentModel?: string;
+  readonly parentModelId?: string;
 
   @IsOptional()
   @IsString()
@@ -105,7 +106,7 @@ export class CreateModelDto {
     description: 'Training id that produced this model',
     required: false,
   })
-  readonly training?: string;
+  readonly trainingId?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -142,6 +143,41 @@ export class CreateModelDto {
     type: Object,
   })
   readonly providerConfig?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Provider-side model or version identifier',
+    required: false,
+  })
+  readonly externalId?: string;
+
+  @IsArray()
+  @IsOptional()
+  @IsString({ each: true })
+  @ApiProperty({
+    description: 'Features supported by the model',
+    isArray: true,
+    required: false,
+    type: String,
+  })
+  readonly supportsFeatures?: string[];
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Provider trigger used by trained models',
+    required: false,
+  })
+  readonly trigger?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'Prompt trigger word used by trained models',
+    required: false,
+  })
+  readonly triggerWord?: string;
 
   @IsOptional()
   @IsNumber()

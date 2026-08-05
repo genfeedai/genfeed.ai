@@ -8,7 +8,7 @@ describe('PresetFilterUtil', () => {
   });
 
   describe('buildScopeOrConditions', () => {
-    it('includes global, organization, and user scopes', () => {
+    it('includes global and organization scopes', () => {
       const organization = '507f191e810c19729de860ee';
       const user = '507f191e810c19729de860ee';
 
@@ -17,18 +17,14 @@ describe('PresetFilterUtil', () => {
         user,
       });
 
-      expect(conditions).toHaveLength(3);
-      expect(conditions[0]).toEqual({
-        organization: null,
-        user: null,
-      });
-      expect(conditions[1].organization).toBe(organization);
-      expect(conditions[2].user).toBe(user);
+      expect(conditions).toHaveLength(2);
+      expect(conditions[0]).toEqual({ organizationId: null });
+      expect(conditions[1].organizationId).toBe(organization);
     });
 
     it('falls back to global scope when metadata empty', () => {
       const conditions = PresetFilterUtil.buildScopeOrConditions({});
-      expect(conditions).toEqual([{ organization: null, user: null }]);
+      expect(conditions).toEqual([{ organizationId: null }]);
     });
   });
 
@@ -36,7 +32,7 @@ describe('PresetFilterUtil', () => {
     it('allows superadmin to modify any preset', () => {
       const canModify = PresetFilterUtil.canUserModifyPreset(
         { publicMetadata: { isSuperAdmin: true } },
-        { organization: null },
+        { organizationId: null },
       );
       expect(canModify).toBe(true);
     });
@@ -44,7 +40,7 @@ describe('PresetFilterUtil', () => {
     it('blocks non-admin from modifying global presets', () => {
       const canModify = PresetFilterUtil.canUserModifyPreset(
         { publicMetadata: { isSuperAdmin: false, organization: 'org1' } },
-        { organization: null },
+        { organizationId: null },
       );
       expect(canModify).toBe(false);
     });
@@ -58,24 +54,24 @@ describe('PresetFilterUtil', () => {
             organization: orgId,
           },
         },
-        { organization: orgId },
+        { organizationId: orgId },
       );
       expect(canModify).toBe(true);
     });
   });
 
   describe('enrichPresetDto', () => {
-    it('assigns organization/brand for regular users', () => {
+    it('assigns canonical organization and brand ids for regular users', () => {
       const orgId = '507f191e810c19729de860ee';
       const brandId = '507f191e810c19729de860ee';
 
       const enriched = PresetFilterUtil.enrichPresetDto(
-        { brand: brandId, label: 'My Preset' },
+        { brandId, label: 'My Preset' },
         { publicMetadata: { isSuperAdmin: false, organization: orgId } },
       );
 
-      expect(enriched.organization).toBe(orgId);
-      expect(enriched.brand).toBe(brandId);
+      expect(enriched.organizationId).toBe(orgId);
+      expect(enriched.brandId).toBe(brandId);
     });
 
     it('keeps null organization/brand for superadmin global presets', () => {
@@ -84,20 +80,20 @@ describe('PresetFilterUtil', () => {
         { publicMetadata: { isSuperAdmin: true } },
       );
 
-      expect(enriched.organization).toBeNull();
-      expect(enriched.brand).toBeNull();
+      expect(enriched.organizationId).toBeNull();
+      expect(enriched.brandId).toBeNull();
     });
 
     it('converts provided organization/brand for superadmin org presets', () => {
       const org = '507f191e810c19729de860ee';
-      const brand = '507f191e810c19729de860ee';
+      const brandId = '507f191e810c19729de860ee';
       const enriched = PresetFilterUtil.enrichPresetDto(
-        { brand, label: 'Org preset', organization: org },
+        { brandId, label: 'Org preset', organizationId: org },
         { publicMetadata: { isSuperAdmin: true } },
       );
 
-      expect(enriched.organization).toBe(org);
-      expect(enriched.brand).toBe(brand);
+      expect(enriched.organizationId).toBe(org);
+      expect(enriched.brandId).toBe(brandId);
     });
   });
 
@@ -116,7 +112,7 @@ describe('PresetFilterUtil', () => {
         isDeleted: false,
         isFavorite: false,
       });
-      expect(match.OR).toHaveLength(3);
+      expect(match.OR).toHaveLength(2);
     });
   });
 });

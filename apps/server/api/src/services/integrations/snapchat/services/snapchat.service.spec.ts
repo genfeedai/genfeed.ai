@@ -25,7 +25,7 @@ describe('SnapchatService', () => {
   const brandId = 'test-object-id';
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     accessToken: 'encrypted-access',
     refreshToken: 'encrypted-refresh',
   };

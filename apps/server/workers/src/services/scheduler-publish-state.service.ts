@@ -36,8 +36,7 @@ export type SchedulerPublishTransitionGuard = {
 export type SchedulerPublishPostIdentity = {
   groupId?: unknown;
   id: unknown;
-  organization?: unknown;
-  organizationId?: unknown;
+  organizationId: unknown;
 };
 
 type SchedulerPublishStateInput = {
@@ -71,9 +70,7 @@ export class SchedulerPublishStateService {
     guard?: SchedulerPublishTransitionGuard,
   ): Promise<boolean> {
     const groupId = this.readIdentifier(post.groupId);
-    const organizationId = this.readIdentifier(
-      post.organizationId ?? post.organization,
-    );
+    const organizationId = this.readIdentifier(post.organizationId);
     const postId = this.readIdentifier(post.id);
     if (!organizationId || !postId) {
       return false;

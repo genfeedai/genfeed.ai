@@ -37,8 +37,6 @@ export interface ReplyBotSchedule {
   activeHoursEnd?: string;
   activeHoursStart?: string;
   enabled?: boolean;
-  endTime?: string;
-  startTime?: string;
   timezone?: string;
   [key: string]: unknown;
 }
@@ -86,29 +84,26 @@ export interface ReplyBotFilters {
 
 export interface ReplyBotConfigDocument
   extends Omit<ReplyBotConfig, 'config' | 'actionType' | 'isActive' | 'type'> {
-  _id: string;
   actionType?: ReplyBotActionType | string;
-  brand?: string | null;
   config?: Record<string, unknown>;
   context?: string;
-  customInstructions?: string;
+  credentialId?: string;
   description?: string;
   dmConfig?: ReplyBotDmConfig;
   filters?: ReplyBotFilters;
   isActive?: boolean;
-  label?: string;
+  name?: string;
   lastActivityAt?: Date | string;
   lastProcessedTweetId?: string;
-  monitoredAccounts?: string[];
-  organization: string;
+  monitoredAccountIds?: string[];
   rateLimits?: ReplyBotRateLimits;
   replyLength?: ReplyLength | string;
+  replyInstructions?: string;
   replyTone?: ReplyTone | string;
   totalDmsSent?: number;
   totalFailed?: number;
   totalRepliesSent?: number;
   totalSkipped?: number;
   type?: ReplyBotType | string;
-  user?: string;
   [key: string]: unknown;
 }

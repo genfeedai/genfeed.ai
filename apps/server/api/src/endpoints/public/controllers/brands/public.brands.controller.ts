@@ -149,7 +149,7 @@ export class PublicBrandsController {
     this.logger.log(url, { params: { brandId } });
     // Scope is filtered in the query, not after the fetch — see findOneBySlug.
     const data = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
       scope: AssetScope.PUBLIC,
     });
@@ -183,7 +183,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 
@@ -198,7 +198,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
       },
@@ -237,7 +237,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
     if (!brand) {
@@ -253,7 +253,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -293,7 +293,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 
@@ -310,7 +310,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
@@ -350,7 +350,7 @@ export class PublicBrandsController {
 
     // Verify brand exists
     const brand = await this.brandsService.findOne(
-      { _id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
+      { id: brandId, isDeleted: false, scope: AssetScope.PUBLIC },
       'none',
     );
 
@@ -367,7 +367,7 @@ export class PublicBrandsController {
 
     const aggregate = {
       where: {
-        brand: brandId,
+        brandId,
         isDeleted: false,
         scope: AssetScope.PUBLIC,
         ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
@@ -378,40 +378,4 @@ export class PublicBrandsController {
     const data = await this.articlesService.findAll(aggregate, options);
     return serializeCollection(request, ArticleSerializer, data);
   }
-
-  // TO DO
-  // DISPLAY PUBLIC BRAND ANALYTICS
-  // ONCE WE HAVE ANALYTICS SERVICE
-  // @Get(':brandId/analytics')
-  // @Public()
-  // @Cache({
-  //   ttl: 3600, // 1 hour
-  //   tags: ['brands', 'stats'],
-  //   keyGenerator: (req) => `public:brand:${req.params?.brandId ?? 'unknown'}:stats`,
-  // })
-  // async getBrandStats(@Param('brandId') brandId: string): Promise<unknown> {
-  //   const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-  //
-  //   if (!isEntityId(brandId)) {
-  //     return returnNotFound(this.constructorName, brandId);
-  //   }
-  //
-  //   this.logger.log(url, { params: { brandId } });
-  //
-  //   // Verify brand exists
-  //   const brand = await this.brandsService.findOne({
-  //     _id: brandId,
-  //     isDeleted: false,
-  //   });
-  //   if (!brand) {
-  //     return returnNotFound(this.constructorName, brandId);
-  //   }
-  //
-  //   // Get public video count
-  //   const data = await this.analyticsService.findOne({
-  //     brand: brandId,
-  //   });
-  //
-  //   return AnalyticsSerializer.serialize(data);
-  // }
 }

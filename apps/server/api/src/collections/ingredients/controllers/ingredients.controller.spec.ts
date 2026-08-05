@@ -38,7 +38,7 @@ describe('IngredientsController (cloneIngredient)', () => {
   } as unknown as Request;
 
   const mockFilesClientService = { uploadToS3: vi.fn() };
-  const mockSharedService = { saveDocuments: vi.fn() };
+  const mockSharedService = { createMediaDocuments: vi.fn() };
 
   const mockModuleRef = {
     get: vi.fn((token: unknown) => {
@@ -124,7 +124,7 @@ describe('IngredientsController (cloneIngredient)', () => {
       });
 
       const sharedServiceSaveDocumentsSpy = vi
-        .spyOn(sharedService, 'saveDocuments')
+        .spyOn(sharedService, 'createMediaDocuments')
         .mockResolvedValue({
           ingredientData: { id: '2' },
           metadataData: { id: 'meta2' },

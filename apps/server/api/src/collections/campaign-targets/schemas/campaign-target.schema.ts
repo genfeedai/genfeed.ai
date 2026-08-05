@@ -17,10 +17,8 @@ export interface CampaignTargetDocument
     | 'scheduledAt'
     | 'skipReason'
   > {
-  _id: string;
   authorId?: string | null;
   authorUsername?: string | null;
-  campaign?: string;
   contentCreatedAt?: Date | string | null;
   contentText?: string | null;
   contentUrl?: string | null;
@@ -30,7 +28,6 @@ export interface CampaignTargetDocument
   errorMessage?: string | null;
   externalId?: string | null;
   matchedKeyword?: string | null;
-  organization?: string;
   platform?: CampaignPlatform | string;
   processedAt?: Date | null;
   recipientUserId?: string | null;

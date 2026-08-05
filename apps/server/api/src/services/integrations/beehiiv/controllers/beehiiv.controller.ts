@@ -56,9 +56,9 @@ export class BeehiivController {
     }
 
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -93,8 +93,9 @@ export class BeehiivController {
       }
 
       // Store credential with API key as accessToken
-      const credential = await this.credentialsService.saveCredentials(
+      const credential = await this.credentialsService.upsertForBrand(
         brand,
+        publicMetadata.user,
         CredentialPlatform.BEEHIIV,
         {
           accessToken: apiKey,

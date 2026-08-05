@@ -18,7 +18,9 @@ export class CreateOrganizationDto {
   @ApiProperty({
     description:
       'legacy auth provider organization ID used to synchronize organization state',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly authProviderOrganizationId?: string | null;
 
@@ -27,7 +29,7 @@ export class CreateOrganizationDto {
     description: 'The user ID who owns this organization',
     required: true,
   })
-  readonly user!: string;
+  readonly userId!: string;
 
   @IsString()
   @IsNotEmpty()

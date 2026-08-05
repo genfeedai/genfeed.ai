@@ -9,7 +9,7 @@ export class CreateFolderDto {
   })
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  brandId?: string;
 
   @ApiProperty({
     description: 'Display label for the folder',

@@ -11,16 +11,58 @@ import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (entry): entry is string =>
+          typeof entry === 'string' && entry.length > 0,
+      )
+    : [];
+}
+
 @Injectable()
 export class PlaybookBuilderService extends BaseService<
   PatternPlaybookDocument,
-  CreatePlaybookDto,
-  UpdatePlaybookDto
+  Prisma.PatternPlaybookCreateInput,
+  Prisma.PatternPlaybookUpdateInput
 > {
+  protected override normalizeDocument(
+    document: unknown,
+  ): PatternPlaybookDocument {
+    const record = super.normalizeDocument(document) as unknown as Record<
+      string,
+      unknown
+    >;
+    const data = readJsonRecord(record.data);
+    const sourceCreators = Array.isArray(record.sourceCreators)
+      ? record.sourceCreators
+          .map((creator) =>
+            typeof creator === 'object' && creator !== null && 'id' in creator
+              ? (creator as { id?: unknown }).id
+              : creator,
+          )
+          .filter((id): id is string => typeof id === 'string')
+      : [];
+
+    return {
+      ...data,
+      ...record,
+      data,
+      sourceCreators,
+    } as unknown as PatternPlaybookDocument;
+  }
+
   private getEngagementRate(pattern: ContentPatternDocument): number {
     return pattern.sourceMetrics?.engagementRate ?? 0;
   }
@@ -38,9 +80,10 @@ export class PlaybookBuilderService extends BaseService<
     userId: string,
     dto: CreatePlaybookDto,
   ): Promise<PatternPlaybookDocument> {
-    const playbookData = {
-      createdBy: userId,
-      description: dto.description,
+    const data = {
+      ...(dto.description === undefined
+        ? {}
+        : { description: dto.description }),
       insights: {
         benchmarks: {},
         contentMix: {},
@@ -50,14 +93,27 @@ export class PlaybookBuilderService extends BaseService<
       },
       isActive: true,
       name: dto.name,
-      niche: dto.niche,
-      organizationId,
+      ...(dto.niche === undefined ? {} : { niche: dto.niche }),
       patternsCount: 0,
       platform: dto.platform,
-      sourceCreators: dto.sourceCreators ?? [],
-    };
+    } satisfies Prisma.InputJsonObject;
+    const sourceCreatorIds = readStringArray(dto.sourceCreators);
 
-    return this.create(playbookData as CreatePlaybookDto);
+    return this.create(
+      {
+        createdById: userId,
+        data,
+        organization: { connect: { id: organizationId } },
+        ...(sourceCreatorIds.length > 0
+          ? {
+              sourceCreators: {
+                connect: sourceCreatorIds.map((id) => ({ id })),
+              },
+            }
+          : {}),
+      },
+      ['sourceCreators'],
+    );
   }
 
   async buildInsights(
@@ -66,11 +122,14 @@ export class PlaybookBuilderService extends BaseService<
   ): Promise<PatternPlaybookDocument> {
     const playbook = await this.findOne(
       scopedWhere(organizationId, { id: playbookId }),
+      ['sourceCreators'],
     );
     if (!playbook) {
       throw new Error('Playbook not found');
     }
 
+    const playbookData = readJsonRecord(playbook.data);
+    const sourceCreatorIds = readStringArray(playbook.sourceCreators);
     const patterns = await this.patternStoreService.findByOrganization(
       playbook.organizationId,
       {
@@ -79,9 +138,7 @@ export class PlaybookBuilderService extends BaseService<
             ? undefined
             : (playbook.platform as ContentIntelligencePlatform),
         sourceCreator:
-          playbook.sourceCreators.length > 0
-            ? playbook.sourceCreators[0]
-            : undefined,
+          sourceCreatorIds.length > 0 ? sourceCreatorIds[0] : undefined,
       },
     );
 
@@ -119,11 +176,18 @@ export class PlaybookBuilderService extends BaseService<
       topHooks,
     };
 
-    return this.patch(playbookId, {
-      insights,
-      lastUpdatedAt: new Date(),
-      patternsCount: patterns.length,
-    } as unknown as Partial<UpdatePlaybookDto>);
+    return this.patch(
+      playbookId,
+      {
+        data: {
+          ...playbookData,
+          insights,
+          lastUpdatedAt: new Date().toISOString(),
+          patternsCount: patterns.length,
+        } as Prisma.InputJsonObject,
+      },
+      ['sourceCreators'],
+    );
   }
 
   private calculateContentMix(
@@ -231,7 +295,36 @@ export class PlaybookBuilderService extends BaseService<
   findByOrganization(
     organizationId: string,
   ): Promise<PatternPlaybookDocument[]> {
-    return this.findAllByOrganization(organizationId);
+    return this.find(scopedWhere(organizationId), ['sourceCreators']);
+  }
+
+  updatePlaybook(
+    playbook: PatternPlaybookDocument,
+    dto: UpdatePlaybookDto,
+  ): Promise<PatternPlaybookDocument> {
+    const data = readJsonRecord(playbook.data);
+
+    return this.patch(
+      playbook.id,
+      {
+        data: {
+          ...data,
+          ...(dto.description === undefined
+            ? {}
+            : { description: dto.description }),
+          ...(dto.name === undefined ? {} : { name: dto.name }),
+          ...(dto.niche === undefined ? {} : { niche: dto.niche }),
+        } as Prisma.InputJsonObject,
+        ...(dto.sourceCreators === undefined
+          ? {}
+          : {
+              sourceCreators: {
+                set: readStringArray(dto.sourceCreators).map((id) => ({ id })),
+              },
+            }),
+      },
+      ['sourceCreators'],
+    );
   }
 
   async addCreatorToPlaybook(
@@ -241,15 +334,24 @@ export class PlaybookBuilderService extends BaseService<
   ): Promise<PatternPlaybookDocument> {
     const playbook = await this.findOne(
       scopedWhere(organizationId, { id: playbookId }),
+      ['sourceCreators'],
     );
     if (!playbook) {
       throw new Error('Playbook not found');
     }
 
-    const sourceCreators = [...playbook.sourceCreators, creatorId];
-    return this.patch(playbookId, {
-      sourceCreators,
-    } as Partial<UpdatePlaybookDto>);
+    const sourceCreators = [
+      ...new Set([...readStringArray(playbook.sourceCreators), creatorId]),
+    ];
+    return this.patch(
+      playbookId,
+      {
+        sourceCreators: {
+          set: sourceCreators.map((id) => ({ id })),
+        },
+      },
+      ['sourceCreators'],
+    );
   }
 
   async removeCreatorFromPlaybook(
@@ -259,16 +361,23 @@ export class PlaybookBuilderService extends BaseService<
   ): Promise<PatternPlaybookDocument> {
     const playbook = await this.findOne(
       scopedWhere(organizationId, { id: playbookId }),
+      ['sourceCreators'],
     );
     if (!playbook) {
       throw new Error('Playbook not found');
     }
 
-    const sourceCreators = playbook.sourceCreators.filter(
-      (id: string) => id.toString() !== creatorId.toString(),
+    const sourceCreators = readStringArray(playbook.sourceCreators).filter(
+      (id) => id !== creatorId,
     );
-    return this.patch(playbookId, {
-      sourceCreators,
-    } as Partial<UpdatePlaybookDto>);
+    return this.patch(
+      playbookId,
+      {
+        sourceCreators: {
+          set: sourceCreators.map((id) => ({ id })),
+        },
+      },
+      ['sourceCreators'],
+    );
   }
 }

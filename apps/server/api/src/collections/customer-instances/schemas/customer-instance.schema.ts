@@ -23,13 +23,11 @@ export type CustomerInstanceStatus =
 
 export interface CustomerInstanceDocument
   extends Omit<PrismaCustomerInstance, 'config'> {
-  _id: string;
   apiUrl?: string;
   amiId?: string;
   config?: unknown;
   instanceId?: string;
   instanceType?: string;
-  organization?: string | null;
   region?: string;
   role?: CustomerInstanceRole;
   subdomain?: string;

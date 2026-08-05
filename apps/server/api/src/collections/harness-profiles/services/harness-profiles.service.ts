@@ -282,7 +282,6 @@ export class HarnessProfilesService {
     return {
       ...profile,
       ...data,
-      _id: profile.mongoId ?? profile.id,
       audience: readStringArray(data.audience),
       brandId: readString(data.brandId) ?? '',
       createdBy: profile.createdById,

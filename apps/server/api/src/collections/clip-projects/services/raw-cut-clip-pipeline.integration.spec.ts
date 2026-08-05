@@ -36,11 +36,9 @@ function createInMemoryClipResultsService() {
   let nextId = 1;
 
   const create = vi.fn(async (dto: CreateClipResultDto) => {
-    const values = dto as unknown as Record<string, unknown>;
     const id = `clip-result-${nextId++}`;
     const now = new Date();
     const record = {
-      _id: id,
       captionSrt: null,
       createdAt: now,
       data: {},
@@ -51,15 +49,15 @@ function createInMemoryClipResultsService() {
       isProjectReconciliationPending: false,
       isSelected: dto.isSelected ?? false,
       mode: dto.mode ?? 'avatar',
-      organizationId: dto.organization,
-      projectId: dto.project,
+      organizationId: dto.organizationId,
+      projectId: dto.projectId,
       providerJobId: dto.providerJobId ?? null,
       readiness: {},
       startTime: dto.startTime,
       status: dto.status ?? 'pending',
       terminalAt: null,
       updatedAt: now,
-      userId: String(values.userId ?? dto.user),
+      userId: String(dto.userId),
       viralityScore: dto.viralityScore ?? null,
     } as ClipResultDocument;
 
@@ -83,7 +81,7 @@ function createInMemoryClipResultsService() {
   });
 
   const findOne = vi.fn(async (where: Record<string, unknown>) => {
-    const record = records.get(String(where._id));
+    const record = records.get(String(where.id));
     if (
       !record ||
       record.organizationId !== where.organizationId ||

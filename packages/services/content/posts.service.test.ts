@@ -231,7 +231,7 @@ describe('PostsService', () => {
 
       const data = {
         count: 5,
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         topic: 'AI technology',
       };
 
@@ -249,7 +249,7 @@ describe('PostsService', () => {
 
       const data = {
         count: 3,
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         tone: 'viral' as const,
         topic: 'Tech news',
       };
@@ -267,7 +267,7 @@ describe('PostsService', () => {
 
       const data = {
         count: 1,
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         sourceReferenceIds: ['507f1f77bcf86cd799439099'],
         sourceUrl: 'https://x.com/example/status/1',
         topic: 'Tech news',
@@ -289,7 +289,7 @@ describe('PostsService', () => {
 
       const data = {
         count: 5,
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         topic: 'AI developments',
       };
 
@@ -307,7 +307,7 @@ describe('PostsService', () => {
 
       const data = {
         count: 7,
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         tone: 'educational' as const,
         topic: 'Startup tips',
       };
@@ -325,7 +325,7 @@ describe('PostsService', () => {
 
       const data = {
         count: 5,
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         sourceReferenceIds: ['507f1f77bcf86cd799439099'],
         sourceUrl: 'https://x.com/example/status/1',
         topic: 'Startup tips',
@@ -391,7 +391,7 @@ describe('PostsService', () => {
       mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
       const data = {
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         items: [
           {
             postId: 'post-1',
@@ -419,7 +419,7 @@ describe('PostsService', () => {
       mockInstance.patch.mockResolvedValue({ data: mockPostsData });
 
       const data = {
-        credential: 'cred-123',
+        credentialId: 'cred-123',
         items: [
           {
             ingredientId: 'ingredient-123',

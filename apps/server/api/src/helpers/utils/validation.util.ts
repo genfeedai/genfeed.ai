@@ -24,7 +24,7 @@ export function validateUrl(value: unknown): boolean {
   }
 }
 
-export function validateObjectId(value: unknown): boolean {
+export function validateEntityId(value: unknown): boolean {
   return isEntityId(value);
 }
 

@@ -16,13 +16,15 @@ describe('normalizeIntegration', () => {
   it('returns null when required fields are missing', () => {
     expect(normalizeIntegration({}, 'discord')).toBeNull();
     expect(normalizeIntegration({ id: 'x' }, 'discord')).toBeNull();
-    expect(normalizeIntegration({ id: 'x', orgId: 'o' }, 'discord')).toBeNull();
+    expect(
+      normalizeIntegration({ id: 'x', organizationId: 'o' }, 'discord'),
+    ).toBeNull();
   });
 
-  it('normalizes a Prisma-style payload with id and orgId', () => {
+  it('normalizes a canonical API payload', () => {
     const payload = {
       id: 'int-1',
-      orgId: 'org-1',
+      organizationId: 'org-1',
       botToken: 'tok-abc',
       config: { allowedUserIds: ['u1'] },
       status: 'active',
@@ -40,7 +42,7 @@ describe('normalizeIntegration', () => {
     expect(result!.config.allowedUserIds).toContain('u1');
   });
 
-  it('normalizes a MongoDB-style payload with _id and organization', () => {
+  it('rejects Mongo-era aliases', () => {
     const payload = {
       _id: 'mongo-id-123',
       organization: 'org-mongo-1',
@@ -49,18 +51,14 @@ describe('normalizeIntegration', () => {
       status: 'active',
     };
 
-    const result = normalizeIntegration(payload, 'telegram');
-    expect(result).not.toBeNull();
-    expect(result!.id).toBe('mongo-id-123');
-    expect(result!.orgId).toBe('org-mongo-1');
-    expect(result!.platform).toBe('telegram');
+    expect(normalizeIntegration(payload, 'telegram')).toBeNull();
   });
 
-  it('prefers Prisma id over _id when both present', () => {
+  it('ignores an obsolete _id when the canonical fields are present', () => {
     const payload = {
       id: 'prisma-id',
       _id: 'mongo-id',
-      orgId: 'org-1',
+      organizationId: 'org-1',
       botToken: 'tok',
     };
 
@@ -71,7 +69,7 @@ describe('normalizeIntegration', () => {
   it('defaults status to "active" when absent', () => {
     const payload = {
       id: 'int-1',
-      orgId: 'org-1',
+      organizationId: 'org-1',
       botToken: 'tok',
     };
 
@@ -81,7 +79,11 @@ describe('normalizeIntegration', () => {
 
   it('defaults createdAt/updatedAt to now when absent', () => {
     const before = Date.now();
-    const payload = { id: 'int-1', orgId: 'org-1', botToken: 'tok' };
+    const payload = {
+      id: 'int-1',
+      organizationId: 'org-1',
+      botToken: 'tok',
+    };
     const result = normalizeIntegration(payload, 'discord');
     const after = Date.now();
 
@@ -90,13 +92,21 @@ describe('normalizeIntegration', () => {
   });
 
   it('defaults config to empty object when absent', () => {
-    const payload = { id: 'int-1', orgId: 'org-1', botToken: 'tok' };
+    const payload = {
+      id: 'int-1',
+      organizationId: 'org-1',
+      botToken: 'tok',
+    };
     const result = normalizeIntegration(payload, 'telegram');
     expect(result!.config).toEqual({});
   });
 
   it('uses the platform argument passed in', () => {
-    const payload = { id: 'int-1', orgId: 'org-1', botToken: 'tok' };
+    const payload = {
+      id: 'int-1',
+      organizationId: 'org-1',
+      botToken: 'tok',
+    };
     const discord = normalizeIntegration(payload, 'discord');
     const slack = normalizeIntegration(payload, 'slack');
     const telegram = normalizeIntegration(payload, 'telegram');
@@ -119,8 +129,18 @@ describe('normalizeIntegrations', () => {
 
   it('normalizes all valid entries', () => {
     const payload = [
-      { id: 'int-1', orgId: 'org-1', botToken: 'tok-1', status: 'active' },
-      { id: 'int-2', orgId: 'org-2', botToken: 'tok-2', status: 'paused' },
+      {
+        id: 'int-1',
+        organizationId: 'org-1',
+        botToken: 'tok-1',
+        status: 'active',
+      },
+      {
+        id: 'int-2',
+        organizationId: 'org-2',
+        botToken: 'tok-2',
+        status: 'paused',
+      },
     ];
 
     const result = normalizeIntegrations(payload, 'slack');
@@ -131,10 +151,10 @@ describe('normalizeIntegrations', () => {
 
   it('silently drops invalid entries', () => {
     const payload = [
-      { id: 'int-1', orgId: 'org-1', botToken: 'tok-1' },
+      { id: 'int-1', organizationId: 'org-1', botToken: 'tok-1' },
       null,
       {},
-      { id: 'int-3', orgId: 'org-3', botToken: 'tok-3' },
+      { id: 'int-3', organizationId: 'org-3', botToken: 'tok-3' },
     ];
 
     const result = normalizeIntegrations(payload, 'telegram');
@@ -143,7 +163,7 @@ describe('normalizeIntegrations', () => {
   });
 
   it('passes the platform to each normalization', () => {
-    const payload = [{ id: 'i', orgId: 'o', botToken: 't' }];
+    const payload = [{ id: 'i', organizationId: 'o', botToken: 't' }];
     const result = normalizeIntegrations(payload, 'discord');
     expect(result[0].platform).toBe('discord');
   });

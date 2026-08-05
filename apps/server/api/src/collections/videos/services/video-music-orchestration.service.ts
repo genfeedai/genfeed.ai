@@ -95,9 +95,9 @@ export class VideoMusicOrchestrationService {
     // Option 1: Use existing music ingredient
     if (backgroundMusic.ingredientId) {
       const existingMusic = await this.musicsService.findOne({
-        _id: backgroundMusic.ingredientId,
+        id: backgroundMusic.ingredientId,
         isDeleted: false,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
       });
 
       if (!existingMusic) {
@@ -122,10 +122,7 @@ export class VideoMusicOrchestrationService {
       }
 
       return {
-        musicIngredientId: String(
-          (existingMusic as { _id?: unknown; id?: unknown }).id ??
-            existingMusic.id,
-        ),
+        musicIngredientId: existingMusic.id,
         wasGenerated: false,
       };
     }
@@ -163,37 +160,37 @@ export class VideoMusicOrchestrationService {
     // Create prompt record
     const promptData = await this.promptsService.create(
       new PromptEntity({
-        brand: context.brandId,
+        brandId: context.brandId,
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         original: prompt,
-        user: context.userId,
+        userId: context.userId,
       }),
     );
 
     // Create ingredient and metadata documents
     const { metadataData, ingredientData } =
-      await this.sharedService.saveDocumentsInternal({
-        brand: context.brandId,
+      await this.sharedService.createMediaDocumentsInternal({
+        brandId: context.brandId,
         category: IngredientCategory.MUSIC,
         extension: MetadataExtension.MP3,
-        organization: context.organizationId,
-        prompt: promptData.id,
+        organizationId: context.organizationId,
+        promptId: promptData.id,
         status: IngredientStatus.PROCESSING,
-        user: context.userId,
+        userId: context.userId,
       });
 
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: context.brandId,
+        brandId: context.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.MUSIC_PROCESSING,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         source: ActivitySource.MUSIC_GENERATION,
-        user: context.userId,
+        userId: context.userId,
         value: JSON.stringify({
           ingredientId: ingredientData.id.toString(),
           label: 'Background music for video',
@@ -284,14 +281,14 @@ export class VideoMusicOrchestrationService {
     const parentIds = [videoIngredientId];
 
     const { ingredientData, metadataData } =
-      await this.sharedService.saveDocumentsInternal({
-        brand: context.brandId,
+      await this.sharedService.createMediaDocumentsInternal({
+        brandId: context.brandId,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: context.organizationId,
-        sources: parentIds,
+        organizationId: context.organizationId,
+        sourceIds: parentIds,
         status: IngredientStatus.PROCESSING,
-        user: context.userId,
+        userId: context.userId,
       });
 
     const mergedIngredientId = ingredientData.id.toString();
@@ -300,13 +297,13 @@ export class VideoMusicOrchestrationService {
     // Create activity
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: context.brandId,
+        brandId: context.brandId,
         entityId: ingredientData.id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: context.organizationId,
+        organizationId: context.organizationId,
         source: ActivitySource.WEB,
-        user: context.userId,
+        userId: context.userId,
         value: JSON.stringify({
           ingredientId: mergedIngredientId,
           label: 'Adding background music to video',

@@ -126,10 +126,10 @@ export const workflowCommand = new Command('workflow')
           try {
             const body: Record<string, unknown> = {
               trigger: options.trigger,
-              workflow: id,
+              workflowId: id,
             };
             if (inputs) {
-              body.inputs = inputs;
+              body.inputValues = inputs;
             }
 
             const response = await post<JsonApiSingleResponse>('/workflow-executions', body);

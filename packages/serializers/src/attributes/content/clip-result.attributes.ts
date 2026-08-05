@@ -1,9 +1,9 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const clipResultAttributes = createEntityAttributes([
-  'user',
-  'organization',
-  'project',
+  'userId',
+  'organizationId',
+  'projectId',
   'index',
   'title',
   'summary',

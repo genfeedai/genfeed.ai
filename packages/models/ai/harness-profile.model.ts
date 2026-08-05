@@ -2,7 +2,6 @@ import type { IHarnessProfile } from '@genfeedai/interfaces';
 
 export class HarnessProfile implements IHarnessProfile {
   public id!: string;
-  public _id?: string;
   public organization?: string;
   public organizationId?: string;
   public createdBy?: string;

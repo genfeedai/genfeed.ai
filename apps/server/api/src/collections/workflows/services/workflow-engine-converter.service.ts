@@ -20,8 +20,8 @@ export interface WorkflowDocumentShape {
   nodes?: WorkflowVisualNode[];
   edges?: WorkflowEdge[];
   lockedNodeIds?: string[];
-  organization?: string | { toString(): string };
-  user?: string | { toString(): string };
+  organizationId?: string;
+  userId?: string;
 }
 
 const NODE_TYPE_TO_EXECUTOR: Record<string, string> = {
@@ -134,14 +134,8 @@ export class WorkflowEngineConverterService {
       id: workflowDoc.id || '',
       lockedNodeIds: workflowDoc.lockedNodeIds || [],
       nodes,
-      organizationId:
-        typeof workflowDoc.organization === 'object' && workflowDoc.organization
-          ? workflowDoc.organization.toString()
-          : '',
-      userId:
-        typeof workflowDoc.user === 'object' && workflowDoc.user
-          ? workflowDoc.user.toString()
-          : '',
+      organizationId: workflowDoc.organizationId ?? '',
+      userId: workflowDoc.userId ?? '',
     };
   }
 

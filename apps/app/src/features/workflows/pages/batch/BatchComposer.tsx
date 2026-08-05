@@ -80,7 +80,7 @@ function getWorkflowLabel(
   workflowsById: Map<string, WorkflowSummary>,
   workflowId: string,
 ): string {
-  return workflowsById.get(workflowId)?.name ?? workflowId;
+  return workflowsById.get(workflowId)?.label ?? workflowId;
 }
 
 export default function BatchComposer({
@@ -122,8 +122,8 @@ export default function BatchComposer({
                 </SelectTrigger>
                 <SelectContent>
                   {workflows.map((workflow) => (
-                    <SelectItem key={workflow._id} value={workflow._id}>
-                      {workflow.name || workflow._id}
+                    <SelectItem key={workflow.id} value={workflow.id}>
+                      {workflow.label || workflow.id}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -273,9 +273,9 @@ export default function BatchComposer({
           <div className="divide-y divide-white/[0.08]">
             {recentJobs.map((job) => (
               <Button
-                key={job._id}
+                key={job.id}
                 variant={ButtonVariant.UNSTYLED}
-                onClick={() => void onOpenRecentJob(job._id)}
+                onClick={() => void onOpenRecentJob(job.id)}
                 className="w-full py-4 text-left transition hover:bg-foreground/[0.03]"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">

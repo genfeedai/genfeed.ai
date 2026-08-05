@@ -122,7 +122,7 @@ export class BrandPersistenceService {
     }
 
     const existingWebsiteLink = await this.linksService.findOne({
-      brand: brandId,
+      brandId: brandId,
       category: LinkCategory.WEBSITE,
       isDeleted: false,
     });
@@ -136,7 +136,7 @@ export class BrandPersistenceService {
     }
 
     await this.linksService.create({
-      brand: brandId,
+      brandId: brandId,
       category: LinkCategory.WEBSITE,
       label: 'Website',
       url: normalizedUrl,
@@ -178,7 +178,7 @@ export class BrandPersistenceService {
       }
 
       const existingLink = await this.linksService.findOne({
-        brand: brandId,
+        brandId: brandId,
         category,
         isDeleted: false,
       });
@@ -188,7 +188,7 @@ export class BrandPersistenceService {
       }
 
       await this.linksService.create({
-        brand: brandId,
+        brandId: brandId,
         category,
         label: key.charAt(0).toUpperCase() + key.slice(1),
         url,
@@ -252,7 +252,7 @@ export class BrandPersistenceService {
     extractedData: IExtractedBrandData,
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
     });
 
@@ -321,9 +321,9 @@ export class BrandPersistenceService {
 
     const brand = await this.brandsService.findOne(
       {
-        _id: brandId,
+        id: brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       },
       'none',
     );

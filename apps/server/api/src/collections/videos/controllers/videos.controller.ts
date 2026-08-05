@@ -113,8 +113,7 @@ export class VideosController {
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
 
-    // `latest=true` shorthand — reproduces the exact WHERE clause of the former
-    // GET /videos/latest route: brand-scoped user videos with training sources
+    // `latest=true` shorthand for brand-scoped user videos with training sources
     // excluded, ordered by createdAt desc and capped at 50. Unlike the standard
     // list route there is no organization OR-branch and no isDefault branch;
     // it is scoped to the active organization and user while bypassing
@@ -127,15 +126,15 @@ export class VideosController {
         where: {
           AND: [
             {
-              brand: latestBrand,
+              brandId: latestBrand,
               category: CategoryPrismaUtil.toIngredientCategory(
                 IngredientCategory.VIDEO,
               ),
               isDeleted: latestIsDeleted,
               organizationId: publicMetadata.organization,
               // Exclude training source videos by default
-              training: { not: false },
-              user: publicMetadata.user,
+              trainingId: null,
+              userId: publicMetadata.user,
             },
           ],
         },
@@ -163,23 +162,23 @@ export class VideosController {
 
     // Use CollectionFilterUtil for common filtering patterns
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brand = CollectionFilterUtil.buildBrandFilter(
-      query.brand,
+    const brandId = CollectionFilterUtil.buildBrandFilter(
+      query.brandId,
       publicMetadata,
       'user',
     );
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folder?.toString(),
+      query.folderId?.toString(),
     );
 
     const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent?.toString(),
+      query.parentId?.toString(),
     );
 
     const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.training?.toString(),
+      query.trainingId?.toString(),
     );
     const searchFilter = CollectionFilterUtil.buildSearchFilter(query.search, [
       'metadata.label',
@@ -195,7 +194,7 @@ export class VideosController {
         AND: [
           { organizationId: publicMetadata.organization },
           {
-            brand,
+            brandId,
             category: CategoryPrismaUtil.toIngredientCategory(
               IngredientCategory.VIDEO,
             ),
@@ -236,7 +235,7 @@ export class VideosController {
 
     const pipeline = {
       where: scopedWhere(publicMetadata.organization, {
-        _id: videoId,
+        id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
@@ -256,7 +255,7 @@ export class VideosController {
     // Populate relationships that aren't in aggregation
     const populatedData = await this.videosService.findOne(
       scopedWhere(publicMetadata.organization, {
-        _id: videoId,
+        id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
@@ -286,10 +285,10 @@ export class VideosController {
     };
 
     const vote = await this.votesService.findOne({
-      entity: videoId,
+      entityId: videoId,
       entityModel: ActivityEntityModel.INGREDIENT,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     mergedData.hasVoted = !!vote;
@@ -308,9 +307,9 @@ export class VideosController {
   ): Promise<StreamableFile> {
     const publicMetadata = getPublicMetadata(user);
     const video = await this.videosService.findOne({
-      _id: videoId,
+      id: videoId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!video) {
@@ -381,7 +380,7 @@ export class VideosController {
     // Find the video first to ensure it exists and belongs to the user or is part of the same organization
     const video = await this.videosService.findOne(
       scopedWhere(publicMetadata.organization, {
-        _id: videoId,
+        id: videoId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VIDEO,
         ),
@@ -396,8 +395,10 @@ export class VideosController {
     const data = await this.videosService.remove(canonicalVideoId);
 
     if (data) {
-      // Send the canonical ingredient ID so legacy mongoId routes delete metadata too.
-      await this.metadataService.remove(canonicalVideoId);
+      await this.metadataService.removeByIngredient(
+        canonicalVideoId,
+        publicMetadata.organization,
+      );
     }
 
     return data

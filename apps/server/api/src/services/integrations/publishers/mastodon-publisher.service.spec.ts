@@ -45,7 +45,7 @@ describe('MastodonPublisherService', () => {
   const postId = 'test-object-id';
 
   const mockCredential = {
-    _id: 'test-object-id',
+    id: 'test-object-id',
     accessToken: 'enc-token',
     description: 'https://mastodon.social',
     externalHandle: '@testuser@mastodon.social',
@@ -60,7 +60,7 @@ describe('MastodonPublisherService', () => {
     credential: mockCredential,
     organizationId: orgId,
     post: {
-      _id: postId,
+      id: postId,
       category: PostCategory.TEXT,
       description: 'Hello Mastodon!',
       ingredients: [],
@@ -196,7 +196,7 @@ describe('MastodonPublisherService', () => {
       const ingredientId = 'test-object-id';
       const context = makeContext({
         post: {
-          _id: postId,
+          id: postId,
           category: PostCategory.IMAGE,
           description: 'Post with image',
           ingredients: [ingredientId],

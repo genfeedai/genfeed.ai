@@ -91,7 +91,7 @@ export function useWorkflowPicker({ activeBrandId }: UseWorkflowPickerOptions) {
         return true;
       }
 
-      return `${workflow.name} ${workflow.description ?? ''}`
+      return `${workflow.label} ${workflow.description ?? ''}`
         .toLowerCase()
         .includes(normalizedSearch);
     });

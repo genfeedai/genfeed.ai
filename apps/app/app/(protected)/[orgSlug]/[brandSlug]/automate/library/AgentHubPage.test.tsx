@@ -142,7 +142,11 @@ describe('AgentHubPage', () => {
     mocks.strategies = [
       {
         agentType: AgentType.IMAGE_CREATOR,
-        brand: 'Moonrise',
+        brand: {
+          id: 'brand-1',
+          label: 'Moonrise',
+          slug: 'moonrise',
+        },
         creditsUsedToday: 12,
         dailyCreditBudget: 50,
         id: 'agent-1',

@@ -30,6 +30,11 @@ vi.mock('@slack/bolt', () => ({
   }),
 }));
 
+function toApiIntegration(integration: OrgIntegration) {
+  const { orgId, ...fields } = integration;
+  return { ...fields, organizationId: orgId };
+}
+
 describe('Slack Bot Manager Integration Flow', () => {
   let service: SlackBotManager;
   let httpService: {
@@ -79,7 +84,9 @@ describe('Slack Bot Manager Integration Flow', () => {
     };
 
     // Mock HTTP calls for fetching integrations
-    httpService.get.mockReturnValue(of({ data: [mockIntegration] }));
+    httpService.get.mockReturnValue(
+      of({ data: [toApiIntegration(mockIntegration)] }),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -169,7 +176,9 @@ describe('Slack Bot Manager Integration Flow', () => {
         id: 'new-slack-integration-2',
         orgId: 'org-789',
       };
-      httpService.get.mockReturnValue(of({ data: newIntegration }));
+      httpService.get.mockReturnValue(
+        of({ data: toApiIntegration(newIntegration) }),
+      );
 
       // Callback receives IntegrationEvent shape (not JSON string)
       callback({

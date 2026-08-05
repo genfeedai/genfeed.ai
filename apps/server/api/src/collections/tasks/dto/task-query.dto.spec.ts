@@ -10,6 +10,7 @@ describe('TaskQueryDto', () => {
   describe('validation', () => {
     it('accepts valid status, priority, and parent filters', async () => {
       const dto = plainToInstance(TaskQueryDto, {
+        brandId: '507f1f77bcf86cd799439012',
         parentId: '507f1f77bcf86cd799439011',
         priority: 'critical',
         status: 'in_review',

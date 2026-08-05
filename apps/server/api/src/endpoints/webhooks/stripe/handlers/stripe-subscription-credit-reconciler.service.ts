@@ -98,9 +98,7 @@ export class StripeSubscriptionCreditReconcilerService {
   private prepareContext(
     input: SubscriptionCreditReconciliationInput,
   ): SubscriptionCreditReconciliationContext | null {
-    const organizationId = input.subscription.organization
-      ? String(input.subscription.organization)
-      : '';
+    const organizationId = input.subscription.organizationId ?? '';
 
     if (organizationId) {
       return this.requireEligibleStatus({ ...input, organizationId });
@@ -171,7 +169,7 @@ export class StripeSubscriptionCreditReconcilerService {
         organizationId: context.organizationId,
         outcome: 'no_credit_allocation',
         stripeSubscriptionId: context.stripeSubscriptionId,
-        subscriptionType: context.subscription.type,
+        subscriptionPlan: context.subscription.plan,
         trigger: context.trigger,
       },
     );
@@ -298,13 +296,13 @@ export class StripeSubscriptionCreditReconcilerService {
     if (!context.periodEnd) {
       return undefined;
     }
-    if (!context.subscription.type) {
+    if (!context.subscription.plan) {
       return undefined;
     }
 
     return {
       end: context.periodEnd,
-      source: context.subscription.type,
+      source: context.subscription.plan,
       start: context.periodStart,
     };
   }
@@ -313,7 +311,7 @@ export class StripeSubscriptionCreditReconcilerService {
     context: SubscriptionCreditReconciliationContext,
   ): Promise<void> {
     const transactionOptions = this.buildTransactionOptions(context);
-    if (context.subscription.type === SubscriptionPlan.MONTHLY) {
+    if (context.subscription.plan === SubscriptionPlan.MONTHLY) {
       await this.addMonthlyCredits(context, transactionOptions);
       return;
     }
@@ -403,13 +401,13 @@ export class StripeSubscriptionCreditReconcilerService {
     await this.supportService.recordCreditsActivity({
       brandId: context.organizationId,
       key:
-        context.subscription.type === SubscriptionPlan.MONTHLY
+        context.subscription.plan === SubscriptionPlan.MONTHLY
           ? ActivityKey.CREDITS_ADD
           : ActivityKey.CREDITS_RESET,
       organizationId: context.organizationId,
       source: ActivitySource.SUBSCRIPTION,
-      ...(context.subscription.user
-        ? { userId: String(context.subscription.user) }
+      ...(context.subscription.userId
+        ? { userId: context.subscription.userId }
         : {}),
       value: String(context.creditsToAdd),
     });
@@ -427,27 +425,27 @@ export class StripeSubscriptionCreditReconcilerService {
       organizationId: context.organizationId,
       outcome: 'allocated',
       policy:
-        context.subscription.type === SubscriptionPlan.MONTHLY
+        context.subscription.plan === SubscriptionPlan.MONTHLY
           ? '3-month rollover'
           : 'reset only',
       referenceId: context.creditReference.referenceId,
       referenceType: context.creditReference.referenceType,
       stripeSubscriptionId: context.stripeSubscriptionId,
-      subscriptionType: context.subscription.type,
+      subscriptionPlan: context.subscription.plan,
       trigger: context.trigger,
     });
   }
 
   private resolvePlanCredits(
-    subscription: Pick<ISubscriptionOssReadModel, 'stripePriceId' | 'type'>,
+    subscription: Pick<ISubscriptionOssReadModel, 'plan' | 'stripePriceId'>,
   ): number {
     const tierMonthlyCredits = this.resolveTierMonthlyCredits(
       subscription.stripePriceId,
     );
-    if (subscription.type === SubscriptionPlan.MONTHLY) {
+    if (subscription.plan === SubscriptionPlan.MONTHLY) {
       return this.resolveMonthlyCredits(tierMonthlyCredits);
     }
-    if (subscription.type === SubscriptionPlan.YEARLY) {
+    if (subscription.plan === SubscriptionPlan.YEARLY) {
       return this.resolveYearlyCredits(tierMonthlyCredits);
     }
     return 0;

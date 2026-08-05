@@ -87,13 +87,13 @@ describe('VideosController', () => {
   let failedGenerationService: vi.Mocked<FailedGenerationService>;
   let bookmarksService: vi.Mocked<BookmarksService>;
 
-  const mockUserId = '507f191e810c19729de860ee';
-  const mockOrgId = '507f191e810c19729de860ee';
-  const mockBrandId = '507f191e810c19729de860ee';
-  const mockVideoId = '507f191e810c19729de860ee';
-  const mockMetadataId = '507f191e810c19729de860ee';
-  const mockPromptId = '507f191e810c19729de860ee';
-  const mockActivityId = '507f191e810c19729de860ee';
+  const mockUserId = 'cmuser0000000000000000001';
+  const mockOrgId = 'cmorganization000000000000001';
+  const mockBrandId = 'cmbrand000000000000000001';
+  const mockVideoId = 'cmvideo0000000000000000001';
+  const mockMetadataId = 'cmmetadata0000000000000001';
+  const mockPromptId = 'cmprompt000000000000000001';
+  const mockActivityId = 'cmactivity00000000000000001';
 
   const mockUser = {
     id: 'authProvider_user_123',
@@ -105,7 +105,7 @@ describe('VideosController', () => {
   } as unknown as User;
 
   const mockVideo = {
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: IngredientCategory.VIDEO,
     id: mockVideoId,
     isDeleted: false,
@@ -115,14 +115,14 @@ describe('VideosController', () => {
       id: mockMetadataId,
       width: 1920,
     },
-    organization: mockOrgId,
+    organizationId: mockOrgId,
     prompt: {
       id: mockPromptId,
       original: 'Test prompt',
     },
     status: IngredientStatus.GENERATED,
     toObject: vi.fn().mockReturnThis(),
-    user: mockUserId,
+    userId: mockUserId,
   };
 
   const mockBrand = {
@@ -140,7 +140,7 @@ describe('VideosController', () => {
     defaultVideoModel: MODEL_KEYS.KLINGAI_V2,
     description: 'Test brand description',
     label: 'Test Brand',
-    organization: mockOrgId,
+    organizationId: mockOrgId,
     primaryColor: '#ff0000',
     secondaryColor: '#00ff00',
     text: 'Brand text',
@@ -185,7 +185,7 @@ describe('VideosController', () => {
   };
 
   const mockModelData = {
-    _id: '507f191e810c19729de860ee',
+    id: 'cmmodel0000000000000000001',
     category: ModelCategory.VIDEO,
     cost: 10,
     key: MODEL_KEYS.KLINGAI_V2,
@@ -290,6 +290,7 @@ describe('VideosController', () => {
           useValue: {
             patch: vi.fn().mockResolvedValue({}),
             remove: vi.fn().mockResolvedValue({}),
+            removeByIngredient: vi.fn().mockResolvedValue({}),
           },
         },
         {
@@ -338,7 +339,7 @@ describe('VideosController', () => {
         {
           provide: SharedService,
           useValue: {
-            saveDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
+            createMediaDocuments: vi.fn().mockResolvedValue(mockSavedDocuments),
           },
         },
         {
@@ -509,13 +510,14 @@ describe('VideosController', () => {
       expect(options).toMatchObject({ pagination: false });
       expect(aggregate.orderBy).toEqual({ createdAt: -1 });
 
-      // Exact legacy WHERE: single user-scoped branch, training excluded,
-      // NO organization OR-branch and NO isDefault branch (unlike the list route).
+      // Single user-scoped branch, training excluded, with no organization
+      // OR-branch and no isDefault branch (unlike the list route).
       const branch = aggregate.where.AND[0];
       expect(branch).toMatchObject({
+        brandId: mockUser.publicMetadata.brand,
         organizationId: mockUser.publicMetadata.organization,
-        training: { not: false },
-        user: mockUser.publicMetadata.user,
+        trainingId: null,
+        userId: mockUser.publicMetadata.user,
       });
       expect(branch).not.toHaveProperty('OR');
       expect(branch).not.toHaveProperty('status');
@@ -571,14 +573,16 @@ describe('VideosController', () => {
         where: {
           AND: Array<{
             OR?: Array<Record<string, unknown>>;
-            brand?: unknown;
+            brandId?: unknown;
           }>;
         };
       };
       expect(aggregate.where.AND[0]).toEqual({
         organizationId: mockUser.publicMetadata.organization,
       });
-      expect(aggregate.where.AND[1]?.brand).toBe(mockUser.publicMetadata.brand);
+      expect(aggregate.where.AND[1]?.brandId).toBe(
+        mockUser.publicMetadata.brand,
+      );
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
     });
@@ -651,7 +655,7 @@ describe('VideosController', () => {
     });
 
     it('should filter by folder', async () => {
-      const folderId = '507f191e810c19729de860ee';
+      const folderId = 'cmfolder000000000000000001';
       const query: VideosQueryDto = {
         ...baseQuery,
         folder: folderId as string,
@@ -751,7 +755,7 @@ describe('VideosController', () => {
       expect(videosService.findAll).toHaveBeenCalledWith(
         {
           where: {
-            _id: mockVideoId.toString(),
+            id: mockVideoId.toString(),
             category: 'VIDEO',
             isDeleted: false,
             organizationId: mockUser.publicMetadata.organization,
@@ -761,7 +765,7 @@ describe('VideosController', () => {
       );
       expect(videosService.findOne).toHaveBeenCalledWith(
         {
-          _id: mockVideoId.toString(),
+          id: mockVideoId.toString(),
           category: 'VIDEO',
           isDeleted: false,
           organizationId: mockUser.publicMetadata.organization,
@@ -774,9 +778,9 @@ describe('VideosController', () => {
 
     it('should include vote status', async () => {
       const mockVote = {
-        _id: '507f191e810c19729de860ee',
-        entity: mockVideoId,
-        user: mockUserId,
+        entityId: mockVideoId,
+        id: 'cmvote00000000000000000001',
+        userId: mockUserId,
       };
 
       votesService.findOne.mockResolvedValue(
@@ -799,7 +803,7 @@ describe('VideosController', () => {
       } as unknown as AggregatePaginateResult<IngredientDocument>);
       videosService.findOne.mockResolvedValue(null);
 
-      const missingId = '507f191e810c19729de860ee'.toString();
+      const missingId = 'cmvideo0000000000000000002';
 
       await expect(
         controller.findOne(mockRequest, missingId, mockUser),
@@ -810,7 +814,7 @@ describe('VideosController', () => {
       const mockVideoWithEvaluation = {
         ...mockVideo,
         evaluation: {
-          _id: '507f191e810c19729de860ee',
+          id: 'cmevaluation000000000000001',
           score: 85,
           status: 'COMPLETED',
         },
@@ -938,32 +942,17 @@ describe('VideosController', () => {
       );
 
       expect(videosService.findOne).toHaveBeenCalledWith({
-        _id: mockVideoId.toString(),
+        id: mockVideoId.toString(),
         organizationId: mockUser.publicMetadata.organization,
         category: 'VIDEO',
         isDeleted: false,
       });
       expect(videosService.remove).toHaveBeenCalledWith(mockVideoId.toString());
-      expect(metadataService.remove).toHaveBeenCalledWith(
+      expect(metadataService.removeByIngredient).toHaveBeenCalledWith(
         mockVideoId.toString(),
+        mockUser.publicMetadata.organization,
       );
       expect(result).toBeDefined();
-    });
-
-    it('resolves a legacy mongoId route to the canonical id before deletion', async () => {
-      const canonicalVideoId = 'canonical-video-id';
-      const legacyVideo = { ...mockVideo, id: canonicalVideoId };
-      videosService.findOne.mockResolvedValue(
-        legacyVideo as unknown as IngredientDocument,
-      );
-      videosService.remove.mockResolvedValue(
-        legacyVideo as unknown as IngredientDocument,
-      );
-
-      await controller.remove(mockRequest, mockVideoId.toString(), mockUser);
-
-      expect(videosService.remove).toHaveBeenCalledWith(canonicalVideoId);
-      expect(metadataService.remove).toHaveBeenCalledWith(canonicalVideoId);
     });
 
     it('should return 404 when video not found', async () => {
@@ -996,7 +985,7 @@ describe('VideosController', () => {
         controller.remove(mockRequest, mockVideoId.toString(), mockUser),
       ).rejects.toThrow(HttpException);
 
-      expect(metadataService.remove).not.toHaveBeenCalled();
+      expect(metadataService.removeByIngredient).not.toHaveBeenCalled();
     });
   });
 
@@ -1022,7 +1011,7 @@ describe('VideosController', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalled();
-      expect(sharedService.saveDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalled();
       expect(activitiesService.create).toHaveBeenCalled();
       expect(websocketService.publishBackgroundTaskUpdate).toHaveBeenCalled();
@@ -1160,7 +1149,7 @@ describe('VideosController', () => {
       await controller.create(mockRequest, dto, mockUser);
 
       // Should make multiple API calls for non-batch models
-      expect(sharedService.saveDocuments).toHaveBeenCalledTimes(3);
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledTimes(3);
       expect(klingAIService.queueGenerateTextToVideo).toHaveBeenCalledTimes(3);
     });
 
@@ -1190,7 +1179,7 @@ describe('VideosController', () => {
     });
 
     it('should link video to bookmark if provided', async () => {
-      const bookmarkId = '507f191e810c19729de860ee';
+      const bookmarkId = 'cmbookmark0000000000000001';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         bookmark: bookmarkId.toString(),
@@ -1205,7 +1194,7 @@ describe('VideosController', () => {
     });
 
     it('should handle bookmark linking failure gracefully', async () => {
-      const bookmarkId = '507f191e810c19729de860ee';
+      const bookmarkId = 'cmbookmark0000000000000001';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         bookmark: bookmarkId.toString(),
@@ -1307,21 +1296,21 @@ describe('VideosController', () => {
 
       const dto: CreateVideoDto = {
         ...baseCreateDto,
-        prompt: mockPromptId,
+        promptId: mockPromptId,
         text: undefined,
       };
 
       await controller.create(mockRequest, dto, mockUser);
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
-        _id: mockPromptId.toString(),
+        id: mockPromptId.toString(),
         isDeleted: false,
-        organization: mockOrgId.toString(),
+        organizationId: mockOrgId.toString(),
       });
     });
 
     it('should handle reference images', async () => {
-      const referenceId = '507f191e810c19729de860ee';
+      const referenceId = 'cmimage0000000000000000001';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         references: [referenceId],
@@ -1329,16 +1318,16 @@ describe('VideosController', () => {
 
       await controller.create(mockRequest, dto, mockUser);
 
-      expect(sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
-          references: [expect.any(String)],
+          sourceIds: [referenceId],
         }),
       );
     });
 
     it('should handle endFrame for video interpolation', async () => {
-      const endFrameId = '507f191e810c19729de860ee';
+      const endFrameId = 'cmimage0000000000000000002';
       const dto: CreateVideoDto = {
         ...baseCreateDto,
         endFrame: endFrameId.toString(),
@@ -1403,8 +1392,8 @@ describe('VideosController', () => {
       ).rejects.toThrow('Database error');
     });
 
-    it('should handle invalid ObjectId in findOne', async () => {
-      videosService.findAll.mockRejectedValue(new Error('Invalid ObjectId'));
+    it('should handle an invalid entity ID in findOne', async () => {
+      videosService.findAll.mockRejectedValue(new Error('Invalid entity ID'));
 
       await expect(
         controller.findOne(mockRequest, 'invalid-id', mockUser),
@@ -1463,7 +1452,7 @@ beforeAll(async () => {
       },
       {
         provide: MetadataService,
-        useValue: { patch: vi.fn(), remove: vi.fn() },
+        useValue: { patch: vi.fn(), removeByIngredient: vi.fn() },
       },
       {
         provide: ModelRegistrationService,
@@ -1483,7 +1472,7 @@ beforeAll(async () => {
         provide: ReplicateService,
         useValue: { generateTextToVideo: vi.fn() },
       },
-      { provide: SharedService, useValue: { saveDocuments: vi.fn() } },
+      { provide: SharedService, useValue: { createMediaDocuments: vi.fn() } },
       {
         provide: VideosService,
         useValue: {

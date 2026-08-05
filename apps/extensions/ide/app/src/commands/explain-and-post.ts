@@ -78,7 +78,7 @@ export async function explainAndPost(
 
   if (!generatedText) {
     vscode.window.showErrorMessage(
-      `GenFeed: generation failed (run ${run._id ?? run.id ?? 'unknown'}).`,
+      `GenFeed: generation failed (run ${run.id}).`,
     );
     return;
   }
@@ -111,7 +111,7 @@ export async function explainAndPost(
       await ApiService.getInstance().saveDraft({
         channel: platform,
         content: generatedText,
-        sourceRunId: run._id ?? run.id,
+        sourceRunId: run.id,
         sourceType: 'explain-and-post',
       });
       vscode.window.showInformationMessage('Draft saved to GenFeed.');

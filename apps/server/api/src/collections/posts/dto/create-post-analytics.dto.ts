@@ -1,37 +1,38 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDate, IsNumber, IsString, Min } from 'class-validator';
+import { IsArray, IsDate, IsNumber, IsString, Min } from 'class-validator';
 
 export class CreatePostAnalyticsDto {
   @ApiProperty({
     description: 'Post ID',
   })
   @IsEntityId()
-  post!: string;
+  postId!: string;
 
   @ApiProperty({
     description: 'Ingredient ID',
   })
-  @IsEntityId()
+  @IsArray()
+  @IsEntityId({ each: true })
   ingredients!: string[];
 
   @ApiProperty({
     description: 'User ID',
   })
   @IsEntityId()
-  user!: string;
+  userId!: string;
 
   @ApiProperty({
     description: 'Brand ID',
   })
   @IsEntityId()
-  brand!: string;
+  brandId!: string;
 
   @ApiProperty({
     description: 'Organization ID',
   })
   @IsEntityId()
-  organization!: string;
+  organizationId!: string;
 
   @ApiProperty({
     description: 'Social media platform',

@@ -42,6 +42,7 @@ jobs:
       VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
       VERCEL_PROJECT_ID: ${{ matrix.project_id }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
     steps:
       - uses: actions/checkout@v5
 

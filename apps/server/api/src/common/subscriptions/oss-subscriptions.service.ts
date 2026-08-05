@@ -1,4 +1,5 @@
 import type {
+  ISubscriptionFindAllInput,
   ISubscriptionFindAllOptions,
   ISubscriptionFindAllResult,
   ISubscriptionFindOneFilter,
@@ -43,7 +44,7 @@ export class OssSubscriptionsService implements ISubscriptionsService {
   }
 
   async findAll(
-    _input: unknown,
+    _input: ISubscriptionFindAllInput,
     _options: ISubscriptionFindAllOptions,
     _enableCache?: boolean,
   ): Promise<ISubscriptionFindAllResult> {
@@ -51,7 +52,7 @@ export class OssSubscriptionsService implements ISubscriptionsService {
   }
 
   async patch(
-    _id: string,
+    _subscriptionId: string,
     _data: unknown,
   ): Promise<ISubscriptionOssReadModel | null> {
     return null;
@@ -78,7 +79,7 @@ export class OssSubscriptionsService implements ISubscriptionsService {
   }
 
   async syncSubscriptionState(
-    _subscription: unknown,
+    _subscription: ISubscriptionOssReadModel | null,
     _stripeSubscriptionId?: string,
     _stripePriceId?: string,
     _status?: string,

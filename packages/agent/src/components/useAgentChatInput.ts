@@ -11,7 +11,6 @@ import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionLi
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
-import { isGenerationComposerMode } from '@genfeedai/agent/constants/composer-mode.constant';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
 import { ContentMention } from '@genfeedai/agent/extensions/content-mention.extension';
@@ -19,7 +18,6 @@ import { CredentialMention } from '@genfeedai/agent/extensions/credential-mentio
 import { SlashCommands } from '@genfeedai/agent/extensions/slash-commands.extension';
 import { TeamMention } from '@genfeedai/agent/extensions/team-mention.extension';
 import { useBrandMentions } from '@genfeedai/agent/hooks/use-brand-mentions';
-import { useComposerModeState } from '@genfeedai/agent/hooks/use-composer-mode-state';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
 import { useCredentialMentions } from '@genfeedai/agent/hooks/use-credential-mentions';
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
@@ -130,15 +128,8 @@ export function useAgentChatInput({
   );
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const composerSeed = useAgentChatStore((s) => s.composerSeed);
-  const {
-    composerMode,
-    generationModelKey,
-    generationModels,
-    handleComposerModeChange,
-    isGenerationModelsLoading,
-    modePlaceholder: placeholder,
-    setGenerationModelKey,
-  } = useComposerModeState(apiService, placeholderOverride);
+  const placeholder =
+    placeholderOverride ?? 'Ask for help with content, review, or planning…';
   const placeholderRef = useRef(placeholder);
   // TipTap reads this on each placeholder paint — sync after commit only.
   useLayoutEffect(() => {
@@ -438,7 +429,7 @@ export function useAgentChatInput({
     }
   }, [editor, disabled]);
 
-  // Refresh empty-state placeholder when composer mode changes.
+  // Refresh the empty-state placeholder after editor state changes.
   useEffect(() => {
     if (!editor?.isEmpty) {
       return;
@@ -499,10 +490,6 @@ export function useAgentChatInput({
             }
           : {}),
         ...(composerShell?.brandId ? { brandId: composerShell.brandId } : {}),
-        composerMode,
-        generationModelKey: isGenerationComposerMode(composerMode)
-          ? generationModelKey
-          : null,
         planModeEnabled: false,
       },
     );
@@ -510,12 +497,10 @@ export function useAgentChatInput({
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
   }, [
-    composerMode,
     composerShell,
     draftScopeKey,
     editor,
     disabled,
-    generationModelKey,
     onSend,
     hasCompletedAttachments,
     getCompletedAttachments,
@@ -656,11 +641,7 @@ export function useAgentChatInput({
   return {
     actionFeedback,
     canSendMessage,
-    composerMode,
     editor,
-    generationModelKey,
-    generationModels,
-    handleComposerModeChange,
     handlePasteImages,
     handleRemoveAttachment,
     handleInsertReference,
@@ -669,11 +650,9 @@ export function useAgentChatInput({
     handleShellPointerDown,
     hasAttachments,
     isDragActive,
-    isGenerationModelsLoading,
     isListening,
     isTranscribing,
     references: displayedReferences,
-    setGenerationModelKey,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

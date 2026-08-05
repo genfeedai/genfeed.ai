@@ -43,15 +43,15 @@ describe('SocialReplyCampaignController', () => {
 
   beforeEach(async () => {
     campaignService = {
-      create: vi.fn().mockResolvedValue({ _id: 'campaign-1' }),
-      get: vi.fn().mockResolvedValue({ _id: 'campaign-1' }),
+      create: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
+      get: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
       list: vi.fn().mockResolvedValue({ data: [], meta: { total: 0 } }),
       listRecipients: vi
         .fn()
         .mockResolvedValue({ data: [], meta: { total: 0 } }),
-      patch: vi.fn().mockResolvedValue({ _id: 'campaign-1' }),
-      remove: vi.fn().mockResolvedValue({ _id: 'campaign-1' }),
-      transition: vi.fn().mockResolvedValue({ _id: 'campaign-1' }),
+      patch: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
+      remove: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
+      transition: vi.fn().mockResolvedValue({ id: 'campaign-1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

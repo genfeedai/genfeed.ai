@@ -164,7 +164,7 @@ describe('BrandsService', () => {
       expect(secondCall?.data.slug).toBe('default-brand-2');
     });
 
-    it('maps controller metadata aliases to canonical Prisma foreign keys', async () => {
+    it('writes canonical ownership fields', async () => {
       delegate.create.mockResolvedValue({
         ...createBrandDto,
         id: 'brand-1',
@@ -174,11 +174,8 @@ describe('BrandsService', () => {
 
       await service.create({
         ...createBrandDto,
-        // Session stamp from BaseCRUD.enrichCreateDto (current brand) must not
-        // reach prisma.brand.create — Brand has no `brand` argument.
-        brand: 'session-brand-id',
-        organization: 'org-1',
-        user: 'user-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
       });
 
       const createInput = delegate.create.mock.calls[0]?.[0] as {
@@ -198,33 +195,6 @@ describe('BrandsService', () => {
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');
-    });
-
-    it('prefers canonical foreign keys over legacy metadata aliases', async () => {
-      delegate.create.mockResolvedValue({
-        ...createBrandDto,
-        id: 'brand-1',
-        organizationId: 'org-canonical',
-        userId: 'user-canonical',
-      });
-
-      await service.create({
-        ...createBrandDto,
-        organization: 'org-legacy',
-        organizationId: 'org-canonical',
-        user: 'user-legacy',
-        userId: 'user-canonical',
-      });
-
-      const createInput = delegate.create.mock.calls[0]?.[0] as {
-        data: Record<string, unknown>;
-      };
-      expect(createInput.data).toMatchObject({
-        organizationId: 'org-canonical',
-        userId: 'user-canonical',
-      });
-      expect(createInput.data).not.toHaveProperty('organization');
-      expect(createInput.data).not.toHaveProperty('user');
     });
   });
 
@@ -298,7 +268,7 @@ describe('BrandsService', () => {
   });
 
   describe('patch', () => {
-    it('strips session brand alias so Prisma update does not receive brand', async () => {
+    it('writes only mutable brand fields', async () => {
       const existing = {
         id: 'brand-1',
         label: 'Default Brand',
@@ -314,24 +284,14 @@ describe('BrandsService', () => {
       // BrandsService extends BaseService — super.patch looks up then updates.
       // Spy the parent path via delegate methods the base service uses.
       const result = await service.patch('brand-1', {
-        brand: 'session-brand-id',
-        brandId: 'session-brand-id',
         label: 'Renamed',
-        organization: 'org-1',
-        user: 'user-1',
-        userId: 'user-canonical-id',
-      } as never);
+      });
 
       expect(result.label).toBe('Renamed');
       const updateCall = delegate.update.mock.calls.at(-1)?.[0] as
         | { data: Record<string, unknown> }
         | undefined;
       expect(updateCall?.data).toMatchObject({ label: 'Renamed' });
-      expect(updateCall?.data).not.toHaveProperty('brand');
-      expect(updateCall?.data).not.toHaveProperty('brandId');
-      expect(updateCall?.data).not.toHaveProperty('organization');
-      expect(updateCall?.data).not.toHaveProperty('user');
-      expect(updateCall?.data).not.toHaveProperty('userId');
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');
@@ -354,8 +314,7 @@ describe('BrandsService', () => {
         description: undefined,
         label: 'Renamed',
         primaryColor: undefined,
-        user: 'user-session-id',
-      } as never);
+      });
 
       const updateCall = delegate.update.mock.calls.at(-1)?.[0] as
         | { data: Record<string, unknown> }
@@ -363,12 +322,10 @@ describe('BrandsService', () => {
       expect(updateCall?.data).toEqual({ label: 'Renamed' });
       expect(updateCall?.data).not.toHaveProperty('description');
       expect(updateCall?.data).not.toHaveProperty('primaryColor');
-      expect(updateCall?.data).not.toHaveProperty('user');
     });
   });
 
-  it('resolves legacy mongo ids before selecting a brand', async () => {
-    const legacyBrandId = '69d65211cbce660360fd068d';
+  it('selects a brand using its canonical id', async () => {
     const currentBrandId = 'hkh2jbovtpcsrzw3oyxr11oj';
     const organizationId = 'b13yktd0f1e38me3f55swu0n';
     const userId = 'user_current';
@@ -377,7 +334,6 @@ describe('BrandsService', () => {
       .mockResolvedValueOnce({
         id: currentBrandId,
         isDeleted: false,
-        mongoId: legacyBrandId,
         organizationId,
         userId,
       })
@@ -385,21 +341,20 @@ describe('BrandsService', () => {
         id: currentBrandId,
         isDeleted: false,
         isSelected: true,
-        mongoId: legacyBrandId,
         organizationId,
         userId,
       });
     delegate.updateMany.mockResolvedValue({ count: 1 });
 
     const result = await service.selectBrandForUser(
-      legacyBrandId,
+      currentBrandId,
       userId,
       organizationId,
     );
 
     expect(delegate.findFirst).toHaveBeenNthCalledWith(1, {
       where: {
-        OR: [{ id: legacyBrandId }, { mongoId: legacyBrandId }],
+        id: currentBrandId,
         isDeleted: false,
         organizationId,
       },
@@ -408,8 +363,6 @@ describe('BrandsService', () => {
       data: { isSelected: true },
       where: { id: currentBrandId, isDeleted: false, organizationId },
     });
-    // Normalized records expose only the canonical Prisma id (#1096); the
-    // mongoId input above still resolves via the OR lookup.
     expect(result).toMatchObject({
       id: currentBrandId,
       isSelected: true,

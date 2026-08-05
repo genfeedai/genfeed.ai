@@ -68,11 +68,11 @@ export class PostThreadGenerationService {
     try {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: publicMetadata.brand,
+          brandId: publicMetadata.brand,
           key: ActivityKey.POST_PROCESSING,
-          organization: publicMetadata.organization,
+          organizationId: publicMetadata.organization,
           source: ActivitySource.POST_GENERATION,
-          user: publicMetadata.user,
+          userId: publicMetadata.user,
           value: JSON.stringify({
             count: dto.count,
             originalPostId: String(originalPost.id),
@@ -163,8 +163,11 @@ export class PostThreadGenerationService {
             status: PostStatus.DRAFT,
           },
           [
-            { path: 'ingredients', select: '_id url' },
-            { path: 'credential', select: '_id label handle' },
+            { path: 'ingredients', select: ['id', 'cdnUrl'] },
+            {
+              path: 'credential',
+              select: ['id', 'label', 'externalHandle'],
+            },
           ],
         );
 
@@ -174,13 +177,13 @@ export class PostThreadGenerationService {
         });
         await this.activitiesService.create(
           new ActivityEntity({
-            brand: publicMetadata.brand,
+            brandId: publicMetadata.brand,
             entityId: childId,
             entityModel: ActivityEntityModel.POST,
             key: ActivityKey.POST_GENERATED,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
             source: ActivitySource.POST_GENERATION,
-            user: publicMetadata.user,
+            userId: publicMetadata.user,
             value: childId,
           }),
         );

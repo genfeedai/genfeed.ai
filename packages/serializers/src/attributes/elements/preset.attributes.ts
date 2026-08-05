@@ -16,7 +16,7 @@ export const presetAttributes = createEntityAttributes([
   'scene',
   'style',
   'blacklists',
-  'ingredient',
+  'ingredientId',
   'isActive',
   'isFavorite',
 ]);

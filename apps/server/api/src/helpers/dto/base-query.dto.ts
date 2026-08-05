@@ -120,7 +120,7 @@ export class BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  organization?: string;
+  organizationId?: string;
 
   @ApiProperty({
     description: 'Filter by brand ID',
@@ -128,7 +128,7 @@ export class BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  brand?: string;
+  brandId?: string;
 
   @ApiProperty({
     description: 'Filter by favorite status',

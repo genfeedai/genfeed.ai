@@ -11,9 +11,9 @@ import { Injectable } from '@nestjs/common';
 
 export interface PublishInput {
   personaId: string;
-  organization: string;
-  user: string;
-  brand: string;
+  organizationId: string;
+  userId: string;
+  brandId: string;
   description: string;
   platforms?: string[];
   ingredientIds?: string[];
@@ -48,7 +48,7 @@ export class PersonaPublisherService {
     const caller = CallerUtil.getCallerName();
     const persona = await this.getPersonaOrFail(
       input.personaId,
-      input.organization,
+      input.organizationId,
     );
 
     const credentialIds = this.readStringArray(persona.credentials);
@@ -64,9 +64,9 @@ export class PersonaPublisherService {
     for (const credentialId of credentialIds) {
       try {
         const credential = await this.credentialsService.findOne({
-          _id: credentialId,
+          id: credentialId,
           isDeleted: false,
-          organization: input.organization,
+          organizationId: input.organizationId,
         });
 
         if (!credential) {
@@ -80,21 +80,21 @@ export class PersonaPublisherService {
         }
 
         const post = await this.postsService.create({
-          brand: input.brand,
+          brandId: input.brandId,
           category: input.category ?? PostCategory.POST,
-          credential: credentialId,
+          credentialId: credentialId,
           description: input.description,
           groupId,
           ingredients: input.ingredientIds ?? [],
           label: persona.label ?? 'Persona post',
-          organization: input.organization,
-          persona: input.personaId,
+          organizationId: input.organizationId,
+          personaId: input.personaId,
           platform: credential.platform as CredentialPlatform,
           scheduledDate: input.scheduledDate ?? new Date(),
           status: input.scheduledDate
             ? PostStatus.SCHEDULED
             : PostStatus.PENDING,
-          user: input.user,
+          userId: input.userId,
         } as Parameters<PostsService['create']>[0]);
 
         postIds.push(String(post.id));
@@ -120,12 +120,12 @@ export class PersonaPublisherService {
 
   private async getPersonaOrFail(
     personaId: string,
-    organization: string,
+    organizationId: string,
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
-      _id: personaId,
+      id: personaId,
       isDeleted: false,
-      organization,
+      organizationId,
     });
 
     if (!persona) {

@@ -238,10 +238,10 @@ export class AdBulkUploadProcessor extends WorkerHost {
         mediaType: permutation.mediaType,
         permutationIndex: index,
       },
-      organization: data.organizationId,
+      organizationId: data.organizationId,
       platform: 'meta',
       status: 'draft',
-      ...(data.brandId && { brand: data.brandId }),
+      ...(data.brandId && { brandId: data.brandId }),
     };
 
     await this.creativeMappingsService.create(mappingInput);

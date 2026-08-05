@@ -5,7 +5,6 @@ import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { PostStatus } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
@@ -35,9 +34,9 @@ export class AgentAnalyticsToolHandler {
     }
 
     return (await this.ingredientsService.findOne({
-      _id: contentId,
+      id: contentId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     })) as unknown as Record<string, unknown> | null;
   }
   private buildMetricItems(
@@ -62,7 +61,7 @@ export class AgentAnalyticsToolHandler {
         where: {
           ingredients: ingredientId,
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
           status: {
             in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
           },
@@ -119,9 +118,9 @@ export class AgentAnalyticsToolHandler {
 
     if (postId) {
       const post = await this.postsService.findOne({
-        _id: postId,
+        id: postId,
         isDeleted: false,
-        organization: ctx.organizationId,
+        organizationId: ctx.organizationId,
       });
 
       if (!post) {
@@ -134,7 +133,7 @@ export class AgentAnalyticsToolHandler {
 
       this.assertResourceScope(
         ctx,
-        readOptionalString(post.brand),
+        readOptionalString(post.brandId),
         'selected post',
       );
 
@@ -184,7 +183,7 @@ export class AgentAnalyticsToolHandler {
       }
 
       // Scalar FK — `assertResourceScope` rejects an undefined resource brand.
-      const brandId = resolveRelationId(ingredient.brandId, ingredient.brand);
+      const brandId = readOptionalString(ingredient.brandId);
       this.assertResourceScope(ctx, brandId, 'selected content');
 
       const publishedPost = await this.resolveLatestPublishedPostForIngredient(

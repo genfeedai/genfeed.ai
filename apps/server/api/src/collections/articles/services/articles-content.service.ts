@@ -611,7 +611,7 @@ export class ArticlesContentService {
 
       // Fetch and return updated article
       const updatedArticle = await this.articlesService?.findOne({
-        _id: article.id,
+        id: article.id,
       });
       if (!updatedArticle) {
         throw new Error('Article not found after enhancement');

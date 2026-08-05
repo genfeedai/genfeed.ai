@@ -145,11 +145,20 @@ export class NotificationHandlerService implements OnModuleInit {
             ? (payload.category as IngredientCategory)
             : IngredientCategory.IMAGE;
         const ingredient = payload.ingredient as Record<string, unknown>;
+        const ingredientId =
+          typeof ingredient.id === 'string' ? ingredient.id : '';
+        if (!ingredientId) {
+          this.logger.warn(
+            'ingredient_notification payload missing ingredient.id - skipping',
+            this.context,
+          );
+          break;
+        }
         await this.discordService.sendIngredientNotification(
           category,
           payload.cdnUrl,
           {
-            _id: String(ingredient._id || ''),
+            id: ingredientId,
             brand:
               typeof ingredient.brand === 'object' && ingredient.brand !== null
                 ? (ingredient.brand as { label?: string })
@@ -204,7 +213,7 @@ export class NotificationHandlerService implements OnModuleInit {
         break;
 
       case 'user_notification':
-        if ('_id' in payload) {
+        if ('id' in payload) {
           await this.discordService.sendUserCreatedNotification(payload);
         }
         break;

@@ -100,12 +100,12 @@ export class OrganizationsRelationshipsController {
       this.membersService.findOne({
         isActive: true,
         isDeleted: false,
-        organization: organizationId,
-        user: publicMetadata.user,
+        organizationId: organizationId,
+        userId: publicMetadata.user,
       }),
       this.organizationsService.findOne({
-        _id: organizationId,
-        user: publicMetadata.user,
+        id: organizationId,
+        userId: publicMetadata.user,
       }),
     ]);
 
@@ -150,7 +150,7 @@ export class OrganizationsRelationshipsController {
       where: {
         isConnected: true,
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
       },
     };
 
@@ -323,23 +323,40 @@ export class OrganizationsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const statusFilter = CollectionFilterUtil.buildStatusFilter(query.status);
     const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent,
+      query.parentId,
     );
+    const folderConditions = IngredientFilterUtil.buildFolderFilter(
+      query.folderId,
+    );
+    const metadataWhere = {
+      ...(query.search
+        ? {
+            OR: [
+              { label: { contains: query.search, mode: 'insensitive' } },
+              {
+                description: {
+                  contains: query.search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
+      ...(query.format ? { extension: query.format } : {}),
+    };
 
     const where = {
       isDeleted,
-      organization: organizationId,
-      ...statusFilter,
-      ...(query.search && {
-        OR: [
-          { label: { contains: query.search, mode: 'insensitive' } },
-          { description: { contains: query.search, mode: 'insensitive' } },
-        ],
+      organizationId: organizationId,
+      ...folderConditions,
+      ...(Object.keys(metadataWhere).length > 0 && {
+        metadata: { is: metadataWhere },
       }),
+      ...statusFilter,
       ...(query.category && { category: query.category }),
-      ...(query.brand &&
-        isEntityId(query.brand) && {
-          brand: query.brand,
+      ...(query.brandId &&
+        isEntityId(query.brandId) && {
+          brandId: query.brandId,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
         AND: [parentConditions],

@@ -24,7 +24,6 @@ describe('BrandDetailPage', () => {
   });
 
   it('titles the page Brand Profile', async () => {
-    // `generateMetadata` awaits the parent resolver for inherited OG images.
     const parent = Promise.resolve({
       openGraph: { images: [] },
     }) as unknown as ResolvingMetadata;

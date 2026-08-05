@@ -219,8 +219,8 @@ export class WorkflowExecutionController {
     return wrapError(async () => {
       const publicMetadata = getPublicMetadata(user);
       await this.workflowsService.findMutableOwnedOrThrow(workflowId, {
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       });
 
       if (dto.lock && dto.lock.length > 0) {
@@ -242,8 +242,8 @@ export class WorkflowExecutionController {
       const workflow = await this.workflowsService.findOwnedOrThrow(
         workflowId,
         {
-          organization: publicMetadata.organization,
-          user: publicMetadata.user,
+          organizationId: publicMetadata.organization,
+          userId: publicMetadata.user,
         },
       );
 

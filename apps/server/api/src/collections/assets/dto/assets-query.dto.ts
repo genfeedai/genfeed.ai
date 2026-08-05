@@ -17,14 +17,14 @@ export class AssetQueryDto extends BaseQueryDto {
   category?: AssetCategory;
 
   @ApiProperty({
-    description: 'Filter by parent model type',
+    description: 'Filter by parent type',
     enum: AssetParent,
     enumName: 'AssetParent',
     required: false,
   })
   @IsOptional()
   @IsEnum(AssetParent)
-  parentModel?: AssetParent;
+  parentType?: AssetParent;
 
   @ApiProperty({
     description: 'Filter by parent ID',
@@ -32,7 +32,7 @@ export class AssetQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsEntityId()
-  parent?: string;
+  parentId?: string;
 
   @ApiProperty({
     default: false,

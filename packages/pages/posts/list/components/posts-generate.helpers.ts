@@ -65,7 +65,7 @@ export async function generatePosts({
       // Generate cohesive thread
       await postsService.generateThread({
         count: count || 5,
-        credential: credential.id,
+        credentialId: credential.id,
         tone: 'professional',
         topic: prompt,
       });
@@ -73,7 +73,7 @@ export async function generatePosts({
       // Generate individual tweets
       await postsService.generateTweets({
         count: count || 10,
-        credential: credential.id,
+        credentialId: credential.id,
         tone: 'professional',
         topic: prompt,
       });

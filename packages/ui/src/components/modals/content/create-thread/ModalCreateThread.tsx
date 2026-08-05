@@ -56,7 +56,7 @@ export default function ModalCreateThread({
 
   const form = useForm<ThreadModalSchema>({
     defaultValues: {
-      credential: credential?.id,
+      credentialId: credential?.id,
       globalTitle: '',
       ingredient: ingredient?.id,
       posts: [{ description: '' }, { description: '' }],
@@ -74,7 +74,7 @@ export default function ModalCreateThread({
 
   useEffect(() => {
     if (credential?.id) {
-      form.setValue('credential', credential.id);
+      form.setValue('credentialId', credential.id);
     }
 
     if (ingredient?.id) {
@@ -97,9 +97,9 @@ export default function ModalCreateThread({
       const service = await getPostsService();
 
       const threadPosts = data.posts.map((post, index) => ({
-        credential: data.credential,
+        credentialId: data.credentialId,
         description: post.description.trim(),
-        ingredient: data.ingredient,
+        ingredients: data.ingredient ? [data.ingredient] : [],
         label: data.globalTitle || `Thread ${index + 1}/${data.posts.length}`,
         scheduledDate: data.scheduledDate,
         status: data.status as PostStatus,
@@ -135,7 +135,7 @@ export default function ModalCreateThread({
   };
 
   const selectedPlatform = credentials.find(
-    (c) => c.id === form.watch('credential'),
+    (c) => c.id === form.watch('credentialId'),
   )?.platform;
 
   const charLimit = selectedPlatform

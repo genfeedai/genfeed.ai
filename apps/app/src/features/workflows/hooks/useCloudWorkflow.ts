@@ -46,7 +46,7 @@ interface UseCloudWorkflowReturn {
   archive: () => Promise<void>;
   /** Available brands for BrandNode */
   brands: Array<{
-    _id: string;
+    id: string;
     label: string;
     slug: string;
     logoUrl?: string;
@@ -107,12 +107,12 @@ export function useCloudWorkflow({
         const workflowState = useWorkflowStore.getState();
 
         return {
-          _id: workflowState.workflowId ?? '',
+          id: workflowState.workflowId ?? '',
           createdAt: undefined,
           edgeStyle: workflowState.edgeStyle,
           edges: workflowState.edges,
           groups: workflowState.groups,
-          name: workflowState.workflowName,
+          label: workflowState.workflowName,
           nodes: workflowState.nodes,
           updatedAt: undefined,
         };

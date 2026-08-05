@@ -105,6 +105,11 @@ describe('Discord Bot Manager Integration Flow', () => {
     updatedAt: new Date('2024-01-01'),
   };
 
+  const integrationApiPayload = (integration: OrgIntegration) => {
+    const { orgId, ...fields } = integration;
+    return { ...fields, organizationId: orgId };
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
@@ -125,7 +130,9 @@ describe('Discord Bot Manager Integration Flow', () => {
     };
 
     // Mock HTTP calls for fetching integrations
-    httpService.get.mockReturnValue(of({ data: [mockIntegration] }));
+    httpService.get.mockReturnValue(
+      of({ data: [integrationApiPayload(mockIntegration)] }),
+    );
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -216,7 +223,9 @@ describe('Discord Bot Manager Integration Flow', () => {
         id: 'new-integration-2',
         orgId: 'org-456',
       };
-      httpService.get.mockReturnValue(of({ data: newIntegration }));
+      httpService.get.mockReturnValue(
+        of({ data: integrationApiPayload(newIntegration) }),
+      );
 
       // Callback receives IntegrationEvent shape (not JSON string)
       callback({

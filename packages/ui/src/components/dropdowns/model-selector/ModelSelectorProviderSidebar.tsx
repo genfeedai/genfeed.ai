@@ -97,8 +97,8 @@ function SidebarButton({
       className={cn(
         'relative flex size-11 items-center justify-center rounded transition-[background-color,color] lg:size-8',
         isActive
-          ? 'bg-accent'
-          : 'text-foreground/50 hover:bg-accent hover:text-foreground/80',
+          ? 'bg-accent text-accent-foreground'
+          : 'text-foreground/50 hover:bg-accent hover:text-accent-foreground',
       )}
       style={isActive ? { color } : undefined}
     >

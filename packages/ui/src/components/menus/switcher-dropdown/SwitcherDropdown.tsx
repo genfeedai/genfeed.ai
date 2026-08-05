@@ -304,18 +304,36 @@ function SwitcherItem({
       </CommandItem>
 
       {item.trailingAction && TrailingIcon ? (
-        <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          ariaLabel={item.trailingAction.ariaLabel}
-          onClick={onAction}
-          className={cn(
-            'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
-            'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
-          )}
-        >
-          <TrailingIcon className="size-3.5" />
-        </Button>
+        item.trailingAction.href ? (
+          <a
+            href={item.trailingAction.href}
+            target={item.trailingAction.target}
+            rel={
+              item.trailingAction.target === '_blank' ? 'noreferrer' : undefined
+            }
+            aria-label={item.trailingAction.ariaLabel}
+            onClick={() => onAction()}
+            className={cn(
+              'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+              'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
+            )}
+          >
+            <TrailingIcon className="size-3.5" />
+          </a>
+        ) : (
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            ariaLabel={item.trailingAction.ariaLabel}
+            onClick={onAction}
+            className={cn(
+              'mr-1.5 flex size-7 flex-shrink-0 items-center justify-center rounded text-foreground/38 transition-colors duration-150',
+              'group-hover:text-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-0',
+            )}
+          >
+            <TrailingIcon className="size-3.5" />
+          </Button>
+        )
       ) : null}
     </div>
   );

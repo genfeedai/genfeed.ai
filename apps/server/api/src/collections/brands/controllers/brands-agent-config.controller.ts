@@ -247,8 +247,7 @@ export class BrandsAgentConfigController {
   ) {
     const organizationId = this.requireOrganizationId(user);
     const settings = await this.organizationSettingsService.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!settings?.isFastlaneEnabled) {
@@ -320,10 +319,10 @@ export class BrandsAgentConfigController {
   ): Promise<BrandDocument> {
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
       isDeleted: false,
     });

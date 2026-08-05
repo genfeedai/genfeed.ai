@@ -53,7 +53,7 @@ describe('ContentRunListPage', () => {
   it('links every run row to its brand-scoped detail page', async () => {
     list.mockResolvedValue([
       {
-        _id: 'run-1',
+        id: 'run-1',
         brief: { angle: 'AI workflow proof' },
         createdAt: '2026-05-01T09:00:00.000Z',
         skillSlug: 'trend-remix',

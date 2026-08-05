@@ -165,16 +165,8 @@ const RUN_TEMPLATES: RunTemplate[] = [
 const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 function upsertRun(history: RunRecord[], run: RunRecord): RunRecord[] {
-  const runId = run._id || run.id;
-  if (!runId) {
-    return [run, ...history].slice(0, 24);
-  }
-
   const next = [...history];
-  const existingIndex = next.findIndex((item) => {
-    const itemRunId = item._id || item.id;
-    return itemRunId === runId;
-  });
+  const existingIndex = next.findIndex((item) => item.id === run.id);
 
   if (existingIndex >= 0) {
     next[existingIndex] = run;
@@ -268,9 +260,7 @@ function ActiveRunSection({
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Active Run
           </p>
-          <p className="text-sm text-foreground">
-            {run._id || run.id || 'unknown'}
-          </p>
+          <p className="text-sm text-foreground">{run.id}</p>
         </div>
         <span
           className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${

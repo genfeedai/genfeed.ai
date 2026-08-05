@@ -64,6 +64,38 @@ export class OrganizationSettingsService extends BaseService<
     return super.create(createDto, populate ?? []);
   }
 
+  /**
+   * Seed the allowlist for organizations created before the Prisma allowlist
+   * migration, which have an empty enabledModelIds array.
+   *
+   * Seeding only — never a merge. This runs on every settings read, so folding
+   * in "missing" models would re-enable everything an org deliberately turned
+   * off before the next request could observe the change, making the model
+   * toggles impossible to switch off. A non-empty allowlist is an explicit
+   * choice and is returned untouched; deliberate additions go through
+   * `addEnabledModel` or a settings PATCH.
+   */
+  async ensureEnabledModelIds(
+    setting: OrganizationSettingDocument,
+  ): Promise<OrganizationSettingDocument> {
+    const currentEnabledModelIds = Array.isArray(setting.enabledModelIds)
+      ? setting.enabledModelIds
+      : [];
+
+    if (currentEnabledModelIds.length > 0) {
+      return setting;
+    }
+
+    const enabledModelIds = await this.getLatestMajorVersionModelIds();
+    if (enabledModelIds.length === 0) {
+      return setting;
+    }
+
+    return this.patch(setting.id, {
+      enabledModelIds,
+    });
+  }
+
   private readJourneyState(
     missions: unknown,
   ): IOnboardingJourneyMissionState[] | undefined {
@@ -120,12 +152,12 @@ export class OrganizationSettingsService extends BaseService<
   /**
    * Get the latest major versions of all active models
    * Filters out older major versions (e.g., veo-2 when veo-3 exists)
-   * Returns array of model ObjectIds
+   * Returns model IDs.
    */
   async getLatestMajorVersionModelIds(): Promise<string[]> {
-    // Fetch all active models — scope to system models only (organization: null)
+    // Fetch all active models — scope to system models only.
     const activeModels = await this.getModelsService().findAllActive({
-      organization: null,
+      organizationId: null,
     });
 
     if (!activeModels || activeModels.length === 0) {
@@ -216,7 +248,7 @@ export class OrganizationSettingsService extends BaseService<
   }
 
   /**
-   * Atomically add a model to an org's enabledModels set (idempotent via $addToSet)
+   * Atomically add a model to an organization's enabled model IDs.
    */
   async addEnabledModel(
     organizationId: string,
@@ -239,8 +271,7 @@ export class OrganizationSettingsService extends BaseService<
     organizationId: string,
   ): Promise<IOnboardingJourneyMissionState[]> {
     const settings = await this.findOne({
-      isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!settings) {

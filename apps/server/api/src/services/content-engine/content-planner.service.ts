@@ -63,9 +63,9 @@ export class ContentPlannerService {
     dto: GenerateContentPlanDto,
   ): Promise<{ plan: ContentPlanDocument; items: ContentPlanItemDocument[] }> {
     const brand = await this.brandsService.findOne({
-      _id: brandId,
+      id: brandId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!brand) {

@@ -8,7 +8,6 @@ export interface StreakMilestoneHistoryEntry {
 }
 
 export interface StreakDocument extends Omit<PrismaStreak, 'data'> {
-  _id: string;
   organization?: string;
   user?: string;
   currentStreak: number;

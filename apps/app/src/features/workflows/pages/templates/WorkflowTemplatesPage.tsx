@@ -215,7 +215,7 @@ function WorkflowTemplatesPageContent() {
           if (!isCancelled) {
             replace(
               hrefRef.current(
-                `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`,
+                `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`,
               ),
             );
           }
@@ -229,14 +229,14 @@ function WorkflowTemplatesPageContent() {
             sourceTemplateId: templateId,
             sourceType: 'seeded-template',
           },
-          name: 'Untitled Workflow',
+          label: 'Untitled Workflow',
           nodes: [],
           templateId,
         });
 
         if (!isCancelled) {
           replace(
-            hrefRef.current(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`),
+            hrefRef.current(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`),
           );
         }
       } catch (err) {
@@ -278,9 +278,9 @@ function WorkflowTemplatesPageContent() {
         dispatch({
           type: 'INSTALL_SUCCESS',
           canonicalId: entry.canonicalId,
-          installedWorkflowId: workflow._id,
+          installedWorkflowId: workflow.id,
         });
-        replace(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`));
+        replace(href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`));
       } catch (err) {
         logger.error('Failed to install system workflow', {
           canonicalId: entry.canonicalId,

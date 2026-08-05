@@ -134,7 +134,6 @@ function workflowRow(
     inputVariables: [],
     label: id,
     metadata: {},
-    mongoId: id,
     nodes: [
       {
         data: {

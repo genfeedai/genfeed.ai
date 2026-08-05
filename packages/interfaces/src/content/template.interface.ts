@@ -146,14 +146,14 @@ export interface ITemplateSuggestion {
 }
 
 export interface ITemplateGenerationRequest {
-  template: string; // ObjectId reference
+  template: string;
   variables: Record<string, unknown>;
   customizations?: Record<string, unknown>;
 }
 
 export interface ITemplateGenerationResult {
   id: string;
-  template: string; // ObjectId reference
+  template: string;
   content: unknown; // Depends on template type
   variables: Record<string, unknown>;
   generatedAt: Date;

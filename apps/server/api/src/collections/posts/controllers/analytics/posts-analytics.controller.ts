@@ -10,10 +10,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import {
-  requireRelationId,
-  resolveRelationId,
-} from '@api/shared/utils/relation-id/relation-id.util';
 import { MemberRole, PostStatus, PublishStatus } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -87,10 +83,10 @@ export class PostsAnalyticsController {
 
     // Verify publication ownership
     const post = await this.postsService.findOne({
-      _id: postId,
+      id: postId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
     });
 
@@ -143,10 +139,10 @@ export class PostsAnalyticsController {
 
     // Verify publication ownership
     const post = await this.postsService.findOne({
-      _id: postId,
+      id: postId,
       OR: [
-        { user: publicMetadata.user },
-        { organization: publicMetadata.organization },
+        { userId: publicMetadata.user },
+        { organizationId: publicMetadata.organization },
       ],
     });
 
@@ -178,35 +174,12 @@ export class PostsAnalyticsController {
 
     // Get credential for the post.
     //
-    // Scalar FKs only. `post.credential` is never back-filled by
-    // `BaseService.normalizeDocument`, and `post.brand` / `post.organization`
-    // are populated relation objects on this call path — so the previous
-    // `{ _id: post.credential, brand: post.brand, organization: post.organization }`
-    // filter had `undefined` and object values that `normalizeWhere` drops,
-    // silently unscoping the lookup from both the brand and the organization.
-    // `requireRelationId` fails closed instead: no id, no query.
-    const postRef = `Post ${postId}`;
-    const credentialId = requireRelationId(
-      post.credentialId,
-      post.credential,
-      'credential',
-      postRef,
-    );
-    const brandId = requireRelationId(
-      post.brandId,
-      post.brand,
-      'brand',
-      postRef,
-    );
-    const organizationId = requireRelationId(
-      post.organizationId,
-      post.organization,
-      'organization',
-      postRef,
-    );
+    const credentialId = post.credentialId;
+    const brandId = post.brandId;
+    const organizationId = post.organizationId;
 
     const credential = await this.credentialsService.findOne({
-      _id: credentialId,
+      id: credentialId,
       brandId,
       organizationId,
     });
@@ -289,7 +262,7 @@ export class PostsAnalyticsController {
           where: {
             externalId: { not: null },
             isDeleted: false,
-            organization: publicMetadata.organization,
+            organizationId: publicMetadata.organization,
             status: {
               in: [
                 PublishStatus.PUBLISHED,
@@ -315,10 +288,7 @@ export class PostsAnalyticsController {
 
       for (const post of posts.docs || []) {
         try {
-          const credentialId = resolveRelationId(
-            post.credentialId,
-            post.credential,
-          );
+          const credentialId = post.credentialId;
 
           if (!credentialId) {
             errorCount++;
@@ -331,7 +301,7 @@ export class PostsAnalyticsController {
           let credential = credentialCache.get(credentialId);
           if (credential === undefined) {
             credential = (await this.credentialsService.findOne({
-              _id: credentialId,
+              id: credentialId,
               organizationId: publicMetadata.organization,
             })) as unknown as CredentialEntity | null;
             credentialCache.set(credentialId, credential);

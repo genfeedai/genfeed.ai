@@ -84,7 +84,7 @@ function getWorkflowLabel(
   workflowsById: Map<string, WorkflowSummary>,
   workflowId: string,
 ): string {
-  return workflowsById.get(workflowId)?.name ?? workflowId;
+  return workflowsById.get(workflowId)?.label ?? workflowId;
 }
 
 export default function BatchDetail({
@@ -259,16 +259,16 @@ export default function BatchDetail({
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {activeBatchStatus.items.map((item) => {
             const ingredient =
-              availableOutputs.find((o) => o.item._id === item._id)
-                ?.ingredient ?? null;
+              availableOutputs.find((o) => o.item.id === item.id)?.ingredient ??
+              null;
             const libraryPath = getLibraryPathForCategory(
               item.outputCategory ?? item.outputSummary?.category,
             );
-            const isSelected = selectedOutputIds.has(item._id);
+            const isSelected = selectedOutputIds.has(item.id);
 
             return (
               <article
-                key={item._id}
+                key={item.id}
                 className="overflow-hidden rounded-2xl border border-white/10 bg-background/50"
               >
                 <div className="relative aspect-video bg-muted/50">
@@ -295,11 +295,9 @@ export default function BatchDetail({
                   {ingredient && (
                     <span className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
                       <Checkbox
-                        aria-label={`Select output ${item._id}`}
+                        aria-label={`Select output ${item.id}`}
                         checked={isSelected}
-                        onCheckedChange={() =>
-                          onToggleOutputSelection(item._id)
-                        }
+                        onCheckedChange={() => onToggleOutputSelection(item.id)}
                       />
                       Select
                     </span>

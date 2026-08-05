@@ -2,6 +2,7 @@ import type { LinkCategory } from '@genfeedai/enums';
 import type { IBaseEntity, IBrand } from '../index';
 
 export interface ILink extends IBaseEntity {
+  brandId: string;
   brand?: IBrand;
 
   label: string;

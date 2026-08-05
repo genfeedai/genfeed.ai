@@ -6,7 +6,7 @@ import { ModalEnum, Platform, PostStatus } from '@genfeedai/enums';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
 import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -60,11 +60,11 @@ export default function ModalPost({
   const _defaultValuesKey = `${credential?.id}-${ingredient?.id}-${parentPost?.id}`;
   const defaultValues = useMemo(
     () => ({
-      credential: credential?.id || '',
+      credentialId: credential?.id || '',
       description: '',
       ingredients: ingredient ? [ingredient.id] : [],
       label: '',
-      parent: parentPost?.id || '',
+      parentId: parentPost?.id || '',
       scheduledDate: '',
       status: PostStatus.DRAFT,
     }),
@@ -82,14 +82,18 @@ export default function ModalPost({
       const postsService = service as PostsService;
 
       const selectedCredential = credentials.find(
-        (c) => c.id === formData.credential,
+        (c) => c.id === formData.credentialId,
       );
+      const targetPlatform =
+        selectedCredential?.platform ||
+        entity?.platform ||
+        entity?.credential?.platform;
 
       const isScheduling = formData.status === PostStatus.SCHEDULED;
-      if (isScheduling && selectedCredential?.platform !== Platform.TWITTER) {
+      if (isScheduling && targetPlatform !== Platform.TWITTER) {
         if (!formData.ingredients || formData.ingredients.length === 0) {
           notificationsService.error(
-            `${selectedCredential?.platform || 'This platform'} requires media when scheduling. Please select at least one image or video.`,
+            `${targetPlatform || 'This platform'} requires media when scheduling. Please select at least one image or video.`,
           );
           throw new Error(
             'Ingredients required when scheduling for non-Twitter platforms',
@@ -100,6 +104,7 @@ export default function ModalPost({
       if (isEditMode && entity?.id) {
         const url = `PATCH /posts/${entity.id}`;
         const result = await postsService.patch(entity.id, {
+          credentialId: formData.credentialId,
           description: formData.description.trim(),
           label: formData.label?.trim() || '',
           scheduledDate: formData.scheduledDate,
@@ -112,11 +117,11 @@ export default function ModalPost({
       } else {
         const url = 'POST /publish';
         const result = await postsService.post({
-          credential: formData.credential as unknown as ICredential,
+          credentialId: formData.credentialId,
           description: formData.description.trim(),
-          ingredients: (formData.ingredients || []) as unknown as IIngredient[],
+          ingredients: formData.ingredients || [],
           label: formData.label?.trim() || '',
-          parent: formData.parent,
+          parentId: formData.parentId,
           scheduledDate: formData.scheduledDate,
           status: formData.status as PostStatus,
         });
@@ -168,7 +173,7 @@ export default function ModalPost({
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',
       );
       form.setValue('status', post.status || PostStatus.DRAFT);
-      form.setValue('credential', post.credential?.id || '');
+      form.setValue('credentialId', post.credential?.id ?? '');
       form.setValue(
         'ingredients',
         post.ingredients?.map((ing: IIngredient) => ing.id) || [],
@@ -192,11 +197,13 @@ export default function ModalPost({
   }, [closeModal]);
 
   const selectedCredential = credentials.find(
-    (c) => c.id === form.watch('credential'),
+    (c) => c.id === form.watch('credentialId'),
   );
 
   const selectedPlatform =
-    selectedCredential?.platform || post?.credential?.platform;
+    selectedCredential?.platform ||
+    post?.platform ||
+    post?.credential?.platform;
 
   const charLimit = selectedPlatform
     ? PLATFORM_CHAR_LIMITS[selectedPlatform] || DEFAULT_CHAR_LIMIT
@@ -217,7 +224,7 @@ export default function ModalPost({
 
   const handleCredentialSelect = useCallback(
     (credentialId: string) => {
-      form.setValue('credential', credentialId, {
+      form.setValue('credentialId', credentialId, {
         shouldDirty: true,
         shouldValidate: true,
       });

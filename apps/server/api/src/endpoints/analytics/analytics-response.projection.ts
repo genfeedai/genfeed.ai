@@ -150,7 +150,7 @@ export class AnalyticsResponseProjection {
 
   buildTopContent(rows: RawAnalyticsRow[]): Array<Record<string, unknown>> {
     return rows.map((row) => ({
-      _id: row.id as string,
+      id: row.id as string,
       brandLogo: row.brand_logo as unknown,
       brandName: row.brand_name as string,
       date: row.date as Date,

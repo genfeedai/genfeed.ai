@@ -85,11 +85,15 @@ describe('WorkflowMarketplaceController', () => {
         mockWorkflowsService.findAll.mock.calls[
           mockWorkflowsService.findAll.mock.calls.length - 1
         ];
-      expect(aggregateArg.where).toMatchObject({
+      expect(aggregateArg.where).toEqual({
+        AND: [
+          { config: { equals: true, path: ['isPublic'] } },
+          { config: { equals: true, path: ['isTemplate'] } },
+        ],
         isDeleted: false,
-        isPublic: true,
-        isTemplate: true,
       });
+      expect(aggregateArg.where).not.toHaveProperty('isPublic');
+      expect(aggregateArg.where).not.toHaveProperty('isTemplate');
     });
   });
 });

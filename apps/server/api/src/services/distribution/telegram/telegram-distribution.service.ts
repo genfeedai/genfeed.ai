@@ -1,7 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
   CredentialPlatform,
   DistributionContentType,
@@ -177,9 +176,9 @@ export class TelegramDistributionService {
     const { distributionId, organizationId, platform } = options;
 
     const distribution = await this.distributionsService.findOne({
-      _id: distributionId,
+      id: distributionId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform,
       status: PublishStatus.SCHEDULED,
     });
@@ -195,19 +194,8 @@ export class TelegramDistributionService {
     }
 
     try {
-      // Scalar FKs first, Mongo-era aliases only as a fallback. The old order was
-      // inverted: `distribution.brand?.toString()` yields `"[object Object]"` when
-      // the relation happens to be populated, and both aliases are `undefined` on
-      // a plain row — which meant the `!organizationId` guard below rejected every
-      // scheduled Telegram distribution unless `BaseService` back-filled them.
-      const organizationId = resolveRelationId(
-        distribution.organizationId,
-        distribution.organization,
-      );
-      const brandId = resolveRelationId(
-        distribution.brandId,
-        distribution.brand,
-      );
+      const organizationId = distribution.organizationId;
+      const brandId = distribution.brandId ?? undefined;
       const chatId = distribution.chatId;
       const contentType = distribution.contentType;
 
@@ -266,10 +254,10 @@ export class TelegramDistributionService {
     // Try org-specific credential first (brand-scoped token)
     if (brandId) {
       const credential = await this.credentialsService.findOne({
-        brand: brandId,
+        brandId: brandId,
         isConnected: true,
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
 
@@ -282,7 +270,7 @@ export class TelegramDistributionService {
     const orgCredential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
       platform: CredentialPlatform.TELEGRAM,
     });
 

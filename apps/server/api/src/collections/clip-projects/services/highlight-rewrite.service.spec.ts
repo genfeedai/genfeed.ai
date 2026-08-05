@@ -4,12 +4,19 @@ import { HighlightRewriteService } from './highlight-rewrite.service';
 
 describe('HighlightRewriteService', () => {
   let service: HighlightRewriteService;
-  let mockOpenRouterService: any;
-  let mockClipProjectsService: any;
-  let mockLoggerService: any;
+  let mockOpenRouterService: {
+    chatCompletion: ReturnType<typeof vi.fn>;
+  };
+  let mockClipProjectsService: {
+    findOne: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
+  };
+  let mockLoggerService: {
+    error: ReturnType<typeof vi.fn>;
+  };
 
   const mockProject = {
-    _id: 'project-1',
+    id: 'project-1',
     highlights: [
       {
         clip_type: 'educational',
@@ -59,9 +66,9 @@ describe('HighlightRewriteService', () => {
     };
 
     service = new HighlightRewriteService(
-      mockOpenRouterService,
-      mockClipProjectsService,
-      mockLoggerService,
+      mockOpenRouterService as never,
+      mockClipProjectsService as never,
+      mockLoggerService as never,
     );
   });
 

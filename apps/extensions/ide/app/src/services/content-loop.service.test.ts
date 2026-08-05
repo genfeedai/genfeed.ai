@@ -29,7 +29,7 @@ describe('executeContentLoop', () => {
     ];
 
     const runTemplate: RunRecord = {
-      _id: 'run-generate',
+      id: 'run-generate',
       actionType: 'generate',
       progress: 100,
       status: 'completed',
@@ -41,7 +41,7 @@ describe('executeContentLoop', () => {
         executedActions.push(actionType);
         return Promise.resolve({
           ...runTemplate,
-          _id: `run-${actionType}`,
+          id: `run-${actionType}`,
           actionType,
         });
       },
@@ -51,7 +51,7 @@ describe('executeContentLoop', () => {
     expect(executedActions).toEqual(['generate']);
     expect(result.abortedAt).toBe('publish');
     expect(result.skippedSteps).toEqual(['publish']);
-    expect(result.runs.map((run) => run._id)).toEqual(['run-generate']);
+    expect(result.runs.map((run) => run.id)).toEqual(['run-generate']);
   });
 
   it('skips rejected confirmation without abort when haltOnRejection is false', async () => {
@@ -80,7 +80,7 @@ describe('executeContentLoop', () => {
       executeRun: (actionType) => {
         executedActions.push(actionType);
         return Promise.resolve({
-          _id: `run-${actionType}`,
+          id: `run-${actionType}`,
           actionType,
           progress: 100,
           status: 'completed',
@@ -114,7 +114,7 @@ describe('executeContentLoop', () => {
       executeRun: (_actionType, _input, options) => {
         callOptions.push(options ?? {});
         return Promise.resolve({
-          _id: 'run-generate',
+          id: 'run-generate',
           actionType: 'generate',
           progress: 100,
           status: 'completed',

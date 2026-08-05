@@ -16,8 +16,8 @@ interface PublishResponse {
 }
 
 interface Credential {
+  externalHandle?: string;
   id: string;
-  handle?: string;
   isConnected?: boolean;
   label?: string;
   platform?: string;
@@ -37,7 +37,7 @@ function parsePlatforms(raw: string | undefined): string[] {
 }
 
 function credentialLabel(credential: Credential): string {
-  const base = credential.label ?? credential.handle ?? credential.id;
+  const base = credential.label ?? credential.externalHandle ?? credential.id;
   const platform = credential.platform ? ` (${credential.platform})` : '';
   return `${base}${platform}`;
 }
@@ -147,7 +147,7 @@ export const publishCommand = new Command('publish')
 
       for (const credential of selectedCredentials) {
         const payload: Record<string, unknown> = {
-          credential: credential.id,
+          credentialId: credential.id,
           description,
           ingredients: [ingredientId],
           label: description ? description.slice(0, 80) : `CLI post ${nowIso}`,

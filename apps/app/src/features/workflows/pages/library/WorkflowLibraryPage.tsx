@@ -178,9 +178,9 @@ export default function WorkflowLibraryPage() {
 
             return (
               <Card
-                key={workflow._id}
+                key={workflow.id}
                 className="group h-full hover:-translate-y-0.5"
-                label={workflow.name}
+                label={workflow.label}
                 description={
                   workflow.description ??
                   'Reusable automation workflow for content operations.'
@@ -213,31 +213,29 @@ export default function WorkflowLibraryPage() {
                     {!isSystemWorkflow && workflow.schedule ? (
                       <Switch
                         checked={workflow.isScheduleEnabled ?? false}
-                        aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.name}`}
+                        aria-label={`${workflow.isScheduleEnabled ? 'Disable' : 'Enable'} schedule for ${workflow.label}`}
                         onCheckedChange={(checked) =>
-                          handleToggleSchedule(workflow._id, checked)
+                          handleToggleSchedule(workflow.id, checked)
                         }
                       />
                     ) : null}
                     <WorkflowCardDropdown
                       canDelete={!isSystemWorkflow}
-                      onDuplicate={() => handleDuplicate(workflow._id)}
-                      onDelete={() => handleDelete(workflow._id)}
+                      onDuplicate={() => handleDuplicate(workflow.id)}
+                      onDelete={() => handleDelete(workflow.id)}
                     />
                   </div>
                 }
                 bodyClassName="h-full justify-between"
               >
                 <Link
-                  href={href(
-                    `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow._id}`,
-                  )}
-                  aria-label={`Open ${workflow.name}`}
+                  href={href(`${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.id}`)}
+                  aria-label={`Open ${workflow.label}`}
                   className="absolute inset-0 z-10 rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 />
                 <div className="space-y-3">
                   <WorkflowCardPreview
-                    name={workflow.name}
+                    name={workflow.label}
                     thumbnail={workflow.thumbnail}
                   />
                   <div className="flex items-center justify-between text-xs text-foreground/50">

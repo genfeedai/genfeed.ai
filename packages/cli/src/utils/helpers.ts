@@ -54,11 +54,3 @@ export const POLL_TIMEOUT_GENERATION = 30 * 60 * 1000;
 export function hasExceededTimeout(startTime: number, timeoutMs: number): boolean {
   return Date.now() - startTime > timeoutMs;
 }
-
-export function extractId(doc: { _id?: string; id?: string }): string {
-  const candidate = doc._id ?? doc.id;
-  if (!candidate) {
-    throw new Error('Document does not contain an id.');
-  }
-  return candidate;
-}

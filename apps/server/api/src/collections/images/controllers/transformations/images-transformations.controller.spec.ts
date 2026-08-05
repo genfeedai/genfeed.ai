@@ -146,7 +146,7 @@ describe('ImagesTransformationsController', () => {
         .mockResolvedValue(MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE),
     },
     sharedService: {
-      saveDocuments: vi.fn().mockResolvedValue({
+      createMediaDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
           id: '507f1f77bcf86cd799439017',
         },
@@ -252,7 +252,9 @@ describe('ImagesTransformationsController', () => {
       );
 
       expect(mockServices.imagesService.findOne).toHaveBeenCalled();
-      expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalled();
       expect(
         mockServices.filesClientService.resizeImageFromUrl,
       ).toHaveBeenCalledWith(
@@ -337,7 +339,9 @@ describe('ImagesTransformationsController', () => {
 
       expect(mockServices.imagesService.findOne).toHaveBeenCalled();
       expect(mockServices.promptsService.create).toHaveBeenCalled();
-      expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalled();
       expect(
         mockServices.replicateService.generateTextToImage,
       ).toHaveBeenCalled();
@@ -374,7 +378,9 @@ describe('ImagesTransformationsController', () => {
         createImageDto,
       );
 
-      expect(mockServices.sharedService.saveDocuments).toHaveBeenCalledWith(
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalledWith(
         mockUser,
         expect.objectContaining({
           height: 1080,
@@ -423,7 +429,9 @@ describe('ImagesTransformationsController', () => {
       );
 
       expect(mockServices.imagesService.findOne).toHaveBeenCalled();
-      expect(mockServices.sharedService.saveDocuments).toHaveBeenCalled();
+      expect(
+        mockServices.sharedService.createMediaDocuments,
+      ).toHaveBeenCalled();
       expect(mockServices.replicateService.runModel).toHaveBeenCalled();
       expect(result).toBeDefined();
     });

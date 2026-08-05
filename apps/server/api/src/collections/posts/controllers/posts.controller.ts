@@ -14,7 +14,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
-import { createLegacyPost } from '@api/collections/posts/handlers/legacy-post-create.handler';
+import { createPost } from '@api/collections/posts/handlers/post-create.handler';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -107,7 +107,7 @@ export class PostsController extends BaseCRUDController<
     );
 
     try {
-      const data = await createLegacyPost({
+      const data = await createPost({
         createPostDto,
         dependencies: {
           accountHealthService: this.accountHealthService,
@@ -199,23 +199,22 @@ export class PostsController extends BaseCRUDController<
       isDeleted,
       ...dateFilter,
       // Only show parent posts (not children/replies)
-      // Handle both null and undefined (undefined fields aren't stored in MongoDB)
-      OR: [{ parentId: null }, { parentId: { not: null } }],
+      parentId: null,
     };
 
     // Members may narrow to a brand/org (preferred over nested relationship lists).
     // Superadmin already gets these via adminFilter when present.
-    if (!adminFilter && (query.brand || query.organization)) {
+    if (!adminFilter && (query.brandId || query.organizationId)) {
       const scope = CollectionFilterUtil.resolveAuthorizedTenantQuery(
         query,
         publicMetadata,
         false,
       );
-      if (scope.brand) {
-        matchFilter.brand = scope.brand;
+      if (scope.brandId) {
+        matchFilter.brandId = scope.brandId;
       }
-      if (scope.organization) {
-        matchFilter.organization = scope.organization;
+      if (scope.organizationId) {
+        matchFilter.organizationId = scope.organizationId;
       }
     }
 
@@ -227,8 +226,8 @@ export class PostsController extends BaseCRUDController<
       matchFilter.status = query.status;
     }
 
-    if (query.credential) {
-      matchFilter.credential = query.credential;
+    if (query.credentialId) {
+      matchFilter.credentialId = query.credentialId;
     }
 
     return { where: matchFilter, orderBy: handleQuerySort(query.sort) };
@@ -268,7 +267,7 @@ export class PostsController extends BaseCRUDController<
     // Build findAll query to fetch post with ingredients, credential, and evaluation
     const pipeline = {
       where: {
-        _id: postId,
+        id: postId,
         isDeleted: false,
       },
     };
@@ -292,7 +291,7 @@ export class PostsController extends BaseCRUDController<
 
     // Check organization access
     if (
-      post.organization.toString() !== publicMetadata.organization.toString()
+      post.organizationId.toString() !== publicMetadata.organization.toString()
     ) {
       throw new HttpException(
         {

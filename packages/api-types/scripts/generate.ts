@@ -81,18 +81,6 @@ async function generateTypes(): Promise<void> {
       spec as Parameters<typeof openapiTS.default>[0],
       {
         exportType: true,
-        transform(schemaObject) {
-          // Transform ObjectId format to string type
-          if (
-            schemaObject &&
-            typeof schemaObject === 'object' &&
-            'format' in schemaObject &&
-            schemaObject.format === 'ObjectId'
-          ) {
-            return { type: 'string' } as typeof schemaObject;
-          }
-          return schemaObject;
-        },
       },
     );
 

@@ -154,11 +154,11 @@ export class HeygenPollProcessor extends WorkerHost {
   ): Promise<void> {
     try {
       const ingredient = await this.ingredientsService.findOne({
-        _id: data.ingredientId,
+        id: data.ingredientId,
         isDeleted: false,
       });
-      if (ingredient?.metadata) {
-        await this.metadataService.patch(String(ingredient.metadata), {
+      if (ingredient?.metadataId) {
+        await this.metadataService.patch(ingredient.metadataId, {
           error: errorMessage,
         });
       }

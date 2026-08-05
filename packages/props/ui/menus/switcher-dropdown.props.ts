@@ -7,8 +7,10 @@ export interface SwitcherDropdownItem {
   imageUrl?: string;
   trailingAction?: {
     ariaLabel: string;
+    href?: string;
     icon: ComponentType<{ className?: string }>;
     onAction: () => void;
+    target?: '_blank' | '_self';
   };
 }
 

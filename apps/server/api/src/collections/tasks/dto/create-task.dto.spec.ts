@@ -10,6 +10,7 @@ describe('CreateTaskDto', () => {
   describe('validation', () => {
     it('accepts a valid task payload with linked entities', async () => {
       const dto = plainToInstance(CreateTaskDto, {
+        brandId: '507f1f77bcf86cd799439012',
         linkedEntities: [
           {
             entityId: '507f1f77bcf86cd799439011',
@@ -24,6 +25,17 @@ describe('CreateTaskDto', () => {
       const errors = await validate(dto);
 
       expect(errors).toHaveLength(0);
+    });
+
+    it('rejects non-canonical brand IDs', async () => {
+      const dto = plainToInstance(CreateTaskDto, {
+        brandId: 'legacy-brand-alias',
+        title: 'Invalid brand identity',
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors[0]?.constraints).toHaveProperty('isEntityId');
     });
 
     it('rejects invalid linked entity models', async () => {

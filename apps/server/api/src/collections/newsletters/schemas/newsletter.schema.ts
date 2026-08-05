@@ -10,10 +10,6 @@ export interface NewsletterSourceRef {
 
 export interface NewsletterDocument
   extends Omit<PrismaNewsletter, 'sourceRefs'> {
-  _id: string;
-  organization?: string;
-  brand?: string | null;
-  user?: string;
   sourceRefs?: NewsletterSourceRef[] | null;
   [key: string]: unknown;
 }

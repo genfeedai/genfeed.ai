@@ -165,14 +165,14 @@ describe('PostRepeatSchedulerService', () => {
       });
       expect(postsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-1',
-          credential: 'credential-1',
-          organization: 'organization-1',
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
+          organizationId: 'organization-1',
           repeatCount: 1,
           repeatFrequency: frequency,
           scheduledDate: expectedDate,
           timezone: 'America/New_York',
-          user: 'user-1',
+          userId: 'user-1',
         }),
       );
       expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
@@ -326,7 +326,7 @@ describe('PostRepeatSchedulerService', () => {
       expect.objectContaining({
         agentThreadId: 'thread-1',
         ingredients: ['ingredient-3'],
-        parent: 'post-2',
+        parentId: 'post-2',
         scheduledDate: new Date(2026, 6, 21, 10),
       }),
     );

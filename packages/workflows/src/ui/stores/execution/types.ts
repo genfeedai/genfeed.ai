@@ -36,7 +36,7 @@ export interface NodeResult {
 }
 
 export interface ExecutionData {
-  _id: string;
+  id: string;
   workflowId: string;
   status: string;
   debugMode?: boolean;

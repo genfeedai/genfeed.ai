@@ -50,10 +50,6 @@ export class AgentStrategyOpportunitiesService {
 
     return {
       ...(record as unknown as AgentStrategyOpportunityDocument),
-      _id:
-        typeof record.mongoId === 'string' && record.mongoId.length > 0
-          ? record.mongoId
-          : String(record.id ?? ''),
       brand:
         typeof record.brandId === 'string' || record.brandId === null
           ? (record.brandId as string | null)

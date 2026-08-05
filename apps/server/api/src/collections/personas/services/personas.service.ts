@@ -23,27 +23,63 @@ export class PersonasService extends BaseService<
     super(prisma, 'persona', logger);
   }
 
+  protected normalizeDocument(document: unknown): PersonaDocument {
+    const record = document as Record<string, unknown>;
+    const config =
+      typeof record.config === 'object' && record.config !== null
+        ? (record.config as Record<string, unknown>)
+        : {};
+    return { ...config, ...record } as PersonaDocument;
+  }
+
   create(
     dto: CreatePersonaDto & {
-      user: string;
-      organization: string;
-      brand: string;
+      userId: string;
+      organizationId: string;
+      brandId?: string | null;
+      bio?: string;
+      emoji?: string;
+      eyeColor?: string;
+      fleetSources?: Array<Record<string, unknown>>;
+      loraStatus?: string;
+      niche?: string;
+      s3Folder?: string;
+      skinTone?: string;
+      triggerWord?: string;
     },
     populate: PopulateOption[] = [
       PopulatePatterns.userMinimal,
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PersonaDocument> {
-    const { user, organization, brand, contentStrategy, ...rest } =
-      dto as typeof dto & {
-        contentStrategy?: Record<string, unknown>;
-      };
+    const {
+      bio,
+      contentStrategy,
+      emoji,
+      eyeColor,
+      fleetSources,
+      loraStatus,
+      niche,
+      s3Folder,
+      skinTone,
+      triggerWord,
+      ...rest
+    } = dto;
+    const config = {
+      ...(bio !== undefined ? { bio } : {}),
+      ...(contentStrategy !== undefined ? { contentStrategy } : {}),
+      ...(emoji !== undefined ? { emoji } : {}),
+      ...(eyeColor !== undefined ? { eyeColor } : {}),
+      ...(fleetSources !== undefined ? { fleetSources } : {}),
+      ...(loraStatus !== undefined ? { loraStatus } : {}),
+      ...(niche !== undefined ? { niche } : {}),
+      ...(s3Folder !== undefined ? { s3Folder } : {}),
+      ...(skinTone !== undefined ? { skinTone } : {}),
+      ...(triggerWord !== undefined ? { triggerWord } : {}),
+    };
     const payload = {
       ...rest,
-      userId: user,
-      organizationId: organization,
-      brandId: brand,
-      ...(contentStrategy !== undefined ? { config: { contentStrategy } } : {}),
+      ...(Object.keys(config).length > 0 ? { config } : {}),
     };
     return super.create(payload as never, populate);
   }
@@ -74,6 +110,6 @@ export class PersonasService extends BaseService<
       throw new NotFoundException('Persona');
     }
 
-    return persona as never;
+    return this.normalizeDocument(persona);
   }
 }

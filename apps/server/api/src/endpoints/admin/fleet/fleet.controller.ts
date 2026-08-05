@@ -98,15 +98,18 @@ export class AdminFleetController {
   ) {
     try {
       const { organization, brand, user: dbUserId } = getPublicMetadata(user);
-      const userId = EntityIdUtil.toValidId(dbUserId)!;
-      const organizationId = EntityIdUtil.toValidId(organization)!;
-      const brandId = EntityIdUtil.toValidId(brand)!;
+      const userId = EntityIdUtil.validate(dbUserId, 'userId');
+      const organizationId = EntityIdUtil.validate(
+        organization,
+        'organizationId',
+      );
+      const brandId = EntityIdUtil.validate(brand, 'brandId');
 
       const character = await this.adminFleetService.createCharacter({
         ...dto,
-        brand: brandId,
-        organization: organizationId,
-        user: userId,
+        brandId,
+        organizationId,
+        userId,
       } as Parameters<AdminFleetService['createCharacter']>[0]);
       return serializeSingle(request, PersonaSerializer, character);
     } catch (error) {
@@ -188,8 +191,8 @@ export class AdminFleetController {
         dto.captions,
       );
       return serializeSingle(request, FleetUploadDatasetResultSerializer, {
-        _id: `dataset:${slug}`,
         ...data,
+        id: `dataset:${slug}`,
       });
     } catch (error) {
       return ErrorResponse.handle(error, this.loggerService, 'uploadDataset');
@@ -214,8 +217,8 @@ export class AdminFleetController {
       );
 
       return serializeSingle(request, FleetUploadDatasetResultSerializer, {
-        _id: `training-data:${slug}`,
         ...data,
+        id: `training-data:${slug}`,
       });
     } catch (error) {
       return ErrorResponse.handle(
@@ -244,8 +247,8 @@ export class AdminFleetController {
         );
 
       return serializeSingle(request, FleetUploadDatasetResultSerializer, {
-        _id: `training-data:${organization}`,
         ...data,
+        id: `training-data:${organization}`,
       });
     } catch (error) {
       return ErrorResponse.handle(

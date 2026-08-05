@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { PinterestController } from '@api/services/integrations/pinterest/controllers/pinterest.controller';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
@@ -6,7 +7,11 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(PinterestService, {
-  additionalImports: [HttpModule, forwardRef(() => CredentialsCoreModule)],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsCoreModule),
+  ],
 });
 
 @Module({

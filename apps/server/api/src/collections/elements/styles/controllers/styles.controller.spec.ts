@@ -22,25 +22,28 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 describe('ElementsStylesController', () => {
+  const userId = '550e8400-e29b-41d4-a716-446655440001';
+  const organizationId = '550e8400-e29b-41d4-a716-446655440002';
+  const styleId = '550e8400-e29b-41d4-a716-446655440003';
   let controller: ElementsStylesController;
 
   const mockUser: User = {
     publicMetadata: {
       isSuperAdmin: true,
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      organization: organizationId,
+      user: userId,
     },
   } as unknown as User;
 
   const mockStyle = {
-    _id: '507f1f77bcf86cd799439014',
+    id: styleId,
     createdAt: new Date(),
     description: 'Modern video style',
     isDeleted: false,
     label: 'Modern Style',
     settings: {},
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439011',
+    organizationId,
   };
 
   const mockElementsStylesService = {
@@ -49,6 +52,7 @@ describe('ElementsStylesController', () => {
     findOne: vi.fn(),
     patch: vi.fn(),
     remove: vi.fn(),
+    supportsField: vi.fn((field: string) => field === 'organizationId'),
   };
 
   const mockLoggerService = {
@@ -108,7 +112,7 @@ describe('ElementsStylesController', () => {
     it('should load defaults when no organization', () => {
       const userWithoutOrg: User = {
         publicMetadata: {
-          user: '507f1f77bcf86cd799439011',
+          user: userId,
         },
       } as unknown as User;
 
@@ -137,7 +141,6 @@ describe('ElementsStylesController', () => {
 
   describe('update', () => {
     it('should update a style', async () => {
-      const id = '507f1f77bcf86cd799439014';
       const updateDto: UpdateElementStyleDto = {
         label: 'Updated Style',
       };
@@ -147,7 +150,12 @@ describe('ElementsStylesController', () => {
       mockElementsStylesService.findOne.mockResolvedValue(mockStyle);
       mockElementsStylesService.patch.mockResolvedValue(updatedStyle);
 
-      const result = await controller.update(request, mockUser, id, updateDto);
+      const result = await controller.update(
+        request,
+        mockUser,
+        styleId,
+        updateDto,
+      );
 
       expect(result).toBeDefined();
     });
@@ -155,13 +163,12 @@ describe('ElementsStylesController', () => {
 
   describe('remove', () => {
     it('should remove a style', async () => {
-      const id = '507f1f77bcf86cd799439014';
       const request = {} as Request;
 
       mockElementsStylesService.findOne.mockResolvedValue(mockStyle);
       mockElementsStylesService.remove.mockResolvedValue(mockStyle);
 
-      const result = await controller.remove(request, mockUser, id);
+      const result = await controller.remove(request, mockUser, styleId);
 
       expect(result).toBeDefined();
     });

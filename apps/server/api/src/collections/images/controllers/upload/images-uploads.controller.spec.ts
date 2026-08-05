@@ -67,7 +67,7 @@ describe('ImagesUploadsController', () => {
       confirmUpload: vi.fn(),
       getPresignedUploadUrl: vi.fn(),
     },
-    sharedService: { saveDocuments: vi.fn() },
+    sharedService: { createMediaDocuments: vi.fn() },
     solanaService: { getNft: vi.fn() },
     validationConfigService: {
       getAllowedAudioExtensions: vi.fn(),
@@ -148,7 +148,7 @@ describe('ImagesUploadsController', () => {
       mockServices.validationConfigService.getAllowedImageExtensions.mockReturnValue(
         ['jpg', 'jpeg', 'png'],
       );
-      mockServices.sharedService.saveDocuments.mockResolvedValue({
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
       });
       mockServices.filesClientService.uploadToS3.mockResolvedValue({
@@ -159,7 +159,7 @@ describe('ImagesUploadsController', () => {
         category: IngredientCategory.IMAGE,
       });
 
-      expect(sharedService.saveDocuments).toHaveBeenCalled();
+      expect(sharedService.createMediaDocuments).toHaveBeenCalled();
       expect(filesClientService.uploadToS3).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
@@ -198,7 +198,7 @@ describe('ImagesUploadsController', () => {
           headers: { 'content-type': 'image/png' },
         }),
       );
-      mockServices.sharedService.saveDocuments.mockResolvedValue({
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
         ingredientData: mockIngredient,
       });
       mockServices.filesClientService.uploadToS3.mockResolvedValue({
@@ -243,7 +243,9 @@ describe('ImagesUploadsController', () => {
 
       const mockResult = {
         expiresIn: 3600,
-        ingredientId: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
+        publicUrl: 'https://cdn.example.com/images/507f1f77bcf86cd799439014',
+        s3Key: 'ingredients/images/507f1f77bcf86cd799439014',
         uploadUrl: 'https://s3.example.com/presigned-url',
       };
 

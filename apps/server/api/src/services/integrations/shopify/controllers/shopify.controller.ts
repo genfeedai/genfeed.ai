@@ -1,7 +1,31 @@
+import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreateCredentialVerifyDto } from '@api/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
-import { ShopifyService } from '@api/services/integrations/shopify/services/shopify.service';
+import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
+import { ConnectShopifyCredentialDto } from '@api/services/integrations/shopify/dto/connect-shopify-credential.dto';
+import {
+  normalizeShopifyShopDomain,
+  ShopifyService,
+} from '@api/services/integrations/shopify/services/shopify.service';
+import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialOAuthSerializer,
+  CredentialSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Post,
+  Req,
+} from '@nestjs/common';
+import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('services/shopify')
@@ -9,23 +33,105 @@ export class ShopifyController {
   constructor(
     private readonly shopifyService: ShopifyService,
     private readonly loggerService: LoggerService,
+    private readonly brandsService: BrandsService,
+    private readonly credentialsService: CredentialsService,
   ) {}
 
-  @Get('auth')
-  getAuthUrl(@Query('shop') shop: string, @Query('state') state: string) {
-    const url = this.shopifyService.generateAuthUrl(shop, state || '');
+  @Post('connect')
+  async connect(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() body: ConnectShopifyCredentialDto,
+  ) {
+    const { organization, user: userId } = getPublicMetadata(user);
+    const brand = await this.brandsService.findOne({
+      id: body.brandId,
+      isDeleted: false,
+      organizationId: organization,
+    });
+
+    if (!brand) {
+      throw new HttpException(
+        {
+          detail: 'You do not have access to this brand',
+          title: 'Invalid payload',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const shop = normalizeShopifyShopDomain(body.shop);
+    const { state } = await this.credentialsService.beginOAuthForBrand(
+      brand,
+      userId,
+      CredentialPlatform.SHOPIFY,
+      { externalHandle: shop, isConnected: false },
+    );
+    const url = this.shopifyService.generateAuthUrl(shop, state);
     this.loggerService.log('Shopify auth url');
-    return { data: { url } };
+    return serializeSingle(request, CredentialOAuthSerializer, { url });
   }
 
-  @Post('token')
-  async exchangeToken(@Body() body: { shop: string; code: string }) {
+  @Post('verify')
+  async verify(
+    @Req() request: Request,
+    @Body() body: Partial<CreateCredentialVerifyDto>,
+  ) {
+    if (!body.code || !body.state) {
+      throw new HttpException(
+        {
+          detail: 'Missing required OAuth parameters',
+          title: 'Invalid payload',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const credential = await this.credentialsService.findPendingOAuthCredential(
+      body.state,
+      CredentialPlatform.SHOPIFY,
+    );
+
+    if (!credential?.externalHandle) {
+      throw new HttpException(
+        {
+          detail: 'No pending Shopify credential found for this OAuth state',
+          title: 'Credential not found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
     this.loggerService.log('Shopify exchange token');
-    const result = await this.shopifyService.exchangeCodeForToken(
-      body.shop,
+    const tokens = await this.shopifyService.exchangeCodeForToken(
+      credential.externalHandle,
       body.code,
     );
-    return { data: result };
+
+    if (!tokens.accessToken) {
+      throw new HttpException(
+        {
+          detail: 'Shopify did not return an access token',
+          title: 'Token exchange failed',
+        },
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    const updatedCredential = await this.credentialsService.patch(
+      credential.id,
+      {
+        accessToken: tokens.accessToken,
+        externalHandle: credential.externalHandle,
+        externalId: credential.externalHandle,
+        externalName: credential.externalHandle,
+        isConnected: true,
+        isDeleted: false,
+        oauthState: null,
+      },
+    );
+
+    return serializeSingle(request, CredentialSerializer, updatedCredential);
   }
 
   @Post('products')

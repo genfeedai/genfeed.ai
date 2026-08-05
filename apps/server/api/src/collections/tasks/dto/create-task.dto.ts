@@ -76,6 +76,15 @@ export class CreateTaskDto {
   @IsOptional()
   @IsEntityId()
   @ApiProperty({
+    description: 'Canonical brand ID for the task',
+    required: false,
+    type: String,
+  })
+  brandId?: string;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({
     description: 'Parent task ID for sub-tasks',
     required: false,
     type: String,
@@ -103,7 +112,7 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
-    description: 'legacy auth provider user ID of the assignee',
+    description: 'Canonical user ID of the assignee',
     required: false,
     type: String,
   })
@@ -170,8 +179,17 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
+    description: 'ElevenLabs voice ID for facecam tasks',
+    required: false,
+    type: String,
+  })
+  elevenlabsVoiceId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
     description:
-      'Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or Voice document _id)',
+      'Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or canonical Voice ID)',
     required: false,
     type: String,
   })

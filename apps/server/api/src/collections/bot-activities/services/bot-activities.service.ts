@@ -22,10 +22,43 @@ export interface BotActivityStats {
   totalDms: number;
 }
 
+export type BotActivityCreateInput = {
+  brandId?: string | null;
+  data?: Record<string, unknown>;
+  monitoredAccountId?: string | null;
+  organizationId: string;
+  replyBotConfigId?: string | null;
+  userId: string;
+  [key: string]: unknown;
+};
+
+const BOT_ACTIVITY_COLUMNS = new Set([
+  'brandId',
+  'data',
+  'isDeleted',
+  'monitoredAccountId',
+  'organizationId',
+  'replyBotConfigId',
+  'userId',
+]);
+
+const BOT_ACTIVITY_IDENTITY_KEYS = new Set([
+  'brand',
+  'brandId',
+  'monitoredAccount',
+  'monitoredAccountId',
+  'organization',
+  'organizationId',
+  'replyBotConfig',
+  'replyBotConfigId',
+  'user',
+  'userId',
+]);
+
 @Injectable()
 export class BotActivitiesService extends BaseService<
   BotActivityDocument,
-  Partial<BotActivity>,
+  BotActivityCreateInput,
   Partial<BotActivity>,
   Prisma.BotActivityWhereInput
 > {
@@ -40,31 +73,53 @@ export class BotActivitiesService extends BaseService<
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
+  override create(input: BotActivityCreateInput): Promise<BotActivityDocument> {
+    const data = this.isActivityObject(input.data) ? { ...input.data } : {};
+
+    for (const key of BOT_ACTIVITY_IDENTITY_KEYS) {
+      delete data[key];
+    }
+
+    for (const [key, value] of Object.entries(input)) {
+      if (
+        !BOT_ACTIVITY_COLUMNS.has(key) &&
+        !BOT_ACTIVITY_IDENTITY_KEYS.has(key) &&
+        value !== undefined
+      ) {
+        data[key] = value;
+      }
+    }
+
+    return super.create({
+      brandId: input.brandId,
+      data,
+      isDeleted: input.isDeleted,
+      monitoredAccountId: input.monitoredAccountId,
+      organizationId: input.organizationId,
+      replyBotConfigId: input.replyBotConfigId,
+      userId: input.userId,
+    });
+  }
+
   private normalizeActivity(
     activity: BotActivityDocument,
   ): BotActivityDocument {
-    const data = this.isActivityObject(activity.data) ? activity.data : {};
+    const data = this.isActivityObject(activity.data)
+      ? { ...activity.data }
+      : {};
+
+    for (const key of BOT_ACTIVITY_IDENTITY_KEYS) {
+      delete data[key];
+    }
 
     return {
-      ...activity,
-      _id:
-        typeof activity.mongoId === 'string' && activity.mongoId.length > 0
-          ? activity.mongoId
-          : activity.id,
-      brand:
-        activity.brand ??
-        (typeof activity.brandId === 'string' || activity.brandId === null
-          ? activity.brandId
-          : undefined),
-      organization: activity.organization ?? activity.organizationId,
-      user: activity.user ?? activity.userId,
       ...(data as Partial<BotActivityDocument>),
+      ...activity,
       data,
     };
   }
 
   private async patchActivity(
-    id: string,
     where: Record<string, unknown>,
     patch: Record<string, unknown>,
   ): Promise<BotActivityDocument | null> {
@@ -102,12 +157,12 @@ export class BotActivitiesService extends BaseService<
       ...(brandId ? { brandId } : {}),
     });
 
-    if (query.replyBotConfig) {
-      where.replyBotConfigId = query.replyBotConfig;
+    if (query.replyBotConfigId) {
+      where.replyBotConfigId = query.replyBotConfigId;
     }
 
-    if (query.monitoredAccount) {
-      where.monitoredAccountId = query.monitoredAccount;
+    if (query.monitoredAccountId) {
+      where.monitoredAccountId = query.monitoredAccountId;
     }
 
     if (query.fromDate || query.toDate) {
@@ -217,7 +272,6 @@ export class BotActivitiesService extends BaseService<
    */
   markProcessing(id: string): Promise<BotActivityDocument> {
     return this.patchActivity(
-      id,
       { id, isDeleted: false },
       { status: BotActivityStatus.PROCESSING },
     ).then((activity) => {
@@ -256,7 +310,7 @@ export class BotActivitiesService extends BaseService<
       updateData.dmText = dmText;
     }
 
-    return this.patchActivity(id, { id, isDeleted: false }, updateData).then(
+    return this.patchActivity({ id, isDeleted: false }, updateData).then(
       (activity) => {
         if (!activity) {
           throw new NotFoundException('Bot activity');
@@ -276,7 +330,6 @@ export class BotActivitiesService extends BaseService<
     errorDetails?: Record<string, unknown>,
   ): Promise<BotActivityDocument> {
     return this.patchActivity(
-      id,
       { id, isDeleted: false },
       {
         errorDetails,
@@ -298,7 +351,6 @@ export class BotActivitiesService extends BaseService<
    */
   markSkipped(id: string, skipReason: string): Promise<BotActivityDocument> {
     return this.patchActivity(
-      id,
       { id, isDeleted: false },
       {
         processedAt: new Date(),
@@ -358,6 +410,6 @@ export class BotActivitiesService extends BaseService<
       update.processedAt = updateData.completedAt;
     }
 
-    return this.patchActivity(id, scopedWhere(organizationId, { id }), update);
+    return this.patchActivity(scopedWhere(organizationId, { id }), update);
   }
 }

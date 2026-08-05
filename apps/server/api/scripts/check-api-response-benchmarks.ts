@@ -12,9 +12,8 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsController } from '@api/collections/organizations/controllers/organizations.controller';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { Role } from '@api/collections/roles/schemas/role.schema';
+import type { Role } from '@api/collections/roles/schemas/role.schema';
 import { RolesService } from '@api/collections/roles/services/roles.service';
-import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
@@ -55,14 +54,14 @@ const DEFAULT_REGRESSION_THRESHOLD_PCT = 20;
 const DEFAULT_WARMUP = 10;
 const SEED_BRANDS = 180;
 const SEED_CREDENTIALS = 90;
-const SEED_MEMBER_ID = '65f000000000000000000004';
+const SEED_MEMBER_ID = '00000000-0000-4000-8000-000000000004';
 const SEED_POSTS = 120;
-const SEED_ORGANIZATION_ID = '65f000000000000000000003';
-const SEED_ROLE_ID = '65f000000000000000000002';
+const SEED_ORGANIZATION_ID = '00000000-0000-4000-8000-000000000003';
+const SEED_ROLE_ID = '00000000-0000-4000-8000-000000000002';
 const SEED_TAGS_GLOBAL = 30;
 const SEED_TAGS_ORGANIZATION = 90;
 const SEED_TAGS_USER = 45;
-const SEED_USER_ID = '65f000000000000000000001';
+const SEED_USER_ID = '00000000-0000-4000-8000-000000000001';
 
 type BenchmarkMetric = 'p50Ms' | 'p95Ms';
 
@@ -544,94 +543,91 @@ async function seedBenchmarkData(
   await dbHelper.clearDatabase();
 
   const user = createTestUser({
-    _id: randomUUID(SEED_USER_ID),
+    id: SEED_USER_ID,
     email: 'api-benchmark@example.com',
   });
   const role = {
-    _id: randomUUID(SEED_ROLE_ID),
+    id: SEED_ROLE_ID,
+    createdAt: new Date(),
     isDeleted: false,
     key: 'owner',
     label: 'Owner',
     primaryColor: '#0f766e',
+    updatedAt: new Date(),
   } satisfies Role;
   const organization = createTestOrganization({
-    _id: randomUUID(SEED_ORGANIZATION_ID),
+    id: SEED_ORGANIZATION_ID,
     label: 'API Benchmark Organization',
-    user: user._id,
+    userId: user.id,
   });
   const member = createTestMember({
-    _id: randomUUID(SEED_MEMBER_ID),
-    organization: organization._id,
-    role: role._id,
-    user: user._id,
+    id: SEED_MEMBER_ID,
+    organizationId: organization.id,
+    roleId: role.id,
+    userId: user.id,
   });
 
   const brands = Array.from({ length: SEED_BRANDS }, (_, index) =>
     createTestBrand({
-      _id: randomUUID(),
-      handle: `benchmark-brand-${index + 1}`,
+      id: randomUUID(),
       label: `Benchmark Brand ${index + 1}`,
-      organization: organization._id,
-      user: user._id,
+      organizationId: organization.id,
+      slug: `benchmark-brand-${index + 1}`,
+      userId: user.id,
     }),
   );
 
   const credentials = Array.from({ length: SEED_CREDENTIALS }, (_, index) =>
     createTestCredential({
-      _id: randomUUID(),
-      brand: brands[index % brands.length]?._id,
+      id: randomUUID(),
+      brandId: brands[index % brands.length]?.id,
       externalHandle: `@benchmark_${index + 1}`,
       externalId: `benchmark-credential-${index + 1}`,
-      organization: organization._id,
-      user: user._id,
+      organizationId: organization.id,
+      userId: user.id,
     }),
   );
 
-  const tags: Array<CreateTagDto & { _id: string }> = [
-    ...Array.from({ length: SEED_TAGS_GLOBAL }, (_, index) => {
-      const tag = createTestTag({
-        _id: randomUUID(),
-        color: '#334155',
+  const tags = [
+    ...Array.from({ length: SEED_TAGS_GLOBAL }, (_, index) =>
+      createTestTag({
+        backgroundColor: '#334155',
+        id: randomUUID(),
         label: `Global Benchmark Tag ${index + 1}`,
-      }) as CreateTagDto & { _id: string };
-      delete (tag as Record<string, unknown>).organization;
-      delete (tag as Record<string, unknown>).user;
-      return tag;
-    }),
-    ...Array.from(
-      { length: SEED_TAGS_ORGANIZATION },
-      (_, index) =>
-        createTestTag({
-          _id: randomUUID(),
-          color: '#0f766e',
-          label: `Organization Benchmark Tag ${index + 1}`,
-          organization: organization._id,
-          user: user._id,
-        }) as CreateTagDto & { _id: string },
+        organizationId: null,
+        userId: null,
+      }),
     ),
-    ...Array.from(
-      { length: SEED_TAGS_USER },
-      (_, index) =>
-        createTestTag({
-          _id: randomUUID(),
-          color: '#7c3aed',
-          label: `User Benchmark Tag ${index + 1}`,
-          user: user._id,
-        }) as CreateTagDto & { _id: string },
+    ...Array.from({ length: SEED_TAGS_ORGANIZATION }, (_, index) =>
+      createTestTag({
+        backgroundColor: '#0f766e',
+        id: randomUUID(),
+        label: `Organization Benchmark Tag ${index + 1}`,
+        organizationId: organization.id,
+        userId: user.id,
+      }),
+    ),
+    ...Array.from({ length: SEED_TAGS_USER }, (_, index) =>
+      createTestTag({
+        backgroundColor: '#7c3aed',
+        id: randomUUID(),
+        label: `User Benchmark Tag ${index + 1}`,
+        organizationId: null,
+        userId: user.id,
+      }),
     ),
   ];
 
   const posts = Array.from({ length: SEED_POSTS }, (_, index) =>
     createTestPost({
-      _id: randomUUID(),
-      brand: brands[index % brands.length]?._id,
-      caption: `Benchmark post ${index + 1}`,
-      credential: credentials[index % credentials.length]?._id,
-      ingredients: [],
+      brandId: brands[index % brands.length]?.id,
+      credentialId: credentials[index % credentials.length]?.id,
+      description: `Benchmark post ${index + 1}`,
+      id: randomUUID(),
       label: `Benchmark Post ${index + 1}`,
-      organization: organization._id,
+      organizationId: organization.id,
       status: 'public',
-      user: user._id,
+      userId: user.id,
     }),
   );
 
@@ -645,10 +641,10 @@ async function seedBenchmarkData(
   await dbHelper.seedCollection('posts', posts);
 
   return {
-    brandId: String(brands[0]?._id ?? ''),
+    brandId: String(brands[0]?.id ?? ''),
     authProviderUserId: String(user.id),
-    organizationId: String(organization._id),
-    userId: String(user._id),
+    organizationId: String(organization.id),
+    userId: String(user.id),
   };
 }
 

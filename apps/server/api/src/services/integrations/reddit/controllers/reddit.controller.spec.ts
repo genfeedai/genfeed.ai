@@ -30,9 +30,9 @@ describe('RedditController', () => {
   let controller: RedditController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: {
-    findOne: ReturnType<typeof vi.fn>;
+    beginOAuthForBrand: ReturnType<typeof vi.fn>;
+    findPendingOAuthCredential: ReturnType<typeof vi.fn>;
     patch: ReturnType<typeof vi.fn>;
-    saveCredentials: ReturnType<typeof vi.fn>;
     updateExternalProfile: ReturnType<typeof vi.fn>;
   };
   let redditService: { generateAuthUrl: ReturnType<typeof vi.fn> };
@@ -53,21 +53,30 @@ describe('RedditController', () => {
   const mockBrand = {
     id: brandId,
     organizationId: orgId,
+    userId: '507f1f77bcf86cd799439013',
   };
 
   beforeEach(async () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     credentialsService = {
-      findOne: vi.fn().mockResolvedValue({ id: credentialId }),
+      beginOAuthForBrand: vi.fn().mockResolvedValue({
+        credential: { id: credentialId },
+        state: 'opaque-oauth-state',
+      }),
+      findPendingOAuthCredential: vi.fn().mockResolvedValue({
+        brandId,
+        id: credentialId,
+        organizationId: orgId,
+        userId: '507f1f77bcf86cd799439013',
+      }),
       patch: vi
         .fn()
-        .mockImplementation((_id, data) =>
+        .mockImplementation((_credentialId, data) =>
           Promise.resolve({ id: credentialId, ...data }),
         ),
-      saveCredentials: vi.fn().mockResolvedValue({ id: credentialId }),
       updateExternalProfile: vi
         .fn()
-        .mockImplementation((_id, _organizationId, data) =>
+        .mockImplementation((_credentialId, _organizationId, data) =>
           Promise.resolve({
             externalAvatar: data.avatarUrl,
             externalHandle: data.handle,
@@ -113,19 +122,20 @@ describe('RedditController', () => {
   });
 
   describe('connect', () => {
-    const dto = { brand: brandId.toString() };
+    const dto = { brandId: brandId.toString() };
 
-    it('should return OAuth URL when brand exists and credential exists', async () => {
+    it('should return an OAuth URL for the pending credential', async () => {
       const result = await controller.connect(mockRequest, mockUser, dto);
       expect(result).toEqual({ url: 'https://reddit.com/auth?state=xyz' });
-      expect(redditService.generateAuthUrl).toHaveBeenCalled();
-      expect(credentialsService.saveCredentials).not.toHaveBeenCalled();
-    });
-
-    it('should create new credential when none exists', async () => {
-      credentialsService.findOne.mockResolvedValueOnce(null);
-      await controller.connect(mockRequest, mockUser, dto);
-      expect(credentialsService.saveCredentials).toHaveBeenCalled();
+      expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(
+        mockBrand,
+        '507f1f77bcf86cd799439013',
+        'reddit',
+        { isConnected: false },
+      );
+      expect(redditService.generateAuthUrl).toHaveBeenCalledWith(
+        'opaque-oauth-state',
+      );
     });
 
     it('should throw FORBIDDEN when brand not found', async () => {
@@ -135,24 +145,17 @@ describe('RedditController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should pass state with brand/org/user IDs', async () => {
+    it('should not expose tenant IDs in OAuth state', async () => {
       await controller.connect(mockRequest, mockUser, dto);
       const stateArg = redditService.generateAuthUrl.mock.calls[0][0] as string;
-      const parsed = JSON.parse(stateArg) as {
-        brandId: string;
-        organizationId: string;
-        userId: string;
-      };
-      expect(parsed.brandId).toBe(brandId.toString());
-      expect(parsed.organizationId).toBe(orgId.toString());
+      expect(stateArg).toBe('opaque-oauth-state');
+      expect(stateArg).not.toContain(brandId);
+      expect(stateArg).not.toContain(orgId);
     });
   });
 
   describe('verify', () => {
-    const state = JSON.stringify({
-      brandId: brandId.toString(),
-      organizationId: orgId.toString(),
-    });
+    const state = 'opaque-oauth-state';
     const dto = { code: 'reddit_auth_code', state };
 
     beforeEach(() => {
@@ -183,6 +186,7 @@ describe('RedditController', () => {
         expect.objectContaining({
           accessToken: 'at_reddit',
           isConnected: true,
+          oauthState: null,
           refreshToken: 'rt_reddit',
         }),
       );
@@ -216,7 +220,7 @@ describe('RedditController', () => {
     });
 
     it('should throw NOT_FOUND when no pending credential found', async () => {
-      credentialsService.findOne.mockResolvedValueOnce(null);
+      credentialsService.findPendingOAuthCredential.mockResolvedValueOnce(null);
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );
@@ -247,9 +251,6 @@ describe('RedditController', () => {
       httpService.post.mockReturnValueOnce(
         of({ data: { error: 'invalid_grant' } }),
       );
-      // The access_token will be undefined, but it won't throw from the post
-      // The findOne for credential will be called
-      credentialsService.findOne.mockResolvedValueOnce(null);
       await expect(controller.verify(mockRequest, dto)).rejects.toThrow(
         HttpException,
       );

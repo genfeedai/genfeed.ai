@@ -103,7 +103,9 @@ function AgentCard({
       </div>
 
       {strategy.brand && (
-        <p className="text-xs text-foreground/50">Brand: {strategy.brand}</p>
+        <p className="text-xs text-foreground/50">
+          Brand: {strategy.brand.label}
+        </p>
       )}
 
       <div className="grid grid-cols-2 gap-2 text-xs text-foreground/60">

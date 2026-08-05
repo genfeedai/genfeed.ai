@@ -44,7 +44,7 @@ export class GenerateTweetsDto {
     description: 'Credential ID (Twitter account) to use',
     required: true,
   })
-  readonly credential!: string;
+  readonly credentialId!: string;
 
   @IsEnum(TweetTone)
   @IsOptional()

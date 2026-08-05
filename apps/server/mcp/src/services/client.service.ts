@@ -418,7 +418,7 @@ export class ClientService {
 
     if (thread && typeof thread === 'object') {
       const threadRecord = thread as Record<string, unknown>;
-      const id = threadRecord.id ?? threadRecord._id;
+      const id = threadRecord.id;
       if (typeof id === 'string' && id.length > 0) {
         return id;
       }

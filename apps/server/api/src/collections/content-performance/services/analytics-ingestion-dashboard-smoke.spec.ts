@@ -29,17 +29,16 @@ type AnalyticsRow = Pick<
 
 type SmokePost = Pick<
   PostDocument,
-  | '_id'
-  | 'brand'
+  | 'brandId'
   | 'category'
   | 'description'
   | 'externalId'
   | 'id'
   | 'ingredients'
   | 'label'
-  | 'organization'
+  | 'organizationId'
   | 'publicationDate'
-  | 'user'
+  | 'userId'
 >;
 
 function dateMatches(
@@ -63,17 +62,16 @@ describe('analytics ingestion to dashboard smoke path', () => {
   const postId = '507f1f77bcf86cd799439014';
 
   const post: SmokePost = {
-    _id: postId,
-    brand: brandId,
+    brandId,
     category: 'video',
     description: 'Opening hook: show the before state first.',
     externalId: 'yt-video-123',
     id: postId,
     ingredients: ['ingredient-1'],
     label: 'Before/after launch clip',
-    organization: organizationId,
+    organizationId,
     publicationDate: new Date('2026-04-15T10:00:00.000Z'),
-    user: userId,
+    userId,
   };
 
   const rows: AnalyticsRow[] = [];

@@ -61,7 +61,7 @@ export class AnalyticsTwitterJobService {
       }
 
       const credential: unknown = await this.credentialsService.findOne({
-        _id: credentialId,
+        id: credentialId,
       });
 
       if (!credential) {
@@ -88,9 +88,9 @@ export class AnalyticsTwitterJobService {
         const analytics = analyticsMap.get(post.externalId);
         const target: AnalyticsCollectionAttemptRef = {
           attemptKey: job.data.attemptKey,
-          brandId: post.brand,
+          brandId: post.brandId,
           id: post.id,
-          organizationId: post.organization,
+          organizationId: post.organizationId,
           platform: CredentialPlatform.TWITTER,
         };
 
@@ -153,9 +153,9 @@ export class AnalyticsTwitterJobService {
         await this.analyticsCollectionState.markFailedBatch(
           unsettledPosts.map((post) => ({
             attemptKey: job.data.attemptKey,
-            brandId: post.brand,
+            brandId: post.brandId,
             id: post.id,
-            organizationId: post.organization,
+            organizationId: post.organizationId,
             platform: CredentialPlatform.TWITTER,
           })),
           failure,

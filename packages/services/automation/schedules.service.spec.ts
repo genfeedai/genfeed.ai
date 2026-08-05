@@ -197,7 +197,7 @@ describe('SmartSchedulerService', () => {
         data: {
           attributes: {
             status: 'pending',
-            workflow: 'wf-1',
+            workflowId: 'wf-1',
           },
           id: 'exec-1',
           type: 'workflow-executions',
@@ -217,7 +217,7 @@ describe('SmartSchedulerService', () => {
     expect(init.body).toBe(
       JSON.stringify({
         inputValues: { prompt: 'hello' },
-        workflow: 'wf-1',
+        workflowId: 'wf-1',
       }),
     );
     expect(result.id).toBe('exec-1');
@@ -229,7 +229,7 @@ describe('SmartSchedulerService', () => {
         data: {
           attributes: {
             status: 'completed',
-            workflow: 'wf-1',
+            workflowId: 'wf-1',
           },
           id: 'exec-2',
           type: 'workflow-executions',

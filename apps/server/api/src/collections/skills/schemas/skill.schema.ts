@@ -33,7 +33,6 @@ export const SKILL_SOURCES = ['built_in', 'imported', 'custom'] as const;
 export const SKILL_STATUSES = ['draft', 'published', 'disabled'] as const;
 
 export interface SkillDocument extends Skill {
-  _id: string;
   channels?: string[];
   modalities?: string[];
   name?: string;

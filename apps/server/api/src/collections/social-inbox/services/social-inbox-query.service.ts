@@ -5,8 +5,6 @@ import type {
 import {
   boundLimit,
   boundPage,
-  toConversationDocument,
-  toMessageDocument,
   toPage,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
@@ -88,12 +86,7 @@ export class SocialInboxQueryService {
       this.prisma.socialConversation.count({ where }),
     ]);
 
-    return toPage(
-      docs.map((doc) => toConversationDocument(doc)),
-      totalDocs,
-      page,
-      limit,
-    );
+    return toPage(docs, totalDocs, page, limit);
   }
 
   async getConversation(
@@ -106,7 +99,7 @@ export class SocialInboxQueryService {
       'Social conversation',
     );
 
-    return toConversationDocument(conversation);
+    return conversation;
   }
 
   async listMessages(
@@ -134,12 +127,7 @@ export class SocialInboxQueryService {
       this.prisma.socialMessage.count({ where }),
     ]);
 
-    return toPage(
-      docs.map((doc) => toMessageDocument(doc)).reverse(),
-      totalDocs,
-      page,
-      limit,
-    );
+    return toPage(docs.reverse(), totalDocs, page, limit);
   }
 
   async authorizeAgentContextReferences(
@@ -209,7 +197,7 @@ export class SocialInboxQueryService {
           messageId: reference.messageId,
           organizationId: conversation.organizationId,
         });
-        const messageDocument = toMessageDocument(message);
+        const messageDocument = message;
         context.push({
           conversationId: conversation.id,
           kind: 'social-message',

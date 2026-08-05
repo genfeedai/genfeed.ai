@@ -426,7 +426,7 @@ export function useWorkspaceTaskComposer({
 
     if (taskMode === 'research') {
       return {
-        brand: effectiveTaskBrandId,
+        brandId: effectiveTaskBrandId,
         outputType: 'ingredient' as const,
         request: `Research this request for ${targetLabel} and return a concise report with key findings, implications, and recommended next steps.\n\nFocus: ${normalizedRequest}`,
         title: `Research brief - ${targetLabel}`,
@@ -435,7 +435,7 @@ export function useWorkspaceTaskComposer({
 
     if (taskMode === 'trends') {
       return {
-        brand: effectiveTaskBrandId,
+        brandId: effectiveTaskBrandId,
         outputType: 'ingredient' as const,
         request: `Analyze current trends relevant to ${targetLabel} and return a trend report with key signals, opportunities, content angles, and recommendations.\n\nFocus: ${normalizedRequest}`,
         title: `Trends report - ${targetLabel}`,
@@ -443,7 +443,7 @@ export function useWorkspaceTaskComposer({
     }
 
     const base = {
-      brand: effectiveTaskBrandId,
+      brandId: effectiveTaskBrandId,
       outputType: taskOutputType,
       request: normalizedRequest,
       title: normalizedRequest.slice(0, 80),

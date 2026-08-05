@@ -2,11 +2,9 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BlacklistsQueryDto } from '@api/collections/elements/blacklists/dto/blacklists-query.dto';
 import { CreateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/create-blacklist.dto';
 import { UpdateElementBlacklistDto } from '@api/collections/elements/blacklists/dto/update-blacklist.dto';
-import {
-  ElementBlacklist,
-  type ElementBlacklistDocument,
-} from '@api/collections/elements/blacklists/schemas/blacklist.schema';
+import type { ElementBlacklistDocument } from '@api/collections/elements/blacklists/schemas/blacklist.schema';
 import { ElementsBlacklistsService } from '@api/collections/elements/blacklists/services/blacklists.service';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -152,27 +150,12 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     return Promise.resolve({ ...updateDto });
   }
 
-  /**
-   * Override canUserModifyEntity to use organization/addedBy authorization
-   */
-  public canUserModifyEntity(
+  /** Authorize writes against canonical organization ownership. */
+  public override canUserModifyEntity(
     user: User,
     entity: ElementBlacklistDocument,
   ): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Superadmins can modify any blacklist entry
-    if (getIsSuperAdmin(user)) {
-      return true;
-    }
-
-    // Check organization ownership (for organization-level blacklists)
-    const entityOrgId = entity.organizationId;
-    if (entityOrgId && entityOrgId === publicMetadata.organization) {
-      return true;
-    }
-
-    return false;
+    return canModifyOrganizationElement(user, entity);
   }
 
   @Get(':id')
@@ -214,7 +197,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
 
     // Check ownership before update - don't populate 'user' field since blacklists don't have it
     const existing = await this.blacklistsService.findOne(
-      { _id: id },
+      { id: id },
       [], // No population needed for ownership check
     );
 
@@ -223,7 +206,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
     }
 
     // Return 404 instead of 403 for security
-    if (!this.canUserModifyEntity(user, existing) && !getIsSuperAdmin(user)) {
+    if (!this.canUserModifyEntity(user, existing)) {
       ErrorResponse.notFound(this.entityName, id);
     }
 

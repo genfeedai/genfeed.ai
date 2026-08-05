@@ -54,7 +54,7 @@ Return ONLY the rewritten script. No explanation, no markdown, just the script t
   ): Promise<{ rewrittenScript: string; originalScript: string }> {
     const project: ClipProjectDocument | null =
       await this.clipProjectsService.findOne({
-        _id: projectId,
+        id: projectId,
         isDeleted: false,
       });
 

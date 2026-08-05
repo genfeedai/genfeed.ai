@@ -81,8 +81,7 @@ export class ImagesController {
       IngredientCategory.IMAGE,
     );
 
-    // `latest=true` shorthand — reproduces the exact WHERE clause of the former
-    // GET /images/latest route: brand-scoped user images with training sources
+    // `latest=true` shorthand for brand-scoped user images with training sources
     // excluded, plus the org's brand-default images, ordered by createdAt desc
     // and capped at 50. Bypasses the standard list filters entirely.
     if (query.latest) {
@@ -97,13 +96,13 @@ export class ImagesController {
                 {
                   AND: [
                     {
-                      brand: latestBrand,
+                      brandId: latestBrand,
                       category: imageCategory,
                       isDeleted: latestIsDeleted,
                       organizationId: publicMetadata.organization,
                       // Exclude training source images by default
-                      training: { not: false },
-                      user: publicMetadata.user,
+                      trainingId: null,
+                      userId: publicMetadata.user,
                     },
                   ],
                 },
@@ -111,7 +110,7 @@ export class ImagesController {
                   AND: [
                     {
                       // Filter default images by brand when brand is specified
-                      brand: latestBrand,
+                      brandId: latestBrand,
                       category: imageCategory,
                       isDefault: true,
                       isDeleted: latestIsDeleted,
@@ -150,8 +149,8 @@ export class ImagesController {
 
     // Use CollectionFilterUtil for common filtering patterns
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brand = CollectionFilterUtil.buildBrandFilter(
-      query.brand,
+    const brandId = CollectionFilterUtil.buildBrandFilter(
+      query.brandId,
       publicMetadata,
       'exists',
     );
@@ -162,15 +161,15 @@ export class ImagesController {
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent,
+      query.parentId,
     );
 
     const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folder,
+      query.folderId,
     );
 
     const trainingFilter = IngredientFilterUtil.buildTrainingFilter(
-      query.training,
+      query.trainingId,
     );
 
     // Build isPublic filter for public gallery (getshareable.app)
@@ -191,7 +190,7 @@ export class ImagesController {
                     ...(query.isPublic === undefined && scope !== undefined
                       ? { scope }
                       : {}),
-                    brand,
+                    brandId,
                     status,
                     ...isPublicFilter,
                     // references,
@@ -220,7 +219,7 @@ export class ImagesController {
                           ],
                           status,
                           // Filter default images by brand when brand is specified
-                          ...(isEntityId(query.brand) ? { brand } : {}),
+                          ...(isEntityId(query.brandId) ? { brandId } : {}),
                           // references,
                         },
                         folderConditions,
@@ -255,7 +254,7 @@ export class ImagesController {
 
     const data = await this.imagesService.findOne(
       {
-        _id: imageId,
+        id: imageId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
@@ -293,10 +292,10 @@ export class ImagesController {
     };
 
     const vote = await this.votesService.findOne({
-      entity: imageId,
+      entityId: imageId,
       entityModel: ActivityEntityModel.INGREDIENT,
       isDeleted: false,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     mergedData.hasVoted = !!vote;
@@ -314,7 +313,7 @@ export class ImagesController {
     const publicMetadata = getPublicMetadata(user);
     const image = await this.imagesService.findOne(
       scopedWhere(publicMetadata.organization, {
-        _id: imageId,
+        id: imageId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),

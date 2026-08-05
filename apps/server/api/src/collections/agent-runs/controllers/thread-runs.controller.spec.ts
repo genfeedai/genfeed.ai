@@ -61,14 +61,14 @@ describe('ThreadRunsController', () => {
     it('should return serialized runs for the given thread', async () => {
       const mockRuns = [
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           status: 'completed',
-          thread: threadId,
+          threadId,
         },
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           status: 'running',
-          thread: threadId,
+          threadId,
         },
       ];
       agentRunsService.getByThread.mockResolvedValue(mockRuns);
@@ -148,7 +148,7 @@ describe('ThreadRunsController', () => {
     it('should work with a different threadId', async () => {
       const otherThreadId = '507f191e810c19729de860ee'.toString();
       const mockRuns = [
-        { _id: '507f191e810c19729de860ee', thread: otherThreadId },
+        { id: '507f191e810c19729de860ee', threadId: otherThreadId },
       ];
       agentRunsService.getByThread.mockResolvedValue(mockRuns);
 
@@ -175,7 +175,7 @@ describe('ThreadRunsController', () => {
 
     it('should handle single-run thread correctly', async () => {
       const singleRun = [
-        { _id: '507f191e810c19729de860ee', status: 'completed' },
+        { id: '507f191e810c19729de860ee', status: 'completed' },
       ];
       agentRunsService.getByThread.mockResolvedValue(singleRun);
 

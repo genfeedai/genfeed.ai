@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@genfeedai/client/models', () => ({
   ReplyBotConfig: class BaseReplyBotConfig {
     public rateLimits?: unknown;
-    public monitoredAccounts?: unknown[];
+    public monitoredAccountIds?: string[];
     public totalRepliesSent?: number;
     public totalDmsSent?: number;
     public totalSkipped?: number;
@@ -77,18 +77,18 @@ describe('ReplyBotConfig', () => {
       expect(config.totalFailed).toBe(2);
     });
 
-    it('should copy monitored accounts array', () => {
+    it('should copy monitored account ids', () => {
       const accounts = ['acc-1', 'acc-2'];
       const config = new ReplyBotConfig({
-        monitoredAccounts: accounts,
+        monitoredAccountIds: accounts,
       } as never);
-      expect(config.monitoredAccounts).toEqual(accounts);
-      expect(config.monitoredAccounts).not.toBe(accounts);
+      expect(config.monitoredAccountIds).toEqual(accounts);
+      expect(config.monitoredAccountIds).not.toBe(accounts);
     });
 
-    it('should default to empty monitored accounts', () => {
+    it('should default to empty monitored account ids', () => {
       const config = new ReplyBotConfig();
-      expect(config.monitoredAccounts).toEqual([]);
+      expect(config.monitoredAccountIds).toEqual([]);
     });
   });
 });

@@ -169,12 +169,13 @@ describe('ModalBrandLink', () => {
 
     expect(
       crudModalOptions.current?.transformSubmitData?.({
+        brandId: '',
         category: LinkCategory.WEBSITE,
         label: 'Homepage',
         url: 'https://genfeed.ai',
       }),
     ).toEqual({
-      brand: 'brand-1',
+      brandId: 'brand-1',
       category: LinkCategory.WEBSITE,
       label: 'Homepage',
       url: 'https://genfeed.ai',

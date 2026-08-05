@@ -79,19 +79,19 @@ export class GifsController {
 
     // Use CollectionFilterUtil for common filtering patterns
     const scope = CollectionFilterUtil.buildScopeFilter(query.scope);
-    const brand = CollectionFilterUtil.buildBrandFilter(
-      query.brand,
+    const brandId = CollectionFilterUtil.buildBrandFilter(
+      query.brandId,
       publicMetadata,
       'exists',
     );
 
     // Use IngredientFilterUtil to build ingredient-specific filters
     const parentConditions = IngredientFilterUtil.buildParentFilter(
-      query.parent,
+      query.parentId,
     );
 
     const folderConditions = IngredientFilterUtil.buildFolderFilter(
-      query.folder,
+      query.folderId,
     );
 
     const aggregate = {
@@ -103,7 +103,7 @@ export class GifsController {
                 AND: [
                   {
                     organizationId: publicMetadata.organization,
-                    brand,
+                    brandId,
                     category: CategoryPrismaUtil.toIngredientCategory(
                       IngredientCategory.GIF,
                     ),
@@ -133,7 +133,7 @@ export class GifsController {
                     ],
                     status,
                     // Filter default GIFs by brand when brand is specified
-                    ...(isEntityId(query.brand) ? { brand } : {}),
+                    ...(isEntityId(query.brandId) ? { brandId } : {}),
                   },
                   folderConditions,
                   ...(Object.keys(parentConditions).length > 0
@@ -163,7 +163,7 @@ export class GifsController {
 
     const data = await this.gifsService.findOne(
       {
-        _id: gifId,
+        id: gifId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.GIF,
         ),
@@ -187,9 +187,9 @@ export class GifsController {
     }
 
     const vote = await this.votesService.findOne({
-      entity: gifId,
+      entityId: gifId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      user: publicMetadata.user,
+      userId: publicMetadata.user,
     });
 
     data.hasVoted = !!vote;
@@ -207,7 +207,7 @@ export class GifsController {
     const publicMetadata = getPublicMetadata(user);
     const gif = await this.gifsService.findOne(
       scopedWhere(publicMetadata.organization, {
-        _id: gifId,
+        id: gifId,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.GIF,
         ),

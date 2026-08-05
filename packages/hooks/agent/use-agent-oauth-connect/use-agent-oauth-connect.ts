@@ -57,10 +57,13 @@ export function useAgentOAuthConnect(
           return;
         }
 
-        // Brand is optional for agent OAuth; uses active brand if available.
+        if (!selectedBrand) {
+          throw new Error('Select a brand before connecting an account');
+        }
+
         const service = new ServicesService(platform, token);
         const credential = await service.postConnect({
-          ...(selectedBrand ? { brand: selectedBrand.id } : {}),
+          brandId: selectedBrand.id,
         });
         const returnTo = isOnboarding
           ? threadId

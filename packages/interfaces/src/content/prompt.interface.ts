@@ -36,7 +36,7 @@ export interface IPrompt extends IBaseEntity {
   ratio?: string;
   resolution?: string;
   fps?: number;
-  ingredient?: IIngredient;
+  ingredients?: IIngredient[];
   isSkipEnhancement: boolean;
   systemPromptKey?: string;
   scope?: AssetScope;

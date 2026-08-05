@@ -8,7 +8,13 @@ type MenuHrefConfig = Pick<MenuItemConfig, 'href' | 'hrefScope'>;
 
 export function useMenuRouteResolution() {
   const rawPathname = usePathname();
-  const { href: brandHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
+  const {
+    activeHref,
+    href: brandHref,
+    orgHref,
+    orgSlug,
+    brandSlug,
+  } = useOrgUrl();
 
   const routeScope = useMemo(() => {
     const parts = rawPathname.split('/').filter(Boolean);
@@ -141,6 +147,7 @@ export function useMenuRouteResolution() {
   );
 
   return {
+    activeHref,
     brandSlug,
     href: brandHref,
     isActive,

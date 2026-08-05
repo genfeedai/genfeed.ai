@@ -1,3 +1,4 @@
+import type { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth.util';
@@ -10,7 +11,6 @@ import type {
   IJobStatusResponse,
   IQueueStats,
   IVideoDimensions,
-  IYoutubeCredentialUpdate,
   IYoutubeUploadData,
 } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -57,6 +57,14 @@ export class FileQueueService {
     return value;
   }
 
+  private requireConfigString(value: unknown, label: string): string {
+    if (typeof value !== 'string' || value.length === 0) {
+      throw new Error(`${label} is missing`);
+    }
+
+    return value;
+  }
+
   /**
    * Refresh YouTube OAuth token
    */
@@ -71,10 +79,18 @@ export class FileQueueService {
     try {
       // Use centralized OAuth2 client factory
       const oauth2Client = YoutubeOAuth2Util.createClient(
-        this.configService.get('YOUTUBE_CLIENT_ID')!,
-        // @ts-expect-error TS2345
-        this.configService.get<string>('YOUTUBE_CLIENT_SECRET')!,
-        this.configService.get<string>('YOUTUBE_REDIRECT_URI')!,
+        this.requireConfigString(
+          this.configService.get('YOUTUBE_CLIENT_ID'),
+          'YOUTUBE_CLIENT_ID',
+        ),
+        this.requireConfigString(
+          this.configService.get('YOUTUBE_CLIENT_SECRET'),
+          'YOUTUBE_CLIENT_SECRET',
+        ),
+        this.requireConfigString(
+          this.configService.get('YOUTUBE_REDIRECT_URI'),
+          'YOUTUBE_REDIRECT_URI',
+        ),
       );
 
       // Decrypt refresh token
@@ -96,18 +112,20 @@ export class FileQueueService {
       }
 
       // Update credential in database
-      const updateData: IYoutubeCredentialUpdate = {
+      const updateData: Partial<UpdateCredentialDto> = {
         accessToken: newCredentials.access_token,
+        ...(newCredentials.expiry_date
+          ? {
+              accessTokenExpiry: new Date(
+                newCredentials.expiry_date,
+              ).toISOString(),
+            }
+          : {}),
         isConnected: true,
+        ...(newCredentials.refresh_token
+          ? { refreshToken: newCredentials.refresh_token }
+          : {}),
       };
-
-      if (newCredentials.refresh_token) {
-        updateData.refreshToken = newCredentials.refresh_token;
-      }
-
-      if (newCredentials.expiry_date) {
-        updateData.accessTokenExpiry = new Date(newCredentials.expiry_date);
-      }
 
       await this.credentialsService.patch(credential.id, updateData);
 
@@ -333,7 +351,7 @@ export class FileQueueService {
     try {
       // Fetch credential from database
       const credential = await this.credentialsService.findOne({
-        _id: data.credentialId,
+        id: data.credentialId,
         isConnected: true,
         isDeleted: false,
       });
@@ -354,7 +372,7 @@ export class FileQueueService {
 
       // Re-fetch credential to get the refreshed token
       const refreshedCredential = await this.credentialsService.findOne({
-        _id: data.credentialId,
+        id: data.credentialId,
       });
 
       if (!refreshedCredential) {

@@ -18,7 +18,7 @@ import {
 export class CreateClipResultDto extends OrganizationalCreateDto {
   @IsEntityId()
   @ApiProperty({ description: 'The clip project ID', required: true })
-  readonly project!: string;
+  readonly projectId!: string;
 
   @IsNumber()
   @ApiProperty({ description: 'Clip index within the project', required: true })
@@ -123,7 +123,10 @@ export class CreateClipResultDto extends OrganizationalCreateDto {
   @IsDateString()
   @ApiProperty({
     description: 'Timestamp when the clip reached a terminal status',
+    format: 'date-time',
+    nullable: true,
     required: false,
+    type: String,
   })
   readonly terminalAt?: string | null;
 }

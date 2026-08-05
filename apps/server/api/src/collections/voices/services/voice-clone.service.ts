@@ -96,7 +96,7 @@ export class VoiceCloneService {
     const publicMetadata = getPublicMetadata(user);
     const voice = await this.voicesService.findOne(
       scopedWhere(publicMetadata.organization, {
-        _id: id,
+        id: id,
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.VOICE,
         ),
@@ -129,12 +129,7 @@ export class VoiceCloneService {
       }
 
       await this.voicesService.patchAll(
-        {
-          OR: [
-            { id: String(voiceRecord.id) },
-            { mongoId: String(voiceRecord.id) },
-          ],
-        },
+        { id: String(voiceRecord.id) },
         { isDeleted: true },
       );
       return voice;
@@ -191,17 +186,20 @@ export class VoiceCloneService {
       voiceId: result.voiceId,
     });
 
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      brand: publicMetadata.brand,
-      category: IngredientCategory.VOICE,
-      label: dto.name,
-      organization: publicMetadata.organization,
-      status: IngredientStatus.GENERATED,
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        brandId: publicMetadata.brand,
+        category: IngredientCategory.VOICE,
+        label: dto.name,
+        organizationId: publicMetadata.organization,
+        status: IngredientStatus.GENERATED,
+      },
+    );
     const ingredientId = String(ingredientData.id);
 
     await this.voicesService.patchAll(
-      { OR: [{ id: ingredientId }, { mongoId: ingredientId }] },
+      { id: ingredientId },
       {
         cloneStatus: VoiceCloneStatus.READY,
         externalVoiceId: result.voiceId,
@@ -236,13 +234,16 @@ export class VoiceCloneService {
     publicMetadata: IAuthPublicMetadata,
   ): Promise<IngredientDocument> {
     await this.assertGenfeedAiAvailable(dto);
-    const { ingredientData } = await this.sharedService.saveDocuments(user, {
-      brand: publicMetadata.brand,
-      category: IngredientCategory.VOICE,
-      label: dto.name,
-      organization: publicMetadata.organization,
-      status: IngredientStatus.PROCESSING,
-    });
+    const { ingredientData } = await this.sharedService.createMediaDocuments(
+      user,
+      {
+        brandId: publicMetadata.brand,
+        category: IngredientCategory.VOICE,
+        label: dto.name,
+        organizationId: publicMetadata.organization,
+        status: IngredientStatus.PROCESSING,
+      },
+    );
     const ingredientId = String(ingredientData.id);
 
     await this.markGenfeedAiCloneStarted(ingredientId, dto, publicMetadata);
@@ -257,7 +258,7 @@ export class VoiceCloneService {
 
     await this.voicesService.patchAll(
       {
-        OR: [{ id: ingredientId }, { mongoId: ingredientId }],
+        id: ingredientId,
         organizationId: publicMetadata.organization,
       },
       {
@@ -309,7 +310,7 @@ export class VoiceCloneService {
   ): Promise<void> {
     await this.voicesService.patchAll(
       {
-        OR: [{ id: ingredientId }, { mongoId: ingredientId }],
+        id: ingredientId,
         organizationId: publicMetadata.organization,
       },
       {
@@ -340,7 +341,7 @@ export class VoiceCloneService {
   ): Promise<never> {
     await this.voicesService.patchAll(
       {
-        OR: [{ id: ingredientId }, { mongoId: ingredientId }],
+        id: ingredientId,
         organizationId: publicMetadata.organization,
       },
       {
@@ -370,7 +371,7 @@ export class VoiceCloneService {
     ingredientId: string,
     detail: string,
   ): Promise<IngredientDocument> {
-    const voice = await this.voicesService.findOne({ _id: ingredientId }, [
+    const voice = await this.voicesService.findOne({ id: ingredientId }, [
       PopulatePatterns.metadataFull,
     ]);
     if (!voice) {

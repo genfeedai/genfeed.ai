@@ -31,15 +31,17 @@ describe('EvaluationsController', () => {
   } as unknown as import('express').Request;
 
   const mockEvaluation = {
-    _id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
+    id: '507f1f77bcf86cd799439014',
     contentId: '507f1f77bcf86cd799439015',
     contentType: 'video',
-    evaluationType: EvaluationType.PRE_PUBLICATION,
+    data: {
+      brandId: '507f1f77bcf86cd799439013',
+      evaluationType: EvaluationType.PRE_PUBLICATION,
+      overallScore: 85,
+    },
     isDeleted: false,
-    organization: '507f1f77bcf86cd799439012',
-    score: 85,
-    user: '507f1f77bcf86cd799439011',
+    organizationId: '507f1f77bcf86cd799439012',
+    userId: '507f1f77bcf86cd799439011',
   };
 
   const mockServices = {
@@ -201,7 +203,7 @@ describe('EvaluationsController', () => {
         contentId: '507f1f77bcf86cd799439015',
         contentType: 'post',
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439012',
+        organizationId: '507f1f77bcf86cd799439012',
       });
     });
 
@@ -210,7 +212,7 @@ describe('EvaluationsController', () => {
 
       expect(result.where).toMatchObject({
         isDeleted: false,
-        organization: '507f1f77bcf86cd799439012',
+        organizationId: '507f1f77bcf86cd799439012',
       });
       expect(
         (result.where as Record<string, unknown>).contentType,

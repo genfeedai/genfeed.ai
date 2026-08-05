@@ -141,8 +141,8 @@ describe('AdminFleetController', () => {
     describe('listCharacters', () => {
       it('should return all characters', async () => {
         const mockCharacters = [
-          { _id: 'char1', name: 'Character 1', slug: 'character-1' },
-          { _id: 'char2', name: 'Character 2', slug: 'character-2' },
+          { id: 'char1', name: 'Character 1', slug: 'character-1' },
+          { id: 'char2', name: 'Character 2', slug: 'character-2' },
         ];
 
         adminFleetService.getCharacters.mockResolvedValue(
@@ -159,7 +159,7 @@ describe('AdminFleetController', () => {
     describe('getCharacter', () => {
       it('should return character by slug', async () => {
         const mockCharacter = {
-          _id: 'char1',
+          id: 'char1',
           name: 'Test Character',
           slug: 'test-character',
         };
@@ -200,7 +200,7 @@ describe('AdminFleetController', () => {
           slug: 'new-character',
         } as CreateCharacterDto;
 
-        const mockCreated = { _id: 'char_new', ...dto };
+        const mockCreated = { id: 'char_new', ...dto };
 
         adminFleetService.createCharacter.mockResolvedValue(
           mockCreated as never,
@@ -287,7 +287,7 @@ describe('AdminFleetController', () => {
           adminFleetService.ingestTrainingDataForCharacter,
         ).toHaveBeenCalledWith('org_123', 'user_123', 'test-character');
         expect(result).toMatchObject({
-          _id: 'training-data:test-character',
+          id: 'training-data:test-character',
           ...mockResult,
         });
       });
@@ -347,7 +347,7 @@ describe('AdminFleetController', () => {
         adminFleetService.ingestTrainingDataForAllEnabledCharacters,
       ).toHaveBeenCalledWith('org_123', 'user_123');
       expect(result).toMatchObject({
-        _id: 'training-data:org_123',
+        id: 'training-data:org_123',
         ...mockResult,
       });
     });
@@ -362,8 +362,8 @@ describe('AdminFleetController', () => {
         } as QueryAssetsDto;
 
         const mockAssets = [
-          { _id: 'asset1', status: 'pending_review' },
-          { _id: 'asset2', status: 'pending_review' },
+          { id: 'asset1', status: 'pending_review' },
+          { id: 'asset2', status: 'pending_review' },
         ];
 
         adminFleetService.getAssets.mockResolvedValue(mockAssets as never);
@@ -389,7 +389,7 @@ describe('AdminFleetController', () => {
         } as ReviewAssetDto;
 
         const mockReviewed = {
-          _id: 'asset1',
+          id: 'asset1',
           reviewStatus: 'approved',
         };
 
@@ -416,7 +416,7 @@ describe('AdminFleetController', () => {
         } as ReviewAssetDto;
 
         const mockReviewed = {
-          _id: 'asset2',
+          id: 'asset2',
           reviewStatus: 'rejected',
         };
 
@@ -494,7 +494,7 @@ describe('AdminFleetController', () => {
         } as GenerateImageDto;
 
         const mockIngredient = {
-          _id: 'ingredient1',
+          id: 'ingredient1',
           category: 'image',
           url: 'https://example.com/image.jpg',
         };
@@ -557,7 +557,7 @@ describe('AdminFleetController', () => {
           dto,
         );
         expect(result).toEqual({
-          _id: 'job_123',
+          id: 'job_123',
           ...mockJob,
         });
       });
@@ -590,7 +590,7 @@ describe('AdminFleetController', () => {
           'org_123',
         );
         expect(result).toEqual({
-          _id: 'job_123',
+          id: 'job_123',
           ...mockJob,
         });
       });
@@ -601,8 +601,8 @@ describe('AdminFleetController', () => {
     describe('listTrainings', () => {
       it('should return all trainings', async () => {
         const mockTrainings = [
-          { _id: 'train1', status: 'completed' },
-          { _id: 'train2', status: 'running' },
+          { id: 'train1', status: 'completed' },
+          { id: 'train2', status: 'running' },
         ];
 
         adminFleetService.getTrainings.mockResolvedValue(
@@ -623,7 +623,7 @@ describe('AdminFleetController', () => {
       });
 
       it('should filter trainings by persona', async () => {
-        const mockTrainings = [{ _id: 'train1', status: 'completed' }];
+        const mockTrainings = [{ id: 'train1', status: 'completed' }];
 
         adminFleetService.getTrainings.mockResolvedValue(
           mockTrainings as never,
@@ -645,7 +645,7 @@ describe('AdminFleetController', () => {
     describe('getTraining', () => {
       it('should return training details', async () => {
         const mockTraining = {
-          _id: 'train1',
+          id: 'train1',
           personaSlug: 'test',
           status: 'running',
         };
@@ -771,7 +771,7 @@ describe('AdminFleetController', () => {
         expect(adminFleetService.getEC2Status).toHaveBeenCalled();
         expect(result).toEqual(
           mockStatus.map((instance) => ({
-            _id: instance.instanceId,
+            id: instance.instanceId,
             ...instance,
           })),
         );
@@ -799,7 +799,7 @@ describe('AdminFleetController', () => {
           'start',
         );
         expect(result).toEqual({
-          _id: 'start:i-123',
+          id: 'start:i-123',
           ...mockResult,
         });
       });
@@ -856,7 +856,7 @@ describe('AdminFleetController', () => {
           undefined,
         );
         expect(result).toEqual({
-          _id: 'ec2-action-all:start:all',
+          id: 'ec2-action-all:start:all',
           ...mockResult,
         });
       });
@@ -888,7 +888,7 @@ describe('AdminFleetController', () => {
           ['/images/*', '/assets/*'],
         );
         expect(result).toEqual({
-          _id: 'I123',
+          id: 'I123',
           ...mockResult,
         });
       });
@@ -909,7 +909,7 @@ describe('AdminFleetController', () => {
         expect(adminFleetService.getServiceHealth).toHaveBeenCalled();
         expect(result).toEqual(
           mockHealth.map((service) => ({
-            _id: service.name,
+            id: service.name,
             ...service,
           })),
         );
@@ -944,7 +944,7 @@ describe('AdminFleetController', () => {
 
         expect(fleetService.getFleetHealth).toHaveBeenCalled();
         expect(result).toEqual({
-          _id: `fleet-health:${mockFleetHealth.timestamp}`,
+          id: `fleet-health:${mockFleetHealth.timestamp}`,
           ...mockFleetHealth,
         });
       });

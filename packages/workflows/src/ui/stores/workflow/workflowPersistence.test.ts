@@ -6,10 +6,10 @@ import {
 } from './workflowPersistence';
 
 const workflow: WorkflowData = {
-  _id: 'wf-1',
   edgeStyle: 'default',
   edges: [],
-  name: 'Test',
+  id: 'wf-1',
+  label: 'Test',
   nodes: [],
 };
 
@@ -34,14 +34,14 @@ describe('workflowPersistence', () => {
     const service = getWorkflowPersistence();
 
     await expect(
-      service.create({ edges: [], name: 'x', nodes: [] }),
+      service.create({ edges: [], label: 'x', nodes: [] }),
     ).rejects.toThrow(/not configured/);
     await expect(service.getById('id')).rejects.toThrow(/not configured/);
     await expect(service.getAll()).rejects.toThrow(/not configured/);
     await expect(service.delete('id')).rejects.toThrow(/not configured/);
     await expect(service.duplicate('id')).rejects.toThrow(/not configured/);
     await expect(
-      service.update('id', { edges: [], name: 'x', nodes: [] }),
+      service.update('id', { edges: [], label: 'x', nodes: [] }),
     ).rejects.toThrow(/not configured/);
   });
 

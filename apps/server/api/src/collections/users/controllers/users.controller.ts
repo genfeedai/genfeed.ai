@@ -96,8 +96,8 @@ export class UsersController {
         {
           isActive: true,
           isDeleted: false,
-          organization: publicMetadata.organization,
-          user: publicMetadata.user,
+          organizationId: publicMetadata.organization,
+          userId: publicMetadata.user,
         },
         null,
       );
@@ -116,8 +116,8 @@ export class UsersController {
       {
         isActive: true,
         isDeleted: false,
-        organization: publicMetadata.organization,
-        user: publicMetadata.user,
+        organizationId: publicMetadata.organization,
+        userId: publicMetadata.user,
       },
       selectedBrand.id,
     );
@@ -158,13 +158,13 @@ export class UsersController {
 
     let dbSubscription = await this.subscriptionsService.findOne({
       isDeleted: false,
-      user: userId,
+      userId: userId,
     });
 
-    if (!dbSubscription && /^[0-9a-f]{24}$/i.test(organizationId)) {
+    if (!dbSubscription && organizationId) {
       dbSubscription = await this.subscriptionsService.findOne({
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       });
     }
 
@@ -180,7 +180,7 @@ export class UsersController {
       hasActiveDbSubscription;
 
     let data = await this.usersService.findOne({
-      _id: userId,
+      id: userId,
       isDeleted: false,
     });
 
@@ -267,7 +267,7 @@ export class UsersController {
     const data = hasUserPatch
       ? await this.usersService.patch(publicMetadata.user, userPatchDto)
       : await this.usersService.findOne({
-          _id: publicMetadata.user,
+          id: publicMetadata.user,
           isDeleted: false,
         });
 
@@ -315,7 +315,7 @@ export class UsersController {
     const canonicalUserId = publicMetadata.user || user.id;
 
     const dbUser = await this.usersService.findOne({
-      _id: canonicalUserId,
+      id: canonicalUserId,
       isDeleted: false,
     });
 
@@ -335,7 +335,7 @@ export class UsersController {
     await this.userAccessCacheService.invalidateAll(dbUserId);
 
     const completed = await this.usersService.findOne({
-      _id: dbUserId,
+      id: dbUserId,
       isDeleted: false,
     });
 
@@ -356,7 +356,7 @@ export class UsersController {
     }
 
     const data = await this.usersService.findOne({
-      _id: userId,
+      id: userId,
       isDeleted: false,
     });
 
@@ -380,7 +380,7 @@ export class UsersController {
     }
 
     const existingUser = await this.usersService.findOne({
-      _id: userId,
+      id: userId,
       isDeleted: false,
     });
 
@@ -428,7 +428,7 @@ export class UsersController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async findOne(@Req() request: Request, @Param('userId') userId: string) {
     const data = await this.usersService.findOne({
-      _id: userId,
+      id: userId,
       isDeleted: false,
     });
     return data

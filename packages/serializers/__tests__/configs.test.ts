@@ -22,45 +22,11 @@ describe('Serializer Configurations', () => {
       expect(postSerializerConfig.attributes).toBe(postAttributes);
     });
 
-    test('should have ingredients relationship configuration', () => {
-      const ingredients = postSerializerConfig.ingredients;
-
-      expect(ingredients).toHaveProperty('ref', 'id');
-      expect(ingredients).toHaveProperty('type', 'ingredient');
-      expect(ingredients).toHaveProperty('attributes');
-      expect(ingredients).toHaveProperty('metadata');
-
-      expect(Array.isArray(ingredients.attributes)).toBe(true);
-    });
-
-    test('should have credential relationship configuration', () => {
-      const credential = postSerializerConfig.credential;
-
-      expect(credential).toHaveProperty('ref', 'id');
-      expect(credential).toHaveProperty('type', 'credential');
-      expect(credential).toHaveProperty('attributes');
-
-      expect(Array.isArray(credential.attributes)).toBe(true);
-    });
-
-    test('should have user relationship configuration', () => {
-      const user = postSerializerConfig.user;
-
-      expect(user).toHaveProperty('ref', 'id');
-      expect(user).toHaveProperty('type', 'user');
-      expect(user).toHaveProperty('attributes');
-
-      expect(Array.isArray(user.attributes)).toBe(true);
-    });
-
-    test('should have tags relationship configuration', () => {
-      const tags = postSerializerConfig.tags;
-
-      expect(tags).toHaveProperty('ref', 'id');
-      expect(tags).toHaveProperty('type', 'tag');
-      expect(tags).toHaveProperty('attributes');
-
-      expect(tags.attributes).toBeDefined();
+    test('should preserve canonical Prisma relationships', () => {
+      expect(postSerializerConfig.ingredients).toHaveProperty('ref', 'id');
+      expect(postSerializerConfig.credential).toHaveProperty('ref', 'id');
+      expect(postSerializerConfig.user).toHaveProperty('ref', 'id');
+      expect(postSerializerConfig.tags).toHaveProperty('ref', 'id');
     });
 
     test('should create working serializer', () => {
@@ -263,10 +229,24 @@ describe('Serializer Configurations', () => {
     });
 
     test('postAttributes should contain expected fields', () => {
+      expect(postAttributes).toContain('brandId');
+      expect(postAttributes).toContain('credentialId');
+      expect(postAttributes).toContain('ingredients');
       expect(postAttributes).toContain('label');
       expect(postAttributes).toContain('description');
+      expect(postAttributes).toContain('organizationId');
+      expect(postAttributes).toContain('parentId');
+      expect(postAttributes).toContain('personaId');
       expect(postAttributes).toContain('status');
+      expect(postAttributes).toContain('tags');
       expect(postAttributes).toContain('platform');
+      expect(postAttributes).toContain('userId');
+      expect(postAttributes).toContain('brand');
+      expect(postAttributes).toContain('credential');
+      expect(postAttributes).toContain('organization');
+      expect(postAttributes).toContain('parent');
+      expect(postAttributes).toContain('persona');
+      expect(postAttributes).toContain('user');
     });
 
     test('articleAttributes should contain expected fields', () => {

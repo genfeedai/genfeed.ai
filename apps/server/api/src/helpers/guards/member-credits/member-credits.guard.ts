@@ -48,14 +48,14 @@ export class MemberCreditsGuard implements CanActivate {
       publicMetadata.organization;
 
     const settings = await this.organizationSettingsService.findOne({
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     const activeMembers = await this.membersService.findAll(
       {
         where: {
           isDeleted: false,
-          organization: organizationId,
+          organizationId: organizationId,
         },
       },
       { pagination: false },

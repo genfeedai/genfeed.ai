@@ -20,7 +20,7 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { ChevronDown, Settings } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useReducer } from 'react';
 
 import { useCreateOrganizationModal } from './use-create-organization-modal';
@@ -92,7 +92,6 @@ export default function OrganizationSwitcher({
     OrganizationsService.getInstance(token),
   );
   const { isSubscriptionActive } = useSubscription();
-  const { push } = useRouter();
   const params = useParams<{ orgSlug?: string }>();
   const currentOrgSlug =
     typeof params?.orgSlug === 'string' ? params.orgSlug : undefined;
@@ -179,13 +178,6 @@ export default function OrganizationSwitcher({
   );
 
   const displayLabel = error ?? activeOrg?.label ?? 'Organization';
-  const handleOpenOrganizationSettings = useCallback(
-    (organizationSlug: string) => {
-      push(createOrganizationAppRoute(organizationSlug, '/settings'));
-    },
-    [push],
-  );
-
   return (
     <>
       <SwitcherDropdown
@@ -197,7 +189,9 @@ export default function OrganizationSwitcher({
           trailingAction: {
             ariaLabel: `Open ${o.label} settings`,
             icon: Settings,
-            onAction: () => handleOpenOrganizationSettings(o.slug),
+            href: createOrganizationAppRoute(o.slug, '/settings'),
+            onAction: () => {},
+            target: '_blank',
           },
         }))}
         renderTrigger={({ isOpen }) => (

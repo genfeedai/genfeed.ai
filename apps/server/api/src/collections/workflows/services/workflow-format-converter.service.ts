@@ -33,10 +33,8 @@ export interface CoreWorkflowFormat {
 }
 
 /**
- * Cloud workflow format stored in MongoDB.
- *
- * Historically this used legacy kebab-case node types, but the repo now
- * tolerates a mixed cloud format while the naming cleanup is in progress.
+ * Cloud workflow format accepted by the canonical workflow registry.
+ * Older kebab-case node types are normalized during conversion.
  */
 export interface CloudWorkflowNode {
   id: string;

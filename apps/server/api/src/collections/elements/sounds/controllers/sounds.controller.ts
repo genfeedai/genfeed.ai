@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { CreateElementSoundDto } from '@api/collections/elements/sounds/dto/create-sound.dto';
 import { UpdateElementSoundDto } from '@api/collections/elements/sounds/dto/update-sound.dto';
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
@@ -169,22 +170,11 @@ export class ElementsSoundsController extends BaseCRUDController<
   /**
    * Override canUserModifyEntity to use organization authorization
    */
-  public canUserModifyEntity(user: User, entity: ElementSound): boolean {
-    const publicMetadata = getPublicMetadata(user);
-
-    // Superadmins can modify any sound
-    if (getIsSuperAdmin(user)) {
-      return true;
-    }
-
-    // Check organization ownership
-    const entityOrgId = entity.organizationId;
-    if (entityOrgId && entityOrgId === publicMetadata.organization) {
-      return true;
-    }
-
-    // Default sounds (no organization) cannot be modified by non-superadmins
-    return false;
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementSound,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 
   /**

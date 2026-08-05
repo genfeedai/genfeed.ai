@@ -147,7 +147,7 @@ async function handleNewCommit(
 
   if (!generatedText) {
     vscode.window.showErrorMessage(
-      `GenFeed: generation failed (run ${run._id ?? run.id ?? 'unknown'}).`,
+      `GenFeed: generation failed (run ${run.id}).`,
     );
     return;
   }
@@ -181,7 +181,7 @@ async function handleNewCommit(
         channel: platform,
         commitMessage,
         content: generatedText,
-        sourceRunId: run._id ?? run.id,
+        sourceRunId: run.id,
         sourceType: 'commit-to-post',
       });
       vscode.window.showInformationMessage('Draft saved to GenFeed.');

@@ -9,22 +9,17 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
 
-/**
- * `status` is a String column, but the cascade filter compares against the
- * uppercase values already stored by the publishing path, so both spellings
- * are in use — see `PostsService.patch`, whose behaviour this mirrors.
- */
-export const PRISMA_POST_STATUS = {
-  PUBLIC: 'PUBLIC',
-  SCHEDULED: 'SCHEDULED',
-} as const;
-
 export interface PostBatchScheduleItem {
   ingredientIds?: string[];
   postId: string;
   scheduledDate: string;
   text: string;
   timezone?: string;
+}
+
+export interface PostBatchScheduleTarget {
+  credentialId: string;
+  platform: string;
 }
 
 export interface PostBatchScheduleResult {
@@ -68,6 +63,8 @@ function planBatchWrites(
   context: PostBatchScheduleContext,
   items: readonly PostBatchScheduleItem[],
   existingById: Map<string, ExistingPost>,
+  organizationId: string,
+  target: PostBatchScheduleTarget,
 ): { updateIndexes: number[]; writes: Prisma.PrismaPromise<unknown>[] } {
   const writes: Prisma.PrismaPromise<unknown>[] = [];
   const updateIndexes: number[] = [];
@@ -90,27 +87,32 @@ function planBatchWrites(
     // Scheduling a root post cascades to its children, exactly as `patch`
     // does — and, as there, before the post's own update is applied.
     if (!existing.parentId) {
+      const cascadeData: Prisma.PostUncheckedUpdateManyInput = {
+        credentialId: target.credentialId,
+        platform: target.platform,
+        scheduledDate,
+        status: PostStatus.SCHEDULED,
+      };
+
       writes.push(
         context.prisma.post.updateMany({
-          data: {
-            scheduledDate,
-            status: PRISMA_POST_STATUS.SCHEDULED,
-          } as never,
-          where: {
-            isDeleted: false,
+          data: cascadeData,
+          where: scopedWhere(organizationId, {
             parentId: postId,
-            status: { not: PRISMA_POST_STATUS.PUBLIC },
-          },
+            status: { not: PostStatus.PUBLIC },
+          }),
         }),
       );
     }
 
     // `category` is a real Prisma enum, so the payload still has to go
-    // through `normalizeData`; `status` is a String column and is written
-    // lowercase here exactly as `super.patch` writes it today.
+    // through `normalizeData`. Post status values are canonical lowercase
+    // strings everywhere in the persistence layer.
     const data = context.normalizeData({
       ...(ingredientIds.length > 0 && { category: PostCategory.IMAGE }),
+      credentialId: target.credentialId,
       description: item.text,
+      platform: target.platform,
       scheduledDate,
       status: PostStatus.SCHEDULED,
       ...(item.timezone !== undefined && { timezone: item.timezone }),
@@ -126,7 +128,7 @@ function planBatchWrites(
           ingredients: { set: ingredientIds.map((id) => ({ id })) },
         } as never,
         include: { credential: true, ingredients: true },
-        where: { id: postId },
+        where: scopedWhere(organizationId, { id: postId }),
       }),
     );
   }
@@ -152,6 +154,7 @@ export async function batchSchedulePosts(
   context: PostBatchScheduleContext,
   items: readonly PostBatchScheduleItem[],
   organizationId: string,
+  target: PostBatchScheduleTarget,
 ): Promise<PostBatchScheduleResult> {
   if (items.length === 0) {
     return { missingPostIds: [], posts: [] };
@@ -187,6 +190,8 @@ export async function batchSchedulePosts(
     context,
     items,
     existingById,
+    organizationId,
+    target,
   );
 
   if (writes.length === 0) {

@@ -41,12 +41,15 @@ vi.mock('@services/core/base.service', () => {
       );
     }
 
-    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+    static getDataServiceInstance<T>(
+      ServiceClass: new (...args: string[]) => T,
+      ...args: string[]
+    ): T {
       return new ServiceClass(...args);
     }
 
-    protected extractCollection<T>(data: any): T[] {
-      return data.data || [];
+    protected extractCollection<T>(data: { data?: T[] }): T[] {
+      return data.data ?? [];
     }
   }
 
@@ -78,11 +81,13 @@ describe('BotActivitiesService', () => {
 
   describe('constructor', () => {
     it('should initialize with correct endpoint', () => {
-      expect((service as any).endpoint).toBe(API_ENDPOINTS.BOT_ACTIVITIES);
+      expect((service as unknown as { endpoint: string }).endpoint).toBe(
+        API_ENDPOINTS.BOT_ACTIVITIES,
+      );
     });
 
     it('should initialize with provided token', () => {
-      expect((service as any).token).toBe(mockToken);
+      expect((service as unknown as { token: string }).token).toBe(mockToken);
     });
   });
 
@@ -98,10 +103,10 @@ describe('BotActivitiesService', () => {
     it('should get activities with query params', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
-      await service.findWithFilters({ organization: 'org-123' });
+      await service.findWithFilters({ organizationId: 'org-123' });
 
       expect(mockInstance.get).toHaveBeenCalledWith('', {
-        params: { organization: 'org-123' },
+        params: { organizationId: 'org-123' },
       });
     });
 
@@ -120,10 +125,10 @@ describe('BotActivitiesService', () => {
       const query = {
         fromDate: '2024-01-01',
         limit: 20,
-        monitoredAccount: 'account-123',
-        organization: 'org-123',
+        monitoredAccountId: 'account-123',
+        organizationId: 'org-123',
         page: 1,
-        replyBotConfig: 'config-123',
+        replyBotConfigId: 'config-123',
         status: 'completed',
         toDate: '2024-12-31',
       };
@@ -157,7 +162,7 @@ describe('BotActivitiesService', () => {
       expect(mockInstance.get).toHaveBeenCalledWith('/stats/summary', {
         params: {
           fromDate: undefined,
-          replyBotConfig: undefined,
+          replyBotConfigId: undefined,
           toDate: undefined,
         },
       });
@@ -171,7 +176,7 @@ describe('BotActivitiesService', () => {
       expect(mockInstance.get).toHaveBeenCalledWith('/stats/summary', {
         params: {
           fromDate: '2024-01-01',
-          replyBotConfig: 'config-123',
+          replyBotConfigId: 'config-123',
           toDate: '2024-12-31',
         },
       });
@@ -188,14 +193,14 @@ describe('BotActivitiesService', () => {
   });
 
   describe('findByOrganization', () => {
-    it('should call findWithFilters with organization', async () => {
+    it('should call findWithFilters with organizationId', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
       const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
       await service.findByOrganization('org-123');
 
       expect(findWithFiltersSpy).toHaveBeenCalledWith({
-        organization: 'org-123',
+        organizationId: 'org-123',
       });
     });
 
@@ -211,7 +216,7 @@ describe('BotActivitiesService', () => {
 
       expect(findWithFiltersSpy).toHaveBeenCalledWith({
         limit: 50,
-        organization: 'org-123',
+        organizationId: 'org-123',
         page: 2,
         status: 'failed',
       });
@@ -219,14 +224,14 @@ describe('BotActivitiesService', () => {
   });
 
   describe('findByBotConfig', () => {
-    it('should call findWithFilters with replyBotConfig', async () => {
+    it('should call findWithFilters with replyBotConfigId', async () => {
       mockInstance.get.mockResolvedValue({ data: mockActivitiesData });
 
       const findWithFiltersSpy = vi.spyOn(service, 'findWithFilters');
       await service.findByBotConfig('config-123');
 
       expect(findWithFiltersSpy).toHaveBeenCalledWith({
-        replyBotConfig: 'config-123',
+        replyBotConfigId: 'config-123',
       });
     });
 
@@ -243,7 +248,7 @@ describe('BotActivitiesService', () => {
       expect(findWithFiltersSpy).toHaveBeenCalledWith({
         limit: 10,
         page: 1,
-        replyBotConfig: 'config-123',
+        replyBotConfigId: 'config-123',
         status: 'completed',
       });
     });

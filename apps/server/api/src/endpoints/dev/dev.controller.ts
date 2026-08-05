@@ -62,19 +62,21 @@ export class DevController {
         );
       }
 
-      // Fetch real ingredient from DB. `prompt` and `metadata` are genuine
-      // Prisma relations that `BaseService.normalizeDocument` does NOT
-      // back-fill, so without this populate the Discord card below shipped
-      // `prompt: undefined` and rendered with no Prompt field at all. Mirrors
-      // the production card populate in `WebhooksService` (minus `brand`,
-      // which this dev preview does not send).
+      // Include the relations required by the Discord preview card.
       const ingredient = await this.ingredientsService.findOne(
-        { _id: ingredientId },
+        { id: ingredientId },
         [
-          { path: 'prompt', select: 'original' },
+          { path: 'prompt', select: ['original'] },
           {
             path: 'metadata',
-            select: 'width height duration model externalProvider hasAudio',
+            select: [
+              'width',
+              'height',
+              'duration',
+              'model',
+              'externalProvider',
+              'hasAudio',
+            ],
           },
         ],
       );
@@ -93,12 +95,12 @@ export class DevController {
           category,
           cdnUrl,
           ingredient: {
-            _id: ingredient.id.toString(),
-            metadata: ingredient.metadata,
+            id: ingredient.id,
+            metadata: ingredient.metadata ?? undefined,
             // The Discord card renders `prompt.original`, so it needs the
             // populated object, not the id.
             // relation-alias-ok: explicitly populated in the query above.
-            prompt: ingredient.prompt,
+            prompt: ingredient.prompt ?? undefined,
           },
         },
         type: 'discord',

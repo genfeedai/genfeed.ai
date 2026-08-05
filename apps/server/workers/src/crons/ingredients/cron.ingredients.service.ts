@@ -20,17 +20,12 @@ import { ConfigService } from '@workers/config/config.service';
 interface IngredientWithMetadataDoc {
   id: string;
   category: string;
-  metadata:
-    | string
-    | {
-        id?: string;
-        width?: number | null;
-        height?: number | null;
-      };
-  metadataDoc?: {
+  metadata: {
+    height?: number | null;
     id: string;
-  };
-  metadataId?: string;
+    width?: number | null;
+  } | null;
+  metadataId: string;
 }
 
 /**
@@ -139,22 +134,11 @@ export class CronIngredientsService {
       // Update all stuck ingredients to FAILED status using service
       const result = await this.ingredientsService.patchAll(
         {
-          OR: [
-            {
-              id: {
-                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                  String(ing.id),
-                ),
-              },
-            },
-            {
-              mongoId: {
-                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                  String(ing.id),
-                ),
-              },
-            },
-          ],
+          id: {
+            in: stuckIngredients.docs.map((ingredient: { id: unknown }) =>
+              String(ingredient.id),
+            ),
+          },
           isDeleted: false,
           status: IngredientStatus.PROCESSING, // Double-check status hasn't changed
         },
@@ -202,15 +186,12 @@ export class CronIngredientsService {
             continue;
           }
 
-          const existingActivity = await this.activitiesService.findOne({
-            OR: [
-              { value: { contains: ingredientId } },
-              { value: ingredientId },
-            ],
-            isDeleted: false,
-            key: keys.processing,
-            user: ing.user,
-          });
+          const existingActivity =
+            await this.activitiesService.findByActionValue(
+              keys.processing,
+              ingredientId,
+              ing.user,
+            );
 
           if (!existingActivity) {
             continue;
@@ -297,22 +278,11 @@ export class CronIngredientsService {
 
     const result = await this.ingredientsService.patchAll(
       {
-        OR: [
-          {
-            id: {
-              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                String(ing.id),
-              ),
-            },
-          },
-          {
-            mongoId: {
-              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                String(ing.id),
-              ),
-            },
-          },
-        ],
+        id: {
+          in: stuckIngredients.docs.map((ingredient: { id: unknown }) =>
+            String(ingredient.id),
+          ),
+        },
         isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
@@ -380,10 +350,7 @@ export class CronIngredientsService {
       const docsNeedingRefresh = (
         ingredientsNeedingRefresh.docs as unknown as IngredientWithMetadataDoc[]
       ).filter((ingredient) => {
-        const metadata =
-          typeof ingredient.metadata === 'object'
-            ? ingredient.metadata
-            : undefined;
+        const { metadata } = ingredient;
 
         return (
           !metadata ||
@@ -436,21 +403,6 @@ export class CronIngredientsService {
             uploadMeta.height &&
             uploadMeta.height > 0
           ) {
-            const metadataId =
-              ingredient.metadataDoc?.id ??
-              (typeof ingredient.metadata === 'object'
-                ? ingredient.metadata.id
-                : (ingredient.metadataId ?? ingredient.metadata));
-
-            if (!metadataId) {
-              this.logger.warn(
-                `Skipping ingredient ${ingredientId} without metadata id`,
-                context,
-              );
-              errorCount++;
-              continue;
-            }
-
             const updateData: Partial<Record<string, unknown>> = {
               height: uploadMeta.height,
               width: uploadMeta.width,
@@ -476,7 +428,7 @@ export class CronIngredientsService {
               }
             }
 
-            await this.metadataService.patch(metadataId, updateData);
+            await this.metadataService.patch(ingredient.metadataId, updateData);
             successCount++;
 
             this.logger.debug(

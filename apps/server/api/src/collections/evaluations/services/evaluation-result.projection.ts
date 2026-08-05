@@ -4,6 +4,7 @@ import type {
   IEvaluationComparisonScoreBreakdown,
   IEvaluationReview,
   IEvaluationReviewerComment,
+  IEvaluationTrend,
 } from '@genfeedai/interfaces';
 
 export interface EvaluationAiResult {
@@ -39,15 +40,6 @@ export interface EvaluationTrendFilters {
   evaluationType?: string;
   maxScore?: string;
   minScore?: string;
-}
-
-export interface EvaluationTrend {
-  _id: string;
-  avgBrandScore: number;
-  avgEngagementScore: number;
-  avgScore: number;
-  avgTechnicalScore: number;
-  count: number;
 }
 
 export interface EvaluationTrendRow {
@@ -206,7 +198,7 @@ export class EvaluationResultProjection {
   buildEvaluationTrends(
     evaluations: EvaluationTrendRow[],
     filters: EvaluationTrendFilters,
-  ): EvaluationTrend[] {
+  ): IEvaluationTrend[] {
     const grouped = new Map<string, TrendGroup>();
 
     for (const evaluation of evaluations) {
@@ -257,12 +249,12 @@ export class EvaluationResultProjection {
     return Array.from(grouped.entries())
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([dateKey, group]) => ({
-        _id: dateKey,
         avgBrandScore: this.average(group.brandScores),
         avgEngagementScore: this.average(group.engagementScores),
         avgScore: this.average(group.scores),
         avgTechnicalScore: this.average(group.technicalScores),
         count: group.count,
+        date: dateKey,
       }));
   }
 

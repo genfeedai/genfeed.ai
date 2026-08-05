@@ -4,9 +4,9 @@ import { ReplyBotScheduleDto } from '@api/collections/reply-bot-configs/dto/repl
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   ReplyBotActionType,
+  ReplyBotPlatform,
   ReplyBotType,
   ReplyLength,
-  ReplyTone,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -119,39 +119,27 @@ export class ReplyBotFiltersDto {
     required: false,
   })
   minTextLength?: number;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({ required: false, type: [String] })
+  languageFilter?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({ default: false, required: false })
+  mustHaveBio?: boolean;
 }
 
 export class CreateReplyBotConfigDto {
   @IsEntityId()
   @IsOptional()
   @ApiProperty({
-    description: 'Organization that owns this bot config',
+    description: 'Platform credential used by this bot',
     required: false,
   })
-  organization?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Brand this bot config is scoped to',
-    required: false,
-  })
-  brand?: string;
-
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description: 'User that created this bot config',
-    required: false,
-  })
-  user?: string;
-
-  @IsEntityId()
-  @ApiProperty({
-    description: 'Twitter credential to use for posting replies and DMs',
-    required: true,
-  })
-  credential!: string;
+  credentialId?: string;
 
   @IsString()
   @MaxLength(120)
@@ -159,7 +147,7 @@ export class CreateReplyBotConfigDto {
     description: 'Name of the reply bot',
     example: 'Reply Guy Hunter',
   })
-  label!: string;
+  name!: string;
 
   @IsString()
   @MaxLength(512)
@@ -179,6 +167,14 @@ export class CreateReplyBotConfigDto {
   })
   type!: ReplyBotType;
 
+  @IsEnum(ReplyBotPlatform)
+  @ApiProperty({
+    description: 'Platform handled by this bot',
+    enum: ReplyBotPlatform,
+    enumName: 'ReplyBotPlatform',
+  })
+  platform!: ReplyBotPlatform;
+
   @IsEnum(ReplyBotActionType)
   @IsOptional()
   @ApiProperty({
@@ -190,16 +186,14 @@ export class CreateReplyBotConfigDto {
   })
   actionType?: ReplyBotActionType;
 
-  @IsEnum(ReplyTone)
+  @IsString()
+  @MaxLength(100)
   @IsOptional()
   @ApiProperty({
-    default: ReplyTone.FRIENDLY,
-    description: 'Tone for AI-generated replies',
-    enum: ReplyTone,
-    enumName: 'ReplyTone',
+    description: 'Tone or voice for AI-generated replies',
     required: false,
   })
-  replyTone?: ReplyTone;
+  replyTone?: string;
 
   @IsEnum(ReplyLength)
   @IsOptional()
@@ -220,7 +214,7 @@ export class CreateReplyBotConfigDto {
     example: 'Always mention our product name and include a call to action',
     required: false,
   })
-  customInstructions?: string;
+  replyInstructions?: string;
 
   @IsString()
   @MaxLength(1000)
@@ -281,12 +275,12 @@ export class CreateReplyBotConfigDto {
     required: false,
     type: [String],
   })
-  monitoredAccounts?: string[];
+  monitoredAccountIds?: string[];
 
   @IsBoolean()
   @IsOptional()
   @ApiProperty({
-    default: true,
+    default: false,
     description: 'Whether the bot is active',
     required: false,
   })

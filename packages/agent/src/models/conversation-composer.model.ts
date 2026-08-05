@@ -55,21 +55,9 @@ export interface ConversationComposerActionInvocation {
   arguments: string;
 }
 
-export type ConversationComposerMode = 'chat' | 'image' | 'video' | 'voice';
-
 export interface ConversationComposerSendOptions {
   artifactReferences?: AgentArtifactReference[];
   brandId?: string;
-  /**
-   * Composer modality for this turn. Orthogonal to the LLM `model` field —
-   * steers generation tools (image/video/voice) vs plain conversation.
-   */
-  composerMode?: ConversationComposerMode;
-  /**
-   * Preferred generation-model key when composerMode is image/video/voice.
-   * Null/omitted means automatic routing for that stack.
-   */
-  generationModelKey?: string | null;
   planModeEnabled?: boolean;
 }
 

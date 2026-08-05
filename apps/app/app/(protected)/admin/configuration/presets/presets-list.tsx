@@ -171,7 +171,6 @@ function PresetsListContent({
     try {
       const service = await getPresetsService();
       await service.patch(preset.id, {
-        ...preset,
         isActive: newValue,
       });
 

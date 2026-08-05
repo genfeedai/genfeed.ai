@@ -32,9 +32,10 @@ describe('TiktokService', () => {
   } as unknown as ConfigService;
 
   const credentialsMock = {
-    findOne: vi
-      .fn()
-      .mockResolvedValue({ accessToken: 'access', tokenExpiry: new Date() }),
+    findOne: vi.fn().mockResolvedValue({
+      accessToken: 'access',
+      accessTokenExpiry: new Date(),
+    }),
     patch: vi.fn().mockResolvedValue({}),
   } as unknown as CredentialsService;
 
@@ -303,13 +304,13 @@ describe('TiktokService', () => {
       );
 
       (credentialsMock.patch as vi.Mock).mockResolvedValue({
-        _id: 'credential-id',
+        id: 'credential-id',
         accessToken: 'nac',
         isConnected: true,
         oauthTokenHash: '',
         refreshToken: 'nref',
         toObject: vi.fn().mockReturnValue({
-          _id: 'credential-id',
+          id: 'credential-id',
           accessToken: 'nac',
           isConnected: true,
           oauthTokenHash: '',

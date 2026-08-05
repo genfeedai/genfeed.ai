@@ -153,13 +153,13 @@ export class TwitterSocialAdapter {
       // Get the brand's Twitter username from credentials
       const credential = await this.credentialsService.findOne({
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
       const platformUsername =
-        typeof credential?.platformUsername === 'string'
-          ? credential.platformUsername
+        typeof credential?.externalHandle === 'string'
+          ? credential.externalHandle.replace(/^@/, '')
           : null;
 
       if (!platformUsername) {
@@ -213,18 +213,18 @@ export class TwitterSocialAdapter {
 
       const credential = await this.credentialsService.findOne({
         isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
         platform: 'twitter',
       });
 
       const platformUsername =
-        typeof credential?.platformUsername === 'string'
-          ? credential.platformUsername
+        typeof credential?.externalHandle === 'string'
+          ? credential.externalHandle.replace(/^@/, '')
           : null;
 
       if (!platformUsername) {
         this.loggerService.warn(
-          `${this.logContext} follower check skipped — no platformUsername configured`,
+          `${this.logContext} follower check skipped — no externalHandle configured`,
           { organizationId },
         );
         return null;

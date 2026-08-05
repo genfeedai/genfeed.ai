@@ -258,8 +258,7 @@ export class AgentAutopilotWorkflowService {
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: organizationId,
+        organizationId: organizationId,
       },
     );
     const orgAgentDailyCap =
@@ -328,11 +327,11 @@ export class AgentAutopilotWorkflowService {
         creditBudget: remainingBudget,
         label: `Proactive: ${strategy.label}`,
         objective,
-        organization: organizationId,
+        organizationId: organizationId,
         ...this.buildAgentRunMetadata(strategy, workflowHandoff),
-        strategy: strategyId,
+        strategyId: strategyId,
         trigger: AgentExecutionTrigger.CRON,
-        user: userId,
+        userId: userId,
       });
 
       await this.agentRunQueueService.queueRun({

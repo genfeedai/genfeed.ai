@@ -38,7 +38,7 @@ vi.mock('@genfeedai/serializers', async (importOriginal) => {
     await importOriginal<typeof import('@genfeedai/serializers')>();
   return {
     ...actual,
-    PostSerializer: {
+    PublicPostSerializer: {
       opts: {},
       serialize: vi.fn((data) => data),
     },
@@ -103,8 +103,8 @@ describe('PublicPostsController', () => {
       const query = createBaseQuery();
       const mockPosts = {
         docs: [
-          { _id: 'pub1', title: 'Post 1' },
-          { _id: 'pub2', title: 'Post 2' },
+          { id: 'pub1', title: 'Post 1' },
+          { id: 'pub2', title: 'Post 2' },
         ],
         page: 1,
         totalDocs: 2,
@@ -124,7 +124,7 @@ describe('PublicPostsController', () => {
       const query = createBaseQuery();
       const brandId = '507f191e810c19729de860ee'.toString();
       const mockPosts = {
-        docs: [{ _id: 'pub1', brand: brandId }],
+        docs: [{ brandId, id: 'pub1' }],
         page: 1,
         totalDocs: 1,
       };
@@ -138,15 +138,14 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
-      expect(callArgs.where.brand).toBeDefined();
-      expect((callArgs.where.brand as string).toString()).toBe(brandId);
+      expect(callArgs.where.brandId).toBe(brandId);
     });
 
     it('should filter by tag when provided', async () => {
       const query = createBaseQuery();
       const tag = 'technology';
       const mockPosts = {
-        docs: [{ _id: 'pub1', metadata: { tags: ['technology'] } }],
+        docs: [{ id: 'pub1', metadata: { tags: ['technology'] } }],
         page: 1,
         totalDocs: 1,
       };
@@ -160,13 +159,9 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
-      expect(callArgs.where['metadata.tags']).toBeDefined();
-      expect(
-        (callArgs.where['metadata.tags'] as { contains: string }).contains,
-      ).toBe(tag);
-      expect((callArgs.where['metadata.tags'] as { mode: string }).mode).toBe(
-        'insensitive',
-      );
+      expect(callArgs.where.tags).toEqual({
+        some: { label: { contains: tag, mode: 'insensitive' } },
+      });
     });
 
     it('should apply correct match query for public posts', async () => {
@@ -216,7 +211,7 @@ describe('PublicPostsController', () => {
       const callArgs = postsService.findAll.mock.calls[0][0] as {
         where: Record<string, unknown>;
       };
-      expect(callArgs.where.brand).toBeUndefined();
+      expect(callArgs.where.brandId).toBeUndefined();
     });
   });
 
@@ -292,7 +287,7 @@ describe('PublicPostsController', () => {
         }
 
         return requested.toUpperCase() === storedStatus
-          ? { _id: filter._id, status: storedStatus, title: 'Test Post' }
+          ? { id: filter.id, status: storedStatus, title: 'Test Post' }
           : null;
       };
 
@@ -305,14 +300,17 @@ describe('PublicPostsController', () => {
 
       const result = await controller.getPostMetadata(mockRequest, postId);
 
-      expect(postsService.findOne).toHaveBeenCalledWith({
-        _id: postId,
-        isDeleted: false,
-        status: PostStatus.PUBLIC,
-      });
+      expect(postsService.findOne).toHaveBeenCalledWith(
+        {
+          id: postId,
+          isDeleted: false,
+          status: PostStatus.PUBLIC,
+        },
+        [],
+      );
       expect(result).toEqual({
         data: {
-          _id: postId,
+          id: postId,
           status: PRISMA_STATUS_PUBLIC,
           title: 'Test Post',
         },
@@ -373,11 +371,14 @@ describe('PublicPostsController', () => {
 
       await controller.getPostMetadata(mockRequest, postId);
 
-      expect(postsService.findOne).toHaveBeenCalledWith({
-        _id: postId,
-        isDeleted: false,
-        status: PostStatus.PUBLIC,
-      });
+      expect(postsService.findOne).toHaveBeenCalledWith(
+        {
+          id: postId,
+          isDeleted: false,
+          status: PostStatus.PUBLIC,
+        },
+        [],
+      );
       expect(returnNotFound).toHaveBeenCalledWith(
         'PublicPostsController',
         postId,
@@ -387,7 +388,7 @@ describe('PublicPostsController', () => {
     it('should log the request with correct parameters', async () => {
       const postId = '507f191e810c19729de860ee'.toString();
       const mockPost = {
-        _id: postId,
+        id: postId,
         title: 'Test Post',
       };
 
