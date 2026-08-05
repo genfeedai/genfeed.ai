@@ -676,12 +676,19 @@ describe('SocialReplyCampaignDispatchService', () => {
       context.prisma.socialReplyCampaignRecipient.updateMany = vi
         .fn()
         .mockImplementation(async (args) => {
-          claimAttempts += 1;
-          if (
-            claimAttempts === 1 &&
+          // Count claims, not writes: the stale-dispatch sweep also runs
+          // updateMany, and a positional counter would land on the sweep.
+          const isClaim =
             args.where?.status === SocialReplyCampaignRecipientStatus.PENDING &&
-            args.data?.status === SocialReplyCampaignRecipientStatus.DISPATCHING
-          ) {
+            args.data?.status ===
+              SocialReplyCampaignRecipientStatus.DISPATCHING;
+
+          if (!isClaim) {
+            return originalUpdateMany(args);
+          }
+
+          claimAttempts += 1;
+          if (claimAttempts === 1) {
             // Lose the race: another worker claimed this candidate first.
             return { count: 0 };
           }
