@@ -1392,7 +1392,6 @@ app.whenReady().then(async () => {
   pgliteService = new DesktopPgliteService(
     path.join(app.getPath('userData'), 'pglite-db'),
   );
-  const desktopPgliteService = pgliteService;
   const pglite = await pgliteService.init();
   prismaService = new DesktopPrismaService(pglite);
   const prismaClient = prismaService.getClient();
@@ -1407,7 +1406,9 @@ app.whenReady().then(async () => {
   appShellService = new DesktopAppShellService(
     environment,
     () => sessionService.getSession(),
-    () => desktopPgliteService.getDataDir(),
+    // Spawned server processes carve their own storage directories out of the
+    // Electron data root; using PGlite's directory would nest them under the DB.
+    () => app.getPath('userData'),
   );
   sessionService = new DesktopSessionService(
     kvService,

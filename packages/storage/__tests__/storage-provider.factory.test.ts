@@ -15,11 +15,42 @@ vi.mock('@aws-sdk/client-s3', () => ({
 describe('createStorageProvider', () => {
   afterEach(() => {
     vi.resetModules();
+    vi.unstubAllEnvs();
     vi.doUnmock('@genfeedai/config');
+  });
+
+  it('roots the local driver at the desktop userData directory', async () => {
+    vi.doMock('@genfeedai/config', () => ({
+      isDesktopClient: () => true,
+      isSelfHostedDeployment: () => true,
+    }));
+    const { createStorageProvider } = await import(
+      '../src/storage-provider.factory'
+    );
+    const userDataDir = await fs.mkdtemp(
+      path.join(tmpdir(), 'genfeed-user-data-'),
+    );
+    vi.stubEnv('GENFEED_DESKTOP_DATA_DIR', userDataDir);
+    vi.stubEnv('GENFEED_STORAGE_PATH', '');
+
+    try {
+      const provider = createStorageProvider();
+      await provider.upload(Buffer.from('payload'), 'ingredients/photo.png');
+
+      expect(
+        await fs.readFile(
+          path.join(userDataDir, 'files/ingredients/photo.png'),
+          'utf8',
+        ),
+      ).toBe('payload');
+    } finally {
+      await fs.rm(userDataDir, { force: true, recursive: true });
+    }
   });
 
   it('returns LocalStorageProvider when self-hosted', async () => {
     vi.doMock('@genfeedai/config', () => ({
+      isDesktopClient: () => false,
       isSelfHostedDeployment: () => true,
     }));
     const { createStorageProvider } = await import(
@@ -41,6 +72,7 @@ describe('createStorageProvider', () => {
 
   it('returns S3StorageProvider with options when cloud', async () => {
     vi.doMock('@genfeedai/config', () => ({
+      isDesktopClient: () => false,
       isSelfHostedDeployment: () => false,
     }));
     const { createStorageProvider } = await import(
