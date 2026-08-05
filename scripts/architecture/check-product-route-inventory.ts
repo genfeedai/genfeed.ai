@@ -170,6 +170,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/services',
     '/skills',
     '/studio',
+    '/use-cases',
     '/use-cases/:slug',
     '/vs',
     '/vs/:slug',
