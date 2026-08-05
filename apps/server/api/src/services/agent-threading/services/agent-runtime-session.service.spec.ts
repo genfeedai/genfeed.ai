@@ -93,6 +93,16 @@ describe('AgentRuntimeSessionService', () => {
 
       expect(result).not.toBeNull();
       expect((result as AgentSessionBindingDocument).threadId).toBe(threadId);
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockSnapshotRow.id,
+          organizationId,
+          threadId,
+        }),
+      );
+      expect(result).not.toHaveProperty('_id');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('thread');
       expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalledTimes(1);
     });
 
@@ -254,6 +264,16 @@ describe('AgentRuntimeSessionService', () => {
 
       expect(result).not.toBeNull();
       expect((result as AgentSessionBindingDocument).threadId).toBe(threadId);
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: mockSnapshotRow.id,
+          organizationId,
+          threadId,
+        }),
+      );
+      expect(result).not.toHaveProperty('_id');
+      expect(result).not.toHaveProperty('organization');
+      expect(result).not.toHaveProperty('thread');
     });
 
     it('should return null when binding does not exist', async () => {

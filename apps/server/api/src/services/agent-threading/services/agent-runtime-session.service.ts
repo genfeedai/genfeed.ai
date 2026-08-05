@@ -35,11 +35,9 @@ function toSessionBindingDocument(
   const data = (snapshot.data as Record<string, unknown>) ?? {};
   const sb = (data.sessionBinding as Record<string, unknown>) ?? {};
   return {
-    _id: snapshot.id as string,
+    id: snapshot.id as string,
     organizationId: snapshot.organizationId as string,
     threadId: snapshot.threadId as string,
-    organization: snapshot.organizationId as string,
-    thread: snapshot.threadId as string,
     runId: sb.runId as string | undefined,
     model: sb.model as string | undefined,
     status: (sb.status as AgentSessionBindingStatus) ?? 'idle',

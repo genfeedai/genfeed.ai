@@ -942,11 +942,8 @@ export class ProactiveOnboardingService {
     }
 
     if (value && typeof value === 'object') {
-      const candidate = value as { _id?: unknown; id?: unknown };
+      const candidate = value as { id?: unknown };
 
-      if (typeof candidate.id === 'string') {
-        return candidate.id;
-      }
       if (typeof candidate.id === 'string') {
         return candidate.id;
       }

@@ -88,6 +88,26 @@ describe('CronByokBillingService', () => {
     expect(byokBillingService.createByokInvoice).toHaveBeenCalledWith('org-2');
   });
 
+  it('uses the required canonical organizationId', async () => {
+    organizationSettingsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          ...mockOrg('org-canonical'),
+          organization: 'org-legacy-alias',
+        },
+      ],
+    });
+
+    await service.processMonthlyByokBilling();
+
+    expect(byokBillingService.createByokInvoice).toHaveBeenCalledWith(
+      'org-canonical',
+    );
+    expect(byokBillingService.createByokInvoice).not.toHaveBeenCalledWith(
+      'org-legacy-alias',
+    );
+  });
+
   it('logs completion with invoiced count and revenue', async () => {
     await service.processMonthlyByokBilling();
 
@@ -126,17 +146,6 @@ describe('CronByokBillingService', () => {
       expect.stringContaining('completed'),
       expect.objectContaining({ rolledOverCount: 2 }),
     );
-  });
-
-  it('skips orgs without organization id and increments skippedCount', async () => {
-    organizationSettingsService.findAll.mockResolvedValue({
-      docs: [{ organizationId: null }, mockOrg('org-x')],
-    });
-
-    await service.processMonthlyByokBilling();
-
-    expect(byokBillingService.createByokInvoice).toHaveBeenCalledTimes(1);
-    expect(byokBillingService.createByokInvoice).toHaveBeenCalledWith('org-x');
   });
 
   it('catches per-org errors and increments failedCount', async () => {

@@ -56,13 +56,9 @@ function toPrismaEventDocument(
 ): AgentThreadEventDocument {
   const data = (row.data as Record<string, unknown>) ?? {};
   return {
-    _id: row.id as string,
     id: row.id as string,
     organizationId: row.organizationId as string,
     threadId: row.threadId as string,
-    // Keep legacy reference fields for the projector contract.
-    organization: row.organizationId as unknown,
-    thread: row.threadId as unknown,
     sequence: row.sequence as number,
     commandId: row.commandId as string,
     type: row.type as AgentThreadEventType,
@@ -88,12 +84,9 @@ function toPrismaSnapshotDocument(
 ): AgentThreadSnapshotDocument {
   const data = (row.data as Record<string, unknown>) ?? {};
   return {
-    _id: row.id as string,
     id: row.id as string,
     organizationId: row.organizationId as string,
     threadId: row.threadId as string,
-    organization: row.organizationId as unknown,
-    thread: row.threadId as unknown,
     lastSequence: (data.lastSequence as number) ?? 0,
     title: data.title as string | undefined,
     source: data.source as string | undefined,
@@ -134,12 +127,9 @@ function findInputRequestInSnapshot(
   const req = requests.find((r) => r.requestId === requestId);
   if (!req) return null;
   return {
-    _id: `${snapshot.id as string}:${requestId}`,
     id: `${snapshot.id as string}:${requestId}`,
     organizationId: snapshot.organizationId as string,
     threadId: snapshot.threadId as string,
-    organization: snapshot.organizationId as unknown,
-    thread: snapshot.threadId as unknown,
     requestId: req.requestId as string,
     status: req.status as string,
     title: req.title as string,
@@ -539,13 +529,10 @@ export class AgentThreadEngineService {
         const data = (updated.data as Record<string, unknown>) ?? {};
         const ps = data.profileSnapshot as Record<string, unknown>;
         return {
-          _id: updated.id,
+          ...ps,
           id: updated.id,
           organizationId,
           threadId,
-          organization: organizationId as unknown,
-          thread: threadId as unknown,
-          ...ps,
           isDeleted: false,
         } as unknown as AgentProfileSnapshotDocument;
       }
@@ -564,13 +551,10 @@ export class AgentThreadEngineService {
       const data = (created.data as Record<string, unknown>) ?? {};
       const ps = data.profileSnapshot as Record<string, unknown>;
       return {
-        _id: created.id,
+        ...ps,
         id: created.id,
         organizationId,
         threadId,
-        organization: organizationId as unknown,
-        thread: threadId as unknown,
-        ...ps,
         isDeleted: false,
       } as unknown as AgentProfileSnapshotDocument;
     });

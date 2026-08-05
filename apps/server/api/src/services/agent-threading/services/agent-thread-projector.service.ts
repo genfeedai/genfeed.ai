@@ -159,7 +159,6 @@ export class AgentThreadProjectorService {
       profileSnapshot: snapshot?.profileSnapshot ?? undefined,
       sessionBinding: snapshot?.sessionBinding ?? undefined,
       source: snapshot?.source,
-      thread: snapshot?.threadId,
       threadStatus: snapshot?.threadStatus,
       timeline: snapshot?.timeline ?? [],
       title: snapshot?.title,
