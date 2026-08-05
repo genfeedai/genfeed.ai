@@ -6,6 +6,29 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import Replicate from 'replicate';
 
+type ReplicatePredictionTarget = { model: string } | { version: string };
+
+/**
+ * Replicate accepts official model slugs through `model`, while immutable
+ * version IDs must be sent through `version`. Stored model keys may include
+ * both (`owner/model:version`), in which case the immutable version wins.
+ */
+function resolvePredictionTarget(
+  modelIdentifier: string,
+): ReplicatePredictionTarget {
+  const versionSeparator = modelIdentifier.lastIndexOf(':');
+  if (versionSeparator >= 0) {
+    const version = modelIdentifier.slice(versionSeparator + 1);
+    if (version.length > 0) {
+      return { version };
+    }
+  }
+
+  return modelIdentifier.includes('/')
+    ? { model: modelIdentifier }
+    : { version: modelIdentifier };
+}
+
 @Injectable()
 export class ReplicateService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -60,13 +83,18 @@ export class ReplicateService {
   }
 
   public async runModel(
-    version: string,
+    modelIdentifier: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      this.loggerService.log(`${url} started`, { input, version });
+      const target = resolvePredictionTarget(modelIdentifier);
+      this.loggerService.log(`${url} started`, {
+        input,
+        modelIdentifier,
+        target,
+      });
 
       const client = this.getClientForRequest(apiKeyOverride);
       const webhookUrl = isCloudDeployment()
@@ -75,7 +103,7 @@ export class ReplicateService {
 
       const res = await client.predictions.create({
         input,
-        version,
+        ...target,
         ...(webhookUrl && {
           webhook: webhookUrl,
           webhook_events_filter: ['completed'],
@@ -265,18 +293,23 @@ export class ReplicateService {
    * @returns Generated text content
    */
   public async generateTextCompletionSync(
-    version: string,
+    modelIdentifier: string,
     input: Record<string, unknown>,
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
-      this.loggerService.log(`${url} started`, { input, version });
+      const target = resolvePredictionTarget(modelIdentifier);
+      this.loggerService.log(`${url} started`, {
+        input,
+        modelIdentifier,
+        target,
+      });
 
       const client = this.getClientForRequest(apiKeyOverride);
       const prediction = await client.predictions.create({
         input,
-        version,
+        ...target,
       });
 
       // Wait for the prediction to complete
@@ -317,7 +350,7 @@ export class ReplicateService {
       const client = this.getClientForRequest(apiKeyOverride);
       const prediction = await client.predictions.create({
         input: { text },
-        version: MODEL_KEYS.REPLICATE_OPENAI_CLIP,
+        ...resolvePredictionTarget(MODEL_KEYS.REPLICATE_OPENAI_CLIP),
       });
 
       // Wait for the prediction to complete

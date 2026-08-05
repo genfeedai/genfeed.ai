@@ -74,7 +74,7 @@ describe('ReplicateService (contract)', () => {
   afterEach(() => vi.clearAllMocks());
 
   describe('runModel — prediction request/response contract', () => {
-    it('sends { input, version, webhook, webhook_events_filter } and returns the prediction id', async () => {
+    it('sends an official model slug through model', async () => {
       const built = await buildService();
       service = built.service;
 
@@ -87,16 +87,58 @@ describe('ReplicateService (contract)', () => {
       } as unknown as typeof service.client;
 
       const input = { num_outputs: 1, prompt: 'a neon city' };
-      const id = await service.runModel('owner/model:v1', input);
+      const id = await service.runModel(
+        'black-forest-labs/flux-schnell',
+        input,
+      );
 
       expect(id).toBe('pred_abc123');
       expect(predictionsCreate).toHaveBeenCalledTimes(1);
       expect(predictionsCreate).toHaveBeenCalledWith({
         input,
-        version: 'owner/model:v1',
+        model: 'black-forest-labs/flux-schnell',
         webhook: 'https://webhook.test/v1/webhooks/replicate/callback',
         webhook_events_filter: ['completed'],
       });
+    });
+
+    it('extracts an immutable version from a stored owner/model:version key', async () => {
+      const built = await buildService();
+      service = built.service;
+      const predictionsCreate = vi
+        .fn()
+        .mockResolvedValue({ id: 'pred_versioned', status: 'starting' });
+      service.client = {
+        predictions: { create: predictionsCreate },
+      } as unknown as typeof service.client;
+
+      const version = 'f'.repeat(64);
+      await service.runModel(`owner/model:${version}`, { prompt: 'x' });
+
+      expect(predictionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ version }),
+      );
+      expect(predictionsCreate).not.toHaveBeenCalledWith(
+        expect.objectContaining({ model: expect.anything() }),
+      );
+    });
+
+    it('keeps a bare immutable version in the version field', async () => {
+      const built = await buildService();
+      service = built.service;
+      const predictionsCreate = vi
+        .fn()
+        .mockResolvedValue({ id: 'pred_bare_version', status: 'starting' });
+      service.client = {
+        predictions: { create: predictionsCreate },
+      } as unknown as typeof service.client;
+
+      const version = 'a'.repeat(64);
+      await service.runModel(version, { prompt: 'x' });
+
+      expect(predictionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ version }),
+      );
     });
 
     it('rethrows and logs when Replicate rejects (e.g. 422 invalid version)', async () => {
