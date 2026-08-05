@@ -29,15 +29,12 @@ type ClipProjectWriteDto = Partial<
   Record<string, unknown>;
 
 const PROJECT_SCALAR_KEYS = new Set([
-  '_id',
   'brand',
   'brandId',
   'config',
   'error',
   'failedClipCount',
-  'id',
   'isDeleted',
-  'mongoId',
   'organization',
   'organizationId',
   'pendingClipCount',
@@ -82,7 +79,7 @@ export class ClipProjectsService extends BaseService<
     organizationId?: string,
   ): Promise<ClipProjectDocument> {
     const existing = await this.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
       ...(organizationId !== undefined ? { organizationId } : {}),
     });
@@ -111,9 +108,9 @@ export class ClipProjectsService extends BaseService<
     candidateId: string,
   ): Promise<ClipProjectDocument> {
     const project = await this.findOne({
-      _id: projectId,
+      id: projectId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!project) {
@@ -171,9 +168,9 @@ export class ClipProjectsService extends BaseService<
     const project =
       preloadedProject ??
       (await this.findOne({
-        _id: projectId,
+        id: projectId,
         isDeleted: false,
-        ...(organizationId ? { organization: organizationId } : {}),
+        ...(organizationId ? { organizationId: organizationId } : {}),
       }));
 
     if (!project) {
@@ -238,14 +235,6 @@ export class ClipProjectsService extends BaseService<
   ): Record<string, unknown> {
     const data: Record<string, unknown> = {};
     const config: Record<string, unknown> = { ...existingConfig };
-
-    if (typeof dto.id === 'string' && dto.id.length > 0) {
-      data.mongoId = dto.id;
-    }
-
-    if (typeof dto.mongoId === 'string' && dto.mongoId.length > 0) {
-      data.mongoId = dto.mongoId;
-    }
 
     if (typeof dto.organization === 'string') {
       data.organizationId = dto.organization;

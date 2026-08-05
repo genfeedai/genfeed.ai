@@ -40,7 +40,6 @@ function createInMemoryClipResultsService() {
     const id = `clip-result-${nextId++}`;
     const now = new Date();
     const record = {
-      _id: id,
       captionSrt: null,
       createdAt: now,
       data: {},
@@ -83,7 +82,7 @@ function createInMemoryClipResultsService() {
   });
 
   const findOne = vi.fn(async (where: Record<string, unknown>) => {
-    const record = records.get(String(where._id));
+    const record = records.get(String(where.id));
     if (
       !record ||
       record.organizationId !== where.organizationId ||

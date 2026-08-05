@@ -53,7 +53,7 @@ export class ClipResultsController {
 
     const data: ClipResultDocument = await this.clipResultsService.create({
       ...createClipResultDto,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
       user: publicMetadata.user,
     } as CreateClipResultDto);
 
@@ -118,9 +118,9 @@ export class ClipResultsController {
     const publicMetadata = getPublicMetadata(user);
 
     const data = await this.clipResultsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!data) {
@@ -141,9 +141,9 @@ export class ClipResultsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.clipResultsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {

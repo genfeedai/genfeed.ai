@@ -33,7 +33,6 @@ function createPrisma() {
         ClipResult: {
           fields: [
             { name: 'id' },
-            { name: 'mongoId' },
             { name: 'organizationId' },
             { name: 'projectId' },
             { name: 'providerJobId' },
@@ -253,7 +252,7 @@ describe('ClipResultsService', () => {
     });
   });
 
-  it('resolves a project clip result by id, mongo id, or provider job id for handoff', async () => {
+  it('resolves a project clip result by id or provider job id for handoff', async () => {
     prisma.clipResult.findFirst.mockResolvedValue({
       data: { title: 'Clip' },
       id: 'clip-1',
@@ -275,11 +274,7 @@ describe('ClipResultsService', () => {
 
     expect(prisma.clipResult.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [
-          { id: 'provider-job-1' },
-          { mongoId: 'provider-job-1' },
-          { providerJobId: 'provider-job-1' },
-        ],
+        OR: [{ id: 'provider-job-1' }, { providerJobId: 'provider-job-1' }],
         isDeleted: false,
         organizationId: 'org-1',
         projectId: 'project-1',

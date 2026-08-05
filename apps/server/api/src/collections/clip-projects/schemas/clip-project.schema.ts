@@ -52,7 +52,6 @@ type ClipProjectRecord = Omit<
 >;
 
 export interface ClipProjectDocument extends ClipProjectRecord {
-  _id: string;
   brand?: string | null;
   error?: string | null;
   failedClipCount: number;

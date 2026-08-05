@@ -35,7 +35,6 @@ function createPrisma() {
         ClipProject: {
           fields: [
             { name: 'id' },
-            { name: 'mongoId' },
             { name: 'organizationId' },
             { name: 'brandId' },
             { name: 'status' },
@@ -79,7 +78,6 @@ describe('ClipProjectsService', () => {
 
   it('maps create DTO fields to durable columns and config JSON', async () => {
     prisma.clipProject.create.mockResolvedValue({
-      _id: 'project-1',
       brandId: 'brand-1',
       config: {},
       id: 'project-1',
@@ -286,14 +284,14 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenNthCalledWith(1, {
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
         organizationId: 'org-1',
       },
     });
     expect(prisma.clipProject.findFirst).toHaveBeenNthCalledWith(2, {
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
         organizationId: 'org-1',
       },
@@ -405,7 +403,7 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
         organizationId: 'other-org',
       },
@@ -422,7 +420,7 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
         organizationId: 'other-org',
       },
@@ -439,7 +437,7 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
       },
     });
@@ -455,7 +453,7 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
         organizationId: '',
       },
@@ -493,7 +491,7 @@ describe('ClipProjectsService', () => {
 
     expect(prisma.clipProject.findFirst).toHaveBeenCalledWith({
       where: {
-        OR: [{ id: 'legacy-project-id' }, { mongoId: 'legacy-project-id' }],
+        id: 'legacy-project-id',
         isDeleted: false,
       },
     });
@@ -554,7 +552,7 @@ describe('ClipProjectsService', () => {
     );
     expect(prisma.clipProject.findFirst).toHaveBeenNthCalledWith(2, {
       where: {
-        OR: [{ id: 'project-1' }, { mongoId: 'project-1' }],
+        id: 'project-1',
         isDeleted: false,
         organizationId: 'org-1',
       },

@@ -52,9 +52,9 @@ export class ClipGenerationRequestService {
     const mode = dto.mode ?? DEFAULT_CLIP_RESULT_MODE;
 
     const project = await this.clipProjectsService.findOne({
-      _id: projectId,
+      id: projectId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!project) {

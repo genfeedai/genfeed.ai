@@ -97,13 +97,11 @@ interface RewriteHighlightResponse {
 interface EditorProjectResponse {
   data?: {
     id?: string;
-    _id?: string;
   };
 }
 
 interface ClipResultRawItem {
-  _id?: string;
-  id?: string;
+  id: string;
   attributes?: Record<string, unknown>;
 }
 
@@ -294,8 +292,8 @@ export class ClipsApiService {
     return rawItems.map((item) => {
       const attrs = item.attributes ?? item;
       return {
-        _id: item.id ?? item._id ?? (attrs as Record<string, unknown>)._id,
         ...attrs,
+        id: item.id,
       } as ClipResult;
     });
   }
@@ -322,7 +320,7 @@ export class ClipsApiService {
         method: 'POST',
       },
     );
-    return data?.data?.id ?? data?.data?._id;
+    return data?.data?.id;
   }
 
   async createEditorHandoff(

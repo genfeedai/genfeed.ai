@@ -71,7 +71,7 @@ export default function ClipsProgressView({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {project.clips.map((clip) => (
             <ClipResultCard
-              key={clip._id}
+              key={clip.id}
               clip={clip}
               clipsService={clipsService}
               mode={project.mode}

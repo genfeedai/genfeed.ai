@@ -16,7 +16,6 @@ type ClipResultRecord = Omit<
 >;
 
 export interface ClipResultDocument extends ClipResultRecord {
-  _id: string;
   isSelected: boolean;
   /** `avatar` (default) vs deterministic `raw-cut`. Real column; see #1239. */
   mode: ClipResultMode | string;

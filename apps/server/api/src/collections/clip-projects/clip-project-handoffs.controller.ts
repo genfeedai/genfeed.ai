@@ -207,9 +207,9 @@ export class ClipProjectHandoffsController {
     organizationId: string,
   ): Promise<ClipProjectDocument> {
     const project = await this.clipProjectsService.findOne({
-      _id: projectId,
+      id: projectId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId: organizationId,
     });
 
     if (!project) {

@@ -133,7 +133,7 @@ export class ClipProjectsController {
       name:
         dto.name ??
         `YouTube Clip Factory — ${new Date().toISOString().slice(0, 10)}`,
-      organization: orgId,
+      organizationId: orgId,
       settings: {
         addCaptions: true,
         aspectRatio: '9:16',
@@ -202,7 +202,7 @@ export class ClipProjectsController {
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
-      organization: orgId,
+      organizationId: orgId,
       settings: {
         addCaptions: true,
         aspectRatio: '9:16',
@@ -245,9 +245,9 @@ export class ClipProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const project = await this.clipProjectsService.findOne({
-      _id: projectId,
+      id: projectId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!project) {
@@ -279,9 +279,9 @@ export class ClipProjectsController {
 
     // Verify the project belongs to the user's org
     const project = await this.clipProjectsService.findOne({
-      _id: projectId,
+      id: projectId,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!project) {
@@ -385,7 +385,7 @@ export class ClipProjectsController {
 
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
       user: publicMetadata.user,
     });
 
@@ -453,9 +453,9 @@ export class ClipProjectsController {
     const publicMetadata = getPublicMetadata(user);
 
     const existing = await this.clipProjectsService.findOne({
-      _id: id,
+      id: id,
       isDeleted: false,
-      organization: publicMetadata.organization,
+      organizationId: publicMetadata.organization,
     });
 
     if (!existing) {

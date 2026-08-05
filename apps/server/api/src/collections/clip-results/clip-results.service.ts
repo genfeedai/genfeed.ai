@@ -19,13 +19,10 @@ type ClipResultWriteDto = Partial<CreateClipResultDto & UpdateClipResultDto> &
   Record<string, unknown>;
 
 const RESULT_SCALAR_KEYS = new Set([
-  '_id',
   'data',
-  'id',
   'isDeleted',
   'isSelected',
   'mode',
-  'mongoId',
   'organization',
   'organizationId',
   'project',
@@ -69,7 +66,7 @@ export class ClipResultsService extends BaseService<
     updateDto: Partial<UpdateClipResultDto> | Record<string, unknown>,
     populate: PopulateInput = [],
   ): Promise<ClipResultDocument> {
-    const existing = await this.findOne({ _id: id, isDeleted: false });
+    const existing = await this.findOne({ id: id, isDeleted: false });
     const existingData = this.readRecord(
       (existing as Record<string, unknown> | null)?.data,
     );
@@ -185,11 +182,7 @@ export class ClipResultsService extends BaseService<
   }): Promise<ClipResultDocument | null> {
     const result = await this.delegate.findFirst({
       where: scopedWhere(input.organizationId, {
-        OR: [
-          { id: input.clipResultId },
-          { mongoId: input.clipResultId },
-          { providerJobId: input.clipResultId },
-        ],
+        OR: [{ id: input.clipResultId }, { providerJobId: input.clipResultId }],
         projectId: input.projectId,
       }),
     });
@@ -204,14 +197,6 @@ export class ClipResultsService extends BaseService<
   ): Record<string, unknown> {
     const data: Record<string, unknown> = {};
     const legacyData: Record<string, unknown> = { ...existingData };
-
-    if (typeof dto.id === 'string' && dto.id.length > 0) {
-      data.mongoId = dto.id;
-    }
-
-    if (typeof dto.mongoId === 'string' && dto.mongoId.length > 0) {
-      data.mongoId = dto.mongoId;
-    }
 
     if (typeof dto.organization === 'string') {
       data.organizationId = dto.organization;

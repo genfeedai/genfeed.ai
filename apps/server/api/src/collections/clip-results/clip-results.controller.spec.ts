@@ -71,7 +71,7 @@ describe('ClipResultsController', () => {
   describe('create', () => {
     it('should create a clip result with organization and user from metadata', async () => {
       const dto = { clip: 'clip-1', project: 'project-1' };
-      const created = { _id: 'cr-1', ...dto } as unknown as ClipResultDocument;
+      const created = { id: 'cr-1', ...dto } as unknown as ClipResultDocument;
       service.create.mockResolvedValue(created);
 
       const result = await controller.create(mockReq, dto as never, mockUser);
@@ -88,7 +88,7 @@ describe('ClipResultsController', () => {
 
   describe('findAll', () => {
     it('should find by project when projectId query param is provided', async () => {
-      const docs = [{ _id: 'cr-1' }];
+      const docs = [{ id: 'cr-1' }];
       service.findByProject.mockResolvedValue(docs);
 
       await controller.findAll(mockReq, 'project-1', '', mockUser);
@@ -101,7 +101,7 @@ describe('ClipResultsController', () => {
     });
 
     it('should find by project when filter[project] query param is provided', async () => {
-      const docs = [{ _id: 'cr-1' }];
+      const docs = [{ id: 'cr-1' }];
       service.findByProject.mockResolvedValue(docs);
 
       await controller.findAll(mockReq, '', 'project-2', mockUser);
@@ -113,7 +113,7 @@ describe('ClipResultsController', () => {
     });
 
     it('should find all by organization when no project filter is given', async () => {
-      const docs = [{ _id: 'cr-1' }, { _id: 'cr-2' }];
+      const docs = [{ id: 'cr-1' }, { id: 'cr-2' }];
       service.findAllByOrganization.mockResolvedValue(docs);
 
       await controller.findAll(mockReq, '', '', mockUser);
@@ -127,14 +127,14 @@ describe('ClipResultsController', () => {
 
   describe('findOne', () => {
     it('should return a serialized clip result when found', async () => {
-      const doc = { _id: 'cr-1', isDeleted: false };
+      const doc = { id: 'cr-1', isDeleted: false };
       service.findOne.mockResolvedValue(doc);
 
       const result = await controller.findOne(mockReq, 'cr-1', mockUser);
 
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: 'cr-1',
+          id: 'cr-1',
           isDeleted: false,
           organization: expect.any(String),
         }),
@@ -153,9 +153,9 @@ describe('ClipResultsController', () => {
 
   describe('update', () => {
     it('should patch a clip result when it exists', async () => {
-      const existing = { _id: 'cr-1', isDeleted: false };
+      const existing = { id: 'cr-1', isDeleted: false };
       const updated = {
-        _id: 'cr-1',
+        id: 'cr-1',
         status: 'completed',
       } as unknown as ClipResultDocument;
       service.findOne.mockResolvedValue(existing);
@@ -170,7 +170,7 @@ describe('ClipResultsController', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: 'cr-1',
+          id: 'cr-1',
           isDeleted: false,
           organization: expect.any(String),
         }),
