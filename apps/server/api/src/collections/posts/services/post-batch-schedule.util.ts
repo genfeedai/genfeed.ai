@@ -63,6 +63,7 @@ function planBatchWrites(
   context: PostBatchScheduleContext,
   items: readonly PostBatchScheduleItem[],
   existingById: Map<string, ExistingPost>,
+  organizationId: string,
   target: PostBatchScheduleTarget,
 ): { updateIndexes: number[]; writes: Prisma.PrismaPromise<unknown>[] } {
   const writes: Prisma.PrismaPromise<unknown>[] = [];
@@ -86,19 +87,20 @@ function planBatchWrites(
     // Scheduling a root post cascades to its children, exactly as `patch`
     // does — and, as there, before the post's own update is applied.
     if (!existing.parentId) {
+      const cascadeData: Prisma.PostUpdateManyMutationInput = {
+        credentialId: target.credentialId,
+        platform: target.platform,
+        scheduledDate,
+        status: PostStatus.SCHEDULED,
+      };
+
       writes.push(
         context.prisma.post.updateMany({
-          data: {
-            credentialId: target.credentialId,
-            platform: target.platform,
-            scheduledDate,
-            status: PostStatus.SCHEDULED,
-          } as never,
-          where: {
-            isDeleted: false,
+          data: cascadeData,
+          where: scopedWhere(organizationId, {
             parentId: postId,
             status: { not: PostStatus.PUBLIC },
-          },
+          }),
         }),
       );
     }
@@ -126,7 +128,7 @@ function planBatchWrites(
           ingredients: { set: ingredientIds.map((id) => ({ id })) },
         } as never,
         include: { credential: true, ingredients: true },
-        where: { id: postId },
+        where: scopedWhere(organizationId, { id: postId }),
       }),
     );
   }
@@ -188,6 +190,7 @@ export async function batchSchedulePosts(
     context,
     items,
     existingById,
+    organizationId,
     target,
   );
 

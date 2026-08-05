@@ -712,8 +712,13 @@ export class PostsService extends BaseService<
   /**
    * Count posts matching filter
    */
-  async count(filter: Prisma.PostWhereInput): Promise<number> {
-    return this.prisma.post.count({ where: filter });
+  async count(
+    organizationId: string,
+    filter: Prisma.PostWhereInput = {},
+  ): Promise<number> {
+    return this.prisma.post.count({
+      where: scopedWhere(organizationId, filter),
+    });
   }
 
   /**
@@ -876,7 +881,7 @@ export class PostsService extends BaseService<
     const rootPostId = rootPost.id.toString();
 
     const childrenCount = await this.prisma.post.count({
-      where: { isDeleted: false, parentId: rootPostId },
+      where: scopedWhere(parentPost.organizationId, { parentId: rootPostId }),
     });
 
     const { parentId: _parentId, ...dtoWithoutParent } = dto;

@@ -1826,62 +1826,6 @@
     },
     {
       "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts",
-      "fingerprint": "e47f5b651fe7ab4ecef7",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/analytics-aggregation.service.ts",
-      "fingerprint": "e00d7d5a584ec2222ccf",
-      "method": "findMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/post-batch-schedule.util.ts",
-      "fingerprint": "6602f74e25bb5561f786",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/post-batch-schedule.util.ts",
-      "fingerprint": "7c3933e6630f20b14294",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/post-batch-schedule.util.ts",
-      "fingerprint": "8e9c1fd90c853892cb80",
-      "method": "updateMany",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "deb7ef2a6a6e2105d7d9",
-      "method": "count",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
-      "fingerprint": "758cdc032e461ba34b0b",
-      "method": "count",
-      "model": "Post",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "post",
       "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
       "fingerprint": "9af0abbeb72bcb93c766",
       "method": "findFirst",

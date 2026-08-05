@@ -165,11 +165,12 @@ export class PostsGenerationController {
       );
     }
 
-    const existingChildren = await this.postsService.count({
-      isDeleted: false,
-      organizationId: originalPost.organizationId,
-      parentId: postId,
-    });
+    const existingChildren = await this.postsService.count(
+      originalPost.organizationId,
+      {
+        parentId: postId,
+      },
+    );
 
     if (existingChildren > 0) {
       throw new HttpException(

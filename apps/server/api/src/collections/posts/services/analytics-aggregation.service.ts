@@ -137,9 +137,9 @@ export class AnalyticsAggregationService {
         }),
       ]);
 
-    const postCount = await this.postsService.count(
-      scopedWhere(organizationId, { ...(brandId ? { brandId } : {}) }),
-    );
+    const postCount = await this.postsService.count(organizationId, {
+      ...(brandId ? { brandId } : {}),
+    });
 
     // Authoritative brand count for the organization — org-scoped and
     // soft-delete-aware so the "Total Brands" metric matches the brand switcher.
@@ -343,7 +343,7 @@ export class AnalyticsAggregationService {
         url: true,
       },
       take: postIds.length,
-      where: { id: { in: postIds } },
+      where: scopedWhere(organizationId, { id: { in: postIds } }),
     });
 
     return postAnalyticsProjection.buildTopContent(
