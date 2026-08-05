@@ -179,6 +179,15 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   @ApiProperty({
+    description: 'ElevenLabs voice ID for facecam tasks',
+    required: false,
+    type: String,
+  })
+  elevenlabsVoiceId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
     description:
       'Provider-agnostic voice ID for facecam tasks (HeyGen catalog ID, ElevenLabs ID, or canonical Voice ID)',
     required: false,

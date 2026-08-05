@@ -3,7 +3,6 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import type { TaskDocument } from '@api/collections/tasks/schemas/task.schema';
 import type { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 import { TaskActionsService } from './task-actions.service';
 
@@ -38,12 +37,9 @@ describe('TaskActionsService', () => {
   } as TaskDocument;
 
   let currentTask: TaskDocument;
-  let tasksService: { requireTask: ReturnType<typeof vi.fn> };
-  let prisma: {
-    task: {
-      findFirst: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
-    };
+  let tasksService: {
+    patch: ReturnType<typeof vi.fn>;
+    requireTask: ReturnType<typeof vi.fn>;
   };
   let ingredientsService: {
     findOne: ReturnType<typeof vi.fn>;
@@ -58,20 +54,13 @@ describe('TaskActionsService', () => {
   beforeEach(() => {
     currentTask = { ...baseTask, eventStream: [] };
     tasksService = {
+      patch: vi.fn().mockImplementation((_id, data) => {
+        currentTask = { ...currentTask, ...data };
+        return Promise.resolve(currentTask);
+      }),
       requireTask: vi
         .fn()
         .mockImplementation(() => Promise.resolve(currentTask)),
-    };
-    prisma = {
-      task: {
-        findFirst: vi
-          .fn()
-          .mockImplementation(() => Promise.resolve(currentTask)),
-        update: vi.fn().mockImplementation(({ data }) => {
-          currentTask = { ...currentTask, ...data };
-          return Promise.resolve(currentTask);
-        }),
-      },
     };
     ingredientsService = {
       findOne: vi.fn().mockResolvedValue({ id: outputId }),
@@ -86,7 +75,6 @@ describe('TaskActionsService', () => {
 
     service = new TaskActionsService(
       tasksService as unknown as TasksService,
-      prisma as unknown as PrismaService,
       ingredientsService as unknown as IngredientsService,
       notificationsPublisher as unknown as NotificationsPublisherService,
       taskFeedbackMemoryAdapter as unknown as TaskFeedbackMemoryAdapterService,

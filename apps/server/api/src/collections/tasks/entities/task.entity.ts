@@ -2,8 +2,9 @@ import type { TaskLinkedEntityModel } from '@api/collections/tasks/schemas/task.
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 
 export class TaskEntity extends BaseEntity {
-  declare readonly organization: string;
-  declare readonly brand?: string;
+  declare readonly organizationId: string;
+  declare readonly brandId: string | null;
+  declare readonly userId: string | null;
   declare readonly taskNumber: number;
   declare readonly identifier: string;
   declare readonly title: string;

@@ -399,22 +399,6 @@ enum AgentRunStatus {
   CANCELLED
 }
 
-enum TaskStatus {
-  BACKLOG
-  TODO
-  IN_PROGRESS
-  IN_REVIEW
-  DONE
-  CANCELLED
-}
-
-enum TaskPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
-}
-
 enum CronJobStatus {
   ACTIVE
   PAUSED
@@ -3541,10 +3525,8 @@ model Task {
   planningThread         AgentThread? @relation("task_planning_thread", fields: [planningThreadId], references: [id])
   title                  String?
   description            String?
-  // Drifted enum collapsed to String (lowercase canonical value). Code TaskStatus =
-  // pending/processing/completed/failed (workspace lifecycle, not kanban). See Post.platform note.
-  status                 String       @default("pending")
-  priority               TaskPriority @default(MEDIUM)
+  status                 String       @default("backlog")
+  priority               String       @default("medium")
   config                 Json         @default("{}")
   eventStream            Json         @default("[]")
   decomposition          Json?
@@ -3553,7 +3535,6 @@ model Task {
   dismissedAt            DateTime?
   failureReason          String?
   requestedChangesReason String?
-  approvedOutputIds      String[]
   isDeleted              Boolean      @default(false)
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
@@ -3584,8 +3565,9 @@ model TaskComment {
   organization   Organization @relation(fields: [organizationId], references: [id])
   taskId         String
   task           Task         @relation(fields: [taskId], references: [id])
-  content        String?
-  authorId       String?
+  body           String
+  authorUserId   String?
+  authorAgentId  String?
   isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt

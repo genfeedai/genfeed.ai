@@ -92,8 +92,8 @@ export interface CreateTaskInput {
   brandId?: string;
   description?: string;
   goalId?: string;
+  elevenlabsVoiceId?: string;
   heygenAvatarId?: string;
-  heygenVoiceId?: string;
   linkedEntities?: TaskLinkedEntity[];
   outputType?: TaskOutputType;
   parentId?: string;
@@ -146,6 +146,8 @@ export class Task {
   checkoutAgentId?: string;
   checkedOutAt?: string;
   linkedEntities!: TaskLinkedEntity[];
+  elevenlabsVoiceId?: string;
+  heygenAvatarId?: string;
 
   // AI execution fields
   request?: string;
@@ -164,6 +166,8 @@ export class Task {
   approvedOutputIds?: string[];
   linkedApprovalIds?: string[];
   linkedIssueId?: string;
+  voiceId?: string;
+  voiceProvider?: string;
   planningThreadId?: string;
   resultPreview?: string;
   qualityAssessment?: TaskQualityAssessment;

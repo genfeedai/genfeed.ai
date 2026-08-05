@@ -17,9 +17,11 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
+import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -39,14 +41,86 @@ const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
   todo: ['in_progress', 'blocked', 'backlog', 'cancelled'],
 };
 
-type CreateTaskDtoExtended = CreateTaskDto & {
-  platforms?: string[];
-  request?: string;
-};
+const TASK_SCALAR_FIELDS = [
+  'assigneeAgentId',
+  'assigneeUserId',
+  'brandId',
+  'checkedOutAt',
+  'checkoutAgentId',
+  'checkoutRunId',
+  'completedAt',
+  'decomposition',
+  'description',
+  'dismissedAt',
+  'eventStream',
+  'failureReason',
+  'goalId',
+  'identifier',
+  'isDeleted',
+  'organizationId',
+  'parentId',
+  'planningThreadId',
+  'priority',
+  'progress',
+  'projectId',
+  'requestedChangesReason',
+  'reviewState',
+  'status',
+  'taskNumber',
+  'title',
+  'userId',
+] as const;
 
-const LINKED_RUNS_POPULATE: PopulateOption = {
-  path: 'linkedRuns',
-  select: ['id'],
+const TASK_CONFIG_FIELDS = [
+  'chosenModel',
+  'chosenProvider',
+  'dismissedReason',
+  'elevenlabsVoiceId',
+  'executionPathUsed',
+  'heygenAvatarId',
+  'linkedApprovalIds',
+  'linkedEntities',
+  'linkedIssueId',
+  'outputType',
+  'platforms',
+  'qualityAssessment',
+  'request',
+  'resultPreview',
+  'reviewTriggered',
+  'routingSummary',
+  'skillsUsed',
+  'skillVariantIds',
+  'voiceId',
+  'voiceProvider',
+] as const;
+
+const TASK_RELATION_INCLUDE = {
+  approvedOutputs: { select: { id: true } },
+  linkedOutputs: { select: { id: true } },
+  linkedRuns: { select: { id: true } },
+} as const;
+
+const TASK_RELATION_POPULATE: PopulateOption[] = [
+  { path: 'approvedOutputs', select: ['id'] },
+  { path: 'linkedOutputs', select: ['id'] },
+  { path: 'linkedRuns', select: ['id'] },
+];
+
+type TaskWriteInput = CreateTaskDto & {
+  approvedOutputIds?: string[];
+  brandId?: string;
+  config?: Record<string, unknown>;
+  elevenlabsVoiceId?: string;
+  identifier?: string;
+  linkedApprovalIds?: string[];
+  linkedIssueId?: string;
+  linkedOutputIds?: string[];
+  linkedRunIds?: string[];
+  organizationId?: string;
+  reviewState?: string;
+  taskNumber?: number;
+  userId?: string;
+  [key: string]: unknown;
 };
 
 /**
@@ -77,35 +151,84 @@ export class TasksService extends BaseService<
   }
 
   override async create(createDto: CreateTaskDto): Promise<TaskDocument> {
-    const extended = createDto as CreateTaskDtoExtended;
+    const input = createDto as TaskWriteInput;
     const normalizedTitle = this.buildTaskTitle(createDto);
-    const routing = extended.request
+    const routing = input.request
       ? await this.taskRoutingService.buildRoutingDecision(
           createDto,
           normalizedTitle,
         )
       : null;
+    const resolved = { ...input, ...(routing ?? {}) };
+    const config = {
+      ...this.readRecord(input.config),
+      ...pickDefinedFields(resolved, TASK_CONFIG_FIELDS),
+      linkedApprovalIds: input.linkedApprovalIds ?? [],
+      linkedEntities: input.linkedEntities ?? [],
+      outputType: resolved.outputType ?? 'ingredient',
+      platforms: input.platforms ?? [],
+      request: input.request ?? input.description?.trim() ?? normalizedTitle,
+      reviewTriggered: resolved.reviewTriggered ?? false,
+      skillVariantIds: resolved.skillVariantIds ?? [],
+      skillsUsed: resolved.skillsUsed ?? [],
+    };
 
-    const createPayload = {
-      ...createDto,
-      ...(routing ?? {}),
-      approvedOutputIds: [],
-      eventStream: [],
-      linkedApprovalIds: [],
-      linkedOutputIds: [],
-      platforms: extended.platforms ?? [],
-      progress: routing
-        ? {
-            activeRunCount: 0,
-            message: 'Task queued.',
-            percent: 0,
-            stage: 'queued',
-          }
-        : undefined,
+    const createPayload: Record<string, unknown> = {
+      ...pickDefinedFields(resolved, TASK_SCALAR_FIELDS),
+      config,
+      eventStream: input.eventStream ?? [],
+      priority: input.priority ?? 'medium',
+      progress:
+        input.progress ??
+        (routing
+          ? {
+              activeRunCount: 0,
+              message: 'Task queued.',
+              percent: 0,
+              stage: 'queued',
+            }
+          : undefined),
+      status: resolved.status ?? 'backlog',
       title: normalizedTitle,
-    } as CreateTaskDto & Record<string, unknown>;
+      ...(input.approvedOutputIds !== undefined && {
+        approvedOutputs: {
+          connect: input.approvedOutputIds.map((id) => ({ id })),
+        },
+      }),
+      ...(input.linkedOutputIds !== undefined && {
+        linkedOutputs: {
+          connect: input.linkedOutputIds.map((id) => ({ id })),
+        },
+      }),
+      ...(input.linkedRunIds !== undefined && {
+        linkedRuns: {
+          connect: input.linkedRunIds.map((id) => ({ id })),
+        },
+      }),
+    };
 
-    return super.create(createPayload as CreateTaskDto);
+    return super.create(createPayload as unknown as CreateTaskDto, [
+      ...TASK_RELATION_POPULATE,
+    ]);
+  }
+
+  override findAll(
+    input: unknown,
+    options: AggregationOptions,
+    enableCache: boolean = true,
+  ) {
+    const inputRecord = this.readRecord(input);
+    return super.findAll(
+      {
+        ...inputRecord,
+        include: {
+          ...this.readRecord(inputRecord.include),
+          ...TASK_RELATION_INCLUDE,
+        },
+      },
+      options,
+      enableCache,
+    );
   }
 
   override async findOne(
@@ -117,12 +240,12 @@ export class TasksService extends BaseService<
       isDeleted: false,
       ...params,
     };
-    const includesLinkedRuns = populate.some(
-      (option) => option.path === LINKED_RUNS_POPULATE.path,
-    );
+    const requestedPaths = new Set(populate.map((option) => option.path));
     return super.findOne(scopedParams, [
       ...populate,
-      ...(includesLinkedRuns ? [] : [LINKED_RUNS_POPULATE]),
+      ...TASK_RELATION_POPULATE.filter(
+        (option) => !requestedPaths.has(option.path),
+      ),
     ]);
   }
 
@@ -130,30 +253,59 @@ export class TasksService extends BaseService<
     id: string,
     updateDto: UpdateTaskDto | Record<string, unknown>,
   ): Promise<TaskDocument> {
-    const update = { ...(updateDto as Record<string, unknown>) };
-    const linkedRunIds = update.linkedRunIds;
-    delete update.linkedRunIds;
+    const input = updateDto as TaskWriteInput;
+    const configPatch = pickDefinedFields(input, TASK_CONFIG_FIELDS);
+    const hasConfigPatch =
+      Object.keys(configPatch).length > 0 || input.config !== undefined;
+    const newStatus = input.status as TaskStatus | undefined;
+    let existing:
+      | { config: Prisma.JsonValue; status: string }
+      | null
+      | undefined;
 
-    if (Array.isArray(linkedRunIds)) {
-      update.linkedRuns = {
-        set: linkedRunIds.map((runId) => ({ id: String(runId) })),
-      };
-    }
-
-    const newStatus = update.status as TaskStatus | undefined;
-
-    if (newStatus) {
-      const existing = await super.findOne({
-        id,
-        isDeleted: false,
+    if (newStatus || hasConfigPatch) {
+      existing = await this.prisma.task.findUnique({
+        select: { config: true, status: true },
+        where: { id },
       });
-
-      if (existing) {
-        this.validateStatusTransition(existing.status, newStatus);
+      if (!existing) {
+        throw new NotFoundException('Task', id);
       }
     }
 
-    return super.patch(id, update, [LINKED_RUNS_POPULATE]);
+    if (newStatus && existing) {
+      this.validateStatusTransition(existing.status as TaskStatus, newStatus);
+    }
+
+    const config = hasConfigPatch
+      ? {
+          ...this.readRecord(existing?.config),
+          ...this.readRecord(input.config),
+          ...configPatch,
+        }
+      : undefined;
+
+    const persistencePatch: Record<string, unknown> = {
+      ...pickDefinedFields(input, TASK_SCALAR_FIELDS),
+      ...(config ? { config } : {}),
+      ...(input.approvedOutputIds !== undefined && {
+        approvedOutputs: {
+          set: input.approvedOutputIds.map((outputId) => ({ id: outputId })),
+        },
+      }),
+      ...(input.linkedOutputIds !== undefined && {
+        linkedOutputs: {
+          set: input.linkedOutputIds.map((outputId) => ({ id: outputId })),
+        },
+      }),
+      ...(input.linkedRunIds !== undefined && {
+        linkedRuns: {
+          set: input.linkedRunIds.map((runId) => ({ id: runId })),
+        },
+      }),
+    };
+
+    return super.patch(id, persistencePatch, [...TASK_RELATION_POPULATE]);
   }
 
   normalizeTaskDocument(document: unknown): TaskDocument {
@@ -161,15 +313,55 @@ export class TasksService extends BaseService<
   }
 
   protected override normalizeDocument(document: unknown): TaskDocument {
-    const normalized = super.normalizeDocument(document);
-    const linkedRuns = (document as { linkedRuns?: Array<{ id: string }> })
-      ?.linkedRuns;
-    if (linkedRuns) {
-      normalized.linkedRunIds = linkedRuns.map((run) => run.id);
-    } else if (!Array.isArray(normalized.linkedRunIds)) {
-      normalized.linkedRunIds = [];
-    }
+    const record = super.normalizeDocument(document) as Record<string, unknown>;
+    const config = this.readRecord(record.config);
+    const normalized = { ...config, ...record, config } as TaskDocument;
+
+    normalized.approvedOutputIds = this.readRelationIds(record.approvedOutputs);
+    normalized.linkedOutputIds = this.readRelationIds(record.linkedOutputs);
+    normalized.linkedRunIds = this.readRelationIds(record.linkedRuns);
+    normalized.linkedApprovalIds = Array.isArray(config.linkedApprovalIds)
+      ? config.linkedApprovalIds.map(String)
+      : [];
+    normalized.linkedEntities = Array.isArray(config.linkedEntities)
+      ? (config.linkedEntities as TaskDocument['linkedEntities'])
+      : [];
+    normalized.outputType =
+      (config.outputType as TaskDocument['outputType']) ?? 'ingredient';
+    normalized.platforms = Array.isArray(config.platforms)
+      ? config.platforms.map(String)
+      : [];
+    normalized.request =
+      typeof config.request === 'string'
+        ? config.request
+        : (normalized.description ?? normalized.title ?? 'Untitled task');
+    normalized.reviewTriggered = config.reviewTriggered === true;
+    normalized.skillVariantIds = Array.isArray(config.skillVariantIds)
+      ? config.skillVariantIds.map(String)
+      : [];
+    normalized.skillsUsed = Array.isArray(config.skillsUsed)
+      ? config.skillsUsed.map(String)
+      : [];
+    normalized.priority = String(
+      normalized.priority,
+    ).toLowerCase() as TaskDocument['priority'];
+    normalized.status = String(normalized.status).toLowerCase() as TaskStatus;
     return normalized;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readRelationIds(value: unknown): string[] {
+    return Array.isArray(value)
+      ? value.flatMap((entry) => {
+          const record = this.readRecord(entry);
+          return typeof record.id === 'string' ? [record.id] : [];
+        })
+      : [];
   }
 
   async findByIdentifier(
@@ -188,6 +380,7 @@ export class TasksService extends BaseService<
     organizationId: string,
   ): Promise<TaskDocument[]> {
     return (await this.delegate.findMany({
+      include: TASK_RELATION_INCLUDE,
       where: scopedWhere(organizationId, { parentId: taskId }),
     })) as unknown as TaskDocument[];
   }
@@ -231,7 +424,7 @@ export class TasksService extends BaseService<
     });
 
     const checkedOut = await this.delegate.findFirst({
-      include: { linkedRuns: { select: { id: true } } },
+      include: TASK_RELATION_INCLUDE,
       where: scopedWhere(organizationId, { id: taskId }),
     });
     return checkedOut ? this.normalizeTaskDocument(checkedOut) : null;
@@ -265,7 +458,7 @@ export class TasksService extends BaseService<
     });
 
     const released = await this.delegate.findFirst({
-      include: { linkedRuns: { select: { id: true } } },
+      include: TASK_RELATION_INCLUDE,
       where: scopedWhere(organizationId, { id: taskId }),
     });
     if (!released) throw new NotFoundException('Task', taskId);
@@ -420,8 +613,8 @@ export class TasksService extends BaseService<
     if (createDto.title?.trim()) {
       return createDto.title.trim();
     }
-    const extended = createDto as CreateTaskDtoExtended;
-    const request = extended.request ?? '';
+    const input = createDto as TaskWriteInput;
+    const request = input.request ?? '';
     const compactRequest = request.replace(/\s+/g, ' ').trim();
     if (!compactRequest) return 'Untitled task';
     if (compactRequest.length <= 72) return compactRequest;

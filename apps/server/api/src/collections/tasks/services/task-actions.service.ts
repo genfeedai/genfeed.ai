@@ -7,7 +7,6 @@ import { TASKS_SERVICE } from '@api/collections/tasks/tasks.tokens';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   buildWorkspaceTaskRealtimeSnapshot,
   serializeWorkspaceTaskProgress,
@@ -39,14 +38,6 @@ type TaskRealtimePayload = {
 
 type OutputIdArrayField = 'approvedOutputIds' | 'linkedOutputIds';
 
-type TaskDelegate = {
-  findFirst: (args: { where: Record<string, unknown> }) => Promise<unknown>;
-  update: (args: {
-    data: Record<string, unknown>;
-    where: Record<string, unknown>;
-  }) => Promise<unknown>;
-};
-
 /**
  * Review-gate transitions, output-array mutations, and the realtime
  * event-broadcast machinery for tasks. Extracted out of `TasksService` so the
@@ -58,15 +49,10 @@ export class TaskActionsService {
   constructor(
     @Inject(TASKS_SERVICE)
     private readonly tasksService: TasksService,
-    private readonly prisma: PrismaService,
     private readonly ingredientsService: IngredientsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly taskFeedbackMemoryAdapter: TaskFeedbackMemoryAdapterService,
   ) {}
-
-  private get delegate(): TaskDelegate {
-    return (this.prisma as unknown as Record<string, TaskDelegate>).task;
-  }
 
   async approve(
     id: string,
@@ -309,12 +295,7 @@ export class TaskActionsService {
     id: string,
     data: Record<string, unknown>,
   ): Promise<TaskDocument> {
-    const updated = await this.delegate.update({
-      data,
-      where: { id },
-    });
-    if (!updated) throw new NotFoundException('Task', id);
-    return this.tasksService.normalizeTaskDocument(updated);
+    return this.tasksService.patch(id, data);
   }
 
   /**
@@ -328,20 +309,13 @@ export class TaskActionsService {
     op: 'add' | 'remove',
     outputId: string,
   ): Promise<TaskDocument> {
-    const current = (await this.delegate.findFirst({
-      where: scopedWhere(organizationId, { id }),
-    })) as Record<string, unknown> | null;
-    const existingIds = (current?.[field] as string[] | undefined) ?? [];
+    const current = await this.tasksService.requireTask(id, organizationId);
+    const existingIds = current[field] ?? [];
     const nextIds =
       op === 'add'
         ? Array.from(new Set([...existingIds, outputId]))
         : existingIds.filter((oid) => oid !== outputId);
-    const updated = await this.delegate.update({
-      data: { [field]: nextIds },
-      where: { id },
-    });
-    if (!updated) throw new NotFoundException('Task', id);
-    return this.tasksService.normalizeTaskDocument(updated);
+    return this.tasksService.patch(id, { [field]: nextIds });
   }
 
   private async patchTaskAndReturn(
@@ -424,21 +398,12 @@ export class TaskActionsService {
       userId: userId || undefined,
     };
 
-    const current = (await this.delegate.findFirst({
-      where: { id: taskId, isDeleted: false },
-    })) as { eventStream?: unknown[] } | null;
-    const currentStream = current?.eventStream ?? [];
+    const current = await this.tasksService.requireTask(taskId, organizationId);
+    const currentStream = current.eventStream ?? [];
     const newStream = [...currentStream, eventDoc];
-
-    const updatedRow = await this.delegate.update({
-      data: { eventStream: newStream },
-      where: { id: taskId },
+    const updated = await this.tasksService.patch(taskId, {
+      eventStream: newStream,
     });
-    const updated = updatedRow
-      ? this.tasksService.normalizeTaskDocument(updatedRow)
-      : null;
-
-    if (!updated) return;
 
     const payload: TaskRealtimePayload = {
       event: {
