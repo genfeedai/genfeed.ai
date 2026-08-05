@@ -1,5 +1,12 @@
 import { QueueService } from '@api/queues/core/queue.service';
-import { SOCIAL_REPLY_CAMPAIGN_QUEUE } from '@genfeedai/queue-contracts';
+import {
+  DEFAULT_QUEUE,
+  QueueDegradationReason,
+  QueueDispatchStatus,
+  SOCIAL_REPLY_CAMPAIGN_QUEUE,
+} from '@genfeedai/queue-contracts';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Job, Queue } from 'bullmq';
@@ -7,6 +14,11 @@ import { Job, Queue } from 'bullmq';
 describe('QueueService', () => {
   let service: QueueService;
   let queue: vi.Mocked<Queue>;
+  let redisDriver: string | undefined;
+
+  const mockConfigService = {
+    get: (key: string) => (key === 'REDIS_DRIVER' ? redisDriver : undefined),
+  };
 
   const mockJob = {
     data: { test: 'data' },
@@ -16,6 +28,7 @@ describe('QueueService', () => {
   } as Job;
 
   beforeEach(async () => {
+    redisDriver = undefined;
     const mockQueue = {
       add: vi.fn(),
       clean: vi.fn(),
@@ -54,6 +67,11 @@ describe('QueueService', () => {
           provide: getQueueToken(SOCIAL_REPLY_CAMPAIGN_QUEUE),
           useValue: mockQueue,
         },
+        { provide: ConfigService, useValue: mockConfigService },
+        {
+          provide: LoggerService,
+          useValue: { log: vi.fn(), warn: vi.fn() },
+        },
       ],
     }).compile();
 
@@ -65,6 +83,48 @@ describe('QueueService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('dispatch', () => {
+    it('enqueues and reports the job id when a broker is available', async () => {
+      queue.add.mockResolvedValue(mockJob);
+
+      const result = await service.dispatch(DEFAULT_QUEUE, { test: 'data' });
+
+      expect(result).toEqual({
+        jobId: 'job-123',
+        queueName: DEFAULT_QUEUE,
+        status: QueueDispatchStatus.ENQUEUED,
+      });
+    });
+
+    it('degrades without touching the queue when the driver is in-process', async () => {
+      redisDriver = 'in-process';
+
+      const result = await service.dispatch(DEFAULT_QUEUE, { test: 'data' });
+
+      expect(result).toMatchObject({
+        queueName: DEFAULT_QUEUE,
+        reason: QueueDegradationReason.NO_BROKER_CONFIGURED,
+        status: QueueDispatchStatus.DEGRADED,
+      });
+      // The whole point of the short-circuit: no BullMQ call is attempted, so
+      // there is nothing to time out against an absent broker.
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
+    it('degrades instead of throwing when a configured broker is unreachable', async () => {
+      queue.add.mockRejectedValue(new Error('connect ECONNREFUSED'));
+
+      const result = await service.dispatch(DEFAULT_QUEUE, { test: 'data' });
+
+      expect(result).toMatchObject({
+        detail: 'connect ECONNREFUSED',
+        queueName: DEFAULT_QUEUE,
+        reason: QueueDegradationReason.BROKER_UNREACHABLE,
+        status: QueueDispatchStatus.DEGRADED,
+      });
+    });
   });
 
   describe('add', () => {

@@ -20,6 +20,24 @@ export class CacheService {
     return this.cacheClientService.instance;
   }
 
+  /**
+   * Whether the cache client can accept a command right now.
+   *
+   * The `try/catch` on every method below can only fail open on a *rejection*.
+   * ioredis buffers commands in its offline queue while a client is
+   * disconnected, so a command issued against an unreachable Redis does not
+   * reject — it never settles at all, and since this client's reconnect is
+   * unbounded by design (see `WorkloadRedisClientService`), nothing ever
+   * releases it. A cached endpoint then hangs forever instead of serving
+   * uncached, which is the opposite of the intended degradation.
+   *
+   * `isReady` is exposed by the client service for exactly this gate. Checking
+   * it turns "Redis is unreachable" into an immediate cache miss.
+   */
+  private get isAvailable(): boolean {
+    return this.cacheClientService.isReady;
+  }
+
   private logOperationError(
     operation: string,
     details: Parameters<LoggerService['error']>[1],
@@ -28,6 +46,10 @@ export class CacheService {
   }
 
   async get<T = unknown>(key: string): Promise<T | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+
     try {
       const value = await this.client.get(key);
       return value === null ? null : (JSON.parse(value) as T);
@@ -42,6 +64,10 @@ export class CacheService {
     value: unknown,
     options: ServiceCacheOptions = {},
   ): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       const serialized = JSON.stringify(value);
       const ttl = options.ttl || this.defaultTtl;
@@ -56,6 +82,10 @@ export class CacheService {
   }
 
   async del(key: string): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       return (await this.client.del(key)) > 0;
     } catch (error: unknown) {
@@ -65,6 +95,10 @@ export class CacheService {
   }
 
   async exists(key: string): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       return (await this.client.exists(key)) === 1;
     } catch (error: unknown) {
@@ -74,6 +108,10 @@ export class CacheService {
   }
 
   async incr(key: string, by: number = 1): Promise<number> {
+    if (!this.isAvailable) {
+      return 0;
+    }
+
     try {
       return await this.client.incrby(key, by);
     } catch (error: unknown) {
@@ -87,6 +125,10 @@ export class CacheService {
   }
 
   async expire(key: string, ttl: number): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       return (await this.client.expire(key, ttl)) === 1;
     } catch (error: unknown) {
@@ -100,6 +142,10 @@ export class CacheService {
   }
 
   async mget<T = unknown>(keys: string[]): Promise<(T | null)[]> {
+    if (!this.isAvailable) {
+      return keys.map(() => null);
+    }
+
     try {
       const values = await this.client.mget(keys);
       return values.map((value) => (value ? (JSON.parse(value) as T) : null));
@@ -113,6 +159,10 @@ export class CacheService {
     keyValues: Record<string, unknown>,
     ttl?: number,
   ): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       const pipeline = this.client.multi();
 
@@ -137,6 +187,10 @@ export class CacheService {
   }
 
   invalidateByTags(tags: string[]): Promise<number> {
+    if (!this.isAvailable) {
+      return Promise.resolve(0);
+    }
+
     return this.cacheTagsService.invalidateByTags(tags);
   }
 
@@ -211,6 +265,10 @@ export class CacheService {
   }
 
   async flush(): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       await this.client.flushdb();
       this.logger.warn(`${this.constructorName} cache flushed`);
@@ -236,6 +294,10 @@ export class CacheService {
     lockKey: string,
     ttlSeconds: number = 300,
   ): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       const key = `lock:${lockKey}`;
       // SET NX (only set if not exists) with EX (expiration in seconds)
@@ -262,6 +324,10 @@ export class CacheService {
    * @param lockKey - The lock identifier to release
    */
   async releaseLock(lockKey: string): Promise<boolean> {
+    if (!this.isAvailable) {
+      return false;
+    }
+
     try {
       const key = `lock:${lockKey}`;
       return (await this.client.del(key)) > 0;

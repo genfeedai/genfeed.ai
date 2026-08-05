@@ -12,10 +12,16 @@ import {
   ANALYTICS_YOUTUBE_QUEUE,
   DEFAULT_QUEUE,
   EMAIL_DIGEST_QUEUE,
+  QueueDegradationReason,
+  type QueueDispatchResult,
+  QueueDispatchStatus,
   SOCIAL_INBOX_SYNC_QUEUE,
   SOCIAL_REPLY_CAMPAIGN_QUEUE,
   TELEGRAM_DISTRIBUTE_QUEUE,
 } from '@genfeedai/queue-contracts';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { isInProcessRedis } from '@libs/redis/redis-driver';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job, JobsOptions, Queue } from 'bullmq';
@@ -60,6 +66,8 @@ export class QueueService {
     private readonly socialInboxSyncQueue: Queue,
     @InjectQueue(SOCIAL_REPLY_CAMPAIGN_QUEUE)
     private readonly socialReplyCampaignQueue: Queue,
+    private readonly configService: ConfigService,
+    private readonly loggerService: LoggerService,
   ) {}
 
   add<T = Record<string, unknown>>(
@@ -69,6 +77,54 @@ export class QueueService {
   ): Promise<Job<T>> {
     const queue = this.getQueue(queueName);
     return queue.add(queueName, data, options);
+  }
+
+  /**
+   * Enqueue work and report the outcome as data rather than as an exception
+   * (#2382).
+   *
+   * {@link add} rejects when no broker is reachable, which a controller can only
+   * surface as a 500. `dispatch` distinguishes "the broker is down" from "this
+   * deployment has no broker by design" (offline desktop, epic #2378) and
+   * returns a {@link QueueDispatchResult} either way, so the caller can choose a
+   * fallback instead of failing the request.
+   *
+   * `add()` is deliberately left unchanged: cloud and community callers keep
+   * their current throwing contract until each is migrated deliberately.
+   */
+  async dispatch<T = Record<string, unknown>>(
+    queueName: string,
+    data: T,
+    options?: JobsOptions,
+  ): Promise<QueueDispatchResult> {
+    if (isInProcessRedis(this.configService)) {
+      return {
+        detail: `REDIS_DRIVER=in-process: no queue worker exists in this deployment, so "${queueName}" was not enqueued.`,
+        queueName,
+        reason: QueueDegradationReason.NO_BROKER_CONFIGURED,
+        status: QueueDispatchStatus.DEGRADED,
+      };
+    }
+
+    try {
+      const job = await this.add(queueName, data, options);
+      return {
+        jobId: String(job.id),
+        queueName,
+        status: QueueDispatchStatus.ENQUEUED,
+      };
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `QueueService.dispatch: "${queueName}" could not be enqueued — degrading`,
+        error,
+      );
+      return {
+        detail: (error as Error).message,
+        queueName,
+        reason: QueueDegradationReason.BROKER_UNREACHABLE,
+        status: QueueDispatchStatus.DEGRADED,
+      };
+    }
   }
 
   private getQueue(queueName: string): Queue {
