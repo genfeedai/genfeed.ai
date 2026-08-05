@@ -1,7 +1,6 @@
 import {
   ASSET_UPLOAD_TYPE_BY_ROLE,
   BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
-  BRAND_KIT_ROLE_BY_PRISMA_CATEGORY,
   PRISMA_ASSET_CATEGORY_BY_ROLE,
 } from '@api/collections/brands/constants/brand-kit-assets.constant';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
@@ -45,6 +44,21 @@ const BRAND_KIT_ALLOWED_EXTENSIONS = new Set([
   '.png',
   '.webp',
 ]);
+const BRAND_KIT_ASSET_ORDER_BY = [
+  { updatedAt: 'desc' },
+  { id: 'asc' },
+] satisfies Prisma.AssetOrderByWithRelationInput[];
+const BRAND_KIT_ASSET_SELECT = {
+  category: true,
+  cloudObjectKey: true,
+  displayName: true,
+  id: true,
+  mimeType: true,
+  parentBrandId: true,
+} satisfies Prisma.AssetSelect;
+type BrandKitAssetRecord = Prisma.AssetGetPayload<{
+  select: typeof BRAND_KIT_ASSET_SELECT;
+}>;
 type BrandKitAssetBrandFinder = (
   criteria: Record<string, unknown>,
 ) => Promise<BrandDocument | null>;
@@ -81,12 +95,13 @@ export class BrandKitAssetsService {
   }
 
   /**
-   * The same read for a whole set of brands, in one query.
+   * The same bounded read for a whole set of brands.
    *
-   * The access bootstrap hands the client every brand in the organization at
-   * once, so resolving them one at a time would be an N+1 on the hottest
-   * authenticated request in the app. Brands with no assets still get an entry,
-   * so a caller can attach unconditionally.
+   * Each brand resolves at most one logo, one banner and ten references. The
+   * role reads run concurrently, so a noisy asset history cannot inflate the
+   * authenticated bootstrap response or the query result held in memory.
+   * Brands with no assets still get an entry so callers can attach
+   * unconditionally.
    */
   async resolveBrandKitAssetsForBrands(
     brandIds: string[],
@@ -101,59 +116,58 @@ export class BrandKitAssetsService {
       return resolved;
     }
 
-    const assets = await this.prisma.asset.findMany({
-      orderBy: { updatedAt: 'desc' },
-      select: {
-        category: true,
-        displayName: true,
-        cloudObjectKey: true,
-        id: true,
-        mimeType: true,
-        parentBrandId: true,
-      },
-      where: {
-        category: { in: Object.values(PRISMA_ASSET_CATEGORY_BY_ROLE) },
-        isDeleted: false,
-        parentBrandId: { in: uniqueBrandIds },
-        parentOrgId: organizationId,
-        parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
-      },
-    });
+    await Promise.all(
+      uniqueBrandIds.map(async (brandId) => {
+        const where = {
+          isDeleted: false,
+          parentBrandId: brandId,
+          parentOrgId: organizationId,
+          parentType: 'BRAND' as Prisma.AssetCreateInput['parentType'],
+        };
+        const [logo, banner, references] = await Promise.all([
+          this.prisma.asset.findFirst({
+            orderBy: BRAND_KIT_ASSET_ORDER_BY,
+            select: BRAND_KIT_ASSET_SELECT,
+            where: {
+              ...where,
+              category: PRISMA_ASSET_CATEGORY_BY_ROLE.logo,
+            },
+          }),
+          this.prisma.asset.findFirst({
+            orderBy: BRAND_KIT_ASSET_ORDER_BY,
+            select: BRAND_KIT_ASSET_SELECT,
+            where: {
+              ...where,
+              category: PRISMA_ASSET_CATEGORY_BY_ROLE.banner,
+            },
+          }),
+          this.prisma.asset.findMany({
+            orderBy: BRAND_KIT_ASSET_ORDER_BY,
+            select: BRAND_KIT_ASSET_SELECT,
+            take: BRAND_KIT_RESOLVED_REFERENCE_LIMIT,
+            where: {
+              ...where,
+              category: PRISMA_ASSET_CATEGORY_BY_ROLE.reference,
+            },
+          }),
+        ]);
+        const kit = resolved.get(brandId);
 
-    for (const asset of assets) {
-      const role = BRAND_KIT_ROLE_BY_PRISMA_CATEGORY.get(
-        String(asset.category),
-      );
-      const kit = asset.parentBrandId
-        ? resolved.get(asset.parentBrandId)
-        : undefined;
+        if (!kit) {
+          return;
+        }
 
-      if (!role || !kit) {
-        continue;
-      }
-
-      const value: IBrandKitResolvedAsset = {
-        id: asset.id,
-        label: asset.displayName ?? undefined,
-        mimeType: asset.mimeType ?? undefined,
-        role,
-        url: this.buildBrandAssetCdnUrl(asset.id, role, asset.cloudObjectKey),
-      };
-
-      if (role === 'logo') {
-        kit.logo ??= value;
-        continue;
-      }
-
-      if (role === 'banner') {
-        kit.banner ??= value;
-        continue;
-      }
-
-      if (kit.references.length < BRAND_KIT_RESOLVED_REFERENCE_LIMIT) {
-        kit.references.push(value);
-      }
-    }
+        if (logo) {
+          kit.logo = this.toResolvedBrandKitAsset(logo, 'logo');
+        }
+        if (banner) {
+          kit.banner = this.toResolvedBrandKitAsset(banner, 'banner');
+        }
+        kit.references = references.map((reference) =>
+          this.toResolvedBrandKitAsset(reference, 'reference'),
+        );
+      }),
+    );
 
     return resolved;
   }
@@ -633,8 +647,22 @@ export class BrandKitAssetsService {
   ): string {
     const objectKey =
       cloudObjectKey?.trim() || `${ASSET_UPLOAD_TYPE_BY_ROLE[role]}/${assetId}`;
+    const cdnBase = this.configService.cdnUrl.replace(/\/+$/, '');
 
-    return `${this.configService.cdnUrl}/${objectKey.replace(/^\/+/, '')}`;
+    return `${cdnBase}/${objectKey.replace(/^\/+/, '')}`;
+  }
+
+  private toResolvedBrandKitAsset(
+    asset: BrandKitAssetRecord,
+    role: BrandKitAssetRole,
+  ): IBrandKitResolvedAsset {
+    return {
+      id: asset.id,
+      label: asset.displayName ?? undefined,
+      mimeType: asset.mimeType ?? undefined,
+      role,
+      url: this.buildBrandAssetCdnUrl(asset.id, role, asset.cloudObjectKey),
+    };
   }
 
   private readExtension(url: URL): string {
