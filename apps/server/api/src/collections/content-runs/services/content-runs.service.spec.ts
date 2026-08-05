@@ -105,8 +105,8 @@ describe('ContentRunsService', () => {
 
   it('creates a run with lifecycle fields in config and returns the serializer contract', async () => {
     const payload: CreateContentRunInput = {
-      brand: 'brand-1',
-      organization: 'org-1',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
       status: ContentRunStatus.PENDING,
       ...baseConfig,
     };
@@ -133,11 +133,11 @@ describe('ContentRunsService', () => {
       },
     });
     expect(result).toMatchObject({
-      _id: 'run-1',
       analyticsSummary: baseConfig.analyticsSummary,
-      brand: 'brand-1',
+      brandId: 'brand-1',
       brief: baseConfig.brief,
-      organization: 'org-1',
+      id: 'run-1',
+      organizationId: 'org-1',
       publish: baseConfig.publish,
       recommendations: baseConfig.recommendations,
       skillSlug: 'content-writing',
@@ -256,14 +256,14 @@ describe('ContentRunsService', () => {
       },
     });
     expect(result).toMatchObject({
-      _id: 'run-1',
       brief: expect.objectContaining({
         evidence: expect.arrayContaining([
           'AI agents are getting embedded directly into content workflows.',
         ]),
         sourceUrl: 'https://x.com/builderx/status/1',
       }),
-      organization: 'org-1',
+      id: 'run-1',
+      organizationId: 'org-1',
       skillSlug: 'trend-remix',
       status: ContentRunStatus.PENDING,
     });
@@ -306,11 +306,11 @@ describe('ContentRunsService', () => {
       where: { id: 'run-1' },
     });
     expect(result).toMatchObject({
-      _id: 'run-1',
       analyticsSummary: patch.analyticsSummary,
       brief: baseConfig.brief,
       creditsUsed: 8,
-      organization: 'org-1',
+      id: 'run-1',
+      organizationId: 'org-1',
       skillSlug: 'content-writing',
       status: ContentRunStatus.COMPLETED,
     });
@@ -399,7 +399,7 @@ describe('ContentRunsService', () => {
       where: { id: 'run-1' },
     });
     expect(result).toMatchObject({
-      _id: 'run-1',
+      id: 'run-1',
       variants: expect.arrayContaining([
         expect.objectContaining({ id: 'social-image' }),
       ]),
@@ -433,8 +433,8 @@ describe('ContentRunsService', () => {
     });
     expect(result).toHaveLength(1);
     expect(result[0]).toMatchObject({
-      _id: 'run-1',
-      organization: 'org-1',
+      id: 'run-1',
+      organizationId: 'org-1',
       skillSlug: 'content-writing',
     });
   });
@@ -452,10 +452,10 @@ describe('ContentRunsService', () => {
       },
     });
     expect(result).toMatchObject({
-      _id: 'run-1',
-      brand: 'brand-1',
+      brandId: 'brand-1',
       brief: baseConfig.brief,
-      organization: 'org-1',
+      id: 'run-1',
+      organizationId: 'org-1',
       publish: baseConfig.publish,
       skillSlug: 'content-writing',
       status: ContentRunStatus.PENDING,

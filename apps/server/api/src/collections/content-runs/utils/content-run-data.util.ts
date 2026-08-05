@@ -18,15 +18,10 @@ export function hydrateContentRun(
   }
 
   const config = isContentRunRecord(run.config) ? run.config : {};
-  const brand = run.brandId;
-  const organization = run.organizationId;
 
   return {
     ...run,
     ...config,
-    _id: run.id,
-    brand,
-    organization,
     status: run.status ?? config.status,
   };
 }

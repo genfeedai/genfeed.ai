@@ -5,14 +5,14 @@ describe('ContentRunSerializer', () => {
   it('serializes lifecycle attributes for the expanded content run contract', () => {
     const now = new Date();
     const result = ContentRunSerializer.serialize({
-      _id: 'run-1',
+      id: 'run-1',
       analyticsSummary: {
         engagementRate: 0.19,
         metadata: { window: '7d' },
         summary: 'Founder-led angle won',
         winningVariantId: 'variant-a',
       },
-      brand: 'brand-1',
+      brandId: 'brand-1',
       brief: {
         audience: 'founders',
         hypothesis: 'Specific operator pain beats generic AI framing',
@@ -21,7 +21,7 @@ describe('ContentRunSerializer', () => {
       creditsUsed: 0,
       input: { topic: 'AI strategy' },
       isDeleted: false,
-      organization: 'org-1',
+      organizationId: 'org-1',
       output: {
         content: 'A draft',
         metadata: {},
@@ -62,6 +62,10 @@ describe('ContentRunSerializer', () => {
     expect(result.data.attributes).toHaveProperty('publish');
     expect(result.data.attributes).toHaveProperty('analyticsSummary');
     expect(result.data.attributes).toHaveProperty('recommendations');
+    expect(result.data.attributes).toMatchObject({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+    });
     expect(result.data.attributes.brief).toMatchObject({
       audience: 'founders',
       hypothesis: 'Specific operator pain beats generic AI framing',

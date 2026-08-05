@@ -9,11 +9,11 @@ import type {
 
 export interface CreateContentRunInput {
   analyticsSummary?: ContentRunAnalyticsSummary;
-  brand: string;
+  brandId: string;
   brief?: ContentRunBrief;
   creditsUsed: number;
   input: Record<string, unknown>;
-  organization: string;
+  organizationId: string;
   publish?: ContentRunPublishContext;
   recommendations?: ContentRunRecommendation[];
   skillSlug: string;

@@ -180,12 +180,12 @@ describe('stable provider path smoke', () => {
 
     expect(contentRunsService.createRun).toHaveBeenCalledWith(
       expect.objectContaining({
-        brand: brandId,
+        brandId,
         input: expect.objectContaining({
           model: ImageTaskModel.FAL,
           prompt: 'A polished V1 product screenshot scene',
         }),
-        organization: organizationId,
+        organizationId,
         skillSlug: 'image-generation',
         source: ContentRunSource.HOSTED,
         status: ContentRunStatus.PENDING,

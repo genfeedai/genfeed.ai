@@ -149,7 +149,7 @@ describe('ContentRunsController', () => {
   describe('getRun', () => {
     it('gets a run by id scoped to org', async () => {
       mockService.getRunById.mockResolvedValue({
-        _id: 'run-1',
+        id: 'run-1',
         status: 'completed',
       });
 
@@ -162,7 +162,7 @@ describe('ContentRunsController', () => {
       mockGetPublicMetadata.mockReturnValue({
         organization: 'org-different',
       });
-      mockService.getRunById.mockResolvedValue({ _id: 'run-1' });
+      mockService.getRunById.mockResolvedValue({ id: 'run-1' });
 
       await controller.getRun(mockReq, 'run-1', mockUser);
 
@@ -203,7 +203,7 @@ describe('ContentRunsController', () => {
         trendTopic: '#AIAgents',
       };
       mockService.createBriefRun.mockResolvedValue({
-        _id: 'run-1',
+        id: 'run-1',
         brief: { evidence: ['Source text'] },
         status: ContentRunStatus.PENDING,
       });
@@ -222,7 +222,7 @@ describe('ContentRunsController', () => {
     it('computes recommendations and returns the updated run', async () => {
       mockRecommendationsService.analyzeRun.mockResolvedValue({
         updatedRun: {
-          _id: 'run-1',
+          id: 'run-1',
           analyticsSummary: { winningVariantId: 'variant-a' },
           recommendations: [{ metadata: {}, type: 'extend_winner_format' }],
         },
@@ -240,7 +240,7 @@ describe('ContentRunsController', () => {
   describe('createRemixPack', () => {
     it('creates remix variants scoped to the authenticated organization', async () => {
       mockService.createRemixPack.mockResolvedValue({
-        _id: 'run-1',
+        id: 'run-1',
         variants: [{ id: 'post-thread', metadata: {}, type: 'text' }],
       });
 
