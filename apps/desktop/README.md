@@ -2,6 +2,10 @@
 
 `apps/desktop/app` is the Electron native shell for the macOS-first installed app release. It embeds the real `apps/app` Next.js frontend and provides desktop-local backend actions through typed IPC.
 
+There is no desktop-local React/Next.js renderer. Development and release builds
+run the canonical `apps/app` codebase, while Electron owns native lifecycle,
+PGlite, BYOK generation, sync/session services, terminal, tray, and updates.
+
 The desktop app must be useful by itself. A fresh source checkout can run the
 desktop shell in local/offline mode without starting the NestJS API, and a
 downloaded desktop build should not require cloning this repository.
@@ -23,6 +27,8 @@ Environment variables:
 - `GENFEED_DESKTOP_SENTRY_DSN` (optional): enables desktop runtime and renderer telemetry
 - `GENFEED_DESKTOP_SENTRY_ENVIRONMENT` (optional): defaults to `NODE_ENV` or `development`
 - `GENFEED_DESKTOP_RELEASE` (optional): explicit release identifier for telemetry and packaged builds
+- `GENFEED_DESKTOP_APP_PORT` (optional): loopback port for the embedded app;
+  defaults to `3230`
 
 From the repository root:
 
@@ -32,11 +38,17 @@ bun dev:desktop
 
 `bun dev:desktop` builds the Electron main/preload bundle, starts the embedded
 `apps/app` Next.js shell, and launches Electron. It does not start the NestJS
-API. When no desktop cloud session is present, the app shell runs in
-account-less local mode and skips cloud bootstrap requests. First launch uses
-the shared Genfeed auth presentation with two Desktop capabilities: system
-browser PKCE sign-in and **Continue without an account**. The account-less
-choice persists and later launches open the same agent-first workspace directly.
+API. Browser API requests stay same-origin on the loopback shell: `apps/app`
+calls `/v1`, and its baked Next.js rewrite proxies that path to the configured
+real API origin. This keeps the Better Auth cookie scoped to the shell origin.
+
+Genfeed Connect sign-in opens the system browser with PKCE. The callback returns
+through `genfeedai-desktop://auth`; Electron exchanges the code for a main-only
+`gf_` API key and an exact signed Better Auth session cookie. Electron stores
+both together using the existing encrypted session store and installs the
+HttpOnly cookie as a host-only cookie on `http://127.0.0.1:<appPort>`. The API
+key is never exposed to `apps/app`; main only adds it to trusted shell requests
+as `x-genfeed-desktop-token`. Sign-out removes the cookie and key together.
 
 The first visible desktop paint is owned by Electron, not by `apps/app`: a black
 launch screen with an animated Genfeed mark is shown while the embedded app
@@ -56,7 +68,7 @@ database and exposes generation actions to `apps/app` through
 - any OpenAI-compatible endpoint
 
 The local provider API key stays in desktop local storage and is not returned to
-the renderer after save. Local text/workflow generation runs are recorded as
+the page after save. Local text/workflow generation runs are recorded as
 durable `generation` jobs. Generic cloud actions are never queued with a promise
 to run after sign-in; cloud-only actions instead expose an in-context connect
 affordance.
@@ -69,10 +81,9 @@ registers it as a `local-generation` asset with `local-only` residency and
 required for this local/BYOK path; Better Auth is only needed for explicit
 Genfeed Cloud sync.
 
-After browser PKCE returns, thread and metadata sync remains paused until the
-user grants account-scoped consent. Full asset bytes additionally require both
-that consent and an asset `uploadPolicy` of `full`; `uploadPolicy=never` is an
-absolute local-only boundary.
+The Phase-2 thread/metadata sync backend remains in Electron, but the canonical
+app does not yet consume its bridge. The old renderer-owned sync trigger now
+returns a structured unavailable result instead of firing an orphan event.
 
 The local user and device IDs remain stable when cloud accounts connect or
 change. A connection attributes that stable local identity to the current cloud
@@ -131,7 +142,7 @@ bun run release:mac
 ```
 
 `bun run qa:release` is the release-candidate gate for desktop changes. It runs
-desktop lint, type-check, tests, and the Electron smoke boot used by the
+desktop lint, type-check, Bun tests, and the Electron smoke boot used by the
 `Desktop QA` workflow. Use the checklist in
 [`apps/desktop/RELEASE_QA.md`](./RELEASE_QA.md) for manual release evidence.
 
@@ -152,7 +163,9 @@ Optional signing and notarization environment variables:
 ## Current Scope
 
 - Electron desktop shell embedding the real `apps/app` frontend
-- Typed preload/IPC bridge for auth, workspace, files, drafts, notifications, diagnostics, sync, local generation provider settings, and workflow generation
+- No parallel desktop-local renderer or desktop-local Next.js configuration
+- Active typed IPC for system-browser sign-in, cloud content generation, and local generation provider settings
+- Dormant Phase-2 IPC/services retained for workspace, files, drafts, notifications, diagnostics, sync, terminal, and local workflow execution
 - PGlite-backed local cache for workspaces, recents, session metadata, provider settings, and sync/generation jobs
 - Workspace-backed content run drafts stored in `.genfeed/content-runs.json`
 - Genfeed Cloud generation by default after sign-in, with optional offline generation through user-configured OpenAI-compatible local providers

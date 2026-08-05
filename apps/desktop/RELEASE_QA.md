@@ -9,28 +9,33 @@ packaged Electron shell.
 - Trigger: desktop release tags, manual dispatch, and trunk PR/release gates that
   call the reusable `Desktop QA` workflow.
 - Command: `bun run --filter=@genfeedai/desktop qa:release`.
-- Coverage: desktop lint, type-check, Bun/Vitest tests, native rebuild, packaged
-  app-shell build, and Electron `--smoke-test` boot.
+- Coverage: desktop lint, type-check, Bun tests, native rebuild, canonical
+  `apps/app` standalone build, and Electron `--smoke-test` readiness. Smoke only
+  passes after `did-finish-load` and the `gf-desktop-shell` body marker render.
 
 ## Manual Checklist
 
 - Fresh launch shows the Electron-owned boot screen before the app shell loads.
-- No-API launch enters local/offline mode without requiring a server clone.
-- Browser sign-in deep link preserves a valid session and rejects invalid or
-  replayed callbacks.
-- First-run auth exposes browser PKCE plus **Continue without an account**, with
-  no embedded credential form or auth webview.
-- Account-less and signed-in users render the same agent-first workspace shell.
-- Reconnect requires explicit sync consent; `uploadPolicy=never` assets remain
-  local and full asset upload remains separately enabled.
+- The loaded product surface is the canonical `apps/app`; no desktop-local
+  renderer or credential form is packaged.
+- Browser sign-in uses system-browser PKCE and rejects invalid or replayed
+  callbacks.
+- Successful exchange installs the exact signed Better Auth cookie on the
+  loopback shell origin as a host-only, HttpOnly cookie with its expiration.
+- Browser requests use same-origin `/v1`; the `gf_` API key is absent from page
+  state and only appears in main-process request-header injection.
+- Restart restores a non-expired persisted cookie; an expired cookie/key pair
+  recovers to the login surface.
+- Sign-out removes the cookie and API key together before emitting signed-out
+  state.
 - Workspace selection, recent workspaces, drafts, and content-run handoff survive
   app restart.
 - Local generation provider setup keeps the API key out of renderer-visible
   state and shows a recoverable error before a provider is configured.
-- Genfeed Cloud generation and sync are available after sign-in when the API is
-  reachable.
-- Menu, tray, global shortcuts, terminal, library, trends, workflows, agents,
-  and analytics surfaces render without blank states.
+- Genfeed Cloud generation is available after sign-in when the API is reachable.
+- Dormant Phase-2 services (PGlite, sync, workspace/files/drafts, terminal,
+  tray, updater, and BYOK generation) remain packaged without renderer-owned
+  event dispatch.
 - Packaged artifacts include `GenFeed-*.dmg`, `GenFeed-*.zip`, and
   `genfeed-desktop-release.json`.
 
@@ -39,8 +44,12 @@ packaged Electron shell.
 - Link the passing `Desktop QA` workflow run for the candidate branch or PR.
 - Link the `Desktop Release` workflow run for the signed macOS artifact.
 - Attach or reference the generated `genfeed-desktop-release.json` manifest.
-- Attach the `genfeed-desktop-visual-qa` artifact containing `first-run.png`,
-  `account-less-workspace.png`, `returning-account-less.png`, and
-  `reconnect-consent.png`, captured from the packaged `.app`.
+- Provide `GENFEED_DESKTOP_VISUAL_QA_SESSION` to the trusted release job as a
+  JSON session fixture containing a valid `gf_` key plus signed cookie. It is
+  consumed only by Electron main and must never be uploaded as evidence.
+- Attach the `genfeed-desktop-visual-qa` artifact containing
+  `desktop-login.png`, `pkce-callback.png`, `authenticated-route.png`,
+  `logout.png`, `restart-persistence.png`, and
+  `expired-credential-recovery.png`, captured from the packaged `.app`.
 - Record macOS runner version, release tag or commit SHA, signing/notarization
   result, and any deferred manual checklist item.
