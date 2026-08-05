@@ -89,7 +89,7 @@ export interface TaskEvent {
 export interface CreateTaskInput {
   assigneeAgentId?: string;
   assigneeUserId?: string;
-  brand?: string;
+  brandId?: string;
   description?: string;
   goalId?: string;
   heygenAvatarId?: string;
@@ -111,7 +111,7 @@ export interface ListTasksParams {
   assigneeAgentId?: string;
   assigneeUserId?: string;
   /** When set, scopes the list to one brand. Omit for org-wide (all brands). */
-  brand?: string;
+  brandId?: string;
   limit?: number;
   page?: number;
   parentId?: string;
@@ -128,8 +128,9 @@ const taskSerializer: IServiceSerializer<Task> = {
 
 export class Task {
   id!: string;
-  organization!: string;
-  brand?: string;
+  organizationId!: string;
+  brandId?: string | null;
+  userId?: string | null;
   taskNumber!: number;
   identifier!: string;
   title!: string;

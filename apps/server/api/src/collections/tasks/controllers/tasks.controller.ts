@@ -75,6 +75,7 @@ export class TasksController extends BaseCRUDController<
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = publicMetadata.organization;
+    const brandId = createDto.brandId ?? publicMetadata.brand;
 
     const org = await this.organizationsService.findOne({
       id: organizationId,
@@ -102,13 +103,17 @@ export class TasksController extends BaseCRUDController<
 
     const doc = await this.tasksService.create({
       ...createDto,
+      brandId,
       identifier,
       organizationId: organizationId,
       taskNumber,
+      userId: publicMetadata.user,
     } as CreateTaskDto & {
+      brandId?: string;
       identifier: string;
       organizationId: string;
       taskNumber: number;
+      userId: string;
     });
 
     const response = serializeSingle(request, TaskSerializer, doc);
@@ -136,7 +141,7 @@ export class TasksController extends BaseCRUDController<
 
         this.workspaceTaskQueueService
           .enqueue({
-            brandId: publicMetadata.brand,
+            brandId,
             elevenlabsVoiceId: extended.elevenlabsVoiceId,
             heygenAvatarId: extended.heygenAvatarId,
             organizationId,

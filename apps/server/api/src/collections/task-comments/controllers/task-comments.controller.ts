@@ -58,8 +58,8 @@ export class TaskCommentsController {
       taskId: taskId,
     } as CreateTaskCommentDto & {
       authorUserId: string;
-      task: string;
-      organization: string;
+      organizationId: string;
+      taskId: string;
     });
 
     return serializeSingle(request, TaskCommentSerializer, doc);

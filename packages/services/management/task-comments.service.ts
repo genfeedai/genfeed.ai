@@ -11,8 +11,8 @@ const taskCommentSerializer: IServiceSerializer<TaskComment> = {
 
 export class TaskComment {
   id!: string;
-  organization!: string;
-  task!: string;
+  organizationId!: string;
+  taskId!: string;
   authorUserId?: string;
   authorAgentId?: string;
   body!: string;

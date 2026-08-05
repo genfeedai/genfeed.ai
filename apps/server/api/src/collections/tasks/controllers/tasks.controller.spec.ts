@@ -47,6 +47,7 @@ describe('TasksController', () => {
   const mockUser = {
     id: 'user-1',
     publicMetadata: {
+      brand: '507f191e810c19729de860ef',
       organization: organizationId,
       user: userId,
     },
@@ -115,7 +116,7 @@ describe('TasksController', () => {
   describe('create', () => {
     it('creates a task with organization prefix and next counter number', async () => {
       const createdTask = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         identifier: 'GENA-18',
         taskNumber: 18,
         title: 'Add task tests',
@@ -130,7 +131,7 @@ describe('TasksController', () => {
       } as CreateTaskDto);
 
       expect(organizationsService.findOne).toHaveBeenCalledWith({
-        _id: expect.any(String),
+        id: organizationId,
         isDeleted: false,
       });
       expect(taskCountersService.getNextNumber).toHaveBeenCalledWith(
@@ -138,18 +139,34 @@ describe('TasksController', () => {
       );
       expect(tasksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
+          brandId: '507f191e810c19729de860ef',
           identifier: 'GENA-18',
-          organization: expect.any(String),
+          organizationId,
           taskNumber: 18,
           title: 'Add task tests',
+          userId,
         }),
       );
-
-      const payload = tasksService.create.mock.calls[0]?.[0] as {
-        organization: string;
-      };
-      expect(payload.organization.toString()).toBe(organizationId);
       expect('data' in result ? result.data : result).toEqual(createdTask);
+    });
+
+    it('uses an explicit canonical brand ID instead of the session default', async () => {
+      const requestedBrandId = '507f191e810c19729de860ff';
+      organizationsService.findOne.mockResolvedValue({ prefix: 'GENA' });
+      taskCountersService.getNextNumber.mockResolvedValue(19);
+      tasksService.create.mockResolvedValue({
+        id: '507f191e810c19729de860ed',
+        title: 'Cross-brand task',
+      });
+
+      await controller.create(mockRequest, mockUser, {
+        brandId: requestedBrandId,
+        title: 'Cross-brand task',
+      } as CreateTaskDto);
+
+      expect(tasksService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId: requestedBrandId }),
+      );
     });
 
     it('rejects creation when the organization is missing a prefix', async () => {
@@ -199,27 +216,27 @@ describe('TasksController', () => {
   });
 
   describe('canUserModifyEntity', () => {
-    it('allows modification when the task stores organization as an ObjectId', () => {
+    it('allows modification when the canonical organization ID matches', () => {
       const entity = {
-        organization: organizationId,
+        organizationId,
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
     });
 
-    it('allows modification when the task stores a populated organization object', () => {
+    it('does not authorize from the legacy organization relation alias', () => {
       const entity = {
         organization: {
           id: organizationId,
         },
       } as unknown as TaskDocument;
 
-      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
+      expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
     });
 
     it('rejects modification when organizations differ', () => {
       const entity = {
-        organization: '607f191e810c19729de860ff',
+        organizationId: '607f191e810c19729de860ff',
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
@@ -229,7 +246,7 @@ describe('TasksController', () => {
   describe('findByIdentifier', () => {
     it('returns a serialized task when found', async () => {
       const task = {
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         identifier: 'GENA-18',
       } as TaskDocument;
       tasksService.findByIdentifier.mockResolvedValue(task);
@@ -261,7 +278,7 @@ describe('TasksController', () => {
       const taskId = '507f191e810c19729de860ee'.toString();
       const children = [
         {
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           title: 'Child task',
         },
       ] as TaskDocument[];
@@ -284,7 +301,7 @@ describe('TasksController', () => {
   describe('review transitions via patch', () => {
     const taskId = '507f191e810c19729de860ee'.toString();
     const task = {
-      _id: taskId,
+      id: taskId,
       title: 'Review task',
     } as TaskDocument;
 
@@ -350,7 +367,7 @@ describe('TasksController', () => {
     const taskId = '507f191e810c19729de860ee'.toString();
     const outputId = '607f191e810c19729de860ff'.toString();
     const task = {
-      _id: taskId,
+      id: taskId,
       title: 'Review task',
     } as TaskDocument;
 

@@ -182,7 +182,7 @@ function buildTask(overrides: Record<string, unknown> = {}) {
     linkedApprovalIds: [],
     linkedOutputIds: [],
     linkedRunIds: [],
-    organization: 'org-1',
+    organizationId: 'org-1',
     outputType: 'ingredient',
     platforms: [],
     priority: 'normal',
@@ -195,7 +195,7 @@ function buildTask(overrides: Record<string, unknown> = {}) {
     status: 'triaged',
     title: 'Draft a launch plan',
     updatedAt: '2026-03-30T10:00:00.000Z',
-    user: 'user-1',
+    userId: 'user-1',
     ...overrides,
   };
 }
@@ -367,7 +367,7 @@ describe('WorkspacePageContent', () => {
     await waitFor(() => {
       expect(createTaskMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-1',
+          brandId: 'brand-1',
           outputType: 'ingredient',
           request: 'Create a product launch brief',
         }),
@@ -447,7 +447,7 @@ describe('WorkspacePageContent', () => {
     await waitFor(() => {
       expect(createTaskMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-1',
+          brandId: 'brand-1',
           heygenAvatarId: 'avatar-42',
           outputType: 'facecam',
           request: 'Hello from Genfeed, this is a facecam test.',

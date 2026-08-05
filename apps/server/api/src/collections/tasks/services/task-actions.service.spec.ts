@@ -15,16 +15,16 @@ describe('TaskActionsService', () => {
   const outputId = 'output-1';
 
   const baseTask = {
-    _id: taskId,
+    id: taskId,
     approvedOutputIds: [],
     assigneeUserId,
-    brand: 'brand-1',
+    brandId: 'brand-1',
     eventStream: [],
     identifier: 'GENA-12',
     linkedApprovalIds: [],
     linkedOutputIds: [outputId],
     linkedRunIds: [],
-    organization: organizationId,
+    organizationId,
     outputType: 'post',
     platforms: ['x'],
     priority: 'medium',

@@ -146,7 +146,7 @@ vi.mock('next/navigation', () => ({
 
 function makeTask(overrides: Record<string, unknown> = {}) {
   return {
-    brand: 'brand-1',
+    brandId: 'brand-1',
     createdAt: '2026-01-01T00:00:00.000Z',
     dismissedAt: null,
     eventStream: [],
@@ -158,7 +158,7 @@ function makeTask(overrides: Record<string, unknown> = {}) {
     linkedEntities: [],
     linkedOutputIds: [],
     linkedRunIds: [],
-    organization: 'org-1',
+    organizationId: 'org-1',
     outputType: 'image',
     priority: 'high',
     progress: {
