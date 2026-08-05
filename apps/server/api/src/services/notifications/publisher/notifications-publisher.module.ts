@@ -14,7 +14,7 @@ import { forwardRef, Module } from '@nestjs/common';
       configModule: ConfigModule,
       configService: ConfigService,
     }),
-    forwardRef(() => SettingsModule),
+    SettingsModule,
   ],
   providers: [NotificationsPublisherService],
 })
