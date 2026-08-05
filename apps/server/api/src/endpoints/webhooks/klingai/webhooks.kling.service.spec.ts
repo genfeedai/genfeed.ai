@@ -2,6 +2,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { KlingWebhookService } from '@api/endpoints/webhooks/klingai/webhooks.kling.service';
 import type { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -105,6 +106,20 @@ describe('KlingWebhookService', () => {
   // --- handleCallback ---
 
   describe('handleCallback', () => {
+    it.each([
+      ['array', []],
+      ['null', null],
+      ['string', 'invalid'],
+      ['number', 42],
+      ['boolean', false],
+    ])('should reject a %s body', async (_type, body) => {
+      await expect(
+        service.handleCallback(body as unknown as KlingAIWebhookPayload),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(deps.metadataService.findOne).not.toHaveBeenCalled();
+    });
+
     it('should return early when no task_id', async () => {
       const body = { custom_id: 'abc' } as KlingAIWebhookPayload;
 

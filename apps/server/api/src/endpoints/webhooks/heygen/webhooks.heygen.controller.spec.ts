@@ -152,9 +152,16 @@ describe('HeygenWebhookController', () => {
       expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
     });
 
-    it('rejects callbacks with a missing body instead of TypeError on destructure', async () => {
+    it.each([
+      ['array', []],
+      ['null', null],
+      ['string', 'invalid'],
+      ['number', 42],
+      ['boolean', false],
+      ['undefined', undefined],
+    ])('rejects callbacks with a %s body', async (_type, body) => {
       await expect(
-        controller.handleCallback(authenticatedRequest, undefined as never),
+        controller.handleCallback(authenticatedRequest, body as never),
       ).rejects.toThrow(BadRequestException);
 
       expect(heygenWebhookService.handleCallback).not.toHaveBeenCalled();
