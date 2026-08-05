@@ -15,6 +15,5 @@
  * the guard is noisy.
  */
 
-export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> = {
-  'apps/server/api/src/endpoints/webhooks/replicate/webhooks.replicate.controller.ts': 2,
-};
+export const RELATION_ALIAS_READ_BASELINE: Readonly<Record<string, number>> =
+  {};

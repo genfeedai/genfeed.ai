@@ -580,6 +580,7 @@ model User {
   cronJobs                 CronJob[]
   cronRuns                 CronRun[]
   bots                     Bot[]
+  livestreamBotSessions    LivestreamBotSession[]
   botActivities            BotActivity[]
   replyBotConfigs          ReplyBotConfig[]
   monitoredAccounts        MonitoredAccount[]
@@ -690,6 +691,7 @@ model Organization {
   cronJobs                      CronJob[]
   cronRuns                      CronRun[]
   bots                          Bot[]
+  livestreamBotSessions         LivestreamBotSession[]
   botActivities                 BotActivity[]
   replyBotConfigs               ReplyBotConfig[]
   monitoredAccounts             MonitoredAccount[]
@@ -829,7 +831,7 @@ model Brand {
   isDefault                Boolean      @default(false)
   isDeleted                Boolean      @default(false)
   isHighlighted            Boolean      @default(false)
-  isFleetEnabled        Boolean      @default(false)
+  isFleetEnabled           Boolean      @default(false)
   defaultVideoModel        String?
   defaultImageModel        String?
   defaultImageToVideoModel String?
@@ -906,10 +908,13 @@ model Brand {
   warmupAccounts             WarmupAccount[]
   contentVersionPins         ContentVersionPin[]
   publishApprovals           PublishApproval[]
+  outreachCampaigns          OutreachCampaign[]
+  bots                       Bot[]
+  livestreamBotSessions      LivestreamBotSession[]
 
+  @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
-  @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@map("brands")
 }
 
@@ -1014,33 +1019,33 @@ model Member {
 }
 
 model Invitation {
-  id               String       @id @default(cuid())
-  mongoId          String?      @unique
+  id               String          @id @default(cuid())
+  mongoId          String?         @unique
   email            String
   firstName        String?
   lastName         String?
   organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id])
+  organization     Organization    @relation(fields: [organizationId], references: [id])
   invitedByUserId  String
-  invitedByUser    User         @relation("invitation_invited_by", fields: [invitedByUserId], references: [id])
+  invitedByUser    User            @relation("invitation_invited_by", fields: [invitedByUserId], references: [id])
   roleId           String
-  role             Role         @relation(fields: [roleId], references: [id])
+  role             Role            @relation(fields: [roleId], references: [id])
   // Better Auth organization-plugin compatibility. Genfeed InvitationService
   // owns invitation lifecycle and keeps these fields in sync for read-only BA
   // compatibility; BA invite creation is blocked by factory hooks.
   roleKey          String?
-  status           String       @default("pending")
-  tokenHash        String       @unique
+  status           String          @default("pending")
+  tokenHash        String          @unique
   redirectUrl      String?
   expiresAt        DateTime
   acceptedAt       DateTime?
   acceptedByUserId String?
-  acceptedByUser   User?        @relation("invitation_accepted_by", fields: [acceptedByUserId], references: [id])
+  acceptedByUser   User?           @relation("invitation_accepted_by", fields: [acceptedByUserId], references: [id])
   warmupAccounts   WarmupAccount[]
   revokedAt        DateTime?
-  isDeleted        Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  isDeleted        Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([organizationId, email, isDeleted], map: "invitations_org_email_deleted_idx")
   @@index([organizationId, acceptedAt, revokedAt, isDeleted], map: "invitations_org_status_idx")
@@ -1219,7 +1224,7 @@ model OrganizationSetting {
   isVoiceControlEnabled         Boolean           @default(false)
   isNotificationsDiscordEnabled Boolean           @default(false)
   isNotificationsEmailEnabled   Boolean           @default(true)
-  isFleetNsfwVisible         Boolean           @default(false)
+  isFleetNsfwVisible            Boolean           @default(false)
   isWatermarkEnabled            Boolean           @default(true)
   isVerifyScriptEnabled         Boolean           @default(true)
   isVerifyIngredientEnabled     Boolean           @default(true)
@@ -1301,58 +1306,59 @@ model PlatformSetting {
 // ═══════════════════════════════════════════════════════════════
 
 model Credential {
-  id                 String             @id @default(cuid())
-  mongoId            String?            @unique
-  organizationId     String?
-  organization       Organization?      @relation(fields: [organizationId], references: [id])
-  brandId            String?
-  brand              Brand?             @relation(fields: [brandId], references: [id])
-  userId             String?
-  user               User?              @relation(fields: [userId], references: [id])
-  username           String?
-  platform           CredentialPlatform
-  externalId         String?
-  externalHandle     String?
-  externalName       String?
-  externalAvatar     String?
-  oauthState         String?
-  oauthToken         String?
-  oauthTokenHash     String?
-  oauthTokenSecret   String?
-  accessToken        String?
-  accessTokenSecret  String?
-  accessTokenExpiry  DateTime?
-  refreshToken       String?
-  refreshTokenExpiry DateTime?
-  label              String?
-  description        String?
-  warmupState        String             @default("not_started")
-  warmupScore        Int                @default(0)
-  warmupRiskLevel    String             @default("unknown")
-  warmupSignals      Json               @default("{}")
-  warmupThresholds   Json               @default("{}")
-  warmupAssessedAt   DateTime?
-  warmupHoldReason   String?
-  warmupManualOverride Boolean          @default(false)
-  warmupOverrideReason String?
-  warmupOverrideUntil DateTime?
-  warmupOverrideConfirmedAt DateTime?
+  id                              String             @id @default(cuid())
+  mongoId                         String?            @unique
+  organizationId                  String?
+  organization                    Organization?      @relation(fields: [organizationId], references: [id])
+  brandId                         String?
+  brand                           Brand?             @relation(fields: [brandId], references: [id])
+  userId                          String?
+  user                            User?              @relation(fields: [userId], references: [id])
+  username                        String?
+  platform                        CredentialPlatform
+  externalId                      String?
+  externalHandle                  String?
+  externalName                    String?
+  externalAvatar                  String?
+  oauthState                      String?
+  oauthToken                      String?
+  oauthTokenHash                  String?
+  oauthTokenSecret                String?
+  accessToken                     String?
+  accessTokenSecret               String?
+  accessTokenExpiry               DateTime?
+  refreshToken                    String?
+  refreshTokenExpiry              DateTime?
+  label                           String?
+  description                     String?
+  warmupState                     String             @default("not_started")
+  warmupScore                     Int                @default(0)
+  warmupRiskLevel                 String             @default("unknown")
+  warmupSignals                   Json               @default("{}")
+  warmupThresholds                Json               @default("{}")
+  warmupAssessedAt                DateTime?
+  warmupHoldReason                String?
+  warmupManualOverride            Boolean            @default(false)
+  warmupOverrideReason            String?
+  warmupOverrideUntil             DateTime?
+  warmupOverrideConfirmedAt       DateTime?
   warmupOverrideConfirmedByUserId String?
-  isConnected        Boolean            @default(false)
-  isDeleted          Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  isConnected                     Boolean            @default(false)
+  isDeleted                       Boolean            @default(false)
+  createdAt                       DateTime           @default(now())
+  updatedAt                       DateTime           @updatedAt
 
   // Relations
-  tags              Tag[]              @relation("credential_tags")
-  posts             Post[]
-  adBulkUploadJobs  AdBulkUploadJob[]
-  adPerformances    AdPerformance[]
-  monitoredAccounts MonitoredAccount[]
-  socialSources     SocialSource[]
+  tags                Tag[]                @relation("credential_tags")
+  posts               Post[]
+  adBulkUploadJobs    AdBulkUploadJob[]
+  adPerformances      AdPerformance[]
+  monitoredAccounts   MonitoredAccount[]
+  socialSources       SocialSource[]
   socialConversations SocialConversation[]
   socialMessages      SocialMessage[]
-  personas          Persona[]          @relation("persona_credentials")
+  personas            Persona[]            @relation("persona_credentials")
+  outreachCampaigns   OutreachCampaign[]
 
   @@index([oauthTokenHash])
   @@index([organizationId, brandId, isDeleted, warmupState], map: "credentials_warmup_state_idx")
@@ -1862,16 +1868,16 @@ model ContentVersionPin {
   organizationId  String
   organization    Organization @relation(fields: [organizationId], references: [id])
   brandId         String?
-  brand            Brand?      @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  createdByUserId  String
-  createdByUser    User         @relation(fields: [createdByUserId], references: [id])
-  recordKind       String
-  recordId         String
-  recordVersion    String?
-  contentDigest    String
-  idempotencyKey   String
-  provenance       Json         @default("{}")
-  createdAt        DateTime     @default(now())
+  brand           Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  createdByUserId String
+  createdByUser   User         @relation(fields: [createdByUserId], references: [id])
+  recordKind      String
+  recordId        String
+  recordVersion   String?
+  contentDigest   String
+  idempotencyKey  String
+  provenance      Json         @default("{}")
+  createdAt       DateTime     @default(now())
 
   reviewedContentDrafts ContentDraft[]
   reviewedNewsletters   Newsletter[]
@@ -1998,80 +2004,80 @@ model Post {
   agentStrategyId     String?
   agentStrategy       AgentStrategy?     @relation("post_agent_strategy", fields: [agentStrategyId], references: [id])
 
-  order                 Int             @default(0)
-  externalId            String?
-  externalShortcode     String?
-  quoteTweetId          String?
-  groupId               String?
-  url                   String?
+  order                          Int                @default(0)
+  externalId                     String?
+  externalShortcode              String?
+  quoteTweetId                   String?
+  groupId                        String?
+  url                            String?
   // Drifted enum collapsed to String (lowercase canonical value). See platform note.
-  status                String          @default("scheduled")
-  label                 String?
-  description           String
-  category              PostCategory    @default(TEXT)
-  scheduledDate         DateTime?
-  timezone              String          @default("UTC")
-  publicationDate       DateTime?
-  publishedAt           DateTime?
-  uploadedAt            DateTime?
-  nextScheduledDate     DateTime?
-  isRepeat              Boolean         @default(false)
-  repeatFrequency       String?
-  repeatInterval        Int?
-  repeatEndDate         DateTime?
-  maxRepeats            Int?
-  repeatCount           Int?
-  repeatDaysOfWeek      Int[]           @default([])
-  isShareToFeedSelected Boolean         @default(true)
-  isAnalyticsEnabled    Boolean         @default(true)
-  analyticsCollectionState String       @default("unavailable")
-  analyticsCollectionAttemptKey String?
+  status                         String             @default("scheduled")
+  label                          String?
+  description                    String
+  category                       PostCategory       @default(TEXT)
+  scheduledDate                  DateTime?
+  timezone                       String             @default("UTC")
+  publicationDate                DateTime?
+  publishedAt                    DateTime?
+  uploadedAt                     DateTime?
+  nextScheduledDate              DateTime?
+  isRepeat                       Boolean            @default(false)
+  repeatFrequency                String?
+  repeatInterval                 Int?
+  repeatEndDate                  DateTime?
+  maxRepeats                     Int?
+  repeatCount                    Int?
+  repeatDaysOfWeek               Int[]              @default([])
+  isShareToFeedSelected          Boolean            @default(true)
+  isAnalyticsEnabled             Boolean            @default(true)
+  analyticsCollectionState       String             @default("unavailable")
+  analyticsCollectionAttemptKey  String?
   analyticsCollectionRequestedAt DateTime?
-  analyticsCollectedAt  DateTime?
-  analyticsCollectionError Json?
-  retryCount            Int             @default(0)
-  lastAttemptAt         DateTime?
-  targetSettings         Json            @default("{}")
-  targetAttachments      Json            @default("[]")
-  targetValidationState  String          @default("pending")
-  targetValidationIssues String[]        @default([])
-  targetReadiness        Json?
-  targetExecutionState   String          @default("draft")
-  targetError            Json?
-  targetIdempotencyKey   String?
-  variantId             String?
-  hookVersion           String?
-  creativeVersion       String?
-  scheduleSlot          String?
-  publishIntent         String?
-  generationId          String?
-  promptUsed            String?
-  reviewBatchId         String?
-  reviewItemId          String?
-  reviewDecision        ReviewDecision?
-  reviewVersionPinId    String?
-  reviewVersionPin      ContentVersionPin? @relation(fields: [reviewVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  reviewFeedback        String?
-  reviewedAt            DateTime?
-  reviewEvents          Json            @default("[]")
-  publishApprovalId     String?          @unique(map: "posts_publishApprovalId_key")
-  publishApproval       PublishApproval? @relation("active_publish_approval", fields: [publishApprovalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  publishApprovals      PublishApproval[] @relation("post_publish_approvals")
-  sourceActionId        String?
-  sourceWorkflowId      String?
-  sourceWorkflowName    String?
+  analyticsCollectedAt           DateTime?
+  analyticsCollectionError       Json?
+  retryCount                     Int                @default(0)
+  lastAttemptAt                  DateTime?
+  targetSettings                 Json               @default("{}")
+  targetAttachments              Json               @default("[]")
+  targetValidationState          String             @default("pending")
+  targetValidationIssues         String[]           @default([])
+  targetReadiness                Json?
+  targetExecutionState           String             @default("draft")
+  targetError                    Json?
+  targetIdempotencyKey           String?
+  variantId                      String?
+  hookVersion                    String?
+  creativeVersion                String?
+  scheduleSlot                   String?
+  publishIntent                  String?
+  generationId                   String?
+  promptUsed                     String?
+  reviewBatchId                  String?
+  reviewItemId                   String?
+  reviewDecision                 ReviewDecision?
+  reviewVersionPinId             String?
+  reviewVersionPin               ContentVersionPin? @relation(fields: [reviewVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  reviewFeedback                 String?
+  reviewedAt                     DateTime?
+  reviewEvents                   Json               @default("[]")
+  publishApprovalId              String?            @unique(map: "posts_publishApprovalId_key")
+  publishApproval                PublishApproval?   @relation("active_publish_approval", fields: [publishApprovalId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  publishApprovals               PublishApproval[]  @relation("post_publish_approvals")
+  sourceActionId                 String?
+  sourceWorkflowId               String?
+  sourceWorkflowName             String?
   // Origin label for the post (e.g. agent, fastlane, manual). Free-form string.
-  source                String?
+  source                         String?
   // Canonical SEO score (0-100) + structured scorecard, set by SEOScorerService (#758).
-  seoScore              Float?
-  seoBreakdown          Json?
-  isDeleted             Boolean         @default(false)
-  createdAt             DateTime        @default(now())
-  updatedAt             DateTime        @updatedAt
+  seoScore                       Float?
+  seoBreakdown                   Json?
+  isDeleted                      Boolean            @default(false)
+  createdAt                      DateTime           @default(now())
+  updatedAt                      DateTime           @updatedAt
 
   // Many-to-many
-  ingredients Ingredient[] @relation("post_ingredients")
-  tags        Tag[]        @relation("post_tags")
+  ingredients         Ingredient[]         @relation("post_ingredients")
+  tags                Tag[]                @relation("post_tags")
   socialConversations SocialConversation[]
   socialMessages      SocialMessage[]
 
@@ -2284,6 +2290,7 @@ model Distribution {
   brandId        String?
   brand          Brand?       @relation(fields: [brandId], references: [id])
   config         Json         @default("{}")
+  platform       String?
   status         String?
   isActive       Boolean      @default(true)
   isDeleted      Boolean      @default(false)
@@ -2291,6 +2298,7 @@ model Distribution {
   updatedAt      DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, platform, isDeleted, createdAt(sort: Desc)])
   @@map("distributions")
 }
 
@@ -2556,37 +2564,37 @@ model ArticleAnalytics {
 }
 
 model Newsletter {
-  id                   String       @id @default(cuid())
-  mongoId              String?      @unique
+  id                   String             @id @default(cuid())
+  mongoId              String?            @unique
   userId               String
-  user                 User         @relation("newsletter_user", fields: [userId], references: [id])
+  user                 User               @relation("newsletter_user", fields: [userId], references: [id])
   organizationId       String
-  organization         Organization @relation(fields: [organizationId], references: [id])
+  organization         Organization       @relation(fields: [organizationId], references: [id])
   brandId              String?
-  brand                Brand?       @relation(fields: [brandId], references: [id])
+  brand                Brand?             @relation(fields: [brandId], references: [id])
   agentRunId           String?
-  agentRun             AgentRun?    @relation(fields: [agentRunId], references: [id])
+  agentRun             AgentRun?          @relation(fields: [agentRunId], references: [id])
   approvedByUserId     String?
-  approvedByUser       User?        @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
+  approvedByUser       User?              @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
   approvedVersionPinId String?
   approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   publishedByUserId    String?
-  publishedByUser      User?        @relation("newsletter_published_by", fields: [publishedByUserId], references: [id])
+  publishedByUser      User?              @relation("newsletter_published_by", fields: [publishedByUserId], references: [id])
   label                String
   topic                String?
   angle                String?
   summary              String?
   content              String?
-  status               String       @default("draft")
+  status               String             @default("draft")
   generationPrompt     String?
   sourceRefs           Json?
-  contextNewsletterIds String[]     @default([])
+  contextNewsletterIds String[]           @default([])
   approvedAt           DateTime?
   publishedAt          DateTime?
   scheduledFor         DateTime?
-  isDeleted            Boolean      @default(false)
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  isDeleted            Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   articles           Article[]    @relation("newsletter_articles")
   contextNewsletters Newsletter[] @relation("newsletter_context")
@@ -2762,6 +2770,7 @@ model Persona {
   status             PersonaStatus @default(ACTIVE)
   config             Json          @default("{}")
   isAutopilotEnabled Boolean       @default(false)
+  isFleetCharacter   Boolean       @default(false)
   nextAutopilotRunAt DateTime?
   isDeleted          Boolean       @default(false)
   createdAt          DateTime      @default(now())
@@ -2777,6 +2786,7 @@ model Persona {
   @@index([organizationId, isDeleted, status])
   @@index([brandId, organizationId, isDeleted])
   @@index([organizationId, isDeleted, isAutopilotEnabled, nextAutopilotRunAt])
+  @@index([organizationId, isDeleted, isFleetCharacter])
   @@map("personas")
 }
 
@@ -2785,35 +2795,35 @@ model Persona {
 // ═══════════════════════════════════════════════════════════════
 
 model AgentThread {
-  id             String       @id @default(cuid())
-  mongoId        String?      @unique
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand           Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  title          String?
-  status         String?      @default("active")
-  config         Json         @default("{}")
-  contextVersion Int          @default(1)
-  isPinned       Boolean      @default(false)
-  planModeEnabled Boolean     @default(false)
-  requestedModel String?
-  runtimeKey     String?
-  source         String?
-  systemPrompt   String?
-  memoryEntryIds String[]     @default([])
-  parentThreadId String?
-  scopeChangeProvenance Json  @default("[]")
-  isLegacyBrandFallbackEligible Boolean @default(false)
-  legacyBrandFallbackCount Int @default(0)
-  legacyBrandFallbackLastUsedAt DateTime?
-  legacyBrandFallbackLastSource String?
+  id                             String       @id @default(cuid())
+  mongoId                        String?      @unique
+  userId                         String
+  user                           User         @relation(fields: [userId], references: [id])
+  organizationId                 String
+  organization                   Organization @relation(fields: [organizationId], references: [id])
+  brandId                        String?
+  brand                          Brand?       @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  title                          String?
+  status                         String?      @default("active")
+  config                         Json         @default("{}")
+  contextVersion                 Int          @default(1)
+  isPinned                       Boolean      @default(false)
+  planModeEnabled                Boolean      @default(false)
+  requestedModel                 String?
+  runtimeKey                     String?
+  source                         String?
+  systemPrompt                   String?
+  memoryEntryIds                 String[]     @default([])
+  parentThreadId                 String?
+  scopeChangeProvenance          Json         @default("[]")
+  isLegacyBrandFallbackEligible  Boolean      @default(false)
+  legacyBrandFallbackCount       Int          @default(0)
+  legacyBrandFallbackLastUsedAt  DateTime?
+  legacyBrandFallbackLastSource  String?
   legacyBrandFallbackLastBrandId String?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  isDeleted                      Boolean      @default(false)
+  createdAt                      DateTime     @default(now())
+  updatedAt                      DateTime     @updatedAt
 
   messages      AgentMessage[]
   runs          AgentRun[]
@@ -2829,31 +2839,31 @@ model AgentThread {
 }
 
 model AgentMessage {
-  id             String       @id @default(cuid())
-  mongoId        String?      @unique
-  threadId       String
-  thread         AgentThread  @relation(fields: [threadId], references: [id])
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  userId         String?
-  user           User?        @relation(fields: [userId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  role           String
-  content        String?
-  toolCalls      Json?
-  toolResults    Json?
-  metadata       Json?
-  artifactReferences                  Json      @default("[]")
-  artifactVersionPinIds               String[]  @default([])
-  isLegacyArtifactReferenceEligible   Boolean   @default(false)
-  artifactReferenceEligibleReadCount  Int       @default(0)
-  legacyArtifactReferenceReadCount    Int       @default(0)
-  legacyArtifactReferenceLastUsedAt   DateTime?
-  legacyArtifactReferenceLastSource   String?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                                 String       @id @default(cuid())
+  mongoId                            String?      @unique
+  threadId                           String
+  thread                             AgentThread  @relation(fields: [threadId], references: [id])
+  organizationId                     String
+  organization                       Organization @relation(fields: [organizationId], references: [id])
+  userId                             String?
+  user                               User?        @relation(fields: [userId], references: [id])
+  brandId                            String?
+  brand                              Brand?       @relation(fields: [brandId], references: [id])
+  role                               String
+  content                            String?
+  toolCalls                          Json?
+  toolResults                        Json?
+  metadata                           Json?
+  artifactReferences                 Json         @default("[]")
+  artifactVersionPinIds              String[]     @default([])
+  isLegacyArtifactReferenceEligible  Boolean      @default(false)
+  artifactReferenceEligibleReadCount Int          @default(0)
+  legacyArtifactReferenceReadCount   Int          @default(0)
+  legacyArtifactReferenceLastUsedAt  DateTime?
+  legacyArtifactReferenceLastSource  String?
+  isDeleted                          Boolean      @default(false)
+  createdAt                          DateTime     @default(now())
+  updatedAt                          DateTime     @updatedAt
 
   @@index([organizationId, threadId, isDeleted, createdAt(sort: Desc), id])
   @@index([threadId, isDeleted, id])
@@ -2861,50 +2871,50 @@ model AgentMessage {
 }
 
 model SocialConversation {
-  id                       String         @id @default(cuid())
-  mongoId                  String?        @unique
-  organizationId           String
-  organization             Organization   @relation(fields: [organizationId], references: [id])
-  userId                   String?
-  user                     User?          @relation(fields: [userId], references: [id])
-  brandId                  String?
-  brand                    Brand?         @relation(fields: [brandId], references: [id])
-  credentialId             String?
-  credential               Credential?    @relation(fields: [credentialId], references: [id])
-  postId                   String?
-  post                     Post?          @relation(fields: [postId], references: [id])
-  platform                 String
-  conversationType         String         @default("comment")
-  externalConversationId   String?
-  externalThreadId         String?
-  externalParentId         String?
-  sourceContentId          String?
-  sourceContentUrl         String?
-  sourceContentTitle       String?
-  sourceContentType        String?
-  accountExternalId        String?
-  accountHandle            String?
-  accountName              String?
-  participantExternalId    String?
-  participantHandle        String?
-  participantName          String?
-  participantAvatarUrl     String?
-  status                   String         @default("open")
-  priority                 String         @default("normal")
-  unreadCount              Int            @default(0)
-  needsReview              Boolean        @default(false)
-  automationState          String         @default("manual")
-  assignedOwnerId          String?
-  tags                     String[]       @default([])
-  latestMessageText        String?
-  latestMessageAt          DateTime?
-  lastInboundAt            DateTime?
-  lastOutboundAt           DateTime?
-  availability             Json           @default("{}")
-  metadata                 Json           @default("{}")
-  isDeleted                Boolean        @default(false)
-  createdAt                DateTime       @default(now())
-  updatedAt                DateTime       @updatedAt
+  id                     String       @id @default(cuid())
+  mongoId                String?      @unique
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  userId                 String?
+  user                   User?        @relation(fields: [userId], references: [id])
+  brandId                String?
+  brand                  Brand?       @relation(fields: [brandId], references: [id])
+  credentialId           String?
+  credential             Credential?  @relation(fields: [credentialId], references: [id])
+  postId                 String?
+  post                   Post?        @relation(fields: [postId], references: [id])
+  platform               String
+  conversationType       String       @default("comment")
+  externalConversationId String?
+  externalThreadId       String?
+  externalParentId       String?
+  sourceContentId        String?
+  sourceContentUrl       String?
+  sourceContentTitle     String?
+  sourceContentType      String?
+  accountExternalId      String?
+  accountHandle          String?
+  accountName            String?
+  participantExternalId  String?
+  participantHandle      String?
+  participantName        String?
+  participantAvatarUrl   String?
+  status                 String       @default("open")
+  priority               String       @default("normal")
+  unreadCount            Int          @default(0)
+  needsReview            Boolean      @default(false)
+  automationState        String       @default("manual")
+  assignedOwnerId        String?
+  tags                   String[]     @default([])
+  latestMessageText      String?
+  latestMessageAt        DateTime?
+  lastInboundAt          DateTime?
+  lastOutboundAt         DateTime?
+  availability           Json         @default("{}")
+  metadata               Json         @default("{}")
+  isDeleted              Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
 
   messages SocialMessage[]
 
@@ -2917,47 +2927,47 @@ model SocialConversation {
 }
 
 model SocialMessage {
-  id                      String             @id @default(cuid())
-  mongoId                 String?            @unique
-  conversationId          String
-  conversation            SocialConversation @relation(fields: [conversationId], references: [id])
-  organizationId          String
-  organization            Organization       @relation(fields: [organizationId], references: [id])
-  userId                  String?
-  user                    User?              @relation(fields: [userId], references: [id])
-  brandId                 String?
-  brand                   Brand?             @relation(fields: [brandId], references: [id])
-  credentialId            String?
-  credential              Credential?        @relation(fields: [credentialId], references: [id])
-  postId                  String?
-  post                    Post?              @relation(fields: [postId], references: [id])
-  platform                String
-  direction               String
-  messageType             String             @default("comment")
-  body                    String
-  externalMessageId       String?
-  externalParentMessageId String?
-  senderExternalId        String?
-  senderHandle            String?
-  senderName              String?
-  senderAvatarUrl         String?
-  authorRole              String?
-  status                  String             @default("received")
-  sourceUrl               String?
-  idempotencyKey          String?
-  workflowRunId           String?
-  agentRunId              String?
-  workflowTriggerStatus   String?
-  workflowTriggerJobId    String?
-  workflowTriggerError    String?
+  id                         String             @id @default(cuid())
+  mongoId                    String?            @unique
+  conversationId             String
+  conversation               SocialConversation @relation(fields: [conversationId], references: [id])
+  organizationId             String
+  organization               Organization       @relation(fields: [organizationId], references: [id])
+  userId                     String?
+  user                       User?              @relation(fields: [userId], references: [id])
+  brandId                    String?
+  brand                      Brand?             @relation(fields: [brandId], references: [id])
+  credentialId               String?
+  credential                 Credential?        @relation(fields: [credentialId], references: [id])
+  postId                     String?
+  post                       Post?              @relation(fields: [postId], references: [id])
+  platform                   String
+  direction                  String
+  messageType                String             @default("comment")
+  body                       String
+  externalMessageId          String?
+  externalParentMessageId    String?
+  senderExternalId           String?
+  senderHandle               String?
+  senderName                 String?
+  senderAvatarUrl            String?
+  authorRole                 String?
+  status                     String             @default("received")
+  sourceUrl                  String?
+  idempotencyKey             String?
+  workflowRunId              String?
+  agentRunId                 String?
+  workflowTriggerStatus      String?
+  workflowTriggerJobId       String?
+  workflowTriggerError       String?
   workflowTriggerAttemptedAt DateTime?
-  workflowTriggerQueuedAt DateTime?
-  actionProvenance        Json               @default("{}")
-  failureReason           String?
-  metadata                Json               @default("{}")
-  isDeleted               Boolean            @default(false)
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  workflowTriggerQueuedAt    DateTime?
+  actionProvenance           Json               @default("{}")
+  failureReason              String?
+  metadata                   Json               @default("{}")
+  isDeleted                  Boolean            @default(false)
+  createdAt                  DateTime           @default(now())
+  updatedAt                  DateTime           @updatedAt
 
   @@unique([organizationId, platform, externalMessageId])
   @@unique([organizationId, idempotencyKey])
@@ -2972,29 +2982,29 @@ model SocialMessage {
 /// and drained one at a time by a self-rescheduling BullMQ job, so a campaign is
 /// resumable from database state alone and never holds a worker open to sleep.
 model SocialReplyCampaign {
-  id                  String   @id @default(cuid())
+  id                  String    @id @default(cuid())
   organizationId      String
   brandId             String?
   userId              String?
   name                String
   description         String?
   platform            String
-  messageType         String   @default("reply")
-  status              String   @default("draft")
+  messageType         String    @default("reply")
+  status              String    @default("draft")
   bodyTemplate        String
   /// Rate limits. `minDelaySeconds` paces consecutive sends; the per-hour and
   /// per-day ceilings are re-derived from recipient send timestamps on every
   /// tick so a restart cannot double-spend a window.
-  maxPerHour          Int      @default(10)
-  maxPerDay           Int      @default(50)
-  minDelaySeconds     Int      @default(60)
-  totalRecipients     Int      @default(0)
-  sentCount           Int      @default(0)
-  failedCount         Int      @default(0)
-  skippedCount        Int      @default(0)
+  maxPerHour          Int       @default(10)
+  maxPerDay           Int       @default(50)
+  minDelaySeconds     Int       @default(60)
+  totalRecipients     Int       @default(0)
+  sentCount           Int       @default(0)
+  failedCount         Int       @default(0)
+  skippedCount        Int       @default(0)
   /// Incremented on every enqueue so a resume mints a fresh deterministic job
   /// id instead of colliding with the stale delayed job left by a pause.
-  dispatchCursor      Int      @default(0)
+  dispatchCursor      Int       @default(0)
   startedAt           DateTime?
   pausedAt            DateTime?
   completedAt         DateTime?
@@ -3003,10 +3013,10 @@ model SocialReplyCampaign {
   lastError           String?
   workflowId          String?
   workflowExecutionId String?
-  metadata            Json     @default("{}")
-  isDeleted           Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  metadata            Json      @default("{}")
+  isDeleted           Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   recipients SocialReplyCampaignRecipient[]
 
@@ -3081,19 +3091,19 @@ model AgentRun {
   captions    Caption[]
   tasks       Task[]       @relation("task_linked_runs")
 
-  metadata    Json    @default("{}")
-  label       String?
-  objective   String?
-  trigger     String?
-  steps       Json    @default("[]")
-  toolCalls   Json    @default("[]")
-  summary     String?
-  progress    Int     @default(0)
-  retryCount  Int     @default(0)
-  creditBudget Int?
-  creditsUsed  Int     @default(0)
-  durationMs   Int?
-  artifactReferences  Json     @default("[]")
+  metadata              Json     @default("{}")
+  label                 String?
+  objective             String?
+  trigger               String?
+  steps                 Json     @default("[]")
+  toolCalls             Json     @default("[]")
+  summary               String?
+  progress              Int      @default(0)
+  retryCount            Int      @default(0)
+  creditBudget          Int?
+  creditsUsed           Int      @default(0)
+  durationMs            Int?
+  artifactReferences    Json     @default("[]")
   artifactVersionPinIds String[] @default([])
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
@@ -3357,6 +3367,7 @@ model Workflow {
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
   status            String       @default("draft")
   lifecycle         String?
+  trigger           String?
   isScheduleEnabled Boolean?
   schedule          String?
   timezone          String?
@@ -3601,6 +3612,7 @@ model Bot {
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])
   brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
   userId         String
   user           User         @relation(fields: [userId], references: [id])
   label          String?
@@ -3612,8 +3624,9 @@ model Bot {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  platforms String[] @default([])
-  category  String?
+  platforms          String[]               @default([])
+  category           String?
+  livestreamSessions LivestreamBotSession[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@map("bots")
@@ -3784,23 +3797,23 @@ model ListeningTopic {
   organizationId   String
   organization     Organization @relation(fields: [organizationId], references: [id])
   brandId          String
-  brand             Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  userId            String
-  user              User         @relation(fields: [userId], references: [id])
-  label             String
-  description       String?
-  keywords          String[]     @default([])
-  excludedKeywords  String[]     @default([])
-  languages         String[]     @default([])
-  freshnessHours    Int          @default(24)
-  fingerprint       String
-  contractVersion   Int          @default(1)
-  isActive          Boolean      @default(true)
-  auditedAt         DateTime     @default(now())
-  lastCollectedAt   DateTime?
-  isDeleted         Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  brand            Brand        @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  userId           String
+  user             User         @relation(fields: [userId], references: [id])
+  label            String
+  description      String?
+  keywords         String[]     @default([])
+  excludedKeywords String[]     @default([])
+  languages        String[]     @default([])
+  freshnessHours   Int          @default(24)
+  fingerprint      String
+  contractVersion  Int          @default(1)
+  isActive         Boolean      @default(true)
+  auditedAt        DateTime     @default(now())
+  lastCollectedAt  DateTime?
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   sources  ListeningTopicSource[]
   evidence ListeningEvidence[]
@@ -3845,7 +3858,7 @@ model ListeningEvidence {
   organizationId     String
   organization       Organization         @relation(fields: [organizationId], references: [id])
   brandId            String
-  brand               Brand                @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
+  brand              Brand                @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   topicId            String
   topic              ListeningTopic       @relation(fields: [topicId, organizationId, brandId], references: [id, organizationId, brandId], onDelete: Cascade, onUpdate: Cascade)
   topicSourceId      String
@@ -4013,37 +4026,37 @@ model CreativePattern {
 }
 
 model ContentDraft {
-  id             String       @id @default(cuid())
-  mongoId        String?      @unique
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  contentRunId   String?
-  contentRun     ContentRun?  @relation(fields: [contentRunId], references: [id])
-  approvedById   String?
-  approvedBy     User?        @relation("content_draft_approved_by", fields: [approvedById], references: [id])
+  id                   String             @id @default(cuid())
+  mongoId              String?            @unique
+  organizationId       String
+  organization         Organization       @relation(fields: [organizationId], references: [id])
+  brandId              String?
+  brand                Brand?             @relation(fields: [brandId], references: [id])
+  contentRunId         String?
+  contentRun           ContentRun?        @relation(fields: [contentRunId], references: [id])
+  approvedById         String?
+  approvedBy           User?              @relation("content_draft_approved_by", fields: [approvedById], references: [id])
   approvedVersionPinId String?
   approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status         String       @default("draft")
-  data           Json         @default("{}")
+  status               String             @default("draft")
+  data                 Json               @default("{}")
   // Draft payload columns — createFromSkillExecution / createFromContentEngine write
   // these as top-level fields and autoPublishAboveThreshold filters on `confidence`.
   // They were absent from the model (incomplete Mongo→Prisma migration): the create
   // data was cast to Record<string,unknown> so it compiled, but Prisma rejected the
   // unknown args at runtime. Adding them makes the content-drafts path actually work.
-  type           String?
-  content        String?
-  generatedBy    String?
-  skillSlug      String?
-  confidence     Float?
-  mediaUrls      String[]     @default([])
-  platforms      String[]     @default([])
-  metadata       Json?
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  type                 String?
+  content              String?
+  generatedBy          String?
+  skillSlug            String?
+  confidence           Float?
+  mediaUrls            String[]           @default([])
+  platforms            String[]           @default([])
+  metadata             Json?
+  isDeleted            Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
 
   trendRemixLineages TrendRemixLineage[]
 
@@ -4484,6 +4497,9 @@ model OutreachCampaign {
   userId         String?
   user           User?        @relation(fields: [userId], references: [id])
   brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
+  credentialId   String?
+  credential     Credential?  @relation(fields: [credentialId], references: [id])
   // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
   status         String       @default("draft")
   config         Json         @default("{}")
@@ -4498,6 +4514,8 @@ model OutreachCampaign {
   isActive     Boolean @default(true)
 
   @@index([organizationId, isDeleted])
+  @@index([brandId, isDeleted])
+  @@index([credentialId, isDeleted])
   @@map("outreach_campaigns")
 }
 
@@ -4730,24 +4748,24 @@ model Caption {
 }
 
 model ClipProject {
-  id             String       @id @default(cuid())
-  mongoId        String?      @unique
-  organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
-  brandId        String?
-  brand          Brand?       @relation(fields: [brandId], references: [id])
-  status         String       @default("pending")
-  progress       Int          @default(0)
-  error          String?
-  readyClipCount Int          @default(0)
-  failedClipCount Int         @default(0)
-  pendingClipCount Int        @default(0)
-  readiness      Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
-  terminalAt     DateTime?
-  config         Json         @default("{}")
-  isDeleted      Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  mongoId          String?      @unique
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  brandId          String?
+  brand            Brand?       @relation(fields: [brandId], references: [id])
+  status           String       @default("pending")
+  progress         Int          @default(0)
+  error            String?
+  readyClipCount   Int          @default(0)
+  failedClipCount  Int          @default(0)
+  pendingClipCount Int          @default(0)
+  readiness        Json         @default("{\"state\":\"pending\",\"terminal\":false,\"readyActions\":[],\"blockingReasons\":[]}")
+  terminalAt       DateTime?
+  config           Json         @default("{}")
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@index([organizationId, status, isDeleted])
   @@map("clip_projects")
@@ -5199,13 +5217,23 @@ model FanvueSubscriber {
 }
 
 model LivestreamBotSession {
-  id        String   @id @default(cuid())
-  mongoId   String?  @unique
-  data      Json     @default("{}")
-  isDeleted Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(cuid())
+  mongoId        String?       @unique
+  botId          String?
+  bot            Bot?          @relation(fields: [botId], references: [id])
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?        @relation(fields: [brandId], references: [id])
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id])
+  data           Json          @default("{}")
+  isDeleted      Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId, isDeleted])
+  @@index([organizationId, botId, isDeleted])
   @@map("livestream_bot_sessions")
 }
 
