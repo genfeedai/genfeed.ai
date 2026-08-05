@@ -3,6 +3,7 @@ import {
   WorkflowExecutionQueueService,
   workflowSchedulerId,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { ActionOrigin } from '@genfeedai/enums';
 import { Queue } from 'bullmq';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 
@@ -108,6 +109,7 @@ describe.skipIf(!redisAvailable)(
       expect(delayedJobs).toHaveLength(1);
       expect(delayedJobs[0].name).toBe('scheduled-fire');
       expect(delayedJobs[0].data).toEqual({
+        actionContext: { origin: ActionOrigin.WORKFLOW },
         type: 'scheduled-fire',
         workflowId: 'wf-double-fire',
       });

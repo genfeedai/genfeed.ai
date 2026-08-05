@@ -95,6 +95,7 @@ export class VideosUpscaleController {
 
     const video = await this.videosService.findOne({
       id: videoId,
+      isDeleted: false,
       OR: [
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },

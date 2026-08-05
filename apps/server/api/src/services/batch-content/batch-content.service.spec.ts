@@ -50,7 +50,7 @@ function createMockBrandsService(
   const orgId = 'aaaaaaaaaaaaaaaaaaaaaaaa';
   return {
     findOne: vi.fn().mockResolvedValue({
-      _id: 'test-object-id',
+      id: 'test-object-id',
       organizationId: orgId,
     }),
     ...overrides,
@@ -75,7 +75,7 @@ describe('BatchContentService', () => {
       const orgId = defaultRequest.organizationId;
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
-          _id: defaultRequest.brandId,
+          id: defaultRequest.brandId,
           // A real unpopulated brand row carries only the scalar FK. Comparing the
           // `organization` relation alias instead stringified `undefined`, so the
           // ownership guard rejected every legitimate brand.
@@ -99,11 +99,11 @@ describe('BatchContentService', () => {
       expect(result).toEqual({ batchId: 'batch-1' });
     });
 
-    it('should still accept a brand row that only carries the legacy alias', async () => {
+    it('should reject a brand row that lacks canonical scalar ownership', async () => {
       const orgId = defaultRequest.organizationId;
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
-          _id: defaultRequest.brandId,
+          id: defaultRequest.brandId,
           organization: orgId,
         }),
       } as unknown as Partial<BrandsService>);
@@ -114,10 +114,11 @@ describe('BatchContentService', () => {
         createMockLogger(),
       );
 
-      const result = await service.triggerBatch(defaultRequest, 'user-1');
+      await expect(
+        service.triggerBatch(defaultRequest, 'user-1'),
+      ).rejects.toThrow('Brand does not belong to this organization');
 
-      expect(queueService.enqueueBatch).toHaveBeenCalled();
-      expect(result).toEqual({ batchId: 'batch-1' });
+      expect(queueService.enqueueBatch).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when brand not found', async () => {
@@ -139,7 +140,7 @@ describe('BatchContentService', () => {
       const differentOrgId = 'bbbbbbbbbbbbbbbbbbbbbbbb';
       const brandsService = createMockBrandsService({
         findOne: vi.fn().mockResolvedValue({
-          _id: defaultRequest.brandId,
+          id: defaultRequest.brandId,
           organizationId: differentOrgId,
         }),
       } as unknown as Partial<BrandsService>);

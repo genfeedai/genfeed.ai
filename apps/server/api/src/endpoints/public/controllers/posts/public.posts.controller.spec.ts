@@ -122,7 +122,7 @@ describe('PublicPostsController', () => {
 
     it('should filter by account when provided', async () => {
       const query = createBaseQuery();
-      const brandId = '507f191e810c19729de860ee'.toString();
+      const brandId = 'c07f191e810c19729de860ee'.toString();
       const mockPosts = {
         docs: [{ brandId, id: 'pub1' }],
         page: 1,
@@ -292,7 +292,7 @@ describe('PublicPostsController', () => {
       };
 
     it('should return post metadata for valid id', async () => {
-      const postId = '507f191e810c19729de860ee'.toString();
+      const postId = 'c07f191e810c19729de860ee'.toString();
 
       postsService.findOne.mockImplementation(
         statusFilteringFindOne(PRISMA_STATUS_PUBLIC) as never,
@@ -318,7 +318,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should not expose a post that is not public', async () => {
-      const postId = '507f191e810c19729de860ee'.toString();
+      const postId = 'c07f191e810c19729de860ee'.toString();
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -361,7 +361,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should return not found when post does not exist', async () => {
-      const postId = '507f191e810c19729de860ee'.toString();
+      const postId = 'c07f191e810c19729de860ee'.toString();
       const responseUtil = await import(
         '@api/helpers/utils/response/response.util'
       );
@@ -386,7 +386,7 @@ describe('PublicPostsController', () => {
     });
 
     it('should log the request with correct parameters', async () => {
-      const postId = '507f191e810c19729de860ee'.toString();
+      const postId = 'c07f191e810c19729de860ee'.toString();
       const mockPost = {
         id: postId,
         title: 'Test Post',
