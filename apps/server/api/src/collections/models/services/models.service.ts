@@ -373,13 +373,20 @@ export class ModelsService extends BaseService<
     };
   }
 
-  async updateMany(
-    filter: Record<string, unknown>,
-    update: Record<string, unknown>,
+  async clearOtherDefaults(
+    category: string,
+    organizationId: string | null,
+    exceptModelId: string,
   ): Promise<void> {
     await this.prisma.model.updateMany({
-      data: this.splitModelData(update) as never,
-      where: this.normalizeWhereForModel(filter) as never,
+      data: { isDefault: false },
+      where: {
+        category,
+        id: { not: exceptModelId },
+        isDefault: true,
+        isDeleted: false,
+        organizationId,
+      },
     });
   }
 

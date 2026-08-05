@@ -131,6 +131,7 @@ describe('ModelsController', () => {
           provide: ModelsService,
           useValue: {
             count: vi.fn().mockResolvedValue(1),
+            clearOtherDefaults: vi.fn().mockResolvedValue(undefined),
             create: vi.fn(),
             approveRegistryModel: vi.fn(),
             findAll: vi.fn(),
@@ -139,7 +140,6 @@ describe('ModelsController', () => {
             patch: vi.fn(),
             rejectRegistryModel: vi.fn(),
             remove: vi.fn(),
-            updateMany: vi.fn().mockResolvedValue({}),
           },
         },
         {

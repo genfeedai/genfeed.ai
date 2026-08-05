@@ -1031,6 +1031,7 @@
       "name": "@genfeedai/models",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -1188,6 +1189,7 @@
       "name": "@genfeedai/ui",
       "version": "2.0.1",
       "dependencies": {
+        "@genfeedai/api-types": "workspace:*",
         "@genfeedai/client": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",

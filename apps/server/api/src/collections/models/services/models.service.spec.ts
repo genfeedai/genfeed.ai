@@ -136,17 +136,24 @@ describe('ModelsService', () => {
     expect(result.totalDocs).toBe(1);
   });
 
-  it('updates canonical fields without rewriting provider config', async () => {
+  it('clears only competing defaults in the same registry scope', async () => {
     modelDelegate.updateMany.mockResolvedValue({ count: 1 });
 
-    await service.updateMany(
-      { category: ModelCategory.IMAGE },
-      { isDefault: false },
+    await service.clearOtherDefaults(
+      ModelCategory.IMAGE,
+      'org-1',
+      'selected-model',
     );
 
     expect(modelDelegate.updateMany).toHaveBeenCalledWith({
       data: { isDefault: false },
-      where: { category: ModelCategory.IMAGE },
+      where: {
+        category: ModelCategory.IMAGE,
+        id: { not: 'selected-model' },
+        isDefault: true,
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 
