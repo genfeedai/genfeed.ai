@@ -240,7 +240,7 @@ export class WebhooksService {
     } else {
       this.loggerService.warn(
         `${logContext} no userId available for WebSocket notification`,
-        { ingredientId, ingredientUser: ingredient.user },
+        { ingredientId, ingredientUserId: ingredient.userId },
       );
     }
 

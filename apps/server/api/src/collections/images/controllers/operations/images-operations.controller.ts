@@ -5,10 +5,7 @@ import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
 import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImageGenerationService } from '@api/collections/images/services/image-generation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
-import type {
-  IngredientMetadataDocument,
-  IngredientRefDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { IngredientMetadataDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -275,7 +272,7 @@ export class ImagesOperationsController {
     // Create activity for the split operation
     await this.activitiesService.create(
       new ActivityEntity({
-        brandId: this.getRefId(sourceImage.brand),
+        brandId: sourceImage.brandId ?? undefined,
         key: ActivityKey.IMAGE_GENERATED,
         organizationId: publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
@@ -299,15 +296,5 @@ export class ImagesOperationsController {
         frames: frameResults,
       },
     };
-  }
-
-  private getRefId(
-    ref: string | IngredientRefDocument | null | undefined,
-  ): string | undefined {
-    if (typeof ref === 'string') {
-      return ref;
-    }
-
-    return ref?.id?.toString() ?? ref?.id?.toString();
   }
 }

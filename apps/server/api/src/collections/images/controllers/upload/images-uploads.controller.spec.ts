@@ -243,7 +243,9 @@ describe('ImagesUploadsController', () => {
 
       const mockResult = {
         expiresIn: 3600,
-        ingredientId: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
+        publicUrl: 'https://cdn.example.com/images/507f1f77bcf86cd799439014',
+        s3Key: 'ingredients/images/507f1f77bcf86cd799439014',
         uploadUrl: 'https://s3.example.com/presigned-url',
       };
 

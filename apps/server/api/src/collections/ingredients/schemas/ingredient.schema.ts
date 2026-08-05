@@ -4,12 +4,12 @@ import type { Ingredient } from '@genfeedai/prisma';
 export type { Ingredient } from '@genfeedai/prisma';
 
 export interface IngredientRefDocument {
-  _id?: string;
-  id?: string;
+  id: string;
   [key: string]: unknown;
 }
 
-export interface IngredientMetadataDocument extends IngredientRefDocument {
+export interface IngredientMetadataDocument {
+  id?: string;
   duration?: number;
   extension?: string;
   height?: number;
@@ -19,16 +19,15 @@ export interface IngredientMetadataDocument extends IngredientRefDocument {
   size?: number;
   style?: string;
   width?: number;
+  [key: string]: unknown;
 }
 
 export interface IngredientDocument extends Omit<Ingredient, 'scope'> {
-  _id: string;
-  brand?: string | IngredientRefDocument | null;
-  content?: string;
+  brand?: IngredientRefDocument | null;
   metadata?: IngredientMetadataDocument | null;
-  organization?: string | IngredientRefDocument | null;
+  organization?: IngredientRefDocument | null;
+  prompt?: IngredientRefDocument | null;
   scope?: AssetScope | null;
-  title?: string;
-  user?: string | IngredientRefDocument | null;
+  user?: IngredientRefDocument | null;
   [key: string]: unknown;
 }

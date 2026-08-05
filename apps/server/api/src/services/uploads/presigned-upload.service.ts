@@ -35,7 +35,7 @@ export class PresignedUploadService {
       category?: IngredientCategory;
     },
   ): Promise<{
-    _id: string;
+    id: string;
     uploadUrl: string;
     publicUrl: string;
     s3Key: string;
@@ -63,11 +63,11 @@ export class PresignedUploadService {
     );
 
     this.loggerService.log(`${url} created ingredient`, {
-      brand: ingredientData.brand,
+      brandId: ingredientData.brandId,
       category: ingredientData.category,
       id: ingredientData.id,
       status: ingredientData.status,
-      user: ingredientData.user,
+      userId: ingredientData.userId,
     });
 
     // Generate key using ingredient ID
@@ -83,8 +83,8 @@ export class PresignedUploadService {
       );
 
     return {
-      _id: ingredientData.id.toString(),
       expiresIn: 3600,
+      id: ingredientData.id.toString(),
       publicUrl,
       s3Key,
       uploadUrl,

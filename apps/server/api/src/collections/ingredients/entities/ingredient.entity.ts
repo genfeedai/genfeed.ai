@@ -3,30 +3,18 @@ import { type Ingredient } from '@genfeedai/prisma';
 
 export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly id: string;
-  declare readonly userId: string;
-  declare readonly organizationId: string;
-  declare readonly brandId: string | null;
-  declare readonly folderId: string | null;
-  declare readonly parentId: string | null;
-  declare readonly metadataId: string | null;
-  declare readonly promptId: string | null;
-  declare readonly trainingId: string | null;
-  declare readonly bookmarkId: string | null;
-  declare readonly personaId: string | null;
-  declare readonly agentRunId: string | null;
-  declare readonly agentStrategyId: string | null;
-  declare readonly user: string;
-  declare readonly metadata: string;
-  declare readonly organization: string;
-  declare readonly brand: string;
-  declare readonly folder?: string;
-
-  declare readonly votes?: string[];
-  declare readonly parent?: string;
-  declare readonly prompt?: string;
-  declare readonly tags: string[];
-  declare readonly sources?: string[];
-  declare readonly training?: string;
+  declare readonly userId: Ingredient['userId'];
+  declare readonly organizationId: Ingredient['organizationId'];
+  declare readonly brandId: Ingredient['brandId'];
+  declare readonly folderId: Ingredient['folderId'];
+  declare readonly parentId: Ingredient['parentId'];
+  declare readonly metadataId: Ingredient['metadataId'];
+  declare readonly promptId: Ingredient['promptId'];
+  declare readonly trainingId: Ingredient['trainingId'];
+  declare readonly bookmarkId: Ingredient['bookmarkId'];
+  declare readonly personaId: Ingredient['personaId'];
+  declare readonly agentRunId: Ingredient['agentRunId'];
+  declare readonly agentStrategyId: Ingredient['agentStrategyId'];
   declare readonly groupId: Ingredient['groupId'];
   declare readonly groupIndex: Ingredient['groupIndex'];
   declare readonly isMergeEnabled: Ingredient['isMergeEnabled'];
@@ -73,8 +61,6 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly isDefault: boolean;
   declare readonly isPublic: boolean; // For public gallery visibility (getshareable.app)
 
-  declare readonly totalVotes?: number;
-  declare readonly totalChildren?: number;
   declare readonly voiceSource: Ingredient['voiceSource'];
   declare readonly voiceProvider: Ingredient['voiceProvider'];
   declare readonly externalVoiceId: Ingredient['externalVoiceId'];

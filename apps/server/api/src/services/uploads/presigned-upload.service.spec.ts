@@ -49,14 +49,13 @@ describe('PresignedUploadService', () => {
   ): IngredientEntity =>
     ({
       id: mockIngredientId,
-      brand: 'test-object-id',
+      brandId: 'test-object-id',
       category: IngredientCategory.IMAGE,
-      extension: 'jpg',
-      metadata: mockMetadataId,
-      organization: mockOrganizationId,
+      metadataId: mockMetadataId,
+      organizationId: mockOrganizationId,
       scope: AssetScope.USER,
       status: IngredientStatus.PROCESSING,
-      user: mockUserId,
+      userId: mockUserId,
       ...partial,
     }) as unknown as IngredientEntity;
 
@@ -64,12 +63,12 @@ describe('PresignedUploadService', () => {
     partial: Partial<IngredientDocument>,
   ): IngredientDocument =>
     ({
-      _id: mockIngredientId,
+      id: mockIngredientId,
       category: IngredientCategory.IMAGE,
-      metadata: mockMetadataId,
-      organization: mockOrganizationId,
+      metadataId: mockMetadataId,
+      organizationId: mockOrganizationId,
       status: IngredientStatus.PROCESSING,
-      user: mockUserId,
+      userId: mockUserId,
       ...partial,
     }) as unknown as IngredientDocument;
 
@@ -77,7 +76,7 @@ describe('PresignedUploadService', () => {
     partial: Partial<MetadataEntity> = {},
   ): MetadataEntity =>
     ({
-      _id: mockMetadataId,
+      id: mockMetadataId,
       ...partial,
     }) as unknown as MetadataEntity;
 
@@ -153,7 +152,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientEntity({
         category: IngredientCategory.IMAGE,
-        extension: 'jpg',
       });
 
       sharedService.createMediaDocuments.mockResolvedValue({
@@ -170,8 +168,8 @@ describe('PresignedUploadService', () => {
       const result = await service.getPresignedUploadUrl(mockUser, body);
 
       expect(result).toEqual({
-        _id: mockIngredientId.toString(),
         expiresIn: 3600,
+        id: mockIngredientId.toString(),
         publicUrl: 'https://cdn.example.com/images/507f1f77bcf86cd799439013',
         s3Key: 'ingredients/images/507f1f77bcf86cd799439013',
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload?signature=abc',
@@ -205,7 +203,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientEntity({
         category: IngredientCategory.VIDEO,
-        extension: 'mp4',
       });
 
       sharedService.createMediaDocuments.mockResolvedValue({
@@ -238,7 +235,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientEntity({
         category: IngredientCategory.IMAGE,
-        extension: 'png',
       });
 
       sharedService.createMediaDocuments.mockResolvedValue({
@@ -271,7 +267,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientEntity({
         category: IngredientCategory.IMAGE,
-        extension: 'pdf',
       });
 
       sharedService.createMediaDocuments.mockResolvedValue({
@@ -303,7 +298,6 @@ describe('PresignedUploadService', () => {
 
       const mockIngredient = createIngredientEntity({
         category: IngredientCategory.IMAGE,
-        extension: 'jpg',
       });
 
       sharedService.createMediaDocuments.mockResolvedValue({
@@ -366,9 +360,9 @@ describe('PresignedUploadService', () => {
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         {
-          _id: mockIngredientId,
+          id: mockIngredientId,
           status: 'processing',
-          user: mockUserId,
+          userId: mockUserId,
         },
         [{ path: 'metadata' }],
       );
