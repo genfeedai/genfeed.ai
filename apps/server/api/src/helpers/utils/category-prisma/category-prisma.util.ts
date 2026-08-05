@@ -181,6 +181,9 @@ export class CategoryPrismaUtil {
   static toIngredientCategory(value: undefined): undefined;
   static toIngredientCategory(
     value?: IngredientCategory | string,
+  ): PrismaIngredientCategoryValue | undefined;
+  static toIngredientCategory(
+    value?: IngredientCategory | string,
   ): PrismaIngredientCategoryValue | undefined {
     if (value === undefined || value === '') {
       return undefined;
