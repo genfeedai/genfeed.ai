@@ -122,29 +122,18 @@ export class CronReplyBotService {
     const targets = new Map<string, ReplyBotCronTarget>();
 
     for (const config of configs) {
-      // organizationId is the Prisma scalar FK. `credential` is not a column —
-      // create() packs it into the JSON `config` blob (and BaseService may
-      // surface it at the top level after normalize).
-      const organizationId =
-        (typeof config.organizationId === 'string' && config.organizationId) ||
-        (typeof config.organization === 'string' && config.organization) ||
-        undefined;
+      const organizationId = config.organizationId;
       const configPayload =
         config.config && typeof config.config === 'object'
           ? (config.config as Record<string, unknown>)
           : undefined;
-      const credentialCandidates = [
-        (config as { credentialId?: unknown }).credentialId,
-        config.credential,
-        configPayload?.credentialId,
-        configPayload?.credential,
-      ];
-      const credentialId = credentialCandidates.find(
-        (value): value is string =>
-          typeof value === 'string' && value.length > 0,
-      );
+      const credentialId = configPayload?.credentialId;
 
-      if (!organizationId || !credentialId) {
+      if (
+        typeof organizationId !== 'string' ||
+        typeof credentialId !== 'string' ||
+        credentialId.length === 0
+      ) {
         continue;
       }
 
@@ -161,7 +150,7 @@ export class CronReplyBotService {
     target: ReplyBotCronTarget,
   ): Promise<IReplyBotCredentialData | null> {
     const credential = await this.credentialsService.findOne({
-      _id: target.credentialId,
+      id: target.credentialId,
       isDeleted: false,
       organizationId: target.organizationId,
     });

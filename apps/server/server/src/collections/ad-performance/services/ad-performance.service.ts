@@ -137,7 +137,6 @@ export class AdPerformanceService {
     return {
       ...record,
       ...data,
-      _id: record.mongoId ?? record.id,
       brand: record.brandId,
       credential: record.credentialId,
       data,

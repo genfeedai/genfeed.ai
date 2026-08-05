@@ -122,10 +122,10 @@ export class MediaClient {
         const response = await http.post('/images', {
           data: {
             attributes: {
-              prompt: params.prompt,
               quality: params.quality || 'standard',
               size: params.size || 'square',
               style: params.style || 'realistic',
+              text: params.prompt,
             },
             type: 'images',
           },

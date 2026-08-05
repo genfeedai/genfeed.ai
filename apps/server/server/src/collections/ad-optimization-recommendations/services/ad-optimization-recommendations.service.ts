@@ -236,7 +236,7 @@ export class AdOptimizationRecommendationsService {
   ): Record<string, unknown> {
     return {
       data: this.toRecommendationData(recommendation) as never,
-      organizationId: this.asString(recommendation.organization) ?? '',
+      organizationId: this.asString(recommendation.organizationId) ?? '',
     };
   }
 
@@ -249,7 +249,6 @@ export class AdOptimizationRecommendationsService {
 
     return {
       ...doc,
-      _id: doc.mongoId ?? doc.id,
       data,
       entityId: this.asString(data.entityId),
       entityName: this.asString(data.entityName),

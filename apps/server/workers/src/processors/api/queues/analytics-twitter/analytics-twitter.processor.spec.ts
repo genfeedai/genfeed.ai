@@ -77,10 +77,10 @@ describe('AnalyticsTwitterProcessor', () => {
     const job = makeJob({
       posts: [
         {
-          brand: 'brand_1',
+          brandId: 'brand_1',
           externalId: 'tweet_111',
           id: 'post_1',
-          organization: 'org_1',
+          organizationId: 'org_1',
         },
       ],
     });

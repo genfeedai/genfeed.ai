@@ -4,11 +4,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import {
-  AgentAutonomyMode,
-  AgentExecutionTrigger,
-  AgentRunFrequency,
-} from '@genfeedai/enums';
+import { AgentExecutionTrigger, AgentRunFrequency } from '@genfeedai/enums';
 import type { AgentStrategy } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -19,20 +15,12 @@ const MAX_STRATEGIES_PER_CYCLE = 20;
 const FAILURES_BEFORE_PAUSE = 3;
 const FAILURE_RETRY_MINUTES = 30;
 
-type ContentMixConfig = {
-  imagePercent: number;
-  videoPercent: number;
-  carouselPercent: number;
-};
-
 type AgentStrategyConfig = {
   agentType?: string;
-  autonomyMode?: AgentAutonomyMode;
   topics?: string[];
   voice?: string;
   platforms?: string[];
   postsPerWeek?: number;
-  contentMix?: ContentMixConfig;
   runFrequency?: AgentRunFrequency;
   dailyCreditBudget?: number;
   weeklyCreditBudget?: number;
@@ -173,8 +161,7 @@ export class CronProactiveAgentService {
 
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        isDeleted: false,
-        organization: orgId,
+        organizationId: orgId,
       },
     );
     const orgAgentDailyCap =
@@ -242,7 +229,6 @@ export class CronProactiveAgentService {
         'CronProactiveAgentService',
       );
       // Auto-pause the strategy
-      const updatedCfg: AgentStrategyConfig = { ...cfg };
       await this.prisma.agentStrategy.update({
         data: { isActive: false },
         where: { id: strategyId },
@@ -264,10 +250,10 @@ export class CronProactiveAgentService {
         creditBudget: remainingBudget,
         label: `Proactive: ${strategy.label}`,
         objective: userMessage,
-        organization: orgId,
-        strategy: strategyId,
+        organizationId: orgId,
+        strategyId,
         trigger: AgentExecutionTrigger.CRON,
-        user: userId,
+        userId,
       });
 
       // Enqueue for async processing instead of direct execution
@@ -343,62 +329,6 @@ export class CronProactiveAgentService {
         'CronProactiveAgentService',
       );
     }
-  }
-
-  /**
-   * Build the strategy-aware system prompt for the proactive agent
-   */
-  private buildProactiveSystemPrompt(
-    strategy: AgentStrategyWithConfig,
-  ): string {
-    const cfg = (strategy.config ?? {}) as AgentStrategyConfig;
-    const dailyCreditBudget = cfg.dailyCreditBudget ?? 0;
-    const creditsUsedToday = cfg.creditsUsedToday ?? 0;
-    const remainingDaily = Math.max(0, dailyCreditBudget - creditsUsedToday);
-
-    const contentMix = cfg.contentMix;
-    const mixDescription = contentMix
-      ? `${contentMix.imagePercent}% images, ${contentMix.videoPercent}% videos, ${contentMix.carouselPercent}% carousels`
-      : 'default mix';
-
-    const engagementSection = cfg.engagementEnabled
-      ? `
-ENGAGEMENT CONFIG:
-- Keywords: ${(cfg.engagementKeywords ?? []).join(', ')}
-- Tone: ${cfg.engagementTone ?? 'professional'}
-- Max per day: ${cfg.maxEngagementsPerDay ?? 0}`
-      : '';
-
-    return `You are the GenFeed Proactive Agent running autonomously for an organization.
-
-STRATEGY: ${strategy.label ?? ''}
-TOPICS: ${(cfg.topics ?? []).join(', ')}
-VOICE: ${cfg.voice ?? 'Professional and engaging'}
-PLATFORMS: ${(cfg.platforms ?? []).join(', ')}
-TARGET: ${cfg.postsPerWeek ?? 0} posts/week
-CONTENT MIX: ${mixDescription}
-CREDIT BUDGET REMAINING TODAY: ${remainingDaily}
-${engagementSection}
-
-TASKS (priority order):
-1. Use get_content_calendar to see what's scheduled and find gaps
-2. Use analyze_performance to understand what content works best
-3. Use get_top_ingredients to identify the most-voted ingredients in the organization
-4. When top-voted ingredients exist, use replicate_top_ingredient and create variations before net-new generation
-5. Use generate_content_batch to fill weekly content gaps (target: ${cfg.postsPerWeek ?? 0} posts/week)
-${cfg.engagementEnabled ? '6. Use discover_engagements to find relevant posts to engage with\n7. Use draft_engagement_reply to create replies for the best opportunities' : ''}
-8. Use get_approval_summary to check pending items
-9. Use update_strategy_state to record what you accomplished
-
-AUTONOMY MODE: ${cfg.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH ? 'AUTO-PUBLISH — content above confidence threshold is published directly' : 'SUPERVISED — ALL content goes to the review queue, never publish directly'}
-
-RULES:
-- Stay within the credit budget (${remainingDaily} credits remaining today)
-- Use the brand voice consistently: ${cfg.voice ?? 'professional'}
-- Be efficient — accomplish as much as possible within budget
-- If budget is nearly exhausted, prioritize content generation over engagement
-
-Today's date: {{date}}`;
   }
 
   /**

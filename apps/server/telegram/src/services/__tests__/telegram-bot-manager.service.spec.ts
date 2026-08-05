@@ -793,7 +793,7 @@ describe('TelegramBotManager', () => {
             promptNode: 'cinematic city skyline at dusk',
           },
           metadata: undefined,
-          workflow: 'wf-1',
+          workflowId: 'wf-1',
         },
         {
           headers: { Authorization: 'Bearer test-key' },

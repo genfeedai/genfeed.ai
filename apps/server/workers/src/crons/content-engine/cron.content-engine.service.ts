@@ -107,27 +107,16 @@ export class CronContentEngineService {
 
   private async processBrand(brand: {
     id: string;
-    organization?: unknown;
-    organizationId?: string | null;
-    user?: unknown;
+    organizationId: string;
     userId?: string | null;
     agentConfig?: unknown;
   }): Promise<void> {
     const brandId = String(brand.id);
-    // Scalar FKs first — Mongo-era aliases are often undefined on Prisma rows.
-    const organizationIdRaw = brand.organizationId ?? brand.organization;
-    const organizationId =
-      organizationIdRaw == null || organizationIdRaw === ''
-        ? ''
-        : String(organizationIdRaw);
+    const organizationId = brand.organizationId;
     if (!organizationId) {
       return;
     }
-    const userIdRaw = brand.userId ?? brand.user;
-    const userId =
-      userIdRaw == null || userIdRaw === ''
-        ? organizationId
-        : String(userIdRaw);
+    const userId = brand.userId || organizationId;
     const strategy = (
       brand.agentConfig as
         | {

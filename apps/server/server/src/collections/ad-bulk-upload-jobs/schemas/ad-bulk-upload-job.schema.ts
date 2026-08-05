@@ -15,7 +15,6 @@ export interface BulkUploadError {
 }
 
 export type AdBulkUploadJobDocument = Omit<AdBulkUploadJob, 'data'> & {
-  _id: string;
   organization?: string;
   brand?: string;
   credential?: string;

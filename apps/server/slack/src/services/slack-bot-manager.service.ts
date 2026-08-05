@@ -763,7 +763,7 @@ export class SlackBotManager
         {
           inputValues,
           metadata,
-          workflow: workflowId,
+          workflowId,
         },
         {
           headers: this.getInternalApiHeaders(),
@@ -797,9 +797,9 @@ export class SlackBotManager
     executionId: string,
   ): Promise<void> {
     await firstValueFrom(
-      this.httpService.post(
-        `${this.configService.API_URL}/v1/internal/orgs/${orgId}/workflow-executions/${executionId}/cancel`,
-        {},
+      this.httpService.patch(
+        `${this.configService.API_URL}/v1/internal/orgs/${orgId}/workflow-executions/${executionId}`,
+        { status: 'cancelled' },
         {
           headers: this.getInternalApiHeaders(),
         },

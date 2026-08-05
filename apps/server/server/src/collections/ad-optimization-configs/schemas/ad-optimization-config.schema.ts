@@ -47,7 +47,6 @@ export const DEFAULT_AD_OPTIMIZATION_CONFIG: AdOptimizationConfigValues = {
 export interface AdOptimizationConfigDocument
   extends Omit<PrismaAdOptimizationConfig, 'config'>,
     AdOptimizationConfigValues {
-  _id: string;
   config?: Record<string, unknown>;
   organization: string;
   [key: string]: unknown;

@@ -2,7 +2,6 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueueService } from '@api/queues/core/queue.service';
-import { resolveRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import {
   ANALYTICS_YOUTUBE_QUEUE,
@@ -39,7 +38,6 @@ export class CronYoutubeAnalyticsService {
       // Find all published YouTube posts with external IDs
       const posts = (await this.postsService.findAll(
         {
-          include: { credential: true },
           where: {
             externalId: { not: null },
             isDeleted: false,
@@ -65,11 +63,8 @@ export class CronYoutubeAnalyticsService {
       const postsByBrand = new Map<string, typeof posts.docs>();
 
       for (const post of posts.docs) {
-        const organizationId = resolveRelationId(
-          post.organizationId,
-          post.organization,
-        );
-        const brandId = resolveRelationId(post.brandId, post.brand);
+        const organizationId = post.organizationId;
+        const brandId = post.brandId;
         if (!organizationId || !brandId) {
           this.logger.warn(
             `${url} skipping post ${post.id} — missing organizationId/brandId`,
@@ -96,22 +91,24 @@ export class CronYoutubeAnalyticsService {
           batches.push(brandPosts.slice(i, i + this.BATCH_SIZE));
         }
 
-        // Add each batch to the queue. Job payload still uses the historical
-        // `organization` / `brand` field names (queue contract), but values
-        // come from scalar FKs on the Prisma post row.
+        // Add each batch to the queue using canonical scalar foreign keys.
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
           const jobData: YouTubeAnalyticsJobData = {
             brandId,
             organizationId,
-            posts: batch.map((post) => ({
-              id: post.id.toString(),
-              brand: resolveRelationId(post.brandId, post.brand) ?? brandId,
-              externalId: post.externalId!,
-              organization:
-                resolveRelationId(post.organizationId, post.organization) ??
-                organizationId,
-            })),
+            posts: batch.map((post) => {
+              if (!post.externalId) {
+                throw new Error(`Post ${post.id} is missing its external ID`);
+              }
+
+              return {
+                brandId: post.brandId || brandId,
+                id: post.id.toString(),
+                externalId: post.externalId,
+                organizationId: post.organizationId || organizationId,
+              };
+            }),
           };
 
           await this.queueService.add(this.QUEUE_NAME, jobData, {

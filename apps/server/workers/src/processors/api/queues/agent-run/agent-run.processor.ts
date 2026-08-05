@@ -201,7 +201,7 @@ export class AgentRunProcessor extends WorkerHost {
 
       if (threadId && /^[0-9a-f]{24}$/i.test(threadId)) {
         await this.agentRunsService.patch(data.runId, {
-          thread: threadId,
+          threadId,
         } as Record<string, unknown>);
         await this.agentRunsService.mergeMetadata(
           data.runId,

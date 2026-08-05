@@ -859,7 +859,7 @@ describe('ClientService (MCP)', () => {
         '/workflow-executions',
         {
           inputValues: { topic: 'AI trends' },
-          workflow: 'workflow-123',
+          workflowId: 'workflow-123',
         },
       );
       expect(result.executionId).toBe('exec-456');
@@ -1065,7 +1065,7 @@ describe('ClientService (MCP)', () => {
                 progress: 100,
                 status: 'completed',
                 trigger: 'manual',
-                workflow: 'workflow-123',
+                workflowId: 'workflow-123',
               },
               id: 'run-1',
             },
@@ -1088,7 +1088,7 @@ describe('ClientService (MCP)', () => {
             limit: 5,
             offset: 0,
             status: 'completed',
-            workflow: 'workflow-123',
+            workflowId: 'workflow-123',
           },
         },
       );
@@ -1106,7 +1106,7 @@ describe('ClientService (MCP)', () => {
           status: 'completed',
           trigger: 'manual',
           updatedAt: undefined,
-          workflow: 'workflow-123',
+          workflowId: 'workflow-123',
         },
       ]);
     });
@@ -1120,7 +1120,7 @@ describe('ClientService (MCP)', () => {
             attributes: {
               progress: 50,
               status: 'running',
-              workflow: 'workflow-123',
+              workflowId: 'workflow-123',
             },
             id: 'run-1',
           },

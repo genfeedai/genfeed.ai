@@ -39,7 +39,6 @@ export interface RecommendationSuggestedAction {
 
 export interface AdOptimizationRecommendationDocument
   extends Omit<PrismaAdOptimizationRecommendation, 'data'> {
-  _id: string;
   data?: Record<string, unknown>;
   entityId?: string;
   entityName?: string;

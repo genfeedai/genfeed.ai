@@ -3,7 +3,6 @@ import type { AdPerformance } from '@genfeedai/prisma';
 export type { AdPerformance } from '@genfeedai/prisma';
 
 export interface AdPerformanceDocument extends Omit<AdPerformance, 'data'> {
-  _id: string;
   adPlatform: string | null;
   bodyText?: string;
   brand?: string | null;

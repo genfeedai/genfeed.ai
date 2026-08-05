@@ -63,9 +63,9 @@ export class AnalyticsYouTubeJobService {
         const analytics = analyticsMap.get(post.externalId);
         const target: AnalyticsCollectionAttemptRef = {
           attemptKey: job.data.attemptKey,
-          brandId: post.brand,
+          brandId: post.brandId,
           id: post.id,
-          organizationId: post.organization,
+          organizationId: post.organizationId,
           platform: CredentialPlatform.YOUTUBE,
         };
 
@@ -102,9 +102,9 @@ export class AnalyticsYouTubeJobService {
       await this.analyticsCollectionState.markFailedBatch(
         posts.map((post) => ({
           attemptKey: job.data.attemptKey,
-          brandId: post.brand,
+          brandId: post.brandId,
           id: post.id,
-          organizationId: post.organization,
+          organizationId: post.organizationId,
           platform: CredentialPlatform.YOUTUBE,
         })),
         failure,

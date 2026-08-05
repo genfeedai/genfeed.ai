@@ -139,22 +139,11 @@ export class CronIngredientsService {
       // Update all stuck ingredients to FAILED status using service
       const result = await this.ingredientsService.patchAll(
         {
-          OR: [
-            {
-              id: {
-                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                  String(ing.id),
-                ),
-              },
-            },
-            {
-              mongoId: {
-                in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                  String(ing.id),
-                ),
-              },
-            },
-          ],
+          id: {
+            in: stuckIngredients.docs.map((ingredient: { id: unknown }) =>
+              String(ingredient.id),
+            ),
+          },
           isDeleted: false,
           status: IngredientStatus.PROCESSING, // Double-check status hasn't changed
         },
@@ -202,15 +191,12 @@ export class CronIngredientsService {
             continue;
           }
 
-          const existingActivity = await this.activitiesService.findOne({
-            OR: [
-              { value: { contains: ingredientId } },
-              { value: ingredientId },
-            ],
-            isDeleted: false,
-            key: keys.processing,
-            user: ing.user,
-          });
+          const existingActivity =
+            await this.activitiesService.findByActionValue(
+              keys.processing,
+              ingredientId,
+              ing.user,
+            );
 
           if (!existingActivity) {
             continue;
@@ -297,22 +283,11 @@ export class CronIngredientsService {
 
     const result = await this.ingredientsService.patchAll(
       {
-        OR: [
-          {
-            id: {
-              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                String(ing.id),
-              ),
-            },
-          },
-          {
-            mongoId: {
-              in: stuckIngredients.docs.map((ing: { id: unknown }) =>
-                String(ing.id),
-              ),
-            },
-          },
-        ],
+        id: {
+          in: stuckIngredients.docs.map((ingredient: { id: unknown }) =>
+            String(ingredient.id),
+          ),
+        },
         isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
