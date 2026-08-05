@@ -1,9 +1,10 @@
 /**
- * Validates the committed OpenAPI artifact (#1247) without booting the API:
+ * Validates a generated OpenAPI artifact (#1247) without booting the API:
  *  - every operation carries a unique operationId
  *  - the file is in canonical form (sorted keys, 2-space indent, trailing
  *    newline) — i.e. exactly what the emit gate produces
  *  - every internal-route allowlist entry still matches a real operation
+ *  - every channel capability helper lookupPath resolves to a real API route
  *
  * Usage:
  *   bun run scripts/validate-openapi-spec.ts
@@ -14,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { listChannelCapabilities } from '@api-types/contracts/channel-capabilities.contract';
 import type { OpenAPIObject } from '@nestjs/swagger';
 import { serializeOpenApiDocument } from '../src/helpers/utils/openapi/openapi-document.util';
 import { validateOpenApiSpec } from '../src/helpers/utils/openapi/openapi-spec-validation.util';
@@ -55,6 +57,38 @@ function main(): void {
     document as unknown as Record<string, unknown>,
     allowlist,
   );
+
+  const documentPaths = new Set(Object.keys(document.paths));
+  const declaredLookupPaths = listChannelCapabilities({
+    includeHidden: true,
+    includePlanned: true,
+  }).flatMap((capability) =>
+    capability.helpers.flatMap((helper) =>
+      helper.lookupPath
+        ? [
+            {
+              capability: capability.label,
+              helper: helper.key,
+              lookupPath: helper.lookupPath,
+            },
+          ]
+        : [],
+    ),
+  );
+
+  if (declaredLookupPaths.length === 0) {
+    violations.push(
+      'Channel capability catalog declares no helper lookup paths',
+    );
+  }
+
+  for (const { capability, helper, lookupPath } of declaredLookupPaths) {
+    if (!documentPaths.has(lookupPath)) {
+      violations.push(
+        `Channel capability ${capability} helper ${helper} references missing route: ${lookupPath}`,
+      );
+    }
+  }
 
   if (serializeOpenApiDocument(document) !== rawSpec) {
     violations.push(

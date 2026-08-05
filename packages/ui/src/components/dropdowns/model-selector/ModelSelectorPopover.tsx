@@ -9,7 +9,11 @@ import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorF
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import ModelSelectorProviderSidebar from '@ui/dropdowns/model-selector/ModelSelectorProviderSidebar';
 import ModelSelectorTrigger from '@ui/dropdowns/model-selector/ModelSelectorTrigger';
-import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import {
+  AUTO_MODEL_OPTION_VALUE,
+  AUTO_PRIORITY_LABELS,
+  AUTO_PRIORITY_OPTIONS,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
 import {
   collectBrandsFromOptions,
   transformModelsToOptions,
@@ -55,8 +59,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   values,
   onChange,
   autoLabel,
-  prioritize: _prioritize = RouterPriority.BALANCED,
-  onPrioritizeChange: _onPrioritizeChange,
+  prioritize = RouterPriority.BALANCED,
+  onPrioritizeChange,
   currentModelCategory,
   favoriteModelKeys,
   onFavoriteToggle,
@@ -291,10 +295,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const displayedModels = selectedModels;
 
-  // Auto is one option in the same catalog as manual models. Keeping the
-  // catalog open when Auto is selected avoids a useless second-level panel
-  // that only repeats the current selection.
-  const shouldShowManualCatalog = true;
+  const shouldShowManualCatalog = !isAutoSelected;
 
   const shouldShowAuto = useMemo(() => {
     if (activeBrand === 'favorites') {
@@ -318,7 +319,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
   }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
 
-  const shouldShowAutoCard = shouldShowAuto;
+  const shouldShowAutoCard = isAutoSelected || shouldShowAuto;
 
   const handleToggle = useCallback(
     (modelKey: string) => {
@@ -338,12 +339,16 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     [name, onChange, values],
   );
 
-  const handleAutoSelect = useCallback(() => {
-    if (!isAutoSelected) {
-      onChange(name, [AUTO_MODEL_OPTION_VALUE]);
-    }
-    setIsOpen(false);
-  }, [isAutoSelected, name, onChange]);
+  const handleAutoSelect = useCallback(
+    (priority: RouterPriority) => {
+      onPrioritizeChange?.(priority);
+      if (!isAutoSelected) {
+        onChange(name, [AUTO_MODEL_OPTION_VALUE]);
+      }
+      setIsOpen(false);
+    },
+    [isAutoSelected, name, onChange, onPrioritizeChange],
+  );
 
   const handleFamilyToggle = useCallback((familyKey: string) => {
     setExpandedFamilyKeys((currentKeys) =>
@@ -437,25 +442,33 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               >
                 {shouldShowAutoCard && (
                   <CommandGroup heading="Auto">
-                    <CommandItem
-                      value={autoLabel}
-                      onSelect={handleAutoSelect}
-                      className={cn(
-                        'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
-                        isAutoSelected && 'bg-background-tertiary',
-                      )}
-                    >
-                      <span className="size-3.5 shrink-0" aria-hidden="true" />
-                      <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">
-                        <Sparkles className="size-3.5" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate font-medium">
-                        {autoLabel}
-                      </span>
-                      {isAutoSelected ? (
-                        <Check className="size-3.5 shrink-0 text-foreground" />
-                      ) : null}
-                    </CommandItem>
+                    {AUTO_PRIORITY_OPTIONS.map((priorityOption) => (
+                      <CommandItem
+                        key={priorityOption}
+                        value={AUTO_PRIORITY_LABELS[priorityOption]}
+                        onSelect={() => handleAutoSelect(priorityOption)}
+                        className={cn(
+                          'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
+                          isAutoSelected &&
+                            priorityOption === prioritize &&
+                            'bg-background-tertiary',
+                        )}
+                      >
+                        <span
+                          className="size-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded border border-border bg-primary/10 text-primary">
+                          <Sparkles className="size-3.5" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {AUTO_PRIORITY_LABELS[priorityOption]}
+                        </span>
+                        {isAutoSelected && priorityOption === prioritize ? (
+                          <Check className="size-3.5 shrink-0 text-foreground" />
+                        ) : null}
+                      </CommandItem>
+                    ))}
                   </CommandGroup>
                 )}
 

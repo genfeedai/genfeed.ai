@@ -163,9 +163,8 @@ describe('OrganizationSwitcher', () => {
       'New Organization',
     ]);
 
-    capturedItems[0]?.trailingAction?.onAction();
-
-    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings');
+    expect(capturedItems[0]?.trailingAction?.href).toBe('/acme-org/~/settings');
+    expect(capturedItems[0]?.trailingAction?.target).toBe('_blank');
   });
 
   it('hides organization creation when the subscription is inactive', async () => {

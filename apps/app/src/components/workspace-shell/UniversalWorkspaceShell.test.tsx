@@ -194,6 +194,22 @@ vi.mock('@genfeedai/agent', () => ({
     }
     return null;
   },
+  resolveConversationComposerDestinationHref: ({
+    activeHref,
+    orgHref,
+    route,
+    routeBrandSlug,
+    selectedBrandSlug,
+  }: {
+    activeHref: (href: string) => string;
+    orgHref: (href: string) => string;
+    route: string;
+    routeBrandSlug?: string;
+    selectedBrandSlug?: string;
+  }) =>
+    routeBrandSlug?.trim() || selectedBrandSlug?.trim()
+      ? activeHref(route)
+      : orgHref(route),
   ConversationInspectorPanel: () => {
     useEffect(() => {
       inspectorConversationMount();

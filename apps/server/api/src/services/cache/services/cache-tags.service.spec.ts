@@ -21,6 +21,7 @@ describe('CacheTagsService', () => {
 
   const mockCacheClientService = {
     instance: mockRedisClient,
+    isReady: true,
   } as unknown as CacheClientService;
 
   const mockLogger = {
