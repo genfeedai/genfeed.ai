@@ -10,6 +10,7 @@ export class IngredientsQueryDto extends BaseQueryDto {
     description: 'Filter ingredients by folder ID',
     nullable: true,
     required: false,
+    type: String,
   })
   @IsOptional()
   @IsEntityId()

@@ -14,12 +14,12 @@ import {
 export class CreatePromptDto {
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
+  @ApiProperty({ nullable: true, required: false, type: String })
   readonly organizationId?: string | null;
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
+  @ApiProperty({ nullable: true, required: false, type: String })
   readonly brandId?: string | null;
 
   @IsEntityId()

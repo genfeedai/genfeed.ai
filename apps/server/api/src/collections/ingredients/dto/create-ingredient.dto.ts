@@ -55,7 +55,7 @@ export class CreateIngredientDto {
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
+  @ApiProperty({ nullable: true, required: false, type: String })
   readonly brandId?: string | null;
 
   @IsEntityId()
@@ -70,7 +70,7 @@ export class CreateIngredientDto {
 
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ nullable: true, required: false })
+  @ApiProperty({ nullable: true, required: false, type: String })
   readonly folderId?: string | null;
 
   @IsEntityId()

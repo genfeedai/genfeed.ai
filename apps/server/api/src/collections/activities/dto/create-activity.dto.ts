@@ -13,7 +13,7 @@ import {
 export class CreateActivityDto extends OrganizationalCreateDto {
   @IsEntityId()
   @IsOptional()
-  @ApiProperty({ required: false })
+  @ApiProperty({ nullable: true, required: false, type: String })
   readonly brandId?: string | null;
 
   @IsString()
