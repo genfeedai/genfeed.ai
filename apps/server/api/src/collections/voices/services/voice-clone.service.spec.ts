@@ -184,7 +184,7 @@ describe('VoiceCloneService', () => {
     await service.deleteClonedVoice(user, ingredientId);
 
     expect(voices.findOne).toHaveBeenCalledWith({
-      _id: ingredientId,
+      id: ingredientId,
       category: 'VOICE',
       isCloned: true,
       isDeleted: false,

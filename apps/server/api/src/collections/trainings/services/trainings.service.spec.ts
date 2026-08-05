@@ -110,15 +110,15 @@ describe('TrainingsService', () => {
         { where: Record<string, unknown> },
       ];
 
-      // A sibling `OR` key would overwrite the `_id` expansion in
-      // `processSearchParams` and silently match every image the caller owns.
+      // A sibling `OR` key would overwrite the canonical id constraint and
+      // silently match every image the caller owns.
       expect(aggregate.where).not.toHaveProperty('OR');
       expect(aggregate.where.AND).toEqual([
-        { _id: { in: sourceIds } },
+        { id: { in: sourceIds } },
         {
           OR: [
-            { user: publicMetadata.user },
-            { organization: publicMetadata.organization },
+            { userId: publicMetadata.user },
+            { organizationId: publicMetadata.organization },
           ],
         },
       ]);

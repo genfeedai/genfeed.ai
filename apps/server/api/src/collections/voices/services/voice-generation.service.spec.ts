@@ -95,8 +95,9 @@ describe('VoiceGenerationService', () => {
     expect(shared.createMediaDocuments).toHaveBeenCalledWith(
       user,
       expect.objectContaining({
+        brandId: '507f191e810c19729de860ec',
         category: IngredientCategory.VOICE,
-        organization: organizationId,
+        organizationId,
         status: IngredientStatus.PROCESSING,
         voiceSource: 'generated',
       }),

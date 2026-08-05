@@ -36,9 +36,9 @@ describe('OrganizationsRelationshipsController', () => {
   const mockUser = {
     id: 'user_123',
     publicMetadata: {
-      brand: '507f1f77bcf86cd799439013',
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      brand: 'clbrandorgrel0000000000001',
+      organization: 'clorganizationrel0000000001',
+      user: 'cluserorgrel00000000000001',
     },
   } as unknown as User;
 
@@ -63,7 +63,7 @@ describe('OrganizationsRelationshipsController', () => {
     },
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({
-        id: '507f1f77bcf86cd799439012',
+        id: 'clorganizationrel0000000001',
       }),
     },
   };
@@ -110,17 +110,17 @@ describe('OrganizationsRelationshipsController', () => {
     it('allows an organization owner without a membership row', async () => {
       mockServices.membersService.findOne.mockResolvedValueOnce(null);
       mockServices.organizationsService.findOne.mockResolvedValueOnce({
-        id: '507f1f77bcf86cd799439012',
-        userId: '507f1f77bcf86cd799439011',
+        id: 'clorganizationrel0000000001',
+        userId: 'cluserorgrel00000000000001',
       });
 
       await controller.findAllIngredients(
         {} as never,
-        '507f1f77bcf86cd799439012',
+        'clorganizationrel0000000001',
         mockUser,
         {
           category: 'video',
-          folderId: '507f1f77bcf86cd799439019',
+          folderId: 'clfolderorgrel000000000001',
           format: 'mp4',
           search: 'launch',
         } as never,
@@ -129,12 +129,12 @@ describe('OrganizationsRelationshipsController', () => {
       expect(mockServices.membersService.findOne).toHaveBeenCalledWith({
         isActive: true,
         isDeleted: false,
-        organizationId: '507f1f77bcf86cd799439012',
-        userId: '507f1f77bcf86cd799439011',
+        organizationId: 'clorganizationrel0000000001',
+        userId: 'cluserorgrel00000000000001',
       });
       expect(mockServices.organizationsService.findOne).toHaveBeenCalledWith({
-        id: '507f1f77bcf86cd799439012',
-        userId: '507f1f77bcf86cd799439011',
+        id: 'clorganizationrel0000000001',
+        userId: 'cluserorgrel00000000000001',
       });
       expect(mockServices.ingredientsService.findAll).toHaveBeenCalledWith(
         {
@@ -142,7 +142,7 @@ describe('OrganizationsRelationshipsController', () => {
           orderBy: { createdAt: -1 },
           where: {
             category: 'video',
-            folderId: '507f1f77bcf86cd799439019',
+            folderId: 'clfolderorgrel000000000001',
             isDeleted: false,
             metadata: {
               is: {
@@ -160,7 +160,7 @@ describe('OrganizationsRelationshipsController', () => {
                 ],
               },
             },
-            organizationId: '507f1f77bcf86cd799439012',
+            organizationId: 'clorganizationrel0000000001',
           },
         },
         expect.objectContaining({ limit: 10, page: 1 }),
@@ -180,7 +180,7 @@ describe('OrganizationsRelationshipsController', () => {
     it('should return organization analytics', async () => {
       const result = await controller.findAnalytics(
         {} as unknown as Request,
-        '507f1f77bcf86cd799439012',
+        'clorganizationrel0000000001',
         {},
       );
 

@@ -51,7 +51,7 @@ describe('SharedService', () => {
     } as unknown as typeof ingredientsService;
     metadataService = {
       create: vi.fn(),
-      patch: vi.fn(),
+      patch: vi.fn().mockResolvedValue(undefined),
     } as unknown as typeof metadataService;
     promptsService = {
       patch: vi.fn(),

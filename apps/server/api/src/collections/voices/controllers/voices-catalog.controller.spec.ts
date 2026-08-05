@@ -27,7 +27,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('VoicesCatalogController', () => {
   const request = {} as Request;
   const user = { id: 'user-1' } as User;
-  const id = '507f191e810c19729de860ea';
+  const id = 'clz1a2b3c4d5e6f7g8h9i0j1k';
   const catalogVoice = {
     createdAt: new Date('2026-01-01'),
     externalId: 'external-1',

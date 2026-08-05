@@ -18,7 +18,7 @@ const platform = CredentialPlatform.INSTAGRAM;
 const baseOptions = { brandId, organizationId: orgId, platform };
 
 const mockCredential = {
-  _id: '507f191e810c19729de860ee',
+  id: '507f191e810c19729de860ee',
   accessToken: 'encrypted-token',
   platform,
 };
@@ -56,9 +56,9 @@ describe('CredentialHelper', () => {
 
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: expect.any(String),
+          brandId: expect.any(String),
           isDeleted: false,
-          organization: expect.any(String),
+          organizationId: expect.any(String),
           platform,
         }),
       );

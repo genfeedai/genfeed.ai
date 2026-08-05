@@ -120,7 +120,7 @@ describe('ReplicateService (coverage)', () => {
       expect(client.predictions!.create).toHaveBeenCalledWith(
         expect.objectContaining({
           input: { prompt: 'test' },
-          version: 'owner/model:version',
+          version: 'version',
         }),
       );
     });
@@ -505,7 +505,7 @@ describe('ReplicateService (coverage)', () => {
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({
           input: { prompt: 'hi' },
-          version: 'meta/llama:v',
+          version: 'v',
         }),
       );
       expect(wait).toHaveBeenCalledWith({ id: 'pred_sync', version: 'v' });

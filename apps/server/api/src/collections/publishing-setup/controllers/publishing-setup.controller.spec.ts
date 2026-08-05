@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-const ORGANIZATION_ID = '000000000000000000000001';
-const USER_ID = '000000000000000000000002';
+const ORGANIZATION_ID = 'clz1a2b3c4d5e6f7g8h9i0j1k';
+const USER_ID = 'clz1a2b3c4d5e6f7g8h9i0j1l';
 
 describe('PublishingSetupController', () => {
   it('separates the schedule-scoped checklist from the admin-scoped support bundle', () => {
@@ -82,7 +82,7 @@ describe('PublishingSetupController', () => {
     const asActiveMember = (role: MemberRole) =>
       mockMembersService.findOne.mockResolvedValue({
         id: 'member-1',
-        role: { _id: 'role-1', key: role },
+        role: { id: 'role-1', key: role },
       });
 
     beforeEach(() => {

@@ -82,7 +82,7 @@ describe('TagsController', () => {
 
     it('should filter by brand when provided', () => {
       const inputQuery = {
-        brand: brandId,
+        brandId,
         isDeleted: false,
       } as unknown as TagsQueryDto;
       const query = controller.buildFindAllQuery(mockUser, inputQuery);

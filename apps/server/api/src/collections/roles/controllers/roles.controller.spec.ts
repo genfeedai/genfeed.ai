@@ -17,7 +17,7 @@ describe('RolesController', () => {
   let rolesService: vi.Mocked<RolesService>;
 
   const mockRole = {
-    _id: 'role-id',
+    id: 'role-id',
     isDeleted: false,
     key: 'admin',
     label: 'admin',
@@ -126,7 +126,7 @@ describe('RolesController', () => {
 
       const result = await controller.findOne(mockReq, roleId);
 
-      expect(rolesService.findOne).toHaveBeenCalledWith({ _id: roleId });
+      expect(rolesService.findOne).toHaveBeenCalledWith({ id: roleId });
       expect(result).toBeDefined();
     });
 

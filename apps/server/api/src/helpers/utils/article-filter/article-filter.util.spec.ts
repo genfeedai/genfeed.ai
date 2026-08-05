@@ -154,7 +154,7 @@ describe('ArticleFilterUtil', () => {
 
   describe('buildTagFilter', () => {
     it('returns Prisma m2m relation filter for valid tag', () => {
-      const tagId = '507f191e810c19729de860ee';
+      const tagId = 'cltagarticle000000000000001';
       const filter = ArticleFilterUtil.buildTagFilter(tagId);
       expect(filter).toEqual({ tags: { some: { id: tagId } } });
     });
@@ -185,7 +185,7 @@ describe('ArticleFilterUtil', () => {
 
   describe('buildArticlequery', () => {
     it('composes query with filters, include, and sorting', () => {
-      const tag = '507f191e810c19729de860ee';
+      const tag = 'cltagarticle000000000000001';
       const query = ArticleFilterUtil.buildArticlequery(
         {
           category: 'blog',
@@ -198,7 +198,7 @@ describe('ArticleFilterUtil', () => {
         },
         {
           isDeleted: false,
-          organizationId: '507f191e810c19729de860ee',
+          organizationId: 'clorgarticle00000000000001',
         },
       );
 
@@ -208,7 +208,7 @@ describe('ArticleFilterUtil', () => {
         where: {
           category: 'blog',
           isDeleted: false,
-          organizationId: '507f191e810c19729de860ee',
+          organizationId: 'clorgarticle00000000000001',
           scope: 'organization',
           status: 'DRAFT',
           tags: { some: { id: tag } },

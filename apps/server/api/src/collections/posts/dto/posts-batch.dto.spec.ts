@@ -9,7 +9,7 @@ const VALID_ENTITY_ID = 'ckz1234567890abcdefghi';
 
 function buildItems(count: number): Record<string, string>[] {
   return Array.from({ length: count }, (_, index) => ({
-    postId: index.toString(16).padStart(24, '0'),
+    postId: `c${index.toString(36).padStart(24, '0')}`,
     scheduledDate: '2026-11-27T14:30:00Z',
     text: `Scheduled post ${index}`,
   }));

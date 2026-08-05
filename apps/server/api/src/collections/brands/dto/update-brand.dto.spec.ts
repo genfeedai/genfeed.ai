@@ -23,14 +23,14 @@ describe('UpdateBrandDto', () => {
       const result = await pipe.transform(
         {
           label: 'Renamed Brand',
-          organizationId: '507f191e810c19729de860ee',
+          organizationId: 'cmorganization000000000000001',
         },
         metadata,
       );
 
       expect(result).toMatchObject({
         label: 'Renamed Brand',
-        organizationId: '507f191e810c19729de860ee',
+        organizationId: 'cmorganization000000000000001',
       });
     });
 

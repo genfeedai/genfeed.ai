@@ -1,5 +1,12 @@
 import { MembersService } from '@api/collections/members/services/members.service';
 
+vi.mock('@genfeedai/prisma', async () => {
+  const { canonicalPrismaMock } = await import(
+    '@api/shared/testing/prisma-mock'
+  );
+  return canonicalPrismaMock();
+});
+
 describe('MembersService', () => {
   const prisma = {
     member: {
@@ -9,6 +16,9 @@ describe('MembersService', () => {
     },
   };
   const logger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
     warn: vi.fn(),
   };
 
@@ -25,20 +35,27 @@ describe('MembersService', () => {
     prisma.member.create.mockResolvedValue({ id: 'member-1' });
 
     await service.create({
-      brandIds: ['brand-1', 'brand-1', 'brand-2'],
-      organizationId: 'org-1',
-      roleId: 'role-1',
-      userId: 'user-1',
+      brandIds: [
+        'cmbrand000000000000000001',
+        'cmbrand000000000000000001',
+        'cmbrand000000000000000002',
+      ],
+      organizationId: 'cmorganization000000000000001',
+      roleId: 'cmrole00000000000000000001',
+      userId: 'cmuser0000000000000000001',
     });
 
     expect(prisma.member.create).toHaveBeenCalledWith({
       data: {
         brands: {
-          set: [{ id: 'brand-1' }, { id: 'brand-2' }],
+          set: [
+            { id: 'cmbrand000000000000000001' },
+            { id: 'cmbrand000000000000000002' },
+          ],
         },
-        organizationId: 'org-1',
-        roleId: 'role-1',
-        userId: 'user-1',
+        organizationId: 'cmorganization000000000000001',
+        roleId: 'cmrole00000000000000000001',
+        userId: 'cmuser0000000000000000001',
       },
     });
   });

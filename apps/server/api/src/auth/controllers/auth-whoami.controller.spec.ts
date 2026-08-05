@@ -46,7 +46,7 @@ describe('AuthWhoamiController', () => {
   });
 
   describe('whoami', () => {
-    const databaseUserId = '507f191e810c19729de860ee';
+    const databaseUserId = 'clu1a2b3c4d5e6f7g8h9i0jk';
 
     it('should return full user context for authenticated user', async () => {
       mockMembersService.findOne.mockResolvedValue({ role: { key: 'admin' } });
@@ -100,8 +100,8 @@ describe('AuthWhoamiController', () => {
         expect.objectContaining({
           isActive: true,
           isDeleted: false,
-          organization: 'org_abc',
-          user: 'user_1',
+          organizationId: 'org_abc',
+          userId: 'user_1',
         }),
         expect.any(Array),
       );
@@ -186,7 +186,10 @@ describe('AuthWhoamiController', () => {
       );
 
       expect(mockMembersService.findOne).toHaveBeenCalledWith(
-        expect.objectContaining({ organization: 'org_def', user: 'user_789' }),
+        expect.objectContaining({
+          organizationId: 'org_def',
+          userId: 'user_789',
+        }),
         expect.any(Array),
       );
       expect(result.data.role).toBe('admin');
@@ -267,7 +270,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.user.email).toBe('fallback@example.com');
     });
 
-    it('should keep mongo user id empty when publicMetadata.user is missing', async () => {
+    it('should keep the database user id empty when publicMetadata.user is missing', async () => {
       const req = buildReq({
         id: 'auth_user_id',
         publicMetadata: {},
@@ -303,7 +306,7 @@ describe('AuthWhoamiController', () => {
       expect(result.data.scopes).toEqual(['*']);
     });
 
-    it('should return empty mongo user id when metadata user id is not a valid ObjectId', async () => {
+    it('should return an empty database user id for an unsupported legacy id', async () => {
       const req = buildReq({
         id: 'auth_user_id',
         publicMetadata: {

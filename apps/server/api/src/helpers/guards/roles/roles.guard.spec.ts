@@ -42,9 +42,9 @@ const expectForbidden = async (activation: Promise<boolean>): Promise<void> => {
   expect((thrownError as HttpException).getStatus()).toBe(HttpStatus.FORBIDDEN);
 };
 
-const TOKEN_ORGANIZATION_ID = '000000000000000000000001';
-const REQUEST_ORGANIZATION_ID = '000000000000000000000002';
-const USER_ID = '000000000000000000000003';
+const TOKEN_ORGANIZATION_ID = 'clorgtoken0000000000000001';
+const REQUEST_ORGANIZATION_ID = 'clorgrequest0000000000001';
+const USER_ID = 'clusertoken000000000000001';
 
 describe('RolesGuard', () => {
   let reflector: Reflector;
@@ -81,8 +81,8 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        organization: TOKEN_ORGANIZATION_ID,
-        user: USER_ID,
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       }),
       expect.any(Array),
     );
@@ -113,10 +113,10 @@ describe('RolesGuard', () => {
     // the request explicitly targets org B. Switch-first semantics require
     // a 403 here without ever consulting membership for org B.
     mockMembersService.findOne.mockImplementation(
-      async (filter: { organization?: string }) => {
+      async (filter: { organizationId?: string }) => {
         if (
-          filter.organization === TOKEN_ORGANIZATION_ID ||
-          filter.organization === REQUEST_ORGANIZATION_ID
+          filter.organizationId === TOKEN_ORGANIZATION_ID ||
+          filter.organizationId === REQUEST_ORGANIZATION_ID
         ) {
           return { id: 'member-1' };
         }
@@ -172,8 +172,8 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        organization: TOKEN_ORGANIZATION_ID,
-        user: USER_ID,
+        organizationId: TOKEN_ORGANIZATION_ID,
+        userId: USER_ID,
       }),
       expect.any(Array),
     );
@@ -195,8 +195,8 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        organization: REQUEST_ORGANIZATION_ID,
-        user: USER_ID,
+        organizationId: REQUEST_ORGANIZATION_ID,
+        userId: USER_ID,
       }),
       expect.any(Array),
     );
@@ -218,8 +218,8 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        organization: REQUEST_ORGANIZATION_ID,
-        user: USER_ID,
+        organizationId: REQUEST_ORGANIZATION_ID,
+        userId: USER_ID,
       }),
       expect.any(Array),
     );
@@ -310,9 +310,9 @@ describe('RolesGuard', () => {
       switchToHttp: () => ({
         getRequest: () => ({
           body: {},
-          params: { organizationId: '507f1f77bcf86cd799439011' },
+          params: { organizationId: TOKEN_ORGANIZATION_ID },
           user: {
-            publicMetadata: { organization: '507f1f77bcf86cd799439011' },
+            publicMetadata: { organization: TOKEN_ORGANIZATION_ID },
           },
         }),
       }),
@@ -348,8 +348,8 @@ describe('RolesGuard', () => {
     await expect(guard.canActivate(context)).resolves.toBe(true);
     expect(mockMembersService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        organization: organizationId,
-        user: userId,
+        organizationId,
+        userId,
       }),
       expect.any(Array),
     );

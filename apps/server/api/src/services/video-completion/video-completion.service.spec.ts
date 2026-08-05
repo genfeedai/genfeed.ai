@@ -340,11 +340,11 @@ describe('VideoCompletionService', () => {
       };
 
       ingredientsService.findOne.mockResolvedValue({
-        _id: mockIngredientId,
-        metadata: '507f1f77bcf86cd799439099',
+        id: mockIngredientId,
+        metadataId: '507f1f77bcf86cd799439099',
       } as never);
       ingredientsService.patch.mockResolvedValue({
-        _id: mockIngredientId,
+        id: mockIngredientId,
         status: IngredientStatus.GENERATED,
       });
 
@@ -385,7 +385,7 @@ describe('VideoCompletionService', () => {
       };
 
       ingredientsService.patch.mockResolvedValue({
-        _id: mockIngredientId,
+        id: mockIngredientId,
         status: IngredientStatus.FAILED,
       });
 
@@ -419,11 +419,11 @@ describe('VideoCompletionService', () => {
       };
 
       ingredientsService.findOne.mockResolvedValue({
-        _id: mockIngredientId,
-        metadata: '507f1f77bcf86cd799439099',
+        id: mockIngredientId,
+        metadataId: '507f1f77bcf86cd799439099',
       } as never);
       ingredientsService.patch.mockResolvedValue({
-        _id: mockIngredientId,
+        id: mockIngredientId,
         status: IngredientStatus.GENERATED,
       });
 
@@ -454,7 +454,7 @@ describe('VideoCompletionService', () => {
       };
 
       ingredientsService.patch.mockResolvedValue({
-        _id: mockIngredientId,
+        id: mockIngredientId,
         status: IngredientStatus.GENERATED,
       });
 
@@ -491,11 +491,11 @@ describe('VideoCompletionService', () => {
       };
 
       ingredientsService.findOne.mockResolvedValue({
-        _id: mockIngredientId,
-        metadata: '507f1f77bcf86cd799439099',
+        id: mockIngredientId,
+        metadataId: '507f1f77bcf86cd799439099',
       } as never);
       ingredientsService.patch.mockResolvedValue({
-        _id: mockIngredientId,
+        id: mockIngredientId,
         status: IngredientStatus.GENERATED,
       });
 
@@ -557,7 +557,7 @@ describe('VideoCompletionService', () => {
       };
 
       ingredientsService.patch.mockResolvedValue({
-        _id: mockIngredientId,
+        id: mockIngredientId,
       });
 
       await service.onModuleInit();

@@ -460,8 +460,8 @@ describe('OrganizationsController', () => {
       expect(mockMembersService.findOne).toHaveBeenCalledWith({
         isActive: true,
         isDeleted: false,
-        organization: 'org_other',
-        user: 'user_1',
+        organizationId: 'org_other',
+        userId: 'user_1',
       });
     });
 

@@ -64,6 +64,7 @@ describe('OrganizationsSettingsController', () => {
   };
 
   const mockOrganizationSettingsService = {
+    ensureEnabledModelIds: vi.fn((settings) => Promise.resolve(settings)),
     findOne: vi.fn(),
     patch: vi.fn(),
   };

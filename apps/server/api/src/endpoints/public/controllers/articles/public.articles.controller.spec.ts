@@ -35,14 +35,14 @@ describe('PublicArticlesController', () => {
   let articlesService: ArticlesService;
 
   const mockArticle = {
-    _id: '507f1f77bcf86cd799439014',
+    id: 'clz1a2b3c4d5e6f7g8h9i0j1k',
     category: 'Technology',
     content: 'This is a public article',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Public Article',
     organization: {
-      _id: '507f191e810c19729de860ee',
+      id: 'clz1a2b3c4d5e6f7g8h9i0j1l',
       name: 'Test Org',
     },
     publishedAt: new Date(),
@@ -53,7 +53,7 @@ describe('PublicArticlesController', () => {
     tags: [],
     updatedAt: new Date(),
     user: {
-      _id: '507f191e810c19729de860ee',
+      id: 'clz1a2b3c4d5e6f7g8h9i0j1m',
       email: 'john@example.com',
       name: 'John Doe',
     },
@@ -258,7 +258,7 @@ describe('PublicArticlesController', () => {
 
       expect(articlesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
-          _id: id,
+          id,
           isDeleted: false,
           status: 'PUBLISHED',
         }),

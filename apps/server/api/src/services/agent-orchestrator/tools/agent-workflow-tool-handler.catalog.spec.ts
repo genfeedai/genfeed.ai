@@ -211,7 +211,7 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
     });
 
     it('prefers an explicit brandId that belongs to the organization', async () => {
-      brandsService.findOne.mockResolvedValue({ _id: 'brand-2' });
+      brandsService.findOne.mockResolvedValue({ id: 'brand-2' });
       systemWorkflowCatalogService.install.mockResolvedValue({ id: 'wf-new' });
 
       const result = await handler.installSystemWorkflow(
@@ -220,9 +220,9 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
       );
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
-        _id: 'brand-2',
+        id: 'brand-2',
         isDeleted: false,
-        organization: 'org-1',
+        organizationId: 'org-1',
       });
       expect(systemWorkflowCatalogService.install).toHaveBeenCalledWith(
         expect.objectContaining({ brandId: 'brand-2' }),

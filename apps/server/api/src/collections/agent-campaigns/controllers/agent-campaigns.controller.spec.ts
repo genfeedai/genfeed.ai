@@ -98,8 +98,8 @@ describe('AgentCampaignsController', () => {
       expect(mockUsersService.findOne).not.toHaveBeenCalled();
     });
 
-    it('falls back to lookup by authProvider id when metadata user id is unavailable', async () => {
-      const userWithoutMongoMetadata = {
+    it('falls back to lookup by authenticated user id when metadata user id is unavailable', async () => {
+      const userWithoutMetadataId = {
         ...mockUser,
         publicMetadata: {
           ...mockUser.publicMetadata,
@@ -116,7 +116,7 @@ describe('AgentCampaignsController', () => {
 
       await controller.patch(
         mockReq,
-        userWithoutMongoMetadata as any,
+        userWithoutMetadataId as any,
         'campaign-2',
         { status: 'active' } as any,
       );
@@ -127,7 +127,7 @@ describe('AgentCampaignsController', () => {
         '507f1f77bcf86cd799439099',
       );
       expect(mockUsersService.findOne).toHaveBeenCalledWith(
-        { _id: 'user_123', isDeleted: false },
+        { id: 'user_123', isDeleted: false },
         [],
       );
     });
@@ -159,9 +159,9 @@ describe('AgentCampaignsController', () => {
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
         where: {
-          brand: '507f1f77bcf86cd799439013',
+          brandId: '507f1f77bcf86cd799439013',
           isDeleted: false,
-          organization: '507f1f77bcf86cd799439012',
+          organizationId: '507f1f77bcf86cd799439012',
         },
       });
     });
@@ -176,9 +176,9 @@ describe('AgentCampaignsController', () => {
       expect(query).toEqual({
         orderBy: { createdAt: -1 },
         where: {
-          brand: '507f1f77bcf86cd799439013',
+          brandId: '507f1f77bcf86cd799439013',
           isDeleted: false,
-          organization: '507f1f77bcf86cd799439012',
+          organizationId: '507f1f77bcf86cd799439012',
           status: 'active',
         },
       });
@@ -201,7 +201,7 @@ describe('AgentCampaignsController', () => {
         orderBy: { createdAt: -1 },
         where: {
           isDeleted: false,
-          organization: '507f1f77bcf86cd799439012',
+          organizationId: '507f1f77bcf86cd799439012',
         },
       });
     });

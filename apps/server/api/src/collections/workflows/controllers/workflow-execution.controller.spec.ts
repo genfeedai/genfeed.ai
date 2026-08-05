@@ -87,10 +87,10 @@ describe('WorkflowExecutionController', () => {
   describe('patchNodes', () => {
     beforeEach(() => {
       mockWorkflowsService.findMutableOwnedOrThrow.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
       });
       mockWorkflowsService.findOwnedOrThrow.mockResolvedValue({
-        _id: '507f1f77bcf86cd799439014',
+        id: '507f1f77bcf86cd799439014',
       });
     });
 
@@ -105,8 +105,8 @@ describe('WorkflowExecutionController', () => {
       expect(mockWorkflowsService.findMutableOwnedOrThrow).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         {
-          organization: mockUser.publicMetadata.organization,
-          user: mockUser.publicMetadata.user,
+          organizationId: mockUser.publicMetadata.organization,
+          userId: mockUser.publicMetadata.user,
         },
       );
       expect(mockWorkflowsService.lockNodes).toHaveBeenCalledWith(
@@ -146,8 +146,8 @@ describe('WorkflowExecutionController', () => {
       expect(mockWorkflowsService.findOwnedOrThrow).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439014',
         {
-          organization: mockUser.publicMetadata.organization,
-          user: mockUser.publicMetadata.user,
+          organizationId: mockUser.publicMetadata.organization,
+          userId: mockUser.publicMetadata.user,
         },
       );
       expect(mockWorkflowsService.lockNodes).not.toHaveBeenCalled();

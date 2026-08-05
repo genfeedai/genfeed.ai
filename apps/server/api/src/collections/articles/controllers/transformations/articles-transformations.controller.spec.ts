@@ -39,21 +39,21 @@ describe('ArticlesTransformationsController', () => {
   } as Request;
 
   const mockArticle = {
+    brandId: '507f1f77bcf86cd799439013',
     id: '507f1f77bcf86cd799439014',
-    brand: '507f1f77bcf86cd799439013',
     category: ArticleCategory.POST,
     content: 'This is the article content',
     createdAt: new Date(),
     isDeleted: false,
     label: 'Test Article',
-    organization: '507f1f77bcf86cd799439012',
+    organizationId: '507f1f77bcf86cd799439012',
     scope: AssetScope.USER,
     slug: 'test-article',
     status: 'draft',
     summary: 'A test article summary',
     tags: [],
     updatedAt: new Date(),
-    user: '507f1f77bcf86cd799439011',
+    userId: '507f1f77bcf86cd799439011',
   } as unknown as Article;
 
   const mockArticlesService = {
@@ -252,7 +252,12 @@ describe('ArticlesTransformationsController', () => {
 
     it('should throw NOT_FOUND when the article belongs to another organization', async () => {
       mockArticlesService.findAll.mockResolvedValue({
-        docs: [{ ...mockArticle, organization: '507f1f77bcf86cd799439099' }],
+        docs: [
+          {
+            ...mockArticle,
+            organizationId: '507f1f77bcf86cd799439099',
+          },
+        ],
       });
 
       await expect(

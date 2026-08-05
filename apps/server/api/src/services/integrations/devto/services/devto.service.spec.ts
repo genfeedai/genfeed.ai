@@ -216,9 +216,9 @@ describe('DevtoService', () => {
       expect(result).toBe('decrypted:encrypted-token');
       expect(credentialsFindOneMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: 'brand-1',
+          brandId: 'brand-1',
           isDeleted: false,
-          organization: 'org-1',
+          organizationId: 'org-1',
           platform: CredentialPlatform.DEV_TO,
         }),
       );

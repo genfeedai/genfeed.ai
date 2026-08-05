@@ -170,8 +170,8 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     await request(app.getHttpServer())
       .patch(`/brands/${brandId}/agent-config`)
       .send({
-        defaultAvatarIngredientId: '507f191e810c19729de86100',
-        defaultVoiceId: '507f191e810c19729de86101',
+        defaultAvatarIngredientId: 'cmingredient000000000000001',
+        defaultVoiceId: 'cmvoice0000000000000000001',
       })
       .expect(200);
 
@@ -181,7 +181,7 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
   it('accepts a single-field identity patch (default avatar only)', async () => {
     await request(app.getHttpServer())
       .patch(`/brands/${brandId}/agent-config`)
-      .send({ defaultAvatarIngredientId: '507f191e810c19729de86100' })
+      .send({ defaultAvatarIngredientId: 'cmingredient000000000000001' })
       .expect(200);
 
     expect(updateAgentConfig).toHaveBeenCalledTimes(1);

@@ -17,7 +17,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 describe('ReplyBotConfigsService persistence', () => {
   const replyBotConfig = {
     create: vi.fn(),
-    findUnique: vi.fn(),
+    findFirst: vi.fn(),
     update: vi.fn(),
   };
   let service: ReplyBotConfigsService;
@@ -109,8 +109,9 @@ describe('ReplyBotConfigsService persistence', () => {
   });
 
   it('merges config-backed patches and keeps scalar fields out of JSON', async () => {
-    replyBotConfig.findUnique.mockResolvedValue({
+    replyBotConfig.findFirst.mockResolvedValue({
       config: { credentialId: 'credential-1', name: 'Old name' },
+      id: 'bot-1',
       organizationId: 'org-1',
     });
 

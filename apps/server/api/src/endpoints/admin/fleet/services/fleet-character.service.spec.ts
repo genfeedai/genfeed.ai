@@ -44,7 +44,7 @@ describe('AdminFleetCharacterService', () => {
       expect(personasService.findOne).toHaveBeenCalledWith({
         isFleetCharacter: true,
         isDeleted: false,
-        organization: 'org-123',
+        organizationId: 'org-123',
         slug: 'alice',
       });
     });

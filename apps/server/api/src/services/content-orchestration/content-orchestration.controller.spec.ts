@@ -25,7 +25,9 @@ describe('ContentOrchestrationController', () => {
 
   beforeEach(async () => {
     mockBrandsService = {
-      findOne: vi.fn().mockResolvedValue({ _id: brandId, organization: orgId }),
+      findOne: vi
+        .fn()
+        .mockResolvedValue({ id: brandId, organizationId: orgId }),
     };
 
     mockQueueService = {
@@ -88,8 +90,8 @@ describe('ContentOrchestrationController', () => {
         stepCount: 2,
       });
       expect(mockBrandsService.findOne).toHaveBeenCalledWith({
-        _id: expect.any(String),
-        organization: expect.any(String),
+        id: brandId,
+        organizationId: orgId,
       });
       expect(mockQueueService.queueGenerateAndPublish).toHaveBeenCalled();
     });

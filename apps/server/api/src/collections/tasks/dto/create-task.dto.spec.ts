@@ -10,10 +10,10 @@ describe('CreateTaskDto', () => {
   describe('validation', () => {
     it('accepts a valid task payload with linked entities', async () => {
       const dto = plainToInstance(CreateTaskDto, {
-        brandId: '507f1f77bcf86cd799439012',
+        brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
         linkedEntities: [
           {
-            entityId: '507f1f77bcf86cd799439011',
+            entityId: 'clz1a2b3c4d5e6f7g8h9i0j1l',
             entityModel: 'Post',
           },
         ],
@@ -42,7 +42,7 @@ describe('CreateTaskDto', () => {
       const dto = plainToInstance(CreateTaskDto, {
         linkedEntities: [
           {
-            entityId: '507f1f77bcf86cd799439011',
+            entityId: 'clz1a2b3c4d5e6f7g8h9i0j1l',
             entityModel: 'InvalidModel',
           },
         ],

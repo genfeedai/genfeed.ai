@@ -16,16 +16,16 @@ describe('ContentEngineService', () => {
     return {
       id: campaignId,
       agents: [],
-      brand: brandId,
+      brandId,
       brief: 'React to signal changes',
       creditsAllocated: 100,
       creditsUsed: 20,
       label: 'Spring Push',
       orchestrationEnabled: true,
       orchestrationIntervalHours: 6,
-      organization: organizationId,
+      organizationId,
       status: 'active',
-      user: userId,
+      userId,
       ...overrides,
     };
   }
@@ -497,11 +497,11 @@ describe('ContentEngineService', () => {
     } = createService();
     agentCampaignsService.findOne.mockResolvedValue({
       id: campaignId,
-      brand: brandId,
+      brandId,
       label: 'Spring Push',
-      organization: organizationId,
+      organizationId,
       status: 'active',
-      user: userId,
+      userId,
     });
     analyticsService.getTopContent.mockResolvedValue([
       {
@@ -707,13 +707,13 @@ describe('ContentEngineService', () => {
 
     agentCampaignsService.findOneById.mockResolvedValue({
       id: campaignId,
-      brand: brandId,
+      brandId,
       brief: 'React to spikes',
       label: 'Spring Push',
       nextOrchestratedAt: new Date('2026-04-01T12:00:00.000Z'),
-      organization: organizationId,
+      organizationId,
       status: 'active',
-      user: userId,
+      userId,
     });
     agentGoalsService.getGoalSummary.mockResolvedValue(
       'Increase qualified engagement',

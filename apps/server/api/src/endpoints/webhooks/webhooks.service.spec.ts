@@ -8,7 +8,6 @@ import { EvaluationsService } from '@api/collections/evaluations/services/evalua
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -80,22 +79,15 @@ describe('WebhooksService', () => {
     width: 1920,
   };
 
-  const mockUser = {
-    id: mockUserId,
-    email: 'test@example.com',
-    firstName: 'Test',
-    lastName: 'User',
-  };
-
   const mockIngredient = {
     id: mockIngredientId,
-    brand: mockBrandId,
+    brandId: mockBrandId,
     category: IngredientCategory.IMAGE,
-    metadata: mockMetadataId,
-    organization: mockOrgId,
+    metadataId: mockMetadataId,
+    organizationId: mockOrgId,
     prompt: { original: 'Test prompt' },
     status: IngredientStatus.PROCESSING,
-    user: mockUser,
+    userId: mockUserId,
   };
 
   const mockVideoIngredient = {
@@ -110,18 +102,12 @@ describe('WebhooksService', () => {
   };
 
   const mockMetadataDoc = mockMetadata as unknown as MetadataDocument;
-  const mockMetadataEntity = mockMetadata as unknown as MetadataEntity;
   const mockVideoMetadataDoc = mockVideoMetadata as unknown as MetadataDocument;
   const mockIngredientDoc = mockIngredient as unknown as IngredientDocument;
-  const mockIngredientEntity = mockIngredient as unknown as IngredientEntity;
   const mockVideoIngredientDoc =
     mockVideoIngredient as unknown as IngredientDocument;
-  const mockVideoIngredientEntity =
-    mockVideoIngredient as unknown as IngredientEntity;
   const mockMusicIngredientDoc =
     mockMusicIngredient as unknown as IngredientDocument;
-  const mockMusicIngredientEntity =
-    mockMusicIngredient as unknown as IngredientEntity;
 
   const mockUploadMeta = {
     duration: 0,
@@ -377,7 +363,7 @@ describe('WebhooksService', () => {
       ingredientsService.findOne
         .mockResolvedValueOnce({
           ...mockVideoIngredientDoc,
-          metadata: mockMetadataId.toString(),
+          metadataId: mockMetadataId.toString(),
         })
         .mockResolvedValueOnce(mockVideoIngredientDoc);
       metadataService.findOne.mockResolvedValue(mockVideoMetadataDoc);
@@ -683,7 +669,7 @@ describe('WebhooksService', () => {
       const videoIngredient = {
         ...mockIngredient,
         category: IngredientCategory.VIDEO,
-        user: mockUser,
+        userId: mockUserId,
       };
       ingredientsService.findOne.mockResolvedValue(
         videoIngredient as unknown as IngredientEntity,
@@ -717,11 +703,11 @@ describe('WebhooksService', () => {
     const integration = 'test-integration';
 
     const mockAsset = {
-      _id: assetId,
+      id: assetId,
       category: AssetCategory.LOGO,
       parentBrandId: '507f191e810c19729de860ee',
       parentType: 'BRAND',
-      user: mockUser,
+      userId: mockUserId,
     };
 
     beforeEach(() => {
@@ -737,10 +723,7 @@ describe('WebhooksService', () => {
     it('should process asset from webhook successfully', async () => {
       await service.processAssetFromWebhook(integration, assetId, url);
 
-      expect(assetsService.findOne).toHaveBeenCalledWith(
-        { _id: assetId },
-        expect.any(Array),
-      );
+      expect(assetsService.findOne).toHaveBeenCalledWith({ id: assetId });
       expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
         assetId,
         'logos',
@@ -791,7 +774,7 @@ describe('WebhooksService', () => {
     it('should handle asset with user as string ID', async () => {
       const assetWithStringUser = {
         ...mockAsset,
-        user: mockUserId.toString(),
+        userId: mockUserId.toString(),
       };
       assetsService.findOne.mockResolvedValue(
         assetWithStringUser as unknown as AssetDocument,
@@ -810,7 +793,7 @@ describe('WebhooksService', () => {
     it('should not publish websocket if no userId available', async () => {
       const assetWithoutUser = {
         ...mockAsset,
-        user: undefined,
+        userId: undefined,
       };
       assetsService.findOne.mockResolvedValue(
         assetWithoutUser as unknown as AssetDocument,

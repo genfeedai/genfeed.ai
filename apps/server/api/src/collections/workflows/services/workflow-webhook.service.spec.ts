@@ -11,12 +11,6 @@ describe('WorkflowWebhookService', () => {
       update: vi.fn(),
     },
   };
-  const logger = {
-    debug: vi.fn(),
-    error: vi.fn(),
-    log: vi.fn(),
-    warn: vi.fn(),
-  };
   const configService = {
     apiUrl: 'https://api.test.genfeed.ai',
   };
@@ -36,7 +30,6 @@ describe('WorkflowWebhookService', () => {
     vi.clearAllMocks();
     service = new WorkflowWebhookService(
       prisma as never,
-      logger as never,
       configService as never,
       workflowsService as never,
       workflowStepRunner as never,
@@ -129,7 +122,7 @@ describe('WorkflowWebhookService', () => {
       expect(result).toEqual({ id: 'workflow-1' });
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
       expect(workflowsService.findOne).toHaveBeenCalledWith({
-        _id: 'workflow-1',
+        id: 'workflow-1',
         isDeleted: false,
       });
     });
@@ -149,8 +142,8 @@ describe('WorkflowWebhookService', () => {
       id: 'workflow-1',
       config: { webhookId: 'wh_1' },
       nodes: [{ id: 'node-1' }],
-      organization: 'org-1',
-      user: 'user-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
       webhookTriggerCount: 2,
     };
 
@@ -215,8 +208,8 @@ describe('WorkflowWebhookService', () => {
     it('rejects triggering workflows without an owner', async () => {
       workflowsService.findOne.mockResolvedValue({
         ...nodeWorkflow,
-        organization: undefined,
-        user: undefined,
+        organizationId: undefined,
+        userId: undefined,
       });
 
       await expect(service.triggerViaWebhook('wh_1', {})).rejects.toThrow(
