@@ -72,6 +72,7 @@
     "check:relation-alias-writes": "bun run scripts/architecture/check-relation-alias-writes.ts",
     "check:route-inventory": "bun run scripts/architecture/check-product-route-inventory.ts",
     "check:route-shadowing": "bun run scripts/architecture/check-route-shadowing.ts",
+    "check:spec-typecheck": "bun run scripts/architecture/check-spec-typecheck.ts",
     "check:tenant-scope": "bun run scripts/architecture/check-tenant-scope.ts",
     "check:typescript-toolchain": "bun run scripts/architecture/check-typescript-toolchain.ts",
     "check:ui-guards": "bun run scripts/ui/check-ui-guards.ts",

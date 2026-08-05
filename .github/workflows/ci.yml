@@ -311,6 +311,39 @@ jobs:
             bun run type-check
           fi
 
+  # The Typecheck job above cannot see spec files: every backend workspace's
+  # tsconfig.typecheck.json excludes them, and no vitest config enables
+  # `typecheck`. #2369 shipped a spec calling a deleted method straight through
+  # that hole. This job typechecks them against the same compiler options via
+  # tsconfig.typecheck.specs.json and ratchets the pre-existing debt.
+  #
+  # It runs unconditionally rather than through turbo's --affected: the ratchet
+  # diffs one repo-wide baseline, so a partial scan would report every unscanned
+  # workspace's entries as stale.
+  spec-typecheck:
+    name: Spec Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: trust
+    if: needs.trust.outputs.is-trusted == 'true'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: '1.3.14'
+      - name: Spec Typecheck Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-spec-typecheck.test.ts
+      # The typecheck base config resolves @genfeedai/enums and
+      # @genfeedai/constants to their dist output, so the package graph has to
+      # exist before any program is created.
+      - name: Build packages
+        run: bunx turbo run build --filter='./packages/*' --filter='./ee/packages/*'
+      - name: Spec Typecheck Ratchet
+        run: bun run check:spec-typecheck
+
   # Heavy test jobs run only on the on-demand full-suite path. full-suite.yml
   # invokes this workflow via `uses:` (workflow_call), so the gate must check for
   # 'workflow_call' — NOT 'workflow_dispatch' (which this workflow never
