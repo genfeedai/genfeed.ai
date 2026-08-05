@@ -45,7 +45,6 @@ export interface AdOptimizationRecommendationDocument
   entityType?: string;
   expiresAt?: Date | string;
   metrics?: RecommendationMetrics;
-  organization: string;
   reason?: string;
   recommendationType?: RecommendationType | string;
   runDate?: Date | string;

@@ -22,8 +22,8 @@ describe('CronAdOptimizationService', () => {
   };
 
   const mockConfigs = [
-    { id: 'cfg-1', organization: { toString: () => 'org-1' } },
-    { id: 'cfg-2', organization: { toString: () => 'org-2' } },
+    { id: 'cfg-1', organizationId: 'org-1' },
+    { id: 'cfg-2', organizationId: 'org-2' },
   ];
 
   beforeEach(async () => {
@@ -93,14 +93,13 @@ describe('CronAdOptimizationService', () => {
       );
     });
 
-    it('includes configId and runId in enqueued job data', async () => {
+    it('includes a runId in enqueued job data', async () => {
       await service.runOptimization();
 
       const firstCall = queueService.add.mock.calls[0][1] as Record<
         string,
         unknown
       >;
-      expect(firstCall.configId).toBe('cfg-1');
       expect(typeof firstCall.runId).toBe('string');
       expect(firstCall.runId).toHaveLength(36); // UUID v4
     });

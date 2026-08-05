@@ -98,7 +98,6 @@ export class AdOptimizationConfigsService {
       ...doc,
       ...values,
       config,
-      organization: doc.organizationId,
     };
   }
 

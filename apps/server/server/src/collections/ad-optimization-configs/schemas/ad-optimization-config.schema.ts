@@ -48,6 +48,5 @@ export interface AdOptimizationConfigDocument
   extends Omit<PrismaAdOptimizationConfig, 'config'>,
     AdOptimizationConfigValues {
   config?: Record<string, unknown>;
-  organization: string;
   [key: string]: unknown;
 }

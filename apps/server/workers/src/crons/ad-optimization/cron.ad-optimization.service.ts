@@ -62,7 +62,6 @@ export class CronAdOptimizationService {
         }
 
         const jobData: AdOptimizationJobData = {
-          configId: String(config.id),
           organizationId: orgId,
           runId,
         };

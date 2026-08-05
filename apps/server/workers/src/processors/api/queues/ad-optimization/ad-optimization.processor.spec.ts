@@ -9,12 +9,10 @@ import type { Job } from 'bullmq';
 import { vi } from 'vitest';
 
 const ORG_ID = '507f191e810c19729de860ee'.toString();
-const CONFIG_ID = '507f191e810c19729de860ee'.toString();
 const RUN_ID = 'run_001';
 
 function buildJob(data: {
   organizationId: string;
-  configId: string;
   runId: string;
 }): Job<typeof data> {
   return {
@@ -125,7 +123,6 @@ describe('AdOptimizationProcessor', () => {
   it('returns early and logs when no config found', async () => {
     optimizationConfigService.findByOrganization.mockResolvedValue(null);
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -141,7 +138,6 @@ describe('AdOptimizationProcessor', () => {
 
   it('completes run with no performance data without error', async () => {
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -164,7 +160,6 @@ describe('AdOptimizationProcessor', () => {
     recommendationService.createBatch.mockResolvedValue(1);
 
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -175,6 +170,7 @@ describe('AdOptimizationProcessor', () => {
       expect.arrayContaining([
         expect.objectContaining({
           entityId: 'ad_bad',
+          organizationId: ORG_ID,
           recommendationType: 'pause',
         }),
       ]),
@@ -192,7 +188,6 @@ describe('AdOptimizationProcessor', () => {
     recommendationService.createBatch.mockResolvedValue(2);
 
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -203,10 +198,12 @@ describe('AdOptimizationProcessor', () => {
       expect.arrayContaining([
         expect.objectContaining({
           entityId: 'ad_good',
+          organizationId: ORG_ID,
           recommendationType: 'promote',
         }),
         expect.objectContaining({
           entityId: 'ad_good',
+          organizationId: ORG_ID,
           recommendationType: 'budget_increase',
         }),
       ]),
@@ -216,11 +213,10 @@ describe('AdOptimizationProcessor', () => {
   it('skips recommendation if existing pending already exists', async () => {
     adPerformanceService.findByOrganization.mockResolvedValue([BAD_AD_RECORD]);
     recommendationService.findExistingPending.mockResolvedValue({
-      _id: 'existing',
+      id: 'existing',
     });
 
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -232,7 +228,6 @@ describe('AdOptimizationProcessor', () => {
 
   it('calls expireStale after processing', async () => {
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -249,7 +244,6 @@ describe('AdOptimizationProcessor', () => {
     );
 
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -274,7 +268,6 @@ describe('AdOptimizationProcessor', () => {
       new Error('config fetch failed'),
     );
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });
@@ -304,7 +297,6 @@ describe('AdOptimizationProcessor', () => {
     adPerformanceService.findByOrganization.mockResolvedValue([lowSpendAd]);
 
     const job = buildJob({
-      configId: CONFIG_ID,
       organizationId: ORG_ID,
       runId: RUN_ID,
     });

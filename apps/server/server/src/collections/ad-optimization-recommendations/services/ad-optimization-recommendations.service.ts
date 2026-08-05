@@ -148,7 +148,12 @@ export class AdOptimizationRecommendationsService {
           continue;
         }
 
-        await this.updateStatus(doc.id, doc.organization, 'expired', 'pending');
+        await this.updateStatus(
+          doc.id,
+          doc.organizationId,
+          'expired',
+          'pending',
+        );
         count++;
       }
 
@@ -234,9 +239,16 @@ export class AdOptimizationRecommendationsService {
   private toCreateManyInput(
     recommendation: Partial<AdOptimizationRecommendationDocument>,
   ): Record<string, unknown> {
+    const organizationId = this.asString(recommendation.organizationId);
+    if (!organizationId) {
+      throw new Error(
+        'Ad optimization recommendation organizationId is required',
+      );
+    }
+
     return {
       data: this.toRecommendationData(recommendation) as never,
-      organizationId: this.asString(recommendation.organizationId) ?? '',
+      organizationId,
     };
   }
 
@@ -258,7 +270,6 @@ export class AdOptimizationRecommendationsService {
           ? data.expiresAt
           : undefined,
       metrics,
-      organization: doc.organizationId,
       reason: this.asString(data.reason),
       recommendationType: this.asString(data.recommendationType),
       runDate:

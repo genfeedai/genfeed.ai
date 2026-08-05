@@ -93,7 +93,6 @@ export class AdAutomationWorkflowService {
 
     const runId = randomUUID();
     const jobData: AdOptimizationJobData = {
-      configId: String(config.id),
       organizationId,
       runId,
     };
