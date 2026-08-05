@@ -7,7 +7,6 @@ SET
     THEN ("config"->>'isActive')::boolean
     ELSE "isActive"
   END,
-  "status" = COALESCE("config"->>'status', "status"),
   "config" = jsonb_strip_nulls(
     (COALESCE("config", '{}'::jsonb)
       - 'type'

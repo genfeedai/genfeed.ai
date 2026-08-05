@@ -191,11 +191,18 @@ describe('OpusProWebhookController', () => {
       expect(result).toEqual({ detail: 'Webhook received' });
     });
 
-    it('rejects callbacks with a missing body instead of TypeError on status', async () => {
+    it.each([
+      ['array', []],
+      ['null', null],
+      ['string', 'invalid'],
+      ['number', 42],
+      ['boolean', false],
+      ['undefined', undefined],
+    ])('rejects callbacks with a %s body', async (_type, body) => {
       await expect(
         controller.handleCallback(
           mockTokenRequest(WEBHOOK_SECRET),
-          undefined as never,
+          body as never,
         ),
       ).rejects.toThrow(BadRequestException);
 
