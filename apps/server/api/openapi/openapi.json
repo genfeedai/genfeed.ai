@@ -3527,12 +3527,21 @@
       },
       "CreateMusicDto": {
         "properties": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
           "autoSelectModel": {
             "default": false,
             "description": "Automatically select the best model based on the prompt. If true, the model parameter will be ignored.",
             "type": "boolean"
           },
-          "brand": {
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
             "type": "string"
           },
           "category": {
@@ -3564,9 +3573,15 @@
             "minimum": 4,
             "type": "number"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
+            "type": "number"
           },
           "groupId": {
             "description": "Group ID for batch operations (e.g., interpolation pairs)",
@@ -3584,15 +3599,22 @@
             "default": false,
             "type": "boolean"
           },
-          "metadata": {
-            "$ref": "#/components/schemas/CreateMetadataDto"
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "model": {
             "description": "Model key or genfeedai/<id>",
+            "type": "string"
+          },
+          "modelUsed": {
+            "description": "Resolved model key used for generation",
             "type": "string"
           },
           "modelVersion": {
@@ -3600,9 +3622,15 @@
             "description": "Model version: melody, large, etc.",
             "type": "string"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
+          },
+          "organizationId": {
+            "type": "string"
           },
           "outputs": {
             "default": 1,
@@ -3611,8 +3639,10 @@
             "minimum": 1,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
             "type": "string"
           },
           "prioritize": {
@@ -3624,7 +3654,7 @@
             "default": "balanced",
             "description": "Priority for auto model routing: quality, speed, cost, or balanced."
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "qualityFeedback": {
@@ -3646,13 +3676,6 @@
               "needs_review"
             ],
             "type": "string"
-          },
-          "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           "reviewStatus": {
             "allOf": [
@@ -3713,7 +3736,7 @@
             "description": "Top-p sampling parameter",
             "type": "number"
           },
-          "training": {
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -3723,9 +3746,15 @@
             },
             "type": "array"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           },
           "waitForCompletion": {
             "default": false,
@@ -12376,7 +12405,16 @@
       },
       "UpdateIngredientDto": {
         "properties": {
-          "brand": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
             "type": "string"
           },
           "category": {
@@ -12400,8 +12438,8 @@
             ],
             "type": "string"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
           },
           "generationCompletedAt": {
@@ -12415,6 +12453,12 @@
           },
           "generationProgress": {
             "description": "Generation progress percentage",
+            "type": "number"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
             "type": "number"
           },
           "generationSource": {
@@ -12450,26 +12494,37 @@
             "default": false,
             "type": "boolean"
           },
-          "metadata": {
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
             "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "modelUsed": {
             "description": "Resolved model key used for generation",
             "type": "string"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "organizationId": {
             "type": "string"
           },
-          "prompt": {
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
+            "type": "string"
+          },
+          "promptId": {
             "type": "string"
           },
           "qualityFeedback": {
@@ -12492,13 +12547,6 @@
             ],
             "type": "string"
           },
-          "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
-          },
           "reviewStatus": {
             "allOf": [
               {
@@ -12517,9 +12565,6 @@
                 "$ref": "#/components/schemas/AssetScope"
               }
             ]
-          },
-          "seed": {
-            "type": "number"
           },
           "sources": {
             "description": "Source ingredient IDs (for tracking merged content)",
@@ -12542,11 +12587,7 @@
             },
             "type": "array"
           },
-          "text": {
-            "type": "string"
-          },
-          "training": {
-            "description": "Reference to the training that uses this ingredient",
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -12556,9 +12597,15 @@
             },
             "type": "array"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -12841,12 +12888,21 @@
       },
       "UpdateMusicDto": {
         "properties": {
+          "agentRunId": {
+            "type": "string"
+          },
+          "agentStrategyId": {
+            "type": "string"
+          },
           "autoSelectModel": {
             "default": false,
             "description": "Automatically select the best model based on the prompt. If true, the model parameter will be ignored.",
             "type": "boolean"
           },
-          "brand": {
+          "bookmarkId": {
+            "type": "string"
+          },
+          "brandId": {
             "type": "string"
           },
           "category": {
@@ -12878,9 +12934,15 @@
             "minimum": 4,
             "type": "number"
           },
-          "folder": {
-            "description": "Folder ID for organizing ingredients",
+          "folderId": {
+            "nullable": true,
             "type": "string"
+          },
+          "generationPrompt": {
+            "type": "string"
+          },
+          "generationSeed": {
+            "type": "number"
           },
           "groupId": {
             "description": "Group ID for batch operations (e.g., interpolation pairs)",
@@ -12902,15 +12964,22 @@
             "default": false,
             "type": "boolean"
           },
-          "metadata": {
-            "$ref": "#/components/schemas/CreateMetadataDto"
+          "isMergeEnabled": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": "string"
           },
           "metadataId": {
-            "description": "Metadata ID — preferred over the legacy `metadata` field",
+            "description": "Metadata ID",
             "type": "string"
           },
           "model": {
             "description": "Model key or genfeedai/<id>",
+            "type": "string"
+          },
+          "modelUsed": {
+            "description": "Resolved model key used for generation",
             "type": "string"
           },
           "modelVersion": {
@@ -12918,9 +12987,15 @@
             "description": "Model version: melody, large, etc.",
             "type": "string"
           },
+          "negativePrompt": {
+            "type": "string"
+          },
           "order": {
             "default": 0,
             "type": "number"
+          },
+          "organizationId": {
+            "type": "string"
           },
           "outputs": {
             "default": 1,
@@ -12929,8 +13004,10 @@
             "minimum": 1,
             "type": "number"
           },
-          "parent": {
-            "description": "Parent ingredient ID (for tracking origin/hierarchy)",
+          "parentId": {
+            "type": "string"
+          },
+          "personaId": {
             "type": "string"
           },
           "prioritize": {
@@ -12942,7 +13019,7 @@
             "default": "balanced",
             "description": "Priority for auto model routing: quality, speed, cost, or balanced."
           },
-          "prompt": {
+          "promptId": {
             "type": "string"
           },
           "qualityFeedback": {
@@ -12964,13 +13041,6 @@
               "needs_review"
             ],
             "type": "string"
-          },
-          "references": {
-            "description": "References to asset(s) or ingredient image(s) for generation",
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           },
           "reviewStatus": {
             "allOf": [
@@ -13031,7 +13101,7 @@
             "description": "Top-p sampling parameter",
             "type": "number"
           },
-          "training": {
+          "trainingId": {
             "type": "string"
           },
           "transformations": {
@@ -13041,9 +13111,15 @@
             },
             "type": "array"
           },
+          "userId": {
+            "type": "string"
+          },
           "version": {
             "default": 1,
             "type": "number"
+          },
+          "voiceSource": {
+            "type": "string"
           },
           "waitForCompletion": {
             "default": false,
@@ -34162,7 +34238,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -34171,7 +34247,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -34231,7 +34307,7 @@
             "name": "format",
             "required": false,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/MetadataExtension"
             }
           },
           {
@@ -35913,7 +35989,7 @@
           {
             "description": "Filter by organization ID",
             "in": "query",
-            "name": "organization",
+            "name": "organizationId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35922,7 +35998,7 @@
           {
             "description": "Filter by brand ID",
             "in": "query",
-            "name": "brand",
+            "name": "brandId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35940,16 +36016,17 @@
           {
             "description": "Filter ingredients by folder ID",
             "in": "query",
-            "name": "folder",
+            "name": "folderId",
             "required": false,
             "schema": {
+              "nullable": true,
               "type": "string"
             }
           },
           {
             "description": "Filter by parent video ID",
             "in": "query",
-            "name": "parent",
+            "name": "parentId",
             "required": false,
             "schema": {
               "type": "string"
@@ -35995,7 +36072,7 @@
             "name": "format",
             "required": false,
             "schema": {
-              "type": "string"
+              "$ref": "#/components/schemas/MetadataExtension"
             }
           }
         ],
