@@ -37,6 +37,7 @@ export class BaseCredentialInstagram
   extends BaseCredential
   implements ICredentialInstagram
 {
+  public declare label: string;
   public declare username: string;
   public declare image: string;
   public declare category: boolean;

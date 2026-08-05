@@ -86,7 +86,7 @@ describe('content schemas', () => {
     it('accepts valid link', () => {
       expect(
         linkSchema.safeParse({
-          brand: 'b',
+          brandId: 'b',
           category: 'c',
           label: 'L',
           url: 'https://example.com',
@@ -97,7 +97,7 @@ describe('content schemas', () => {
     it('rejects invalid URL', () => {
       expect(
         linkSchema.safeParse({
-          brand: 'b',
+          brandId: 'b',
           category: 'c',
           label: 'L',
           url: 'bad',
