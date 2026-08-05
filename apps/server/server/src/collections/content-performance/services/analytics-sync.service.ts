@@ -1,4 +1,3 @@
-import { ContentType } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import { PerformanceSource } from '@server/collections/content-performance/schemas/content-performance.schema';
@@ -28,30 +27,13 @@ export interface AnalyticsSyncOptions {
   batchSize?: number;
 }
 
-type ContentPerformanceData = {
+type ContentPerformanceDomainData = {
   clicks: number;
-  comments: number;
-  contentRunId?: string;
-  contentType: ContentType;
   creativeVersion?: string;
-  engagementRate: number;
-  externalPostId?: string;
-  generationId?: string;
   hookVersion?: string;
-  likes: number;
-  measuredAt: string;
-  performanceScore: number;
   personaId?: string;
-  platform?: string;
   publishIntent?: string;
-  revenue: number;
-  saves: number;
   scheduleSlot?: string;
-  shares: number;
-  source: PerformanceSource;
-  userId?: string;
-  variantId?: string;
-  views: number;
 };
 
 @Injectable()
@@ -111,87 +93,40 @@ export class AnalyticsSyncService {
   }
 
   private buildPerformanceData(params: {
-    analytics: {
-      platform: string | null;
-      userId: string | null;
-    };
-    measuredAt: Date;
     metrics: {
       clicks: number;
-      comments: number;
-      likes: number;
-      saves: number;
-      shares: number;
-      views: number;
     };
     post?: {
-      category: string | null;
-      contentRunId: string | null;
       creativeVersion: string | null;
-      externalId: string | null;
-      generationId: string | null;
       hookVersion: string | null;
       personaId: string | null;
       publishIntent: string | null;
       scheduleSlot: string | null;
-      variantId: string | null;
     } | null;
-  }): ContentPerformanceData {
-    const { analytics, measuredAt, metrics, post } = params;
+  }): ContentPerformanceDomainData {
+    const { metrics, post } = params;
 
     return {
       clicks: metrics.clicks,
-      comments: metrics.comments,
-      contentRunId: post?.contentRunId ?? undefined,
-      contentType: mapPostCategoryToContentType(post?.category),
       creativeVersion: post?.creativeVersion ?? undefined,
-      engagementRate: this.computeEngagementRate(metrics),
-      externalPostId: post?.externalId ?? undefined,
-      generationId: post?.generationId ?? undefined,
       hookVersion: post?.hookVersion ?? undefined,
-      likes: metrics.likes,
-      measuredAt: measuredAt.toISOString(),
-      performanceScore: this.computePerformanceScore(metrics),
       personaId: post?.personaId ?? undefined,
-      platform: analytics.platform ?? undefined,
       publishIntent: post?.publishIntent ?? undefined,
-      revenue: 0,
-      saves: metrics.saves,
       scheduleSlot: post?.scheduleSlot ?? undefined,
-      shares: metrics.shares,
-      source: PerformanceSource.API,
-      userId: analytics.userId ?? undefined,
-      variantId: post?.variantId ?? undefined,
-      views: metrics.views,
     };
   }
 
   private readMeasuredAt(
     performance: {
       createdAt: Date;
-      data: unknown;
+      measuredAt?: Date | null;
     } | null,
   ): Date | null {
     if (!performance) {
       return null;
     }
 
-    const measuredAt = (
-      performance.data as { measuredAt?: Date | string | number } | null
-    )?.measuredAt;
-
-    if (measuredAt instanceof Date) {
-      return measuredAt;
-    }
-
-    if (typeof measuredAt === 'string' || typeof measuredAt === 'number') {
-      const parsed = new Date(measuredAt);
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed;
-      }
-    }
-
-    return performance.createdAt;
+    return performance.measuredAt ?? performance.createdAt;
   }
 
   /**
@@ -274,20 +209,30 @@ export class AnalyticsSyncService {
           await this.prisma.contentPerformance.create({
             data: {
               brandId: analytics.brandId ?? undefined,
+              comments: metrics.comments,
               contentRunId: post?.contentRunId ?? undefined,
+              contentType: mapPostCategoryToContentType(post?.category),
               data: this.buildPerformanceData({
-                analytics,
-                measuredAt,
                 metrics,
                 post,
               }),
+              engagementRate: this.computeEngagementRate(metrics),
+              externalPostId: post?.externalId ?? undefined,
               generationId: post?.generationId ?? undefined,
               isDeleted: false,
+              likes: metrics.likes,
+              measuredAt,
               organizationId,
+              performanceScore: this.computePerformanceScore(metrics),
               platform: analytics.platform ?? undefined,
               postId: String(analytics.postId),
+              revenue: 0,
+              saves: metrics.saves,
+              shares: metrics.shares,
+              source: PerformanceSource.API,
               userId: analytics.userId ?? undefined,
               variantId: post?.variantId ?? undefined,
+              views: metrics.views,
             },
           });
 
