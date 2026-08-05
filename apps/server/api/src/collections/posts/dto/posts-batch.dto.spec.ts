@@ -28,7 +28,7 @@ describe('PostsBatchDto', () => {
 
     it('accepts an item list at the maximum size', async () => {
       const dto = plainToInstance(PostsBatchDto, {
-        credential: VALID_ENTITY_ID,
+        credentialId: VALID_ENTITY_ID,
         items: buildItems(POSTS_BATCH_MAX_ITEMS),
       });
 
@@ -39,7 +39,7 @@ describe('PostsBatchDto', () => {
 
     it('rejects an item list over the maximum size', async () => {
       const dto = plainToInstance(PostsBatchDto, {
-        credential: VALID_ENTITY_ID,
+        credentialId: VALID_ENTITY_ID,
         items: buildItems(POSTS_BATCH_MAX_ITEMS + 1),
       });
 
@@ -52,7 +52,7 @@ describe('PostsBatchDto', () => {
 
     it('rejects an item with an invalid post id', async () => {
       const dto = plainToInstance(PostsBatchDto, {
-        credential: VALID_ENTITY_ID,
+        credentialId: VALID_ENTITY_ID,
         items: [
           {
             postId: 'not-an-entity-id',

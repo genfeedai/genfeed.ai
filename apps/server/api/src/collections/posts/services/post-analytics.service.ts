@@ -59,13 +59,19 @@ export class PostAnalyticsService extends BaseService<
   ): Promise<PostAnalyticsEntity> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const { ingredients, ...scalarData } = data;
 
     try {
       // Use upsert to avoid race conditions
       const result = await this.prisma.postAnalytics.upsert({
         create: {
-          ...data,
+          ...scalarData,
           date: today,
+          ...(ingredients !== undefined && {
+            ingredients: {
+              connect: ingredients.map((id) => ({ id })),
+            },
+          }),
           platform,
           postId,
           totalComments: 0,
@@ -146,9 +152,7 @@ export class PostAnalyticsService extends BaseService<
       return null;
     }
 
-    // Scalar FKs only. The relation aliases are populated objects on this call
-    // path (PostsService.findOne populates brand + user), so `String(post.brand)`
-    // wrote "[object Object]" and every upsert failed with a P2003 FK violation.
+    // Analytics ownership always comes from canonical scalar foreign keys.
     const owner = this.resolvePostOwner(post);
     if (!owner) {
       return null;
@@ -354,10 +358,7 @@ export class PostAnalyticsService extends BaseService<
       // truthiness guard above narrows it to `{}` rather than `string`.
       const externalId = String(post.externalId);
 
-      // Scalar FKs, never the relation aliases: depending on the caller's
-      // populate those aliases are objects, id strings, or undefined, so
-      // `post.brand.toString()` silently produced "[object Object]" and
-      // queried the wrong brand's analytics.
+      // Analytics ownership always comes from canonical scalar foreign keys.
       const owner = this.resolvePostOwner(post);
       if (!owner) {
         return;

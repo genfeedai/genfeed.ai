@@ -78,5 +78,5 @@ export class PostsBatchDto {
     description: 'Credential ID (Twitter account) to use for publishing',
     required: true,
   })
-  readonly credential!: string;
+  readonly credentialId!: string;
 }

@@ -4,7 +4,7 @@ export interface components {
   schemas: {
     CreatePostDto: {
       category?: PostCategory;
-      credential: string;
+      credentialId: string;
       description: string;
       externalId?: string;
       externalShortcode?: string;
@@ -16,7 +16,7 @@ export interface components {
       label: string;
       maxRepeats?: number;
       order?: number;
-      parent?: string;
+      parentId?: string;
       contentRunId?: string;
       personaId?: string;
       variantId?: string;
@@ -38,7 +38,7 @@ export interface components {
     };
     UpdatePostDto: {
       category?: PostCategory;
-      credential?: string;
+      credentialId?: string;
       description?: string;
       externalId?: string;
       externalShortcode?: string;
@@ -50,7 +50,7 @@ export interface components {
       label?: string;
       maxRepeats?: number;
       order?: number;
-      parent?: string;
+      parentId?: string;
       contentRunId?: string;
       personaId?: string;
       variantId?: string;

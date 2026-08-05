@@ -610,21 +610,21 @@ describe('Brands E2E Tests', () => {
       const credentials = [
         createTestCredential({
           id: generateIdString(),
-          brand: testBrand.id,
+          brandId: testBrand.id,
           externalHandle: '@testchannel',
           isConnected: true,
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           platform: 'youtube',
-          user: testUser.id,
+          userId: testUser.id,
         }),
         createTestCredential({
           id: generateIdString(),
-          brand: testBrand.id,
+          brandId: testBrand.id,
           externalHandle: '@testtiktok',
           isConnected: true,
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           platform: 'tiktok',
-          user: testUser.id,
+          userId: testUser.id,
         }),
       ];
 

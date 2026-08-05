@@ -95,9 +95,7 @@ describe('PostsOperationsController', () => {
       },
     }) as User;
 
-  // Shaped like a Prisma row: scalar FKs only. The Mongo-era `brand`/
-  // `credential`/`organization`/`user` aliases are absent unless a query
-  // explicitly populates the relation.
+  // Shaped like a Prisma row with canonical scalar foreign keys.
   const mockPost = {
     id: postId,
     brandId: brandId,
@@ -106,19 +104,19 @@ describe('PostsOperationsController', () => {
     description: 'Test post description',
     isDeleted: false,
     organizationId: organizationId,
-    parent: undefined,
+    parentId: undefined,
     platform: CredentialPlatform.TWITTER,
     status: PostStatus.DRAFT,
     userId: userId,
   };
 
   const mockCredential = {
-    _id: credentialId,
+    id: credentialId,
     handle: '@testaccount',
     isConnected: true,
     isDeleted: false,
     label: 'Twitter Account',
-    organization: organizationId,
+    organizationId: organizationId,
     platform: CredentialPlatform.TWITTER,
   };
 
@@ -161,15 +159,15 @@ describe('PostsOperationsController', () => {
 
   const mockIngredient = {
     id: ingredientId,
-    brand: brandId,
+    brandId: brandId,
     category: IngredientCategory.IMAGE,
     isDeleted: false,
-    organization: organizationId,
+    organizationId: organizationId,
     url: 'https://example.com/image.jpg',
   };
 
   const mockActivity = {
-    _id: '507f191e810c19729de860ee',
+    id: '507f191e810c19729de860ee',
     key: 'POST_PROCESSING',
     source: 'POST_GENERATION',
   };
@@ -444,7 +442,7 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('generateAccountContent (post format)', () => {
     const generateTweetsDto = {
       count: 3,
-      credential: credentialId,
+      credentialId,
       format: 'post' as const,
       tone: TweetTone.PROFESSIONAL,
       topic: 'AI technology',
@@ -459,7 +457,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith({
         brandId,
-        credentialId: generateTweetsDto.credential,
+        credentialId: generateTweetsDto.credentialId,
         organizationId,
         sourceLineage: {
           sourceReferenceIds: undefined,
@@ -565,7 +563,7 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('generateAccountContent (thread format)', () => {
     const generateThreadDto = {
       count: 5,
-      credential: credentialId,
+      credentialId,
       format: 'thread' as const,
       tone: TweetTone.CASUAL,
       topic: 'AI technology',
@@ -577,7 +575,7 @@ Tweet 3: Tech innovation is changing the world.`,
         callCount++;
         return Promise.resolve({
           ...mockPost,
-          _id: '507f191e810c19729de860ee',
+          id: '507f191e810c19729de860ee',
           order: callCount - 1,
         });
       });
@@ -591,7 +589,7 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockAccountPublishingContextService.resolve).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId,
-          credentialId: generateThreadDto.credential,
+          credentialId: generateThreadDto.credentialId,
           organizationId,
           surface: 'thread',
         }),
@@ -624,7 +622,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should use default PROFESSIONAL tone when not specified', async () => {
       const dtoWithoutTone = {
         count: 3,
-        credential: credentialId,
+        credentialId,
         format: 'thread' as const,
         topic: 'AI',
       };
@@ -665,12 +663,12 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       expect(mockPostsService.findOne).toHaveBeenCalledWith(
-        { _id: postId },
+        { id: postId },
         expect.any(Array),
       );
       expect(mockPostsService.count).toHaveBeenCalledWith({
         isDeleted: false,
-        parent: postId,
+        parentId: postId,
       });
       // Should create count-1 new posts (original becomes first)
       expect(mockPostsService.create).toHaveBeenCalledTimes(3);
@@ -756,7 +754,7 @@ Tweet 3: Tech innovation is changing the world.`,
   // ==========================================================================
   describe('batchUpdate', () => {
     const batchScheduleDto = {
-      credential: credentialId,
+      credentialId,
       items: [
         {
           postId: postId,
@@ -886,7 +884,7 @@ Tweet 3: Tech innovation is changing the world.`,
   // ==========================================================================
   describe('addThreadReply', () => {
     const createPostDto = {
-      credential: credentialId,
+      credentialId,
       description: 'Reply to thread',
       ingredients: [] as string[],
       label: 'Reply',
@@ -897,7 +895,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValue(mockPost);
       mockPostsService.addThreadReply.mockResolvedValue({
         ...mockPost,
-        parent: postId,
+        parentId: postId,
       });
     });
 
@@ -909,7 +907,7 @@ Tweet 3: Tech innovation is changing the world.`,
         createPostDto,
       );
 
-      expect(mockPostsService.findOne).toHaveBeenCalledWith({ _id: postId });
+      expect(mockPostsService.findOne).toHaveBeenCalledWith({ id: postId });
       expect(mockCredentialsService.findOne).toHaveBeenCalled();
       expect(mockQuotaService.verifyQuota).toHaveBeenCalled();
       expect(mockPostsService.addThreadReply).toHaveBeenCalled();
@@ -1109,7 +1107,7 @@ Tweet 3: Tech innovation is changing the world.`,
       mockPostsService.findOne.mockResolvedValue(mockPost);
       mockPostsService.createRemix.mockResolvedValue({
         ...mockPost,
-        _id: '507f191e810c19729de860ee',
+        id: '507f191e810c19729de860ee',
         description: createRemixDto.description,
         remixOf: mockPost.id,
       });
@@ -1124,17 +1122,17 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       expect(mockPostsService.findOne).toHaveBeenCalledWith(
-        { _id: postId },
+        { id: postId },
         expect.any(Array),
       );
       expect(mockPostsService.createRemix).toHaveBeenCalledWith(
         postId,
         createRemixDto.description,
         expect.objectContaining({
-          brand: brandId,
+          brandId,
           label: createRemixDto.label,
-          organization: organizationId,
-          user: userId,
+          organizationId,
+          userId,
         }),
       );
       expect(mockActivitiesService.create).toHaveBeenCalled();
@@ -1217,7 +1215,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       expect(mockPostsService.findOne).toHaveBeenCalledWith(
-        { _id: postId },
+        { id: postId },
         expect.any(Array),
       );
       expect(mockTemplatesService.getRenderedPrompt).toHaveBeenCalled();
@@ -1357,7 +1355,7 @@ Tweet 3: Tech innovation is changing the world.`,
 
       expect(mockPostsService.findOne).toHaveBeenNthCalledWith(
         1,
-        { _id: postId },
+        { id: postId },
         expect.any(Array),
       );
       expect(mockSeoScorerService.scorePost).toHaveBeenCalledWith(
@@ -1367,7 +1365,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(mockPostsService.findOne).toHaveBeenNthCalledWith(
         2,
-        { _id: postId },
+        { id: postId },
         expect.any(Array),
       );
       expect(result).toEqual({ data: scoredPost });
@@ -1429,7 +1427,7 @@ Tweet 3: Tech innovation is changing the world.`,
       it('should validate post length during tweet generation', async () => {
         const generateTweetsDto = {
           count: 2,
-          credential: credentialId,
+          credentialId,
           format: 'post' as const,
           topic: 'Test',
         };
@@ -1448,7 +1446,7 @@ Tweet 3: Tech innovation is changing the world.`,
       it('should extract label when creating posts', async () => {
         const generateTweetsDto = {
           count: 1,
-          credential: credentialId,
+          credentialId,
           format: 'post' as const,
           topic: 'Test',
         };
@@ -1471,7 +1469,7 @@ Tweet 3: Tech innovation is changing the world.`,
   describe('Edge Cases', () => {
     it('should handle empty ingredients array', async () => {
       const createPostDto = {
-        credential: credentialId,
+        credentialId,
         description: 'Reply',
         ingredients: [],
         label: 'Reply',
@@ -1491,7 +1489,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('should handle missing optional fields in DTOs', async () => {
       const minimalDto = {
         count: 1,
-        credential: credentialId,
+        credentialId,
         format: 'post' as const,
         topic: 'Test',
       };

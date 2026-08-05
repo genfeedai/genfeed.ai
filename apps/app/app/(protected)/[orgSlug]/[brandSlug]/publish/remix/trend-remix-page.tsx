@@ -144,7 +144,7 @@ function TrendRemixPageContent() {
         if (mode === 'thread') {
           await postsService.generateThread({
             count: 5,
-            credential: twitterCredential.id,
+            credentialId: twitterCredential.id,
             sourceReferenceIds: sourceReferenceId
               ? [sourceReferenceId]
               : undefined,
@@ -156,7 +156,7 @@ function TrendRemixPageContent() {
         } else {
           await postsService.generateTweets({
             count: 1,
-            credential: twitterCredential.id,
+            credentialId: twitterCredential.id,
             sourceReferenceIds: sourceReferenceId
               ? [sourceReferenceId]
               : undefined,

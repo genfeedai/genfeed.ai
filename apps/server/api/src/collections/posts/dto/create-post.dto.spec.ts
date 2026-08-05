@@ -19,7 +19,7 @@ describe('CreatePostDto', () => {
       const dto = Object.assign(new CreatePostDto(), {
         contentRunId: validEntityId,
         creativeVersion: 'creative-v2',
-        credential: validEntityId,
+        credentialId: validEntityId,
         description: 'Caption',
         hookVersion: 'hook-v1',
         ingredients: [],
@@ -36,10 +36,47 @@ describe('CreatePostDto', () => {
       expect(errors).toHaveLength(0);
     });
 
+    it('accepts canonical scalar IDs and public relation ID arrays', async () => {
+      const dto = Object.assign(new CreatePostDto(), {
+        credentialId: validEntityId,
+        description: 'Thread reply',
+        ingredients: ['ckz1234567890abcdefgij'],
+        label: 'Post',
+        parentId: 'ckz1234567890abcdefgik',
+        status: PostStatus.SCHEDULED,
+        tags: ['ckz1234567890abcdefgil'],
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it('rejects Mongo-era relation aliases', async () => {
+      const dto = Object.assign(new CreatePostDto(), {
+        credential: validEntityId,
+        credentialId: validEntityId,
+        description: 'Thread reply',
+        ingredients: [],
+        label: 'Post',
+        parent: 'ckz1234567890abcdefgik',
+        status: PostStatus.DRAFT,
+      });
+
+      const errors = await validate(dto, {
+        forbidNonWhitelisted: true,
+        whitelist: true,
+      });
+
+      expect(errors.map((error) => error.property)).toEqual(
+        expect.arrayContaining(['credential', 'parent']),
+      );
+    });
+
     it('rejects invalid content run attribution IDs', async () => {
       const dto = Object.assign(new CreatePostDto(), {
         contentRunId: 'not-an-entity-id',
-        credential: validEntityId,
+        credentialId: validEntityId,
         description: 'Caption',
         ingredients: [],
         label: 'Post',

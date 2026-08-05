@@ -3,7 +3,6 @@
 import { PostCategory, PostStatus } from '@genfeedai/enums';
 import type { FastlaneScheduleTarget } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Post } from '@models/content/post.model';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -59,11 +58,8 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
                 ? PostCategory.IMAGE
                 : PostCategory.VIDEO;
 
-            // PostsService extends BaseService<Post> with TCreate = Partial<Post>.
-            // We cast via unknown to include the 'source' field that is part of
-            // CreatePostDto but not reflected on the IPost read model.
             const payload = {
-              credential: target.credentialId,
+              credentialId: target.credentialId,
               ingredients: [asset.ingredientId as string],
               label: asset.idea.hook.slice(0, 100),
               description: editedCaption,
@@ -74,7 +70,7 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
               groupId,
               source: 'fastlane',
               isShareToFeedSelected: true,
-            } as unknown as Partial<Post>;
+            };
 
             return { asset, target, payload };
           }),

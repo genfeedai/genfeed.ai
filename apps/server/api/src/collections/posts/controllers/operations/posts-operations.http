@@ -13,7 +13,7 @@ Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "credential": "{{testCredentialId}}",
+  "credentialId": "{{testCredentialId}}",
   "topic": "AI-driven content creation tips for social media marketers",
   "count": 3,
   "tone": "professional"
@@ -27,7 +27,7 @@ Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "credential": "{{testCredentialId}}",
+  "credentialId": "{{testCredentialId}}",
   "topic": "The future of AI in content marketing — a deep dive",
   "count": 5,
   "tone": "casual"
@@ -62,7 +62,7 @@ Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "credential": "{{testCredentialId}}",
+  "credentialId": "{{testCredentialId}}",
   "tweets": [
     {
       "postId": "{{testPostId}}",
@@ -91,7 +91,7 @@ Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "credential": "{{testCredentialId}}",
+  "credentialId": "{{testCredentialId}}",
   "description": "This is a follow-up reply in the thread",
   "label": "Thread reply",
   "status": "draft",

@@ -94,7 +94,7 @@ describe('PostsController.create account-health warmup gate', () => {
     };
     const credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: 'credential-1',
+        id: 'credential-1',
         description: 'Account description',
         label: 'X Account',
         platform: CredentialPlatform.TWITTER,
@@ -107,7 +107,6 @@ describe('PostsController.create account-health warmup gate', () => {
     const quotaService = { verifyQuota: vi.fn().mockResolvedValue(undefined) };
     const postsService = {
       create: vi.fn().mockResolvedValue({
-        _id: 'post-1',
         id: 'post-1',
         status: PostStatus.PENDING,
       }),
@@ -126,7 +125,7 @@ describe('PostsController.create account-health warmup gate', () => {
 
     await controller.create(request, makeUser(), {
       category: PostCategory.TEXT,
-      credential: 'credential-1',
+      credentialId: 'credential-1',
       description: 'Scheduled content',
       ingredients: [],
       label: 'Scheduled content',
@@ -175,7 +174,7 @@ describe('PostsController.create account-health warmup gate', () => {
         }),
         {
           category: PostCategory.TEXT,
-          credential: 'credential-1',
+          credentialId: 'credential-1',
           description: 'Scheduled content',
           ingredients: [],
           label: 'Scheduled content',

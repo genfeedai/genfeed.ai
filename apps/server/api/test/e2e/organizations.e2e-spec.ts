@@ -359,31 +359,31 @@ describe('Organizations E2E Tests', () => {
       // Create credentials for posts
       const credential = createTestCredential({
         id: generateIdString(),
-        brand: testBrand.id,
-        organization: testOrganization.id,
+        brandId: testBrand.id,
+        organizationId: testOrganization.id,
         platform: 'youtube',
-        user: testUser.id,
+        userId: testUser.id,
       });
 
       // Create posts
       const posts = [
         createTestPost({
           id: generateIdString(),
-          brand: testBrand.id,
-          credential: credential.id,
+          brandId: testBrand.id,
+          credentialId: credential.id,
           label: 'Post One',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           status: 'published',
-          user: testUser.id,
+          userId: testUser.id,
         }),
         createTestPost({
           id: generateIdString(),
-          brand: testBrand.id,
-          credential: credential.id,
+          brandId: testBrand.id,
+          credentialId: credential.id,
           label: 'Post Two',
-          organization: testOrganization.id,
+          organizationId: testOrganization.id,
           status: 'draft',
-          user: testUser.id,
+          userId: testUser.id,
         }),
       ];
 
@@ -418,11 +418,11 @@ describe('Organizations E2E Tests', () => {
       // Create a deleted post
       const deletedPost = createTestPost({
         id: generateIdString(),
-        brand: testBrand.id,
+        brandId: testBrand.id,
         isDeleted: true,
         label: 'Deleted Post',
-        organization: testOrganization.id,
-        user: testUser.id,
+        organizationId: testOrganization.id,
+        userId: testUser.id,
       });
       await dbHelper.seedCollection('posts', [deletedPost]);
 

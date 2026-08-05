@@ -1972,13 +1972,13 @@ model Post {
   entityArticleId     String?
   entityArticle       Article?           @relation("post_entity_article", fields: [entityArticleId], references: [id])
   entityModel         PostEntityModel?
-  credentialId        String
-  credential          Credential         @relation(fields: [credentialId], references: [id])
+  credentialId        String?
+  credential          Credential?        @relation(fields: [credentialId], references: [id])
   // Drifted enum collapsed to String: code enum (@genfeedai/enums) uses lowercase
   // values; Prisma enum used UPPERCASE labels — mismatch was both a TS error and a
   // runtime Postgres "invalid input value for enum" rejection. String stores the
   // canonical lowercase value directly.
-  platform            String
+  platform            String?
   userId              String
   user                User               @relation(fields: [userId], references: [id])
   organizationId      String

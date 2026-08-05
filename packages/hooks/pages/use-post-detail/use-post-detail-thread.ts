@@ -1,7 +1,7 @@
 'use client';
 
 import { PostCategory, PostStatus, Status } from '@genfeedai/enums';
-import type { ICredential, IPost } from '@genfeedai/interfaces';
+import type { IPost } from '@genfeedai/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
@@ -50,6 +50,14 @@ export interface UsePostDetailThreadReturn {
   handleDrop: (targetPostId: string, targetOrder: number) => Promise<void>;
   handleToggleGrokFeedback: (checked: boolean) => Promise<void>;
   handleToggleFirstComment: (checked: boolean) => Promise<void>;
+}
+
+function requireCredentialId(post: IPost): string {
+  const credentialId = post.credential?.id;
+  if (!credentialId) {
+    throw new Error('Select a publishing account before adding a thread post.');
+  }
+  return credentialId;
 }
 
 export function usePostDetailThread({
@@ -113,11 +121,12 @@ export function usePostDetailThread({
       }
 
       const newPost = await service.post({
-        credential: post.credential?.id as unknown as ICredential,
+        credentialId: requireCredentialId(post),
         description: "What's happening?",
+        ingredients: [],
+        label: 'Thread reply',
         order: newPostOrder,
-        parent: post.id,
-        platform: post.platform,
+        parentId: post.id,
         status: PostStatus.DRAFT,
       });
 
@@ -330,11 +339,12 @@ export function usePostDetailThread({
           const currentChildren = sortedChildren;
 
           const newPost = await service.post({
-            credential: post.credential?.id as unknown as ICredential,
+            credentialId: requireCredentialId(post),
             description: randomQuestion,
+            ingredients: [],
+            label: 'Grok feedback request',
             order: currentChildren.length + 1,
-            parent: post.id,
-            platform: post.platform,
+            parentId: post.id,
             status: PostStatus.DRAFT,
           });
 
@@ -409,11 +419,12 @@ export function usePostDetailThread({
 
           const newPost = await service.post({
             category: PostCategory.TEXT,
-            credential: post.credential?.id as unknown as ICredential,
+            credentialId: requireCredentialId(post),
             description: FIRST_COMMENT_PLACEHOLDER,
+            ingredients: [],
+            label: 'First comment',
             order: currentChildren.length + 1,
-            parent: post.id,
-            platform: post.platform,
+            parentId: post.id,
             status: PostStatus.DRAFT,
           });
 

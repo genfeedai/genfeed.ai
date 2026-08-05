@@ -16,11 +16,11 @@ import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 export interface IPost extends IBaseEntity {
   ingredients: IIngredient[];
   category: PostCategory;
-  credential: ICredential;
+  credential?: ICredential;
   user: IUser;
   organization: IOrganization;
   brand: IBrand;
-  platform: CredentialPlatform;
+  platform?: CredentialPlatform;
   externalId?: string;
   externalShortcode?: string;
   groupId?: string;

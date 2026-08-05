@@ -147,7 +147,7 @@ export const publishCommand = new Command('publish')
 
       for (const credential of selectedCredentials) {
         const payload: Record<string, unknown> = {
-          credential: credential.id,
+          credentialId: credential.id,
           description,
           ingredients: [ingredientId],
           label: description ? description.slice(0, 80) : `CLI post ${nowIso}`,

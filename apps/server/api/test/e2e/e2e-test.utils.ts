@@ -290,18 +290,18 @@ export const createTestCredential = (
 ) => ({
   id: generateIdString(),
   accessToken: 'mock-access-token',
-  brand: generateIdString(),
+  brandId: generateIdString(),
   createdAt: new Date(),
   externalHandle: '@testchannel',
   externalId: `ext-${Date.now()}`,
   isConnected: true,
   isDeleted: false,
-  organization: generateIdString(),
+  organizationId: generateIdString(),
   platform: 'youtube',
   refreshToken: 'mock-refresh-token',
   tokenExpiry: new Date(Date.now() + 3600000),
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: generateIdString(),
   ...overrides,
 });
 
@@ -330,18 +330,18 @@ export const createTestVideo = (overrides: Record<string, unknown> = {}) => ({
  */
 export const createTestPost = (overrides: Record<string, unknown> = {}) => ({
   id: generateIdString(),
-  brand: generateIdString(),
-  caption: 'Test post caption',
+  brandId: generateIdString(),
   createdAt: new Date(),
-  credential: generateIdString(),
+  credentialId: generateIdString(),
+  description: 'Test post caption',
   ingredients: [],
   isDeleted: false,
   label: 'Test Post',
-  organization: generateIdString(),
+  organizationId: generateIdString(),
   platform: 'youtube',
   status: 'draft',
   updatedAt: new Date(),
-  user: generateIdString(),
+  userId: generateIdString(),
   ...overrides,
 });
 
@@ -477,7 +477,7 @@ export const wait = (ms: number) =>
  * Generate a unique test ID string
  */
 export const generateIdString = () =>
-  'test-id-' + Math.random().toString(36).slice(2, 9);
+  `test-id-${Math.random().toString(36).slice(2, 9)}`;
 
 /**
  * Generate a unique test ID string (alias for generateIdString)

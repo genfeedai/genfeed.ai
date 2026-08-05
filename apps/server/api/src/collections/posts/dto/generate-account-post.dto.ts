@@ -39,7 +39,7 @@ export class GenerateAccountPostDto {
     description: 'Credential ID for the selected account',
     required: true,
   })
-  readonly credential!: string;
+  readonly credentialId!: string;
 
   @IsIn(['post', 'thread'])
   @ApiProperty({

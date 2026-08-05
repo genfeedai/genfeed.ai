@@ -21,7 +21,7 @@ import {
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 
-type LegacyPostCreateDependencies = {
+type PostCreateDependencies = {
   accountHealthService: AccountHealthService;
   activitiesService: ActivitiesService;
   credentialsService: CredentialsService;
@@ -31,9 +31,9 @@ type LegacyPostCreateDependencies = {
   quotaService: QuotaService;
 };
 
-type LegacyPostCreateParams = {
+type PostCreateParams = {
   createPostDto: CreatePostDto;
-  dependencies: LegacyPostCreateDependencies;
+  dependencies: PostCreateDependencies;
   publicMetadata: IAuthPublicMetadata;
 };
 
@@ -68,13 +68,13 @@ function getPostCategoryFromIngredient(
   return PostCategory.TEXT;
 }
 
-export async function createLegacyPost({
+export async function createPost({
   createPostDto,
   dependencies,
   publicMetadata,
-}: LegacyPostCreateParams): Promise<PostDocument> {
+}: PostCreateParams): Promise<PostDocument> {
   const credential = await dependencies.credentialsService.findOne({
-    id: createPostDto.credential,
+    id: createPostDto.credentialId,
     isConnected: true,
     isDeleted: false,
     organizationId: publicMetadata.organization,
@@ -84,7 +84,7 @@ export async function createLegacyPost({
     throw new HttpException(
       {
         detail: 'Credential not found',
-        title: `Credential ${createPostDto.credential.toString()} not found`,
+        title: `Credential ${createPostDto.credentialId.toString()} not found`,
       },
       HttpStatus.NOT_FOUND,
     );
@@ -193,7 +193,7 @@ export async function createLegacyPost({
     const publishGate =
       await dependencies.accountHealthService.evaluateScheduledPublishGate({
         brandId: publicMetadata.brand,
-        credentialId: createPostDto.credential,
+        credentialId: createPostDto.credentialId,
         organizationId: publicMetadata.organization,
       });
 
@@ -208,7 +208,7 @@ export async function createLegacyPost({
     brandId: firstIngredient?.brandId ?? publicMetadata.brand,
     category:
       createPostDto.category || getPostCategoryFromIngredient(firstIngredient),
-    credentialId: createPostDto.credential,
+    credentialId: createPostDto.credentialId,
     description: createPostDto.description || credential.description || '',
     ingredients: ingredientIds,
     label:

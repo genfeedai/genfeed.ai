@@ -10,11 +10,10 @@ import {
   batchSchedulePosts,
   type PostBatchScheduleItem,
   type PostBatchScheduleResult,
-  PRISMA_POST_STATUS,
+  type PostBatchScheduleTarget,
 } from '@api/collections/posts/services/post-batch-schedule.util';
 import { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -38,7 +37,6 @@ const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
 const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'category',
-  'credential',
   'credentialId',
   'description',
   'ingredients',
@@ -46,14 +44,15 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'isShareToFeedSelected',
   'label',
   'maxRepeats',
-  'parent',
   'parentId',
+  'platform',
   'publishIntent',
   'repeatDaysOfWeek',
   'repeatEndDate',
   'repeatFrequency',
   'repeatInterval',
   'scheduledDate',
+  'tags',
   'timezone',
 ]);
 
@@ -72,44 +71,55 @@ type ContentMentionPostRecord = {
   label: string | null;
 };
 
-type PostCreateInput = Omit<CreatePostDto, 'credential' | 'parent'> & {
-  brand?: string;
-  brandId?: string;
-  credential?: string;
+type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
+  agentContextSource?: string;
+  agentContextVersion?: number;
+  agentRunId?: string;
+  agentStrategyId?: string;
+  agentThreadId?: string;
+  brandId: string;
   credentialId?: string;
-  organization?: string;
-  organizationId?: string;
-  parent?: string;
-  parentId?: string;
-  platform: CredentialPlatform;
+  organizationId: string;
+  platform?: CredentialPlatform;
+  promptUsed?: string;
   publishIntent?: string;
+  reviewEvents?: Record<string, unknown>[];
   reviewFeedback?: string;
-  user?: string;
-  userId?: string;
+  sourceActionId?: string;
+  sourceWorkflowId?: string;
+  sourceWorkflowName?: string;
+  userId: string;
 };
 
 type PostUpdateInput = Partial<UpdatePostDto> & {
-  brand?: string;
   brandId?: string;
-  credential?: string;
-  credentialId?: string;
-  organization?: string;
   organizationId?: string;
-  parent?: string;
-  parentId?: string;
-  user?: string;
   userId?: string;
 };
 
 const POST_SCALAR_FIELDS = [
+  'agentContextSource',
+  'agentContextVersion',
+  'agentRunId',
+  'agentStrategyId',
+  'agentThreadId',
+  'analyticsCollectedAt',
+  'analyticsCollectionAttemptKey',
+  'analyticsCollectionError',
+  'analyticsCollectionRequestedAt',
+  'analyticsCollectionState',
   'brandId',
   'category',
   'contentRunId',
   'credentialId',
   'creativeVersion',
   'description',
+  'entityArticleId',
+  'entityIngredientId',
+  'entityModel',
   'externalId',
   'externalShortcode',
+  'generationId',
   'groupId',
   'hookVersion',
   'isAnalyticsEnabled',
@@ -119,13 +129,17 @@ const POST_SCALAR_FIELDS = [
   'label',
   'lastAttemptAt',
   'maxRepeats',
+  'nextScheduledDate',
   'order',
   'originalPostId',
   'organizationId',
   'parentId',
   'personaId',
   'platform',
+  'promptUsed',
   'publicationDate',
+  'publishedAt',
+  'publishApprovalId',
   'publishIntent',
   'quoteTweetId',
   'repeatCount',
@@ -133,14 +147,37 @@ const POST_SCALAR_FIELDS = [
   'repeatEndDate',
   'repeatFrequency',
   'repeatInterval',
+  'reviewFeedback',
+  'reviewBatchId',
+  'reviewDecision',
+  'reviewEvents',
+  'reviewItemId',
+  'reviewVersionPinId',
+  'reviewedAt',
   'retryCount',
   'scheduleSlot',
   'scheduledDate',
+  'seoBreakdown',
+  'seoScore',
   'source',
+  'sourceActionId',
+  'sourceWorkflowId',
+  'sourceWorkflowName',
   'status',
+  'targetAttachments',
+  'targetError',
+  'targetExecutionState',
+  'targetIdempotencyKey',
+  'targetReadiness',
+  'targetSettings',
+  'targetValidationIssues',
+  'targetValidationState',
   'timezone',
+  'uploadedAt',
+  'url',
   'userId',
   'variantId',
+  'workflowExecutionId',
 ] as const;
 
 @Injectable()
@@ -173,57 +210,25 @@ export class PostsService extends BaseService<
     ],
   ): Promise<PostDocument> {
     const {
-      brand,
       campaign: _campaign,
-      credential,
       ingredients,
-      organization,
-      parent,
       tags,
       threadPosts: _threadPosts,
-      user,
     } = dto;
-    const normalizedIngredients =
-      ingredients !== undefined
-        ? EntityIdUtil.normalizeIds(ingredients as unknown as Array<string>)
-        : undefined;
-    const normalizedCredential = EntityIdUtil.normalizeId(
-      (dto.credentialId ?? credential) as unknown as string,
-    );
-    const normalizedParent = EntityIdUtil.normalizeId(
-      (dto.parentId ?? parent) as unknown as string | undefined,
-    );
-    const normalizedBrand = EntityIdUtil.normalizeId(
-      (dto.brandId ?? brand) as unknown as string | undefined,
-    );
-    const normalizedOrganization = EntityIdUtil.normalizeId(
-      (dto.organizationId ?? organization) as unknown as string | undefined,
-    );
-    const normalizedUser = EntityIdUtil.normalizeId(
-      (dto.userId ?? user) as unknown as string | undefined,
-    );
-    const normalizedTags = tags ? EntityIdUtil.normalizeIds(tags) : undefined;
 
-    const normalizedDto: Record<string, unknown> = {
+    const prismaWriteData: Record<string, unknown> = {
       ...pickDefinedFields(dto, POST_SCALAR_FIELDS),
-      ...(normalizedBrand !== undefined && { brandId: normalizedBrand }),
-      ...(normalizedIngredients !== undefined && {
+      ...(ingredients !== undefined && {
         ingredients: {
-          connect: normalizedIngredients.map((id) => ({ id })),
+          connect: ingredients.map((id) => ({ id })),
         },
       }),
-      ...(normalizedCredential !== undefined && {
-        credentialId: normalizedCredential,
+      ...(tags !== undefined && {
+        tags: { connect: tags.map((id) => ({ id })) },
       }),
-      ...(normalizedParent !== undefined && { parentId: normalizedParent }),
-      ...(normalizedOrganization !== undefined && {
-        organizationId: normalizedOrganization,
-      }),
-      ...(normalizedTags !== undefined && {
-        tags: { connect: normalizedTags.map((id) => ({ id })) },
-      }),
-      ...(normalizedUser !== undefined && { userId: normalizedUser }),
     };
+
+    this.assertPublishTarget(dto.status, dto.credentialId, dto.platform);
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
     if (dto.scheduledDate && dto.timezone) {
@@ -236,10 +241,10 @@ export class PostsService extends BaseService<
         `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
       );
 
-      normalizedDto.scheduledDate = convertedDate;
+      prismaWriteData.scheduledDate = convertedDate;
     }
 
-    return super.create(normalizedDto as unknown as CreatePostDto, populate);
+    return super.create(prismaWriteData as unknown as CreatePostDto, populate);
   }
 
   findOne(
@@ -375,54 +380,52 @@ export class PostsService extends BaseService<
         id,
       );
     }
+
+    let resolvedPlatform: string | undefined;
+    if (dto.credentialId && approvalContext) {
+      const credential = await this.prisma.credential.findFirst({
+        select: { platform: true },
+        where: {
+          id: dto.credentialId,
+          isConnected: true,
+          isDeleted: false,
+          organizationId: approvalContext.organizationId,
+        },
+      });
+      if (!credential) {
+        throw new BadRequestException(
+          'The selected publishing credential is unavailable for this organization.',
+        );
+      }
+      resolvedPlatform = credential.platform;
+    }
+
     let currentPost: PostDocument | null = null;
 
     if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
       currentPost = await this.findOne({ id: id });
+      if (currentPost) {
+        const targetCredentialId = dto.credentialId ?? currentPost.credentialId;
+        const targetPlatform = resolvedPlatform ?? currentPost.platform;
+        this.assertPublishTarget(
+          normalizedStatus,
+          targetCredentialId,
+          targetPlatform,
+        );
+      }
     }
 
-    const { brand, credential, ingredients, organization, parent, tags, user } =
-      dto;
-    const normalizedIngredients =
-      ingredients !== undefined
-        ? (EntityIdUtil.normalizeIds(ingredients as unknown as Array<string>) ??
-          [])
-        : undefined;
-    const normalizedCredential = EntityIdUtil.normalizeId(
-      (dto.credentialId ?? credential) as unknown as string | undefined,
-    );
-    const normalizedParent =
-      dto.parentId !== undefined || parent !== undefined
-        ? EntityIdUtil.normalizeId((dto.parentId ?? parent) as string)
-        : undefined;
-    const normalizedBrand = EntityIdUtil.normalizeId(
-      (dto.brandId ?? brand) as unknown as string | undefined,
-    );
-    const normalizedOrganization = EntityIdUtil.normalizeId(
-      (dto.organizationId ?? organization) as unknown as string | undefined,
-    );
-    const normalizedUser = EntityIdUtil.normalizeId(
-      (dto.userId ?? user) as unknown as string | undefined,
-    );
-    const normalizedTags = tags ? EntityIdUtil.normalizeIds(tags) : undefined;
+    const { ingredients, tags } = dto;
 
-    const normalizedDto: Record<string, unknown> = {
+    const prismaWriteData: Record<string, unknown> = {
       ...pickDefinedFields(dto, POST_SCALAR_FIELDS),
-      ...(normalizedBrand !== undefined && { brandId: normalizedBrand }),
-      ...(normalizedIngredients !== undefined && {
-        ingredients: { set: normalizedIngredients.map((id) => ({ id })) },
+      ...(resolvedPlatform !== undefined && { platform: resolvedPlatform }),
+      ...(ingredients !== undefined && {
+        ingredients: { set: ingredients.map((id) => ({ id })) },
       }),
-      ...(normalizedCredential !== undefined && {
-        credentialId: normalizedCredential,
+      ...(tags !== undefined && {
+        tags: { set: tags.map((id) => ({ id })) },
       }),
-      ...(normalizedParent !== undefined && { parentId: normalizedParent }),
-      ...(normalizedOrganization !== undefined && {
-        organizationId: normalizedOrganization,
-      }),
-      ...(normalizedTags !== undefined && {
-        tags: { set: normalizedTags.map((id) => ({ id })) },
-      }),
-      ...(normalizedUser !== undefined && { userId: normalizedUser }),
     };
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
@@ -436,7 +439,7 @@ export class PostsService extends BaseService<
         `Converting scheduledDate from ${dto.timezone} to UTC: ${dto.scheduledDate} → ${convertedDate.toISOString()}`,
       );
 
-      normalizedDto.scheduledDate = convertedDate;
+      prismaWriteData.scheduledDate = convertedDate;
     }
 
     // If parent post is being scheduled, automatically schedule all children
@@ -445,15 +448,17 @@ export class PostsService extends BaseService<
         // Find all children and update them to SCHEDULED
         const updateResult = await this.prisma.post.updateMany({
           data: {
-            status: PRISMA_POST_STATUS.SCHEDULED,
-            ...(normalizedDto.scheduledDate && {
-              scheduledDate: normalizedDto.scheduledDate as Date,
+            credentialId: dto.credentialId ?? currentPost.credentialId,
+            platform: resolvedPlatform ?? currentPost.platform,
+            status: PostStatus.SCHEDULED,
+            ...(prismaWriteData.scheduledDate && {
+              scheduledDate: prismaWriteData.scheduledDate as Date,
             }),
           } as never,
           where: {
             isDeleted: false,
             parentId: id,
-            status: { not: PRISMA_POST_STATUS.PUBLIC },
+            status: { not: PostStatus.PUBLIC },
           },
         });
 
@@ -467,7 +472,7 @@ export class PostsService extends BaseService<
 
     const updatedPost = await super.patch(
       id,
-      normalizedDto as unknown as UpdatePostDto,
+      prismaWriteData as unknown as UpdatePostDto,
       populate,
     );
 
@@ -491,6 +496,26 @@ export class PostsService extends BaseService<
     return updatedPost;
   }
 
+  private assertPublishTarget(
+    status: string | undefined,
+    credentialId: string | null | undefined,
+    platform: string | null | undefined,
+  ): void {
+    const normalizedStatus = status?.toLowerCase();
+    if (
+      normalizedStatus !== PostStatus.SCHEDULED &&
+      normalizedStatus !== PostStatus.PUBLIC
+    ) {
+      return;
+    }
+
+    if (!credentialId || !platform) {
+      throw new BadRequestException(
+        'A credential and platform are required before scheduling or publishing a post.',
+      );
+    }
+  }
+
   /**
    * Schedule a batch of posts in a fixed number of round-trips instead of the
    * 2N–4N serial queries a `patch` per item used to cost. The planning and
@@ -500,6 +525,7 @@ export class PostsService extends BaseService<
   async batchSchedule(
     items: readonly PostBatchScheduleItem[],
     organizationId: string,
+    target: PostBatchScheduleTarget,
   ): Promise<PostBatchScheduleResult> {
     return batchSchedulePosts(
       {
@@ -519,6 +545,7 @@ export class PostsService extends BaseService<
       },
       items,
       organizationId,
+      target,
     );
   }
 
@@ -682,14 +709,7 @@ export class PostsService extends BaseService<
    */
   @HandleErrors('create thread', 'posts')
   async createThread(
-    threadPosts: Array<
-      CreatePostDto & {
-        user: string;
-        organization: string;
-        brand: string;
-        platform: CredentialPlatform;
-      }
-    >,
+    threadPosts: PostCreateInput[],
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
       PopulatePatterns.credentialMinimal,
@@ -704,11 +724,12 @@ export class PostsService extends BaseService<
     }
 
     // Create root post first (index 0)
-    const { parent: _rootParent, ...rootPostWithoutParent } = threadPosts[0];
+    const { parentId: _rootParentId, ...rootPostWithoutParent } =
+      threadPosts[0];
     const rootPostDto = {
       ...rootPostWithoutParent,
       order: 0,
-      parent: undefined,
+      parentId: undefined,
     };
 
     const rootPost = await this.create(rootPostDto, populate);
@@ -716,12 +737,12 @@ export class PostsService extends BaseService<
     const rootPostId = rootPost.id;
 
     for (let i = 1; i < threadPosts.length; i++) {
-      const { parent: _parent, ...postWithoutParent } = threadPosts[i];
+      const { parentId: _parentId, ...postWithoutParent } = threadPosts[i];
 
       const postDto = {
         ...postWithoutParent,
         order: i,
-        parent: rootPostId,
+        parentId: rootPostId,
       };
 
       const createdPost = await this.create(postDto, populate);
@@ -846,7 +867,7 @@ export class PostsService extends BaseService<
       where: { isDeleted: false, parentId: rootPostId },
     });
 
-    const { parent: _parent, parentId: _parentId, ...dtoWithoutParent } = dto;
+    const { parentId: _parentId, ...dtoWithoutParent } = dto;
 
     const replyDto = {
       ...dtoWithoutParent,
@@ -865,10 +886,10 @@ export class PostsService extends BaseService<
     originalPostId: string,
     newDescription: string,
     dto: {
-      user: string;
-      organization: string;
-      brand: string;
+      brandId: string;
       label?: string;
+      organizationId: string;
+      userId: string;
     },
     populate: PopulateOption[] = [
       PopulatePatterns.ingredientsMinimal,
@@ -891,13 +912,10 @@ export class PostsService extends BaseService<
       return String(ing);
     });
 
-    // Scalar FK: the legacy `credential` alias is undefined unless the query
-    // populated the relation, so coercing it would write the literal string
-    // "undefined" into the remix's credentialId and fail the FK constraint.
     const credentialId = originalPost.credentialId;
 
     const remixDto = {
-      brandId: dto.brand,
+      brandId: dto.brandId,
       category: originalPost.category,
       credentialId,
       description: newDescription,
@@ -905,13 +923,13 @@ export class PostsService extends BaseService<
       isAnalyticsEnabled: originalPost.isAnalyticsEnabled,
       isShareToFeedSelected: originalPost.isShareToFeedSelected,
       label: dto.label || `Remix: ${originalPost.label || 'Untitled'}`,
-      organizationId: dto.organization,
+      organizationId: dto.organizationId,
       originalPostId,
       platform: originalPost.platform,
       status: PostStatus.DRAFT,
       tags: originalPost.tags,
       timezone: originalPost.timezone || 'UTC',
-      userId: dto.user,
+      userId: dto.userId,
     };
 
     return this.create(remixDto as PostCreateInput, populate);

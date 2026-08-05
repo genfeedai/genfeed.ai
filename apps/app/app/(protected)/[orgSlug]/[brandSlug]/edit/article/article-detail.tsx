@@ -173,7 +173,7 @@ export default function ArticleDetail({
         const postsService = await getPostsService();
         const drafts = await postsService.generateAccountContent({
           count: format === 'thread' ? 3 : 1,
-          credential: credentialId,
+          credentialId,
           format,
           tone: 'professional',
           topic: buildXArticleTeaserPrompt(article, format),

@@ -44,7 +44,7 @@ export type UpdatePostRequest = components['schemas']['UpdatePostDto'];
  */
 export const createPostSchema = z.object({
   category: z.nativeEnum(PostCategory).optional(),
-  credential: entityIdSchema,
+  credentialId: entityIdSchema,
   description: z.string().min(1),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
@@ -56,7 +56,7 @@ export const createPostSchema = z.object({
   label: z.string().min(1),
   maxRepeats: nonNegativeIntSchema.optional(),
   order: z.number().int().optional(),
-  parent: entityIdSchema.optional(),
+  parentId: entityIdSchema.optional(),
   contentRunId: optionalStringSchema,
   personaId: optionalStringSchema,
   variantId: optionalStringSchema,
@@ -83,7 +83,7 @@ export const createPostSchema = z.object({
  */
 export const updatePostSchema = z.object({
   category: z.nativeEnum(PostCategory).optional(),
-  credential: entityIdSchema.optional(),
+  credentialId: entityIdSchema.optional(),
   description: z.string().min(1).optional(),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
@@ -95,7 +95,7 @@ export const updatePostSchema = z.object({
   label: z.string().min(1).optional(),
   maxRepeats: nonNegativeIntSchema.optional(),
   order: z.number().int().optional(),
-  parent: entityIdSchema.optional(),
+  parentId: entityIdSchema.optional(),
   contentRunId: optionalStringSchema,
   personaId: optionalStringSchema,
   variantId: optionalStringSchema,

@@ -14,7 +14,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostsQueryDto } from '@api/collections/posts/dto/posts-query.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
-import { createLegacyPost } from '@api/collections/posts/handlers/legacy-post-create.handler';
+import { createPost } from '@api/collections/posts/handlers/post-create.handler';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -107,7 +107,7 @@ export class PostsController extends BaseCRUDController<
     );
 
     try {
-      const data = await createLegacyPost({
+      const data = await createPost({
         createPostDto,
         dependencies: {
           accountHealthService: this.accountHealthService,

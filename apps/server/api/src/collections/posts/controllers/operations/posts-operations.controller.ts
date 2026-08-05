@@ -115,7 +115,7 @@ export class PostsOperationsController {
     try {
       // Validate credential
       const credential = await this.credentialsService.findOne({
-        id: dto.credential,
+        id: dto.credentialId,
         isConnected: true,
         isDeleted: false,
         organizationId: publicMetadata.organization,
@@ -162,6 +162,10 @@ export class PostsOperationsController {
             timezone: item.timezone,
           })),
           publicMetadata.organization.toString(),
+          {
+            credentialId: dto.credentialId,
+            platform: String(credential.platform),
+          },
         );
 
       if (missingPostIds.length > 0) {
@@ -244,7 +248,7 @@ export class PostsOperationsController {
       }
 
       const credential = await this.credentialsService.findOne({
-        id: createPostDto.credential,
+        id: createPostDto.credentialId,
         isConnected: true,
         isDeleted: false,
         organizationId: publicMetadata.organization,
@@ -254,7 +258,7 @@ export class PostsOperationsController {
         throw new HttpException(
           {
             detail: 'Credential not found',
-            title: `Credential ${createPostDto.credential.toString()} not found`,
+            title: `Credential ${createPostDto.credentialId.toString()} not found`,
           },
           HttpStatus.NOT_FOUND,
         );
@@ -352,7 +356,7 @@ export class PostsOperationsController {
         category:
           createPostDto.category ??
           this.getPostCategoryFromIngredient(firstIngredient),
-        credentialId: createPostDto.credential,
+        credentialId: createPostDto.credentialId,
         description: createPostDto.description || credential.description || '',
         ingredients: ingredientIds,
         label:
@@ -431,10 +435,10 @@ export class PostsOperationsController {
         postId,
         dto.description,
         {
-          brand: publicMetadata.brand,
+          brandId: publicMetadata.brand,
           label: dto.label,
-          organization: publicMetadata.organization,
-          user: publicMetadata.user,
+          organizationId: publicMetadata.organization,
+          userId: publicMetadata.user,
         },
       );
 

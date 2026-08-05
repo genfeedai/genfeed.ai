@@ -27,5 +27,34 @@ describe('UpdatePostDto', () => {
 
       expect(errors).toHaveLength(0);
     });
+
+    it('accepts canonical scalar IDs and public relation ID arrays', async () => {
+      const dto = Object.assign(new UpdatePostDto(), {
+        credentialId: 'ckz1234567890abcdefghi',
+        ingredients: ['ckz1234567890abcdefgij'],
+        parentId: 'ckz1234567890abcdefgik',
+        tags: ['ckz1234567890abcdefgil'],
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors).toHaveLength(0);
+    });
+
+    it('rejects Mongo-era relation aliases', async () => {
+      const dto = Object.assign(new UpdatePostDto(), {
+        credential: 'ckz1234567890abcdefghi',
+        parent: 'ckz1234567890abcdefgik',
+      });
+
+      const errors = await validate(dto, {
+        forbidNonWhitelisted: true,
+        whitelist: true,
+      });
+
+      expect(errors.map((error) => error.property)).toEqual(
+        expect.arrayContaining(['credential', 'parent']),
+      );
+    });
   });
 });

@@ -202,13 +202,13 @@ export class PostGenerationService {
   private async resolveAccountPublishingContext(
     dto: Pick<
       GenerateAccountPostDto,
-      'credential' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
+      'credentialId' | 'format' | 'sourceReferenceIds' | 'sourceUrl' | 'trendId'
     >,
     publicMetadata: Pick<IAuthPublicMetadata, 'brand' | 'organization'>,
   ): Promise<AccountPublishingContext> {
     return this.accountPublishingContextService.resolve({
       brandId: publicMetadata.brand,
-      credentialId: dto.credential,
+      credentialId: dto.credentialId,
       organizationId: publicMetadata.organization,
       sourceLineage: {
         sourceReferenceIds: dto.sourceReferenceIds,
@@ -232,7 +232,7 @@ export class PostGenerationService {
       const post = await this.postsService.create({
         brandId: publicMetadata.brand,
         category: PostCategory.TEXT,
-        credentialId: dto.credential,
+        credentialId: dto.credentialId,
         description: 'Generating...',
         groupId,
         ingredients: [],
