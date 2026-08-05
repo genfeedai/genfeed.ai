@@ -92,7 +92,7 @@ export class BotActivitiesController {
     status: 200,
   })
   getStats(
-    @Query('replyBotConfig') replyBotConfigId: string,
+    @Query('replyBotConfigId') replyBotConfigId: string,
     @Query('fromDate') fromDate: string,
     @Query('toDate') toDate: string,
     @CurrentUser() user: User,

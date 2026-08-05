@@ -42,6 +42,19 @@ const BOT_ACTIVITY_COLUMNS = new Set([
   'userId',
 ]);
 
+const BOT_ACTIVITY_IDENTITY_KEYS = new Set([
+  'brand',
+  'brandId',
+  'monitoredAccount',
+  'monitoredAccountId',
+  'organization',
+  'organizationId',
+  'replyBotConfig',
+  'replyBotConfigId',
+  'user',
+  'userId',
+]);
+
 @Injectable()
 export class BotActivitiesService extends BaseService<
   BotActivityDocument,
@@ -63,8 +76,16 @@ export class BotActivitiesService extends BaseService<
   override create(input: BotActivityCreateInput): Promise<BotActivityDocument> {
     const data = this.isActivityObject(input.data) ? { ...input.data } : {};
 
+    for (const key of BOT_ACTIVITY_IDENTITY_KEYS) {
+      delete data[key];
+    }
+
     for (const [key, value] of Object.entries(input)) {
-      if (!BOT_ACTIVITY_COLUMNS.has(key) && value !== undefined) {
+      if (
+        !BOT_ACTIVITY_COLUMNS.has(key) &&
+        !BOT_ACTIVITY_IDENTITY_KEYS.has(key) &&
+        value !== undefined
+      ) {
         data[key] = value;
       }
     }
@@ -83,18 +104,17 @@ export class BotActivitiesService extends BaseService<
   private normalizeActivity(
     activity: BotActivityDocument,
   ): BotActivityDocument {
-    const data = this.isActivityObject(activity.data) ? activity.data : {};
+    const data = this.isActivityObject(activity.data)
+      ? { ...activity.data }
+      : {};
+
+    for (const key of BOT_ACTIVITY_IDENTITY_KEYS) {
+      delete data[key];
+    }
 
     return {
-      ...activity,
-      brand:
-        activity.brand ??
-        (typeof activity.brandId === 'string' || activity.brandId === null
-          ? activity.brandId
-          : undefined),
-      organization: activity.organization ?? activity.organizationId,
-      user: activity.user ?? activity.userId,
       ...(data as Partial<BotActivityDocument>),
+      ...activity,
       data,
     };
   }
@@ -137,12 +157,12 @@ export class BotActivitiesService extends BaseService<
       ...(brandId ? { brandId } : {}),
     });
 
-    if (query.replyBotConfig) {
-      where.replyBotConfigId = query.replyBotConfig;
+    if (query.replyBotConfigId) {
+      where.replyBotConfigId = query.replyBotConfigId;
     }
 
-    if (query.monitoredAccount) {
-      where.monitoredAccountId = query.monitoredAccount;
+    if (query.monitoredAccountId) {
+      where.monitoredAccountId = query.monitoredAccountId;
     }
 
     if (query.fromDate || query.toDate) {

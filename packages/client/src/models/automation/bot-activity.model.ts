@@ -3,9 +3,11 @@ import type { BotActivityStatus, ReplyBotPlatform } from '@genfeedai/enums';
 import type { IBotActivity } from '@genfeedai/interfaces';
 
 export class BotActivity extends BaseEntity implements IBotActivity {
-  public declare organization: string;
-  public declare replyBotConfig: string;
-  public declare monitoredAccount?: string;
+  public declare organizationId: string;
+  public declare brandId?: string;
+  public declare userId: string;
+  public declare replyBotConfigId?: string;
+  public declare monitoredAccountId?: string;
   public declare platform: ReplyBotPlatform;
   public declare status: BotActivityStatus;
   public declare triggerContentId: string;

@@ -152,9 +152,11 @@ export interface IBotActivity {
   createdAt: string;
   updatedAt: string;
 
-  organization: string;
-  replyBotConfig: string;
-  monitoredAccount?: string;
+  organizationId: string;
+  brandId?: string;
+  userId: string;
+  replyBotConfigId?: string;
+  monitoredAccountId?: string;
 
   platform: ReplyBotPlatform;
   status: BotActivityStatus;
