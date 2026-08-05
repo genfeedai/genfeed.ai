@@ -1,5 +1,26 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
+export const publicPostAttributes = [
+  'label',
+  'description',
+  'category',
+  'publicationDate',
+  'uploadedAt',
+  'publishedAt',
+  'status',
+  'platform',
+  'externalShortcode',
+  'url',
+  'totalViews',
+  'totalLikes',
+  'totalComments',
+  'totalShares',
+  'totalSaves',
+  'avgEngagementRate',
+  'createdAt',
+  'updatedAt',
+];
+
 export const postAttributes = createEntityAttributes([
   'agentRunId',
   'agentStrategyId',

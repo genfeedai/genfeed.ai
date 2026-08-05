@@ -2,6 +2,7 @@ import { buildSingleSerializer } from '@serializers/builders';
 import {
   postListSerializerConfig,
   postSerializerConfig,
+  publicPostSerializerConfig,
 } from '@serializers/configs';
 
 // NOTE: `buildSingleSerializer` (not destructured `buildSerializer`) is required
@@ -20,4 +21,9 @@ export const PostSerializer = buildSingleSerializer(
 export const PostListSerializer = buildSingleSerializer(
   'server',
   postListSerializerConfig,
+);
+
+export const PublicPostSerializer = buildSingleSerializer(
+  'server',
+  publicPostSerializerConfig,
 );
