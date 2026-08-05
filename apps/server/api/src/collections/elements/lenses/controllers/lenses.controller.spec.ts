@@ -46,15 +46,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('ElementsLensesController', () => {
   let controller: ElementsLensesController;
   let lensesService: vi.Mocked<ElementsLensesService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: 'cmbrand000000000000000001',
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'cmorganization000000000000001',
+      user: 'cmuser0000000000000000001',
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -84,6 +83,7 @@ describe('ElementsLensesController', () => {
             findOne: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
+            supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
         },
       ],
@@ -94,7 +94,6 @@ describe('ElementsLensesController', () => {
 
     controller = module.get<ElementsLensesController>(ElementsLensesController);
     lensesService = module.get(ElementsLensesService);
-    loggerService = module.get(LoggerService);
 
     vi.spyOn(LensSerializer, 'serialize').mockImplementation((data) => ({
       data: data as never,
@@ -117,8 +116,9 @@ describe('ElementsLensesController', () => {
       } as unknown as CreateElementLensDto;
 
       const mockCreatedLens = {
-        _id: '507f191e810c19729de860ee',
+        id: 'cmlens00000000000000000001',
         ...createDto,
+        organizationId: mockSuperAdminUser.publicMetadata.organization,
       };
 
       lensesService.create.mockResolvedValue(mockCreatedLens as never);
@@ -136,15 +136,16 @@ describe('ElementsLensesController', () => {
 
   describe('update', () => {
     it('should update a lens for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'cmlens00000000000000000001';
       const updateDto: UpdateElementLensDto = {
         label: 'Updated Lens',
       } as unknown as UpdateElementLensDto;
 
       const mockExistingLens = {
-        _id: id,
+        id,
         key: 'old-lens',
         label: 'Old Lens',
+        organizationId: mockSuperAdminUser.publicMetadata.organization,
       };
 
       const mockUpdatedLens = {
@@ -163,7 +164,7 @@ describe('ElementsLensesController', () => {
       );
 
       expect(lensesService.findOne).toHaveBeenCalledWith(
-        { _id: id },
+        { id },
         expect.anything(),
       );
       expect(lensesService.patch).toHaveBeenCalled();
@@ -171,7 +172,7 @@ describe('ElementsLensesController', () => {
     });
 
     it('should throw error if lens not found', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'cmlens00000000000000000001';
       const updateDto: UpdateElementLensDto = {
         label: 'Updated Lens',
       } as unknown as UpdateElementLensDto;
@@ -186,12 +187,12 @@ describe('ElementsLensesController', () => {
 
   describe('remove', () => {
     it('should remove a lens for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'cmlens00000000000000000001';
       const mockLens = {
-        _id: id,
+        id,
         key: 'delete-lens',
         label: 'Lens to Delete',
-        user: mockSuperAdminUser.publicMetadata.user as string,
+        organizationId: mockSuperAdminUser.publicMetadata.organization,
       };
 
       lensesService.findOne.mockResolvedValue(mockLens as never);
@@ -204,7 +205,7 @@ describe('ElementsLensesController', () => {
       );
 
       expect(lensesService.findOne).toHaveBeenCalledWith({
-        _id: id,
+        id,
         isDeleted: false,
       });
       expect(lensesService.remove).toHaveBeenCalledWith(id);
@@ -216,8 +217,16 @@ describe('ElementsLensesController', () => {
     it('should return paginated lenses', async () => {
       const mockLenses = {
         docs: [
-          { _id: '1', key: 'lens-1', label: 'Lens 1' },
-          { _id: '2', key: 'lens-2', label: 'Lens 2' },
+          {
+            id: 'cmlens00000000000000000001',
+            key: 'lens-1',
+            label: 'Lens 1',
+          },
+          {
+            id: 'cmlens00000000000000000002',
+            key: 'lens-2',
+            label: 'Lens 2',
+          },
         ],
         hasNextPage: false,
         hasPrevPage: false,

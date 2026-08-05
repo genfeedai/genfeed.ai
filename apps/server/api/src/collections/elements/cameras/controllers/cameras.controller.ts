@@ -1,12 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementCameraDto } from '@api/collections/elements/cameras/dto/create-camera.dto';
 import { UpdateElementCameraDto } from '@api/collections/elements/cameras/dto/update-camera.dto';
-import {
-  ElementCamera,
-  type ElementCameraDocument,
-} from '@api/collections/elements/cameras/schemas/camera.schema';
+import type { ElementCameraDocument } from '@api/collections/elements/cameras/schemas/camera.schema';
 import { ElementsCamerasService } from '@api/collections/elements/cameras/services/cameras.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -113,5 +111,12 @@ export class ElementsCamerasController extends BaseCRUDController<
       },
       query,
     });
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementCameraDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

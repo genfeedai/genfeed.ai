@@ -1,12 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementLightingDto } from '@api/collections/elements/lightings/dto/create-lighting.dto';
 import { UpdateElementLightingDto } from '@api/collections/elements/lightings/dto/update-lighting.dto';
-import {
-  ElementLighting,
-  type ElementLightingDocument,
-} from '@api/collections/elements/lightings/schemas/lighting.schema';
+import type { ElementLightingDocument } from '@api/collections/elements/lightings/schemas/lighting.schema';
 import { ElementsLightingsService } from '@api/collections/elements/lightings/services/lightings.service';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -124,5 +122,12 @@ export class ElementsLightingsController extends BaseCRUDController<
       query,
       searchableFields: ['label', 'description', 'key'],
     });
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementLightingDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

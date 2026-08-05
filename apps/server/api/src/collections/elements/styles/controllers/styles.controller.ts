@@ -1,11 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { buildElementFindAllQuery } from '@api/collections/elements/shared/build-element-find-all-pipeline.util';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { CreateElementStyleDto } from '@api/collections/elements/styles/dto/create-style.dto';
 import { UpdateElementStyleDto } from '@api/collections/elements/styles/dto/update-style.dto';
-import {
-  ElementStyle,
-  type ElementStyleDocument,
-} from '@api/collections/elements/styles/schemas/style.schema';
+import type { ElementStyleDocument } from '@api/collections/elements/styles/schemas/style.schema';
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -117,5 +115,12 @@ export class ElementsStylesController extends BaseCRUDController<
       },
       query,
     });
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementStyleDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

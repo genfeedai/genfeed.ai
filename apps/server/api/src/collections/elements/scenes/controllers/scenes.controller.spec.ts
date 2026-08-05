@@ -11,22 +11,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
-type SceneDocumentLike = {
-  _id: string;
-  name?: string;
-  organization?: string;
-  user?: string;
-  [key: string]: unknown;
-};
-
-type PaginatedScenes = {
-  docs: SceneDocumentLike[];
-  limit?: number;
-  page?: number;
-  totalDocs?: number;
-  [key: string]: unknown;
-};
-
 const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
   ({
     isDeleted: false,
@@ -65,9 +49,9 @@ describe('ElementsScenesController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      brand: 'cmbrand000000000000000001',
+      organization: 'cmorganization000000000000001',
+      user: 'cmuser0000000000000000001',
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -89,6 +73,7 @@ describe('ElementsScenesController', () => {
             paginate: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
+            supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
         },
         {
@@ -121,13 +106,14 @@ describe('ElementsScenesController', () => {
     it('should create a new scene', async () => {
       const createDto: CreateElementSceneDto = {
         description: 'Test scene',
-        name: 'New Scene',
-      } as unknown as CreateElementSceneDto;
+        key: 'new-scene',
+        label: 'New Scene',
+      };
 
       const mockCreatedScene = {
-        _id: '507f191e810c19729de860ee',
+        id: 'cmscene0000000000000000001',
         ...createDto,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       scenesService.create.mockResolvedValueOnce(
@@ -142,13 +128,14 @@ describe('ElementsScenesController', () => {
 
     it('should include organization in created scene', async () => {
       const createDto: CreateElementSceneDto = {
-        name: 'Org Scene',
-      } as unknown as CreateElementSceneDto;
+        key: 'org-scene',
+        label: 'Org Scene',
+      };
 
       const mockCreatedScene = {
-        _id: '507f191e810c19729de860ee',
+        id: 'cmscene0000000000000000001',
         ...createDto,
-        organization: mockUser.publicMetadata.organization,
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       scenesService.create.mockResolvedValueOnce(
@@ -158,22 +145,25 @@ describe('ElementsScenesController', () => {
       await controller.create(mockRequest, mockUser, createDto);
 
       const createCall = scenesService.create.mock.calls[0][0];
-      expect(createCall).toHaveProperty('organization');
+      expect(createCall).toHaveProperty(
+        'organizationId',
+        mockUser.publicMetadata.organization,
+      );
     });
   });
 
   describe('update', () => {
     it('should update an existing scene', async () => {
-      const sceneId = '507f191e810c19729de860ee'.toString();
+      const sceneId = 'cmscene0000000000000000001';
       const updateDto: UpdateElementSceneDto = {
-        name: 'Updated Scene',
-      } as UpdateElementSceneDto;
+        label: 'Updated Scene',
+      };
 
       const mockExistingScene = {
-        _id: sceneId,
-        name: 'Old Scene',
-        organization: mockUser.publicMetadata.organization as string,
-        user: mockUser.publicMetadata.user as string,
+        id: sceneId,
+        key: 'old-scene',
+        label: 'Old Scene',
+        organizationId: mockUser.publicMetadata.organization as string,
       };
 
       const mockUpdatedScene = {
@@ -201,10 +191,10 @@ describe('ElementsScenesController', () => {
     });
 
     it('should throw error when scene not found', async () => {
-      const sceneId = '507f191e810c19729de860ee'.toString();
+      const sceneId = 'cmscene0000000000000000001';
       const updateDto: UpdateElementSceneDto = {
-        name: 'Updated',
-      } as UpdateElementSceneDto;
+        label: 'Updated',
+      };
 
       scenesService.findOne.mockResolvedValueOnce(null);
 
@@ -216,12 +206,12 @@ describe('ElementsScenesController', () => {
 
   describe('remove', () => {
     it('should delete a scene', async () => {
-      const sceneId = '507f191e810c19729de860ee'.toString();
+      const sceneId = 'cmscene0000000000000000001';
       const mockScene = {
-        _id: sceneId,
-        name: 'Scene to Delete',
-        organization: mockUser.publicMetadata.organization as string,
-        user: mockUser.publicMetadata.user as string,
+        id: sceneId,
+        key: 'scene-to-delete',
+        label: 'Scene to Delete',
+        organizationId: mockUser.publicMetadata.organization as string,
       };
 
       scenesService.findOne.mockResolvedValueOnce(
@@ -237,7 +227,7 @@ describe('ElementsScenesController', () => {
     });
 
     it('should throw error when scene not found', async () => {
-      const sceneId = '507f191e810c19729de860ee'.toString();
+      const sceneId = 'cmscene0000000000000000001';
 
       scenesService.findOne.mockResolvedValueOnce(null);
 
@@ -278,8 +268,8 @@ describe('ElementsScenesController', () => {
     it('should handle findAll with pagination', async () => {
       const mockScenes = {
         docs: [
-          { _id: '1', name: 'Scene 1' },
-          { _id: '2', name: 'Scene 2' },
+          { id: 'cmscene0000000000000000001', label: 'Scene 1' },
+          { id: 'cmscene0000000000000000002', label: 'Scene 2' },
         ],
         limit: 20,
         page: 1,
@@ -298,10 +288,11 @@ describe('ElementsScenesController', () => {
     });
 
     it('should handle findOne', async () => {
-      const sceneId = '507f191e810c19729de860ee'.toString();
+      const sceneId = 'cmscene0000000000000000001';
       const mockScene = {
-        _id: sceneId,
-        name: 'Scene 1',
+        id: sceneId,
+        label: 'Scene 1',
+        organizationId: mockUser.publicMetadata.organization,
       };
 
       scenesService.findOne.mockResolvedValueOnce(
@@ -323,7 +314,7 @@ describe('ElementsScenesController', () => {
 
     it('should serialize findAll results', async () => {
       const mockScenes = {
-        docs: [{ _id: '1', name: 'Scene 1' }],
+        docs: [{ id: 'cmscene0000000000000000001', label: 'Scene 1' }],
         page: 1,
         totalDocs: 1,
       };

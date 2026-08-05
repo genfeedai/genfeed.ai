@@ -1,11 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreateElementSceneDto } from '@api/collections/elements/scenes/dto/create-scene.dto';
 import { UpdateElementSceneDto } from '@api/collections/elements/scenes/dto/update-scene.dto';
-import {
-  ElementScene,
-  type ElementSceneDocument,
-} from '@api/collections/elements/scenes/schemas/scene.schema';
+import type { ElementSceneDocument } from '@api/collections/elements/scenes/schemas/scene.schema';
 import { ElementsScenesService } from '@api/collections/elements/scenes/services/scenes.service';
+import { canModifyOrganizationElement } from '@api/collections/elements/shared/can-modify-organization-element.util';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -127,5 +125,12 @@ export class ElementsScenesController extends BaseCRUDController<
         ? handleQuerySort(query.sort)
         : { createdAt: -1, key: 1 },
     };
+  }
+
+  public override canUserModifyEntity(
+    user: User,
+    entity: ElementSceneDocument,
+  ): boolean {
+    return canModifyOrganizationElement(user, entity);
   }
 }

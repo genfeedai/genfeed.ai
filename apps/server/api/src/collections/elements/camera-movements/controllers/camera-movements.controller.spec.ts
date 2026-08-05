@@ -46,15 +46,14 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('ElementsCameraMovementsController', () => {
   let controller: ElementsCameraMovementsController;
   let cameraMovementsService: vi.Mocked<ElementsCameraMovementsService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const mockSuperAdminUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: '507f191e810c19729de860ee'.toString(),
+      brand: 'cmbrand000000000000000001',
       isSuperAdmin: true,
-      organization: '507f191e810c19729de860ee'.toString(),
-      user: '507f191e810c19729de860ee'.toString(),
+      organization: 'cmorganization000000000000001',
+      user: 'cmuser0000000000000000001',
     } as IAuthPublicMetadata,
   } as unknown as User;
 
@@ -84,6 +83,7 @@ describe('ElementsCameraMovementsController', () => {
             findOne: vi.fn(),
             patch: vi.fn(),
             remove: vi.fn(),
+            supportsField: vi.fn((field: string) => field === 'organizationId'),
           },
         },
       ],
@@ -96,7 +96,6 @@ describe('ElementsCameraMovementsController', () => {
       ElementsCameraMovementsController,
     );
     cameraMovementsService = module.get(ElementsCameraMovementsService);
-    loggerService = module.get(LoggerService);
 
     vi.spyOn(CameraMovementSerializer, 'serialize').mockImplementation(
       (data) => ({ data: data as never }),
@@ -119,8 +118,9 @@ describe('ElementsCameraMovementsController', () => {
       } as unknown as CreateElementCameraMovementDto;
 
       const mockCreatedMovement = {
-        _id: '507f191e810c19729de860ee',
+        id: 'cmcameramovement000000000001',
         ...createDto,
+        organizationId: mockSuperAdminUser.publicMetadata.organization,
       };
 
       cameraMovementsService.create.mockResolvedValue(
@@ -140,15 +140,16 @@ describe('ElementsCameraMovementsController', () => {
 
   describe('update', () => {
     it('should update a camera movement for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'cmcameramovement000000000001';
       const updateDto: UpdateElementCameraMovementDto = {
         label: 'Updated Camera Movement',
       } as unknown as UpdateElementCameraMovementDto;
 
       const mockExistingMovement = {
-        _id: id,
+        id,
         key: 'old-movement',
         label: 'Old Movement',
+        organizationId: mockSuperAdminUser.publicMetadata.organization,
       };
 
       const mockUpdatedMovement = {
@@ -171,7 +172,7 @@ describe('ElementsCameraMovementsController', () => {
       );
 
       expect(cameraMovementsService.findOne).toHaveBeenCalledWith(
-        { _id: id },
+        { id },
         expect.anything(),
       );
       expect(cameraMovementsService.patch).toHaveBeenCalled();
@@ -179,7 +180,7 @@ describe('ElementsCameraMovementsController', () => {
     });
 
     it('should throw error if camera movement not found', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'cmcameramovement000000000001';
       const updateDto: UpdateElementCameraMovementDto = {
         label: 'Updated Camera Movement',
       } as unknown as UpdateElementCameraMovementDto;
@@ -194,12 +195,12 @@ describe('ElementsCameraMovementsController', () => {
 
   describe('remove', () => {
     it('should remove a camera movement for superadmin', async () => {
-      const id = '507f191e810c19729de860ee'.toString();
+      const id = 'cmcameramovement000000000001';
       const mockMovement = {
-        _id: id,
+        id,
         key: 'delete-movement',
         label: 'Movement to Delete',
-        user: mockSuperAdminUser.publicMetadata.user as string,
+        organizationId: mockSuperAdminUser.publicMetadata.organization,
       };
 
       cameraMovementsService.findOne.mockResolvedValue(mockMovement as never);
@@ -212,7 +213,7 @@ describe('ElementsCameraMovementsController', () => {
       );
 
       expect(cameraMovementsService.findOne).toHaveBeenCalledWith({
-        _id: id,
+        id,
         isDeleted: false,
       });
       expect(cameraMovementsService.remove).toHaveBeenCalledWith(id);
@@ -224,8 +225,16 @@ describe('ElementsCameraMovementsController', () => {
     it('should return paginated camera movements', async () => {
       const mockMovements = {
         docs: [
-          { _id: '1', key: 'movement-1', label: 'Movement 1' },
-          { _id: '2', key: 'movement-2', label: 'Movement 2' },
+          {
+            id: 'cmcameramovement000000000001',
+            key: 'movement-1',
+            label: 'Movement 1',
+          },
+          {
+            id: 'cmcameramovement000000000002',
+            key: 'movement-2',
+            label: 'Movement 2',
+          },
         ],
         hasNextPage: false,
         hasPrevPage: false,
