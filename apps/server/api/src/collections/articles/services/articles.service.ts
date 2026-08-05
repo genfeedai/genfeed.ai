@@ -38,8 +38,11 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import {
+  invalidateAllPaginatedQueryCaches,
+  invalidateCollectionQueryCache,
+} from '@api/shared/utils/query-cache/query-cache.util';
 import {
   ArticleScope,
   ArticleStatus,
@@ -168,8 +171,8 @@ export class ArticlesService extends BaseService<
       CACHE_TAGS.ARTICLES,
       collectionName,
       `collection:${collectionName}`,
-      `agg:${collectionName}`,
-      'agg:paginated',
+      `query:${collectionName}`,
+      'query:paginated',
     ];
 
     if (includePublic) {
@@ -646,18 +649,13 @@ export class ArticlesService extends BaseService<
     if (this.cacheService) {
       const collectionName = this.collectionName;
       // Invalidate all possible cache tags
-      await AggregationCacheUtil.invalidateCollectionCache(
-        this.cacheService,
-        collectionName,
-      );
-      await AggregationCacheUtil.invalidateAllAggregationCache(
-        this.cacheService,
-      );
+      await invalidateCollectionQueryCache(this.cacheService, collectionName);
+      await invalidateAllPaginatedQueryCaches(this.cacheService);
       await this.cacheService.invalidateByTags([
         'articles',
         `collection:${collectionName}`,
-        `agg:${collectionName}`,
-        'agg:paginated',
+        `query:${collectionName}`,
+        'query:paginated',
       ]);
     }
 

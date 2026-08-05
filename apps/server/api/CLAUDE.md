@@ -1,16 +1,16 @@
 ## Cache Invalidation Pattern
 
 ### The problem this solves
-`BaseService.create()` was only busting `agg:{collection}` and `collection:{collection}` Redis tags.
+`BaseService.create()` invalidates `query:{collection}` and `collection:{collection}` Redis tags.
 The HTTP-level `@Cache` decorator on list endpoints uses tag `{collection}` (e.g. `brands`), so newly created
 records were invisible in list responses until the cache TTL expired (up to 30 minutes).
 
-`patch()` and `remove()` invalidate the same full four-tag set (`collectionName`, `collection:{name}`, `agg:{name}`, `agg:paginated`).
+`patch()` and `remove()` invalidate the same full four-tag set (`collectionName`, `collection:{name}`, `query:{name}`, `query:paginated`).
 
 ### Fix applied (BaseService)
 `BaseService.create()` now invalidates the same set of tags as `patch()` and `remove()`:
 ```
-collectionName, collection:{name}, agg:{name}, agg:paginated
+collectionName, collection:{name}, query:{name}, query:paginated
 ```
 
 ### When adding Redis caching to a new service

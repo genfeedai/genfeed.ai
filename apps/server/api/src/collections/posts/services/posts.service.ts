@@ -544,8 +544,8 @@ export class PostsService extends BaseService<
         cacheTags: [
           this.collectionName,
           `collection:${this.collectionName}`,
-          `agg:${this.collectionName}`,
-          'agg:paginated',
+          `query:${this.collectionName}`,
+          'query:paginated',
         ],
         logger: this.logger,
         normalizeData: (data) =>
@@ -1084,8 +1084,8 @@ export class PostsService extends BaseService<
         await this.cacheService.invalidateByTags([
           collectionName,
           `collection:${collectionName}`,
-          `agg:${collectionName}`,
-          'agg:paginated',
+          `query:${collectionName}`,
+          'query:paginated',
         ]);
       }
     } else {

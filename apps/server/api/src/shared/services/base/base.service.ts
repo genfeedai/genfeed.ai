@@ -3,7 +3,10 @@ import { ValidationException } from '@api/helpers/exceptions/http/validation.exc
 import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
+import {
+  generateQueryCacheKey,
+  invalidateCollectionQueryCache,
+} from '@api/shared/utils/query-cache/query-cache.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import * as PrismaEnums from '@genfeedai/prisma';
@@ -701,8 +704,8 @@ export abstract class BaseService<
         await this.cacheService.invalidateByTags([
           this.collectionName,
           `collection:${this.collectionName}`,
-          `agg:${this.collectionName}`,
-          'agg:paginated',
+          `query:${this.collectionName}`,
+          'query:paginated',
         ]);
       }
 
@@ -737,16 +740,14 @@ export abstract class BaseService<
 
       const cacheKey =
         enableCache && this.cacheService
-          ? AggregationCacheUtil.generateCacheKey(
+          ? generateQueryCacheKey(
               this.collectionName,
-              [
-                {
-                  include: include ?? null,
-                  orderBy,
-                  select: select ?? null,
-                  where,
-                },
-              ],
+              {
+                include: include ?? null,
+                orderBy,
+                select: select ?? null,
+                where,
+              },
               options,
             )
           : null;
@@ -811,8 +812,8 @@ export abstract class BaseService<
         await this.cacheService.set(cacheKey, result, {
           tags: [
             `collection:${this.collectionName}`,
-            `agg:${this.collectionName}`,
-            'agg:paginated',
+            `query:${this.collectionName}`,
+            'query:paginated',
           ],
           ttl: 300,
         });
@@ -921,8 +922,8 @@ export abstract class BaseService<
           await this.cacheService.invalidateByTags([
             this.collectionName,
             `collection:${this.collectionName}`,
-            `agg:${this.collectionName}`,
-            'agg:paginated',
+            `query:${this.collectionName}`,
+            'query:paginated',
           ]);
         }
       } else {
@@ -969,7 +970,7 @@ export abstract class BaseService<
       });
 
       if (this.cacheService && result.count > 0) {
-        await AggregationCacheUtil.invalidateCollectionCache(
+        await invalidateCollectionQueryCache(
           this.cacheService,
           this.collectionName,
         );
@@ -1006,8 +1007,8 @@ export abstract class BaseService<
           await this.cacheService.invalidateByTags([
             this.collectionName,
             `collection:${this.collectionName}`,
-            `agg:${this.collectionName}`,
-            'agg:paginated',
+            `query:${this.collectionName}`,
+            'query:paginated',
           ]);
         }
       } else {

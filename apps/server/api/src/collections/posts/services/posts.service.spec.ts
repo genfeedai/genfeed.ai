@@ -520,8 +520,8 @@ describe('PostsService batchSchedule', () => {
     expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
       'post',
       'collection:post',
-      'agg:post',
-      'agg:paginated',
+      'query:post',
+      'query:paginated',
     ]);
   });
 
