@@ -373,18 +373,34 @@ export class ModelsService extends BaseService<
     };
   }
 
-  async clearOtherDefaults(
-    category: string,
-    organizationId: string | null,
-    exceptModelId: string,
-  ): Promise<void> {
-    if (!('organizationId' in filter)) {
+  /**
+   * Bulk model writes must name their registry scope explicitly. `organizationId`
+   * may be `null` — that is the global registry — but it may never be omitted,
+   * because an unscoped filter would rewrite every organization's models.
+   */
+  override async patchAll(
+    filter: Record<string, unknown>,
+    update: Record<string, unknown>,
+  ): Promise<{ modifiedCount: number }> {
+    if (
+      !filter ||
+      typeof filter !== 'object' ||
+      !('organizationId' in filter)
+    ) {
       throw new ValidationException(
         'organizationId is required for bulk model updates',
       );
     }
 
-    // sql-risk-audit: ignore bulk-write-tenant-review -- The explicit guard above rejects every bulk write without an organizationId scope, including the null scope used by the global registry.
+    return super.patchAll(filter, update);
+  }
+
+  async clearOtherDefaults(
+    category: string,
+    organizationId: string | null,
+    exceptModelId: string,
+  ): Promise<void> {
+    // sql-risk-audit: ignore bulk-write-tenant-review -- The registry scope is a required parameter of this method, so every write is bounded by an explicit organizationId (null for the global registry) plus category and the excluded model id.
     await this.prisma.model.updateMany({
       data: { isDefault: false },
       where: {
