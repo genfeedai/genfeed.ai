@@ -5,7 +5,6 @@ export type { AdPerformance } from '@genfeedai/prisma';
 export interface AdPerformanceDocument extends Omit<AdPerformance, 'data'> {
   adPlatform: string | null;
   bodyText?: string;
-  brand?: string | null;
   campaignName?: string;
   campaignObjective?: string;
   campaignStatus?: string;
@@ -15,7 +14,6 @@ export interface AdPerformanceDocument extends Omit<AdPerformance, 'data'> {
   cpc: number | null;
   cpm?: number;
   ctr: number | null;
-  credential?: string | null;
   ctaText: string | null;
   data?: Record<string, unknown>;
   date?: Date | string;
@@ -28,7 +26,6 @@ export interface AdPerformanceDocument extends Omit<AdPerformance, 'data'> {
   impressions?: number;
   industry: string | null;
   landingPageUrl?: string;
-  organization?: string;
   performanceScore: number | null;
   revenue?: number;
   roas: number | null;

@@ -4,8 +4,10 @@ import { AdPerformanceService } from '@server/collections/ad-performance/service
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type MockAdPerformanceDelegate = {
+  create: ReturnType<typeof vi.fn>;
   findFirst: ReturnType<typeof vi.fn>;
   findMany: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
 };
 
 const buildRecord = (
@@ -46,8 +48,24 @@ describe('AdPerformanceService', () => {
 
   beforeEach(() => {
     adPerformance = {
+      create: vi.fn((args: { data: Record<string, unknown> }) =>
+        Promise.resolve(
+          buildRecord({
+            ...args.data,
+            data: args.data.data as Record<string, unknown>,
+          }),
+        ),
+      ),
       findFirst: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn((args: { data: Record<string, unknown> }) =>
+        Promise.resolve(
+          buildRecord({
+            ...args.data,
+            data: args.data.data as Record<string, unknown>,
+          }),
+        ),
+      ),
     };
     service = new AdPerformanceService({
       adPerformance,
@@ -139,7 +157,13 @@ describe('AdPerformanceService', () => {
   describe('findPublicById', () => {
     it('requires public scope for public ad detail lookups', async () => {
       adPerformance.findFirst.mockResolvedValue(
-        buildRecord({ id: 'public-ad' }),
+        buildRecord({
+          data: {
+            brand: 'stale-brand',
+            organization: 'stale-organization',
+          },
+          id: 'public-ad',
+        }),
       );
 
       const result = await service.findPublicById('public-ad');
@@ -148,6 +172,60 @@ describe('AdPerformanceService', () => {
         where: { id: 'public-ad', isDeleted: false, scope: 'public' },
       });
       expect(result?.id).toBe('public-ad');
+      expect(result).not.toHaveProperty('brand');
+      expect(result).not.toHaveProperty('organization');
+      expect(result?.data).toEqual({});
+    });
+  });
+
+  describe('upsert', () => {
+    it('persists canonical identity columns without duplicating identity in JSON', async () => {
+      await service.upsert({
+        adPlatform: 'meta',
+        brand: 'stale-brand',
+        brandId: 'brand-1',
+        credential: 'stale-credential',
+        credentialId: 'credential-1',
+        date: '2026-06-01',
+        externalAccountId: 'act-1',
+        externalCampaignId: 'campaign-1',
+        granularity: 'campaign',
+        organization: 'stale-org',
+        organizationId: 'org-1',
+        providerPayload: { attributionSetting: '7d_click' },
+      });
+
+      const createData = adPerformance.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+      expect(createData).toMatchObject({
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        organizationId: 'org-1',
+      });
+      expect(createData.data).toEqual({
+        adPlatform: 'meta',
+        date: '2026-06-01',
+        externalAccountId: 'act-1',
+        externalCampaignId: 'campaign-1',
+        granularity: 'campaign',
+        providerPayload: { attributionSetting: '7d_click' },
+      });
+    });
+
+    it('does not accept a legacy organization alias as persistence identity', async () => {
+      await expect(
+        service.upsert({
+          adPlatform: 'meta',
+          date: '2026-06-01',
+          externalAccountId: 'act-1',
+          granularity: 'campaign',
+          organization: 'legacy-org',
+        }),
+      ).rejects.toThrow('AdPerformance organizationId is required');
+
+      expect(adPerformance.create).not.toHaveBeenCalled();
     });
   });
 });

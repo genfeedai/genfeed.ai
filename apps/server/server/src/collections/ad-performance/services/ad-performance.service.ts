@@ -13,6 +13,14 @@ import { scopedWhere } from '@server/tenancy/scoped-where';
 
 const DEFAULT_TOP_PERFORMER_LIMIT = 10;
 const JSON_METRIC_CANDIDATE_LIMIT = 500;
+const AD_PERFORMANCE_IDENTITY_KEYS = [
+  'brand',
+  'brandId',
+  'credential',
+  'credentialId',
+  'organization',
+  'organizationId',
+] as const;
 
 const SCALAR_TOP_PERFORMER_METRICS = [
   'performanceScore',
@@ -132,15 +140,16 @@ export class AdPerformanceService {
   }
 
   private normalizeRecord(record: AdPerformance): AdPerformanceDocument {
-    const data = this.readObjectRecord(record.data);
+    const data = { ...this.readObjectRecord(record.data) };
+
+    for (const key of AD_PERFORMANCE_IDENTITY_KEYS) {
+      delete data[key];
+    }
 
     return {
-      ...record,
       ...data,
-      brand: record.brandId,
-      credential: record.credentialId,
+      ...record,
       data,
-      organization: record.organizationId,
     } as AdPerformanceDocument;
   }
 
@@ -155,22 +164,22 @@ export class AdPerformanceService {
       string,
       unknown
     >;
-    const organizationId =
-      this.readString(data.organizationId) ??
-      this.readString(data.organization);
+    const brandId = this.readString(normalizedData.brandId) ?? null;
+    const credentialId = this.readString(normalizedData.credentialId) ?? null;
+    const organizationId = this.readString(normalizedData.organizationId);
 
     if (!organizationId) {
       throw new Error('AdPerformance organizationId is required');
     }
 
+    for (const key of AD_PERFORMANCE_IDENTITY_KEYS) {
+      delete normalizedData[key];
+    }
+
     return {
       benchmarkFields: buildAdPerformanceBenchmarkFields(normalizedData),
-      brandId:
-        this.readString(data.brandId) ?? this.readString(data.brand) ?? null,
-      credentialId:
-        this.readString(data.credentialId) ??
-        this.readString(data.credential) ??
-        null,
+      brandId,
+      credentialId,
       data: normalizedData,
       organizationId,
     };

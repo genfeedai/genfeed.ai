@@ -6,7 +6,6 @@ const buildPublicAd = (
   overrides: Partial<AdPerformanceDocument> = {},
 ): AdPerformanceDocument =>
   ({
-    _id: 'public-ad',
     adPlatform: 'meta',
     bodyText: 'Primary text',
     brandId: null,
