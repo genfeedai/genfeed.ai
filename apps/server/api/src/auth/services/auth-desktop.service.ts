@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
+import type { IDesktopSessionCookie } from '@api/auth/better-auth/better-auth.types';
 import type {
   CreateDesktopAuthCodeDto,
   ExchangeDesktopAuthCodeDto,
@@ -17,9 +19,11 @@ import {
 } from '@api/helpers/utils/auth/auth.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActionOrigin, ApiKeyCategory, ApiKeyScope } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -62,10 +66,21 @@ type DesktopAuthRecord = {
   userName?: string;
 };
 
+interface DesktopAuthExchangeResult {
+  issuedAt: string;
+  session: IDesktopSessionCookie;
+  token: string;
+  userEmail?: string;
+  userId: string;
+  userName?: string;
+}
+
 @Injectable()
 export class AuthDesktopService {
   constructor(
     private readonly apiKeysService: ApiKeysService,
+    private readonly betterAuthService: BetterAuthService,
+    private readonly logger: LoggerService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -144,13 +159,9 @@ export class AuthDesktopService {
     };
   }
 
-  async exchangeCode(dto: ExchangeDesktopAuthCodeDto): Promise<{
-    issuedAt: string;
-    token: string;
-    userEmail?: string;
-    userId: string;
-    userName?: string;
-  }> {
+  async exchangeCode(
+    dto: ExchangeDesktopAuthCodeDto,
+  ): Promise<DesktopAuthExchangeResult> {
     const persisted = await this.prisma.desktopAuthCode.findUnique({
       where: { codeHash: hashToken(dto.code) },
     });
@@ -188,25 +199,62 @@ export class AuthDesktopService {
       throw new BadRequestException('Invalid desktop authorization code');
     }
 
-    const { plainKey } = await this.apiKeysService.createWithKey(
-      {
-        category: ApiKeyCategory.GENFEEDAI,
-        description: 'Auto-generated key for Genfeed Desktop',
-        expiresAt: new Date(Date.now() + DESKTOP_SESSION_TTL_MS).toISOString(),
-        label: 'Desktop',
-        metadata: {
-          kind: 'desktop-session',
+    const desktopSession =
+      await this.betterAuthService.createDesktopSessionCookie(record.userId);
+    if (!desktopSession) {
+      throw new ServiceUnavailableException(
+        'Better Auth is required to create a desktop session',
+      );
+    }
+
+    let plainKey: string;
+    try {
+      ({ plainKey } = await this.apiKeysService.createWithKey(
+        {
+          category: ApiKeyCategory.GENFEEDAI,
+          description: 'Auto-generated key for Genfeed Desktop',
+          expiresAt: new Date(
+            Date.now() + DESKTOP_SESSION_TTL_MS,
+          ).toISOString(),
+          label: 'Desktop',
+          metadata: {
+            kind: 'desktop-session',
+          },
+          organizationId: record.organizationId,
+          rateLimit: 120,
+          scopes: record.scopes,
+          userId: record.userId,
         },
-        organizationId: record.organizationId,
-        rateLimit: 120,
-        scopes: record.scopes,
-        userId: record.userId,
-      },
-      ActionOrigin.UI,
-    );
+        ActionOrigin.UI,
+      ));
+    } catch (error: unknown) {
+      try {
+        await this.betterAuthService.revokeDesktopSession(desktopSession.token);
+        this.logger.warn(
+          'Revoked Better Auth desktop session after API key creation failed',
+          {
+            service: AuthDesktopService.name,
+            userId: record.userId,
+          },
+        );
+      } catch (compensationError: unknown) {
+        // `LoggerService.error(message, trace, context)` — the thrown value
+        // belongs in the trace slot so winston serializes its stack.
+        this.logger.error(
+          'Failed to revoke Better Auth desktop session',
+          compensationError,
+          {
+            service: AuthDesktopService.name,
+            userId: record.userId,
+          },
+        );
+      }
+      throw error;
+    }
 
     return {
       issuedAt: new Date().toISOString(),
+      session: desktopSession.cookie,
       token: plainKey,
       userEmail: record.userEmail,
       userId: record.userId,

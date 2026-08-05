@@ -1,6 +1,7 @@
 'use client';
 
-import { signIn } from '@genfeedai/auth-client';
+import { getSession, signIn } from '@genfeedai/auth-client';
+import { isDesktopClient } from '@genfeedai/config/deployment';
 import { ButtonVariant } from '@genfeedai/enums';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
@@ -14,9 +15,12 @@ import { useSearchParams } from 'next/navigation';
 import {
   type ChangeEvent,
   type FormEvent,
+  useEffect,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
+import { getDesktopBridge } from '@/lib/desktop/runtime';
 
 import {
   getAuthCallbackURL,
@@ -48,6 +52,7 @@ export default function LoginBetterAuth({
   mode = 'chooser',
 }: LoginBetterAuthProps) {
   const searchParams = useSearchParams();
+  const isDesktop = isDesktopClient();
   const isMounted = useSyncExternalStore(
     subscribe,
     getSnapshot,
@@ -67,6 +72,15 @@ export default function LoginBetterAuth({
   const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
     null,
   );
+  const [desktopErrorMessage, setDesktopErrorMessage] = useState<string | null>(
+    null,
+  );
+  const [isDesktopBridgeAvailable, setIsDesktopBridgeAvailable] =
+    useState(false);
+  const [isWaitingForDesktopSession, setIsWaitingForDesktopSession] =
+    useState(false);
+  const desktopSessionUnsubscribeRef = useRef<(() => void) | null>(null);
+  const isWaitingForDesktopSessionRef = useRef(false);
   const callbackURL = getAuthCallbackURL(searchParams);
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getAuthFlowHref('/login', callbackURL);
@@ -74,6 +88,114 @@ export default function LoginBetterAuth({
   const passwordHref = getAuthFlowHref('/login/password', callbackURL);
   const forgotPasswordHref = getAuthFlowHref('/forgot-password', callbackURL);
   const signUpHref = getAuthFlowHref('/sign-up', callbackURL);
+
+  useEffect(() => {
+    if (!isDesktop) {
+      return;
+    }
+
+    const abortController = new AbortController();
+    const bridge = getDesktopBridge();
+
+    if (!bridge) {
+      setDesktopErrorMessage(
+        'Desktop sign-in is unavailable because the desktop bridge could not be loaded.',
+      );
+      setIsDesktopBridgeAvailable(false);
+      return () => {
+        abortController.abort();
+      };
+    }
+
+    setDesktopErrorMessage(null);
+    setIsDesktopBridgeAvailable(true);
+
+    const unsubscribe = bridge.auth.onDidChangeSession((session) => {
+      if (!session || !isWaitingForDesktopSessionRef.current) {
+        return;
+      }
+
+      const confirmBrowserSession = async (): Promise<void> => {
+        try {
+          const result = await getSession();
+
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          if (!result.data?.session) {
+            isWaitingForDesktopSessionRef.current = false;
+            setIsWaitingForDesktopSession(false);
+            setDesktopErrorMessage(
+              'Your desktop sign-in completed, but the browser session could not be confirmed. Please try again.',
+            );
+            return;
+          }
+
+          isWaitingForDesktopSessionRef.current = false;
+          const activeUnsubscribe = desktopSessionUnsubscribeRef.current;
+          desktopSessionUnsubscribeRef.current = null;
+          activeUnsubscribe?.();
+          window.location.assign(authCallbackURL);
+        } catch {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          isWaitingForDesktopSessionRef.current = false;
+          setIsWaitingForDesktopSession(false);
+          setDesktopErrorMessage(
+            'Your desktop sign-in completed, but the browser session could not be confirmed. Please try again.',
+          );
+        }
+      };
+
+      void confirmBrowserSession();
+    });
+
+    desktopSessionUnsubscribeRef.current = unsubscribe;
+
+    return () => {
+      abortController.abort();
+      isWaitingForDesktopSessionRef.current = false;
+      if (desktopSessionUnsubscribeRef.current === unsubscribe) {
+        desktopSessionUnsubscribeRef.current = null;
+        unsubscribe();
+      }
+    };
+  }, [authCallbackURL, isDesktop]);
+
+  async function handleDesktopLogin() {
+    const bridge = getDesktopBridge();
+
+    if (!bridge) {
+      setDesktopErrorMessage(
+        'Desktop sign-in is unavailable because the desktop bridge could not be loaded.',
+      );
+      setIsDesktopBridgeAvailable(false);
+      return;
+    }
+
+    setDesktopErrorMessage(null);
+    isWaitingForDesktopSessionRef.current = true;
+    setIsWaitingForDesktopSession(true);
+
+    try {
+      await bridge.auth.login();
+    } catch {
+      isWaitingForDesktopSessionRef.current = false;
+      setIsWaitingForDesktopSession(false);
+      setDesktopErrorMessage(
+        'The system browser could not be opened. Please try again.',
+      );
+    }
+  }
+
+  function handleDesktopBack() {
+    isWaitingForDesktopSessionRef.current = false;
+    setDesktopErrorMessage(null);
+    setIsWaitingForDesktopSession(false);
+  }
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -161,6 +283,68 @@ export default function LoginBetterAuth({
 
   if (!isMounted) {
     return <AuthFormLayout logoSize="compact">{null}</AuthFormLayout>;
+  }
+
+  if (isDesktop) {
+    return (
+      <AuthFormLayout
+        description="Sign in securely in your system browser."
+        logoSize="compact"
+        title="Connect to Genfeed"
+      >
+        <AuthActionSurface
+          actions={
+            <>
+              {isWaitingForDesktopSession ? (
+                <Button
+                  type="button"
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={handleDesktopBack}
+                  className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                  withWrapper={false}
+                >
+                  Back
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant={ButtonVariant.DEFAULT}
+                  onClick={() => void handleDesktopLogin()}
+                  isDisabled={!isDesktopBridgeAvailable}
+                  className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
+                  withWrapper={false}
+                >
+                  Sign in with Genfeed
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                variant={ButtonVariant.SECONDARY}
+                isDisabled
+                className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
+                withWrapper={false}
+              >
+                Work offline — coming soon
+              </Button>
+            </>
+          }
+          error={desktopErrorMessage}
+          hideHeading
+          supportingCopy={
+            <div className="space-y-2">
+              {isWaitingForDesktopSession ? (
+                <p aria-live="polite">Waiting for the browser...</p>
+              ) : null}
+              <p>
+                Offline work is not available yet. Sign in to use your Genfeed
+                workspace.
+              </p>
+            </div>
+          }
+        />
+      </AuthFormLayout>
+    );
   }
 
   if (mode === 'magic-link' && isEmailSent) {

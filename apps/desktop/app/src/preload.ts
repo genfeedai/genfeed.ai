@@ -2,6 +2,38 @@ import type { IGenfeedDesktopBridge } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import { contextBridge, ipcRenderer } from 'electron';
 
+const APP_ORIGIN_ARGUMENT = '--genfeed-app-origin=';
+
+const getDesktopAppOrigin = (): string | null => {
+  const argument = process.argv.find((value) =>
+    value.startsWith(APP_ORIGIN_ARGUMENT),
+  );
+
+  if (!argument) {
+    return null;
+  }
+
+  try {
+    const url = new URL(argument.slice(APP_ORIGIN_ARGUMENT.length));
+
+    if (
+      url.hash ||
+      url.hostname !== '127.0.0.1' ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.protocol !== 'http:' ||
+      url.search ||
+      url.username
+    ) {
+      return null;
+    }
+
+    return url.origin;
+  } catch {
+    return null;
+  }
+};
+
 const desktopBridge: IGenfeedDesktopBridge = {
   app: {
     enableOfflineMode: async () =>
@@ -300,5 +332,13 @@ const desktopBridge: IGenfeedDesktopBridge = {
       ipcRenderer.invoke(DESKTOP_IPC_CHANNELS.workspaceSelect, workspaceId),
   },
 };
+
+const appOrigin = getDesktopAppOrigin();
+
+if (appOrigin) {
+  contextBridge.exposeInMainWorld('__GENFEED_DESKTOP_ENV__', {
+    apiEndpoint: `${appOrigin}/v1`,
+  });
+}
 
 contextBridge.exposeInMainWorld('genfeedDesktop', desktopBridge);
