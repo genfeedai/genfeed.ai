@@ -5,6 +5,7 @@ import {
   CONVERSATION_COMPOSER_ACTIONS,
   getConversationComposerAction,
   parseConversationComposerCommand,
+  resolveConversationComposerDestinationHref,
 } from './conversation-composer-actions.constant';
 
 describe('conversation composer action registry', () => {
@@ -80,8 +81,8 @@ describe('conversation composer action registry', () => {
       {
         name: 'analyze',
         resolved: expect.objectContaining({
-          requiredScope: 'organization',
-          route: APP_ROUTES.ANALYTICS.ROOT,
+          requiredScope: 'brand',
+          route: APP_ROUTES.ANALYTICS.OVERVIEW,
         }),
       },
       {
@@ -127,5 +128,42 @@ describe('conversation composer action registry', () => {
         }),
       ]),
     );
+  });
+
+  it('routes every action to brand when a brand is selected, else org', () => {
+    const activeHref = (path: string) => `/acme/moonrise${path}`;
+    const orgHref = (path: string) => `/acme/~${path}`;
+
+    for (const action of CONVERSATION_COMPOSER_ACTIONS) {
+      expect(
+        resolveConversationComposerDestinationHref({
+          activeHref,
+          orgHref,
+          route: action.route,
+          routeBrandSlug: 'moonrise',
+          selectedBrandSlug: null,
+        }),
+      ).toBe(activeHref(action.route));
+
+      expect(
+        resolveConversationComposerDestinationHref({
+          activeHref,
+          orgHref,
+          route: action.route,
+          routeBrandSlug: '',
+          selectedBrandSlug: 'moonrise',
+        }),
+      ).toBe(activeHref(action.route));
+
+      expect(
+        resolveConversationComposerDestinationHref({
+          activeHref,
+          orgHref,
+          route: action.route,
+          routeBrandSlug: '',
+          selectedBrandSlug: '',
+        }),
+      ).toBe(orgHref(action.route));
+    }
   });
 });

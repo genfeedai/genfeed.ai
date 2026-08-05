@@ -63,7 +63,7 @@ describe('CreditsBarTrigger', () => {
     expect(screen.getByText('4.2k')).toBeInTheDocument();
   });
 
-  it('opens the shell dropdown with menu actions', async () => {
+  it('opens a consolidated wallet with Buy credits as the primary CTA', async () => {
     const user = userEvent.setup();
     render(
       <CreditsBarTrigger
@@ -80,26 +80,20 @@ describe('CreditsBarTrigger', () => {
     await user.click(screen.getByTestId('topbar-credits-trigger'));
 
     expect(screen.getByTestId('topbar-credits-popover')).toBeInTheDocument();
-    expect(screen.getByTestId('topbar-credits-top-up')).toHaveAttribute(
-      'href',
-      '/test-org/~/settings/billing',
-    );
-    expect(screen.getByTestId('topbar-credits-details')).toHaveAttribute(
-      'href',
-      '/test-org/~/settings/billing',
-    );
-    expect(screen.getByText('Top up')).toBeInTheDocument();
-    expect(screen.getByText('Billing & usage')).toBeInTheDocument();
-    expect(screen.getByText('Refresh')).toBeInTheDocument();
+    const buyCredits = screen.getByTestId('topbar-credits-buy');
+    expect(buyCredits).toHaveAttribute('href', '/test-org/~/settings/billing');
+    expect(screen.getByText('Buy credits')).toBeInTheDocument();
+    expect(screen.queryByText('Top up')).not.toBeInTheDocument();
+    expect(screen.queryByText('Billing & usage')).not.toBeInTheDocument();
+    expect(screen.queryByText('Refresh')).not.toBeInTheDocument();
   });
 
-  it('calls onRefresh from the menu', async () => {
+  it('refreshes balance silently when the wallet opens', async () => {
     const onRefresh = vi.fn();
     const user = userEvent.setup();
     render(<CreditsBarTrigger {...defaultProps} onRefresh={onRefresh} />);
 
     await user.click(screen.getByTestId('topbar-credits-trigger'));
-    await user.click(screen.getByRole('menuitem', { name: /refresh/i }));
 
     expect(onRefresh).toHaveBeenCalledTimes(1);
   });

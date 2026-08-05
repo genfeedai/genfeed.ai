@@ -14,7 +14,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.28.0",
-    "nanoid": "6.0.0",
+    "nanoid": "6.0.1",
     "recheck": "4.5.0",
     "tailwind-merge": "3.6.0",
     "uuid": "14.0.1"

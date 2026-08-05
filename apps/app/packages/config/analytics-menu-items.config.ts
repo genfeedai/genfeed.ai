@@ -20,15 +20,17 @@ import {
  * - Performance: what happened (Overview, Posts, Brands, Streaks)
  * - Intelligence: why it happened / what next (Insights, Hooks, Lab, Trends)
  *
- * Streaks stays in Performance — posting consistency is a performance signal,
- * not a third top-level product area. Route kept; not a separate Habits surface.
+ * Org-level routes (`/:org/~/analytics/*`) only ship Overview today. Items with
+ * `hrefScope: 'brand'` are brand-route only — hide them on org scope or they 404.
  *
  * Every icon is unique — a repeated glyph makes two rows read as one entry.
  */
 export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Performance',
+    // Only destination that exists under both brand and org (`~/`) analytics.
     href: APP_ROUTES.ANALYTICS.OVERVIEW,
+    hrefScope: 'organization',
     label: 'Overview',
     matchPaths: [APP_ROUTES.ANALYTICS.ROOT, APP_ROUTES.ANALYTICS.OVERVIEW],
     outline: ChartColumn,
@@ -37,6 +39,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Performance',
     href: APP_ROUTES.ANALYTICS.POSTS,
+    hrefScope: 'brand',
     label: 'Posts',
     matchPaths: [APP_ROUTES.ANALYTICS.POSTS],
     outline: FileText,
@@ -45,6 +48,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Performance',
     href: APP_ROUTES.ANALYTICS.BRANDS,
+    hrefScope: 'brand',
     label: 'Brands',
     matchPaths: [APP_ROUTES.ANALYTICS.BRANDS],
     outline: Building2,
@@ -53,6 +57,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Performance',
     href: APP_ROUTES.ANALYTICS.STREAKS,
+    hrefScope: 'brand',
     label: 'Streaks',
     matchPaths: [APP_ROUTES.ANALYTICS.STREAKS],
     outline: Flame,
@@ -61,6 +66,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.INSIGHTS,
+    hrefScope: 'brand',
     label: 'Insights',
     matchPaths: [APP_ROUTES.ANALYTICS.INSIGHTS],
     outline: Sparkles,
@@ -69,6 +75,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.HOOKS,
+    hrefScope: 'brand',
     label: 'Hooks',
     matchPaths: [APP_ROUTES.ANALYTICS.HOOKS],
     outline: Magnet,
@@ -78,6 +85,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     // Pattern mining (hook/CTA/structure formulas) sits with Hooks / Insights.
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,
+    hrefScope: 'brand',
     label: 'Performance Lab',
     matchPaths: [APP_ROUTES.ANALYTICS.PERFORMANCE_LAB],
     outline: FlaskConical,
@@ -86,6 +94,7 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.TRENDS,
+    hrefScope: 'brand',
     label: 'Trends',
     matchPaths: [APP_ROUTES.ANALYTICS.TRENDS],
     outline: TrendingUp,
@@ -94,11 +103,38 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: 'Intelligence',
     href: APP_ROUTES.ANALYTICS.TREND_TURNOVER,
+    hrefScope: 'brand',
     label: 'Trend Turnover',
     matchPaths: [APP_ROUTES.ANALYTICS.TREND_TURNOVER],
     outline: Repeat,
     solid: Repeat,
   },
 ];
+
+/** True when the operator is on org analytics (`/:org/~/analytics…`), not brand. */
+export function isOrgAnalyticsRouteScope(
+  brandSlug: string | null | undefined,
+): boolean {
+  const normalized = brandSlug?.trim() ?? '';
+  return normalized === '' || normalized === '~';
+}
+
+/** Menu items that exist for the current org vs brand analytics scope. */
+export function getAnalyticsMenuItemsForScope(
+  brandSlug: string | null | undefined,
+): MenuItemConfig[] {
+  const isOrgScope = isOrgAnalyticsRouteScope(brandSlug);
+  if (!isOrgScope) {
+    return ANALYTICS_MENU_ITEMS;
+  }
+  // Org scope only has Overview. Drop the Performance group label so the
+  // sidebar does not stack ANALYTICS + PERFORMANCE above a single row.
+  return ANALYTICS_MENU_ITEMS.filter((item) => item.hrefScope !== 'brand').map(
+    (item) => ({
+      ...item,
+      group: undefined,
+    }),
+  );
+}
 
 export const ANALYTICS_LOGO_HREF = APP_ROUTES.ANALYTICS.OVERVIEW;

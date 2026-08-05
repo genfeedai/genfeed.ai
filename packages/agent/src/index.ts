@@ -65,6 +65,7 @@ export {
   CONVERSATION_COMPOSER_ACTIONS,
   getConversationComposerAction,
   parseConversationComposerCommand,
+  resolveConversationComposerDestinationHref,
 } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 export type {
   DashboardBlocksParseResult,

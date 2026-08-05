@@ -13,12 +13,15 @@ export default function NotFoundPage({
   const logoUrl = useThemeLogo();
 
   return (
-    <div className="flex min-h-dvh w-full items-center justify-center bg-black text-center">
-      <div className="grid grid-cols-1">
+    // Fill the available layout region only. `min-h-dvh` nested under the app
+    // shell (sidebar + topbar) stacked a full viewport on top of chrome and
+    // forced a useless scrollbar on 404.
+    <div className="flex h-full min-h-0 w-full flex-1 items-center justify-center overflow-hidden bg-black text-center">
+      <div className="grid grid-cols-1 px-4">
         {logoUrl && (
           <Image
             src={logoUrl}
-            className="mx-auto mb-20 object-contain dark:invert"
+            className="mx-auto mb-8 object-contain dark:invert"
             alt={EnvironmentService.LOGO_ALT}
             width={80}
             height={80}
@@ -26,11 +29,11 @@ export default function NotFoundPage({
           />
         )}
 
-        <h1 className="text-6xl font-bold text-primary mb-4">404</h1>
-        <h2 className="text-2xl md:text-4xl font-bold uppercase mb-2">
+        <h1 className="mb-4 text-6xl font-bold text-primary">404</h1>
+        <h2 className="mb-2 text-2xl font-bold uppercase md:text-4xl">
           Page not found
         </h2>
-        <p className="text-foreground/70 mb-6">
+        <p className="mb-6 text-foreground/70">
           The page you&apos;re looking for doesn&apos;t exist.
         </p>
 

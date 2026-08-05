@@ -52,6 +52,10 @@ vi.mock('@ui/shell/AppHtmlDocument', () => ({
   ),
 }));
 
+vi.mock('@/components/runtime/RuntimeConfigScript', () => ({
+  default: () => null,
+}));
+
 vi.mock('@ui/shell/metadata', () => ({
   // Passing the overrides straight through lets the assertions below read the
   // real exported `metadata`. `clearMocks: true` wipes call history between

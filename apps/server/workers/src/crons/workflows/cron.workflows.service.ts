@@ -274,23 +274,11 @@ export class CronWorkflowsService {
         where: { id: workflow.id },
       });
 
-      // Send success notification (only if user/org exist)
-      if (workflow.userId && workflow.organizationId) {
-        await this.notificationsService.sendNotification({
-          action: 'send_message',
-          organizationId: workflow.organizationId,
-          payload: {
-            action: 'send_message',
-            payload: {
-              chatId: workflow.userId,
-              message: `Workflow "${workflow.label}" completed successfully`,
-            },
-            type: 'telegram',
-          } as never,
-          type: 'telegram',
-          userId: workflow.userId,
-        });
-      }
+      // Send success notification when org Telegram notifications are enabled
+      await this.sendOrgTelegramNotification(
+        workflow,
+        `Workflow "${workflow.label}" completed successfully`,
+      );
 
       this.logger.log(
         `Workflow ${workflow.id} completed successfully`,
@@ -317,23 +305,11 @@ export class CronWorkflowsService {
         where: { id: workflow.id },
       });
 
-      // Send failure notification (only if user/org exist)
-      if (workflow.userId && workflow.organizationId) {
-        await this.notificationsService.sendNotification({
-          action: 'send_message',
-          organizationId: workflow.organizationId,
-          payload: {
-            action: 'send_message',
-            payload: {
-              chatId: workflow.userId,
-              message: `Workflow "${workflow.label}" failed: ${(error as Error)?.message}`,
-            },
-            type: 'telegram',
-          } as never,
-          type: 'telegram',
-          userId: workflow.userId,
-        });
-      }
+      // Send failure notification when org Telegram notifications are enabled
+      await this.sendOrgTelegramNotification(
+        workflow,
+        `Workflow "${workflow.label}" failed: ${(error as Error)?.message}`,
+      );
 
       this.logger.error(
         `Workflow ${workflow.id} failed`,
@@ -384,6 +360,43 @@ export class CronWorkflowsService {
         // For other step types, log but don't fail
         break;
     }
+  }
+
+  /**
+   * Org-level Telegram notifications are opt-in via
+   * OrganizationSetting.isNotificationsTelegramEnabled (default false).
+   */
+  private async sendOrgTelegramNotification(
+    workflow: Pick<Workflow, 'userId' | 'organizationId'>,
+    message: string,
+  ): Promise<void> {
+    if (!workflow.userId || !workflow.organizationId) {
+      return;
+    }
+
+    const settings = await this.prisma.organizationSetting.findUnique({
+      select: { isNotificationsTelegramEnabled: true },
+      where: { organizationId: workflow.organizationId },
+    });
+
+    if (!settings?.isNotificationsTelegramEnabled) {
+      return;
+    }
+
+    await this.notificationsService.sendNotification({
+      action: 'send_message',
+      organizationId: workflow.organizationId,
+      payload: {
+        action: 'send_message',
+        payload: {
+          chatId: workflow.userId,
+          message,
+        },
+        type: 'telegram',
+      } as never,
+      type: 'telegram',
+      userId: workflow.userId,
+    });
   }
 
   /**
