@@ -481,17 +481,30 @@ export class StripeService {
   }
 
   /**
-   * Always enable Checkout promo entry. Stripe rejects sessions that set both
-   * `discounts` and `allow_promotion_codes`, so we never auto-apply a launch
-   * code here — team/internal 100% codes (customer-restricted) and public
-   * launch codes must be entered at Checkout.
+   * Apply the configured launch promotion code to a subscription checkout
+   * session for the Creator/Pro plan, falling back to `allow_promotion_codes`
+   * when no promotion code is configured. Stripe rejects sessions that set
+   * both `discounts` and `allow_promotion_codes`, so exactly one is set.
    */
   private applyPromotionCode(
     sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
-    _stripePriceId: string,
+    stripePriceId: string,
   ): void {
-    sessionConfig.allow_promotion_codes = true;
-    delete sessionConfig.discounts;
+    // Default public launch coupon ($10/mo off for 12 months) for monthly Pro.
+    // Other tiers keep a free-form promo field (team codes like GENFEED100).
+    const isLaunchEligiblePrice =
+      stripePriceId ===
+      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY');
+
+    const promotionCodeId = isLaunchEligiblePrice
+      ? this.configService.get('STRIPE_PROMOTION_CODE_LAUNCH')
+      : undefined;
+
+    if (promotionCodeId) {
+      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
   }
 
   public async createPaymentSession(

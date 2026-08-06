@@ -60,11 +60,16 @@ export class SkillCheckoutService {
       success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
     };
 
-    // Promo field open so customer-restricted team codes (e.g. VINCENT100 /
-    // GENFEED100) and public Skills promos can be entered at Checkout.
+    // Default public Skills promo when configured (e.g. EARLYGEN $20 off).
     // Stripe forbids setting both `discounts` and `allow_promotion_codes`.
-    sessionConfig.allow_promotion_codes = true;
-    delete sessionConfig.discounts;
+    const promotionCodeId = this.configService.get(
+      'STRIPE_PROMOTION_CODE_SKILLS_PRO',
+    );
+    if (promotionCodeId) {
+      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
+    } else {
+      sessionConfig.allow_promotion_codes = true;
+    }
 
     if (dto.email) {
       sessionConfig.customer_email = dto.email;
