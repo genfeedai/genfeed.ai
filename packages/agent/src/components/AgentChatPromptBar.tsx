@@ -134,10 +134,8 @@ export function AgentChatPromptBar({
       ) : null}
       {statusStack}
       {hasFollowUpChips ? (
-        // Opaque strip so last-message CTAs never show through the chip row.
-        <div className="relative z-10 -mx-1 bg-background px-1 pb-3 pt-1">
-          {promptBarSuggestions}
-        </div>
+        // Chips carry their own solid fill + shadow — no full-width black strip.
+        <div className="relative z-10 pb-0.5">{promptBarSuggestions}</div>
       ) : null}
     </>
   );
@@ -146,13 +144,9 @@ export function AgentChatPromptBar({
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       maxWidth={isInspectorComposer ? 'full' : '4xl'}
-      // Overlay (portaled or surface-fixed) needs a scrim so transcript
-      // soft-fades into the frosted bar instead of clipping hard.
+      // Soft short scrim only; chips + composer elevate with shadow.
       showTopFade={!isInspectorComposer}
       topContent={topContent}
-      topFadeClassName={
-        hasFollowUpChips ? 'h-36 from-background from-50%' : undefined
-      }
       zIndex={40}
       className={cn(
         isPortaled && 'pointer-events-auto w-full',

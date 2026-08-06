@@ -53,9 +53,10 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
           className={cn(
             'h-auto text-left normal-case tracking-normal',
             isCards
-              ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background-secondary px-3.5 py-3.5 text-foreground/88 shadow-sm transition-colors hover:border-border/80 hover:bg-background-secondary/90'
-              : // PostHog-style one-liner chips: short label, full prompt on click.
-                'inline-flex max-w-full items-center rounded-full border border-border bg-background-secondary px-3.5 py-2 text-xs shadow-sm hover:border-border/80 hover:bg-foreground/[0.06]',
+              ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background px-3.5 py-3.5 text-foreground/88 shadow-md shadow-black/25 transition-colors hover:border-border/80 hover:bg-background-secondary'
+              : // Elevated pills so transcript CTAs fade under them cleanly
+                // without a tall opaque composer slab behind the row.
+                'inline-flex max-w-full items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/30 ring-1 ring-black/20 hover:border-border hover:bg-background-secondary',
             isDisabled && 'pointer-events-none opacity-50',
           )}
           isDisabled={isDisabled}

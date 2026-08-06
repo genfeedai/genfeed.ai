@@ -103,21 +103,21 @@ export default function PromptBarContainer({
         <div
           aria-hidden="true"
           className={cn(
-            // Solid base at the bottom of the scrim so transcript CTAs cannot
-            // bleed through chips sitting in topContent.
-            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background from-40% via-background/85 to-transparent opacity-100 transition-opacity duration-300',
-            topContent ? 'h-32' : 'h-24',
-            layoutMode === 'surface-fixed' && (topContent ? 'h-28' : 'h-20'),
-            layoutMode === 'inflow' && 'h-16',
+            // Soft short scrim only — elevation lives on chips/composer, not a
+            // tall opaque slab that paints half the transcript black.
+            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/90 via-background/35 to-transparent transition-opacity duration-300',
+            topContent ? 'h-16' : 'h-12',
+            layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
+            layoutMode === 'inflow' && 'h-10',
             topFadeClassName,
           )}
         />
       ) : null}
-      <div className={cn(innerClassName, topContent && 'flex flex-col')}>
+      <div className={cn(innerClassName, topContent && 'flex flex-col gap-2')}>
         {topContent ? (
-          <div className="relative z-10 w-full bg-background">{topContent}</div>
+          <div className="relative z-10 w-full">{topContent}</div>
         ) : null}
-        <div className="relative z-10 w-full bg-background">{children}</div>
+        <div className="relative z-10 w-full">{children}</div>
       </div>
     </div>
   );
