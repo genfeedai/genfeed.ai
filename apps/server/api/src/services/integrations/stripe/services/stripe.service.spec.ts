@@ -294,7 +294,7 @@ describe('StripeService', () => {
       expect(callArg).not.toHaveProperty('discounts');
     });
 
-    it('applies discounts with the configured promotion code when set for the Pro price', async () => {
+    it('keeps promo entry open even when STRIPE_PROMOTION_CODE_LAUNCH is set', async () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
@@ -335,10 +335,8 @@ describe('StripeService', () => {
       );
 
       const callArg = createSpy.mock.calls[0][0];
-      expect(callArg.discounts).toEqual([
-        { promotion_code: 'promo_launch123' },
-      ]);
-      expect(callArg).not.toHaveProperty('allow_promotion_codes');
+      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg).not.toHaveProperty('discounts');
     });
 
     it('does not apply the launch promotion code to other subscription tiers', async () => {

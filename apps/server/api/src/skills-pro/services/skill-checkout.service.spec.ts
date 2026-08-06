@@ -389,7 +389,7 @@ describe('SkillCheckoutService', () => {
       expect(callArgs.customer_email).toBeUndefined();
     });
 
-    it('should apply the configured promotion code discount automatically', async () => {
+    it('keeps promo entry open even when a skills promotion env is configured', async () => {
       configService.get.mockImplementation(
         buildConfigGetMock({
           GENFEEDAI_APP_URL: 'https://app.genfeed.ai',
@@ -411,10 +411,8 @@ describe('SkillCheckoutService', () => {
 
       const callArgs = stripeService.stripe.checkout.sessions.create.mock
         .calls[0][0] as Stripe.Checkout.SessionCreateParams;
-      expect(callArgs.allow_promotion_codes).toBeUndefined();
-      expect(callArgs.discounts).toEqual([
-        { promotion_code: 'promo_earlygen' },
-      ]);
+      expect(callArgs.allow_promotion_codes).toBe(true);
+      expect(callArgs.discounts).toBeUndefined();
     });
 
     it('should return empty string url when Stripe session has no url', async () => {

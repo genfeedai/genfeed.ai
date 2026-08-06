@@ -12,6 +12,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+const SENSITIVE_HEADER_KEYS = new Set([
+  'authorization',
+  'cookie',
+  'set-cookie',
+  'x-api-key',
+  'x-auth-token',
+]);
+
+function redactSensitiveHeaders(
+  headers: Record<string, string>,
+): Record<string, string> {
+  const redacted: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    redacted[key] = SENSITIVE_HEADER_KEYS.has(key.toLowerCase())
+      ? '[redacted]'
+      : value;
+  }
+  return redacted;
+}
+
 /**
  * Prefer API error title/detail over generic Axios "status code NNN" messages.
  */
@@ -63,7 +83,9 @@ export function formatErrorDebugRequest(errorInfo: IErrorDebugInfo): string {
     lines.push(`params:\n${stringifyJson(errorInfo.request.params)}`);
   }
   if (errorInfo.request?.headers) {
-    lines.push(`headers:\n${stringifyJson(errorInfo.request.headers)}`);
+    lines.push(
+      `headers:\n${stringifyJson(redactSensitiveHeaders(errorInfo.request.headers))}`,
+    );
   }
   if (errorInfo.request?.body !== undefined) {
     lines.push(`body:\n${stringifyJson(errorInfo.request.body)}`);
