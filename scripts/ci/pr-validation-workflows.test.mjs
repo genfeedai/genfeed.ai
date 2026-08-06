@@ -14,6 +14,7 @@ const REPOSITORY_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const WORKFLOWS_DIRECTORY = path.join(REPOSITORY_ROOT, '.github', 'workflows');
 const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'ci.yml',
+  'curated-action-catalog.yml',
   'deploy-scripts-ci.yml',
   'desktop-qa.yml',
   'link-check.yml',
@@ -206,6 +207,36 @@ test('enforces relation alias read and write guards on every pull request', () =
       `the guards job must run ${script}`,
     );
   }
+});
+
+// The curated action catalog decides whether a product action is exposed on
+// Agent, MCP, or both. Its reporter shipped with unit coverage and a
+// `catalog:changes` package script but no caller, so surface transitions landed
+// with no reviewer-facing diff. This pins the wiring, not just the script.
+test('reports curated action catalog changes on catalog pull requests', () => {
+  const workflow = readWorkflow('curated-action-catalog.yml');
+
+  assert.match(workflow, /^ {2}pull_request:\n/m);
+  for (const pathFilter of [
+    'packages/tools/src/registry/curated-action-catalog.ts',
+    'packages/tools/scripts/report-curated-action-catalog.ts',
+  ]) {
+    assert.ok(
+      workflow.includes(`      - "${pathFilter}"\n`),
+      `curated-action-catalog.yml must stay reachable for ${pathFilter}`,
+    );
+  }
+
+  // Full history, or `git show <base-sha>:<catalog>` cannot resolve the
+  // pre-change copy the reporter diffs against.
+  assert.match(workflow, /^ {10}fetch-depth: 0$/m);
+  assert.match(
+    workflow,
+    /run: \|\n {10}bun run --filter=@genfeedai\/tools catalog:changes \\/m,
+    'the report job must invoke the reporter through its package script',
+  );
+  // Without --summary the report exists only in raw job logs.
+  assert.match(workflow, /--summary="\$GITHUB_STEP_SUMMARY"/m);
 });
 
 test('runs desktop QA for affected pull requests and release callers', () => {
