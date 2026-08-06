@@ -3569,22 +3569,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "model",
-      "file": "apps/server/api/src/seeds/self-hosted-seed.service.ts",
-      "fingerprint": "4e4d638b6698ea90f8c5",
-      "method": "upsert",
-      "model": "Model",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "model",
-      "file": "apps/server/api/src/seeds/self-hosted-seed.service.ts",
-      "fingerprint": "379792aa2834a365e1d0",
-      "method": "upsert",
-      "model": "Model",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "brand",
       "file": "apps/server/api/src/seeds/workflow-deployment-backfill.service.ts",
       "fingerprint": "431f65c2820c55950f3a",

@@ -1,4 +1,5 @@
 import { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -25,8 +26,12 @@ export interface AgentChatInputToolbarProps {
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
+  /** Registry catalogue is still loading — selector shows its skeleton. */
+  isModelsLoading?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
+  models?: readonly AgentModelOption[];
   onAddFiles?: (files: File[]) => void;
   onBuyCredits?: () => void;
   onInsertReference: () => void;
@@ -49,8 +54,10 @@ function AgentChatInputToolbarInner({
   disabled,
   hasEditor,
   isListening,
+  isModelsLoading = false,
   isTranscribing,
   isUploading,
+  models,
   onAddFiles,
   onBuyCredits,
   onInsertReference,
@@ -78,6 +85,8 @@ function AgentChatInputToolbarInner({
         isDisabled={Boolean(
           disabled || showStop || isUploading || isTranscribing,
         )}
+        isLoading={isModelsLoading}
+        models={models}
         onBuyCredits={onBuyCredits}
         onModelChange={onModelChange}
         selectedModel={selectedModel}

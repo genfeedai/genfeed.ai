@@ -5,6 +5,7 @@ import {
 import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
@@ -61,6 +62,9 @@ type AgentChatPromptBarProps = {
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
@@ -96,6 +100,8 @@ export function AgentChatPromptBar({
   pendingInputRequest,
   socketConnectionState,
   selectedModel,
+  models,
+  isModelsLoading = false,
   onModelChange,
   creditsAvailable = null,
   onBuyCredits,
@@ -173,6 +179,8 @@ export function AgentChatPromptBar({
         getCompletedAttachments={getCompletedAttachments}
         clearAllAttachments={clearAllAttachments}
         selectedModel={selectedModel}
+        models={models}
+        isModelsLoading={isModelsLoading}
         onModelChange={onModelChange}
         creditsAvailable={creditsAvailable}
         onBuyCredits={onBuyCredits}

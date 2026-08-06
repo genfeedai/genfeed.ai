@@ -10,6 +10,7 @@ import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
+import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
@@ -50,6 +51,9 @@ export function AgentChatContainer({
   const [selectedModel, setSelectedModel] = useState(
     () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
   );
+  // Picker catalogue comes from the `Model` registry, not a hard-coded list.
+  const { isLoading: isModelsLoading, models: registryModels } =
+    useAgentRegistryModels(apiService);
   const container = useAgentChatContainer({
     apiService,
     isLoadingThread,
@@ -183,9 +187,11 @@ export function AgentChatContainer({
           // Inspector docks the composer in the shell slot; full-page empty
           // keeps it inline and centered under the hero.
           isComposerVisible={composerShell?.placement !== 'inspector'}
+          isModelsLoading={isModelsLoading}
           isReadOnly={isReadOnly}
           isRunActive={container.isRunActive}
           isWideLayout={isWideLayout}
+          models={registryModels}
           variant={
             composerShell?.placement === 'inspector' ? 'inspector' : 'default'
           }
@@ -278,11 +284,13 @@ export function AgentChatContainer({
             isLoadingThread ||
             container.socketConnectionState !== 'connected'
           }
+          isModelsLoading={isModelsLoading}
           isReadOnly={isReadOnly}
           isRunActive={container.isRunActive}
           isSubmittingInputRequest={container.isSubmittingInputRequest}
           latestProposedPlan={container.latestProposedPlan}
           layoutMode={promptBarLayoutMode}
+          models={registryModels}
           onClearError={() => container.setError(null)}
           onModelChange={setSelectedModel}
           onSend={container.handleSend}
