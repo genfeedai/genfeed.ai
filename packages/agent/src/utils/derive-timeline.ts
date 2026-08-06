@@ -1,6 +1,7 @@
 import type {
   AgentChatMessage,
   AgentToolCall,
+  AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import {
@@ -404,9 +405,9 @@ function enrichWorkEvents(
 }
 
 /**
- * Collapse key for snapshot cards. Prefer type+title so re-runs with mint
- * ids (Date.now) or tool_complete + done metadata still replace each other
- * instead of stacking identical zero cards.
+ * Collapse key for snapshot cards.
+ * Analytics cards collapse to ONE family so 7d + 30d become a single card
+ * with period tabs (periodSnapshots) instead of stacked clones.
  */
 export function getSnapshotCollapseKey(action: {
   id?: string;
@@ -414,10 +415,7 @@ export function getSnapshotCollapseKey(action: {
   type?: string;
 }): string {
   if (action.type === 'analytics_snapshot_card') {
-    if (action.id?.startsWith('analytics-snapshot:')) {
-      return action.id;
-    }
-    return `analytics_snapshot_card:${action.title ?? 'snapshot'}`;
+    return 'analytics_snapshot_card';
   }
   if (action.type === 'completion_summary_card') {
     return `completion_summary_card:${action.title ?? action.id ?? 'summary'}`;
@@ -425,38 +423,117 @@ export function getSnapshotCollapseKey(action: {
   return action.id || `${action.type ?? 'action'}:${action.title ?? ''}`;
 }
 
+function extractAnalyticsPeriod(action: AgentUiAction): string {
+  const dataPeriod = action.data?.period;
+  if (typeof dataPeriod === 'string' && dataPeriod.trim()) {
+    return dataPeriod.trim();
+  }
+  const idMatch = action.id?.match(/analytics-snapshot:[^:]+:(.+)$/);
+  if (idMatch?.[1]) {
+    return idMatch[1];
+  }
+  const titleMatch = action.title?.match(/\(([^)]+)\)\s*$/);
+  if (titleMatch?.[1]) {
+    return titleMatch[1];
+  }
+  return 'summary';
+}
+
 /**
- * Keep only the latest analytics_snapshot_card per stable key so re-runs of
- * get_analytics do not stack three identical zeros cards in the transcript.
- * Also dedupes multiple snapshots inside a single message.
+ * Collect every analytics snapshot in the thread and merge into one action
+ * with periodSnapshots so the UI can toggle 7d / 30d without stacking cards.
+ */
+export function mergeAnalyticsSnapshotActions(
+  snapshots: readonly AgentUiAction[],
+): AgentUiAction | null {
+  if (snapshots.length === 0) {
+    return null;
+  }
+
+  const byPeriod = new Map<
+    string,
+    {
+      period: string;
+      metrics?: AgentUiAction['metrics'];
+      title?: string;
+      source: AgentUiAction;
+    }
+  >();
+
+  for (const snapshot of snapshots) {
+    const period = extractAnalyticsPeriod(snapshot);
+    // Later snapshots for the same period win.
+    byPeriod.set(period, {
+      metrics: snapshot.metrics,
+      period,
+      source: snapshot,
+      title: snapshot.title,
+    });
+  }
+
+  const periodSnapshots = [...byPeriod.values()].map((entry) => ({
+    metrics: entry.metrics,
+    period: entry.period,
+    title: entry.title,
+  }));
+  const latest = snapshots[snapshots.length - 1];
+  if (!latest) {
+    return null;
+  }
+  const preferred =
+    byPeriod.get(extractAnalyticsPeriod(latest))?.source ?? latest;
+
+  return {
+    ...preferred,
+    ctas: [
+      {
+        href: '/analytics/overview',
+        label: 'Open analytics',
+      },
+    ],
+    data: {
+      ...(preferred.data ?? {}),
+      period: extractAnalyticsPeriod(preferred),
+      periodSnapshots,
+    },
+    id: preferred.id?.startsWith('analytics-snapshot:')
+      ? preferred.id.replace(/:[^:]+$/, ':merged')
+      : 'analytics-snapshot:merged',
+    title: 'Analytics summary',
+    type: 'analytics_snapshot_card',
+  };
+}
+
+/**
+ * Keep only the latest analytics family (merged periods) and completion
+ * summary cards so re-runs do not stack clones in the transcript.
  */
 export function collapseSupersededSnapshotCards(
   messages: readonly AgentChatMessage[],
 ): AgentChatMessage[] {
-  const latestMessageIdByKey = new Map<string, string>();
+  const allAnalytics: AgentUiAction[] = [];
+  let latestAnalyticsMessageId: string | null = null;
+  const latestCompletionByKey = new Map<string, string>();
 
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
+  for (let index = 0; index < messages.length; index += 1) {
     const message = messages[index];
     if (!message) {
       continue;
     }
     for (const action of message.metadata?.uiActions ?? []) {
-      if (
-        action.type !== 'analytics_snapshot_card' &&
-        action.type !== 'completion_summary_card'
-      ) {
+      if (action.type === 'analytics_snapshot_card') {
+        allAnalytics.push(action);
+        latestAnalyticsMessageId = message.id;
         continue;
       }
-      const key = getSnapshotCollapseKey(action);
-      if (!latestMessageIdByKey.has(key)) {
-        latestMessageIdByKey.set(key, message.id);
+      if (action.type === 'completion_summary_card') {
+        const key = getSnapshotCollapseKey(action);
+        latestCompletionByKey.set(key, message.id);
       }
     }
   }
 
-  if (latestMessageIdByKey.size === 0) {
-    return [...messages];
-  }
+  const mergedAnalytics = mergeAnalyticsSnapshotActions(allAnalytics);
 
   return messages.map((message) => {
     const actions = message.metadata?.uiActions;
@@ -464,27 +541,36 @@ export function collapseSupersededSnapshotCards(
       return message;
     }
 
-    const seenKeysInMessage = new Set<string>();
-    const nextActions = actions.filter((action) => {
-      if (
-        action.type !== 'analytics_snapshot_card' &&
-        action.type !== 'completion_summary_card'
-      ) {
-        return true;
-      }
-      const key = getSnapshotCollapseKey(action);
-      if (latestMessageIdByKey.get(key) !== message.id) {
-        return false;
-      }
-      // One snapshot per key inside the winning message.
-      if (seenKeysInMessage.has(key)) {
-        return false;
-      }
-      seenKeysInMessage.add(key);
-      return true;
-    });
+    const kept: AgentUiAction[] = [];
+    let insertedMergedAnalytics = false;
 
-    if (nextActions.length === actions.length) {
+    for (const action of actions) {
+      if (action.type === 'analytics_snapshot_card') {
+        if (
+          mergedAnalytics &&
+          message.id === latestAnalyticsMessageId &&
+          !insertedMergedAnalytics
+        ) {
+          kept.push(mergedAnalytics);
+          insertedMergedAnalytics = true;
+        }
+        continue;
+      }
+      if (action.type === 'completion_summary_card') {
+        const key = getSnapshotCollapseKey(action);
+        if (latestCompletionByKey.get(key) === message.id) {
+          kept.push(action);
+        }
+        continue;
+      }
+      kept.push(action);
+    }
+
+    const sameLength = kept.length === actions.length;
+    const sameIds =
+      sameLength &&
+      kept.every((action, index) => action.id === actions[index]?.id);
+    if (sameIds) {
       return message;
     }
 
@@ -492,7 +578,7 @@ export function collapseSupersededSnapshotCards(
       ...message,
       metadata: {
         ...message.metadata,
-        uiActions: nextActions,
+        uiActions: kept,
       },
     };
   });

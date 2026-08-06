@@ -366,12 +366,14 @@ describe('deriveTimeline', () => {
     }
   });
 
-  it('collapses superseded analytics snapshot cards to the latest message', () => {
+  it('merges 7d and 30d analytics into one card with period snapshots', () => {
     const messages = [
       msg('assistant', 'a1', '2026-01-01T00:00:01Z', {
         uiActions: [
           {
+            data: { period: '7d' },
             id: 'analytics-snapshot:org:7d',
+            metrics: { items: [{ label: 'Views', value: 1 }] },
             title: 'Analytics summary (7d)',
             type: 'analytics_snapshot_card',
           },
@@ -380,17 +382,10 @@ describe('deriveTimeline', () => {
       msg('assistant', 'a2', '2026-01-01T00:00:02Z', {
         uiActions: [
           {
-            id: 'analytics-snapshot:org:7d',
-            title: 'Analytics summary (7d)',
-            type: 'analytics_snapshot_card',
-          },
-        ],
-      }),
-      msg('assistant', 'a3', '2026-01-01T00:00:03Z', {
-        uiActions: [
-          {
-            id: 'analytics-snapshot:org:7d',
-            title: 'Analytics summary (7d)',
+            data: { period: '30d' },
+            id: 'analytics-snapshot:org:30d',
+            metrics: { items: [{ label: 'Views', value: 2 }] },
+            title: 'Analytics summary (30d)',
             type: 'analytics_snapshot_card',
           },
         ],
@@ -398,11 +393,21 @@ describe('deriveTimeline', () => {
     ];
 
     const collapsed = collapseSupersededSnapshotCards(messages);
-    expect(
-      collapsed.flatMap((message) => message.metadata?.uiActions ?? []),
-    ).toHaveLength(1);
-    expect(collapsed[2]?.metadata?.uiActions).toHaveLength(1);
+    const cards = collapsed.flatMap(
+      (message) => message.metadata?.uiActions ?? [],
+    );
+    expect(cards).toHaveLength(1);
+    expect(cards[0]?.type).toBe('analytics_snapshot_card');
+    expect(cards[0]?.title).toBe('Analytics summary');
+    const periods = cards[0]?.data?.periodSnapshots as
+      | Array<{ period: string }>
+      | undefined;
+    expect(periods?.map((entry) => entry.period).toSorted()).toEqual([
+      '30d',
+      '7d',
+    ]);
     expect(collapsed[0]?.metadata?.uiActions ?? []).toHaveLength(0);
+    expect(collapsed[1]?.metadata?.uiActions).toHaveLength(1);
 
     const timeline = deriveTimeline(messages, [], idleStream, null);
     const assistantCards = timeline
@@ -413,39 +418,5 @@ describe('deriveTimeline', () => {
           : [],
       );
     expect(assistantCards).toHaveLength(1);
-  });
-
-  it('collapses mint-id analytics cards that share a title across messages', () => {
-    const messages = [
-      msg('assistant', 'a1', '2026-01-01T00:00:01Z', {
-        uiActions: [
-          {
-            id: `analytics-${Date.now()}-1`,
-            title: 'Analytics summary (7d)',
-            type: 'analytics_snapshot_card',
-          },
-        ],
-      }),
-      msg('assistant', 'a2', '2026-01-01T00:00:02Z', {
-        uiActions: [
-          {
-            id: `analytics-${Date.now()}-2`,
-            title: 'Analytics summary (7d)',
-            type: 'analytics_snapshot_card',
-          },
-          {
-            id: `analytics-${Date.now()}-3`,
-            title: 'Analytics summary (7d)',
-            type: 'analytics_snapshot_card',
-          },
-        ],
-      }),
-    ];
-
-    const collapsed = collapseSupersededSnapshotCards(messages);
-    expect(
-      collapsed.flatMap((message) => message.metadata?.uiActions ?? []),
-    ).toHaveLength(1);
-    expect(collapsed[1]?.metadata?.uiActions).toHaveLength(1);
   });
 });
