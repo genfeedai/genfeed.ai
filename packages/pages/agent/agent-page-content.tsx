@@ -1,7 +1,6 @@
 'use client';
 
 import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAgentBrandCreate } from '@hooks/agent/use-agent-brand-create';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
@@ -37,22 +36,13 @@ export default function AgentPageContent({
     [getToken],
   );
   const handleNavigateToBilling = useCallback(() => {
-    window.open(
-      orgHref(
-        hasOrganizationBillingHint()
-          ? '/settings/billing'
-          : '/settings/credits',
-      ),
-      '_self',
-    );
+    window.open(orgHref('/settings/credits'), '_self');
   }, [orgHref]);
 
   const handleSelectCreditPack = useCallback(
     (pack: { label: string; price: string; credits: number }) => {
       window.open(
-        hasOrganizationBillingHint()
-          ? orgHref(`/settings/billing?pack=${pack.label.toLowerCase()}`)
-          : orgHref('/settings/credits'),
+        orgHref(`/settings/credits?pack=${pack.label.toLowerCase()}`),
         '_self',
       );
     },

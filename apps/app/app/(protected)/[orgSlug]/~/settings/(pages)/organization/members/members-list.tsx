@@ -132,7 +132,7 @@ function MembersListContent() {
         <CardEmpty
           actions={
             <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
-              <Link href={orgHref(APP_ROUTES.SETTINGS.BILLING)}>
+              <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
                 Upgrade to {upgradeTierLabel}
               </Link>
             </Button>

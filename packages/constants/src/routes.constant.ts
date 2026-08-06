@@ -217,9 +217,15 @@ export const APP_ROUTES = {
   },
   SETTINGS: {
     API_KEYS: '/settings/api-keys',
+    /**
+     * @deprecated Not a real settings page. Legacy path permanently redirects
+     * to SUBSCRIPTION (plan) when available, otherwise CREDITS. Prefer
+     * SUBSCRIPTION, CREDITS, or USAGE explicitly.
+     */
     BILLING: '/settings/billing',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',

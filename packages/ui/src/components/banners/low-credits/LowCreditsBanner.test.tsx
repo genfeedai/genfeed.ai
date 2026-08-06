@@ -130,6 +130,6 @@ describe('LowCreditsBanner', () => {
 
     expect(
       screen.getByRole('link', { name: 'Top up credits' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/billing');
+    ).toHaveAttribute('href', '/test-org/~/settings/credits');
   });
 });

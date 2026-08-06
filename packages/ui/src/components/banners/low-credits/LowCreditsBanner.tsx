@@ -72,11 +72,7 @@ export default function LowCreditsBanner({
   const { creditsBreakdown } = useSubscription();
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = hasOrganizationBillingHint();
-  const ctaHref = orgHref(
-    isBillingEnabled
-      ? APP_ROUTES.SETTINGS.BILLING
-      : APP_ROUTES.SETTINGS.CREDITS,
-  );
+  const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
   const balance = creditsBreakdown?.total ?? null;
   const [isDismissed, setIsDismissed] = useState(() =>
     shouldHideBanner(getDismissState(), balance),

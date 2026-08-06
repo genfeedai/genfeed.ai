@@ -4,6 +4,7 @@ import {
   Bot,
   Box,
   Building2,
+  ChartColumn,
   CircleQuestionMark,
   Cpu,
   CreditCard,
@@ -13,6 +14,7 @@ import {
   MessageSquare,
   Mic,
   Palette,
+  Receipt,
   Send,
   Share2,
   Sparkles,
@@ -141,16 +143,40 @@ function buildOrganizationMenuItems(
       outline: Bot,
       solid: Bot,
     },
-    // One surface for plan, top-up, and usage — old /credits and /usage routes redirect here.
-    ...(isEnterprise || showCredits
+    // Billing is a sidebar group header only — pages live under it.
+    ...(showCredits
       ? [
           {
             group: 'Billing',
-            href: APP_ROUTES.SETTINGS.BILLING,
+            href: APP_ROUTES.SETTINGS.CREDITS,
             hrefScope: 'organization' as const,
-            label: 'Billing',
+            label: 'Credits',
             outline: CreditCard,
             solid: CreditCard,
+          },
+        ]
+      : []),
+    ...(isEnterprise
+      ? [
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.SUBSCRIPTION,
+            hrefScope: 'organization' as const,
+            label: 'Subscription',
+            outline: Receipt,
+            solid: Receipt,
+          },
+        ]
+      : []),
+    ...(showCredits
+      ? [
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.USAGE,
+            hrefScope: 'organization' as const,
+            label: 'Usage',
+            outline: ChartColumn,
+            solid: ChartColumn,
           },
         ]
       : []),

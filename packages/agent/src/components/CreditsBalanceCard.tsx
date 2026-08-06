@@ -1,7 +1,6 @@
 'use client';
 
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { DollarSign } from 'lucide-react';
@@ -15,11 +14,7 @@ export function CreditsBalanceCard({
   action,
 }: CreditsBalanceCardProps): ReactElement {
   const { orgHref } = useOrgUrl();
-  const billingHref = orgHref(
-    hasOrganizationBillingHint()
-      ? APP_ROUTES.SETTINGS.BILLING
-      : APP_ROUTES.SETTINGS.CREDITS,
-  );
+  const billingHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;
   const usageLabel = action.usageLabel ?? `${usagePercent}% used`;
