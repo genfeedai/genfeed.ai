@@ -1,4 +1,5 @@
 import { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
@@ -37,6 +38,8 @@ export interface AgentChatInputToolbarProps {
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
   selectedModel?: string;
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
@@ -61,6 +64,8 @@ function AgentChatInputToolbarInner({
   onStop,
   onStopListening,
   selectedModel,
+  models,
+  isModelsLoading = false,
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,
@@ -78,6 +83,8 @@ function AgentChatInputToolbarInner({
         isDisabled={Boolean(
           disabled || showStop || isUploading || isTranscribing,
         )}
+        isLoading={isModelsLoading}
+        models={models}
         onBuyCredits={onBuyCredits}
         onModelChange={onModelChange}
         selectedModel={selectedModel}

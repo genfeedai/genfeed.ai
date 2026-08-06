@@ -3,6 +3,7 @@ import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInput
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -57,6 +58,9 @@ interface AgentChatInputProps {
   density?: 'compact' | 'default' | 'inspector';
   selectedModel?: string;
   onModelChange?: (model: string) => void;
+  /** Override list for the model picker (registry-backed when provided). */
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 }
@@ -92,6 +96,8 @@ export function AgentChatInput({
   density = 'default',
   selectedModel,
   onModelChange,
+  models,
+  isModelsLoading = false,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatInputProps): ReactElement {
@@ -220,6 +226,8 @@ export function AgentChatInput({
             onStop={onStop}
             onStopListening={stopListening}
             selectedModel={selectedModel}
+            models={models}
+            isModelsLoading={isModelsLoading}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={showStop}
