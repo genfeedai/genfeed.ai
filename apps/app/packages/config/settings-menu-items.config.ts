@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Mic,
   Palette,
+  Plug,
   Receipt,
   Send,
   Share2,
@@ -187,6 +188,14 @@ function buildOrganizationMenuItems(
       label: 'API Keys',
       outline: Key,
       solid: Key,
+    },
+    {
+      group: 'Developer',
+      href: APP_ROUTES.SETTINGS.INTEGRATIONS,
+      hrefScope: 'organization',
+      label: 'Integrations',
+      outline: Plug,
+      solid: Plug,
     },
     {
       group: 'Developer',

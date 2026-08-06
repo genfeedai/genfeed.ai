@@ -47,6 +47,7 @@ describe('buildSettingsMenuItems', () => {
         'Credits',
         'Usage',
         'API Keys',
+        'Integrations',
         'Webhooks',
       ]);
     });
@@ -67,6 +68,7 @@ describe('buildSettingsMenuItems', () => {
         'Subscription',
         'Usage',
         'API Keys',
+        'Integrations',
         'Webhooks',
       ]);
     });
@@ -86,6 +88,7 @@ describe('buildSettingsMenuItems', () => {
         ['Credits', 'Billing'],
         ['Usage', 'Billing'],
         ['API Keys', 'Developer'],
+        ['Integrations', 'Developer'],
         ['Webhooks', 'Developer'],
       ]);
     });

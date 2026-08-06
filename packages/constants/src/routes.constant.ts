@@ -219,6 +219,8 @@ export const APP_ROUTES = {
     API_KEYS: '/settings/api-keys',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    /** Provider BYOK keys (OpenAI, Replicate, …) — not Genfeed product API keys. */
+    INTEGRATIONS: '/settings/integrations',
     SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     HELP: '/settings/help',

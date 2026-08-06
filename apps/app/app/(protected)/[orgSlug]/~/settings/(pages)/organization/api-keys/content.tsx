@@ -1,16 +1,12 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  isDesktopClient,
-  isSelfHostedDeployment,
-} from '@genfeedai/config/deployment';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
 } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -18,159 +14,12 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@ui/primitives/tabs';
 import { Clipboard, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
-
-import DesktopLocalProviderSettings from '@/components/desktop/DesktopLocalProviderSettings';
-import ByokProviderCard from './byok-provider-card';
-
-type ApiKeysState = {
-  providerStatuses: IByokProviderStatus[];
-  expandedProvider: string | null;
-  apiKeyInputs: Record<string, string>;
-  apiSecretInputs: Record<string, string>;
-  savingProvider: string | null;
-  validatingProvider: string | null;
-  removingProvider: string | null;
-  isLoading: boolean;
-};
-
-type ApiKeysAction =
-  | { type: 'SET_PROVIDER_STATUSES'; payload: IByokProviderStatus[] }
-  | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_EXPANDED_PROVIDER'; payload: string | null }
-  | { type: 'SET_API_KEY_INPUT'; payload: { provider: string; value: string } }
-  | {
-      type: 'SET_API_SECRET_INPUT';
-      payload: { provider: string; value: string };
-    }
-  | { type: 'SET_SAVING_PROVIDER'; payload: string | null }
-  | { type: 'SET_VALIDATING_PROVIDER'; payload: string | null }
-  | { type: 'SET_REMOVING_PROVIDER'; payload: string | null }
-  | {
-      type: 'SAVE_SUCCESS';
-      payload: {
-        provider: string;
-        statuses: IByokProviderStatus[];
-      };
-    }
-  | { type: 'SAVE_DONE' };
-
-type ProductApiKeyForm = {
-  allowedIps: string;
-  description: string;
-  expiresAt: string;
-  label: string;
-  rateLimit: string;
-  selectedScopes: string[];
-};
-
-type ProductPlainKey = {
-  key: string;
-  label: string;
-};
-
-type ProductApiKeyScope =
-  (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
-
-const PRODUCT_API_KEY_PRESETS = [
-  { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },
-  { label: 'Read', scopes: API_KEY_SCOPE_PRESETS.read },
-  { label: 'Content', scopes: API_KEY_SCOPE_PRESETS.content },
-] as const;
-
-const SECONDARY_BUTTON_VARIANT = ButtonVariant.SECONDARY;
-
-function scopesExactlyMatch(
-  selected: readonly string[],
-  preset: readonly string[],
-): boolean {
-  if (selected.length !== preset.length) {
-    return false;
-  }
-  const selectedSet = new Set(selected);
-  return preset.every((scope) => selectedSet.has(scope));
-}
-
-const initialProductApiKeyForm: ProductApiKeyForm = {
-  allowedIps: '',
-  description: '',
-  expiresAt: '',
-  label: '',
-  rateLimit: '',
-  selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
-};
-
-const initialApiKeysState: ApiKeysState = {
-  providerStatuses: [],
-  expandedProvider: null,
-  apiKeyInputs: {},
-  apiSecretInputs: {},
-  savingProvider: null,
-  validatingProvider: null,
-  removingProvider: null,
-  isLoading: true,
-};
-
-function apiKeysReducer(
-  state: ApiKeysState,
-  action: ApiKeysAction,
-): ApiKeysState {
-  switch (action.type) {
-    case 'SET_PROVIDER_STATUSES':
-      return { ...state, providerStatuses: action.payload };
-    case 'SET_LOADING':
-      return { ...state, isLoading: action.payload };
-    case 'SET_EXPANDED_PROVIDER':
-      return { ...state, expandedProvider: action.payload };
-    case 'SET_API_KEY_INPUT':
-      return {
-        ...state,
-        apiKeyInputs: {
-          ...state.apiKeyInputs,
-          [action.payload.provider]: action.payload.value,
-        },
-      };
-    case 'SET_API_SECRET_INPUT':
-      return {
-        ...state,
-        apiSecretInputs: {
-          ...state.apiSecretInputs,
-          [action.payload.provider]: action.payload.value,
-        },
-      };
-    case 'SET_SAVING_PROVIDER':
-      return { ...state, savingProvider: action.payload };
-    case 'SET_VALIDATING_PROVIDER':
-      return { ...state, validatingProvider: action.payload };
-    case 'SET_REMOVING_PROVIDER':
-      return { ...state, removingProvider: action.payload };
-    case 'SAVE_SUCCESS':
-      return {
-        ...state,
-        providerStatuses: action.payload.statuses,
-        apiKeyInputs: {
-          ...state.apiKeyInputs,
-          [action.payload.provider]: '',
-        },
-        apiSecretInputs: {
-          ...state.apiSecretInputs,
-          [action.payload.provider]: '',
-        },
-        expandedProvider: null,
-      };
-    case 'SAVE_DONE':
-      return { ...state, savingProvider: null, validatingProvider: null };
-    default:
-      return state;
-  }
-}
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 function parseCommaSeparated(value: string): string[] | undefined {
   const items = value
@@ -204,12 +53,10 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
 
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady, settings } = useBrand();
-  const desktop = isDesktopClient();
   const selfHostedDeployment = isSelfHostedDeployment();
   const hasProductApiAccess =
     selfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
 
-  const [state, dispatch] = useReducer(apiKeysReducer, initialApiKeysState);
   const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>([]);
   const [productForm, setProductForm] = useState<ProductApiKeyForm>(
     initialProductApiKeyForm,
@@ -221,20 +68,6 @@ export default function SettingsApiKeysPage() {
   const [mutatingProductKeyId, setMutatingProductKeyId] = useState<
     string | null
   >(null);
-  const {
-    providerStatuses,
-    expandedProvider,
-    apiKeyInputs,
-    apiSecretInputs,
-    savingProvider,
-    validatingProvider,
-    removingProvider,
-    isLoading,
-  } = state;
-
-  const getOrganizationsService = useAuthedService(
-    useCallback((token: string) => OrganizationsService.getInstance(token), []),
-  );
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
   );
@@ -264,33 +97,6 @@ export default function SettingsApiKeysPage() {
     },
     [getApiKeysService],
   );
-
-  useEffect(() => {
-    if (!organizationId || !isReady) {
-      return;
-    }
-    const controller = new AbortController();
-
-    const fetchStatuses = async () => {
-      try {
-        const service = await getOrganizationsService();
-        const statuses = await service.getByokAllProviders(organizationId);
-
-        if (!controller.signal.aborted) {
-          dispatch({ type: 'SET_PROVIDER_STATUSES', payload: statuses });
-          dispatch({ type: 'SET_LOADING', payload: false });
-        }
-      } catch (error) {
-        if (!controller.signal.aborted) {
-          logger.error('Failed to fetch BYOK statuses', error);
-          dispatch({ type: 'SET_LOADING', payload: false });
-        }
-      }
-    };
-
-    fetchStatuses();
-    return () => controller.abort();
-  }, [organizationId, isReady, getOrganizationsService]);
 
   useEffect(() => {
     if (!organizationId || !isReady) {
@@ -441,442 +247,265 @@ export default function SettingsApiKeysPage() {
     }
   };
 
-  const handleValidateAndSave = async (
-    provider: string,
-    requiresSecret: boolean,
-  ) => {
-    if (!organizationId) {
-      return;
-    }
-    const apiKey = apiKeyInputs[provider]?.trim();
-    const apiSecret = requiresSecret
-      ? apiSecretInputs[provider]?.trim()
-      : undefined;
-    if (!apiKey || (requiresSecret && !apiSecret)) {
-      return;
-    }
-
-    dispatch({ type: 'SET_VALIDATING_PROVIDER', payload: provider });
-    try {
-      const service = await getOrganizationsService();
-      const validation = await service.validateByokProviderKey(
-        organizationId,
-        provider,
-        apiKey,
-        apiSecret,
-      );
-
-      if (!validation.isValid) {
-        NotificationsService.getInstance().error(
-          validation.error || 'Invalid API key',
-        );
-        dispatch({ type: 'SET_VALIDATING_PROVIDER', payload: null });
-        return;
-      }
-
-      dispatch({ type: 'SET_VALIDATING_PROVIDER', payload: null });
-      dispatch({ type: 'SET_SAVING_PROVIDER', payload: provider });
-
-      await service.saveByokProviderKey(
-        organizationId,
-        provider,
-        apiKey,
-        apiSecret,
-      );
-      const statuses = await service.getByokAllProviders(organizationId);
-      const providerLabel = providerStatuses.find(
-        (p) => p.provider === provider,
-      )?.label;
-      dispatch({ type: 'SAVE_SUCCESS', payload: { provider, statuses } });
-      NotificationsService.getInstance().success(
-        `${providerLabel} API key saved`,
-      );
-    } catch (error) {
-      logger.error('Failed to save BYOK key', error);
-      NotificationsService.getInstance().error('Failed to save API key');
-    } finally {
-      dispatch({ type: 'SAVE_DONE' });
-    }
-  };
-
-  const handleRemoveKey = async (provider: string) => {
-    if (!organizationId) {
-      return;
-    }
-    dispatch({ type: 'SET_REMOVING_PROVIDER', payload: provider });
-    try {
-      const service = await getOrganizationsService();
-      await service.removeByokProviderKey(organizationId, provider);
-      const statuses = await service.getByokAllProviders(organizationId);
-      const providerLabel = providerStatuses.find(
-        (p) => p.provider === provider,
-      )?.label;
-      dispatch({ type: 'SET_PROVIDER_STATUSES', payload: statuses });
-      NotificationsService.getInstance().success(
-        `${providerLabel} API key removed`,
-      );
-    } catch (error) {
-      logger.error('Failed to remove BYOK key', error);
-      NotificationsService.getInstance().error('Failed to remove API key');
-    } finally {
-      dispatch({ type: 'SET_REMOVING_PROVIDER', payload: null });
-    }
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-10">
       <h1 className="sr-only">API Keys</h1>
 
-      <Tabs defaultValue={desktop && !isReady ? 'providers' : 'genfeed'}>
-        <TabsList
-          aria-label="API key type"
-          className="h-9"
-          data-variant="segmented"
+      {isReady ? (
+        <Card
+          label="API keys"
+          description="Use these keys for CLI profiles, MCP servers, and unattended workflows."
+          bodyClassName="gap-3 p-4"
+          headerAction={
+            <Button
+              variant={SECONDARY_BUTTON_VARIANT}
+              onClick={() => fetchProductApiKeys()}
+              isDisabled={isProductLoading}
+              aria-label="Refresh Genfeed API keys"
+            >
+              <RefreshCw className="size-4" />
+            </Button>
+          }
         >
-          <TabsTrigger value="genfeed" data-variant="segmented">
-            Genfeed keys
-          </TabsTrigger>
-          <TabsTrigger value="providers" data-variant="segmented">
-            Provider keys
-          </TabsTrigger>
-        </TabsList>
+          {!hasProductApiAccess ? (
+            <p className="text-xs text-amber-600">
+              API access is included on paid plans. Upgrade to Pro to create
+              Genfeed API keys.
+            </p>
+          ) : null}
 
-        <TabsContent className="mt-4" value="genfeed">
-          {isReady ? (
-            <Card bodyClassName="gap-3 p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-sm font-medium">Genfeed API keys</h3>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Use these keys for CLI profiles, MCP servers, and unattended
-                    workflows.
+          {productPlainKey ? (
+            <div className="mt-4 border-t border-border pt-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium">{productPlainKey.label}</p>
+                  <p className="mt-1 font-mono text-xs break-all">
+                    {productPlainKey.key}
                   </p>
-                  {!hasProductApiAccess ? (
-                    <p className="mt-2 text-xs text-amber-600">
-                      API access is included on paid plans. Upgrade to Pro to
-                      create Genfeed API keys.
-                    </p>
-                  ) : null}
                 </div>
                 <Button
                   variant={SECONDARY_BUTTON_VARIANT}
-                  onClick={() => fetchProductApiKeys()}
-                  isDisabled={isProductLoading}
-                  aria-label="Refresh Genfeed API keys"
+                  onClick={() => handleCopyProductKey(productPlainKey.key)}
                 >
-                  <RefreshCw className="size-4" />
+                  <Clipboard className="size-4" />
+                  Copy
                 </Button>
               </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Store this key now. It will not be shown again.
+              </p>
+            </div>
+          ) : null}
 
-              {productPlainKey ? (
-                <div className="mt-4 border-t border-border pt-3">
-                  <div className="flex items-center justify-between gap-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Key name
+              </span>
+              <Input
+                value={productForm.label}
+                onChange={(event) =>
+                  handleProductFormChange('label', event.target.value)
+                }
+                placeholder="MCP Server"
+              />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Expires
+              </span>
+              <Input
+                type="date"
+                value={productForm.expiresAt}
+                onChange={(event) =>
+                  handleProductFormChange('expiresAt', event.target.value)
+                }
+              />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Rate limit
+              </span>
+              <Input
+                type="number"
+                min="1"
+                value={productForm.rateLimit}
+                onChange={(event) =>
+                  handleProductFormChange('rateLimit', event.target.value)
+                }
+                placeholder="60"
+              />
+            </div>
+            <div>
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Allowed IPs
+              </span>
+              <Input
+                value={productForm.allowedIps}
+                onChange={(event) =>
+                  handleProductFormChange('allowedIps', event.target.value)
+                }
+                placeholder="203.0.113.10, 203.0.113.11"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <span className="text-xs text-muted-foreground mb-1 block">
+                Description
+              </span>
+              <Input
+                value={productForm.description}
+                onChange={(event) =>
+                  handleProductFormChange('description', event.target.value)
+                }
+                placeholder="Used by local MCP server"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <div>
+              <span className="mb-1.5 block text-xs text-muted-foreground">
+                Scope preset
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {PRODUCT_API_KEY_PRESETS.map((preset) => {
+                  const isActive = scopesExactlyMatch(
+                    productForm.selectedScopes,
+                    preset.scopes,
+                  );
+
+                  return (
+                    <Button
+                      key={preset.label}
+                      type="button"
+                      size={ButtonSize.SM}
+                      withWrapper={false}
+                      textTransform="none"
+                      aria-pressed={isActive}
+                      variant={
+                        isActive ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+                      }
+                      className={cn(
+                        'h-8 rounded-md border px-3 text-xs font-medium',
+                        isActive
+                          ? 'border-foreground/25 bg-foreground/[0.08] text-foreground'
+                          : 'border-border text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground',
+                      )}
+                      onClick={() => handlePresetSelect(preset.scopes)}
+                    >
+                      {preset.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+              {API_KEY_SCOPE_OPTIONS.map((option) => {
+                const selectedCount = option.scopes.filter((scope) =>
+                  selectedScopeSet.has(scope),
+                ).length;
+                const isFullySelected = selectedCount === option.scopes.length;
+                const isPartiallySelected =
+                  selectedCount > 0 && !isFullySelected;
+
+                return (
+                  <div
+                    key={option.label}
+                    className={cn(
+                      'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
+                      isFullySelected
+                        ? 'border-foreground/20 bg-foreground/[0.04]'
+                        : isPartiallySelected
+                          ? 'border-border bg-muted/20'
+                          : 'border-border',
+                    )}
+                  >
+                    <Checkbox
+                      checked={
+                        isFullySelected
+                          ? true
+                          : isPartiallySelected
+                            ? 'indeterminate'
+                            : false
+                      }
+                      label={option.label}
+                      onCheckedChange={() => handleScopeToggle(option.scopes)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <Button
+              onClick={handleCreateProductKey}
+              isDisabled={
+                isCreatingProductKey ||
+                !hasProductApiAccess ||
+                !productForm.label.trim() ||
+                productForm.selectedScopes.length === 0
+              }
+            >
+              <Plus className="size-4" />
+              {isCreatingProductKey ? 'Creating...' : 'Create Key'}
+            </Button>
+          </div>
+
+          <div className="mt-5 border-t border-border pt-4">
+            {isProductLoading ? (
+              <p className="text-sm text-muted-foreground">Loading keys...</p>
+            ) : productApiKeys.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No active Genfeed API keys.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {productApiKeys.map((apiKey) => (
+                  <div
+                    key={apiKey.id}
+                    className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
                     <div className="min-w-0">
-                      <p className="text-xs font-medium">
-                        {productPlainKey.label}
+                      <p className="text-sm font-medium">
+                        {apiKey.label ?? 'Untitled key'}
                       </p>
-                      <p className="mt-1 font-mono text-xs break-all">
-                        {productPlainKey.key}
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Last used: {formatLastUsed(apiKey.lastUsedAt)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {(apiKey.scopes ?? []).join(', ') || 'No scopes'}
                       </p>
                     </div>
-                    <Button
-                      variant={SECONDARY_BUTTON_VARIANT}
-                      onClick={() => handleCopyProductKey(productPlainKey.key)}
-                    >
-                      <Clipboard className="size-4" />
-                      Copy
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Store this key now. It will not be shown again.
-                  </p>
-                </div>
-              ) : null}
-
-              <div className="mt-5 grid gap-3 md:grid-cols-2">
-                <div>
-                  <span className="text-xs text-muted-foreground mb-1 block">
-                    Key name
-                  </span>
-                  <Input
-                    value={productForm.label}
-                    onChange={(event) =>
-                      handleProductFormChange('label', event.target.value)
-                    }
-                    placeholder="MCP Server"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground mb-1 block">
-                    Expires
-                  </span>
-                  <Input
-                    type="date"
-                    value={productForm.expiresAt}
-                    onChange={(event) =>
-                      handleProductFormChange('expiresAt', event.target.value)
-                    }
-                  />
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground mb-1 block">
-                    Rate limit
-                  </span>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={productForm.rateLimit}
-                    onChange={(event) =>
-                      handleProductFormChange('rateLimit', event.target.value)
-                    }
-                    placeholder="60"
-                  />
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground mb-1 block">
-                    Allowed IPs
-                  </span>
-                  <Input
-                    value={productForm.allowedIps}
-                    onChange={(event) =>
-                      handleProductFormChange('allowedIps', event.target.value)
-                    }
-                    placeholder="203.0.113.10, 203.0.113.11"
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <span className="text-xs text-muted-foreground mb-1 block">
-                    Description
-                  </span>
-                  <Input
-                    value={productForm.description}
-                    onChange={(event) =>
-                      handleProductFormChange('description', event.target.value)
-                    }
-                    placeholder="Used by local MCP server"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <div>
-                  <span className="mb-1.5 block text-xs text-muted-foreground">
-                    Scope preset
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {PRODUCT_API_KEY_PRESETS.map((preset) => {
-                      const isActive = scopesExactlyMatch(
-                        productForm.selectedScopes,
-                        preset.scopes,
-                      );
-
-                      return (
-                        <Button
-                          key={preset.label}
-                          type="button"
-                          size={ButtonSize.SM}
-                          withWrapper={false}
-                          textTransform="none"
-                          aria-pressed={isActive}
-                          variant={
-                            isActive
-                              ? ButtonVariant.SECONDARY
-                              : ButtonVariant.GHOST
-                          }
-                          className={cn(
-                            'h-8 rounded-md border px-3 text-xs font-medium',
-                            isActive
-                              ? 'border-foreground/25 bg-foreground/[0.08] text-foreground'
-                              : 'border-border text-foreground/70 hover:bg-foreground/[0.04] hover:text-foreground',
-                          )}
-                          onClick={() => handlePresetSelect(preset.scopes)}
-                        >
-                          {preset.label}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                  {API_KEY_SCOPE_OPTIONS.map((option) => {
-                    const selectedCount = option.scopes.filter((scope) =>
-                      selectedScopeSet.has(scope),
-                    ).length;
-                    const isFullySelected =
-                      selectedCount === option.scopes.length;
-                    const isPartiallySelected =
-                      selectedCount > 0 && !isFullySelected;
-
-                    return (
-                      <div
-                        key={option.label}
-                        className={cn(
-                          'flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors',
-                          isFullySelected
-                            ? 'border-foreground/20 bg-foreground/[0.04]'
-                            : isPartiallySelected
-                              ? 'border-border bg-muted/20'
-                              : 'border-border',
-                        )}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={SECONDARY_BUTTON_VARIANT}
+                        onClick={() => handleRotateProductKey(apiKey)}
+                        isDisabled={mutatingProductKeyId === apiKey.id}
                       >
-                        <Checkbox
-                          checked={
-                            isFullySelected
-                              ? true
-                              : isPartiallySelected
-                                ? 'indeterminate'
-                                : false
-                          }
-                          label={option.label}
-                          onCheckedChange={() =>
-                            handleScopeToggle(option.scopes)
-                          }
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="mt-4 flex justify-end">
-                <Button
-                  onClick={handleCreateProductKey}
-                  isDisabled={
-                    isCreatingProductKey ||
-                    !hasProductApiAccess ||
-                    !productForm.label.trim() ||
-                    productForm.selectedScopes.length === 0
-                  }
-                >
-                  <Plus className="size-4" />
-                  {isCreatingProductKey ? 'Creating...' : 'Create Key'}
-                </Button>
-              </div>
-
-              <div className="mt-5 border-t border-border pt-4">
-                {isProductLoading ? (
-                  <p className="text-sm text-muted-foreground">
-                    Loading keys...
-                  </p>
-                ) : productApiKeys.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No active Genfeed API keys.
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {productApiKeys.map((apiKey) => (
-                      <div
-                        key={apiKey.id}
-                        className="flex flex-col gap-3 rounded-md border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                        <RefreshCw className="size-4" />
+                        Rotate
+                      </Button>
+                      <Button
+                        variant={SECONDARY_BUTTON_VARIANT}
+                        onClick={() => handleRevokeProductKey(apiKey)}
+                        isDisabled={mutatingProductKeyId === apiKey.id}
                       >
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">
-                            {apiKey.label ?? 'Untitled key'}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Last used: {formatLastUsed(apiKey.lastUsedAt)}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {(apiKey.scopes ?? []).join(', ') || 'No scopes'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant={SECONDARY_BUTTON_VARIANT}
-                            onClick={() => handleRotateProductKey(apiKey)}
-                            isDisabled={mutatingProductKeyId === apiKey.id}
-                          >
-                            <RefreshCw className="size-4" />
-                            Rotate
-                          </Button>
-                          <Button
-                            variant={SECONDARY_BUTTON_VARIANT}
-                            onClick={() => handleRevokeProductKey(apiKey)}
-                            isDisabled={mutatingProductKeyId === apiKey.id}
-                          >
-                            <Trash2 className="size-4" />
-                            Revoke
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                        <Trash2 className="size-4" />
+                        Revoke
+                      </Button>
+                    </div>
                   </div>
-                )}
+                ))}
               </div>
-            </Card>
-          ) : (
-            <div className="flex min-h-40 items-center justify-center">
-              <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent className="mt-4 space-y-3" value="providers">
-          <p className="text-sm leading-6 text-muted-foreground">
-            Genfeed uses the server-configured providers by default. Add your
-            own provider API keys only to override hosted access. Requests made
-            with your own key do not deduct credits.
-          </p>
-
-          {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
-
-          {!desktop && (!isReady || isLoading) ? (
-            <div className="flex min-h-40 items-center justify-center">
-              <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : null}
-
-          {isReady && !isLoading ? (
-            <div className="space-y-2">
-              {providerStatuses.map((providerStatus) => (
-                <ByokProviderCard
-                  key={providerStatus.provider}
-                  providerStatus={providerStatus}
-                  cardState={{
-                    isExpanded: expandedProvider === providerStatus.provider,
-                    isRemoving: removingProvider === providerStatus.provider,
-                    isValidating:
-                      validatingProvider === providerStatus.provider,
-                    isSaving: savingProvider === providerStatus.provider,
-                  }}
-                  apiKeyValue={apiKeyInputs[providerStatus.provider] ?? ''}
-                  apiSecretValue={
-                    apiSecretInputs[providerStatus.provider] ?? ''
-                  }
-                  onToggleExpand={() =>
-                    dispatch({
-                      type: 'SET_EXPANDED_PROVIDER',
-                      payload:
-                        expandedProvider === providerStatus.provider
-                          ? null
-                          : providerStatus.provider,
-                    })
-                  }
-                  onApiKeyChange={(value) =>
-                    dispatch({
-                      type: 'SET_API_KEY_INPUT',
-                      payload: { provider: providerStatus.provider, value },
-                    })
-                  }
-                  onApiSecretChange={(value) =>
-                    dispatch({
-                      type: 'SET_API_SECRET_INPUT',
-                      payload: { provider: providerStatus.provider, value },
-                    })
-                  }
-                  onValidateAndSave={() =>
-                    handleValidateAndSave(
-                      providerStatus.provider,
-                      providerStatus.requiresSecret || false,
-                    )
-                  }
-                  onRemoveKey={() => handleRemoveKey(providerStatus.provider)}
-                />
-              ))}
-            </div>
-          ) : null}
-        </TabsContent>
-      </Tabs>
+            )}
+          </div>
+        </Card>
+      ) : (
+        <div className="flex min-h-40 items-center justify-center">
+          <span className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      )}
     </div>
   );
 }
