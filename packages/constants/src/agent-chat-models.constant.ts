@@ -73,12 +73,36 @@ function resolveCostTier(creditCostPerRound: number): CostTier {
   return CostTier.HIGH;
 }
 
+/**
+ * Literal OpenRouter/local model ids. This is the only place agent chat model
+ * key strings are written — definitions, defaults, retirements, and catalog
+ * flags must reference these members (never inline `"provider/model"`).
+ */
+export const AGENT_CHAT_MODEL_KEYS = {
+  CLAUDE_OPUS_5: 'anthropic/claude-opus-5',
+  CLAUDE_SONNET_5: 'anthropic/claude-sonnet-5',
+  DEEPSEEK_V4_FLASH: 'deepseek/deepseek-v4-flash-0731',
+  GEMINI_2_5_FLASH_LITE: 'google/gemini-2.5-flash-lite',
+  GEMINI_3_5_FLASH_LITE: 'google/gemini-3.5-flash-lite',
+  GEMINI_3_6_FLASH: 'google/gemini-3.6-flash',
+  GPT_5_6_LUNA: 'openai/gpt-5.6-luna',
+  GPT_5_6_SOL: 'openai/gpt-5.6-sol',
+  GPT_5_6_TERRA: 'openai/gpt-5.6-terra',
+  GROK_4_5: 'x-ai/grok-4.5',
+  KIMI_K3: 'moonshotai/kimi-k3',
+  LOCAL_MISTRAL_SMALL: 'local/mistral-small',
+  LOCAL_QWEN_32B: 'local/qwen-32b',
+} as const;
+
+export type AgentChatModelKey =
+  (typeof AGENT_CHAT_MODEL_KEYS)[keyof typeof AGENT_CHAT_MODEL_KEYS];
+
 interface AgentChatModelDefinition {
   brandSlug: string;
   description: string;
   isReasoning?: boolean;
   isSelfHosted?: boolean;
-  key: string;
+  key: AgentChatModelKey;
   label: string;
   pricing: AgentChatModelPricing;
 }
@@ -87,7 +111,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
   {
     brandSlug: 'deepseek-ai',
     description: 'Cheapest capable chat — everyday questions and drafting',
-    key: 'deepseek/deepseek-v4-flash-0731',
+    key: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     label: 'DeepSeek V4 Flash',
     pricing: { completionPerMillion: 0.18, promptPerMillion: 0.09 },
   },
@@ -96,7 +120,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     description:
       'Default daily driver via OpenRouter — fast Flash-Lite, cheap tool turns',
     isReasoning: true,
-    key: 'google/gemini-2.5-flash-lite',
+    key: AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
     label: 'Gemini 2.5 Flash Lite',
     // OpenRouter live (2026-08-07): $0.10 / $0.40 per 1M
     pricing: { completionPerMillion: 0.4, promptPerMillion: 0.1 },
@@ -104,7 +128,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
   {
     brandSlug: 'openai',
     description: 'Fast and cheap — short chat turns and quick edits',
-    key: 'openai/gpt-5.6-luna',
+    key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_LUNA,
     label: 'GPT-5.6 Luna',
     pricing: { completionPerMillion: 0.6, promptPerMillion: 0.1 },
   },
@@ -112,7 +136,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'google',
     description: 'Stronger Flash Lite for light agentic work',
     isReasoning: true,
-    key: 'google/gemini-3.5-flash-lite',
+    key: AGENT_CHAT_MODEL_KEYS.GEMINI_3_5_FLASH_LITE,
     label: 'Gemini 3.5 Flash Lite',
     // OpenRouter live (2026-08-07): $0.30 / $2.50 per 1M
     pricing: { completionPerMillion: 2.5, promptPerMillion: 0.3 },
@@ -121,7 +145,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'openai',
     description: 'Balanced for heavier agentic work',
     isReasoning: true,
-    key: 'openai/gpt-5.6-terra',
+    key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
     label: 'GPT-5.6 Terra',
     pricing: { completionPerMillion: 6, promptPerMillion: 1 },
   },
@@ -129,7 +153,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'x-ai',
     description: 'Real-time knowledge, fast responses',
     isReasoning: true,
-    key: 'x-ai/grok-4.5',
+    key: AGENT_CHAT_MODEL_KEYS.GROK_4_5,
     label: 'Grok 4.5',
     pricing: { completionPerMillion: 6, promptPerMillion: 2 },
   },
@@ -137,7 +161,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'google',
     description: 'Fast agentic reasoning with a large context window',
     isReasoning: true,
-    key: 'google/gemini-3.6-flash',
+    key: AGENT_CHAT_MODEL_KEYS.GEMINI_3_6_FLASH,
     label: 'Gemini 3.6 Flash',
     pricing: { completionPerMillion: 7.5, promptPerMillion: 1.5 },
   },
@@ -145,7 +169,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'anthropic',
     description: 'Balanced intelligence for long multi-step work',
     isReasoning: true,
-    key: 'anthropic/claude-sonnet-5',
+    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
     label: 'Claude Sonnet 5',
     pricing: { completionPerMillion: 10, promptPerMillion: 2 },
   },
@@ -153,7 +177,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'moonshotai',
     description: 'Agentic reasoning and multimodal work',
     isReasoning: true,
-    key: 'moonshotai/kimi-k3',
+    key: AGENT_CHAT_MODEL_KEYS.KIMI_K3,
     label: 'Kimi K3',
     pricing: { completionPerMillion: 15, promptPerMillion: 3 },
   },
@@ -161,7 +185,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'anthropic',
     description: 'Most capable — reserve for hard planning and review',
     isReasoning: true,
-    key: 'anthropic/claude-opus-5',
+    key: AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
     label: 'Claude Opus 5',
     pricing: { completionPerMillion: 25, promptPerMillion: 5 },
   },
@@ -169,7 +193,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'openai',
     description: 'Deepest reasoning — expensive, use deliberately',
     isReasoning: true,
-    key: 'openai/gpt-5.6-sol',
+    key: AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
     label: 'GPT-5.6 Sol',
     pricing: { completionPerMillion: 30, promptPerMillion: 5 },
   },
@@ -177,7 +201,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'genfeed-ai',
     description: 'Runs on our own fleet — no credit cost',
     isSelfHosted: true,
-    key: 'local/qwen-32b',
+    key: AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B,
     label: 'Qwen 32B (self-hosted)',
     pricing: { completionPerMillion: 0, promptPerMillion: 0 },
   },
@@ -185,7 +209,7 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     brandSlug: 'genfeed-ai',
     description: 'Runs on our own fleet — no credit cost',
     isSelfHosted: true,
-    key: 'local/mistral-small',
+    key: AGENT_CHAT_MODEL_KEYS.LOCAL_MISTRAL_SMALL,
     label: 'Mistral Small (self-hosted)',
     pricing: { completionPerMillion: 0, promptPerMillion: 0 },
   },
@@ -214,10 +238,19 @@ const AGENT_CHAT_MODELS_BY_KEY = new Map(
  * ~$0.10/$0.40 per 1M). Pick Terra/Sol/Opus only when a turn needs heavier
  * agentic reasoning.
  */
-export const DEFAULT_AGENT_CHAT_MODEL_KEY = 'google/gemini-2.5-flash-lite';
+export const DEFAULT_AGENT_CHAT_MODEL_KEY =
+  AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE;
+
+/**
+ * Featured / recommended step-up in pickers (not the default).
+ * Keep separate so "highlighted" never drifts from a hard-coded string.
+ */
+export const HIGHLIGHTED_AGENT_CHAT_MODEL_KEY =
+  AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA;
 
 /** Default when the org runs its own inference fleet. */
-export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = 'local/qwen-32b';
+export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY =
+  AGENT_CHAT_MODEL_KEYS.LOCAL_QWEN_32B;
 
 /**
  * Model keys that are no longer offered. Persisted rows (org settings, brand
@@ -227,23 +260,26 @@ export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = 'local/qwen-32b';
  *
  * `openrouter/auto` is retired on purpose: it let OpenRouter pick any model at
  * any price while we billed the cheapest tier.
+ *
+ * Map *values* must always be {@link AGENT_CHAT_MODEL_KEYS} members.
+ * Map *keys* are historical aliases (only place retired strings may appear).
  */
-export const RETIRED_AGENT_CHAT_MODELS: Record<string, string> = {
-  'anthropic/claude-opus-4-6': 'anthropic/claude-opus-5',
-  'anthropic/claude-sonnet-4-5': 'anthropic/claude-sonnet-5',
-  'anthropic/claude-sonnet-4-5-20250514': 'anthropic/claude-sonnet-5',
-  'anthropic/claude-sonnet-4-5-20250929': 'anthropic/claude-sonnet-5',
-  'anthropic/claude-sonnet-4.5': 'anthropic/claude-sonnet-5',
-  'deepseek/deepseek-chat': 'deepseek/deepseek-v4-flash-0731',
-  'google/gemini-3-flash-preview': 'google/gemini-3.6-flash',
-  'moonshotai/kimi-k2.5': 'moonshotai/kimi-k3',
-  'openai/gpt-4o': 'openai/gpt-5.6-terra',
-  'openai/gpt-4o-mini': 'google/gemini-2.5-flash-lite',
-  'openai/o3': 'openai/gpt-5.6-sol',
-  'openai/o4-mini': 'google/gemini-2.5-flash-lite',
+export const RETIRED_AGENT_CHAT_MODELS: Record<string, AgentChatModelKey> = {
+  'anthropic/claude-opus-4-6': AGENT_CHAT_MODEL_KEYS.CLAUDE_OPUS_5,
+  'anthropic/claude-sonnet-4-5': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  'anthropic/claude-sonnet-4-5-20250514': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  'anthropic/claude-sonnet-4-5-20250929': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  'anthropic/claude-sonnet-4.5': AGENT_CHAT_MODEL_KEYS.CLAUDE_SONNET_5,
+  'deepseek/deepseek-chat': AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
+  'google/gemini-3-flash-preview': AGENT_CHAT_MODEL_KEYS.GEMINI_3_6_FLASH,
+  'moonshotai/kimi-k2.5': AGENT_CHAT_MODEL_KEYS.KIMI_K3,
+  'openai/gpt-4o': AGENT_CHAT_MODEL_KEYS.GPT_5_6_TERRA,
+  'openai/gpt-4o-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
+  'openai/o3': AGENT_CHAT_MODEL_KEYS.GPT_5_6_SOL,
+  'openai/o4-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   'openrouter/auto': DEFAULT_AGENT_CHAT_MODEL_KEY,
   'openrouter/auto-beta': DEFAULT_AGENT_CHAT_MODEL_KEY,
-  'x-ai/grok-4-fast': 'x-ai/grok-4.5',
+  'x-ai/grok-4-fast': AGENT_CHAT_MODEL_KEYS.GROK_4_5,
 };
 
 /**
