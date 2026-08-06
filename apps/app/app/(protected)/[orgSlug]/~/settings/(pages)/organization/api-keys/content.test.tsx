@@ -4,6 +4,28 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) =>
+      `/test-org/~${path.startsWith('/') ? path : `/${path}`}`,
+  }),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 const mocks = vi.hoisted(() => ({
   authedServices: new WeakMap<
     (token: string) => unknown,
@@ -354,21 +376,25 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByText('gf_test_created')).toBeInTheDocument();
   });
 
-  it('disables Genfeed API key creation for free-tier organizations', async () => {
+  it('locks the API keys page for free-tier organizations', async () => {
     mocks.settingsSubscriptionTier = 'free';
     render(<SettingsApiKeysPage />);
 
-    await screen.findByText('MCP Key');
+    expect(
+      await screen.findByText('Unlock API keys with Pro'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/API access is included on paid plans/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Key' })).toBeDisabled();
-
-    fireEvent.change(screen.getByPlaceholderText('MCP Server'), {
-      target: { value: 'Automation MCP' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
-
+    expect(
+      screen.getByRole('link', { name: /Upgrade to Pro/i }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('/settings/subscription'),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Create Key' }),
+    ).not.toBeInTheDocument();
     expect(mocks.createApiKey).not.toHaveBeenCalled();
   });
 

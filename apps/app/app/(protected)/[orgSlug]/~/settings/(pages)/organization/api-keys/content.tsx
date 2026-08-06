@@ -5,20 +5,24 @@ import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import {
   API_KEY_SCOPE_OPTIONS,
   API_KEY_SCOPE_PRESETS,
+  APP_ROUTES,
 } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
-import { Clipboard, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Clipboard, Lock, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type ProductApiKeyForm = {
@@ -96,8 +100,11 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
   return apiKey.key ?? apiKey.token;
 }
 
+const API_ACCESS_UPGRADE_TIER_LABEL = 'Pro';
+
 export default function SettingsApiKeysPage() {
   const { organizationId, isReady, settings } = useBrand();
+  const { orgHref } = useOrgUrl();
   const selfHostedDeployment = isSelfHostedDeployment();
   const hasProductApiAccess =
     selfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
@@ -292,6 +299,26 @@ export default function SettingsApiKeysPage() {
     }
   };
 
+  if (isReady && !hasProductApiAccess) {
+    return (
+      <div className="space-y-4 pb-10">
+        <h1 className="sr-only">API Keys</h1>
+        <CardEmpty
+          actions={
+            <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+              <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+                Upgrade to {API_ACCESS_UPGRADE_TIER_LABEL}
+              </Link>
+            </Button>
+          }
+          description={`API access is included on paid plans. Upgrade to ${API_ACCESS_UPGRADE_TIER_LABEL} to create Genfeed API keys for CLI, MCP, and unattended workflows.`}
+          icon={Lock}
+          label={`Unlock API keys with ${API_ACCESS_UPGRADE_TIER_LABEL}`}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 pb-10">
       <h1 className="sr-only">API Keys</h1>
@@ -312,13 +339,6 @@ export default function SettingsApiKeysPage() {
             </Button>
           }
         >
-          {!hasProductApiAccess ? (
-            <p className="text-xs text-amber-600">
-              API access is included on paid plans. Upgrade to Pro to create
-              Genfeed API keys.
-            </p>
-          ) : null}
-
           {productPlainKey ? (
             <div className="mt-4 border-t border-border pt-3">
               <div className="flex items-center justify-between gap-3">
