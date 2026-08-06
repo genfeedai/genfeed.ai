@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `gf organizations` is registered on the program. The command (`organizations`,
+  `organizations select`, `organizations current`) was implemented but unreachable from the binary.
+
+### Changed
+
+- The Fleet host no longer defaults to a baked-in address. `gf fleet`, `gf train`, `gf caption`,
+  and `gf dataset` now require `GF_FLEET_HOST` or `gf config set fleet-host <host>` and fail with a
+  configuration hint when it is unset (`src/config/schema.ts`, `src/api/fleet-api.ts`).
+- Renamed the Darkroom surface to Fleet: `gf darkroom` → `gf fleet`, `src/api/darkroom-api.ts` →
+  `src/api/fleet-api.ts` (#2339).
+- Agent threads resolve against scoped organization/brand context in `gf chat` and the agent shell
+  (#1691).
+- Organization and element API calls follow the collapsed REST paths (#2225).
+
+### Fixed
+
+- `gf --version` reports the packaged version instead of a stale hardcoded `0.4.0`.
+- `gf publish` and `gf workflow` send the corrected payload shapes surfaced by the local QA pass
+  (#2366).
+
+## [0.4.1] - 2026-07-10
+
+### Added
+
+- `gf keys` for API key management (create, list, revoke) plus browser-based and
+  `--key`/`--interactive` login flows (#878).
+
+### Changed
+
+- Publishing targets the public npm registry explicitly via `publishConfig.registry` (#1588).
+- Agent thread endpoints moved from `/chat` to `/agent` (#1060).
+- Mechanical status/field routes collapsed into `PATCH`, and static-filter `GET`s into query
+  params, across the CLI's API client (#1360, #1363).
+- Generation commands (`image`, `video`, `article`, `article-x`) share one flow through
+  `commands/generate/helpers.ts` (#275).
+- Auth requests follow the completed Better Auth cutover (#769).
+
+### Fixed
+
+- `gf keys list` paginates through every page instead of showing only the first (#1568).
+- `gf workflow list --json` emits an empty array instead of nothing, and `gf whoami` always stops
+  its spinner (#431).
+- Brand resolution no longer reads the legacy relation alias (#1098).
+- Malformed workflow inputs produce a normalized error instead of a raw parse failure.
+
+## [0.4.0] - 2026-04-05
+
+### Changed
+
+- The CLI moved from the standalone `genfeedai/cli` repository into the `genfeed.ai` monorepo at
+  `packages/cli`, published as `@genfeedai/cli`. Shared code (`@genfeedai/constants`, `errors`,
+  `interfaces`, `serializers`, `tools`) is now consumed as workspace dependencies, and releases ride
+  monorepo tags rather than per-repo tags.
+
 ## [0.3.1] - 2026-02-25
 
 ### Added
@@ -41,6 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive prompts with `@inquirer/prompts`
 - Progress spinners with `ora`
 
-[Unreleased]: https://github.com/genfeedai/cli/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/genfeedai/genfeed.ai/commits/master/packages/cli
+[0.4.1]: https://github.com/genfeedai/genfeed.ai/commit/e2db9b113aef92e355c5b5dd7f07eb754b664c63
+[0.4.0]: https://github.com/genfeedai/genfeed.ai/commit/e0f441c9de521b1a1f31d0bf8fb8580b96a6bfdc
 [0.3.1]: https://github.com/genfeedai/cli/releases/tag/v0.3.1
 [0.1.0]: https://github.com/genfeedai/cli/releases/tag/v0.1.0

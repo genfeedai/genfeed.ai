@@ -18,7 +18,9 @@ export const profileSchema = z.object({
     })
     .default({ imageModel: 'imagen-4', videoModel: 'google-veo-3' }),
   fleetApiPort: z.number().default(8189),
-  fleetHost: z.string().default('100.106.229.81'),
+  // No default: the Fleet host is deployment-specific and must come from
+  // `GF_FLEET_HOST` or `gf config set fleet-host <host>`.
+  fleetHost: z.string().optional(),
   organizationId: z.string().optional(),
   role: z.enum(['user', 'admin']).default('user'),
   token: z.string().optional(),

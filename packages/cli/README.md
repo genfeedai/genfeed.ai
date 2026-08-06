@@ -116,6 +116,26 @@ genfeed logout
 
 ## Commands
 
+### Organizations
+
+List your organizations:
+
+```bash
+gf organizations
+```
+
+Switch the active organization (also updates the default brand):
+
+```bash
+gf organizations select
+```
+
+Show the current organization:
+
+```bash
+gf organizations current
+```
+
 ### Brand Management
 
 List all brands:
@@ -266,6 +286,13 @@ genfeed posts list --platform twitter --status published
 ```
 
 ### Fleet (Admin)
+
+Fleet commands talk to a self-hosted Fleet API. There is no default host — point the CLI at your
+own instance first:
+
+```bash
+export GF_FLEET_HOST=fleet.internal.example   # or: gf config set fleet-host <host>
+```
 
 Check GPU health:
 
@@ -463,7 +490,6 @@ Config is stored in `~/.gf/config.json`:
     "default": {
       "apiUrl": "https://api.genfeed.ai/v1",
       "role": "user",
-      "fleetHost": "100.106.229.81",
       "fleetApiPort": 8189,
       "agent": {
         "model": "claude-3-7-sonnet",
@@ -488,8 +514,8 @@ Config is stored in `~/.gf/config.json`:
 | `GENFEED_ORGANIZATION_ID` | Organization ID |
 | `GENFEED_USER_ID` | User ID |
 | `GENFEED_AGENT_MODEL` | Default agent model for `chat` / `chat send` |
-| `GF_FLEET_HOST` | Fleet GPU host IP |
-| `GF_FLEET_PORT` | Fleet API port |
+| `GF_FLEET_HOST` | Fleet GPU host (no default — required for `gf fleet`, `gf train`, `gf caption`, `gf dataset`) |
+| `GF_FLEET_PORT` | Fleet API port (default `8189`) |
 
 ## Contributing
 

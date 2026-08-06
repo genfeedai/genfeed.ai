@@ -23,7 +23,6 @@ function makeConfigJson(profileOverrides: Record<string, unknown> = {}) {
         apiUrl: 'https://api.genfeed.ai/v1',
         defaults: { imageModel: 'imagen-4', videoModel: 'google-veo-3' },
         fleetApiPort: 8189,
-        fleetHost: '100.106.229.81',
         role: 'user',
         ...profileOverrides,
       },
@@ -149,6 +148,19 @@ describe('config/store', () => {
       expect(profile.defaults.imageModel).toBe('custom-model');
     });
 
+    it('leaves the fleet host unset so no address is baked into the package', async () => {
+      const { getActiveProfile } = await import('../../src/config/store');
+      const { profile } = await getActiveProfile();
+      expect(profile.fleetHost).toBeUndefined();
+    });
+
+    it('returns the configured fleet host when set', async () => {
+      mockFileSystem.content = makeConfigJson({ fleetHost: 'fleet.internal.example' });
+      const { getActiveProfile } = await import('../../src/config/store');
+      const { profile } = await getActiveProfile();
+      expect(profile.fleetHost).toBe('fleet.internal.example');
+    });
+
     it('returns default video model', async () => {
       const { getActiveProfile } = await import('../../src/config/store');
       const { profile } = await getActiveProfile();
@@ -209,6 +221,13 @@ describe('config/store', () => {
       process.env.GENFEED_API_URL = 'https://env.api.com/v1';
       const { getApiUrl } = await import('../../src/config/store');
       expect(await getApiUrl()).toBe('https://env.api.com/v1');
+    });
+
+    it('env var supplies the fleet host', async () => {
+      process.env.GF_FLEET_HOST = 'fleet.env.example';
+      const { getActiveProfile } = await import('../../src/config/store');
+      const { profile } = await getActiveProfile();
+      expect(profile.fleetHost).toBe('fleet.env.example');
     });
 
     it('env var overrides the configured agent model', async () => {

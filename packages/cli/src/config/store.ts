@@ -128,16 +128,6 @@ export async function getActiveBrand(): Promise<string | undefined> {
   return profile.activeBrand;
 }
 
-export async function getFleetHost(): Promise<string> {
-  const { profile } = await getActiveProfile();
-  return profile.fleetHost;
-}
-
-export async function getFleetApiPort(): Promise<number> {
-  const { profile } = await getActiveProfile();
-  return profile.fleetApiPort;
-}
-
 export async function getRole(): Promise<string> {
   const { profile } = await getActiveProfile();
   return profile.role;
