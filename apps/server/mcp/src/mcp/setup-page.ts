@@ -32,6 +32,35 @@ function readEnv(name: string): string | undefined {
   return process.env[name];
 }
 
+function renderPostHogSnippet(): string {
+  const projectToken = readEnv('POSTHOG_PROJECT_API_KEY');
+  if (!projectToken || !/^phc_[A-Za-z0-9]+$/.test(projectToken)) {
+    return '';
+  }
+
+  const token = JSON.stringify(projectToken);
+
+  // Official PostHog queue loader. The project token is write-only and safe
+  // for browser use, but is still pattern-validated before entering HTML.
+  return `<script>
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+posthog.init(${token}, {
+  api_host: "https://eu.i.posthog.com",
+  autocapture: {
+    capture_copied_text: false,
+    dom_event_allowlist: ["click"],
+    element_allowlist: ["a", "button"]
+  },
+  capture_pageleave: true,
+  capture_pageview: true,
+  cookieless_mode: "always",
+  defaults: "2026-05-30",
+  disable_session_recording: true,
+  person_profiles: "never"
+});
+</script>`;
+}
+
 function readPublicUrl(name: string, fallback: string): string {
   const raw = readEnv(name);
   if (!raw) return trimTrailingSlash(fallback);
@@ -138,6 +167,7 @@ export function renderSetupPage(): string {
   const connectUrl = `${appUrl}${CONNECT_GENFEED_PATH}`;
   const docsGuideUrl = `${docsUrl}${DOCS_GUIDE_PATH}`;
   const oauthDocsUrl = `${docsGuideUrl}#connect-via-oauth`;
+  const postHogSnippet = renderPostHogSnippet();
 
   const mcpUrlSafe = escapeHtml(mcpUrl);
   const connectUrlSafe = escapeHtml(connectUrl);
@@ -632,6 +662,7 @@ pre.command {
   .footer-links { justify-content: flex-start; }
 }
 </style>
+${postHogSnippet}
 </head>
 <body class="${ui.root}">
 <main class="page">

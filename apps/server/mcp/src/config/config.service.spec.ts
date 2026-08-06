@@ -65,6 +65,15 @@ describe('ConfigService (MCP)', () => {
       );
     });
 
+    it('validates the optional PostHog project configuration', () => {
+      expect(ConfigService.schema.describe().keys).toHaveProperty(
+        'POSTHOG_PROJECT_API_KEY',
+      );
+      expect(ConfigService.schema.describe().keys).toHaveProperty(
+        'POSTHOG_HOST',
+      );
+    });
+
     it('accepts a well-formed 32-char CHROME_EXTENSION_ID', () => {
       process.env.CHROME_EXTENSION_ID = 'a'.repeat(32);
 

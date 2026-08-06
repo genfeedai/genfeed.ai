@@ -10,6 +10,7 @@ describe('MCP setup page', () => {
   beforeEach(() => {
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
     vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
+    vi.stubEnv('POSTHOG_PROJECT_API_KEY', '');
   });
 
   afterEach(() => {
@@ -31,6 +32,29 @@ describe('MCP setup page', () => {
     expect(html).toContain('Start guided setup');
     expect(html).toContain('Connect automatically via OAuth');
     expect(html).not.toContain('http://localhost:3014');
+  });
+
+  it('adds cookieless page and control tracking when PostHog is configured', () => {
+    vi.stubEnv('POSTHOG_PROJECT_API_KEY', 'phc_test123');
+
+    const html = renderSetupPage();
+
+    expect(html).toContain('posthog.init("phc_test123"');
+    expect(html).toContain('cookieless_mode: "always"');
+    expect(html).toContain('element_allowlist: ["a", "button"]');
+    expect(html).toContain('disable_session_recording: true');
+    expect(html).toContain('person_profiles: "never"');
+  });
+
+  it('omits analytics for missing or malformed project tokens', () => {
+    expect(renderSetupPage()).not.toContain('posthog.init(');
+
+    vi.stubEnv(
+      'POSTHOG_PROJECT_API_KEY',
+      'phc_bad</script><script>alert(1)</script>',
+    );
+    expect(renderSetupPage()).not.toContain('posthog.init(');
+    expect(renderSetupPage()).not.toContain('alert(1)');
   });
 
   it('publishes consistent protected-resource metadata and challenge headers', () => {
