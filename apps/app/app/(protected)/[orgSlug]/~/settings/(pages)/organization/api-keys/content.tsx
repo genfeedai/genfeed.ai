@@ -21,6 +21,51 @@ import { Input } from '@ui/primitives/input';
 import { Clipboard, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+type ProductApiKeyForm = {
+  allowedIps: string;
+  description: string;
+  expiresAt: string;
+  label: string;
+  rateLimit: string;
+  selectedScopes: string[];
+};
+
+type ProductPlainKey = {
+  key: string;
+  label: string;
+};
+
+type ProductApiKeyScope =
+  (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
+
+const PRODUCT_API_KEY_PRESETS = [
+  { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },
+  { label: 'Read', scopes: API_KEY_SCOPE_PRESETS.read },
+  { label: 'Content', scopes: API_KEY_SCOPE_PRESETS.content },
+] as const;
+
+const SECONDARY_BUTTON_VARIANT = ButtonVariant.SECONDARY;
+
+function scopesExactlyMatch(
+  selected: readonly string[],
+  preset: readonly string[],
+): boolean {
+  if (selected.length !== preset.length) {
+    return false;
+  }
+  const selectedSet = new Set(selected);
+  return preset.every((scope) => selectedSet.has(scope));
+}
+
+const initialProductApiKeyForm: ProductApiKeyForm = {
+  allowedIps: '',
+  description: '',
+  expiresAt: '',
+  label: '',
+  rateLimit: '',
+  selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
+};
+
 function parseCommaSeparated(value: string): string[] | undefined {
   const items = value
     .split(',')
