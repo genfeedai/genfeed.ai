@@ -226,25 +226,30 @@ function AgentChatInputToolbarInner({
         {modelSelector}
 
         {showStop && onStop ? (
+          // Same footprint as Send: solid control + small stop glyph (not a
+          // full-bleed red square that reads as a blob).
           <Button
             ariaLabel="Stop agent"
             className={cn(
-              'shrink-0 rounded-lg border border-destructive/35 bg-destructive/15 text-destructive transition-colors hover:bg-destructive/25',
+              'shrink-0 rounded-lg',
               controlSize,
               'min-h-0 min-w-0 p-0',
             )}
-            icon={<Square className="size-3.5 fill-current" />}
+            icon={
+              <Square
+                aria-hidden
+                className="size-2.5 fill-current stroke-none"
+              />
+            }
             onClick={() => {
               void onStop();
             }}
             size={ButtonSize.ICON}
             tooltip="Stop"
-            variant={ButtonVariant.UNSTYLED}
+            variant={ButtonVariant.DESTRUCTIVE}
             withWrapper={false}
           />
-        ) : null}
-
-        {isTranscribing ? (
+        ) : isTranscribing ? (
           <Button
             ariaLabel="Transcribing"
             className={cn('shrink-0', controlSize)}
@@ -256,7 +261,7 @@ function AgentChatInputToolbarInner({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
-        ) : !showStop && isListening ? (
+        ) : isListening ? (
           <Button
             ariaLabel="Stop listening"
             className={cn(
