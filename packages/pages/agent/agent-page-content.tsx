@@ -50,7 +50,10 @@ export default function AgentPageContent({
   );
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col">
+    // Fill the locked conversation shell (see AppLayout lockViewportHeight).
+    // Do not use min-h-[100vh-…] — with the credits banner that overflows the
+    // viewport and stacks a document scrollbar on top of the thread scroller.
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       <AgentFullPage
         apiService={agentApiService}
         authReady={authReady}
