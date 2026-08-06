@@ -92,6 +92,16 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
     pricing: { completionPerMillion: 0.18, promptPerMillion: 0.09 },
   },
   {
+    brandSlug: 'google',
+    description:
+      'Default daily driver via OpenRouter — fast Flash-Lite, cheap tool turns',
+    isReasoning: true,
+    key: 'google/gemini-2.5-flash-lite',
+    label: 'Gemini 2.5 Flash Lite',
+    // OpenRouter live (2026-08-07): $0.10 / $0.40 per 1M
+    pricing: { completionPerMillion: 0.4, promptPerMillion: 0.1 },
+  },
+  {
     brandSlug: 'openai',
     description: 'Fast and cheap — short chat turns and quick edits',
     key: 'openai/gpt-5.6-luna',
@@ -100,15 +110,16 @@ const AGENT_CHAT_MODEL_DEFINITIONS: AgentChatModelDefinition[] = [
   },
   {
     brandSlug: 'google',
-    description: 'Low-cost reasoning for light tool use',
+    description: 'Stronger Flash Lite for light agentic work',
     isReasoning: true,
     key: 'google/gemini-3.5-flash-lite',
     label: 'Gemini 3.5 Flash Lite',
+    // OpenRouter live (2026-08-07): $0.30 / $2.50 per 1M
     pricing: { completionPerMillion: 2.5, promptPerMillion: 0.3 },
   },
   {
     brandSlug: 'openai',
-    description: 'Balanced default for agentic work',
+    description: 'Balanced for heavier agentic work',
     isReasoning: true,
     key: 'openai/gpt-5.6-terra',
     label: 'GPT-5.6 Terra',
@@ -198,11 +209,12 @@ const AGENT_CHAT_MODELS_BY_KEY = new Map(
 );
 
 /**
- * Default agent chat model.
- * Luna is the cheap daily driver (~10× less than Terra per token). Switch to
- * Terra/Sol/Opus explicitly when a turn needs heavier agentic reasoning.
+ * Default agent chat model (OpenRouter).
+ * Gemini 2.5 Flash Lite is the cheap daily driver (live OpenRouter pricing
+ * ~$0.10/$0.40 per 1M). Pick Terra/Sol/Opus only when a turn needs heavier
+ * agentic reasoning.
  */
-export const DEFAULT_AGENT_CHAT_MODEL_KEY = 'openai/gpt-5.6-luna';
+export const DEFAULT_AGENT_CHAT_MODEL_KEY = 'google/gemini-2.5-flash-lite';
 
 /** Default when the org runs its own inference fleet. */
 export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = 'local/qwen-32b';
@@ -226,9 +238,9 @@ export const RETIRED_AGENT_CHAT_MODELS: Record<string, string> = {
   'google/gemini-3-flash-preview': 'google/gemini-3.6-flash',
   'moonshotai/kimi-k2.5': 'moonshotai/kimi-k3',
   'openai/gpt-4o': 'openai/gpt-5.6-terra',
-  'openai/gpt-4o-mini': 'openai/gpt-5.6-luna',
+  'openai/gpt-4o-mini': 'google/gemini-2.5-flash-lite',
   'openai/o3': 'openai/gpt-5.6-sol',
-  'openai/o4-mini': 'openai/gpt-5.6-luna',
+  'openai/o4-mini': 'google/gemini-2.5-flash-lite',
   'openrouter/auto': DEFAULT_AGENT_CHAT_MODEL_KEY,
   'openrouter/auto-beta': DEFAULT_AGENT_CHAT_MODEL_KEY,
   'x-ai/grok-4-fast': 'x-ai/grok-4.5',

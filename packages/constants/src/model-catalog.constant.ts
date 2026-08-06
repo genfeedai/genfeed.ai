@@ -127,7 +127,7 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
         description: model.description,
         inputCostPerMillionTokens: model.pricing.promptPerMillion,
         isActive: isSelectable,
-        isDefault: model.key === 'openai/gpt-5.6-luna',
+        isDefault: model.key === 'google/gemini-2.5-flash-lite',
         isHighlighted: model.key === 'openai/gpt-5.6-terra',
         isLegacy: !isSelectable,
         isPublic: true,
