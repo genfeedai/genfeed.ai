@@ -4,6 +4,23 @@ export const AGENT_WORKFLOW_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Get the input variable definitions for a workflow. Use this before execute_workflow to discover what inputs a workflow expects.',
+    name: 'get_workflow_inputs',
+    parameters: {
+      properties: {
+        workflowId: {
+          description: 'ID of the workflow to inspect',
+          type: 'string',
+        },
+      },
+      required: ['workflowId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'Resolve the best official workflow source for the request, ask for confirmation, then install it into the current organization. Prefer seeded templates first, official marketplace workflows second, and only generate a new workflow as fallback.',
     name: 'install_official_workflow',
     parameters: {

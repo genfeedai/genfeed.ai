@@ -1,6 +1,8 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
+import { AGENT_ADS_TOOLS } from './ads.tools.js';
 import { AGENT_AGENT_CONTROL_TOOLS } from './agent-control.tools.js';
 import { AGENT_ANALYTICS_TOOLS } from './analytics.tools.js';
+import { AGENT_BRAND_PROFILE_TOOLS } from './brand-profile.tools.js';
 import { AGENT_CAMPAIGN_TOOLS } from './campaign.tools.js';
 import { AGENT_CONTENT_TOOLS } from './content.tools.js';
 import { AGENT_DASHBOARD_LAYOUT_TOOLS } from './dashboard-layout.tools.js';
@@ -29,4 +31,6 @@ export const AGENT_ONLY_TOOLS: SourceTool[] = [
   ...AGENT_DASHBOARD_LAYOUT_TOOLS,
   ...AGENT_AGENT_CONTROL_TOOLS,
   ...AGENT_WORKFLOW_TOOLS,
+  ...AGENT_ADS_TOOLS,
+  ...AGENT_BRAND_PROFILE_TOOLS,
 ];

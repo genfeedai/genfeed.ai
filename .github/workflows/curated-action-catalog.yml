@@ -1,0 +1,59 @@
+# Review signal for the curated action catalog.
+#
+# packages/tools/src/registry/curated-action-catalog.ts is the only source of
+# truth for which product actions the in-app Agent and the MCP server expose.
+# Adding an action, removing one, or moving one between surfaces is a product
+# decision, not a refactor — so every such change is annotated inline on the PR
+# diff and summarized in the job summary, where a reviewer cannot miss it.
+#
+# This reports; it does not gate. The hard failures live in CI ("Executable
+# Contracts"): check:agent-tool-dispatch for agent coverage, and the module-load
+# throw in packages/tools/src/registry/tool-registry.ts for catalog/definition
+# mismatch.
+name: Curated action catalog
+
+on:
+  pull_request:
+    paths:
+      - "packages/tools/src/registry/curated-action-catalog.ts"
+      - "packages/tools/scripts/report-curated-action-catalog.ts"
+      - ".github/workflows/curated-action-catalog.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: curated-action-catalog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: Report catalog changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          bun-version: "1.3.14"
+          cache-turbo: "false"
+
+      # The base catalog is read out of git rather than checked out, so the
+      # working tree stays on the PR head for the report script itself.
+      - name: Extract base catalog
+        run: |
+          git show "${{ github.event.pull_request.base.sha }}:packages/tools/src/registry/curated-action-catalog.ts" \
+            > "${RUNNER_TEMP}/base-curated-action-catalog.ts" \
+            || printf '' > "${RUNNER_TEMP}/base-curated-action-catalog.ts"
+
+      - name: Report catalog changes
+        working-directory: packages/tools
+        run: |
+          bun run catalog:changes \
+            --before="${RUNNER_TEMP}/base-curated-action-catalog.ts" \
+            --after="${GITHUB_WORKSPACE}/packages/tools/src/registry/curated-action-catalog.ts" \
+            --summary="${GITHUB_STEP_SUMMARY}"

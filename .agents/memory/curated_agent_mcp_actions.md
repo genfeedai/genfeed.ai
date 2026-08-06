@@ -21,3 +21,24 @@ action. Catalog additions, removals, and surface transitions must be intentional
 and are reported by `.github/workflows/curated-action-catalog.yml`. Preserve
 ordinary OpenAPI emit/validation for API documentation, but never use OpenAPI to
 generate tools or parity gates.
+
+**Enforcement (three layers, all in CI or at boot):**
+
+- `packages/tools/src/registry/tool-registry.ts` throws at module load when a
+  catalog entry has no definition, a definition has no catalog entry, or either
+  side has duplicates.
+- MCP: `ToolRegistryService.validateDispatchCoverage` (OnModuleInit) crashes
+  boot when the MCP surface and its dispatch disagree.
+- Agent: `assertExtensionsAreCurated` in
+  `apps/server/api/src/services/agent-orchestrator/tools/agent-tool-registry.ts`
+  throws at module load when a `CLOUD_AGENT_TOOL_EXTENSIONS` entry names an
+  action the catalog does not surface to the agent, and
+  `bun run check:agent-tool-dispatch`
+  (`scripts/architecture/check-agent-tool-dispatch.ts`, wired into the CI
+  `guards` job and `check:architecture`) fails on either direction of drift —
+  cataloged-but-unroutable or routable-but-unreviewed.
+
+`CLOUD_AGENT_TOOL_EXTENSIONS` refines cataloged actions with cloud-only schema
+or prompt wording. It is not a place to introduce an action: five live,
+credit-costed tools once shipped that way, two of them with an `undefined`
+credit cost.

@@ -101,6 +101,14 @@ const checks = [
     ],
     name: 'Agent decomposition size ratchet',
   },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-agent-tool-dispatch.ts',
+    ],
+    name: 'Agent tool dispatch coverage',
+  },
 ] as const;
 
 let failed = false;

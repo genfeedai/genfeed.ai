@@ -1,4 +1,3 @@
-import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import {
   AGENT_CHAT_MODELS,
   getAgentChatModelRoundCredits,
@@ -10,19 +9,17 @@ const BASE_AGENT_CREDIT_COSTS: Record<string, number> = Object.fromEntries(
   getToolsForSurface('agent').map((tool) => [tool.name, tool.creditCost]),
 );
 
+/**
+ * Deliberate overrides of a curated catalog price. Keep this list to genuine
+ * divergences: an entry that merely repeats the catalog cost becomes a second
+ * source of truth that outranks review the moment the catalog changes.
+ *
+ * `create_post` costs 1 in the catalog because MCP charges for the publish;
+ * the in-app agent tool only returns a draft or a confirmation card, and the
+ * publish itself is billed downstream.
+ */
 const EXTRA_AGENT_CREDIT_COSTS: Record<string, number> = {
-  [AgentToolName.CAPTURE_MEMORY]: 0,
-  [AgentToolName.CREATE_LIVESTREAM_BOT]: 0,
   [AgentToolName.CREATE_POST]: 0,
-  [AgentToolName.DRAFT_BRAND_VOICE_PROFILE]:
-    BRAND_PROFILE_GENERATION_CREDIT_COST,
-  [AgentToolName.GENERATE_AD_PACK]: 0,
-  [AgentToolName.GET_TOP_INGREDIENTS]: 0,
-  [AgentToolName.MANAGE_LIVESTREAM_BOT]: 0,
-  [AgentToolName.PREPARE_AD_LAUNCH_REVIEW]: 0,
-  [AgentToolName.RATE_CONTENT]: 0,
-  [AgentToolName.RATE_INGREDIENT]: 0,
-  [AgentToolName.REPLICATE_TOP_INGREDIENT]: 0,
 };
 
 export const AGENT_CREDIT_COSTS: Record<string, number> = {
