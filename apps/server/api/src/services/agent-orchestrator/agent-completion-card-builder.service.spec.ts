@@ -7,7 +7,7 @@ describe('AgentCompletionCardBuilderService', () => {
   it('builds a workflow completion card with the existing CTA and suggestion priority', () => {
     const workflowAction: AgentUiAction = {
       ctas: [
-        { href: '/automations/editor/workflow-1', label: 'Open workflow' },
+        { href: '/automate/workflows/workflow-1', label: 'Open workflow' },
       ],
       id: 'workflow-created-1',
       scheduleSummary: 'Every weekday at 17:00',
@@ -54,7 +54,7 @@ describe('AgentCompletionCardBuilderService', () => {
           'Every weekday at 17:00',
         ],
         primaryCta: {
-          href: '/automations/editor/workflow-1',
+          href: '/automate/workflows/workflow-1',
           label: 'Use in Workflow',
         },
         secondaryCtas: [

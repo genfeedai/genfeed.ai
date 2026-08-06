@@ -41,7 +41,7 @@ describe('AgentRouteRewriteService', () => {
               label: 'Open analytics',
             },
             {
-              ctaHref: '/automations/editor/workflow-1',
+              ctaHref: '/automate/workflows/workflow-1',
               label: 'Open workflow',
             },
           ],
@@ -61,7 +61,7 @@ describe('AgentRouteRewriteService', () => {
           href: '/genfeed-ai/launch-brand/analytics/overview?period=30d#top',
         },
         {
-          ctaHref: '/genfeed-ai/launch-brand/automations/editor/workflow-1',
+          ctaHref: '/genfeed-ai/launch-brand/automate/workflows/workflow-1',
         },
       ],
       editorUrl: '/genfeed-ai/launch-brand/publish/review?filter=ready',

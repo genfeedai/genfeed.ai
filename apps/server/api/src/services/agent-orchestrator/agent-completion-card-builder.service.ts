@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AgentToolName,
   type AgentUiAction,
@@ -199,8 +200,8 @@ export class AgentCompletionCardBuilderService {
           workflowAction.ctas?.[0],
         ) ?? {
           href: workflowAction.workflowId
-            ? `/automations/editor/${workflowAction.workflowId}`
-            : '/automations/editor/',
+            ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowAction.workflowId}`
+            : APP_ROUTES.AUTOMATE.WORKFLOWS,
           label: 'Use in Workflow',
         },
         secondaryCtas: this.buildCompletionSecondaryCtas(
