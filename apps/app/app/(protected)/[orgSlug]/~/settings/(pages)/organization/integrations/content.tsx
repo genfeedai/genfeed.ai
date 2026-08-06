@@ -246,12 +246,6 @@ export default function SettingsIntegrationsPage() {
     <div className="space-y-4 pb-10">
       <h1 className="sr-only">Integrations</h1>
 
-      <p className="text-sm leading-6 text-muted-foreground">
-        Genfeed uses the server-configured providers by default. Add your own
-        provider API keys only to override hosted access. Requests made with
-        your own key do not deduct credits.
-      </p>
-
       {desktop ? <DesktopLocalProviderSettings variant="card" /> : null}
 
       {!desktop && (!isReady || isLoading) ? (
@@ -261,7 +255,7 @@ export default function SettingsIntegrationsPage() {
       ) : null}
 
       {isReady && !isLoading ? (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {providerStatuses.map((providerStatus) => (
             <ByokProviderCard
               key={providerStatus.provider}

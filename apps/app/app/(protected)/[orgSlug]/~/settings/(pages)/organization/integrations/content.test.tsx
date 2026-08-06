@@ -135,16 +135,15 @@ describe('SettingsIntegrationsPage', () => {
     mocks.validateByokProviderKey.mockResolvedValue({ isValid: true });
   });
 
-  it('loads hosted BYOK provider state and explains credit behavior', async () => {
+  it('loads provider cards without a page blurb', async () => {
     render(<SettingsIntegrationsPage />);
 
-    expect(
-      await screen.findByText(/server-configured providers by default/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/do not deduct credits/)).toBeInTheDocument();
-    expect(screen.getByText('OpenAI')).toBeInTheDocument();
+    expect(await screen.findByText('OpenAI')).toBeInTheDocument();
     expect(screen.getByText('Replicate')).toBeInTheDocument();
     expect(screen.getByText('r8_****1234')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/server-configured providers by default/),
+    ).not.toBeInTheDocument();
     expect(mocks.getByokAllProviders).toHaveBeenCalledWith('org-1');
   });
 
