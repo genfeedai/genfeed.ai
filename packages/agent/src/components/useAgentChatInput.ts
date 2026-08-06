@@ -784,6 +784,8 @@ export function useAgentChatInput({
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
+  // Voice is a leading-tool affordance; send stays pinned on the trailing edge
+  // (T3-style: model + send on the right). They are no longer mutually exclusive.
   const shouldShowVoiceInput =
     !showStop &&
     !isListening &&
@@ -791,10 +793,7 @@ export function useAgentChatInput({
     isSupported &&
     isEmpty &&
     !hasAttachments;
-  const shouldShowSendButton =
-    !showStop &&
-    !isTranscribing &&
-    (!isSupported || !isEmpty || hasCompletedAttachments);
+  const shouldShowSendButton = !showStop && !isTranscribing;
 
   return {
     actionFeedback,

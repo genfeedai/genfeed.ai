@@ -215,41 +215,9 @@ function AgentChatInputToolbarInner({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
 
-      <div
-        className={cn(
-          'flex min-w-0 shrink items-center justify-end gap-1',
-          trailingEdgeOffset,
-        )}
-      >
-        {modelSelector}
-
-        {showStop && onStop ? (
-          // Same footprint as Send: solid control + small stop glyph (not a
-          // full-bleed red square that reads as a blob).
-          <Button
-            ariaLabel="Stop agent"
-            className={cn(
-              'shrink-0 rounded-lg',
-              controlSize,
-              'min-h-0 min-w-0 p-0',
-            )}
-            icon={
-              <Square
-                aria-hidden
-                className="size-2.5 fill-current stroke-none"
-              />
-            }
-            onClick={() => {
-              void onStop();
-            }}
-            size={ButtonSize.ICON}
-            tooltip="Stop"
-            variant={ButtonVariant.DESTRUCTIVE}
-            withWrapper={false}
-          />
-        ) : isTranscribing ? (
+        {/* Voice lives with leading tools — far right is model + send only. */}
+        {isTranscribing ? (
           <Button
             ariaLabel="Transcribing"
             className={cn('shrink-0', controlSize)}
@@ -290,13 +258,46 @@ function AgentChatInputToolbarInner({
             variant={ButtonVariant.GHOST}
             withWrapper={false}
           />
+        ) : null}
+      </div>
+
+      {/* T3-style trailing cluster: model immediately left of send/stop. */}
+      <div
+        className={cn(
+          'flex min-w-0 shrink items-center justify-end gap-1.5',
+          trailingEdgeOffset,
+        )}
+      >
+        {modelSelector}
+
+        {showStop && onStop ? (
+          <Button
+            ariaLabel="Stop agent"
+            className={cn(
+              'shrink-0 rounded-full',
+              controlSize,
+              'min-h-0 min-w-0 p-0',
+            )}
+            icon={
+              <Square
+                aria-hidden
+                className="size-2.5 fill-current stroke-none"
+              />
+            }
+            onClick={() => {
+              void onStop();
+            }}
+            size={ButtonSize.ICON}
+            tooltip="Stop"
+            variant={ButtonVariant.DESTRUCTIVE}
+            withWrapper={false}
+          />
         ) : shouldShowSendButton ? (
           <Button
             ariaLabel="Send message"
             className={cn(
-              'shrink-0 rounded-lg',
+              'shrink-0 rounded-full',
               controlSize,
-              // Match model chip height; keep filled primary without oversized ship defaults
               'min-h-0 min-w-0 p-0',
             )}
             icon={<ArrowUp className="size-4" />}
