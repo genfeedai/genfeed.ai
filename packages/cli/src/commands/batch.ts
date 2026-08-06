@@ -245,7 +245,7 @@ batchCommand
       spinner.succeed('Batch cancelled');
 
       if (options.json) {
-        printJson({ batchId: id, status: 'cancelled' });
+        printJson({ batchId: id, status: 'CANCELLED' });
       } else {
         print(formatSuccess(`Batch ${id} cancelled`));
       }

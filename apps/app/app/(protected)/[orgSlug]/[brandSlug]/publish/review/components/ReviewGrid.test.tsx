@@ -217,7 +217,7 @@ describe('ReviewGrid', () => {
       },
       { id: 'failed', status: BatchItemStatus.FAILED },
       { id: 'pending', status: BatchItemStatus.PENDING },
-      { id: 'generating', status: BatchItemStatus.GENERATING },
+      { id: 'generating', status: BatchItemStatus.PROCESSING },
       { id: 'skipped', status: BatchItemStatus.SKIPPED },
       {
         id: 'rejected',

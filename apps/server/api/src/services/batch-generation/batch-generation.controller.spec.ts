@@ -163,17 +163,17 @@ describe('BatchGenerationController', () => {
       } as never;
       (service as Record<string, ReturnType<typeof vi.fn>>).updateBatch = vi
         .fn()
-        .mockResolvedValue({ status: 'cancelled' });
+        .mockResolvedValue({ status: 'CANCELLED' });
 
       const result = await controller.patch(
         mockReq,
         'batch-1',
-        { status: 'cancelled' } as never,
+        { status: 'CANCELLED' } as never,
         user,
       );
       expect(service.updateBatch).toHaveBeenCalledWith(
         'batch-1',
-        { status: 'cancelled' },
+        { status: 'CANCELLED' },
         expect.any(String),
       );
       expect(result).toBeDefined();

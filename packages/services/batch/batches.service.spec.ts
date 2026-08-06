@@ -61,7 +61,7 @@ vi.mock('@services/core/logger.service', () => ({
 const makeMockBatch = (id = 'batch-1') => ({
   id,
   items: [],
-  status: 'pending',
+  status: 'PENDING',
 });
 
 describe('BatchesService', () => {
@@ -160,7 +160,7 @@ describe('BatchesService', () => {
     await service.cancelBatch('batch-99');
 
     expect(mockInstance.patch).toHaveBeenCalledWith('/batch-99', {
-      status: 'cancelled',
+      status: 'CANCELLED',
     });
   });
 

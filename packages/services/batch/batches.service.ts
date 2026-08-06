@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { BatchStatus } from '@genfeedai/enums';
+import { BatchStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -106,7 +106,7 @@ export class BatchesService extends HTTPBaseService {
     try {
       const response = await this.instance.patch<JsonApiResponseDocument>(
         `/${id}`,
-        { status: 'cancelled' },
+        { status: BatchStatus.CANCELLED },
       );
       return deserializeResource<IBatchSummary>(response.data);
     } catch (error) {

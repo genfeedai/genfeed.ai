@@ -202,6 +202,8 @@ jobs:
         run: bun run check:product-workflow-boundary
       - name: DI Value Imports
         run: bun run check:di-value-imports
+      - name: Type Assertion Ratchet
+        run: bun run check:type-assertions
       - name: Relation Alias Reads
         run: bun run check:relation-alias-reads
       - name: Relation Alias Writes
