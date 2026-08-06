@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
+import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -56,6 +57,7 @@ vi.mock('@modelcontextprotocol/sdk/types.js', () => ({
 }));
 
 const mockSetBearerToken = vi.fn();
+const mockInstrumentServer = vi.fn();
 vi.mock('@mcp/services/client.service', () => ({
   ClientService: class MockClientService {
     setBearerToken = mockSetBearerToken;
@@ -127,6 +129,10 @@ describe('StreamableHttpService', () => {
             ),
           },
         },
+        {
+          provide: PostHogAnalyticsService,
+          useValue: { instrumentServer: mockInstrumentServer },
+        },
       ],
     }).compile();
 
@@ -188,6 +194,23 @@ describe('StreamableHttpService', () => {
       await service.handlePost(req, makeRes());
 
       expect(mockSetBearerToken).toHaveBeenCalledWith('bearer-xyz');
+    });
+
+    it('instruments the request server with the authenticated identity', async () => {
+      const authContext = {
+        organizationId: 'organization-123',
+        role: 'admin' as const,
+        token: 'bearer-xyz',
+        userId: 'user-123',
+      };
+      const req = makeReq({ authContext } as unknown as Partial<Request>);
+
+      await service.handlePost(req, makeRes());
+
+      expect(mockInstrumentServer).toHaveBeenCalledWith(
+        serverInstances[0],
+        authContext,
+      );
     });
 
     it('responds 500 and still tears down when handleRequest throws', async () => {

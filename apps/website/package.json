@@ -1,10 +1,10 @@
 {
   "dependencies": {
-    "@genfeedai/constants": "*",
+    "@genfeedai/auth-client": "*",
     "@genfeedai/config": "*",
+    "@genfeedai/constants": "*",
     "@genfeedai/enums": "*",
     "@genfeedai/helpers": "*",
-    "@genfeedai/auth-client": "*",
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/types": "*",
@@ -20,7 +20,7 @@
     "gsap": "3.15.0",
     "lucide-react": "1.28.0",
     "next": "16.3.0",
-    "posthog-js": "1.409.5",
+    "posthog-js": "1.413.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "tailwind-merge": "3.6.0"

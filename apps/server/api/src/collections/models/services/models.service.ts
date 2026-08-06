@@ -373,38 +373,19 @@ export class ModelsService extends BaseService<
     };
   }
 
-  async clearOtherDefaults(
-    category: string,
-    organizationId: string | null,
-    exceptModelId: string,
-  ): Promise<void> {
-    if (organizationId === undefined) {
-      throw new BadRequestException(
-        'organizationId is required for bulk model updates',
-      );
-    }
-
-    // sql-risk-audit: ignore bulk-write-tenant-review -- The guard above rejects bulk writes without an explicit organization scope; null targets only global registry rows.
-    await this.prisma.model.updateMany({
-      data: { isDefault: false },
-      where: {
-        category,
-        id: { not: exceptModelId },
-        isDefault: true,
-        isDeleted: false,
-        organizationId,
-      },
-    });
-  }
-
   /**
-   * Model bulk writes must target either one organization or the global
-   * registry (`organizationId: null`). Omitting the scope would let Prisma
-   * update matching models across every registry.
+   * Prisma treats an *absent* `organizationId` key as "every value", so a bulk
+   * filter that simply omits it widens the write across every tenant plus the
+   * global registry. Require the key to be **present**, not truthy:
+   * `organizationId: null` is the global model registry this service is built to
+   * maintain (see `touchDiscoveredModels`), so a truthiness check would reject
+   * legitimate registry writes. Presence alone is not enough either:
+   * `normalizeWhere` drops `undefined`, so `{ organizationId: undefined }`
+   * passes an `in` check and still widens the write.
    */
   override async patchAll(
-    filter: Record<string, unknown>,
-    update: Record<string, unknown>,
+    filter: Parameters<BaseService<ModelDocument>['patchAll']>[0],
+    update: Parameters<BaseService<ModelDocument>['patchAll']>[1],
   ): Promise<{ modifiedCount: number }> {
     if (!this.isModelRecord(filter)) {
       throw new ValidationException('Filter criteria are required');
@@ -424,6 +405,29 @@ export class ModelsService extends BaseService<
     }
 
     return super.patchAll(filter, update);
+  }
+
+  async clearOtherDefaults(
+    category: string,
+    organizationId: string | null,
+    exceptModelId: string,
+  ): Promise<void> {
+    if (organizationId === undefined) {
+      throw new BadRequestException(
+        'organizationId is required for bulk model updates',
+      );
+    }
+
+    await this.prisma.model.updateMany({
+      data: { isDefault: false },
+      where: {
+        category,
+        id: { not: exceptModelId },
+        isDefault: true,
+        isDeleted: false,
+        organizationId,
+      },
+    });
   }
 
   async touchDiscoveredModels(

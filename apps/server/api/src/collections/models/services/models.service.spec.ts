@@ -170,6 +170,8 @@ describe('ModelsService', () => {
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
 
+  // `normalizeWhere` drops `undefined`, so a present-but-undefined scope widens
+  // the write exactly like an omitted key and must be rejected the same way.
   it('rejects bulk updates with an undefined organization scope', async () => {
     await expect(
       service.patchAll({ organizationId: undefined }, { isDefault: false }),
@@ -196,7 +198,20 @@ describe('ModelsService', () => {
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
 
-  it('permits bulk updates explicitly scoped to the global registry', async () => {
+  it('rejects a bulk patch that omits the organization scope', async () => {
+    await expect(
+      service.patchAll({ key: 'google/imagen-4' }, { isDefault: false }),
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'organizationId is required for bulk model updates',
+        title: 'Validation Error',
+      },
+    });
+
+    expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('permits a bulk patch scoped to the global registry', async () => {
     modelDelegate.updateMany.mockResolvedValue({ count: 2 });
 
     const result = await service.patchAll(

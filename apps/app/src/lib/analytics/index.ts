@@ -15,6 +15,7 @@ export {
   type PromptGeneratedSource,
   type SignupMethod,
   type StudioEditorSurface,
+  type WorkflowRunType,
 } from './analytics-events';
 export {
   normalizeAnalyticsPathname,
@@ -32,3 +33,4 @@ export {
   resetAnalytics,
   subscribeAnalyticsFeatureFlags,
 } from './posthog-client';
+export { createEditorWorkflowRunTracker } from './workflow-run-tracker';
