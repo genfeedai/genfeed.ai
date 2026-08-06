@@ -20,7 +20,7 @@ vi.mock('@genfeedai/agent/hooks/use-brand-mentions', () => ({
 }));
 
 vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
-  useContentMentions: () => ({ mentions: [] }),
+  useContentMentions: () => ({ isLoading: false, mentions: [] }),
 }));
 
 vi.mock('@genfeedai/agent/hooks/use-credential-mentions', () => ({

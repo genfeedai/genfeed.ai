@@ -17,6 +17,9 @@ export interface AgentChatReferenceItem {
     | 'credential'
     | 'team'
     | ConversationComposerContextReferenceKind;
+  /** Library content only — used for visual reference tiles. */
+  contentType?: string;
+  thumbnailUrl?: string;
 }
 
 type AgentChatInputAttachmentTrayProps = {
@@ -27,16 +30,27 @@ type AgentChatInputAttachmentTrayProps = {
   >;
   isDisabled: boolean | undefined;
   onRemoveAttachedAsset: (assetId: string) => void;
+  onRemoveReference?: (reference: AgentChatReferenceItem) => void;
   references?: AgentChatReferenceItem[];
 };
+
+function isVisualContentReference(reference: AgentChatReferenceItem): boolean {
+  return reference.type === 'content';
+}
 
 export function AgentChatInputAttachmentTray({
   assets,
   attachmentStatusById = {},
   isDisabled,
   onRemoveAttachedAsset,
+  onRemoveReference,
   references = [],
 }: AgentChatInputAttachmentTrayProps): ReactElement {
+  const contentReferences = references.filter(isVisualContentReference);
+  const chipReferences = references.filter(
+    (reference) => !isVisualContentReference(reference),
+  );
+
   return (
     <div
       aria-label="Composer attachments and references"
@@ -107,7 +121,53 @@ export function AgentChatInputAttachmentTray({
           );
         })}
 
-        {references.map((reference) => (
+        {contentReferences.map((reference) => (
+          <div
+            aria-label={`Referenced content: ${reference.label}`}
+            key={`content:${reference.id}`}
+            className={cn(
+              'group relative size-16 overflow-hidden rounded-md border border-border bg-background-secondary',
+              isDisabled && 'opacity-60',
+            )}
+            title={reference.label}
+            role="group"
+          >
+            {reference.thumbnailUrl ? (
+              <Image
+                src={reference.thumbnailUrl}
+                alt={reference.label}
+                fill
+                sizes="64px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="flex size-full flex-col items-center justify-center gap-0.5 px-1 text-muted-foreground">
+                <ImageIcon aria-hidden="true" className="size-5" />
+                <span className="max-w-full truncate text-[9px] font-medium text-foreground/55">
+                  {reference.contentType ?? 'content'}
+                </span>
+              </div>
+            )}
+            {onRemoveReference ? (
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={() => onRemoveReference(reference)}
+                isDisabled={isDisabled}
+                ariaLabel={`Remove reference ${reference.label}`}
+                className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+              >
+                <X className="size-3.5" />
+              </Button>
+            ) : null}
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 truncate bg-background/80 px-1 py-0.5 text-center text-[9px] font-medium text-foreground/70">
+              {reference.label}
+            </span>
+          </div>
+        ))}
+
+        {chipReferences.map((reference) => (
           <span
             className="inline-flex max-w-48 items-center gap-1.5 rounded-lg border border-border bg-background-secondary px-2.5 py-1.5 text-xs text-foreground/78"
             key={`${reference.type}:${reference.id}`}

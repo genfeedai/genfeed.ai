@@ -95,16 +95,29 @@ function AgentChatInputToolbarInner({
   // One toolbar control height so model chip + send share a single baseline.
   const controlSize = isCompact ? 'size-8' : 'size-9';
   const controlHeight = isCompact ? 'h-8' : 'h-9';
+  // Every control keeps the same optical inset: an icon Button centers a
+  // `size-4` glyph in its square, so the padded controls (Actions, model chip,
+  // Stop) must match that half-difference exactly — 10px at h-9, 8px at h-8.
+  const controlPadding = isCompact ? 'px-2' : 'px-2.5';
+  // Cancel that inset at the row edges so the first glyph lines up with the
+  // editor text above it instead of hanging 10px further in.
+  const leadingEdgeOffset = isCompact ? '-ml-2' : '-ml-2.5';
+  const trailingEdgeOffset = isCompact ? '-mr-2' : '-mr-2.5';
 
   return (
     <div
       className={cn(
         // min-w-0 + wrap: narrow inspector rails must not stack labels on icons.
-        'mt-1 flex min-w-0 items-center justify-between gap-x-1 gap-y-1',
+        'mt-1 flex min-w-0 items-center justify-between gap-1',
         isCompact ? 'min-h-9 flex-wrap pt-1' : 'min-h-10 pt-1.5',
       )}
     >
-      <div className="flex min-w-0 shrink items-center gap-0.5">
+      <div
+        className={cn(
+          'flex min-w-0 shrink items-center gap-1',
+          leadingEdgeOffset,
+        )}
+      >
         {onAddFiles ? (
           <>
             <Input
@@ -131,13 +144,13 @@ function AgentChatInputToolbarInner({
         ) : null}
 
         <Button
-          ariaLabel="Reference existing content with ^"
+          ariaLabel="Reference library content"
           className={cn('shrink-0', controlSize)}
           icon={<Link className="size-4" />}
           isDisabled={disabled || !hasEditor}
           onClick={onInsertReference}
           size={ButtonSize.ICON}
-          tooltip="Reference library content (^)"
+          tooltip="Reference library content"
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         />
@@ -149,7 +162,9 @@ function AgentChatInputToolbarInner({
               className={cn(
                 'shrink-0',
                 // Compact / inspector: icon only — never "Actions" label in a rail.
-                isCompact ? controlSize : 'h-9 gap-1.5 px-2.5',
+                isCompact
+                  ? controlSize
+                  : cn('gap-1.5', controlHeight, controlPadding),
               )}
               icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
@@ -191,15 +206,21 @@ function AgentChatInputToolbarInner({
         </Popover>
       </div>
 
-      <div className="flex min-w-0 shrink items-center justify-end gap-1">
+      <div
+        className={cn(
+          'flex min-w-0 shrink items-center justify-end gap-1',
+          trailingEdgeOffset,
+        )}
+      >
         {modelSelector}
 
         {showStop && onStop ? (
           <Button
             ariaLabel="Stop agent"
             className={cn(
-              'shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 px-3 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20',
+              'shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20',
               controlHeight,
+              controlPadding,
             )}
             onClick={() => {
               void onStop();
