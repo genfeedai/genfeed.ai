@@ -27,7 +27,6 @@ import {
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack } from '@ui/layout/stack';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
@@ -151,10 +150,10 @@ export default function IntegrationsContent() {
                   <Text className="mb-6 flex-1 text-sm leading-relaxed text-surface/45">
                     {integration.tagline}
                   </Text>
-                  <HStack className="items-center gap-1.5 text-xs font-medium text-surface/25 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
+                  <div className="flex flex-row items-center gap-1.5 text-xs font-medium text-surface/25 transition-colors group-hover:text-[color:hsl(var(--gen-accent))]">
                     <Text>Explore</Text>
                     <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-                  </HStack>
+                  </div>
                 </Link>
               );
             })}

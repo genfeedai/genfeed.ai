@@ -277,8 +277,8 @@ export default function SettingsBillingPage() {
 
       {isByokTier && <ByokUsageSection openBillingPortal={openBillingPortal} />}
 
-      <BillingCard title="Credits">
-        {creditsBreakdown ? (
+      {creditsBreakdown ? (
+        <BillingCard title="Credits">
           <div className="flex flex-col gap-3">
             {isLowCredits && (
               <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
@@ -301,10 +301,8 @@ export default function SettingsBillingPage() {
               (subscription + packs purchased in-cycle).
             </Text>
           </div>
-        ) : (
-          <Text color="muted">No credits information available.</Text>
-        )}
-      </BillingCard>
+        </BillingCard>
+      ) : null}
 
       <AddCreditsCard
         secondaryAction={

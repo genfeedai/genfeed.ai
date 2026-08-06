@@ -4,7 +4,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack, VStack } from '@ui/layout/stack';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Heading } from '@ui/typography/heading';
@@ -151,13 +150,13 @@ export default function ResearchContent() {
         {/* Highlight Card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
-            <HStack className="flex-col md:flex-row items-center gap-8">
+            <div className="flex flex-row flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
                   <Sparkles className="size-10 text-surface" />
                 </div>
               </div>
-              <VStack className="gap-3">
+              <div className="flex flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Every Signal, One Workspace
                 </Heading>
@@ -166,7 +165,7 @@ export default function ResearchContent() {
                   winning ad creative from a single interface. Turn any
                   discovery into a ready brief without switching tabs.
                 </Text>
-                <HStack className="flex-wrap gap-2">
+                <div className="flex flex-row items-center flex-wrap gap-2">
                   {HIGHLIGHT_TAGS.map((tag) => (
                     <span
                       key={tag}
@@ -175,9 +174,9 @@ export default function ResearchContent() {
                       {tag}
                     </span>
                   ))}
-                </HStack>
-              </VStack>
-            </HStack>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -243,19 +242,19 @@ export default function ResearchContent() {
               const Icon = step.icon;
               return (
                 <div key={step.label}>
-                  <HStack className="items-center gap-6 py-6">
+                  <div className="flex flex-row items-center gap-6 py-6">
                     <div className="flex-shrink-0 size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
-                    <VStack className="gap-1">
+                    <div className="flex flex-col gap-1">
                       <Text className="text-lg font-bold text-surface">
                         {step.label}
                       </Text>
                       <Text className="text-sm text-surface/65">
                         {step.sublabel}
                       </Text>
-                    </VStack>
-                  </HStack>
+                    </div>
+                  </div>
                   {index < STEPS.length - 1 && (
                     <div className="gen-divider-accent" />
                   )}
@@ -279,7 +278,7 @@ export default function ResearchContent() {
               Turn every discovery into a ready brief in one click.
             </Text>
             <PricingStrip className="mb-6" />
-            <HStack className="flex-wrap gap-4 justify-center">
+            <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
@@ -305,7 +304,7 @@ export default function ResearchContent() {
                   Book a Demo
                 </a>
               </ButtonTracked>
-            </HStack>
+            </div>
           </div>
         </section>
       </PageLayout>

@@ -150,4 +150,26 @@ describe('SettingsBillingPage', () => {
       ),
     ).not.toBeInTheDocument();
   });
+
+  it('should omit the Credits card when breakdown is unavailable', () => {
+    useSubscriptionMock.mockReturnValue({
+      changeSubscriptionPlan: vi.fn(),
+      creditsBreakdown: null,
+      error: null,
+      isLoading: false,
+      isSubscriptionActive: true,
+      openBillingPortal: vi.fn(),
+      refreshCreditsBreakdown: vi.fn(),
+      refreshSubscription: vi.fn(),
+      subscription: null,
+    } satisfies UseSubscriptionReturn);
+
+    render(<SettingsBillingPage />);
+
+    expect(screen.queryByText('Credits')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('No credits information available.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Add credits')).toBeInTheDocument();
+  });
 });

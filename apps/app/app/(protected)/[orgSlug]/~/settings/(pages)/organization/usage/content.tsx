@@ -17,7 +17,6 @@ import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import AppTable from '@ui/display/table/Table';
-import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { Label } from '@ui/primitives/label';
 import {
@@ -391,7 +390,7 @@ export default function SettingsUsagePage() {
   }, [transactionsQuery.error]);
 
   return (
-    <VStack gap={4} className="pb-10">
+    <div className="flex flex-col gap-4 pb-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0">
           <Heading size="lg">Usage</Heading>
@@ -598,6 +597,6 @@ export default function SettingsUsagePage() {
           emptyDescription={USAGE_EMPTY_DESCRIPTION}
         />
       </div>
-    </VStack>
+    </div>
   );
 }
