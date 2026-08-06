@@ -172,7 +172,12 @@ describe('ModelsService', () => {
   it('rejects a bulk patch that omits the organization scope', async () => {
     await expect(
       service.patchAll({ key: 'google/imagen-4' }, { isDefault: false }),
-    ).rejects.toThrow('organizationId is required for bulk model updates');
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'organizationId is required for bulk model updates',
+        title: 'Validation Error',
+      },
+    });
 
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
