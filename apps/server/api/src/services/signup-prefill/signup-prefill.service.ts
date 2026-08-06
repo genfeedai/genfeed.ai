@@ -89,7 +89,7 @@ export class SignupPrefillService {
   ): Promise<SignupPrefillResult> {
     const { brandId, organizationId, userId } = data;
     const brand = await this.brandsService.findOne(
-      { id: brandId, isDeleted: false, organizationId: organizationId },
+      { id: brandId, organizationId: organizationId },
       'none',
     );
 
@@ -250,10 +250,7 @@ export class SignupPrefillService {
    */
   async markPrefillFailed(brandId: string): Promise<void> {
     try {
-      const brand = await this.brandsService.findOne(
-        { id: brandId, isDeleted: false },
-        'none',
-      );
+      const brand = await this.brandsService.findOne({ id: brandId }, 'none');
 
       if (!brand) {
         return;
@@ -422,10 +419,7 @@ export class SignupPrefillService {
     agentConfig: BrandAgentConfig,
     scrapedData?: IScrapedBrandData,
   ): Promise<void> {
-    const brand = await this.brandsService.findOne(
-      { id: brandId, isDeleted: false },
-      'none',
-    );
+    const brand = await this.brandsService.findOne({ id: brandId }, 'none');
 
     if (!brand) {
       return;
@@ -503,10 +497,7 @@ export class SignupPrefillService {
     brandId: string,
     fallback: BrandAgentConfig,
   ): Promise<BrandAgentConfig> {
-    const brand = await this.brandsService.findOne(
-      { id: brandId, isDeleted: false },
-      'none',
-    );
+    const brand = await this.brandsService.findOne({ id: brandId }, 'none');
 
     return brand
       ? this.brandDataMapper.readBrandAgentConfig(brand.agentConfig)

@@ -405,14 +405,37 @@ export abstract class BaseService<
     return documents.map((document) => this.normalizeDocument(document));
   }
 
-  private withSoftDeleteFilter(where: PrismaFilter = {}): PrismaFilter {
+  /**
+   * Default soft-delete scoping for every read that flows through the service
+   * layer. Injects `isDeleted: false` on models that declare the column, so a
+   * call-site that forgets the filter cannot resurface tombstoned rows.
+   *
+   * The caller always wins:
+   * - `{ isDeleted: true }` reads tombstones only.
+   * - `{ isDeleted: undefined }` — an *explicit* key holding `undefined` —
+   *   opts out entirely and reads live and deleted rows together. That is the
+   *   only way to express "either" in Prisma, and it is invisible after
+   *   `normalizeWhere` (which strips `undefined` values), which is why the
+   *   pre-normalization filter is passed separately as `params`.
+   * - Omitting `isDeleted` gets the default.
+   */
+  private withSoftDeleteFilter(
+    where: PrismaFilter = {},
+    params: PrismaFilter = where,
+  ): PrismaFilter {
     if (!this.modelHasField('isDeleted')) {
       return where;
     }
 
+    if (params && 'isDeleted' in params) {
+      return where;
+    }
+
+    // Default first so an explicit value already present in `where` wins —
+    // the reverse spread silently clobbered `isDeleted: true` reads.
     return {
-      ...where,
       isDeleted: false,
+      ...where,
     };
   }
 
@@ -735,8 +758,10 @@ export abstract class BaseService<
       const skip = (page - 1) * limit;
       const findAllInput = this.resolveFindAllInput(input, options);
       const orderBy = findAllInput.orderBy ?? this.normalizeSort(options.sort);
+      const rawWhere = findAllInput.where ?? {};
       const where = this.withSoftDeleteFilter(
-        this.normalizeWhere(findAllInput.where ?? {}),
+        this.normalizeWhere(rawWhere),
+        rawWhere,
       );
       this.auditUnknownFilterFields(where);
       const include = findAllInput.include;
@@ -850,6 +875,10 @@ export abstract class BaseService<
     return this.normalizeDocuments(docs);
   }
 
+  /**
+   * Find a single document. Soft-deleted rows are excluded by default (see
+   * `withSoftDeleteFilter`); pass `isDeleted` explicitly to opt out.
+   */
   async findOne(
     params: PrismaFilter,
     populate: PopulateInput = [],
@@ -873,7 +902,10 @@ export abstract class BaseService<
 
       this.logger?.debug('Finding document', { params, populate });
 
-      const where = this.normalizeWhere(params);
+      const where = this.withSoftDeleteFilter(
+        this.normalizeWhere(params),
+        params,
+      );
       const include = this.populateToInclude(populate);
 
       const result = await this.internalDelegate.findFirst({

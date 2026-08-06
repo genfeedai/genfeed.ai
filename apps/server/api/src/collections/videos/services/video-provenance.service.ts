@@ -135,7 +135,6 @@ export class VideoProvenanceService {
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({
           id: video.metadataId,
-          isDeleted: false,
         })) as unknown as IMetadataProvenanceRecord | null)
       : null;
 

@@ -677,7 +677,6 @@ export class AvatarVideoGenerationService {
   ): Promise<VoiceDocument | null> {
     return (await this.voicesService.findOne({
       id: voiceId,
-      isDeleted: false,
       organizationId: organizationId,
     })) as VoiceDocument | null;
   }
@@ -689,14 +688,12 @@ export class AvatarVideoGenerationService {
       ? await this.brandsService.findOne(
           {
             id: context.brandId,
-            isDeleted: false,
             organizationId: context.organizationId,
           },
           'none',
         )
       : await this.brandsService.findOne(
           {
-            isDeleted: false,
             organizationId: context.organizationId,
           },
           'none',

@@ -63,7 +63,6 @@ export class DevtoController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

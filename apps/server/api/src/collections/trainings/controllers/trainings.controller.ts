@@ -165,7 +165,6 @@ export class TrainingsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const data = await this.trainingsService.findOne({
       id: trainingId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

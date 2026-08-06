@@ -95,7 +95,6 @@ export class InstagramController {
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

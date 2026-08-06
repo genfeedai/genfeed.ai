@@ -232,7 +232,6 @@ export class AdminFleetMediaService {
 
     const voiceIngredient = await this.ingredientsService.findOne({
       id: persona.voice.toString(),
-      isDeleted: false,
       organizationId: organizationId,
     });
 

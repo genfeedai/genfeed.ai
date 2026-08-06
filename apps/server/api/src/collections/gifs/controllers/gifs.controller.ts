@@ -167,7 +167,6 @@ export class GifsController {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.GIF,
         ),
-        isDeleted: false,
         OR: [
           { organizationId: publicMetadata.organization },
           { isDefault: true, organizationId: null },

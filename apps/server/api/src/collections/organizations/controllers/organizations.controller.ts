@@ -118,7 +118,6 @@ export class OrganizationsController extends BaseCRUDController<
 
     const member = await this.membersService.findOne({
       isActive: true,
-      isDeleted: false,
       organizationId: organizationId,
       userId: publicMetadata.user,
     });
@@ -296,7 +295,6 @@ export class OrganizationsController extends BaseCRUDController<
       orgIds.map((orgId) =>
         this.organizationsService.findOne({
           id: orgId,
-          isDeleted: false,
         }),
       ),
     );
@@ -307,7 +305,6 @@ export class OrganizationsController extends BaseCRUDController<
         .filter((org): org is NonNullable<typeof org> => org !== null)
         .map(async (org) => {
           const brand = await this.brandsService.findOne({
-            isDeleted: false,
             organizationId: org.id,
           });
           return {
@@ -350,7 +347,6 @@ export class OrganizationsController extends BaseCRUDController<
     // Verify membership
     const member = await this.membersService.findOne({
       isActive: true,
-      isDeleted: false,
       organizationId: orgId,
       userId: userId,
     });
@@ -370,13 +366,11 @@ export class OrganizationsController extends BaseCRUDController<
     if (member?.lastUsedBrandId) {
       brand = await this.brandsService.findOne({
         id: member.lastUsedBrandId,
-        isDeleted: false,
         organizationId: orgId,
       });
     }
     if (!brand) {
       brand = await this.brandsService.findOne({
-        isDeleted: false,
         organizationId: orgId,
       });
     }
@@ -406,7 +400,6 @@ export class OrganizationsController extends BaseCRUDController<
 
     const org = await this.organizationsService.findOne({
       id: orgId,
-      isDeleted: false,
     });
 
     return {
@@ -443,7 +436,6 @@ export class OrganizationsController extends BaseCRUDController<
 
     const userDoc = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
 
     if (!userDoc) {
@@ -515,12 +507,10 @@ export class OrganizationsController extends BaseCRUDController<
 
     // Step 4: Find admin role and create member
     let adminRole = await this.rolesService.findOne({
-      isDeleted: false,
       key: 'admin',
     });
     if (!adminRole) {
       adminRole = await this.rolesService.findOne({
-        isDeleted: false,
         key: 'user',
       });
     }

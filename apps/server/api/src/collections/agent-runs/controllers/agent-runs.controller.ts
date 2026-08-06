@@ -330,7 +330,6 @@ export class AgentRunsController extends BaseCRUDController<
     const doc = await this.agentRunsService.findOne({
       id: id,
       ...(brandId ? { brandId: brandId } : {}),
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

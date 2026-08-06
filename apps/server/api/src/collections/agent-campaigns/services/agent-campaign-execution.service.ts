@@ -196,7 +196,6 @@ export class AgentCampaignExecutionService {
   async updateCreditsUsed(campaignId: string, credits: number): Promise<void> {
     const current = await this.agentCampaignsService.findOne({
       id: campaignId,
-      isDeleted: false,
     });
     if (current) {
       const currentCredits =
@@ -218,7 +217,6 @@ export class AgentCampaignExecutionService {
   async checkQuota(campaignId: string): Promise<boolean> {
     const campaign = await this.agentCampaignsService.findOne({
       id: campaignId,
-      isDeleted: false,
     });
 
     if (campaign?.status !== 'active') {

@@ -141,7 +141,6 @@ export class AssetsController {
     // Find asset with ownership verification
     const asset = await this.assetsService.findOne({
       id: validatedId,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 
@@ -168,7 +167,6 @@ export class AssetsController {
 
     const existingAsset = await this.assetsService.findOne({
       id: validatedId,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 
@@ -284,7 +282,6 @@ export class AssetsController {
 
     const existingAsset = await this.assetsService.findOne({
       id: validatedId,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 

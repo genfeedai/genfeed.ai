@@ -134,7 +134,6 @@ export class FleetWebhookService {
     return await this.voicesService.findOne({
       id: ingredientId,
       category: IngredientCategory.VOICE,
-      isDeleted: false,
       voiceProvider: VoiceProvider.GENFEED_AI,
     });
   }

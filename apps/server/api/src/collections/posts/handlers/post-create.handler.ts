@@ -76,7 +76,6 @@ export async function createPost({
   const credential = await dependencies.credentialsService.findOne({
     id: createPostDto.credentialId,
     isConnected: true,
-    isDeleted: false,
     organizationId: publicMetadata.organization,
   });
 

@@ -61,10 +61,7 @@ export class BetterAuthIdentityResolverService {
   private async resolveFromDatabase(
     userId: string,
   ): Promise<IBetterAuthResolvedIdentity> {
-    const user = await this.usersService.findOne(
-      { id: userId, isDeleted: false },
-      [],
-    );
+    const user = await this.usersService.findOne({ id: userId }, []);
     const userRecord = user as Record<string, unknown> | null | undefined;
     const resolvedUserId = getEntityId(userRecord);
 
@@ -123,7 +120,6 @@ export class BetterAuthIdentityResolverService {
   ): Promise<string | undefined> {
     const organization = await this.organizationsService.findOne({
       id: candidate,
-      isDeleted: false,
     });
     const organizationId = getEntityId(
       organization as Record<string, unknown> | null | undefined,
@@ -161,7 +157,6 @@ export class BetterAuthIdentityResolverService {
     }
 
     const ownerOrg = await this.organizationsService.findOne({
-      isDeleted: false,
       userId: userId,
     });
     const ownerOrgId = getEntityId(
@@ -178,7 +173,6 @@ export class BetterAuthIdentityResolverService {
       }
       const organization = await this.organizationsService.findOne({
         id: memberOrgId,
-        isDeleted: false,
       });
       const organizationId = getEntityId(
         organization as Record<string, unknown> | null | undefined,
@@ -206,7 +200,6 @@ export class BetterAuthIdentityResolverService {
     if (lastUsedBrandId) {
       const lastUsedBrand = await this.brandsService.findOne({
         id: lastUsedBrandId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       const brandId = getEntityId(
@@ -218,7 +211,6 @@ export class BetterAuthIdentityResolverService {
     }
 
     const firstBrand = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: organizationId,
     });
     return (

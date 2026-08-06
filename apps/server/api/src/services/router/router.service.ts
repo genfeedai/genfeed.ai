@@ -457,7 +457,6 @@ export class RouterService {
         // Fallback to default model
         const defaultKey = await this.getDefaultModel(options.category);
         const defaultModel = await this.modelsService.findOne({
-          isDeleted: false,
           key: defaultKey,
         });
 
@@ -601,7 +600,6 @@ export class RouterService {
     const defaultModel = await this.modelsService.findOne({
       category,
       isDefault: true,
-      isDeleted: false,
     });
 
     if (defaultModel?.key) {

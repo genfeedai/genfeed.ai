@@ -246,7 +246,6 @@ export class ReplyPollingWorkflowService {
   ): Promise<IReplyBotCredentialData | null> {
     const credential = (await this.credentialsService.findOne({
       id: target.credentialId,
-      isDeleted: false,
       organizationId: target.organizationId,
     })) as CredentialDocument | null;
 

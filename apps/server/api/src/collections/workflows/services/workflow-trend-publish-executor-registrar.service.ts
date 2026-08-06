@@ -425,7 +425,6 @@ export class WorkflowTrendPublishExecutorRegistrarService {
           const credential = await credentialsService.findOne({
             brandId: brandId,
             isConnected: true,
-            isDeleted: false,
             organizationId: organizationId,
             platform: platform as CredentialPlatform,
           });

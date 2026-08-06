@@ -79,7 +79,6 @@ export class TasksController extends BaseCRUDController<
 
     const org = await this.organizationsService.findOne({
       id: organizationId,
-      isDeleted: false,
     });
 
     if (!org?.prefix) {
@@ -322,7 +321,6 @@ export class TasksController extends BaseCRUDController<
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
       const task = await this.tasksService.findOne({
         id: id,
-        isDeleted: false,
       });
 
       if (task?.parentId) {

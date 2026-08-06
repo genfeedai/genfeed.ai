@@ -161,7 +161,6 @@ export class TwitterPipelineService {
         async () => {
           const credential = await this.credentialsService.findOne({
             brandId: brandId,
-            isDeleted: false,
             organizationId: orgId,
             platform: CredentialPlatform.TWITTER,
           });

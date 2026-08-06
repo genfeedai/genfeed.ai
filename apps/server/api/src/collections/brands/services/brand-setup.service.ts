@@ -67,10 +67,7 @@ export class BrandSetupService {
     brandLabel: string | null;
     organizationId: string;
   }> {
-    const brand = await this.brandsService.findOne(
-      { id: brandId, isDeleted: false },
-      'none',
-    );
+    const brand = await this.brandsService.findOne({ id: brandId }, 'none');
 
     if (!brand) {
       throw new HttpException(

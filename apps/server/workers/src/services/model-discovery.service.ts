@@ -92,7 +92,6 @@ export class ModelDiscoveryService {
     try {
       // Verify model doesn't already exist (defense in depth)
       const existing = await this.modelsService.findOne({
-        isDeleted: false,
         key: modelKey,
       });
 

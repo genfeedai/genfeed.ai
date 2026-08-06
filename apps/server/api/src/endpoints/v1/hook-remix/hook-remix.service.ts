@@ -41,7 +41,6 @@ export class HookRemixService {
     const ctaIngredient = await this.ingredientsService.findOne({
       id: dto.ctaIngredientId,
       brandId: dto.brandId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -104,7 +103,6 @@ export class HookRemixService {
     const ctaIngredient = await this.ingredientsService.findOne({
       id: dto.ctaIngredientId,
       brandId: dto.brandId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

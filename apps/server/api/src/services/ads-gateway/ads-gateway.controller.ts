@@ -429,7 +429,6 @@ export class AdsGatewayController {
   ): Promise<string> {
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

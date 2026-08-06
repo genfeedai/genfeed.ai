@@ -366,7 +366,6 @@ export class AgentWorkflowToolHandler {
   ): Promise<void> {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -407,7 +406,6 @@ export class AgentWorkflowToolHandler {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
         id: params.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -417,7 +415,6 @@ export class AgentWorkflowToolHandler {
     }
 
     const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
       isSelected: true,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
@@ -430,7 +427,6 @@ export class AgentWorkflowToolHandler {
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
         id: ctx.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -440,7 +436,6 @@ export class AgentWorkflowToolHandler {
     }
 
     const firstOrgBrand = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -564,7 +559,6 @@ export class AgentWorkflowToolHandler {
 
     const brand = await this.brandsService.findOne({
       id: requestedBrandId,
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -682,7 +676,6 @@ export class AgentWorkflowToolHandler {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -1709,7 +1702,6 @@ export class AgentWorkflowToolHandler {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -1771,7 +1763,6 @@ export class AgentWorkflowToolHandler {
 
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 

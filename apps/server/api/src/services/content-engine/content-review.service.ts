@@ -67,7 +67,6 @@ export class ContentReviewService {
 
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

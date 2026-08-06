@@ -48,7 +48,6 @@ export class ShopifyPublisherService extends BasePublisherService {
     try {
       const shopifyCredential = await this.credentialsService.findOne({
         brandId: brandId,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.SHOPIFY,
       });

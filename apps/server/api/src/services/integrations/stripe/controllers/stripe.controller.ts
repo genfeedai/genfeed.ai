@@ -86,7 +86,6 @@ export class StripeController {
       // not a legacy external auth-provider id.
       const dbUser = await this.usersService.findOne({
         id: user.id,
-        isDeleted: false,
       });
       if (!dbUser) {
         return returnNotFound('User', user.id);
@@ -99,7 +98,6 @@ export class StripeController {
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
           id: publicMetadata.organization,
-          isDeleted: false,
         });
 
         if (!organization) {
@@ -196,7 +194,6 @@ export class StripeController {
 
       const dbUser = await this.usersService.findOne({
         id: user.id,
-        isDeleted: false,
       });
       if (!dbUser) {
         return returnNotFound('User', user.id);
@@ -209,7 +206,6 @@ export class StripeController {
       if (!subscription) {
         const organization = await this.organizationsService.findOne({
           id: publicMetadata.organization,
-          isDeleted: false,
         });
 
         if (!organization) {

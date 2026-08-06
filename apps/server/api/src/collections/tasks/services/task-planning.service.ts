@@ -137,7 +137,6 @@ export class TaskPlanningService {
       organizationId;
     const org = await this.organizationsService.findOne({
       id: taskOrgId,
-      isDeleted: false,
     });
 
     return Promise.all(

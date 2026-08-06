@@ -239,7 +239,6 @@ export class CredentialsService extends BaseService<
     }
 
     const credential = await this.findOne({
-      isDeleted: false,
       oauthState: state,
       platform,
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },
@@ -339,7 +338,6 @@ export class CredentialsService extends BaseService<
   ): Promise<CredentialDocument> {
     const credential = await this.findOne({
       id: credentialId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

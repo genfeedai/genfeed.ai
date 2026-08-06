@@ -163,7 +163,6 @@ export class MetaAdsBulkController {
 
     const credential = await this.credentialsService.findOne({
       isConnected: true,
-      isDeleted: false,
       organizationId: organizationId,
       platform: CredentialPlatform.FACEBOOK,
       userId: userId,

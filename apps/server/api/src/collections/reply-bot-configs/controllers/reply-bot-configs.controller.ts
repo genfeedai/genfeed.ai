@@ -190,7 +190,6 @@ export class ReplyBotConfigsController extends BaseCRUDController<
     const data = await this.replyBotConfigsService.findOne({
       ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

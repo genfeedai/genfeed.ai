@@ -122,7 +122,6 @@ export abstract class BaseIntegrationController {
   ): Promise<IntegrationBrand> {
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

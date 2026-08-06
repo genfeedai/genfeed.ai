@@ -334,7 +334,6 @@ export class CredentialsController {
 
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -407,7 +406,6 @@ export class CredentialsController {
       // Get the Instagram credential for this brand
       const credential = await this.credentialsService.findOne({
         id: credentialId,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
         platform: CredentialPlatform.INSTAGRAM,
       });
@@ -435,7 +433,6 @@ export class CredentialsController {
 
       const brand = await this.brandsService.findOne({
         id: brandId,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
 
@@ -481,7 +478,6 @@ export class CredentialsController {
         const publicMetadata = getPublicMetadata(user);
         const credential = await this.credentialsService.findOne({
           id: credentialId,
-          isDeleted: false,
           organizationId: publicMetadata.organization,
           platform: CredentialPlatform.INSTAGRAM,
         });
@@ -518,7 +514,6 @@ export class CredentialsController {
 
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -609,7 +604,6 @@ export class CredentialsController {
     // Verify ownership before deletion
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -657,7 +651,6 @@ export class CredentialsController {
     // Verify ownership
     const credential = await this.credentialsService.findOne({
       id: credentialId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -673,7 +666,6 @@ export class CredentialsController {
 
     const organization = await this.organizationsService.findOne({
       id: publicMetadata.organization,
-      isDeleted: false,
     });
 
     if (!organization) {

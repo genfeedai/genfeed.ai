@@ -255,6 +255,34 @@ describe('BaseService', () => {
       expect(delegate.count).toHaveBeenCalledWith({ where: {} });
     });
 
+    it('honors an explicit isDeleted: true instead of clobbering it', async () => {
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { isDeleted: true } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { isDeleted: true } }),
+      );
+    });
+
+    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
+      delegate.findMany.mockResolvedValue([]);
+      delegate.count.mockResolvedValue(0);
+
+      await service.findAll(
+        { where: { isDeleted: undefined, organizationId: 'org_1' } },
+        { page: 1, limit: 10 },
+      );
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId: 'org_1' } }),
+      );
+    });
+
     it('computes hasNextPage / prevPage correctly', async () => {
       delegate.findMany.mockResolvedValue(
         Array.from({ length: 10 }, (_, i) => ({ id: String(i) })),
@@ -826,9 +854,50 @@ describe('BaseService', () => {
       const result = await service.findOne({ id: 'id_1' });
 
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'id_1' },
+        where: { id: 'id_1', isDeleted: false },
       });
       expect(result).toEqual({ ...doc });
+    });
+
+    it('injects isDeleted: false when the caller omits it', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await service.findOne({ organizationId: 'org_1' });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { isDeleted: false, organizationId: 'org_1' },
+      });
+    });
+
+    it('honors an explicit isDeleted: true instead of clobbering it', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await service.findOne({ id: 'id_1', isDeleted: true });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'id_1', isDeleted: true },
+      });
+    });
+
+    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      await service.findOne({ id: 'id_1', isDeleted: undefined });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+      });
+    });
+
+    it('omits the soft-delete filter for models without isDeleted', async () => {
+      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
+      delegate.findFirst.mockResolvedValue(null);
+
+      await service.findOne({ id: 'id_1' });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+      });
     });
 
     it('normalizes enum filters', async () => {
@@ -844,7 +913,7 @@ describe('BaseService', () => {
       await service.findOne({ status: 'public' });
 
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { status: 'PUBLISHED' },
+        where: { isDeleted: false, status: 'PUBLISHED' },
       });
     });
 
@@ -861,7 +930,7 @@ describe('BaseService', () => {
       delegate.findFirst.mockResolvedValue({ id: '1', brand: {} });
       await service.findOne({ id: '1' }, ['brand']);
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: '1' },
+        where: { id: '1', isDeleted: false },
         include: { brand: true },
       });
     });
@@ -880,7 +949,7 @@ describe('BaseService', () => {
       ]);
 
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: '1' },
+        where: { id: '1', isDeleted: false },
         include: {
           brand: { select: { id: true, label: true } },
         },
@@ -898,7 +967,7 @@ describe('BaseService', () => {
       ]);
 
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: '1' },
+        where: { id: '1', isDeleted: false },
         include: {
           ingredient: { include: { metadata: true } },
         },
@@ -941,7 +1010,7 @@ describe('BaseService', () => {
       await service.findOne({ id: 'id_1', status: undefined });
 
       expect(delegate.findFirst).toHaveBeenCalledWith({
-        where: { id: 'id_1' },
+        where: { id: 'id_1', isDeleted: false },
       });
     });
   });

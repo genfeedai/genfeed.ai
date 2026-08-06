@@ -149,7 +149,6 @@ export class CronModelDeprecationService {
     // 1. Check that the successor model exists and is active
     const successor = await this.modelsService.findOne({
       isActive: true,
-      isDeleted: false,
       key: model.succeededBy,
     });
 
