@@ -33,17 +33,29 @@ const defaultProps = {
 };
 
 describe('CreditsBarTrigger', () => {
-  it('shows compact unit on the topbar trigger without a permanent outline', () => {
+  it('highlights empty balance in destructive red with buy-credits urgency', async () => {
+    const user = userEvent.setup();
     render(<CreditsBarTrigger {...defaultProps} />);
 
     const trigger = screen.getByTestId('topbar-credits-trigger');
-    expect(trigger).toHaveClass('outline-none', 'border-0', 'ring-0');
+    expect(trigger).toHaveClass('outline-none', 'ring-0');
+    expect(trigger).toHaveClass('text-destructive', 'bg-destructive/10');
     expect(trigger).toHaveAttribute('data-severity', 'critical');
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('GEN')).toBeInTheDocument();
     expect(
-      screen.getByLabelText('Balance 0 GEN. Open wallet.'),
+      screen.getByLabelText(
+        'Balance empty: 0 GEN. Open wallet to buy credits.',
+      ),
     ).toBeInTheDocument();
+
+    await user.click(trigger);
+
+    expect(
+      screen.getByText('You are out of credits. Buy more to keep generating.'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('topbar-credits-buy')).toBeInTheDocument();
+    expect(screen.getByText('Buy credits')).toBeInTheDocument();
   });
 
   it('marks healthy balances without low affordance noise', () => {
@@ -56,10 +68,10 @@ describe('CreditsBarTrigger', () => {
       />,
     );
 
-    expect(screen.getByTestId('topbar-credits-trigger')).toHaveAttribute(
-      'data-severity',
-      'healthy',
-    );
+    const trigger = screen.getByTestId('topbar-credits-trigger');
+    expect(trigger).toHaveAttribute('data-severity', 'healthy');
+    expect(trigger).toHaveClass('border-0');
+    expect(trigger).not.toHaveClass('text-destructive');
     expect(screen.getByText('4.2k')).toBeInTheDocument();
   });
 
@@ -83,6 +95,9 @@ describe('CreditsBarTrigger', () => {
     const buyCredits = screen.getByTestId('topbar-credits-buy');
     expect(buyCredits).toHaveAttribute('href', '/test-org/~/settings/billing');
     expect(screen.getByText('Buy credits')).toBeInTheDocument();
+    expect(
+      screen.getByText('Running low. Top up before generations stall.'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Top up')).not.toBeInTheDocument();
     expect(screen.queryByText('Billing & usage')).not.toBeInTheDocument();
     expect(screen.queryByText('Refresh')).not.toBeInTheDocument();
