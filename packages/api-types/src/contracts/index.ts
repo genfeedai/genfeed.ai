@@ -10,6 +10,7 @@
 
 export * from './channel-capabilities.contract';
 export * from './generation-brief.contract';
+export * from './generation-webhook-events.contract';
 export * from './ingredients.contract';
 export * from './posting-sets.contract';
 export * from './posts.contract';
@@ -20,3 +21,6 @@ export * from './recurrence-preview.contract';
 export * from './scheduler.contract';
 export * from './scheduler-analytics-collection.contract';
 export * from './scheduler-analytics-comparison.contract';
+export * from './webhook-events.contract';
+export * from './webhook-events.shared';
+export * from './workflow-webhook-events.contract';

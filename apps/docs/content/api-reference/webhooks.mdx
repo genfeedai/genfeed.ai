@@ -1,27 +1,29 @@
 ---
 title: Webhooks
-description: 'Configure and verify signed outbound Genfeed webhooks for scheduled publishing outcomes, including endpoints, secrets, retries, and payloads.'
+description: 'Configure and verify signed outbound Genfeed webhooks for publishing, generation, and workflow execution outcomes, including endpoints, secrets, retries, and payloads.'
 ---
 
 # Webhooks
 
-Genfeed can send signed outbound webhooks when scheduled publish work reaches a terminal outcome. Webhooks use the organization webhook endpoint and secret configured in organization settings.
+Genfeed can send signed outbound webhooks when asynchronous work reaches a terminal outcome: scheduled publishing, image/video/article generation, and workflow executions. Webhooks use the organization webhook endpoint and secret configured in organization settings.
 
 ## Endpoint Configuration
 
 Organization owners and admins can configure the outbound endpoint from organization settings. The endpoint supports:
 
-- enable or disable delivery without affecting publish execution
+- enable or disable delivery without affecting the work that produced the event
 - endpoint URL and signing secret configuration
-- optional publish event filters; an empty event list delivers every publish webhook event
-- test delivery using a schema-valid sample publish payload
+- optional event filters; an empty event list delivers every event in the catalog below
+- test delivery using a schema-valid sample payload for the selected event
 - latest delivery status, including queued, delivered, rejected, or failed
 
-The API test action is `POST /organizations/{organizationId}/settings/webhooks/test`. The optional body field `event` can be one publish event type from the catalog below. The response returns the queued delivery status snapshot.
+The API test action is `POST /organizations/{organizationId}/settings/webhooks/test`. The optional body field `event` can be any event type from the catalog below. The response returns the queued delivery status snapshot.
+
+Event filters are opt-in narrowing. An empty or unset filter delivers the whole catalog, and unknown values stored in a filter are ignored rather than treated as a match — a stale filter never silently enables an event.
 
 ## Delivery
 
-Webhook delivery is asynchronous and does not block publish execution. Events are queued on the `webhook-client` queue and retried up to five times with exponential backoff. Consumer `5xx`, network failures, and the 30-second delivery timeout are retried; `4xx` responses are treated as delivered but rejected by the receiver.
+Webhook delivery is asynchronous and never blocks the publish, generation, or workflow execution that produced the event. Events are queued on the `webhook-client` queue and retried up to five times with exponential backoff. Consumer `5xx`, network failures, and the 30-second delivery timeout are retried; `4xx` responses are treated as delivered but rejected by the receiver.
 
 Each request includes:
 
@@ -31,11 +33,17 @@ Each request includes:
 
 Payloads include `eventId` for consumer idempotency. Delivery is at-least-once, so consumers should store processed `eventId` values before running side effects and safely ignore duplicates. The `X-Genfeed-Delivery` header is a transport diagnostic and may differ for test deliveries; use the payload `eventId` as the durable idempotency key.
 
-Publish events use stable `eventId` values derived from release, target, event type, and terminal status. If a publish worker retries the same terminal transition, Genfeed enqueues the same webhook job id while the queue record is retained. Consumer endpoints must still be idempotent because delivery retries can resend the same event.
+Every family derives a stable `eventId` from its own identifiers and terminal status:
+
+- publish — `publish:<event>:<releaseId>:<targetId>:<status>`
+- generation — `generation:<event>:<kind>:<generationId>:<status>`
+- workflow — `workflow:<event>:<workflowId>:<executionId>:<status>`
+
+If a worker retries the same terminal transition, Genfeed enqueues the same webhook job id while the queue record is retained. Consumer endpoints must still be idempotent because delivery retries can resend the same event.
 
 ## Event Catalog
 
-All publish webhook payloads use `schemaVersion: 1`. Breaking payload changes will increment `schemaVersion`; additive fields can appear under the current version, so consumers should tolerate unknown fields and branch parsing by `schemaVersion`.
+All webhook payloads use `schemaVersion: 1`. Breaking payload changes will increment `schemaVersion`; additive fields can appear under the current version, so consumers should tolerate unknown fields and branch parsing by `schemaVersion`.
 
 | Event | When it emits |
 | --- | --- |
@@ -44,8 +52,14 @@ All publish webhook payloads use `schemaVersion: 1`. Breaking payload changes wi
 | `release.published` | Every target in the release published. |
 | `release.partially_published` | At least one target published and at least one target failed. |
 | `release.failed` | Every terminal target failed. |
+| `generation.completed` | An image, video, or article generation finished and its output is stored. |
+| `generation.failed` | An image, video, or article generation reached a permanent failed state. |
+| `workflow.execution.completed` | A workflow execution finished successfully. |
+| `workflow.execution.failed` | A workflow execution reached a permanent failed state. |
 
-## Payload Shape
+Generation events carry a `generation.kind` of `image`, `video`, or `article`, so a consumer can subscribe to the whole family and branch on `kind`.
+
+## Publish Payload Shape
 
 ```json
 {
@@ -82,4 +96,67 @@ All publish webhook payloads use `schemaVersion: 1`. Breaking payload changes wi
 }
 ```
 
-Failure payloads include a stable `error.class` value: `misconfiguration`, `credential`, `provider_outage`, `rate_limit`, `validation`, or `unknown`. OAuth and provider tokens, webhook secrets, bearer tokens, and API keys are redacted from payload errors, delivery-status snapshots, queue failure reasons, and worker diagnostics.
+## Generation Payload Shape
+
+`generation.output` is `null` until the asset is stored, and always `null` on `generation.failed`. `brandId`, `model`, and `provider` are `null` when the source record does not carry them.
+
+```json
+{
+  "event": "generation.completed",
+  "eventId": "generation:generation.completed:image:ingredient_123:completed",
+  "schemaVersion": 1,
+  "timestamp": "2026-07-07T10:00:00.000Z",
+  "occurredAt": "2026-07-07T10:00:00.000Z",
+  "generation": {
+    "id": "ingredient_123",
+    "kind": "image",
+    "status": "completed",
+    "brandId": "brand_123",
+    "model": "genfeedai/flux-dev",
+    "provider": "genfeedai",
+    "completedAt": "2026-07-07T10:00:00.000Z",
+    "output": {
+      "url": "https://cdn.genfeed.ai/ingredients/images/ingredient_123.png",
+      "storageKey": "ingredients/images/ingredient_123",
+      "mimeType": "image/png"
+    },
+    "error": null
+  }
+}
+```
+
+## Workflow Payload Shape
+
+`progress` is an integer between `0` and `100`. `failedNodeId` names the node that ended the run and is `null` on success. `trigger` is the execution trigger (for example `scheduled`, `api`, `manual`) or `null` when the stored value is not a recognized trigger.
+
+```json
+{
+  "event": "workflow.execution.failed",
+  "eventId": "workflow:workflow.execution.failed:workflow_123:execution_123:failed",
+  "schemaVersion": 1,
+  "timestamp": "2026-07-07T10:00:00.000Z",
+  "occurredAt": "2026-07-07T10:00:00.000Z",
+  "execution": {
+    "id": "execution_123",
+    "workflowId": "workflow_123",
+    "status": "failed",
+    "trigger": "api",
+    "progress": 40,
+    "creditsUsed": 4,
+    "startedAt": "2026-07-07T09:59:30.000Z",
+    "completedAt": "2026-07-07T10:00:00.000Z",
+    "durationMs": 30000,
+    "failedNodeId": "node_3",
+    "error": {
+      "class": "provider_outage",
+      "code": "provider_outage",
+      "message": "Provider timed out",
+      "retryable": false
+    }
+  }
+}
+```
+
+## Errors and Redaction
+
+Failure payloads across every family include a stable `error.class` value: `misconfiguration`, `credential`, `provider_outage`, `rate_limit`, `validation`, or `unknown`. OAuth and provider tokens, webhook secrets, bearer tokens, and API keys are redacted from payload errors, delivery-status snapshots, queue failure reasons, and worker diagnostics.

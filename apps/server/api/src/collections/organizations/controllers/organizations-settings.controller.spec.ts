@@ -22,7 +22,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ByokService } from '@api/services/byok/byok.service';
-import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
 import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
@@ -88,7 +88,7 @@ describe('OrganizationsSettingsController', () => {
     validateKey: vi.fn().mockResolvedValue({ isValid: true }),
   };
 
-  const mockPublishEventWebhookService = {
+  const mockWebhookDispatchService = {
     sendTestDelivery: vi.fn(),
   };
 
@@ -123,8 +123,8 @@ describe('OrganizationsSettingsController', () => {
           useValue: mockByokService,
         },
         {
-          provide: PublishEventWebhookService,
-          useValue: mockPublishEventWebhookService,
+          provide: WebhookDispatchService,
+          useValue: mockWebhookDispatchService,
         },
       ],
     })
@@ -254,8 +254,8 @@ describe('OrganizationsSettingsController', () => {
     const organizationId = '507f1f77bcf86cd799439012';
 
     it('queues a publish webhook test delivery for organization owners', async () => {
-      mockPublishEventWebhookService.sendTestDelivery.mockResolvedValue({
-        deliveryId: 'publish-test:org-1:target.published:abc',
+      mockWebhookDispatchService.sendTestDelivery.mockResolvedValue({
+        deliveryId: 'webhook-test:org-1:target.published:abc',
         event: 'target.published',
         isTest: true,
         status: 'queued',
@@ -271,21 +271,49 @@ describe('OrganizationsSettingsController', () => {
         { event: 'target.published' },
       );
 
-      expect(
-        mockPublishEventWebhookService.sendTestDelivery,
-      ).toHaveBeenCalledWith({
+      expect(mockWebhookDispatchService.sendTestDelivery).toHaveBeenCalledWith({
         event: 'target.published',
         organizationId: 'org_current',
       });
       expect(result).toEqual({
         data: {
-          deliveryId: 'publish-test:org-1:target.published:abc',
+          deliveryId: 'webhook-test:org-1:target.published:abc',
           event: 'target.published',
           isTest: true,
           status: 'queued',
         },
       });
     });
+
+    it.each(['generation.completed', 'workflow.execution.failed'] as const)(
+      'queues a %s test delivery',
+      async (event) => {
+        mockWebhookDispatchService.sendTestDelivery.mockResolvedValue({
+          deliveryId: `webhook-test:org-1:${event}:abc`,
+          event,
+          isTest: true,
+          status: 'queued',
+        });
+
+        const result = await controller.testWebhookDelivery(
+          {
+            context: {
+              organizationId: 'org_current',
+            },
+          } as Request,
+          organizationId,
+          { event },
+        );
+
+        expect(
+          mockWebhookDispatchService.sendTestDelivery,
+        ).toHaveBeenCalledWith({
+          event,
+          organizationId: 'org_current',
+        });
+        expect(result.data.event).toBe(event);
+      },
+    );
   });
 
   describe('findOneSubscription', () => {

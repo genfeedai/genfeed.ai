@@ -14,8 +14,10 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { GenerationWebhookOutput } from '@api-types/contracts/generation-webhook-events.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -42,6 +44,7 @@ export class ImageGenerationProviderDispatchService {
     private readonly activitiesService: ActivitiesService,
     private readonly failedGenerationService: FailedGenerationService,
     private readonly filesClientService: FilesClientService,
+    private readonly generationEventWebhookService: GenerationEventWebhookService,
     private readonly imagesService: ImagesService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
@@ -190,6 +193,16 @@ export class ImageGenerationProviderDispatchService {
           getUserRoomName(context.user.id),
         ),
       ]);
+
+      await this.emitGenerationCompleted(context, context.ingredientData.id, {
+        mimeType: 'image/png',
+        storageKey:
+          typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : null,
+        url:
+          typeof uploadMeta.publicUrl === 'string'
+            ? uploadMeta.publicUrl
+            : null,
+      });
 
       return context.ingredientData.id.toString();
     } catch (error: unknown) {
@@ -481,6 +494,16 @@ export class ImageGenerationProviderDispatchService {
         getUserRoomName(context.user.id),
       ),
     ]);
+
+    await this.emitGenerationCompleted(context, ingredientId, {
+      mimeType: null,
+      storageKey:
+        typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : null,
+      url:
+        typeof uploadMeta.publicUrl === 'string'
+          ? uploadMeta.publicUrl
+          : outputUrl,
+    });
   }
 
   private externalId(result: ImageGenerationProviderResult): string {
@@ -508,6 +531,31 @@ export class ImageGenerationProviderDispatchService {
       getUserRoomName(context.user.id),
       errorMessage,
     );
+
+    await this.generationEventWebhookService.emitGenerationFailed({
+      brandId: context.brand.id?.toString() ?? null,
+      errorMessage,
+      generationId: ingredientId.toString(),
+      kind: 'image',
+      model: context.model,
+      organizationId: context.publicMetadata.organization,
+    });
+
     throw error;
+  }
+
+  private async emitGenerationCompleted(
+    context: ImageGenerationContext,
+    ingredientId: ImageGenerationSavedIngredient['id'],
+    output: GenerationWebhookOutput,
+  ): Promise<void> {
+    await this.generationEventWebhookService.emitGenerationCompleted({
+      brandId: context.brand.id?.toString() ?? null,
+      generationId: ingredientId.toString(),
+      kind: 'image',
+      model: context.model,
+      organizationId: context.publicMetadata.organization,
+      output,
+    });
   }
 }

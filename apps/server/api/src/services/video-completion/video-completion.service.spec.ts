@@ -6,6 +6,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { IngredientStatus, Status } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,6 +37,10 @@ describe('VideoCompletionService', () => {
   let rawCutClipCompletionService: {
     handleCompletion: ReturnType<typeof vi.fn>;
     reconcileActiveClips: ReturnType<typeof vi.fn>;
+  };
+  let generationEventWebhookService: {
+    emitGenerationCompleted: ReturnType<typeof vi.fn>;
+    emitGenerationFailed: ReturnType<typeof vi.fn>;
   };
   let cacheService: {
     withLock: ReturnType<typeof vi.fn>;
@@ -69,6 +74,10 @@ describe('VideoCompletionService', () => {
       handleCompletion: vi.fn().mockResolvedValue(false),
       reconcileActiveClips: vi.fn().mockResolvedValue(undefined),
     };
+    generationEventWebhookService = {
+      emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
+      emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
+    };
     cacheService = {
       withLock: vi
         .fn()
@@ -87,6 +96,10 @@ describe('VideoCompletionService', () => {
         {
           provide: FileQueueService,
           useValue: fileQueueService,
+        },
+        {
+          provide: GenerationEventWebhookService,
+          useValue: generationEventWebhookService,
         },
         {
           provide: RedisService,
@@ -404,6 +417,52 @@ describe('VideoCompletionService', () => {
           status: IngredientStatus.FAILED,
         },
       );
+      expect(
+        generationEventWebhookService.emitGenerationFailed,
+      ).toHaveBeenCalledWith({
+        errorMessage: 'Processing failed due to invalid format',
+        generationId: mockData.ingredientId,
+        kind: 'video',
+        organizationId: mockData.organizationId,
+      });
+    });
+
+    it('emits a generation webhook when a video ingredient completes', async () => {
+      const mockData = {
+        ingredientId: mockIngredientId.toString(),
+        organizationId: mockOrganizationId.toString(),
+        result: {
+          s3Key: 'ingredients/videos/507f1f77bcf86cd799439011',
+        },
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+        userId: mockUserId.toString(),
+      };
+
+      ingredientsService.patch.mockResolvedValue({
+        id: mockIngredientId,
+        status: IngredientStatus.GENERATED,
+      });
+
+      await service.onModuleInit();
+      const subscribeCallback = (redisService.subscribe as vi.Mock).mock
+        .calls[0][1];
+
+      await subscribeCallback(mockData);
+      await waitForAsyncHandler();
+
+      expect(
+        generationEventWebhookService.emitGenerationCompleted,
+      ).toHaveBeenCalledWith({
+        generationId: mockData.ingredientId,
+        kind: 'video',
+        organizationId: mockData.organizationId,
+        output: {
+          mimeType: null,
+          storageKey: mockData.result.s3Key,
+          url: null,
+        },
+      });
     });
 
     it('should handle completion with s3Key result', async () => {

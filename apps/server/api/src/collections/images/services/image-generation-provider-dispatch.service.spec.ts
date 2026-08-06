@@ -79,10 +79,15 @@ describe('ImageGenerationProviderDispatchService', () => {
     ),
     new SdxlImageGenerationProviderAdapter(),
   );
+  const generationEventWebhookService = {
+    emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
+    emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
+  };
   const service = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
+    generationEventWebhookService as never,
     imagesService as never,
     loggerService,
     metadataService as never,
@@ -195,7 +200,47 @@ describe('ImageGenerationProviderDispatchService', () => {
       }),
     );
     expect(websocketService.publishVideoComplete).toHaveBeenCalled();
+    expect(
+      generationEventWebhookService.emitGenerationCompleted,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      generationId: 'ingredient-1',
+      kind: 'image',
+      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      organizationId: 'organization-1',
+      output: {
+        mimeType: 'image/png',
+        storageKey: 'images/generated.png',
+        url: 'https://cdn.example.com/generated.png',
+      },
+    });
     expect(plan?.kind).toBe('inline');
+  });
+
+  it('emits a generation failure webhook when the provider throws', async () => {
+    comfyUIService.generateImage.mockRejectedValueOnce(
+      new Error('ComfyUI unreachable'),
+    );
+    const context = buildContext({ model: MODEL_KEYS.GENFEED_AI_FLUX_DEV });
+
+    const plan = await service.dispatch(context);
+    await expect(plan?.generationPromise).rejects.toThrow(
+      'ComfyUI unreachable',
+    );
+
+    expect(
+      failedGenerationService.handleFailedImageGeneration,
+    ).toHaveBeenCalled();
+    expect(
+      generationEventWebhookService.emitGenerationFailed,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      errorMessage: 'ComfyUI unreachable',
+      generationId: 'ingredient-1',
+      kind: 'image',
+      model: MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+      organizationId: 'organization-1',
+    });
   });
 
   it('fans out Fal outputs and tracks each placeholder', async () => {

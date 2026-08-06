@@ -191,10 +191,15 @@ const createService = () => {
     ),
     new SdxlImageGenerationProviderAdapter(),
   );
+  const generationEventWebhookService = {
+    emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
+    emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
+  };
   const providerDispatchService = new ImageGenerationProviderDispatchService(
     activitiesService as never,
     failedGenerationService as never,
     filesClientService as never,
+    generationEventWebhookService as never,
     imagesService as never,
     loggerService,
     metadataService as never,
