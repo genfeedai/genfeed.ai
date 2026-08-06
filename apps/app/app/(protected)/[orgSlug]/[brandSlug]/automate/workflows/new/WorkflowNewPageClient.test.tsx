@@ -15,4 +15,14 @@ describe(relativePath, () => {
     expect(source).toContain('setActiveExecutionId(execution?.id)');
     expect(source).not.toContain('execution?._id');
   });
+
+  it('tracks bounded workflow start and terminal outcomes', () => {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+
+    expect(source).toContain('ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED');
+    expect(source).toContain('ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED');
+    expect(source).toContain("outcome: 'success'");
+    expect(source).toContain("outcome: 'failure'");
+    expect(source).toContain("workflowType: 'editor'");
+  });
 });

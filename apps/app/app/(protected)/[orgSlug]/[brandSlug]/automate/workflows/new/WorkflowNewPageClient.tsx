@@ -46,6 +46,7 @@ import {
   type WorkflowGraphEdgeLike,
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { promptsApi, workflowsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
@@ -258,6 +259,8 @@ export default function WorkflowNewPageClient() {
       inputValues: Record<string, unknown> = {},
       options: { saveDefaults: boolean } = { saveDefaults: false },
     ) => {
+      let runStarted = false;
+
       try {
         setIsRunning(true);
         const service = await getWorkflowService();
@@ -272,6 +275,11 @@ export default function WorkflowNewPageClient() {
           await saveInputDefaults(inputValues);
         }
 
+        captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, {
+          workflowType: 'editor',
+        });
+        runStarted = true;
+
         const execution = await service.execute(runnableWorkflowId, {
           inputValues,
           metadata: { source: 'workflow-editor-run-panel' },
@@ -279,7 +287,17 @@ export default function WorkflowNewPageClient() {
         setActiveExecutionId(execution?.id);
         setShowRunPanel(false);
         setShowExecutionPanel(true);
+        captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+          outcome: 'success',
+          workflowType: 'editor',
+        });
       } catch (error) {
+        if (runStarted) {
+          captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+            outcome: 'failure',
+            workflowType: 'editor',
+          });
+        }
         logger.error('Failed to run workflow', {
           error,
           workflowId: currentWorkflowId ?? 'new',

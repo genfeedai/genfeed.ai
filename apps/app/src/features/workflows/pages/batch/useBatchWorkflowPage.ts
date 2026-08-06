@@ -19,6 +19,7 @@ import type {
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 interface UploadedFile {
   file: File;
@@ -146,6 +147,7 @@ export function useBatchWorkflowPage() {
   const [isRunningBulkAction, setIsRunningBulkAction] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<UploadedFile[]>(files);
+  const startedBatchJobIdRef = useRef<string | null>(null);
 
   const getService = useAuthedService(createWorkflowApiService);
   const getIngredientsService = useAuthedService((token: string) =>
@@ -299,6 +301,24 @@ export function useBatchWorkflowPage() {
   const activeBatchLifecycleStatus = activeBatchStatus?.status;
 
   useEffect(() => {
+    if (
+      !activeBatchId ||
+      startedBatchJobIdRef.current !== activeBatchId ||
+      !activeBatchLifecycleStatus ||
+      !isTerminalBatchStatus(activeBatchLifecycleStatus)
+    ) {
+      return;
+    }
+
+    captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+      outcome:
+        activeBatchLifecycleStatus === 'completed' ? 'success' : 'failure',
+      workflowType: 'batch',
+    });
+    startedBatchJobIdRef.current = null;
+  }, [activeBatchId, activeBatchLifecycleStatus]);
+
+  useEffect(() => {
     if (!activeBatchId || !activeBatchLifecycleStatus) {
       return;
     }
@@ -445,12 +465,21 @@ export function useBatchWorkflowPage() {
       return;
     }
 
+    let batchJobCreated = false;
+    let runStarted = false;
+
     try {
       setError(null);
       setIsStartingBatch(true);
 
       const service = await getService();
+      captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, {
+        workflowType: 'batch',
+      });
+      runStarted = true;
       const result = await service.runBatch(selectedWorkflowId, ingredientIds);
+      batchJobCreated = true;
+      startedBatchJobIdRef.current = result.batchJobId;
       const batchJob = await service.getBatchStatus(result.batchJobId);
 
       setActiveBatchStatus(batchJob);
@@ -458,6 +487,12 @@ export function useBatchWorkflowPage() {
       setSelectedOutputIds(new Set());
       replaceJobQuery(result.batchJobId);
     } catch (runError) {
+      if (runStarted && !batchJobCreated) {
+        captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+          outcome: 'failure',
+          workflowType: 'batch',
+        });
+      }
       const message =
         runError instanceof Error ? runError.message : 'Failed to start batch.';
       setError(message);

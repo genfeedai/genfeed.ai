@@ -213,7 +213,9 @@ describe('captureAnalyticsEvent', () => {
   it('no-ops (without throwing) before the client is initialised', async () => {
     const client = await loadClient();
     expect(() =>
-      client.captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, {}),
+      client.captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, {
+        workflowType: 'editor',
+      }),
     ).not.toThrow();
     expect(mocks.posthogCapture).not.toHaveBeenCalled();
   });
@@ -232,6 +234,25 @@ describe('captureAnalyticsEvent', () => {
       generationType: 'image',
       outcome: 'success',
     });
+  });
+
+  it('forwards bounded workflow outcome properties', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    client.captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
+      outcome: 'failure',
+      workflowType: 'batch',
+    });
+
+    expect(mocks.posthogCapture).toHaveBeenCalledWith(
+      'workflow_run_completed',
+      {
+        outcome: 'failure',
+        workflowType: 'batch',
+      },
+    );
   });
 
   it('swallows capture errors so a tracked action is never blocked', async () => {

@@ -15,6 +15,7 @@ export {
   type PromptGeneratedSource,
   type SignupMethod,
   type StudioEditorSurface,
+  type WorkflowRunType,
 } from './analytics-events';
 export {
   normalizeAnalyticsPathname,
