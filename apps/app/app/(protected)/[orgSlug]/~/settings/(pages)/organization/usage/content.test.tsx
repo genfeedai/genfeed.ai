@@ -85,7 +85,10 @@ describe('SettingsUsagePage', () => {
     expect(screen.getByRole('heading', { name: 'Usage' })).toBeInTheDocument();
     expect(screen.getByText('88')).toBeInTheDocument();
     expect(screen.getByText('Used (7 days)')).toBeInTheDocument();
-    expect(screen.getByText('Usage over time')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Usage over time' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ledger' })).toBeInTheDocument();
     expect(
       screen.getByRole('group', { name: 'Chart range' }),
     ).toBeInTheDocument();

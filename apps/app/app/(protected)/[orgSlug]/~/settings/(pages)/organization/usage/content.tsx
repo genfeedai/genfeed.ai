@@ -26,7 +26,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -542,13 +541,11 @@ export default function SettingsUsagePage() {
         </Card>
       </div>
 
-      <Card bodyClassName="gap-3 p-4">
-        <div className="mb-4">
-          <Heading size="md">Usage over time</Heading>
-          <Text size="sm" color="muted">
-            {chartTotal.toLocaleString()} credits in selected range
-          </Text>
-        </div>
+      <Card
+        label="Usage over time"
+        description={`${chartTotal.toLocaleString()} credits in selected range`}
+        bodyClassName="gap-3 p-4"
+      >
         <UsageChart
           series={chartSeries}
           range={chartRange}
@@ -557,8 +554,7 @@ export default function SettingsUsagePage() {
       </Card>
 
       {metrics?.breakdown && metrics.breakdown.length > 0 ? (
-        <Card bodyClassName="gap-3 p-4">
-          <Heading size="md">By source (30 days)</Heading>
+        <Card label="By source (30 days)" bodyClassName="gap-3 p-4">
           <div className="divide-y divide-border/60">
             {metrics.breakdown.slice(0, 9).map((item) => (
               <div
@@ -577,18 +573,16 @@ export default function SettingsUsagePage() {
         </Card>
       ) : null}
 
-      {/* AppTable owns its own card shell — do not wrap in Card (nested chrome). */}
-      <div className="space-y-3">
-        <Heading size="md">Ledger</Heading>
-        <AppTable
-          columns={columns}
-          items={transactionsQuery.data ?? []}
-          isLoading={isLoading}
-          getRowKey={(row) => row.id}
-          emptyLabel={USAGE_EMPTY_TITLE}
-          emptyDescription={USAGE_EMPTY_DESCRIPTION}
-        />
-      </div>
+      {/* AppTable owns its own card shell — title via `label` (same chrome as Card). */}
+      <AppTable
+        label="Ledger"
+        columns={columns}
+        items={transactionsQuery.data ?? []}
+        isLoading={isLoading}
+        getRowKey={(row) => row.id}
+        emptyLabel={USAGE_EMPTY_TITLE}
+        emptyDescription={USAGE_EMPTY_DESCRIPTION}
+      />
     </div>
   );
 }
