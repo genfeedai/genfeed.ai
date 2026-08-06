@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 108 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(108);
+    it('should have 109 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(109);
     });
 
     it('should have correct values', () => {
@@ -56,6 +56,9 @@ describe('model.enum', () => {
         'ideogram-ai/ideogram-v3-turbo',
       );
       expect(MODEL_KEYS.REPLICATE_OPENAI_CLIP).toBe('openai/clip');
+      expect(MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5).toBe(
+        'nateraw/bge-large-en-v1.5',
+      );
       expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2).toBe('openai/gpt-5.2');
       expect(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5).toBe(
         'openai/gpt-image-1.5',

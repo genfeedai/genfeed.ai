@@ -7,7 +7,10 @@ import type {
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@api/services/router/interfaces/router.interfaces';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -604,8 +607,18 @@ export class RouterService {
       isDeleted: false,
     });
 
-    if (defaultModel?.key) {
+    const isCompatibleEmbeddingDefault =
+      category !== ModelCategory.EMBEDDING ||
+      defaultModel?.key === DEFAULT_CONTEXT_EMBEDDING_MODEL;
+
+    if (defaultModel?.key && isCompatibleEmbeddingDefault) {
       return defaultModel.key;
+    }
+
+    if (defaultModel?.key && !isCompatibleEmbeddingDefault) {
+      this.logger.warn(
+        `Ignoring embedding default ${defaultModel.key}; context vectors require ${DEFAULT_CONTEXT_EMBEDDING_MODEL}`,
+      );
     }
 
     // Fallback to hardcoded defaults if no database default is set
@@ -619,7 +632,7 @@ export class RouterService {
       [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
       [ModelCategory.VOICE]: 'elevenlabs',
-      [ModelCategory.EMBEDDING]: MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
+      [ModelCategory.EMBEDDING]: DEFAULT_CONTEXT_EMBEDDING_MODEL,
     };
 
     this.logger.warn(

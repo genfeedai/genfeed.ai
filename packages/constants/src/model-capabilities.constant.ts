@@ -911,11 +911,11 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
 
-    [MODEL_KEYS.REPLICATE_OPENAI_CLIP]: {
+    [MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5]: {
       category: ModelCategory.EMBEDDING,
       isBatchSupported: false,
       maxOutputs: 1,
-      maxReferences: 1,
+      maxReferences: 0,
     },
 
     // fal.ai models
