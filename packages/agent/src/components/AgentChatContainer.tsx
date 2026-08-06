@@ -82,9 +82,9 @@ export function AgentChatContainer({
     await container.handleRetry(lastUser.message);
   }, [container.handleRetry, container.timeline]);
 
-  // Match PromptBarContainer maxWidth="4xl" + surface-fixed px-3 so transcript,
-  // cards, and the composer share one vertical column edge.
-  const conversationColumnMaxWidthClass = 'w-full max-w-4xl';
+  // Same track as PromptBarContainer maxWidth="4xl" (no horizontal inset —
+  // padding here was shifting cards vs the composer shell).
+  const conversationColumnMaxWidthClass = 'mx-auto w-full max-w-4xl';
   const activeWorkEvent = useMemo(
     () =>
       selectActiveWorkEvent(container.workEvents, {
@@ -137,7 +137,7 @@ export function AgentChatContainer({
     <div className="relative flex h-full flex-col">
       {formattedError && shouldRenderInlineComposerFeedback ? (
         <Alert
-          className="mx-auto mt-3 w-full max-w-4xl px-3"
+          className="mx-auto mt-3 w-full max-w-4xl"
           onClose={() => container.setError(null)}
           type={AlertCategory.ERROR}
         >
@@ -152,7 +152,7 @@ export function AgentChatContainer({
       {archivedNotice ? (
         <Alert
           type={AlertCategory.WARNING}
-          className="mx-auto mt-3 w-full max-w-4xl px-3"
+          className="mx-auto mt-3 w-full max-w-4xl"
         >
           {archivedNotice}
         </Alert>

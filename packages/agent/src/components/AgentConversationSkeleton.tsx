@@ -13,7 +13,7 @@ export function AgentConversationSkeleton({
   title,
 }: AgentConversationSkeletonProps): ReactElement {
   // Keep skeleton column on the same track as the live transcript + prompt bar.
-  const conversationColumnMaxWidthClass = 'w-full max-w-4xl';
+  const conversationColumnMaxWidthClass = 'mx-auto w-full max-w-4xl';
 
   return (
     <div
@@ -23,7 +23,7 @@ export function AgentConversationSkeleton({
       <div className="flex-1 overflow-y-auto">
         <div
           className={cn(
-            'mx-auto flex w-full flex-col px-3 py-5 pb-56 md:pb-72',
+            'flex w-full flex-col py-5 pb-56 md:pb-72',
             conversationColumnMaxWidthClass,
           )}
         >

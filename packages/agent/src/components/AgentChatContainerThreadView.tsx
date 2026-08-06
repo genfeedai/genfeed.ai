@@ -139,12 +139,16 @@ export function AgentChatContainerThreadView({
           variant={onboardingMode ? 'inline' : 'overlay'}
         />
       ) : null}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        // Stable gutter so the centered max-w-4xl column doesn't shift vs the
+        // absolute composer when the scrollbar appears.
+        className="flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+      >
         <div
           className={cn(
-            // Horizontal inset matches PromptBarContainer surface-fixed (px-3)
-            // so message/card edges line up with the composer shell.
-            'mx-auto space-y-1 px-3 pt-4',
+            // No horizontal pad — same outer edge as the surface-fixed composer.
+            'space-y-1 pt-4',
             // Floating/portaled composer overlays the transcript — pad so
             // the last turns can scroll clear of the frosted bar + chip row.
             padBottomForComposer && padBottomForFollowUpChips

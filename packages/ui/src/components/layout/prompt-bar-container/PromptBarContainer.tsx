@@ -76,10 +76,12 @@ export default function PromptBarContainer({
   );
 
   const innerClassName = cn(
-    'mx-auto pointer-events-auto',
+    'mx-auto w-full pointer-events-auto',
     maxWidthClass,
+    // No horizontal padding on surface-fixed — the agent transcript uses the
+    // same max-width track with no inset so card edges match the composer.
     layoutMode === 'fixed' && 'px-5 pb-5',
-    layoutMode === 'surface-fixed' && 'px-3 pb-3',
+    layoutMode === 'surface-fixed' && 'px-0 pb-3',
     layoutMode === 'inflow' && 'px-0 pb-0',
     layoutMode === 'inflow-desktop' && 'px-5 pb-5 md:px-0 md:pb-0',
   );
