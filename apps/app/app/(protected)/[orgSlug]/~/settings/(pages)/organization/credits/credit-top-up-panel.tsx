@@ -147,46 +147,45 @@ export default function CreditTopUpPanel({
             </Button>
 
             {isCustom ? (
-              <div className="inline-flex flex-col gap-1 align-top">
-                <div
-                  className={cn(
-                    'inline-flex h-9 items-stretch overflow-hidden rounded border bg-muted/40',
-                    customError
-                      ? 'border-destructive'
-                      : 'border-border focus-within:border-border-strong',
-                  )}
+              <div
+                className={cn(
+                  'inline-flex h-9 max-w-full items-stretch overflow-hidden rounded border bg-muted/40',
+                  customError
+                    ? 'border-destructive'
+                    : 'border-border focus-within:border-border-strong',
+                )}
+              >
+                <span
+                  className="inline-flex items-center border-r border-border px-2.5 text-sm font-medium text-muted-foreground"
+                  aria-hidden="true"
                 >
-                  <span
-                    className="inline-flex items-center border-r border-border px-2.5 text-sm font-medium text-muted-foreground"
-                    aria-hidden="true"
-                  >
-                    $
-                  </span>
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min={PAYG_MIN_PURCHASE_USD}
-                    max={PAYG_MAX_PURCHASE_USD}
-                    step={1}
-                    value={customValue}
-                    hasError={Boolean(customError)}
-                    onChange={(event) => setCustomValue(event.target.value)}
-                    placeholder={String(PAYG_MIN_PURCHASE_USD)}
-                    aria-label="Custom credit top-up amount in dollars"
-                    aria-describedby="custom-credit-amount-hint"
-                    className="h-full w-24 rounded-none border-0 bg-transparent px-2.5 shadow-none focus-visible:border-0 focus-visible:ring-0"
-                  />
-                </div>
-                <p
+                  $
+                </span>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min={PAYG_MIN_PURCHASE_USD}
+                  max={PAYG_MAX_PURCHASE_USD}
+                  step={1}
+                  value={customValue}
+                  hasError={Boolean(customError)}
+                  onChange={(event) => setCustomValue(event.target.value)}
+                  placeholder={String(PAYG_MIN_PURCHASE_USD)}
+                  aria-label="Custom credit top-up amount in dollars"
+                  aria-describedby="custom-credit-amount-hint"
+                  aria-invalid={Boolean(customError)}
+                  className="h-full w-20 min-w-0 rounded-none border-0 bg-transparent px-2.5 shadow-none focus-visible:border-0 focus-visible:ring-0"
+                />
+                <span
                   id="custom-credit-amount-hint"
                   className={cn(
-                    'text-xs tabular-nums',
+                    'inline-flex items-center border-l border-border px-2.5 text-xs tabular-nums whitespace-nowrap',
                     customError ? 'text-destructive' : 'text-muted-foreground',
                   )}
                 >
                   {customError ??
                     `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
-                </p>
+                </span>
               </div>
             ) : null}
           </div>
