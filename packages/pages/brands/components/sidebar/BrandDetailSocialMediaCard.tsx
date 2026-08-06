@@ -15,6 +15,7 @@ import {
   groupOAuthConnectPlatforms,
   OAUTH_CONNECT_PLATFORMS,
   type OAuthConnectPlatform,
+  resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
@@ -246,7 +247,10 @@ export default function BrandDetailSocialMediaCard({
     try {
       setConnectingPlatform(platform);
       const token = (await resolveAuthToken(getToken)) ?? '';
-      const service = new ServicesService(item.servicePath ?? platform, token);
+      const service = new ServicesService(
+        resolveOAuthServicePath(platform, item.servicePath),
+        token,
+      );
       const credentialOAuth = await service.postConnect({ brandId });
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
@@ -290,9 +294,10 @@ export default function BrandDetailSocialMediaCard({
   };
 
   const renderConnectButton = (item: OAuthConnectPlatform) => {
+    const connectKey = item.connectId ?? item.platform;
     return (
       <Button
-        key={item.platform}
+        key={connectKey}
         variant={ButtonVariant.SECONDARY}
         size={ButtonSize.SM}
         onClick={() => handleConnectPlatform(item)}
@@ -327,7 +332,7 @@ export default function BrandDetailSocialMediaCard({
 
     return (
       <div
-        key={item.platform}
+        key={item.connectId ?? item.platform}
         className="flex h-full flex-col gap-3 rounded-lg bg-background-secondary p-4 shadow-border"
       >
         <div className="flex items-start justify-between gap-3">

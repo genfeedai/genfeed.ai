@@ -27,10 +27,36 @@ export interface OAuthConnectPlatformCategory {
 
 export interface OAuthConnectPlatform {
   category: OAuthConnectPlatformCategoryId;
+  /**
+   * Unique list key when multiple tiles share one {@link platform}
+   * (e.g. Meta Ads + Facebook organic both use FACEBOOK credentials).
+   */
+  connectId?: string;
   icon: ReactNode;
   label: string;
   platform: CredentialPlatform;
+  /**
+   * Nest route segment under `/v1/services/{path}/connect`.
+   * Defaults via {@link resolveOAuthServicePath}.
+   */
   servicePath?: string;
+}
+
+/**
+ * Map a CredentialPlatform (or connect tile) to the Nest services path.
+ * Enums use underscores (`google_ads`); API controllers use hyphens
+ * (`google-ads`). Agent hooks used to pass the enum raw and 404'd.
+ */
+export function resolveOAuthServicePath(
+  platform: string,
+  servicePath?: string,
+): string {
+  const explicit = servicePath?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  return platform.replaceAll('_', '-');
 }
 
 /**
@@ -51,7 +77,11 @@ export const OAUTH_CONNECT_PLATFORM_CATEGORIES: OAuthConnectPlatformCategory[] =
  * settings Connect button actually calls.
  *
  * Not listed (service helpers exist, but no UI-compatible connect route yet):
- * Mastodon, Snapchat, Pinterest, Shopify, WordPress.
+ * Mastodon, Snapchat, Pinterest, Shopify, WordPress, TikTok Ads (API-only).
+ *
+ * Ads notes:
+ * - Meta Ads reuses Facebook OAuth (ads_management scopes on FACEBOOK).
+ * - YouTube Ads reuses Google Ads OAuth (YouTube campaigns live in Google Ads).
  *
  * Shared by brand social settings + agent connect menu. Only add a platform
  * here when `POST /v1/services/<path>/connect` is live.
@@ -113,8 +143,27 @@ export const OAUTH_CONNECT_PLATFORMS: OAuthConnectPlatform[] = [
   },
   {
     category: 'ads',
+    connectId: 'meta-ads',
+    icon: <FacebookIcon className="mr-1.5 size-3.5" />,
+    label: 'Meta Ads',
+    // Marketing API reuses the Facebook credential + ads scopes.
+    platform: CredentialPlatform.FACEBOOK,
+    servicePath: 'facebook',
+  },
+  {
+    category: 'ads',
+    connectId: 'google-ads',
     icon: <GoogleIcon className="mr-1.5 size-3.5" />,
     label: 'Google Ads',
+    platform: CredentialPlatform.GOOGLE_ADS,
+    servicePath: 'google-ads',
+  },
+  {
+    category: 'ads',
+    connectId: 'youtube-ads',
+    icon: <YoutubeIcon className="mr-1.5 size-3.5" />,
+    label: 'YouTube Ads',
+    // YouTube campaigns are bought through Google Ads OAuth.
     platform: CredentialPlatform.GOOGLE_ADS,
     servicePath: 'google-ads',
   },
