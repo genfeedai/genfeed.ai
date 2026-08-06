@@ -1,6 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonVariant, ByokBillingStatus } from '@genfeedai/enums';
 import { getPlanEntitlementForTier } from '@genfeedai/pricing';
 import {
@@ -10,6 +12,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { CreditsService } from '@services/billing/credits.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
@@ -18,6 +21,8 @@ import { Text } from '@ui/typography/text';
 import { ExternalLink, TriangleAlert } from 'lucide-react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import ManagedCreditsCheckoutCard from '../credits/managed-credits-checkout-card';
+import SettingsUsagePage from '../usage/content';
 import AddCreditsCard from './add-credits-card';
 
 /** Reusable billing card section */
@@ -145,6 +150,38 @@ function ByokUsageSection({
   );
 }
 
+function CreditsCheckoutSection({
+  isBillingEnabled,
+  openBillingPortal,
+}: {
+  isBillingEnabled: boolean;
+  openBillingPortal: () => void;
+}) {
+  const hasLocalPaygPrice = Boolean(EnvironmentService.plans.payg);
+  const useManagedCloudCheckout =
+    isSelfHostedDeployment() && !isBillingEnabled && !hasLocalPaygPrice;
+
+  if (useManagedCloudCheckout) {
+    return <ManagedCreditsCheckoutCard />;
+  }
+
+  return (
+    <AddCreditsCard
+      secondaryAction={
+        isBillingEnabled ? (
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            onClick={openBillingPortal}
+            icon={<ExternalLink className="size-4" />}
+          >
+            Open Billing Portal
+          </Button>
+        ) : undefined
+      }
+    />
+  );
+}
+
 export default function SettingsBillingPage() {
   const { isReady, settings } = useBrand();
   const {
@@ -155,6 +192,7 @@ export default function SettingsBillingPage() {
     openBillingPortal,
   } = useSubscription();
 
+  const isBillingEnabled = hasOrganizationBillingHint();
   const isByokTier =
     subscription?.category?.toLowerCase() === 'byok' || !subscription;
   const remainingPercent = creditsBreakdown
@@ -183,99 +221,105 @@ export default function SettingsBillingPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <BillingCard title="Current Plan">
-        {subscription ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <Text size="sm" color="muted">
-                  Plan
-                </Text>
-                <Text weight="medium" className="capitalize">
-                  {subscription.category || 'Free'}
-                </Text>
+    <div className="flex flex-col gap-4 pb-10">
+      <h1 className="sr-only">Billing</h1>
+
+      {isBillingEnabled ? (
+        <BillingCard title="Current Plan">
+          {subscription ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
+                  <Text size="sm" color="muted">
+                    Plan
+                  </Text>
+                  <Text weight="medium" className="capitalize">
+                    {subscription.category || 'Free'}
+                  </Text>
+                </div>
+                <div className="flex flex-col gap-1 text-right">
+                  <Text size="sm" color="muted">
+                    Status
+                  </Text>
+                  <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
+                    {subscription.status}
+                  </Badge>
+                </div>
               </div>
-              <div className="flex flex-col gap-1 text-right">
-                <Text size="sm" color="muted">
-                  Status
-                </Text>
-                <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
-                  {subscription.status}
-                </Badge>
-              </div>
+              {subscription.currentPeriodEnd && (
+                <div>
+                  <Text as="p" size="sm" color="muted">
+                    Current period ends
+                  </Text>
+                  <Text as="p" weight="medium">
+                    <ClientFormattedDate
+                      format="date"
+                      locales="en-US"
+                      options={{
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }}
+                      value={subscription.currentPeriodEnd}
+                    />
+                  </Text>
+                </div>
+              )}
             </div>
-            {subscription.currentPeriodEnd && (
-              <div>
-                <Text as="p" size="sm" color="muted">
-                  Current period ends
-                </Text>
-                <Text as="p" weight="medium">
-                  <ClientFormattedDate
-                    format="date"
-                    locales="en-US"
-                    options={{
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    }}
-                    value={subscription.currentPeriodEnd}
-                  />
-                </Text>
-              </div>
-            )}
-          </div>
-        ) : (
-          <Text color="muted">
-            No active subscription. Subscribe to unlock all features.
-          </Text>
-        )}
+          ) : (
+            <Text color="muted">
+              No active subscription. Subscribe to unlock all features.
+            </Text>
+          )}
 
-        <div className="grid grid-cols-2 gap-3 border-t border-border pt-4 md:grid-cols-5">
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Organizations
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.organizationLimit)}
-            </Text>
+          <div className="grid grid-cols-2 gap-3 border-t border-border pt-4 md:grid-cols-5">
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                Organizations
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {formatPlanLimit(planEntitlement.organizationLimit)}
+              </Text>
+            </div>
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                Brands
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {formatPlanLimit(planEntitlement.brandLimit)}
+              </Text>
+            </div>
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                Channels
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {formatPlanLimit(planEntitlement.channelLimit)}
+              </Text>
+            </div>
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                Seats
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {formatPlanLimit(planEntitlement.seatLimit)}
+              </Text>
+            </div>
+            <div className="p-3 bg-muted/50 rounded">
+              <Text size="sm" color="muted">
+                API
+              </Text>
+              <Text as="p" size="lg" weight="bold">
+                {getApiAccessLabel(planEntitlement)}
+              </Text>
+            </div>
           </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Brands
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.brandLimit)}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Channels
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.channelLimit)}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              Seats
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {formatPlanLimit(planEntitlement.seatLimit)}
-            </Text>
-          </div>
-          <div className="p-3 bg-muted/50 rounded">
-            <Text size="sm" color="muted">
-              API
-            </Text>
-            <Text as="p" size="lg" weight="bold">
-              {getApiAccessLabel(planEntitlement)}
-            </Text>
-          </div>
-        </div>
-      </BillingCard>
+        </BillingCard>
+      ) : null}
 
-      {isByokTier && <ByokUsageSection openBillingPortal={openBillingPortal} />}
+      {isBillingEnabled && isByokTier ? (
+        <ByokUsageSection openBillingPortal={openBillingPortal} />
+      ) : null}
 
       {creditsBreakdown ? (
         <BillingCard title="Credits">
@@ -304,17 +348,14 @@ export default function SettingsBillingPage() {
         </BillingCard>
       ) : null}
 
-      <AddCreditsCard
-        secondaryAction={
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            onClick={openBillingPortal}
-            icon={<ExternalLink className="size-4" />}
-          >
-            Open Billing Portal
-          </Button>
-        }
+      <CreditsCheckoutSection
+        isBillingEnabled={isBillingEnabled}
+        openBillingPortal={openBillingPortal}
       />
+
+      <section id="usage" className="scroll-mt-6">
+        <SettingsUsagePage />
+      </section>
     </div>
   );
 }

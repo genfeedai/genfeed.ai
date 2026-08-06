@@ -44,14 +44,13 @@ describe('buildSettingsMenuItems', () => {
         'Brands',
         'Models',
         'Agents',
-        'Credits',
-        'Usage',
+        'Billing',
         'API Keys',
         'Webhooks',
       ]);
     });
 
-    it('adds Billing when organization billing is available (SaaS or EE)', () => {
+    it('adds a single Billing entry when organization billing is available (SaaS or EE)', () => {
       expect(
         buildSettingsMenuItems({
           scope: 'organization',
@@ -64,8 +63,6 @@ describe('buildSettingsMenuItems', () => {
         'Models',
         'Agents',
         'Billing',
-        'Credits',
-        'Usage',
         'API Keys',
         'Webhooks',
       ]);
@@ -83,8 +80,7 @@ describe('buildSettingsMenuItems', () => {
         ['Brands', 'Organization'],
         ['Models', 'Organization'],
         ['Agents', 'Organization'],
-        ['Credits', 'Billing'],
-        ['Usage', 'Billing'],
+        ['Billing', 'Billing'],
         ['API Keys', 'Developer'],
         ['Webhooks', 'Developer'],
       ]);
@@ -104,11 +100,12 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('hides Credits and Usage when showCredits is false (desktop BYOK-only)', () => {
+    it('hides Billing when showCredits is false and not enterprise (desktop BYOK-only)', () => {
       const items = buildSettingsMenuItems({
         scope: 'organization',
         showCredits: false,
       });
+      expect(items.find((i) => i.label === 'Billing')).toBeUndefined();
       expect(items.find((i) => i.label === 'Credits')).toBeUndefined();
       expect(items.find((i) => i.label === 'Usage')).toBeUndefined();
       expect(items.find((i) => i.label === 'API Keys')?.href).toBe(
@@ -116,10 +113,10 @@ describe('buildSettingsMenuItems', () => {
       );
     });
 
-    it('points Brands and Models at their hubs (prefix-active, not exact)', () => {
+    it('points Billing, Brands and Models at their hubs (prefix-active, not exact)', () => {
       const items = buildSettingsMenuItems({ scope: 'organization' });
-      expect(items.find((i) => i.label === 'Credits')?.href).toBe(
-        '/settings/credits',
+      expect(items.find((i) => i.label === 'Billing')?.href).toBe(
+        '/settings/billing',
       );
       expect(items.find((i) => i.label === 'Brands')?.href).toBe(
         '/settings/brands',

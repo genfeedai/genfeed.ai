@@ -12,6 +12,22 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
+vi.mock('@genfeedai/config/license', () => ({
+  hasOrganizationBillingHint: () => true,
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSelfHostedDeployment: () => false,
+}));
+
+vi.mock('@services/core/environment.service', () => ({
+  EnvironmentService: { plans: { payg: 'price_payg_test' } },
+}));
+
+vi.mock('../usage/content', () => ({
+  default: () => <div data-testid="billing-usage-section">Usage ledger</div>,
+}));
+
 const useSubscriptionMock = vi.fn();
 vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
   useSubscription: () => useSubscriptionMock(),
@@ -166,10 +182,16 @@ describe('SettingsBillingPage', () => {
 
     render(<SettingsBillingPage />);
 
-    expect(screen.queryByText('Credits')).not.toBeInTheDocument();
+    expect(screen.queryByText('Credits Left')).not.toBeInTheDocument();
     expect(
       screen.queryByText('No credits information available.'),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Add credits')).toBeInTheDocument();
+  });
+
+  it('embeds usage on the same billing surface', () => {
+    render(<SettingsBillingPage />);
+
+    expect(screen.getByTestId('billing-usage-section')).toBeInTheDocument();
   });
 });

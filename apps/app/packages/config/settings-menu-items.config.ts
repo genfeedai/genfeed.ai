@@ -4,7 +4,6 @@ import {
   Bot,
   Box,
   Building2,
-  ChartColumn,
   CircleQuestionMark,
   Cpu,
   CreditCard,
@@ -142,7 +141,8 @@ function buildOrganizationMenuItems(
       outline: Bot,
       solid: Bot,
     },
-    ...(isEnterprise
+    // One surface for plan, top-up, and usage — old /credits and /usage routes redirect here.
+    ...(isEnterprise || showCredits
       ? [
           {
             group: 'Billing',
@@ -151,26 +151,6 @@ function buildOrganizationMenuItems(
             label: 'Billing',
             outline: CreditCard,
             solid: CreditCard,
-          },
-        ]
-      : []),
-    ...(showCredits
-      ? [
-          {
-            group: 'Billing',
-            href: APP_ROUTES.SETTINGS.CREDITS,
-            hrefScope: 'organization' as const,
-            label: 'Credits',
-            outline: CreditCard,
-            solid: CreditCard,
-          },
-          {
-            group: 'Billing',
-            href: APP_ROUTES.SETTINGS.USAGE,
-            hrefScope: 'organization' as const,
-            label: 'Usage',
-            outline: ChartColumn,
-            solid: ChartColumn,
           },
         ]
       : []),
