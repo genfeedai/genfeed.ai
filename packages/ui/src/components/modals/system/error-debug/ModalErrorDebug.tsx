@@ -18,16 +18,26 @@ import { Pre } from '@genfeedai/ui';
 import Card from '@ui/card/Card';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import {
+  formatErrorDebugContext,
+  formatErrorDebugForAgent,
+  formatErrorDebugRequest,
+  formatErrorDebugResponse,
+} from '@ui/modals/system/error-debug/error-debug-copy.util';
 import { Button } from '@ui/primitives/button';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 
 interface ErrorSectionProps {
   children?: ReactNode;
   title: string;
   isExpanded?: boolean;
   onToggle?: () => void;
+  /** Optional section copy payload — shows a Copy control in the header. */
+  copyText?: string;
+  onCopy?: (text: string) => void | Promise<void>;
+  copyLabel?: string;
 }
 
 function handleCancel(): void {
@@ -39,34 +49,56 @@ function ErrorSection({
   title,
   isExpanded,
   onToggle,
+  copyText,
+  onCopy,
+  copyLabel = 'Copy section',
 }: ErrorSectionProps) {
+  const showBody = onToggle ? isExpanded : true;
+
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      // Nested sections stay neutral so the outer destructive shell is the
-      // only strong status signal (avoids red-on-red mud).
       className="rounded-lg border border-border bg-background-secondary hover:border-border"
       bodyClassName="gap-0 p-4"
     >
-      {onToggle ? (
-        <Button
-          withWrapper={false}
-          variant={ButtonVariant.UNSTYLED}
-          onClick={onToggle}
-          className="flex w-full items-center gap-2 text-left text-foreground"
-        >
-          {isExpanded ? (
-            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          )}
-          <h3 className="font-semibold text-foreground">{title}</h3>
-        </Button>
-      ) : (
-        <h3 className="mb-2 font-semibold text-foreground">{title}</h3>
-      )}
+      <div className="flex items-center gap-2">
+        {onToggle ? (
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.UNSTYLED}
+            onClick={onToggle}
+            className="flex min-w-0 flex-1 items-center gap-2 text-left text-foreground"
+          >
+            {isExpanded ? (
+              <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+            )}
+            <h3 className="font-semibold text-foreground">{title}</h3>
+          </Button>
+        ) : (
+          <h3 className="min-w-0 flex-1 font-semibold text-foreground">
+            {title}
+          </h3>
+        )}
 
-      {children}
+        {copyText && onCopy ? (
+          <Button
+            withWrapper={false}
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+            ariaLabel={copyLabel}
+            tooltip={copyLabel}
+            icon={<Copy className="size-3.5" />}
+            onClick={() => {
+              void onCopy(copyText);
+            }}
+          />
+        ) : null}
+      </div>
+
+      {showBody ? children : null}
     </Card>
   );
 }
@@ -77,9 +109,10 @@ export default function ModalErrorDebug() {
     'mt-2 max-h-48 overflow-y-auto border border-border bg-background text-foreground/85';
 
   const [errorInfo, setErrorInfo] = useState<IErrorDebugInfo | null>(null);
-  const [isResponseExpanded, setIsResponseExpanded] = useState(false);
+  const [isResponseExpanded, setIsResponseExpanded] = useState(true);
   const [isStackExpanded, setIsStackExpanded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(false);
+  const [didCopyAgent, setDidCopyAgent] = useState(false);
   const { refresh } = useRouter();
 
   useEffect(() => {
@@ -90,17 +123,37 @@ export default function ModalErrorDebug() {
     return subscribe((info) => setErrorInfo(info));
   }, []);
 
-  // Called by Modal's onClose after modal is closed - cleanup state
   const handleModalClosed = () => {
     setErrorInfo(null);
     clearErrorDebugInfo();
-    setIsResponseExpanded(false);
+    setIsResponseExpanded(true);
     setIsStackExpanded(false);
     setIsContextExpanded(false);
+    setDidCopyAgent(false);
   };
 
-  const handleCopy = async () =>
-    await clipboardService.copyToClipboard(errorInfo?.message || '');
+  const handleCopyText = useCallback(
+    async (text: string) => {
+      if (!text.trim()) {
+        return;
+      }
+      await clipboardService.copyToClipboard(text);
+    },
+    [clipboardService],
+  );
+
+  const handleCopyForAgent = useCallback(async () => {
+    if (!errorInfo) {
+      return;
+    }
+    await handleCopyText(formatErrorDebugForAgent(errorInfo));
+    setDidCopyAgent(true);
+    window.setTimeout(() => setDidCopyAgent(false), 2000);
+  }, [errorInfo, handleCopyText]);
+
+  const requestCopy = errorInfo ? formatErrorDebugRequest(errorInfo) : '';
+  const responseCopy = errorInfo ? formatErrorDebugResponse(errorInfo) : '';
+  const contextCopy = errorInfo ? formatErrorDebugContext(errorInfo) : '';
 
   return (
     <Modal
@@ -109,14 +162,18 @@ export default function ModalErrorDebug() {
       isError
       error={errorInfo?.message}
       onClose={handleModalClosed}
-      // Shell styling is owned by Modal isError — don't wash the whole box red.
       modalBoxClassName="rounded-xl"
     >
       {errorInfo && (
         <>
           <div className="space-y-3 text-foreground">
-            <ErrorSection title="Request">
-              <div className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
+            <ErrorSection
+              title="Request"
+              copyText={requestCopy}
+              copyLabel="Copy request"
+              onCopy={handleCopyText}
+            >
+              <div className="mt-3 grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
                 {errorInfo.url && (
                   <>
                     <span className="text-muted-foreground">URL</span>
@@ -159,51 +216,60 @@ export default function ModalErrorDebug() {
               </div>
             </ErrorSection>
 
-            {errorInfo.response?.data !== undefined ? (
+            {responseCopy ? (
               <ErrorSection
                 title="Response"
                 isExpanded={isResponseExpanded}
                 onToggle={() => setIsResponseExpanded(!isResponseExpanded)}
+                copyText={responseCopy}
+                copyLabel="Copy response"
+                onCopy={handleCopyText}
               >
-                {isResponseExpanded && (
+                {isResponseExpanded ? (
                   <Pre variant="debug" size="xs" className={preClassName}>
-                    {JSON.stringify(errorInfo.response.data, null, 2)}
+                    {responseCopy}
                   </Pre>
-                )}
+                ) : null}
               </ErrorSection>
             ) : null}
 
-            {errorInfo.stack && (
+            {errorInfo.stack ? (
               <ErrorSection
                 title="Stack"
                 isExpanded={isStackExpanded}
                 onToggle={() => setIsStackExpanded(!isStackExpanded)}
+                copyText={errorInfo.stack}
+                copyLabel="Copy stack"
+                onCopy={handleCopyText}
               >
-                {isStackExpanded && (
+                {isStackExpanded ? (
                   <Pre variant="debug" size="xs" className={preClassName}>
                     {errorInfo.stack}
                   </Pre>
-                )}
+                ) : null}
               </ErrorSection>
-            )}
+            ) : null}
 
-            {errorInfo.context && Object.keys(errorInfo.context).length > 0 && (
+            {contextCopy ? (
               <ErrorSection
                 title="Context"
                 isExpanded={isContextExpanded}
                 onToggle={() => setIsContextExpanded(!isContextExpanded)}
+                copyText={contextCopy}
+                copyLabel="Copy context"
+                onCopy={handleCopyText}
               >
-                {isContextExpanded && (
+                {isContextExpanded ? (
                   <Pre variant="debug" size="xs" className={preClassName}>
-                    {JSON.stringify(errorInfo.context, null, 2)}
+                    {contextCopy}
                   </Pre>
-                )}
+                ) : null}
               </ErrorSection>
-            )}
+            ) : null}
           </div>
 
           <ModalActions className="mt-4">
-            {errorInfo.errorCode === 'ERROR_BOUNDARY' && errorInfo.onRetry && (
+            {errorInfo.errorCode === 'ERROR_BOUNDARY' && errorInfo.onRetry ? (
               <Button
                 label="Try Again"
                 variant={ButtonVariant.DEFAULT}
@@ -214,19 +280,28 @@ export default function ModalErrorDebug() {
                   handleCancel();
                 }}
               />
-            )}
+            ) : null}
 
             <Button
-              label="Copy"
-              variant={ButtonVariant.SECONDARY}
+              label={didCopyAgent ? 'Copied' : 'Copy for agent'}
+              variant={ButtonVariant.DEFAULT}
               size={ButtonSize.LG}
               className="md:h-9 md:px-4 md:py-2"
-              onClick={handleCopy}
+              icon={
+                didCopyAgent ? (
+                  <Check className="size-4" />
+                ) : (
+                  <Copy className="size-4" />
+                )
+              }
+              onClick={() => {
+                void handleCopyForAgent();
+              }}
             />
 
             <Button
               label="Reload"
-              variant={ButtonVariant.DESTRUCTIVE}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.LG}
               className="md:h-9 md:px-4 md:py-2"
               onClick={() => {
