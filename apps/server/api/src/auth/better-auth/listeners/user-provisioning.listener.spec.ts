@@ -16,6 +16,27 @@ function buildSetupResult(): UserSetupResult {
   } as unknown as UserSetupResult;
 }
 
+/**
+ * Microtask turns yielded before asserting that the listener finished. With every
+ * collaborator mocked the provisioning chain is pure microtask work — no timers,
+ * no I/O — so a fixed drain is deterministic where a wall-clock race is not: the
+ * assertion never consults the clock, and a busy CI runner can never report a
+ * healthy listener as blocked. Sized far above the handful of turns the chain
+ * actually needs so that adding an awaited step does not silently re-flake it.
+ */
+const MICROTASK_DRAIN_TURNS = 50;
+
+/**
+ * Yield the microtask queue a bounded number of times. Bounded by construction:
+ * if the listener ever starts awaiting the background enqueue, this returns
+ * anyway and the caller's assertion fails immediately instead of hanging.
+ */
+async function drainMicrotasks(): Promise<void> {
+  for (let turn = 0; turn < MICROTASK_DRAIN_TURNS; turn += 1) {
+    await Promise.resolve();
+  }
+}
+
 describe('UserProvisioningListener', () => {
   let userSetupService: { initializeUserResources: ReturnType<typeof vi.fn> };
   let lifecycleEmailService: {
@@ -143,18 +164,21 @@ describe('UserProvisioningListener', () => {
       new Promise<void>(() => undefined),
     );
 
-    const result = await Promise.race([
-      listener
-        .handleUserCreated({
-          email: 'new@genfeed.ai',
-          userId: 'u_5',
-        })
-        .then(() => 'provisioned'),
-      new Promise<string>((resolve) => {
-        setTimeout(() => resolve('timed out'), 50);
-      }),
-    ]);
+    let outcome: 'blocked on enqueue' | 'provisioned' = 'blocked on enqueue';
+    const handled = listener
+      .handleUserCreated({
+        email: 'new@genfeed.ai',
+        userId: 'u_5',
+      })
+      .then(() => {
+        outcome = 'provisioned';
+      });
 
-    expect(result).toBe('provisioned');
+    await drainMicrotasks();
+
+    // The stall path was genuinely exercised, and the listener settled anyway.
+    expect(signupPrefillQueueService.enqueuePrefill).toHaveBeenCalledTimes(1);
+    expect(outcome).toBe('provisioned');
+    await handled;
   });
 });
