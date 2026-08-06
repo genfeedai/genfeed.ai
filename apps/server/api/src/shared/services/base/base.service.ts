@@ -406,9 +406,11 @@ export abstract class BaseService<
   }
 
   /**
-   * Default soft-delete scoping for every read that flows through the service
-   * layer. Injects `isDeleted: false` on models that declare the column, so a
-   * call-site that forgets the filter cannot resurface tombstoned rows.
+   * Default soft-delete scoping for every filter-driven operation that flows
+   * through the service layer — `findAll`, `find`, `findOne`, `patchAll`,
+   * `findOneWithOrganization`, and the entity-flag helpers. Injects
+   * `isDeleted: false` on models that declare the column, so a call-site that
+   * forgets the filter can neither resurface nor bulk-write tombstoned rows.
    *
    * The caller always wins:
    * - `{ isDeleted: true }` reads tombstones only.
@@ -418,8 +420,12 @@ export abstract class BaseService<
    *   `normalizeWhere` (which strips `undefined` values), which is why the
    *   pre-normalization filter is passed separately as `params`.
    * - Omitting `isDeleted` gets the default.
+   *
+   * Not applied to `patch` / `remove`: those address a single row by primary
+   * key, which the caller named explicitly, and both are how a tombstone is
+   * written and un-written. Injecting there would break restore.
    */
-  private withSoftDeleteFilter(
+  protected withSoftDeleteFilter(
     where: PrismaFilter = {},
     params: PrismaFilter = where,
   ): PrismaFilter {
@@ -864,8 +870,16 @@ export abstract class BaseService<
     }
   }
 
+  /**
+   * Find every matching document, unpaginated. Soft-deleted rows are excluded
+   * by default (see `withSoftDeleteFilter`); pass `isDeleted` explicitly to
+   * opt out.
+   */
   async find(params: PrismaFilter, populate: PopulateInput = []): Promise<T[]> {
-    const where = this.normalizeWhere(params);
+    const where = this.withSoftDeleteFilter(
+      this.normalizeWhere(params),
+      params,
+    );
     const include = this.populateToInclude(populate);
     const docs = await this.internalDelegate.findMany({
       where,
@@ -981,6 +995,12 @@ export abstract class BaseService<
     }
   }
 
+  /**
+   * Bulk-update every matching document. Soft-deleted rows are excluded by
+   * default (see `withSoftDeleteFilter`); pass `isDeleted` explicitly to opt
+   * out. This is a filter-driven write, so the same default that keeps
+   * tombstones out of reads keeps them out of bulk writes.
+   */
   async patchAll(
     filter: PrismaFilter,
     update: PrismaUpdate,
@@ -997,10 +1017,7 @@ export abstract class BaseService<
       this.logger?.debug('Bulk updating documents', { filter, update });
 
       const result = await this.internalDelegate.updateMany({
-        where: {
-          ...this.normalizeWhere(filter),
-          isDeleted: (filter as Record<string, unknown>).isDeleted ?? false,
-        },
+        where: this.withSoftDeleteFilter(this.normalizeWhere(filter), filter),
         data: this.normalizeData(update),
       });
 
@@ -1094,6 +1111,12 @@ export abstract class BaseService<
     populate: PopulateOption[] = [],
   ): Promise<T[]> {
     const filterBuilder = new QueryBuilder(organizationId);
+
+    // QueryBuilder seeds `isDeleted: false` unconditionally; on the 23 models
+    // that never declared the column, Prisma rejects the unknown filter key.
+    if (!this.modelHasField('isDeleted')) {
+      filterBuilder.remove('isDeleted');
+    }
 
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {

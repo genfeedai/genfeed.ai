@@ -77,7 +77,6 @@ export class BetterAuthIdentityResolverService {
 
     const members = await this.membersService.find({
       isActive: true,
-      isDeleted: false,
       userId: resolvedUserId,
     });
 

@@ -840,9 +840,50 @@ describe('BaseService', () => {
       const result = await service.find({ status: 'active' });
 
       expect(delegate.findMany).toHaveBeenCalledWith({
-        where: { status: 'active' },
+        where: { isDeleted: false, status: 'active' },
       });
       expect(result).toHaveLength(1);
+    });
+
+    it('injects isDeleted: false when the caller omits it', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.find({ organizationId: 'org_1' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { isDeleted: false, organizationId: 'org_1' },
+      });
+    });
+
+    it('honors an explicit isDeleted: true instead of clobbering it', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.find({ isDeleted: true, organizationId: 'org_1' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { isDeleted: true, organizationId: 'org_1' },
+      });
+    });
+
+    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.find({ isDeleted: undefined, organizationId: 'org_1' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { organizationId: 'org_1' },
+      });
+    });
+
+    it('omits the soft-delete filter for models without isDeleted', async () => {
+      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.find({ organizationId: 'org_1' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { organizationId: 'org_1' },
+      });
     });
   });
 
@@ -1101,6 +1142,43 @@ describe('BaseService', () => {
       });
     });
 
+    it('honors an explicit isDeleted: true instead of collapsing it to false', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.patchAll({ isDeleted: true }, { archived: true });
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { isDeleted: true },
+        data: { archived: true },
+      });
+    });
+
+    it('omits the soft-delete filter when isDeleted is explicitly undefined', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 4 });
+
+      await service.patchAll(
+        { isDeleted: undefined, organizationId: 'org_1' },
+        { archived: true },
+      );
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { organizationId: 'org_1' },
+        data: { archived: true },
+      });
+    });
+
+    it('omits the soft-delete filter for models without isDeleted', async () => {
+      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.patchAll({ organizationId: 'org_1' }, { archived: true });
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { organizationId: 'org_1' },
+        data: { archived: true },
+      });
+    });
+
     it('throws ValidationException when filter is null', async () => {
       await expect(
         service.patchAll(null as unknown as Record<string, unknown>, {}),
@@ -1201,6 +1279,19 @@ describe('BaseService', () => {
           }),
         }),
       );
+    });
+
+    it('drops the QueryBuilder soft-delete seed for models without isDeleted', async () => {
+      getModelMetaMock.mockReturnValue(makeModelMeta('id', 'organizationId'));
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.findAllByOrganization('org1');
+
+      const [call] = delegate.findMany.mock.calls.at(-1) as [
+        { where: Record<string, unknown> },
+      ];
+      expect(call.where).not.toHaveProperty('isDeleted');
+      expect(call.where).toMatchObject({ organizationId: 'org1' });
     });
   });
 

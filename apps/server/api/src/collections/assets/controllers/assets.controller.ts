@@ -213,7 +213,6 @@ export class AssetsController {
         {
           id: { not: validatedId },
           category: updateAssetDto.category,
-          isDeleted: false,
           parentBrandId: updateAssetDto.parentId,
           parentType: AssetParent.BRAND,
         },

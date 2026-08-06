@@ -138,7 +138,6 @@ export class BotUserResolverService {
 
     try {
       const brands = await this.brandsService.find({
-        isDeleted: false,
         organizationId,
       });
 

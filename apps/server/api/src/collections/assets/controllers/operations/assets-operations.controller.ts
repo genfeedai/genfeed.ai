@@ -316,7 +316,6 @@ export class AssetsOperationsController {
         await this.assetsService.patchAll(
           {
             category: uploadDto.category,
-            isDeleted: false,
             parentBrandId: entityData.parentId,
             parentType: AssetParent.BRAND,
           },
@@ -467,7 +466,6 @@ export class AssetsOperationsController {
     await this.assetsService.patchAll(
       {
         category: validatedCategory,
-        isDeleted: false,
         parentBrandId: parentId,
         parentType: AssetParent.BRAND,
       },

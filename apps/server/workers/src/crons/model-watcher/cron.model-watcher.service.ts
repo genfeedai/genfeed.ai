@@ -89,7 +89,7 @@ export class CronModelWatcherService {
       await this.platformMarginService.hydrate();
 
       // Step 1: Fetch all known model keys from database
-      const allModels = await this.modelsService.find({ isDeleted: false });
+      const allModels = await this.modelsService.find({});
       const existingKeys = new Set(
         allModels
           .map((m: ServerModelRecord) => m.key)

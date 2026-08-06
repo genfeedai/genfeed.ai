@@ -116,7 +116,6 @@ export class CronReplyBotService {
   private async findActiveTargets(): Promise<ReplyBotCronTarget[]> {
     const configs = await this.replyBotConfigsService.find({
       isActive: true,
-      isDeleted: false,
     });
 
     const targets = new Map<string, ReplyBotCronTarget>();

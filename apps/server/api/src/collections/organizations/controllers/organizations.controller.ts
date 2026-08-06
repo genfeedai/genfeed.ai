@@ -267,7 +267,6 @@ export class OrganizationsController extends BaseCRUDController<
     // Find all memberships for this user
     const members = await this.membersService.find({
       isActive: true,
-      isDeleted: false,
       userId,
     });
 

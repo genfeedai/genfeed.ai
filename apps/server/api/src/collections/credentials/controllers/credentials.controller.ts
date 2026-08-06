@@ -284,7 +284,6 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
     const credentials = await this.credentialsService.find({
       isConnected: true,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

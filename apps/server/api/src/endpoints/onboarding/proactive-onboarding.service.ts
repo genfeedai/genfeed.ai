@@ -810,7 +810,6 @@ export class ProactiveOnboardingService {
     }
 
     const posts = await this.postsService.find({
-      isDeleted: false,
       organizationId: lead.proactiveOrganizationId,
     });
 
@@ -976,7 +975,6 @@ export class ProactiveOnboardingService {
     }
 
     const posts = await this.postsService.find({
-      isDeleted: false,
       organizationId: lead.proactiveOrganizationId,
     });
 
