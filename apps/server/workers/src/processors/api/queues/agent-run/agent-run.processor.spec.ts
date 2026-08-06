@@ -1,4 +1,4 @@
-import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
+import { ActionOrigin, AgentExecutionStatus } from '@genfeedai/enums';
 import type { AgentRunJobData } from '@genfeedai/queue-contracts';
 import { getActionOriginContext } from '@genfeedai/server';
 import { AgentRunProcessor } from '@workers/processors/api/queues/agent-run/agent-run.processor';
@@ -114,7 +114,7 @@ describe('AgentRunProcessor', () => {
     agentRunsService.start.mockResolvedValue({
       label: 'Find TikTok trends for my brand.',
       metadata: { workspaceTaskId: 'workspace-task-1' },
-      status: AgentRunStatus.RUNNING,
+      status: AgentExecutionStatus.RUNNING,
     });
 
     let capturedContext: ReturnType<typeof getActionOriginContext> | undefined;
@@ -133,7 +133,7 @@ describe('AgentRunProcessor', () => {
       creditsUsed: 0,
       metadata: { workspaceTaskId: 'workspace-task-1' },
       startedAt: new Date(),
-      status: AgentRunStatus.COMPLETED,
+      status: AgentExecutionStatus.COMPLETED,
       toolCalls: [],
     });
 
