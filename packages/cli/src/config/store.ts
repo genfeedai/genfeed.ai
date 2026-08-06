@@ -73,8 +73,6 @@ export function mergeProfileWithRuntime(
     agent: mergeAgentConfig(profile.agent, runtime.agent),
     apiKey: runtime.apiKey ?? profile.apiKey,
     apiUrl: runtime.apiUrl ?? profile.apiUrl,
-    fleetApiPort: runtime.fleetApiPort ?? profile.fleetApiPort,
-    fleetHost: runtime.fleetHost ?? profile.fleetHost,
     organizationId: runtime.organizationId ?? profile.organizationId,
     role: runtime.role ?? profile.role,
     token: runtime.token ?? profile.token,
@@ -91,10 +89,6 @@ export function readRuntimeOverrides(): RuntimeProfileOverrides {
   if (process.env.GENFEED_ORGANIZATION_ID)
     overrides.organizationId = process.env.GENFEED_ORGANIZATION_ID;
   if (process.env.GENFEED_USER_ID) overrides.userId = process.env.GENFEED_USER_ID;
-  if (process.env.GF_FLEET_HOST) overrides.fleetHost = process.env.GF_FLEET_HOST;
-  if (process.env.GF_FLEET_PORT) {
-    overrides.fleetApiPort = Number(process.env.GF_FLEET_PORT);
-  }
   if (process.env.GENFEED_AGENT_MODEL) {
     overrides.agent = {
       ...(overrides.agent ?? {}),
@@ -128,16 +122,6 @@ export async function getActiveBrand(): Promise<string | undefined> {
   return profile.activeBrand;
 }
 
-export async function getFleetHost(): Promise<string> {
-  const { profile } = await getActiveProfile();
-  return profile.fleetHost;
-}
-
-export async function getFleetApiPort(): Promise<number> {
-  const { profile } = await getActiveProfile();
-  return profile.fleetApiPort;
-}
-
 export async function getRole(): Promise<string> {
   const { profile } = await getActiveProfile();
   return profile.role;
@@ -168,10 +152,6 @@ export async function setActiveBrand(brandId: string, profileName?: string): Pro
 
 export async function clearActiveBrand(profileName?: string): Promise<void> {
   await setProfileField('activeBrand', undefined, profileName);
-}
-
-export async function setActivePersona(handle: string, profileName?: string): Promise<void> {
-  await setProfileField('activePersona', handle, profileName);
 }
 
 export async function setAgentModel(

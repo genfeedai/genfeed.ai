@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-06
+
+### Removed
+
+- **BREAKING** — the admin-gated `gf fleet`, `gf train`, `gf dataset`, `gf caption`, and `gf personas`
+  commands, along with the fleet API client and admin auth guard. They drive a private operator
+  service and now live in the private operator console CLI, not in the public package.
+- **BREAKING** — the `fleetHost` / `fleetApiPort` profile fields, their `gf config set` /
+  `gf profile set` keys, the `gf profile --fleet-host` option, and the `GF_FLEET_HOST` /
+  `GF_FLEET_PORT` environment overrides. Existing `~/.gf/config.json` files keep parsing; the
+  fields are simply ignored.
+- Dead `src/scripts/runner.ts`, which pointed at a `scripts/fleet` directory that does not exist.
+
 ## [0.3.1] - 2026-02-25
 
 ### Added

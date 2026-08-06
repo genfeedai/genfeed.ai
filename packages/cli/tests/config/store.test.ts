@@ -22,8 +22,6 @@ function makeConfigJson(profileOverrides: Record<string, unknown> = {}) {
       default: {
         apiUrl: 'https://api.genfeed.ai/v1',
         defaults: { imageModel: 'imagen-4', videoModel: 'google-veo-3' },
-        fleetApiPort: 8189,
-        fleetHost: '100.106.229.81',
         role: 'user',
         ...profileOverrides,
       },
@@ -42,8 +40,6 @@ describe('config/store', () => {
     delete process.env.GENFEED_ORGANIZATION_ID;
     delete process.env.GENFEED_USER_ID;
     delete process.env.GENFEED_AGENT_MODEL;
-    delete process.env.GF_FLEET_HOST;
-    delete process.env.GF_FLEET_PORT;
   });
 
   describe('getApiKey', () => {

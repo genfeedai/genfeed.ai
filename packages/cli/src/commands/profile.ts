@@ -43,9 +43,6 @@ profileCommand
         const apiUrl = chalk.dim(profile.apiUrl);
 
         print(`  ${marker} ${label}${activeLabel} ${apiUrl}`);
-        if (profile.fleetHost !== '100.106.229.81') {
-          print(`    ${chalk.dim(`fleet: ${profile.fleetHost}`)}`);
-        }
         if (profile.agent.model) {
           print(`    ${chalk.dim(`agent model: ${profile.agent.model}`)}`);
         }
@@ -78,7 +75,6 @@ profileCommand
   .option('--api-url <url>', 'API URL')
   .option('--api-key <key>', 'API key')
   .option('--agent-model <model>', 'Default agent model for chat')
-  .option('--fleet-host <host>', 'Fleet host address')
   .option('--role <role>', 'User role (user or admin)')
   .action(async (name, options) => {
     try {
@@ -93,7 +89,6 @@ profileCommand
           : {}),
         ...(options.apiKey ? { apiKey: options.apiKey } : {}),
         ...(options.apiUrl ? { apiUrl: options.apiUrl } : {}),
-        ...(options.fleetHost ? { fleetHost: options.fleetHost } : {}),
         ...(options.role ? { role: options.role as 'user' | 'admin' } : {}),
       };
 
@@ -108,22 +103,16 @@ profileCommand
 profileCommand
   .command('set')
   .description('Update a profile field')
-  .argument(
-    '<field>',
-    'Field name (api-url, api-key, agent-model, fleet-host, role, active-persona)'
-  )
+  .argument('<field>', 'Field name (api-url, api-key, agent-model, active-brand, role)')
   .argument('<value>', 'Field value')
   .option('-p, --profile <name>', 'Profile name (defaults to active)')
   .action(async (field, value, options) => {
     try {
       const fieldMap: Record<string, keyof import('@/config/schema').Profile> = {
         'active-brand': 'activeBrand',
-        'active-persona': 'activePersona',
         'agent-model': 'agent',
         'api-key': 'apiKey',
         'api-url': 'apiUrl',
-        'fleet-host': 'fleetHost',
-        'fleet-port': 'fleetApiPort',
         role: 'role',
       };
 
@@ -134,20 +123,12 @@ profileCommand
         process.exit(1);
       }
 
-      let finalValue: string | number = value;
-      if (mappedField === 'fleetApiPort') {
-        finalValue = Number.parseInt(value, 10);
-        if (Number.isNaN(finalValue)) {
-          console.error(formatError(`Invalid port number: ${value}`));
-          process.exit(1);
-        }
-      }
       if (mappedField === 'agent') {
         await setAgentModel(value, options.profile);
       } else {
         await setProfileField(
           mappedField as Exclude<keyof Profile, 'agent'>,
-          finalValue as never,
+          value as never,
           options.profile
         );
       }

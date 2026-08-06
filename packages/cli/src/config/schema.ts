@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 export const profileSchema = z.object({
   activeBrand: z.string().optional(),
-  activePersona: z.string().optional(),
   agent: z
     .object({
       lastThreadIdByOrganization: z.record(z.string(), z.string()).default({}),
@@ -17,8 +16,6 @@ export const profileSchema = z.object({
       videoModel: z.string().default('google-veo-3'),
     })
     .default({ imageModel: 'imagen-4', videoModel: 'google-veo-3' }),
-  fleetApiPort: z.number().default(8189),
-  fleetHost: z.string().default('100.106.229.81'),
   organizationId: z.string().optional(),
   role: z.enum(['user', 'admin']).default('user'),
   token: z.string().optional(),
