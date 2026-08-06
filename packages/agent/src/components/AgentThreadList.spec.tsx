@@ -56,6 +56,7 @@ interface AgentChatStoreState {
   activeThreadId: string | null;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   clearMessages: ReturnType<typeof vi.fn>;
+  resetActiveConversationState: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
   stream: {
     isStreaming: boolean;
@@ -77,9 +78,18 @@ const storeState: AgentChatStoreState = {
   activeThreadId: null,
   clearMessages: vi.fn(),
   clearThreadAttention: vi.fn(),
+  // Mirrors the store reducer: clears the active-conversation slices but not
+  // the thread id, which setActiveThread(null) owns.
+  resetActiveConversationState: vi.fn(() => {
+    storeState.activeRunStatus = 'idle';
+    storeState.stream.isStreaming = false;
+    storeState.threadUiBusyById = {};
+  }),
   resetStreamState: vi.fn(),
   setActiveRun: vi.fn(),
-  setActiveThread: vi.fn(),
+  setActiveThread: vi.fn((threadId: string | null) => {
+    storeState.activeThreadId = threadId;
+  }),
   setError: vi.fn(),
   setMessages: vi.fn(),
   setThreadPrompt: vi.fn(),
@@ -181,9 +191,10 @@ describe('AgentThreadList', () => {
     storeState.threads = [];
     storeState.clearMessages.mockReset();
     storeState.clearThreadAttention.mockReset();
+    storeState.resetActiveConversationState.mockClear();
     storeState.resetStreamState.mockReset();
     storeState.setActiveRun.mockReset();
-    storeState.setActiveThread.mockReset();
+    storeState.setActiveThread.mockClear();
     storeState.setThreadPrompt.mockReset();
     storeState.setThreads.mockClear();
     storeState.setThreadUiBusy.mockReset();
@@ -724,6 +735,51 @@ describe('AgentThreadList', () => {
     expect(
       screen.getByLabelText('Conversation status for Old stuck thread'),
     ).not.toHaveClass('animate-spin');
+  });
+
+  it('resets the whole active conversation when the brand scope changes', async () => {
+    const brandAThread = createThread('conv-a', 'Brand A chat', {
+      brandId: 'brand-a',
+    });
+    const brandBThread = createThread('conv-b', 'Brand B chat', {
+      brandId: 'brand-b',
+    });
+
+    // The previous scope left an active, streaming conversation behind.
+    storeState.activeThreadId = 'conv-a';
+    storeState.activeRunStatus = 'running';
+    storeState.stream.isStreaming = true;
+    storeState.threadUiBusyById = { 'conv-a': true };
+
+    const apiService = createApiService({
+      getThreads: vi
+        .fn()
+        .mockResolvedValueOnce([brandAThread])
+        .mockResolvedValue([brandBThread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    const { rerender } = render(
+      <AgentThreadList apiService={apiService as never} brandId="brand-a" />,
+    );
+
+    expect(await screen.findByText('Brand A chat')).toBeInTheDocument();
+
+    rerender(
+      <AgentThreadList apiService={apiService as never} brandId="brand-b" />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand B chat')).toBeInTheDocument();
+    });
+
+    expect(storeState.setActiveThread).toHaveBeenCalledWith(null);
+    expect(storeState.resetActiveConversationState).toHaveBeenCalledTimes(1);
+    expect(storeState.activeThreadId).toBeNull();
+    expect(storeState.activeRunStatus).toBe('idle');
+    expect(storeState.stream.isStreaming).toBe(false);
+    expect(storeState.threadUiBusyById).toEqual({});
+    expect(screen.queryByText('Brand A chat')).toBeNull();
   });
 
   it('shows an inline spinner for the active thread while a local ui action is busy', async () => {

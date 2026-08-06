@@ -179,6 +179,36 @@ describe('PromptsController', () => {
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it('scopes the list to the current user so marketplace installs are listable', async () => {
+      const installedPrompt = {
+        ...mockPrompt,
+        _id: '507f1f77bcf86cd799439015',
+        isFavorite: true,
+        original: 'Installed from the marketplace',
+        userId: '507f1f77bcf86cd799439011',
+      };
+
+      mockPromptsService.findAll.mockResolvedValue({
+        docs: [installedPrompt],
+        limit: 10,
+        page: 1,
+        totalDocs: 1,
+      });
+
+      const result = await controller.findAll(mockReq, mockUser, {});
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            userId: '507f1f77bcf86cd799439011',
+          }),
+        }),
+        expect.anything(),
+      );
+      expect(result).toEqual([installedPrompt]);
+    });
   });
 
   describe('findOne', () => {

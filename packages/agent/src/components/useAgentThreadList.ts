@@ -48,6 +48,9 @@ export function useAgentThreadList({
   const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setWorkEvents = useAgentChatStore((s) => s.setWorkEvents);
   const resetStreamState = useAgentChatStore((s) => s.resetStreamState);
+  const resetActiveConversationState = useAgentChatStore(
+    (s) => s.resetActiveConversationState,
+  );
   const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -169,6 +172,10 @@ export function useAgentThreadList({
   // Brand scope changes must clear the previous list, but this must happen in
   // an effect. Writing to the Zustand store during render causes React to
   // update the parent layout while AgentThreadList is still rendering.
+  // The active conversation belongs to the previous scope too, so it gets the
+  // same full reset the main chat uses (setActiveThread(null) +
+  // resetActiveConversationState) — clearing threads alone would leave stale
+  // messages, preset, run and stream state rendering under the new brand.
   useEffect(() => {
     if (!isActive || previousBrandIdRef.current === brandId) {
       return;
@@ -176,8 +183,16 @@ export function useAgentThreadList({
 
     previousBrandIdRef.current = brandId;
     setThreads([]);
+    setActiveThread(null);
+    resetActiveConversationState();
     setIsLoading(true);
-  }, [brandId, isActive, setThreads]);
+  }, [
+    brandId,
+    isActive,
+    resetActiveConversationState,
+    setActiveThread,
+    setThreads,
+  ]);
 
   // Retry uses effect-scoped setTimeout; cleanup clears it + aborts in-flight fetch.
   // react-doctor-disable-next-line react-doctor/effect-needs-cleanup
