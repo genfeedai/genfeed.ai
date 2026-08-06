@@ -140,6 +140,14 @@ export default function ProtectedRootResolver() {
   }
 
   if (needsWorkspaceAction) {
+    // This state is only reachable under agent-first onboarding, and only when
+    // no organization scope resolved. The classic wizard cannot bootstrap those
+    // users, so the CTA points at the agent onboarding route and is suppressed
+    // entirely until a scope exists — leaving retry as the only honest action.
+    const workspaceActionOrgSlug =
+      getBrandOrganizationSlug(selectedBrand) ||
+      getBrandOrganizationSlug(brands[0]);
+
     return (
       <main className="mx-auto flex min-h-[60vh] w-full max-w-3xl items-center px-4 py-10 sm:px-6">
         <Alert>
@@ -149,7 +157,10 @@ export default function ProtectedRootResolver() {
           <AlertDescription>
             <p>
               Genfeed could not resolve an active organization yet. Retry the
-              workspace bootstrap or continue setup from brand settings.
+              workspace bootstrap
+              {workspaceActionOrgSlug
+                ? ' or continue setup in the agent workspace.'
+                : '.'}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
@@ -163,9 +174,18 @@ export default function ProtectedRootResolver() {
               >
                 Retry workspace
               </Button>
-              <Button asChild variant={ButtonVariant.GHOST}>
-                <Link href={APP_ROUTES.ONBOARDING.ROOT}>Continue setup</Link>
-              </Button>
+              {workspaceActionOrgSlug ? (
+                <Button asChild variant={ButtonVariant.GHOST}>
+                  <Link
+                    href={createOrganizationAppRoute(
+                      workspaceActionOrgSlug,
+                      APP_ROUTES.AGENT.ONBOARDING,
+                    )}
+                  >
+                    Continue setup
+                  </Link>
+                </Button>
+              ) : null}
             </div>
           </AlertDescription>
         </Alert>

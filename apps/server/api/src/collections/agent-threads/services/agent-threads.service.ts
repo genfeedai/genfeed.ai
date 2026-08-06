@@ -57,6 +57,13 @@ export class AgentThreadsService extends BaseService<
      * (every brand + org-scoped threads) for the user.
      */
     brandId?: string | null,
+    /**
+     * When set, list is narrowed to threads created from that entry point
+     * (`onboarding`, `agent`, `proactive`). Onboarding resume relies on this
+     * so the newest onboarding thread is never hidden behind newer standard
+     * threads.
+     */
+    source?: string | null,
   ): Promise<AgentThreadWithSummary[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {
       userId,
@@ -70,6 +77,10 @@ export class AgentThreadsService extends BaseService<
 
     if (brandId) {
       where.brandId = brandId;
+    }
+
+    if (source) {
+      where.source = source;
     }
 
     return this.findThreadsWithSnapshots(organizationId, where);

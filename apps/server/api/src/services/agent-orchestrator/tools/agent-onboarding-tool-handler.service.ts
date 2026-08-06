@@ -14,7 +14,7 @@ import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
 } from '@genfeedai/config';
-import { PostStatus, Status } from '@genfeedai/enums';
+import { ByokProvider, PostStatus, Status } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -26,6 +26,20 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
+
+/**
+ * BYOK providers `generate_image` can actually reach, mirroring the branches in
+ * `ImageGenerationHandler`. Onboarding-scoped on purpose: a text-only key such
+ * as OpenAI or Anthropic satisfies "a provider is configured" but cannot produce
+ * the first onboarding image, so the prompt and checklist gate on this set
+ * instead of on provider count. Provider capability semantics elsewhere are
+ * unchanged.
+ */
+const IMAGE_CAPABLE_ONBOARDING_PROVIDERS: readonly string[] = [
+  ByokProvider.FAL,
+  ByokProvider.LEONARDOAI,
+  ByokProvider.REPLICATE,
+];
 
 interface AgentBrandsServiceLike {
   create: (
@@ -274,7 +288,7 @@ export class AgentOnboardingToolHandler {
         this.buildOnboardingChecklistCard(
           missions,
           creditBuckets,
-          providerReadiness.isReady,
+          providerReadiness.isImageReady,
         ),
       ],
       success: true,
@@ -288,7 +302,7 @@ export class AgentOnboardingToolHandler {
       signupGiftCredits: number;
       totalOnboardingCreditsVisible: number;
     },
-    hasConfiguredProvider: boolean,
+    hasImageCapableProvider: boolean,
   ): AgentUiAction {
     const isSelfHosted = isSelfHostedDeployment();
     const nextRecommendedMissionId =
@@ -307,8 +321,8 @@ export class AgentOnboardingToolHandler {
 
       if (isSelfHosted) {
         const description =
-          mission.id === 'generate_first_image' && !hasConfiguredProvider
-            ? 'Add a model or image provider API key before generating your first image.'
+          mission.id === 'generate_first_image' && !hasImageCapableProvider
+            ? 'Add an image provider API key (fal, Replicate, or Leonardo) before generating your first image.'
             : mission.id === 'publish_first_post'
               ? 'Publish your first post to complete the onboarding journey.'
               : mission.description;
@@ -584,8 +598,10 @@ export class AgentOnboardingToolHandler {
       isByokEnabled?: boolean;
     } | null,
   ): {
+    configuredImageProviders: string[];
     configuredProviderCount: number;
     configuredProviders: string[];
+    isImageReady: boolean;
     isReady: boolean;
   } {
     const byokKeys =
@@ -622,9 +638,18 @@ export class AgentOnboardingToolHandler {
       })
       .sort();
 
+    // A configured provider is not automatically an image provider: OpenAI or
+    // Anthropic keys make `isReady` true while `generate_image` still has
+    // nothing to call.
+    const configuredImageProviders = configuredProviders.filter((provider) =>
+      IMAGE_CAPABLE_ONBOARDING_PROVIDERS.includes(provider),
+    );
+
     return {
+      configuredImageProviders,
       configuredProviderCount: configuredProviders.length,
       configuredProviders,
+      isImageReady: configuredImageProviders.length > 0,
       isReady: configuredProviders.length > 0,
     };
   }

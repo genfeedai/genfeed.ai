@@ -148,6 +148,7 @@ describe('AgentThreadsController', () => {
         mockUser.publicMetadata.organization,
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -177,6 +178,7 @@ describe('AgentThreadsController', () => {
         expect.any(String),
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -201,6 +203,7 @@ describe('AgentThreadsController', () => {
         expect.any(String),
         undefined,
         undefined,
+        undefined,
       );
     });
 
@@ -214,6 +217,47 @@ describe('AgentThreadsController', () => {
         mockUser.publicMetadata.organization,
         'active',
         'brand-1',
+        undefined,
+      );
+    });
+
+    it('should hard-filter threads by source when source query is set', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads(
+        {} as never,
+        mockUser,
+        'active',
+        undefined,
+        'onboarding',
+      );
+
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+        'active',
+        undefined,
+        'onboarding',
+      );
+    });
+
+    it('should ignore a blank source query', async () => {
+      service.getUserThreads.mockResolvedValue([]);
+
+      await controller.listThreads(
+        {} as never,
+        mockUser,
+        'active',
+        undefined,
+        '   ',
+      );
+
+      expect(service.getUserThreads).toHaveBeenCalledWith(
+        mockUser.publicMetadata.user,
+        mockUser.publicMetadata.organization,
+        'active',
+        undefined,
+        undefined,
       );
     });
   });

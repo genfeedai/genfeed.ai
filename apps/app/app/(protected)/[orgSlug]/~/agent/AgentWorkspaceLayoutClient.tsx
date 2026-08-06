@@ -33,10 +33,11 @@ import { AgentWorkspaceContext } from './agent-workspace-context';
 const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
 
 /**
- * Onboarding is a short journey, so the newest active thread carrying
- * `source: 'onboarding'` is within the first page of results.
+ * Threads opened from the onboarding entry route carry this source. The resume
+ * lookup filters on it server-side so the newest onboarding thread is found no
+ * matter how many newer standard threads the operator has.
  */
-const ONBOARDING_RESUME_THREAD_LOOKBACK = 20;
+const ONBOARDING_THREAD_SOURCE = 'onboarding';
 
 type AgentWorkspaceLayoutClientProps = PropsWithChildren<{
   readonly agentApiService?: AgentApiService;
@@ -199,7 +200,7 @@ function AgentWorkspaceLayoutClientContent({
     void runAgentApiEffect(
       agentApiService.getThreadsEffect(
         {
-          limit: ONBOARDING_RESUME_THREAD_LOOKBACK,
+          source: ONBOARDING_THREAD_SOURCE,
           status: AgentThreadStatus.ACTIVE,
         },
         controller.signal,
@@ -210,8 +211,11 @@ function AgentWorkspaceLayoutClientContent({
           return;
         }
 
+        // The source filter is applied server-side, but the client repeats it
+        // so an instance that predates the query parameter still resumes the
+        // right thread instead of the newest standard one.
         const resumable = threads
-          .filter((thread) => thread.source === 'onboarding')
+          .filter((thread) => thread.source === ONBOARDING_THREAD_SOURCE)
           .sort((left, right) =>
             right.updatedAt.localeCompare(left.updatedAt),
           )[0];
