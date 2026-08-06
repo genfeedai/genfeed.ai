@@ -22,11 +22,15 @@ function TabsList({
 }
 TabsList.displayName = TabsPrimitive.List.displayName;
 
-function TabsTrigger({
-  ref,
-  className,
-  ...props
-}: ComponentPropsWithRef<typeof TabsPrimitive.Trigger>) {
+// React allows arbitrary `data-*` in JSX but not on a destructured props
+// object, so the two attributes tabs.styles.ts reads are declared explicitly.
+// The variant names mirror the `data-[variant=…]` rules in that file.
+type TabsTriggerProps = ComponentPropsWithRef<typeof TabsPrimitive.Trigger> & {
+  'data-size'?: 'md' | 'sm';
+  'data-variant'?: 'default' | 'pills' | 'segmented' | 'underline';
+};
+
+function TabsTrigger({ ref, className, ...props }: TabsTriggerProps) {
   // Styles in tabs.styles.ts are gated on data-variant / data-size. The
   // enhanced navigation Tabs always set these; bare @radix TabsTrigger
   // consumers must default them or every tab looks like plain text + focus ring.
