@@ -93,7 +93,7 @@ export default function CreditsBarTrigger({
             'hidden h-8 items-center gap-1.5 rounded-md border px-2 shadow-none outline-none ring-0 transition-colors sm:inline-flex',
             'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0',
             isCritical &&
-              'border-destructive/35 bg-destructive/10 text-destructive hover:bg-destructive/15 data-[state=open]:bg-destructive/15',
+              'animate-pulse border-destructive/45 bg-destructive/15 text-destructive hover:bg-destructive/20 data-[state=open]:animate-none data-[state=open]:bg-destructive/20 motion-reduce:animate-none',
             isWarning &&
               'border-amber-500/35 bg-amber-500/10 text-amber-600 hover:bg-amber-500/15 data-[state=open]:bg-amber-500/15 dark:text-amber-400',
             !isLow &&
@@ -124,7 +124,7 @@ export default function CreditsBarTrigger({
             <span
               className={cn(
                 'ml-0.5 size-1.5 shrink-0 rounded-full',
-                isCritical && 'bg-destructive animate-pulse',
+                isCritical && 'bg-destructive',
                 isWarning && 'bg-amber-500',
               )}
               aria-hidden

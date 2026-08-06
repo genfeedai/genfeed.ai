@@ -646,7 +646,21 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   setActiveThread: (id) => set({ activeThreadId: id }),
   setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
   setDraftPlanModeEnabled: (enabled) => set({ draftPlanModeEnabled: enabled }),
-  setError: (error) => set({ error }),
+  setError: (error) =>
+    set((state) => ({
+      error,
+      // Credit/limit failures should not leave the composer stuck on Stop.
+      ...(error
+        ? {
+            activeRunStatus:
+              state.activeRunStatus === 'running' ||
+              state.activeRunStatus === 'cancelling'
+                ? 'failed'
+                : state.activeRunStatus,
+            isGenerating: false,
+          }
+        : {}),
+    })),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
   setIsOpen: (open) => {
     persistPanelPreference(open);

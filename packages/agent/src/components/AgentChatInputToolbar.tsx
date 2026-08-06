@@ -11,7 +11,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
-import { ArrowUp, Link, Mic, Paperclip, RefreshCw, Zap } from 'lucide-react';
+import {
+  ArrowUp,
+  Link,
+  Mic,
+  Paperclip,
+  RefreshCw,
+  Square,
+  Zap,
+} from 'lucide-react';
 import {
   type ChangeEvent,
   memo,
@@ -225,19 +233,19 @@ function AgentChatInputToolbarInner({
           <Button
             ariaLabel="Stop agent"
             className={cn(
-              'shrink-0 rounded-lg border border-destructive/30 bg-destructive/10 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20',
-              controlHeight,
-              controlPadding,
+              'shrink-0 rounded-lg border border-destructive/35 bg-destructive/15 text-destructive transition-colors hover:bg-destructive/25',
+              controlSize,
+              'min-h-0 min-w-0 p-0',
             )}
+            icon={<Square className="size-3.5 fill-current" />}
             onClick={() => {
               void onStop();
             }}
-            textTransform="none"
+            size={ButtonSize.ICON}
+            tooltip="Stop"
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
-          >
-            Stop
-          </Button>
+          />
         ) : null}
 
         {isTranscribing ? (

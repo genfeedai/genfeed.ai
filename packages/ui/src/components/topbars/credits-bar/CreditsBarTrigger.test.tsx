@@ -39,7 +39,11 @@ describe('CreditsBarTrigger', () => {
 
     const trigger = screen.getByTestId('topbar-credits-trigger');
     expect(trigger).toHaveClass('outline-none', 'ring-0');
-    expect(trigger).toHaveClass('text-destructive', 'bg-destructive/10');
+    expect(trigger).toHaveClass(
+      'text-destructive',
+      'bg-destructive/15',
+      'animate-pulse',
+    );
     expect(trigger).toHaveAttribute('data-severity', 'critical');
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('GEN')).toBeInTheDocument();

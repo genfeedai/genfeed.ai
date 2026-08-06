@@ -174,7 +174,8 @@ export function AgentChatPromptBar({
         }
         onStop={onStop}
         apiService={apiService}
-        showStop={isRunActive}
+        // Error ends the turn from the operator's POV — show Send again, not Stop.
+        showStop={isRunActive && !error}
         density={isInspectorComposer ? 'inspector' : 'default'}
         attachments={chatAttachments}
         isUploading={isAttachmentUploading}

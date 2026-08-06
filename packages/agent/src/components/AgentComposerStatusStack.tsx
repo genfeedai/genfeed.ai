@@ -25,12 +25,13 @@ interface AgentComposerStatusStackProps {
   socketConnectionState: AgentSocketConnectionState;
 }
 
-// Every notice in this stack sits on the same opaque surface. Translucent
-// tone fills (10% alpha) were unreadable over the conversation behind the
-// composer, so tone now drives only the border and the icon — never the text
-// contrast.
+// Opaque surfaces so notices stay readable over the conversation under the
+// composer. Errors use a stronger red card so credit/limit failures read as
+// blocking, not as a muted outline.
 const STATUS_SURFACE_CLASS =
   'rounded-lg border bg-background-secondary px-3 py-2 shadow-sm';
+const ERROR_SURFACE_CLASS =
+  'rounded-lg border border-destructive/40 bg-destructive/15 px-3 py-2.5 shadow-sm';
 
 function splitComposerError(error: string): {
   detail: string | null;
@@ -107,26 +108,23 @@ export function AgentComposerStatusStack({
 
       {composerError ? (
         <div
-          className={cn(
-            STATUS_SURFACE_CLASS,
-            'flex items-start gap-2 border-destructive/50',
-          )}
+          className={cn(ERROR_SURFACE_CLASS, 'flex items-start gap-2')}
           role="alert"
         >
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="font-medium text-foreground text-sm leading-5">
+            <p className="text-sm font-semibold leading-5 text-destructive">
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-muted-foreground text-xs leading-5">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-5 text-destructive/85">
                 {composerError.detail}
               </p>
             ) : null}
           </div>
           <Button
             ariaLabel="Dismiss composer error"
-            className="size-7 shrink-0"
+            className="size-7 shrink-0 text-destructive hover:bg-destructive/15 hover:text-destructive"
             icon={<X className="size-4" />}
             onClick={onClearError}
             variant={ButtonVariant.GHOST}
