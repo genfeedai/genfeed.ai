@@ -140,11 +140,11 @@ export function AgentChatPromptBar({
     </>
   );
   const isPortaled = Boolean(composerShell?.portalTarget);
+  // Surface canvas portal is already max-w-4xl (Codex-aligned with transcript).
+  // Inspector rail is narrower — fill it. Never re-center with a second max-w.
   const promptBar = (
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
-      // Fill the shared agent conversation column (or portal/inspector rail).
-      // Width is owned by the parent track — never a second max-w-4xl center.
       maxWidth="full"
       showTopFade={false}
       topContent={topContent}
@@ -153,7 +153,6 @@ export function AgentChatPromptBar({
         'w-full',
         isPortaled && 'pointer-events-auto',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
-        // Sit on the column bottom; parent already provides the width track.
         layoutMode === 'surface-fixed' && 'bottom-0',
       )}
     >
