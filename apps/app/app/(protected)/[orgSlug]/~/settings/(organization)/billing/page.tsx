@@ -1,17 +1,14 @@
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import { redirect } from 'next/navigation';
-
-export const generateMetadata = createPageMetadata('Billing Settings');
+import { permanentRedirect } from 'next/navigation';
 
 interface SettingsOrganizationBillingRouteProps {
   params: Promise<{ orgSlug: string }>;
 }
 
 /**
- * Legacy path — Billing is a nav group, not a page.
- * Plan → Subscription; wallet top-up → Credits.
+ * Legacy path only — Billing is a nav group, not a page.
+ * Prefer next.config permanent redirect; this is the App Router hard cut.
  */
 export default async function SettingsOrganizationBillingRoute({
   params,
@@ -20,5 +17,5 @@ export default async function SettingsOrganizationBillingRoute({
   const target = hasOrganizationBillingHint()
     ? APP_ROUTES.SETTINGS.SUBSCRIPTION
     : APP_ROUTES.SETTINGS.CREDITS;
-  redirect(createOrganizationAppRoute(orgSlug, target));
+  permanentRedirect(createOrganizationAppRoute(orgSlug, target));
 }
