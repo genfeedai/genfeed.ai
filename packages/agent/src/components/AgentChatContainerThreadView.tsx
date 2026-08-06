@@ -24,7 +24,6 @@ export type AgentChatContainerThreadViewProps = {
   activeThreadTitle: string | null;
   activeUiAction: string | null;
   apiService: AgentApiService;
-  conversationColumnMaxWidthClass: string;
   followUpTaskMessage: string | null;
   highlightedMessageId: string | null;
   isBusy: boolean;
@@ -84,7 +83,6 @@ export function AgentChatContainerThreadView({
   activeThreadTitle,
   activeUiAction,
   apiService,
-  conversationColumnMaxWidthClass,
   followUpTaskMessage,
   highlightedMessageId,
   isAtBottom,
@@ -139,25 +137,18 @@ export function AgentChatContainerThreadView({
           variant={onboardingMode ? 'inline' : 'overlay'}
         />
       ) : null}
-      <div
-        ref={scrollContainerRef}
-        // Stable gutter so the centered max-w-4xl column doesn't shift vs the
-        // absolute composer when the scrollbar appears.
-        className="flex-1 overflow-y-auto [scrollbar-gutter:stable]"
-      >
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
         <div
           className={cn(
-            // No horizontal pad — same outer edge as the surface-fixed composer.
-            'space-y-1 pt-4',
+            // Full width of the shared conversation column (parent max-w-4xl).
+            'w-full space-y-1 pt-4',
             // Reserve only what the floating stack actually uses (glass bar
-            // ~7rem + optional chip row ~3rem + bottom offset). Older pb-80/96
-            // values assumed a tall opaque fade strip that no longer exists.
+            // ~7rem + optional chip row ~3rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips
               ? 'pb-44 md:pb-48'
               : padBottomForComposer
                 ? 'pb-36 md:pb-40'
                 : 'pb-6',
-            conversationColumnMaxWidthClass,
           )}
         >
           {activeThreadTitle ? (

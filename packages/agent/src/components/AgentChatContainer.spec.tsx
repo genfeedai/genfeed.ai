@@ -545,7 +545,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="fixed"][data-max-width="4xl"]',
+      '[data-layout-mode="fixed"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
@@ -602,7 +602,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="surface-fixed"][data-max-width="4xl"]',
+      '[data-layout-mode="surface-fixed"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);

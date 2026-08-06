@@ -143,17 +143,18 @@ export function AgentChatPromptBar({
   const promptBar = (
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
-      maxWidth={isInspectorComposer ? 'full' : '4xl'}
-      // No full-width fade slab — chips + glass composer carry elevation.
-      // A gradient scrim painted black behind the bar and looked like a
-      // second background under the prompt.
+      // Fill the shared agent conversation column (or portal/inspector rail).
+      // Width is owned by the parent track — never a second max-w-4xl center.
+      maxWidth="full"
       showTopFade={false}
       topContent={topContent}
       zIndex={40}
       className={cn(
-        isPortaled && 'pointer-events-auto w-full',
+        'w-full',
+        isPortaled && 'pointer-events-auto',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
-        layoutMode === 'surface-fixed' && 'bottom-3 md:bottom-5',
+        // Sit on the column bottom; parent already provides the width track.
+        layoutMode === 'surface-fixed' && 'bottom-0',
       )}
     >
       <AgentChatInput

@@ -82,9 +82,11 @@ export function AgentChatContainer({
     await container.handleRetry(lastUser.message);
   }, [container.handleRetry, container.timeline]);
 
-  // Same track as PromptBarContainer maxWidth="4xl" (no horizontal inset —
-  // padding here was shifting cards vs the composer shell).
-  const conversationColumnMaxWidthClass = 'mx-auto w-full max-w-4xl';
+  // Single column track for transcript + composer. Do not re-center each
+  // child with its own max-w-4xl — that drifts by scrollbar/parent and cannot
+  // be pixel-perfect. The outer track owns width; children are w-full.
+  const conversationColumnClass =
+    'relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col';
   const activeWorkEvent = useMemo(
     () =>
       selectActiveWorkEvent(container.workEvents, {
@@ -133,182 +135,188 @@ export function AgentChatContainer({
   const shouldRenderInlineComposerFeedback =
     !composerShell || composerShell.isComposerVisible === false;
 
+  const shouldShowDockedComposer =
+    (composerShell?.isComposerVisible ?? true) &&
+    (!container.isEmpty ||
+      onboardingMode ||
+      composerShell?.placement === 'inspector');
+
   return (
-    <div className="relative flex h-full flex-col">
-      {formattedError && shouldRenderInlineComposerFeedback ? (
-        <Alert
-          className="mx-auto mt-3 w-full max-w-4xl"
-          onClose={() => container.setError(null)}
-          type={AlertCategory.ERROR}
-        >
-          <span className="font-medium">{formattedError.title}</span>
-          <span className="mt-0.5 block text-xs opacity-90">
-            {formattedError.summary}
-            {formattedError.recovery ? ` ${formattedError.recovery}` : null}
-          </span>
-        </Alert>
-      ) : null}
+    <div className="relative flex h-full min-h-0 flex-col">
+      {/*
+        One width owner for transcript + floating composer. Both children are
+        w-full of this track so card edges and the prompt shell match exactly.
+      */}
+      <div
+        className={conversationColumnClass}
+        data-testid="agent-conversation-column"
+      >
+        {formattedError && shouldRenderInlineComposerFeedback ? (
+          <Alert
+            className="mt-3 w-full"
+            onClose={() => container.setError(null)}
+            type={AlertCategory.ERROR}
+          >
+            <span className="font-medium">{formattedError.title}</span>
+            <span className="mt-0.5 block text-xs opacity-90">
+              {formattedError.summary}
+              {formattedError.recovery ? ` ${formattedError.recovery}` : null}
+            </span>
+          </Alert>
+        ) : null}
 
-      {archivedNotice ? (
-        <Alert
-          type={AlertCategory.WARNING}
-          className="mx-auto mt-3 w-full max-w-4xl"
-        >
-          {archivedNotice}
-        </Alert>
-      ) : null}
+        {archivedNotice ? (
+          <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
+            {archivedNotice}
+          </Alert>
+        ) : null}
 
-      {isLoadingThread && container.isEmpty ? (
-        <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <div className="flex min-h-0 flex-1 overflow-hidden">
+        {isLoadingThread && container.isEmpty ? (
+          <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <AgentConversationSkeleton
               isWideLayout={isWideLayout}
               title={container.activeThreadTitle}
             />
           </div>
-        </div>
-      ) : container.isEmpty && !onboardingMode ? (
-        <AgentChatEmptyState
-          addFiles={container.addFiles}
-          apiService={apiService}
-          chatAttachments={container.chatAttachments}
-          clearAllAttachments={container.clearAllAttachments}
-          dragHandlers={container.dragHandlers}
-          dragState={container.dragState}
-          emptyStateTitle={emptyStateTitle}
-          emptyStateDescription={emptyStateDescription}
-          getCompletedAttachments={container.getCompletedAttachments}
-          isAttachmentUploading={container.isAttachmentUploading}
-          isBusy={container.isBusy}
-          // Inspector docks the composer in the shell slot; full-page empty
-          // keeps it inline and centered under the hero.
-          isComposerVisible={composerShell?.placement !== 'inspector'}
-          isReadOnly={isReadOnly}
-          isRunActive={container.isRunActive}
-          isWideLayout={isWideLayout}
-          variant={
-            composerShell?.placement === 'inspector' ? 'inspector' : 'default'
-          }
-          onSend={container.handleSend}
-          onStop={container.handleStopRun}
-          placeholder={placeholder}
-          promptBarSuggestions={promptBarSuggestions}
-          removeAttachment={container.removeAttachment}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-          models={registryModels}
-          isModelsLoading={isRegistryModelsLoading}
-        />
-      ) : (
-        <AgentChatContainerThreadView
-          activeThreadTitle={container.activeThreadTitle}
-          activeUiAction={container.activeUiAction}
-          apiService={apiService}
-          conversationColumnMaxWidthClass={conversationColumnMaxWidthClass}
-          followUpTaskMessage={container.followUpTaskMessage}
-          highlightedMessageId={highlightedMessageId}
-          isAtBottom={container.isAtBottom}
-          isBusy={container.isBusy}
-          isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
-          isEmpty={container.isEmpty}
-          isGenerating={container.isGenerating}
-          isReadOnly={isReadOnly}
-          isStreamingActive={container.isStreamingActive}
-          isSubmittingInputRequest={container.isSubmittingInputRequest}
-          latestProposedPlan={container.latestProposedPlan}
-          messagesEndRef={container.messagesEndRef}
-          onboardingMode={onboardingMode}
-          onboardingSignupGiftCredits={
-            container.onboardingSignupGiftCredits ?? undefined
-          }
-          onboardingTotalJourneyCredits={
-            container.onboardingTotalJourneyCredits ?? undefined
-          }
-          onApprovePlan={container.handleApprovePlan}
-          onBrandCreate={onBrandCreate}
-          onCopy={container.handleCopy}
-          onCreateFollowUpTasks={container.handleCreateFollowUpTasks}
-          onIngredientSelect={container.handleIngredientSelect}
-          onOAuthConnect={onOAuthConnect}
-          onRegenerate={onRegenerate}
-          onRequestPlanChanges={container.handleRequestPlanChanges}
-          onRetry={container.handleRetry}
-          onRetryLastFailedRun={handleRetryLastFailedRun}
-          onSelectCreditPack={onSelectCreditPack}
-          onSend={container.handleSend}
-          onSubmitInputRequest={container.handleSubmitInputRequest}
-          onUiAction={container.handleUiAction}
-          padBottomForComposer={composerShell?.isComposerVisible !== false}
-          padBottomForFollowUpChips={
-            showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions)
-          }
-          pendingInputRequest={container.pendingInputRequest}
-          pendingUiActions={container.streamState.pendingUiActions}
-          scrollContainerRef={container.scrollContainerRef}
-          scrollToBottom={container.scrollToBottom}
-          shouldShowInputRequestOverlay={
-            onboardingMode || shouldRenderInlineComposerFeedback
-          }
-          showFollowUpButton={
-            Boolean(workspacePlanningTaskId) &&
-            Boolean(onCreateFollowUpTasks) &&
-            container.latestProposedPlan?.status === 'approved'
-          }
-          timeline={container.timeline}
-        />
-      )}
+        ) : container.isEmpty && !onboardingMode ? (
+          <AgentChatEmptyState
+            addFiles={container.addFiles}
+            apiService={apiService}
+            chatAttachments={container.chatAttachments}
+            clearAllAttachments={container.clearAllAttachments}
+            dragHandlers={container.dragHandlers}
+            dragState={container.dragState}
+            emptyStateTitle={emptyStateTitle}
+            emptyStateDescription={emptyStateDescription}
+            getCompletedAttachments={container.getCompletedAttachments}
+            isAttachmentUploading={container.isAttachmentUploading}
+            isBusy={container.isBusy}
+            // Inspector docks the composer in the shell slot; full-page empty
+            // keeps it inline and centered under the hero.
+            isComposerVisible={composerShell?.placement !== 'inspector'}
+            isReadOnly={isReadOnly}
+            isRunActive={container.isRunActive}
+            isWideLayout={isWideLayout}
+            variant={
+              composerShell?.placement === 'inspector' ? 'inspector' : 'default'
+            }
+            onSend={container.handleSend}
+            onStop={container.handleStopRun}
+            placeholder={placeholder}
+            promptBarSuggestions={promptBarSuggestions}
+            removeAttachment={container.removeAttachment}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            models={registryModels}
+            isModelsLoading={isRegistryModelsLoading}
+          />
+        ) : (
+          <AgentChatContainerThreadView
+            activeThreadTitle={container.activeThreadTitle}
+            activeUiAction={container.activeUiAction}
+            apiService={apiService}
+            followUpTaskMessage={container.followUpTaskMessage}
+            highlightedMessageId={highlightedMessageId}
+            isAtBottom={container.isAtBottom}
+            isBusy={container.isBusy}
+            isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
+            isEmpty={container.isEmpty}
+            isGenerating={container.isGenerating}
+            isReadOnly={isReadOnly}
+            isStreamingActive={container.isStreamingActive}
+            isSubmittingInputRequest={container.isSubmittingInputRequest}
+            latestProposedPlan={container.latestProposedPlan}
+            messagesEndRef={container.messagesEndRef}
+            onboardingMode={onboardingMode}
+            onboardingSignupGiftCredits={
+              container.onboardingSignupGiftCredits ?? undefined
+            }
+            onboardingTotalJourneyCredits={
+              container.onboardingTotalJourneyCredits ?? undefined
+            }
+            onApprovePlan={container.handleApprovePlan}
+            onBrandCreate={onBrandCreate}
+            onCopy={container.handleCopy}
+            onCreateFollowUpTasks={container.handleCreateFollowUpTasks}
+            onIngredientSelect={container.handleIngredientSelect}
+            onOAuthConnect={onOAuthConnect}
+            onRegenerate={onRegenerate}
+            onRequestPlanChanges={container.handleRequestPlanChanges}
+            onRetry={container.handleRetry}
+            onRetryLastFailedRun={handleRetryLastFailedRun}
+            onSelectCreditPack={onSelectCreditPack}
+            onSend={container.handleSend}
+            onSubmitInputRequest={container.handleSubmitInputRequest}
+            onUiAction={container.handleUiAction}
+            padBottomForComposer={composerShell?.isComposerVisible !== false}
+            padBottomForFollowUpChips={
+              showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions)
+            }
+            pendingInputRequest={container.pendingInputRequest}
+            pendingUiActions={container.streamState.pendingUiActions}
+            scrollContainerRef={container.scrollContainerRef}
+            scrollToBottom={container.scrollToBottom}
+            shouldShowInputRequestOverlay={
+              onboardingMode || shouldRenderInlineComposerFeedback
+            }
+            showFollowUpButton={
+              Boolean(workspacePlanningTaskId) &&
+              Boolean(onCreateFollowUpTasks) &&
+              container.latestProposedPlan?.status === 'approved'
+            }
+            timeline={container.timeline}
+          />
+        )}
 
-      {(composerShell?.isComposerVisible ?? true) &&
-      (!container.isEmpty ||
-        onboardingMode ||
-        composerShell?.placement === 'inspector') ? (
-        <AgentChatPromptBar
-          activeGenerationAction={pendingGenerationAction}
-          activeWorkEvent={activeWorkEvent}
-          addFiles={container.addFiles}
-          apiService={apiService}
-          chatAttachments={container.chatAttachments}
-          clearAllAttachments={container.clearAllAttachments}
-          dragHandlers={container.dragHandlers}
-          dragState={container.dragState}
-          error={
-            composerShell && container.error
-              ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
-              : null
-          }
-          getCompletedAttachments={container.getCompletedAttachments}
-          isAttachmentUploading={container.isAttachmentUploading}
-          isBusy={
-            container.isBusy ||
-            isLoadingThread ||
-            container.socketConnectionState !== 'connected'
-          }
-          isReadOnly={isReadOnly}
-          isRunActive={container.isRunActive}
-          isSubmittingInputRequest={container.isSubmittingInputRequest}
-          latestProposedPlan={container.latestProposedPlan}
-          layoutMode={promptBarLayoutMode}
-          onClearError={() => container.setError(null)}
-          onModelChange={setSelectedModel}
-          onSend={container.handleSend}
-          onStop={container.handleStopRun}
-          onSubmitInputRequest={container.handleSubmitInputRequest}
-          onUiAction={container.handleUiAction}
-          pendingInputRequest={
-            composerShell && !onboardingMode
-              ? container.pendingInputRequest
-              : null
-          }
-          placeholder={placeholder}
-          promptBarSuggestions={promptBarSuggestions}
-          removeAttachment={container.removeAttachment}
-          selectedModel={selectedModel}
-          models={registryModels}
-          isModelsLoading={isRegistryModelsLoading}
-          showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
-          socketConnectionState={container.socketConnectionState}
-        />
-      ) : null}
+        {shouldShowDockedComposer ? (
+          <AgentChatPromptBar
+            activeGenerationAction={pendingGenerationAction}
+            activeWorkEvent={activeWorkEvent}
+            addFiles={container.addFiles}
+            apiService={apiService}
+            chatAttachments={container.chatAttachments}
+            clearAllAttachments={container.clearAllAttachments}
+            dragHandlers={container.dragHandlers}
+            dragState={container.dragState}
+            error={
+              composerShell && container.error
+                ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
+                : null
+            }
+            getCompletedAttachments={container.getCompletedAttachments}
+            isAttachmentUploading={container.isAttachmentUploading}
+            isBusy={
+              container.isBusy ||
+              isLoadingThread ||
+              container.socketConnectionState !== 'connected'
+            }
+            isReadOnly={isReadOnly}
+            isRunActive={container.isRunActive}
+            isSubmittingInputRequest={container.isSubmittingInputRequest}
+            latestProposedPlan={container.latestProposedPlan}
+            layoutMode={promptBarLayoutMode}
+            onClearError={() => container.setError(null)}
+            onModelChange={setSelectedModel}
+            onSend={container.handleSend}
+            onStop={container.handleStopRun}
+            onSubmitInputRequest={container.handleSubmitInputRequest}
+            onUiAction={container.handleUiAction}
+            pendingInputRequest={
+              composerShell && !onboardingMode
+                ? container.pendingInputRequest
+                : null
+            }
+            placeholder={placeholder}
+            promptBarSuggestions={promptBarSuggestions}
+            removeAttachment={container.removeAttachment}
+            selectedModel={selectedModel}
+            models={registryModels}
+            isModelsLoading={isRegistryModelsLoading}
+            showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
+            socketConnectionState={container.socketConnectionState}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
