@@ -13,7 +13,6 @@ import { CreditsService } from '@services/billing/credits.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { ExternalLink, TriangleAlert } from 'lucide-react';
@@ -76,11 +75,11 @@ function ByokUsageSection({
 
   return (
     <BillingCard title="BYOK Usage">
-      <VStack gap={4}>
+      <div className="flex flex-col gap-4">
         {(isPastDue || isSuspended) && (
           <div className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 rounded">
             <TriangleAlert className="size-5 text-destructive shrink-0 mt-0.5" />
-            <VStack gap={2}>
+            <div className="flex flex-col gap-2">
               <Text size="sm" weight="medium" color="destructive">
                 {isPastDue
                   ? 'Payment failed — BYOK access may be suspended'
@@ -92,7 +91,7 @@ function ByokUsageSection({
               >
                 Update Payment Method
               </Button>
-            </VStack>
+            </div>
           </div>
         )}
 
@@ -121,7 +120,7 @@ function ByokUsageSection({
 
         {byokUsage.billableUsage > 0 && (
           <div className="flex items-center justify-between p-4 border border-border rounded">
-            <VStack gap={1}>
+            <div className="flex flex-col gap-1">
               <Text size="sm" color="muted">
                 Estimated Fee This Period
               </Text>
@@ -129,7 +128,7 @@ function ByokUsageSection({
                 {BYOK_FEE_PERCENTAGE}% platform fee on{' '}
                 {byokUsage.billableUsage.toLocaleString()} billable credits
               </Text>
-            </VStack>
+            </div>
             <Text size="lg" weight="bold">
               ${byokUsage.projectedFee.toFixed(2)}
             </Text>
@@ -141,7 +140,7 @@ function ByokUsageSection({
           free. A {BYOK_FEE_PERCENTAGE}% platform fee applies after the free
           tier. Invoiced on the 1st of each month.
         </Text>
-      </VStack>
+      </div>
     </BillingCard>
   );
 }
@@ -184,27 +183,27 @@ export default function SettingsBillingPage() {
   }
 
   return (
-    <VStack gap={4}>
+    <div className="flex flex-col gap-4">
       <BillingCard title="Current Plan">
         {subscription ? (
-          <VStack gap={4}>
+          <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <VStack gap={1}>
+              <div className="flex flex-col gap-1">
                 <Text size="sm" color="muted">
                   Plan
                 </Text>
                 <Text weight="medium" className="capitalize">
                   {subscription.category || 'Free'}
                 </Text>
-              </VStack>
-              <VStack gap={1} className="text-right">
+              </div>
+              <div className="flex flex-col gap-1 text-right">
                 <Text size="sm" color="muted">
                   Status
                 </Text>
                 <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
                   {subscription.status}
                 </Badge>
-              </VStack>
+              </div>
             </div>
             {subscription.currentPeriodEnd && (
               <div>
@@ -225,17 +224,15 @@ export default function SettingsBillingPage() {
                 </Text>
               </div>
             )}
-          </VStack>
+          </div>
         ) : (
           <Text color="muted">
             No active subscription. Subscribe to unlock all features.
           </Text>
         )}
-      </BillingCard>
 
-      <BillingCard title="Plan Limits">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-          <div className="p-4 bg-muted/50 rounded">
+        <div className="grid grid-cols-2 gap-3 border-t border-border pt-4 md:grid-cols-5">
+          <div className="p-3 bg-muted/50 rounded">
             <Text size="sm" color="muted">
               Organizations
             </Text>
@@ -243,7 +240,7 @@ export default function SettingsBillingPage() {
               {formatPlanLimit(planEntitlement.organizationLimit)}
             </Text>
           </div>
-          <div className="p-4 bg-muted/50 rounded">
+          <div className="p-3 bg-muted/50 rounded">
             <Text size="sm" color="muted">
               Brands
             </Text>
@@ -251,7 +248,7 @@ export default function SettingsBillingPage() {
               {formatPlanLimit(planEntitlement.brandLimit)}
             </Text>
           </div>
-          <div className="p-4 bg-muted/50 rounded">
+          <div className="p-3 bg-muted/50 rounded">
             <Text size="sm" color="muted">
               Channels
             </Text>
@@ -259,7 +256,7 @@ export default function SettingsBillingPage() {
               {formatPlanLimit(planEntitlement.channelLimit)}
             </Text>
           </div>
-          <div className="p-4 bg-muted/50 rounded">
+          <div className="p-3 bg-muted/50 rounded">
             <Text size="sm" color="muted">
               Seats
             </Text>
@@ -267,7 +264,7 @@ export default function SettingsBillingPage() {
               {formatPlanLimit(planEntitlement.seatLimit)}
             </Text>
           </div>
-          <div className="p-4 bg-muted/50 rounded">
+          <div className="p-3 bg-muted/50 rounded">
             <Text size="sm" color="muted">
               API
             </Text>
@@ -282,8 +279,16 @@ export default function SettingsBillingPage() {
 
       <BillingCard title="Credits">
         {creditsBreakdown ? (
-          <VStack gap={4}>
-            <div className="flex items-center justify-between p-4 bg-muted/50">
+          <div className="flex flex-col gap-3">
+            {isLowCredits && (
+              <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
+                <TriangleAlert className="size-4 text-amber-500 shrink-0 mt-0.5" />
+                <Text size="sm" color="muted">
+                  Low credits warning: your organization is below 1,000 credits.
+                </Text>
+              </div>
+            )}
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded">
               <Text size="sm" color="muted">
                 Credits Left
               </Text>
@@ -295,32 +300,23 @@ export default function SettingsBillingPage() {
               Percentage is based on your current credit cycle total
               (subscription + packs purchased in-cycle).
             </Text>
-            {isLowCredits && (
-              <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
-                <TriangleAlert className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                <Text size="sm" color="muted">
-                  Low credits warning: your organization is below 1,000 credits.
-                </Text>
-              </div>
-            )}
-          </VStack>
+          </div>
         ) : (
           <Text color="muted">No credits information available.</Text>
         )}
       </BillingCard>
 
-      <AddCreditsCard />
-
-      <BillingCard title="Manage Billing">
-        <Text as="p" size="sm" color="muted">
-          View invoices, update payment methods, and manage your subscription
-          through the Stripe billing portal.
-        </Text>
-        <Button variant={ButtonVariant.DEFAULT} onClick={openBillingPortal}>
-          <ExternalLink className="mr-2 size-4" />
-          Open Billing Portal
-        </Button>
-      </BillingCard>
-    </VStack>
+      <AddCreditsCard
+        secondaryAction={
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            onClick={openBillingPortal}
+            icon={<ExternalLink className="size-4" />}
+          >
+            Open Billing Portal
+          </Button>
+        }
+      />
+    </div>
   );
 }

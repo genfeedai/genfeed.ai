@@ -75,10 +75,24 @@ describe('SettingsBillingPage', () => {
     expect(screen.getByText('80.00%')).toBeInTheDocument();
   });
 
-  it('should display the organization plan limit', () => {
+  it('should display plan limits inside the Current Plan card', () => {
     render(<SettingsBillingPage />);
 
+    expect(screen.getByText('Current Plan')).toBeInTheDocument();
     expect(screen.getByText('Organizations')).toBeInTheDocument();
+    expect(screen.queryByText('Plan Limits')).not.toBeInTheDocument();
+    expect(screen.queryByText('Manage Billing')).not.toBeInTheDocument();
+  });
+
+  it('should place Open Billing Portal next to Add credit', () => {
+    render(<SettingsBillingPage />);
+
+    expect(
+      screen.getByRole('button', { name: /Open Billing Portal/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Add credit/i }),
+    ).toBeInTheDocument();
   });
 
   it('should show low credits warning when balance is below 1000', () => {

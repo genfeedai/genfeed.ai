@@ -34,6 +34,8 @@ type CreditTopUpPanelProps = {
   helperContent?: ReactNode;
   isSubmitDisabled?: boolean;
   isStartingCheckout: boolean;
+  /** Rendered next to the primary submit button (e.g. secondary portal link). */
+  secondaryAction?: ReactNode;
   submitLabel?: string;
   title?: string;
   onSubmit: (selection: {
@@ -46,6 +48,7 @@ export default function CreditTopUpPanel({
   helperContent,
   isSubmitDisabled = false,
   isStartingCheckout,
+  secondaryAction,
   submitLabel = 'Add credit',
   title = 'Add credits',
   onSubmit,
@@ -199,15 +202,18 @@ export default function CreditTopUpPanel({
             )}
           </p>
 
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            onClick={handleSubmit}
-            isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
-            isLoading={isStartingCheckout}
-            icon={<CreditCard className="size-4" />}
-          >
-            {isStartingCheckout ? 'Opening checkout...' : submitLabel}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {secondaryAction}
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              onClick={handleSubmit}
+              isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
+              isLoading={isStartingCheckout}
+              icon={<CreditCard className="size-4" />}
+            >
+              {isStartingCheckout ? 'Opening checkout...' : submitLabel}
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
