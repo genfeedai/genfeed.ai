@@ -2,6 +2,12 @@ import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.ser
 import type { AdPerformanceDocument } from '@server/collections/ad-performance/schemas/ad-performance.schema';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => `decrypted:${value}`),
+  },
+}));
+
 const buildPublicAd = (
   overrides: Partial<AdPerformanceDocument> = {},
 ): AdPerformanceDocument =>
@@ -107,5 +113,66 @@ describe('AdsResearchService', () => {
       source: 'public',
       title: 'Public campaign',
     });
+  });
+
+  it('normalizes stored tiktok_ads rows onto the tiktok research platform', async () => {
+    adPerformanceService.findPublicById.mockResolvedValue(
+      buildPublicAd({ adPlatform: 'tiktok_ads', id: 'public-tiktok-ad' }),
+    );
+
+    const result = await service.getAdDetail('org-1', {
+      id: 'public-tiktok-ad',
+      source: 'public',
+    });
+
+    expect(result).toMatchObject({ platform: 'tiktok', source: 'public' });
+    // Creative patterns are keyed by the storage platform name, which is
+    // `tiktok` for TikTok (unlike meta → facebook, google → google_ads).
+    expect(creativePatternsService.findAll).toHaveBeenCalledWith({
+      platform: 'tiktok',
+      scope: 'public',
+    });
+  });
+
+  it('serves connected TikTok ads through the platform-generic gateway adapter', async () => {
+    const credentialId = '0123456789abcdef01234567';
+    credentialsService.findOne.mockResolvedValue({
+      accessToken: 'sealed-token',
+    });
+    const adapter = {
+      getTopPerformers: vi.fn().mockResolvedValue([
+        {
+          id: 'ad-1',
+          insights: { clicks: 40, ctr: 0.05, spend: 90 },
+          metric: 'ctr',
+          name: 'Hook A',
+          value: 0.05,
+        },
+      ]),
+      listAds: vi.fn().mockResolvedValue([
+        {
+          creative: { body: 'Body', title: 'Hook A' },
+          id: 'ad-1',
+        },
+      ]),
+    };
+    adsGatewayService.getAdapter.mockReturnValue(adapter);
+
+    const result = await service.listAds('org-1', {
+      adAccountId: 'advertiser-1',
+      credentialId,
+      platform: 'tiktok',
+      source: 'my_accounts',
+    });
+
+    expect(adsGatewayService.getAdapter).toHaveBeenCalledWith('tiktok');
+    expect(result.summary.selectedPlatform).toBe('tiktok');
+    expect(result.connectedAds).toHaveLength(1);
+    expect(result.connectedAds[0]).toMatchObject({
+      accountName: 'Connected TikTok Ads account',
+      channel: 'all',
+      id: 'connected:tiktok:ad-1',
+    });
+    expect(result.connectedAds[0].explanation).toContain('TikTok Ads');
   });
 });

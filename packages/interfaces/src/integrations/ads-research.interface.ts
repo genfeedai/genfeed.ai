@@ -1,5 +1,6 @@
 export type AdsResearchSource = 'public' | 'my_accounts' | 'all';
-export type AdsResearchPlatform = 'meta' | 'google';
+/** Connected + public ads research platforms (Discover → Ads Intelligence). */
+export type AdsResearchPlatform = 'meta' | 'google' | 'tiktok';
 export type AdsChannel = 'all' | 'search' | 'display' | 'youtube';
 export type AdsResearchMetric =
   | 'performanceScore'

@@ -198,4 +198,122 @@ export const MCP_ADS_TOOLS: SourceTool[] = [
     },
     requiredRole: 'user',
   },
+  {
+    creditCost: 0,
+    description: 'List TikTok advertiser accounts for a connected credential',
+    name: 'list_tiktok_ad_accounts',
+    parameters: {
+      properties: {
+        credentialId: {
+          description: 'ID of the connected TikTok Ads credential',
+          type: 'string',
+        },
+      },
+      required: ['credentialId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description: 'List TikTok ad groups within a campaign',
+    name: 'list_tiktok_adgroups',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description: 'TikTok advertiser account ID',
+          type: 'string',
+        },
+        campaignId: {
+          description: 'Campaign ID to list ad groups for',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected TikTok Ads credential',
+          type: 'string',
+        },
+      },
+      required: ['credentialId', 'adAccountId', 'campaignId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'List TikTok ads, optionally narrowed to a single ad group. Returns creative details alongside each ad',
+    name: 'list_tiktok_ads',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description: 'TikTok advertiser account ID',
+          type: 'string',
+        },
+        adGroupId: {
+          description: 'Optional ad group ID to filter by',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected TikTok Ads credential',
+          type: 'string',
+        },
+      },
+      required: ['credentialId', 'adAccountId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Get top performing TikTok ads sorted by a specific metric (CTR, CPC, spend, etc.)',
+    name: 'get_tiktok_top_performers',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description: 'TikTok advertiser account ID',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected TikTok Ads credential',
+          type: 'string',
+        },
+        datePreset: {
+          default: 'last_30d',
+          description: 'Predefined date range',
+          enum: [
+            'today',
+            'yesterday',
+            'last_7d',
+            'last_14d',
+            'last_30d',
+            'last_90d',
+          ],
+          type: 'string',
+        },
+        limit: {
+          default: 10,
+          description: 'Number of top performers to return',
+          type: 'number',
+        },
+        metric: {
+          default: 'ctr',
+          description: 'Metric to rank by',
+          enum: [
+            'ctr',
+            'cpc',
+            'cpm',
+            'spend',
+            'impressions',
+            'clicks',
+            'conversions',
+          ],
+          type: 'string',
+        },
+      },
+      required: ['credentialId', 'adAccountId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
 ];

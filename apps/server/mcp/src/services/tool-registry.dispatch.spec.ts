@@ -36,6 +36,9 @@ describe('ToolRegistryService.classify', () => {
     ['get_video_status', 'legacy'],
     ['list_meta_campaigns', 'meta-ads'],
     ['get_google_ads_campaign_metrics', 'google-ads'],
+    ['list_tiktok_campaigns', 'tiktok-ads'],
+    ['list_tiktok_adgroups', 'tiktok-ads'],
+    ['get_tiktok_top_performers', 'tiktok-ads'],
     ['get_account_info', 'account-management'],
     ['post_social_reply', 'social-messages'],
     // generate_content_batch is an AgentToolName, so it routes through the
