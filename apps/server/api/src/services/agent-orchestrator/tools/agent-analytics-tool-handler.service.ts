@@ -1,3 +1,5 @@
+import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -24,6 +26,15 @@ export class AgentAnalyticsToolHandler {
     private readonly ingredientsService?: IngredientsService,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
+    // Articles are a separate collection, not an `IngredientCategory`, so a
+    // `contentId` naming an article never resolves through `ingredientsService`.
+    // Both are `@Optional()` for the same reason the ingredient one is: the
+    // owning module is wired with `forwardRef`, and analytics must degrade to
+    // "not found" rather than crash if the cycle leaves a provider unresolved.
+    @Optional()
+    private readonly articlesService?: ArticlesService,
+    @Optional()
+    private readonly articleAnalyticsService?: ArticleAnalyticsService,
   ) {}
   private async resolveIngredientForContent(
     contentId: string,
@@ -34,6 +45,20 @@ export class AgentAnalyticsToolHandler {
     }
 
     return (await this.ingredientsService.findOne({
+      id: contentId,
+      isDeleted: false,
+      organizationId: organizationId,
+    })) as unknown as Record<string, unknown> | null;
+  }
+  private async resolveArticleForContent(
+    contentId: string,
+    organizationId: string,
+  ): Promise<Record<string, unknown> | null> {
+    if (!this.articlesService || !contentId) {
+      return null;
+    }
+
+    return (await this.articlesService.findOne({
       id: contentId,
       isDeleted: false,
       organizationId: organizationId,
@@ -79,6 +104,58 @@ export class AgentAnalyticsToolHandler {
     return post ?? null;
   }
 
+  /**
+   * Articles attach to a post through the polymorphic `entityArticleId` scalar
+   * FK, not through the `post_ingredients` m2m relation the ingredient lookup
+   * uses — so this needs its own query rather than a shared one.
+   */
+  private async resolveLatestPublishedPostForArticle(
+    articleId: string,
+    organizationId: string,
+  ): Promise<Record<string, unknown> | null> {
+    const results = await this.postsService.findAll(
+      {
+        where: {
+          entityArticleId: articleId,
+          isDeleted: false,
+          organizationId: organizationId,
+          status: {
+            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+          },
+        },
+        orderBy: {
+          createdAt: -1,
+          publicationDate: -1,
+        },
+      },
+      { pagination: false },
+    );
+
+    const [post] =
+      (results.docs as unknown as Record<string, unknown>[] | undefined) ?? [];
+    return post ?? null;
+  }
+
+  /** The four-metric card shared by every per-item analytics response. */
+  private buildEngagementMetrics(summary: {
+    avgEngagementRate: number;
+    totalComments: number;
+    totalLikes: number;
+    totalViews: number;
+  }): Record<string, unknown> {
+    return this.buildMetricItems([
+      { label: 'Views', value: summary.totalViews },
+      { label: 'Likes', value: summary.totalLikes },
+      { label: 'Comments', value: summary.totalComments },
+      {
+        decimals: 1,
+        label: 'Engagement',
+        suffix: '%',
+        value: summary.avgEngagementRate,
+      },
+    ]);
+  }
+
   private buildPostAnalyticsSnapshotAction(params: {
     metrics: Record<string, unknown>;
     postId: string;
@@ -97,6 +174,93 @@ export class AgentAnalyticsToolHandler {
       metrics: params.metrics,
       title: params.title,
       type: 'analytics_snapshot_card' as const,
+    };
+  }
+
+  /**
+   * Analytics for a `contentId` that names an article.
+   *
+   * An article carries two independent metric sources: its own on-site rollup in
+   * `article_analytics`, and — once distributed — the post analytics of the post
+   * that published it. Both are returned; the post summary heads the metric card
+   * when it exists, because that is where platform engagement lands.
+   */
+  private async buildArticleAnalyticsResult(
+    article: Record<string, unknown>,
+    contentId: string,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    // Scalar FK — `assertResourceScope` rejects an undefined resource brand.
+    this.assertResourceScope(
+      ctx,
+      readOptionalString(article.brandId),
+      'selected content',
+    );
+
+    const articleSummary = this.articleAnalyticsService
+      ? await this.articleAnalyticsService.getArticleAnalyticsSummary(contentId)
+      : null;
+
+    const publishedPost = await this.resolveLatestPublishedPostForArticle(
+      contentId,
+      ctx.organizationId,
+    );
+    const postId = publishedPost?.id ? String(publishedPost.id) : undefined;
+    const postSummary = postId
+      ? await this.postAnalyticsService.getPostAnalyticsSummary(postId)
+      : null;
+
+    if (!postSummary && !articleSummary) {
+      return {
+        creditsUsed: 0,
+        data: {
+          articleId: contentId,
+          contentId,
+          message:
+            'This article has no analytics yet. Publish it to start collecting metrics.',
+        },
+        success: true,
+      };
+    }
+
+    const metrics = this.buildEngagementMetrics(
+      postSummary ?? {
+        avgEngagementRate: articleSummary?.avgEngagementRate ?? 0,
+        totalComments: articleSummary?.totalComments ?? 0,
+        totalLikes: articleSummary?.totalLikes ?? 0,
+        totalViews: articleSummary?.totalViews ?? 0,
+      },
+    );
+
+    return {
+      creditsUsed: 0,
+      data: {
+        articleId: contentId,
+        articleSummary,
+        contentId,
+        ...(postId ? { postId, summary: postSummary } : {}),
+      },
+      nextActions: [
+        postId
+          ? this.buildPostAnalyticsSnapshotAction({
+              metrics,
+              postId,
+              title: 'Article analytics snapshot',
+            })
+          : {
+              ctas: [
+                { href: '/analytics/overview', label: 'Open analytics' },
+                { href: '/content/articles', label: 'Open articles' },
+              ],
+              description:
+                'On-site analytics for this article. It has not been published to a social post yet.',
+              id: `article-analytics-${contentId}-${Date.now()}`,
+              metrics,
+              title: 'Article analytics snapshot',
+              type: 'analytics_snapshot_card' as const,
+            },
+      ],
+      success: true,
     };
   }
 
@@ -139,17 +303,7 @@ export class AgentAnalyticsToolHandler {
 
       const summary =
         await this.postAnalyticsService.getPostAnalyticsSummary(postId);
-      const metrics = this.buildMetricItems([
-        { label: 'Views', value: summary.totalViews },
-        { label: 'Likes', value: summary.totalLikes },
-        { label: 'Comments', value: summary.totalComments },
-        {
-          decimals: 1,
-          label: 'Engagement',
-          suffix: '%',
-          value: summary.avgEngagementRate,
-        },
-      ]);
+      const metrics = this.buildEngagementMetrics(summary);
 
       return {
         creditsUsed: 0,
@@ -175,6 +329,21 @@ export class AgentAnalyticsToolHandler {
       );
 
       if (!ingredient) {
+        // Not an ingredient — the id may name an article, which lives in its
+        // own collection with its own analytics store.
+        const article = await this.resolveArticleForContent(
+          contentId,
+          ctx.organizationId,
+        );
+
+        if (article) {
+          return await this.buildArticleAnalyticsResult(
+            article,
+            contentId,
+            ctx,
+          );
+        }
+
         return {
           creditsUsed: 0,
           error: `Content ${contentId} not found`,
@@ -215,17 +384,7 @@ export class AgentAnalyticsToolHandler {
       const resolvedPostId = String(publishedPost.id);
       const summary =
         await this.postAnalyticsService.getPostAnalyticsSummary(resolvedPostId);
-      const metrics = this.buildMetricItems([
-        { label: 'Views', value: summary.totalViews },
-        { label: 'Likes', value: summary.totalLikes },
-        { label: 'Comments', value: summary.totalComments },
-        {
-          decimals: 1,
-          label: 'Engagement',
-          suffix: '%',
-          value: summary.avgEngagementRate,
-        },
-      ]);
+      const metrics = this.buildEngagementMetrics(summary);
 
       return {
         creditsUsed: 0,

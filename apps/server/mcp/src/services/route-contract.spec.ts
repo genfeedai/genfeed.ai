@@ -164,7 +164,15 @@ interface ContractRoute {
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
   // ── Agent executor (shared route for all AgentToolName tools) ──
-  { method: 'Post', sub: ':name/execute', controller: 'agentTools', tools: [] },
+  // `get_content_analytics` is a legacy-switch tool, not an `AgentToolName`, but
+  // its article/image branch proxies to the agent executor — so it is named here
+  // explicitly rather than being covered by the blanket agent-executor entry.
+  {
+    method: 'Post',
+    sub: ':name/execute',
+    controller: 'agentTools',
+    tools: ['get_content_analytics'],
+  },
 
   // ── Agent chat + runs ──
   {
