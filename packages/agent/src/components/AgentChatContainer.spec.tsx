@@ -550,7 +550,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
@@ -607,7 +607,7 @@ describe('AgentChatContainer', () => {
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
@@ -643,7 +643,7 @@ describe('AgentChatContainer', () => {
     portalTarget.remove();
   });
 
-  it('pads the transcript and fades into a portaled surface composer', () => {
+  it('pads the transcript under a portaled surface composer without a black fade slab', () => {
     const apiService = createApiService();
     const portalTarget = document.createElement('div');
     document.body.append(portalTarget);
@@ -666,7 +666,7 @@ describe('AgentChatContainer', () => {
     expect(container.querySelector('.pb-56')).not.toBeNull();
     expect(
       portalTarget.querySelector(
-        '[data-layout-mode="inflow"][data-show-top-fade="true"]',
+        '[data-layout-mode="inflow"][data-show-top-fade="false"]',
       ),
     ).not.toBeNull();
 

@@ -144,8 +144,10 @@ export function AgentChatPromptBar({
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
       maxWidth={isInspectorComposer ? 'full' : '4xl'}
-      // Soft short scrim only; chips + composer elevate with shadow.
-      showTopFade={!isInspectorComposer}
+      // No full-width fade slab — chips + glass composer carry elevation.
+      // A gradient scrim painted black behind the bar and looked like a
+      // second background under the prompt.
+      showTopFade={false}
       topContent={topContent}
       zIndex={40}
       className={cn(
