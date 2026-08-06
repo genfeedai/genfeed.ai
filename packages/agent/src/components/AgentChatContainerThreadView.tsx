@@ -65,6 +65,8 @@ export type AgentChatContainerThreadViewProps = {
     payload?: Record<string, unknown>,
   ) => Promise<void>;
   padBottomForComposer: boolean;
+  /** Extra clearance when follow-up chips sit above the fixed composer. */
+  padBottomForFollowUpChips?: boolean;
   pendingInputRequest: AgentInputRequest | null;
   pendingUiActions: AgentUiAction[];
   scrollContainerRef: RefObject<HTMLDivElement | null>;
@@ -113,6 +115,7 @@ export function AgentChatContainerThreadView({
   onSubmitInputRequest,
   onUiAction,
   padBottomForComposer,
+  padBottomForFollowUpChips = false,
   pendingInputRequest,
   pendingUiActions,
   scrollContainerRef,
@@ -141,8 +144,12 @@ export function AgentChatContainerThreadView({
           className={cn(
             'mx-auto space-y-1 p-4 md:px-6',
             // Floating/portaled composer overlays the transcript — pad so
-            // the last turns can scroll clear of the frosted bar.
-            padBottomForComposer ? 'pb-56 md:pb-72' : 'pb-6',
+            // the last turns can scroll clear of the frosted bar + chip row.
+            padBottomForComposer && padBottomForFollowUpChips
+              ? 'pb-80 md:pb-96'
+              : padBottomForComposer
+                ? 'pb-56 md:pb-72'
+                : 'pb-6',
             conversationColumnMaxWidthClass,
           )}
         >

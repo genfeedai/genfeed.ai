@@ -245,6 +245,9 @@ export function AgentChatContainer({
           onSubmitInputRequest={container.handleSubmitInputRequest}
           onUiAction={container.handleUiAction}
           padBottomForComposer={composerShell?.isComposerVisible !== false}
+          padBottomForFollowUpChips={
+            showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions)
+          }
           pendingInputRequest={container.pendingInputRequest}
           pendingUiActions={container.streamState.pendingUiActions}
           scrollContainerRef={container.scrollContainerRef}

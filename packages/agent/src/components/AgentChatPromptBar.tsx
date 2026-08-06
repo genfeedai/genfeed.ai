@@ -118,6 +118,8 @@ export function AgentChatPromptBar({
       socketConnectionState={socketConnectionState}
     />
   );
+  const hasFollowUpChips =
+    showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions);
   const topContent = (
     <>
       {!isReadOnly && activeGenerationAction ? (
@@ -131,8 +133,11 @@ export function AgentChatPromptBar({
         </div>
       ) : null}
       {statusStack}
-      {showSuggestedActionsWhenNotEmpty && promptBarSuggestions ? (
-        <div className="px-1 pb-3">{promptBarSuggestions}</div>
+      {hasFollowUpChips ? (
+        // Opaque strip so last-message CTAs never show through the chip row.
+        <div className="relative z-10 -mx-1 bg-background px-1 pb-3 pt-1">
+          {promptBarSuggestions}
+        </div>
       ) : null}
     </>
   );
@@ -145,6 +150,9 @@ export function AgentChatPromptBar({
       // soft-fades into the frosted bar instead of clipping hard.
       showTopFade={!isInspectorComposer}
       topContent={topContent}
+      topFadeClassName={
+        hasFollowUpChips ? 'h-36 from-background from-50%' : undefined
+      }
       zIndex={40}
       className={cn(
         isPortaled && 'pointer-events-auto w-full',
