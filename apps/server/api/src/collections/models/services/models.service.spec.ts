@@ -160,7 +160,12 @@ describe('ModelsService', () => {
   it('rejects bulk updates without an explicit organization scope', async () => {
     await expect(
       service.patchAll({ category: ModelCategory.IMAGE }, { isDefault: false }),
-    ).rejects.toThrow('organizationId is required for bulk model updates');
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'organizationId is required for bulk model updates',
+        title: 'Validation Error',
+      },
+    });
 
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
@@ -168,7 +173,12 @@ describe('ModelsService', () => {
   it('rejects bulk updates with an undefined organization scope', async () => {
     await expect(
       service.patchAll({ organizationId: undefined }, { isDefault: false }),
-    ).rejects.toThrow('organizationId is required for bulk model updates');
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'organizationId is required for bulk model updates',
+        title: 'Validation Error',
+      },
+    });
 
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
@@ -176,7 +186,12 @@ describe('ModelsService', () => {
   it('rejects non-record bulk update filters', async () => {
     await expect(
       service.patchAll([] as never, { isDefault: false }),
-    ).rejects.toThrow('Filter criteria are required');
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'Filter criteria are required',
+        title: 'Validation Error',
+      },
+    });
 
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
