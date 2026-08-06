@@ -396,6 +396,21 @@ export class StripeService {
 
       return customer as StripeCustomer;
     } catch (error: unknown) {
+      // Stale IDs from a previous Stripe account / deleted customers must not
+      // hard-fail checkout — callers re-create and rebind.
+      const stripeError = error as {
+        code?: string;
+        raw?: { code?: string };
+        type?: string;
+      };
+      const code = stripeError.code ?? stripeError.raw?.code;
+      if (code === 'resource_missing') {
+        this.loggerService.warn(`${url} customer missing on Stripe account`, {
+          customerId,
+        });
+        return null;
+      }
+
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }

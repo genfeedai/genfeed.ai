@@ -1,4 +1,5 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { CustomersModule } from '@api/collections/customers/customers.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
@@ -16,6 +17,7 @@ import { forwardRef, Module } from '@nestjs/common';
 const BaseModule = createServiceModule(StripeService, {
   additionalImports: [
     forwardRef(() => CreditsModule),
+    forwardRef(() => CustomersModule),
     forwardRef(() => MembersModule),
     forwardRef(() => OrganizationsModule),
     forwardRef(() => SubscriptionsModule),
