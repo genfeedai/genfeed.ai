@@ -2,6 +2,7 @@
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { authClient } from '@genfeedai/auth-client';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { PlatformRole } from '@genfeedai/enums';
 import type { IUser } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -57,7 +58,7 @@ export default function UsersList() {
       }
       // Full navigation (not router.push) so every cached query, token, and
       // org-scoped store rebuilds from the impersonated session.
-      window.location.assign('/');
+      window.location.assign(APP_ROUTES.ROOT);
     } catch (error) {
       logger.error('Failed to impersonate user', error);
       notificationsService.error('Failed to impersonate user');

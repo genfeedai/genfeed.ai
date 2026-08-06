@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { PlatformRole } from '@genfeedai/enums';
 import type { IUser } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -196,7 +197,7 @@ describe('UsersList', () => {
       expect(mocks.impersonateUser).toHaveBeenCalledWith({
         userId: 'user-1',
       });
-      expect(locationAssign).toHaveBeenCalledWith('/');
+      expect(locationAssign).toHaveBeenCalledWith(APP_ROUTES.ROOT);
     });
     expect(mocks.notificationsError).not.toHaveBeenCalled();
   });

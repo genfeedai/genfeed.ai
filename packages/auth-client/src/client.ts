@@ -5,7 +5,7 @@ import {
   jwtClient,
   magicLinkClient,
 } from 'better-auth/client/plugins';
-import { createAuthClient } from 'better-auth/react';
+import { createAuthClient, type ReactAuthClient } from 'better-auth/react';
 
 import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
 
@@ -28,20 +28,37 @@ import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
  * Better Auth's React client is provider-less (nanostores-backed), so no
  * `<Provider>` is required for `useSession()` to work anywhere in the tree.
  */
-export const authClient = createAuthClient({
+type GenfeedAuthClientOptions = {
+  basePath: string;
+  baseURL: string;
+  plugins: [
+    ReturnType<typeof adminClient>,
+    ReturnType<typeof magicLinkClient>,
+    ReturnType<typeof jwtClient>,
+  ];
+};
+
+type GenfeedAuthClient = ReactAuthClient<GenfeedAuthClientOptions>;
+
+const authClientOptions: GenfeedAuthClientOptions = {
   basePath: BETTER_AUTH_BASE_PATH,
   baseURL: getApiOrigin(),
   plugins: [adminClient(), magicLinkClient(), jwtClient()],
-});
+};
 
-export const {
-  getSession,
-  requestPasswordReset,
-  resetPassword,
-  signIn,
-  signUp,
-  useSession,
-} = authClient;
+export const authClient: GenfeedAuthClient =
+  createAuthClient(authClientOptions);
+
+export const getSession: GenfeedAuthClient['getSession'] =
+  authClient.getSession;
+export const requestPasswordReset: GenfeedAuthClient['requestPasswordReset'] =
+  authClient.requestPasswordReset;
+export const resetPassword: GenfeedAuthClient['resetPassword'] =
+  authClient.resetPassword;
+export const signIn: GenfeedAuthClient['signIn'] = authClient.signIn;
+export const signUp: GenfeedAuthClient['signUp'] = authClient.signUp;
+export const useSession: GenfeedAuthClient['useSession'] =
+  authClient.useSession;
 
 const TOKEN_CACHE_TTL_MS = 30_000;
 const TOKEN_EXPIRY_SKEW_MS = 5_000;
