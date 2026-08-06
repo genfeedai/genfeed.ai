@@ -21,7 +21,7 @@ vi.mock('next/link', () => ({
 
 const defaultProps = {
   balance: 0,
-  billingHref: '/test-org/~/settings/billing',
+  billingHref: '/test-org/~/settings/credits',
   compactBalance: '0',
   extraBalance: 0,
   fullBalance: '0',
@@ -93,7 +93,7 @@ describe('CreditsBarTrigger', () => {
 
     expect(screen.getByTestId('topbar-credits-popover')).toBeInTheDocument();
     const buyCredits = screen.getByTestId('topbar-credits-buy');
-    expect(buyCredits).toHaveAttribute('href', '/test-org/~/settings/billing');
+    expect(buyCredits).toHaveAttribute('href', '/test-org/~/settings/credits');
     expect(screen.getByText('Buy credits')).toBeInTheDocument();
     expect(
       screen.getByText('Running low. Top up before generations stall.'),

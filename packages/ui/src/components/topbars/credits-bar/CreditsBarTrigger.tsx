@@ -57,7 +57,7 @@ export default function CreditsBarTrigger({
   planUsagePercent,
   onRefresh,
 }: Props) {
-  const href = billingHref || '/settings/billing';
+  const href = billingHref || '/settings/credits';
   const unit = EnvironmentService.CREDITS_LABEL;
   const severity = getBalanceSeverity(balance);
   const isCritical = severity === 'critical';

@@ -355,25 +355,6 @@ const config = createAppNextConfig({
       '/automate/outreach-campaigns',
       APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
     ),
-    // Billing is a settings *group*, not a page. Hard-cut to Subscription
-    // (plan/portal). OSS without subscription falls through page-level redirect
-    // to Credits if needed — config redirect always lands on Subscription first.
-    {
-      destination: APP_ROUTES.SETTINGS.SUBSCRIPTION,
-      permanent: true,
-      source: APP_ROUTES.SETTINGS.BILLING,
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.SETTINGS.SUBSCRIPTION,
-      ),
-      permanent: true,
-      source: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.SETTINGS.BILLING,
-      ),
-    },
   ],
   sentryProject: 'app-genfeed-ai',
 });

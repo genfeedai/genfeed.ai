@@ -217,12 +217,6 @@ export const APP_ROUTES = {
   },
   SETTINGS: {
     API_KEYS: '/settings/api-keys',
-    /**
-     * @deprecated Not a real settings page. Legacy path permanently redirects
-     * to SUBSCRIPTION (plan) when available, otherwise CREDITS. Prefer
-     * SUBSCRIPTION, CREDITS, or USAGE explicitly.
-     */
-    BILLING: '/settings/billing',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
     SUBSCRIPTION: '/settings/subscription',
@@ -235,7 +229,6 @@ export const APP_ROUTES = {
     MODEL_VIDEO: '/settings/models/video',
     ORGANIZATION: '/settings/organization',
     ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
-    ORGANIZATION_BILLING: '/settings/organization/billing',
     /**
      * @deprecated Dead path — no page shipped. Brand OAuth (Facebook / Google Ads
      * / social) lives at SETTINGS.SOCIAL. Prefer that; legacy URLs redirect.

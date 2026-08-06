@@ -499,7 +499,6 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/settings/personal',
       '/:orgSlug/~/settings/help',
       '/:orgSlug/~/settings/members',
-      '/:orgSlug/~/settings/billing',
       '/:orgSlug/~/settings/credits',
       '/:orgSlug/~/settings/subscription',
       '/:orgSlug/~/settings/api-keys',
