@@ -27,11 +27,22 @@ function TabsTrigger({
   className,
   ...props
 }: ComponentPropsWithRef<typeof TabsPrimitive.Trigger>) {
+  // Styles in tabs.styles.ts are gated on data-variant / data-size. The
+  // enhanced navigation Tabs always set these; bare @radix TabsTrigger
+  // consumers must default them or every tab looks like plain text + focus ring.
+  const {
+    'data-variant': dataVariant = 'default',
+    'data-size': dataSize,
+    ...rest
+  } = props;
+
   return (
     <TabsPrimitive.Trigger
       ref={ref}
+      data-variant={dataVariant}
+      data-size={dataSize}
       className={getTabsTriggerClassName(className)}
-      {...props}
+      {...rest}
     />
   );
 }

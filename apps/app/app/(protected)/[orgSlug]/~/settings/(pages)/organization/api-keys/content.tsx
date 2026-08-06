@@ -528,9 +528,17 @@ export default function SettingsApiKeysPage() {
       <h1 className="sr-only">API Keys</h1>
 
       <Tabs defaultValue={desktop && !isReady ? 'providers' : 'genfeed'}>
-        <TabsList aria-label="API key type">
-          <TabsTrigger value="genfeed">Genfeed keys</TabsTrigger>
-          <TabsTrigger value="providers">Provider keys</TabsTrigger>
+        <TabsList
+          aria-label="API key type"
+          className="h-9"
+          data-variant="segmented"
+        >
+          <TabsTrigger value="genfeed" data-variant="segmented">
+            Genfeed keys
+          </TabsTrigger>
+          <TabsTrigger value="providers" data-variant="segmented">
+            Provider keys
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent className="mt-4" value="genfeed">
