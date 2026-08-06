@@ -141,7 +141,7 @@ export default function CreditsBarTrigger({
       >
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <div className="flex items-baseline justify-between gap-2">
+            <div className="flex items-baseline gap-2">
               <p
                 className={cn(
                   'text-sm font-medium leading-none',
@@ -160,17 +160,6 @@ export default function CreditsBarTrigger({
                   {unit}
                 </span>
               </p>
-              {isLow ? (
-                <span
-                  className={cn(
-                    'text-[10px] font-semibold uppercase tracking-[0.1em]',
-                    isCritical && 'text-destructive',
-                    isWarning && 'text-amber-600 dark:text-amber-400',
-                  )}
-                >
-                  {isCritical ? 'Empty' : 'Low'}
-                </span>
-              ) : null}
             </div>
             {planLimit > 0 ? (
               <p className="text-xs leading-none text-muted-foreground">
