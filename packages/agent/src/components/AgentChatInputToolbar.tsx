@@ -192,13 +192,13 @@ function AgentChatInputToolbarInner({
           </PopoverTrigger>
           <PopoverContent
             align="start"
-            className="w-72 rounded-xl border-border bg-background p-1.5 text-foreground"
+            className="w-64 rounded-xl border-border bg-background p-1.5 text-foreground"
             side="top"
           >
-            <div aria-label="Trusted composer actions" role="group">
+            <div aria-label="Composer actions" role="group">
               {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
                 <Button
-                  className="flex w-full items-start justify-start gap-3 rounded-lg px-3 py-2.5 text-left"
+                  className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left"
                   key={action.name}
                   onClick={() => {
                     onSelectAction(action.name);
@@ -208,11 +208,16 @@ function AgentChatInputToolbarInner({
                   variant={ButtonVariant.GHOST}
                   withWrapper={false}
                 >
-                  <span className="min-w-16 text-xs font-medium text-foreground">
-                    /{action.name}
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-medium leading-5 text-foreground">
+                      {action.label}
+                    </span>
+                    <span className="block text-xs leading-4 text-muted-foreground">
+                      {action.description}
+                    </span>
                   </span>
-                  <span className="text-xs leading-4 text-muted-foreground">
-                    {action.description}
+                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground/70">
+                    /{action.name}
                   </span>
                 </Button>
               ))}
