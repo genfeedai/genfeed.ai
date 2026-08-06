@@ -41,7 +41,7 @@ export class PostHogAnalyticsService implements OnModuleDestroy {
     this.client = projectToken
       ? new PostHog(projectToken, {
           host:
-            (this.configService.get('POSTHOG_HOST') as string | undefined) ??
+            (this.configService.get('POSTHOG_HOST') as string | undefined) ||
             'https://eu.i.posthog.com',
         })
       : null;

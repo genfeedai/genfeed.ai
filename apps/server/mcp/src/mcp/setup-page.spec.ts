@@ -10,6 +10,7 @@ describe('MCP setup page', () => {
   beforeEach(() => {
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
     vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
+    vi.stubEnv('POSTHOG_HOST', '');
     vi.stubEnv('POSTHOG_PROJECT_API_KEY', '');
   });
 
@@ -44,6 +45,16 @@ describe('MCP setup page', () => {
     expect(html).toContain('element_allowlist: ["a", "button"]');
     expect(html).toContain('disable_session_recording: true');
     expect(html).toContain('person_profiles: "never"');
+  });
+
+  it('uses the configured PostHog host in the browser snippet', () => {
+    vi.stubEnv('POSTHOG_PROJECT_API_KEY', 'phc_test123');
+    vi.stubEnv('POSTHOG_HOST', 'https://posthog.example.com');
+
+    const html = renderSetupPage();
+
+    expect(html).toContain('api_host: "https://posthog.example.com"');
+    expect(html).not.toContain('api_host: "https://eu.i.posthog.com"');
   });
 
   it('omits analytics for missing or malformed project tokens', () => {

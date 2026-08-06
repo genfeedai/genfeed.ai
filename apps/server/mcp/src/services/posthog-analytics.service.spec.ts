@@ -5,14 +5,15 @@ import type { Server } from '@modelcontextprotocol/sdk/server';
 
 const mocks = vi.hoisted(() => ({
   instrument: vi.fn(),
+  posthog: vi.fn(function MockPostHog() {
+    return { _shutdown: mocks.shutdown };
+  }),
   shutdown: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@posthog/mcp', () => ({
   instrument: mocks.instrument,
-  PostHog: vi.fn(function MockPostHog() {
-    return { _shutdown: mocks.shutdown };
-  }),
+  PostHog: mocks.posthog,
 }));
 
 function makeLogger(): LoggerService {
@@ -24,11 +25,14 @@ function makeLogger(): LoggerService {
   } as unknown as LoggerService;
 }
 
-function makeConfig(token = 'phc_test_key'): ConfigService {
+function makeConfig(
+  token = 'phc_test_key',
+  host = 'https://eu.i.posthog.com',
+): ConfigService {
   return {
     get: vi.fn((key: string) => {
       if (key === 'POSTHOG_PROJECT_API_KEY') return token;
-      if (key === 'POSTHOG_HOST') return 'https://eu.i.posthog.com';
+      if (key === 'POSTHOG_HOST') return host;
       return undefined;
     }),
   } as unknown as ConfigService;
@@ -98,6 +102,14 @@ describe('PostHogAnalyticsService', () => {
     service.instrumentServer({} as Server);
 
     expect(mocks.instrument).not.toHaveBeenCalled();
+  });
+
+  it('uses the default PostHog host when configuration is empty', () => {
+    new PostHogAnalyticsService(makeConfig('phc_test_key', ''), makeLogger());
+
+    expect(mocks.posthog).toHaveBeenCalledWith('phc_test_key', {
+      host: 'https://eu.i.posthog.com',
+    });
   });
 
   it('flushes queued analytics during shutdown', async () => {
