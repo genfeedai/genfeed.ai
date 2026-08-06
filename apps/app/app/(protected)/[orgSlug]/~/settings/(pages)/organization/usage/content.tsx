@@ -393,31 +393,36 @@ export default function SettingsUsagePage() {
       <h1 className="sr-only">Usage</h1>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <fieldset className="m-0 flex items-center gap-1 rounded-md border border-border p-0.5">
-          <legend className="sr-only">Chart range</legend>
-          {(
-            [
-              { key: 'daily', label: 'Daily' },
-              { key: 'weekly', label: 'Weekly' },
-              { key: 'monthly', label: 'Monthly' },
-            ] as const
-          ).map((option) => (
-            <Button
-              key={option.key}
-              type="button"
-              size={ButtonSize.SM}
-              variant={
-                chartRange === option.key
-                  ? ButtonVariant.SECONDARY
-                  : ButtonVariant.GHOST
+        <div className="flex min-w-32 flex-col gap-1.5">
+          <Label htmlFor="usage-filter-range" className="sr-only">
+            Chart range
+          </Label>
+          <Select
+            value={chartRange}
+            onValueChange={(value) => {
+              if (
+                value === 'daily' ||
+                value === 'weekly' ||
+                value === 'monthly'
+              ) {
+                setChartRange(value);
               }
-              className="h-8 px-3 text-xs"
-              onClick={() => setChartRange(option.key)}
+            }}
+          >
+            <SelectTrigger
+              id="usage-filter-range"
+              className="h-9 w-full min-w-32"
+              aria-label="Chart range"
             >
-              {option.label}
-            </Button>
-          ))}
-        </fieldset>
+              <SelectValue placeholder="Daily" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Daily</SelectItem>
+              <SelectItem value="weekly">Weekly</SelectItem>
+              <SelectItem value="monthly">Monthly</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <div className="flex min-w-40 flex-col gap-1.5">
           <Label htmlFor="usage-filter-brand" className="sr-only">

@@ -89,12 +89,7 @@ describe('SettingsUsagePage', () => {
       screen.getByRole('heading', { name: 'Usage over time' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Ledger' })).toBeInTheDocument();
-    expect(
-      screen.getByRole('group', { name: 'Chart range' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Daily' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Weekly' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Monthly' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Chart range')).toBeInTheDocument();
     expect(
       screen.getByText('Agent chat turn (openai/gpt-5.6-terra)'),
     ).toBeInTheDocument();
