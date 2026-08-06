@@ -65,12 +65,27 @@ export class AgentWorkspaceToolHandler {
   }
 
   async getCurrentBrand(ctx: ToolExecutionContext): Promise<AgentToolResult> {
-    const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    } as never);
+    // Prefer the agent run/thread brand (URL slug → thread.brandId → scope).
+    // URL-selected brands are not always mirrored as brands.isSelected=true,
+    // so relying only on isSelected false-negatives an active workspace brand.
+    let currentBrand: unknown = null;
+
+    if (ctx.brandId) {
+      currentBrand = await this.brandsService.findOne({
+        id: ctx.brandId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      } as never);
+    }
+
+    if (!currentBrand) {
+      currentBrand = await this.brandsService.findOne({
+        isDeleted: false,
+        isSelected: true,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      } as never);
+    }
 
     if (!currentBrand) {
       return {

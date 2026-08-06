@@ -197,8 +197,12 @@ const AGENT_CHAT_MODELS_BY_KEY = new Map(
   AGENT_CHAT_MODELS.map((model) => [model.key, model]),
 );
 
-/** Default agent chat model — capable enough for tool use, cheap enough for chat. */
-export const DEFAULT_AGENT_CHAT_MODEL_KEY = 'openai/gpt-5.6-terra';
+/**
+ * Default agent chat model.
+ * Luna is the cheap daily driver (~10× less than Terra per token). Switch to
+ * Terra/Sol/Opus explicitly when a turn needs heavier agentic reasoning.
+ */
+export const DEFAULT_AGENT_CHAT_MODEL_KEY = 'openai/gpt-5.6-luna';
 
 /** Default when the org runs its own inference fleet. */
 export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY = 'local/qwen-32b';
