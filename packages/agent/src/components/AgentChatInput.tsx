@@ -230,7 +230,7 @@ export function AgentChatInput({
             isModelsLoading={isModelsLoading}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
-            showStop={showStop}
+            showStop={Boolean(showStop)}
             // Inspector rail is narrow — use compact icon-only toolbar density.
             density={isCompact || isInspector ? 'compact' : 'default'}
           />
