@@ -2,6 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Server } from '@modelcontextprotocol/sdk/server';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -50,6 +51,7 @@ export class StreamableHttpService {
     private readonly logger: LoggerService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly analyticsService: PostHogAnalyticsService,
   ) {}
 
   async handlePost(req: Request, res: Response): Promise<void> {
@@ -148,6 +150,8 @@ export class StreamableHttpService {
       async (request: { params: unknown }) =>
         toolRegistry.handleResourceRead(request.params as { uri: string }),
     );
+
+    this.analyticsService.instrumentServer(server, authContext);
 
     return server;
   }

@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  ANALYTICS_EVENTS,
+  createEditorWorkflowRunTracker,
+} from '@/lib/analytics';
 
 const relativePath =
   'app/(protected)/[orgSlug]/[brandSlug]/automate/workflows/[id]/WorkflowDetailPageClient.tsx';
@@ -14,5 +18,24 @@ describe(relativePath, () => {
 
     expect(source).toContain('setActiveExecutionId(execution.id)');
     expect(source).not.toContain('execution._id');
+  });
+
+  it('tracks bounded workflow start and terminal outcomes', () => {
+    const capture = vi.fn();
+    const tracker = createEditorWorkflowRunTracker(capture);
+
+    tracker.trackStarted();
+    tracker.trackLaunchAccepted('execution-1');
+    tracker.trackTerminalExecution({ id: 'execution-1', status: 'running' });
+    tracker.trackTerminalExecution({ id: 'execution-1', status: 'completed' });
+    tracker.trackTerminalExecution({ id: 'execution-1', status: 'failed' });
+
+    expect(capture.mock.calls).toEqual([
+      [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, { workflowType: 'editor' }],
+      [
+        ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED,
+        { outcome: 'success', workflowType: 'editor' },
+      ],
+    ]);
   });
 });

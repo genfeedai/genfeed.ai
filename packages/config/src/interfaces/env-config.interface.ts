@@ -79,6 +79,12 @@ export interface IEnvConfig {
   SENTRY_DSN?: string;
   SENTRY_ENVIRONMENT?: string;
 
+  // === Product analytics ===
+  NEXT_PUBLIC_POSTHOG_HOST?: string;
+  NEXT_PUBLIC_POSTHOG_KEY?: string;
+  POSTHOG_HOST?: string;
+  POSTHOG_PROJECT_API_KEY?: string;
+
   // === Stripe ===
   STRIPE_SECRET_KEY?: string;
   STRIPE_PUBLISHABLE_KEY?: string;

@@ -24,11 +24,15 @@ describe('StreamableHttpService (real SDK integration)', () => {
       get: (key: string) =>
         key === 'GENFEEDAI_API_URL' ? 'http://localhost:3010' : '',
     } as never;
+    const analyticsService = {
+      instrumentServer: () => undefined,
+    } as never;
 
     const service = new StreamableHttpService(
       logger,
       httpService,
       configService,
+      analyticsService,
     );
 
     const app = express();

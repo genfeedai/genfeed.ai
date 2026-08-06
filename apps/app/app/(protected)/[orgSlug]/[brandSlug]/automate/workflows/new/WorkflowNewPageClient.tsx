@@ -46,6 +46,7 @@ import {
   type WorkflowGraphEdgeLike,
   type WorkflowGraphNodeLike,
 } from '@/features/workflows/utils/workflow-graph';
+import { createEditorWorkflowRunTracker } from '@/lib/analytics';
 import { promptsApi, workflowsApi } from '@/lib/api';
 import { apiClient } from '@/lib/api/client';
 import { getExecutionProviderHeaders } from '@/lib/api/execution-headers';
@@ -117,6 +118,7 @@ export default function WorkflowNewPageClient() {
   const [activeExecutionId, setActiveExecutionId] = useState<
     string | undefined
   >();
+  const [workflowRunTracker] = useState(createEditorWorkflowRunTracker);
   const getWorkflowService = useAuthedService(createWorkflowApiService);
 
   const {
@@ -253,11 +255,20 @@ export default function WorkflowNewPageClient() {
     await save();
   }, [save]);
 
+  const handleTerminalExecution = useCallback(
+    (execution: { id: string; status: string }) => {
+      workflowRunTracker.trackTerminalExecution(execution);
+    },
+    [workflowRunTracker],
+  );
+
   const handleRun = useCallback(
     async (
       inputValues: Record<string, unknown> = {},
       options: { saveDefaults: boolean } = { saveDefaults: false },
     ) => {
+      let runStarted = false;
+
       try {
         setIsRunning(true);
         const service = await getWorkflowService();
@@ -272,14 +283,21 @@ export default function WorkflowNewPageClient() {
           await saveInputDefaults(inputValues);
         }
 
+        workflowRunTracker.trackStarted();
+        runStarted = true;
+
         const execution = await service.execute(runnableWorkflowId, {
           inputValues,
           metadata: { source: 'workflow-editor-run-panel' },
         });
-        setActiveExecutionId(execution?.id);
+        workflowRunTracker.trackLaunchAccepted(execution.id);
+        setActiveExecutionId(execution.id);
         setShowRunPanel(false);
         setShowExecutionPanel(true);
       } catch (error) {
+        if (runStarted) {
+          workflowRunTracker.trackLaunchFailed();
+        }
         logger.error('Failed to run workflow', {
           error,
           workflowId: currentWorkflowId ?? 'new',
@@ -288,7 +306,12 @@ export default function WorkflowNewPageClient() {
         setIsRunning(false);
       }
     },
-    [currentWorkflowId, getWorkflowService, saveInputDefaults],
+    [
+      currentWorkflowId,
+      getWorkflowService,
+      saveInputDefaults,
+      workflowRunTracker,
+    ],
   );
 
   const handleRunButtonClick = useCallback(() => {
@@ -335,6 +358,7 @@ export default function WorkflowNewPageClient() {
                 <ExecutionPanel
                   workflowId={currentWorkflowId ?? 'new'}
                   onClose={() => setShowExecutionPanel(false)}
+                  onTerminalExecution={handleTerminalExecution}
                   runId={activeExecutionId}
                 />
               ) : null

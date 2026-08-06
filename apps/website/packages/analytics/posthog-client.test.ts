@@ -79,11 +79,17 @@ describe('initWebsiteAnalytics', () => {
       'phc_test_key',
       expect.objectContaining({
         api_host: 'https://eu.i.posthog.com',
-        autocapture: false,
+        autocapture: {
+          capture_copied_text: false,
+          dom_event_allowlist: ['click'],
+          element_allowlist: ['a', 'button'],
+        },
         capture_pageview: 'history_change',
+        capture_pageleave: true,
+        cookieless_mode: 'always',
+        defaults: '2026-05-30',
         disable_session_recording: true,
-        person_profiles: 'identified_only',
-        persistence: 'memory',
+        person_profiles: 'never',
       }),
     );
   });

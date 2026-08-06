@@ -81,6 +81,9 @@ export type PromptGeneratedSource = 'desktop-ipc' | 'desktop-ipc-fallback';
 /** Which studio editor surface was opened — the project index or the canvas. */
 export type StudioEditorSurface = 'canvas' | 'index';
 
+/** Bounded workflow execution surface; node-level runs stay intentionally out. */
+export type WorkflowRunType = 'batch' | 'editor';
+
 export type ConversationShellState = 'canvas' | 'conversation' | 'overlay';
 
 export type ConversationShellTransition =
@@ -223,11 +226,10 @@ export interface AnalyticsEventProperties {
     readonly surface: ActivationSurface;
   };
   [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED]: {
-    /** Workflow-type slug where known, never a workflow name/description. */
-    readonly workflowType?: string;
+    readonly workflowType: WorkflowRunType;
   };
   [ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED]: {
-    readonly workflowType?: string;
     readonly outcome: AnalyticsOutcome;
+    readonly workflowType: WorkflowRunType;
   };
 }
