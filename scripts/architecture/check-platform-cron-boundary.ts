@@ -136,6 +136,13 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform model lifecycle maintenance.',
   },
   {
+    file: 'apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.ts',
+    id: 'fal-model-watcher',
+    methodName: 'discoverNewModels',
+    reason:
+      'Platform model catalog maintenance (fal provider discovery, #2422). Writes operator-reviewed draft rows only; never tenant-scoped.',
+  },
+  {
     file: 'apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts',
     id: 'model-watcher',
     methodName: 'discoverNewModels',

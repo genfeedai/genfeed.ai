@@ -17,6 +17,7 @@ import { CronByokBillingModule } from '@workers/crons/byok-billing/cron.byok-bil
 import { CronContentEngineModule } from '@workers/crons/content-engine/cron.content-engine.module';
 import { CronCredentialsModule } from '@workers/crons/credentials/cron.credentials.module';
 import { CronDynamicJobsModule } from '@workers/crons/dynamic-jobs/cron.dynamic-jobs.module';
+import { CronFalModelWatcherModule } from '@workers/crons/fal-model-watcher/cron.fal-model-watcher.module';
 import { CronIngredientsModule } from '@workers/crons/ingredients/cron.ingredients.module';
 import { CronLlmIdleModule } from '@workers/crons/llm-idle/cron.llm-idle.module';
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
@@ -81,6 +82,7 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
     CronByokBillingModule,
     CronCredentialsModule,
     CronDynamicJobsModule,
+    CronFalModelWatcherModule,
     CronIngredientsModule,
     CronModelDeprecationModule,
     CronModelWatcherModule,
