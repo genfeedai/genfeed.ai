@@ -1,6 +1,10 @@
 'use client';
 
-import { jwtClient, magicLinkClient } from 'better-auth/client/plugins';
+import {
+  adminClient,
+  jwtClient,
+  magicLinkClient,
+} from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 
 import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
@@ -17,6 +21,9 @@ import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
  *   (Phase 1) to be enabled or the call 404s with no compile-time error.
  * - `jwtClient` adds the `jwks` action; the Bearer JWT itself is read from the
  *   server's `GET /token` endpoint (see {@link getBetterAuthToken}).
+ * - `adminClient` adds `authClient.admin.*` (impersonateUser /
+ *   stopImpersonating, #2423) and types `session.impersonatedBy`; it requires
+ *   the server `admin` plugin, which rejects non-superadmins with 403.
  *
  * Better Auth's React client is provider-less (nanostores-backed), so no
  * `<Provider>` is required for `useSession()` to work anywhere in the tree.
@@ -24,7 +31,7 @@ import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
 export const authClient = createAuthClient({
   basePath: BETTER_AUTH_BASE_PATH,
   baseURL: getApiOrigin(),
-  plugins: [magicLinkClient(), jwtClient()],
+  plugins: [adminClient(), magicLinkClient(), jwtClient()],
 });
 
 export const {
