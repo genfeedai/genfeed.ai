@@ -1,6 +1,7 @@
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { isRetiredAgentChatModel } from '@genfeedai/constants';
 import { type CostTier, ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { ModelsService } from '@services/ai/models.service';
@@ -29,12 +30,15 @@ function isAgentChatRegistryModel(model: IModel): boolean {
   if (model.isLegacy || model.isActive === false) {
     return false;
   }
+  if (isRetiredAgentChatModel(model.key)) {
+    return false;
+  }
   const capabilities = model.capabilities ?? [];
   const recommended = model.recommendedFor ?? [];
   return (
     capabilities.includes(AGENT_CHAT_CAPABILITY) ||
     recommended.includes(AGENT_CHAT_CAPABILITY) ||
-    // TEXT + openrouter/genfeed rows without the marker still count.
+    // TEXT + openrouter rows without the marker still count.
     model.provider === 'openrouter'
   );
 }
@@ -85,7 +89,15 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
 
         const options = rows
           .filter(isAgentChatRegistryModel)
-          .map(mapRegistryModelToOption);
+          .map(mapRegistryModelToOption)
+          .toSorted((left, right) => {
+            const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
+            const rightCost = right.creditCost ?? Number.POSITIVE_INFINITY;
+            if (leftCost !== rightCost) {
+              return leftCost - rightCost;
+            }
+            return left.label.localeCompare(right.label);
+          });
 
         setModels(options.length > 0 ? options : AGENT_MODELS);
       } catch {

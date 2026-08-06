@@ -1,4 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   ChartColumn,
   Eye,
@@ -72,58 +75,70 @@ export function AnalyticsSnapshotCard({
         ];
 
   return (
-    <div className="border border-border bg-background p-4 my-2">
-      <div className="flex items-center gap-2 mb-3">
-        <ChartColumn className="size-5 text-blue-500" />
-        <h3 className="font-semibold text-sm">
+    <div className="relative isolate my-2 overflow-hidden rounded-xl border border-border bg-background-secondary p-4 shadow-sm">
+      <div className="mb-3 flex items-center gap-2">
+        <ChartColumn className="size-5 shrink-0 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">
           {action.title || 'Analytics Snapshot'}
         </h3>
       </div>
-      {action.description && (
-        <p className="text-xs text-muted-foreground mb-3">
+      {action.description ? (
+        <p className="mb-3 text-xs text-muted-foreground">
           {action.description}
         </p>
-      )}
+      ) : null}
       <div className="grid grid-cols-2 gap-3">
         {metrics.map((metric) => (
-          <div key={metric.label} className="bg-muted p-3">
-            <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+          <div
+            key={metric.label}
+            className="rounded-lg border border-border/60 bg-background p-3"
+          >
+            <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
               {metric.icon}
               <span className="text-xs">{metric.label}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">{metric.value}</span>
-              {metric.change != null && (
+              <span className="text-lg font-bold text-foreground">
+                {metric.value}
+              </span>
+              {metric.change != null ? (
                 <span
-                  className={`flex items-center text-xs ${
-                    metric.change >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}
+                  className={cn(
+                    'flex items-center text-xs',
+                    metric.change >= 0 ? 'text-green-500' : 'text-red-500',
+                  )}
                 >
                   {metric.change >= 0 ? (
-                    <TrendingUp className="size-3 mr-0.5" />
+                    <TrendingUp className="mr-0.5 size-3" />
                   ) : (
-                    <TrendingDown className="size-3 mr-0.5" />
+                    <TrendingDown className="mr-0.5 size-3" />
                   )}
                   {Math.abs(metric.change).toFixed(1)}%
                 </span>
-              )}
+              ) : null}
             </div>
           </div>
         ))}
       </div>
-      {action.ctas && action.ctas.length > 0 && (
-        <div className="flex gap-2 mt-3">
+      {action.ctas && action.ctas.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
           {action.ctas.map((cta) => (
             <a
               key={cta.label}
               href={cta.href}
-              className="text-xs px-3 py-1.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+              className={cn(
+                buttonVariants({
+                  size: ButtonSize.SM,
+                  variant: ButtonVariant.SECONDARY,
+                }),
+                'inline-flex w-fit no-underline',
+              )}
             >
               {cta.label}
             </a>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

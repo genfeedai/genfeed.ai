@@ -414,4 +414,38 @@ describe('deriveTimeline', () => {
       );
     expect(assistantCards).toHaveLength(1);
   });
+
+  it('collapses mint-id analytics cards that share a title across messages', () => {
+    const messages = [
+      msg('assistant', 'a1', '2026-01-01T00:00:01Z', {
+        uiActions: [
+          {
+            id: `analytics-${Date.now()}-1`,
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+        ],
+      }),
+      msg('assistant', 'a2', '2026-01-01T00:00:02Z', {
+        uiActions: [
+          {
+            id: `analytics-${Date.now()}-2`,
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+          {
+            id: `analytics-${Date.now()}-3`,
+            title: 'Analytics summary (7d)',
+            type: 'analytics_snapshot_card',
+          },
+        ],
+      }),
+    ];
+
+    const collapsed = collapseSupersededSnapshotCards(messages);
+    expect(
+      collapsed.flatMap((message) => message.metadata?.uiActions ?? []),
+    ).toHaveLength(1);
+    expect(collapsed[1]?.metadata?.uiActions).toHaveLength(1);
+  });
 });

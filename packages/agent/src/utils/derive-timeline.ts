@@ -404,8 +404,31 @@ function enrichWorkEvents(
 }
 
 /**
+ * Collapse key for snapshot cards. Prefer type+title so re-runs with mint
+ * ids (Date.now) or tool_complete + done metadata still replace each other
+ * instead of stacking identical zero cards.
+ */
+export function getSnapshotCollapseKey(action: {
+  id?: string;
+  title?: string;
+  type?: string;
+}): string {
+  if (action.type === 'analytics_snapshot_card') {
+    if (action.id?.startsWith('analytics-snapshot:')) {
+      return action.id;
+    }
+    return `analytics_snapshot_card:${action.title ?? 'snapshot'}`;
+  }
+  if (action.type === 'completion_summary_card') {
+    return `completion_summary_card:${action.title ?? action.id ?? 'summary'}`;
+  }
+  return action.id || `${action.type ?? 'action'}:${action.title ?? ''}`;
+}
+
+/**
  * Keep only the latest analytics_snapshot_card per stable key so re-runs of
  * get_analytics do not stack three identical zeros cards in the transcript.
+ * Also dedupes multiple snapshots inside a single message.
  */
 export function collapseSupersededSnapshotCards(
   messages: readonly AgentChatMessage[],
@@ -418,10 +441,13 @@ export function collapseSupersededSnapshotCards(
       continue;
     }
     for (const action of message.metadata?.uiActions ?? []) {
-      if (action.type !== 'analytics_snapshot_card') {
+      if (
+        action.type !== 'analytics_snapshot_card' &&
+        action.type !== 'completion_summary_card'
+      ) {
         continue;
       }
-      const key = action.id || `${action.type}:${action.title ?? ''}`;
+      const key = getSnapshotCollapseKey(action);
       if (!latestMessageIdByKey.has(key)) {
         latestMessageIdByKey.set(key, message.id);
       }
@@ -438,12 +464,24 @@ export function collapseSupersededSnapshotCards(
       return message;
     }
 
+    const seenKeysInMessage = new Set<string>();
     const nextActions = actions.filter((action) => {
-      if (action.type !== 'analytics_snapshot_card') {
+      if (
+        action.type !== 'analytics_snapshot_card' &&
+        action.type !== 'completion_summary_card'
+      ) {
         return true;
       }
-      const key = action.id || `${action.type}:${action.title ?? ''}`;
-      return latestMessageIdByKey.get(key) === message.id;
+      const key = getSnapshotCollapseKey(action);
+      if (latestMessageIdByKey.get(key) !== message.id) {
+        return false;
+      }
+      // One snapshot per key inside the winning message.
+      if (seenKeysInMessage.has(key)) {
+        return false;
+      }
+      seenKeysInMessage.add(key);
+      return true;
     });
 
     if (nextActions.length === actions.length) {

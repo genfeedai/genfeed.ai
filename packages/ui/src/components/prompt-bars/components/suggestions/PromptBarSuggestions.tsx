@@ -57,8 +57,8 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
           className={cn(
             'h-auto text-left normal-case tracking-normal',
             isCards
-              ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border/45 bg-foreground/[0.03] px-3.5 py-3.5 text-foreground/88 transition-colors hover:border-border/70 hover:bg-foreground/[0.055]'
-              : 'max-w-full rounded-xl border border-border/45 bg-foreground/[0.03] px-3 py-2 text-xs hover:bg-foreground/[0.06]',
+              ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background-secondary px-3.5 py-3.5 text-foreground/88 shadow-sm transition-colors hover:border-border/80 hover:bg-background-secondary/90'
+              : 'max-w-full rounded-xl border border-border bg-background-secondary px-3 py-2 text-xs shadow-sm hover:bg-background-secondary/90',
             isDisabled && 'pointer-events-none opacity-50',
           )}
           isDisabled={isDisabled}

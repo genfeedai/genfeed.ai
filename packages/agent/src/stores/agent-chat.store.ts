@@ -542,7 +542,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       ].filter((action, index, actions) => {
         // Prefer later copies so tool_complete pending + done metadata with the
         // same semantic key collapse to one card.
-        const firstWithKey = actions.findIndex((candidate) => {
+        const lastWithKey = actions.findLastIndex((candidate) => {
           if (candidate.id && action.id && candidate.id === action.id) {
             return true;
           }
@@ -557,7 +557,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
           }
           return false;
         });
-        return firstWithKey === index;
+        return lastWithKey === index;
       });
 
       return {
