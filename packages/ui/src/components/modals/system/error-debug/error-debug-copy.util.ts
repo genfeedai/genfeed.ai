@@ -8,6 +8,45 @@ function stringifyJson(value: unknown): string {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Prefer API error title/detail over generic Axios "status code NNN" messages.
+ */
+export function resolveErrorDebugSummary(errorInfo: IErrorDebugInfo): string {
+  const data = errorInfo.response?.data;
+  if (isRecord(data) && Array.isArray(data.errors) && data.errors.length > 0) {
+    const first = data.errors[0];
+    if (isRecord(first)) {
+      const title = typeof first.title === 'string' ? first.title.trim() : '';
+      const detail =
+        typeof first.detail === 'string' ? first.detail.trim() : '';
+      if (title && detail && title !== detail) {
+        return `${title} — ${detail}`;
+      }
+      if (title) {
+        return title;
+      }
+      if (detail) {
+        return detail;
+      }
+    }
+  }
+
+  if (isRecord(data)) {
+    for (const key of ['message', 'error', 'detail', 'title'] as const) {
+      const value = data[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+    }
+  }
+
+  return errorInfo.message;
+}
+
 export function formatErrorDebugRequest(errorInfo: IErrorDebugInfo): string {
   const lines = [
     `message: ${errorInfo.message}`,
@@ -59,15 +98,17 @@ export function formatErrorDebugContext(errorInfo: IErrorDebugInfo): string {
  * Full agent-ready dump: paste into a coding agent with no extra framing.
  */
 export function formatErrorDebugForAgent(errorInfo: IErrorDebugInfo): string {
+  const summary = resolveErrorDebugSummary(errorInfo);
   const sections: string[] = [
     '## Request failed — agent debug dump',
     '',
     '### Summary',
-    errorInfo.message,
-    '',
-    '### Request',
-    formatErrorDebugRequest(errorInfo),
+    summary,
   ];
+  if (summary !== errorInfo.message) {
+    sections.push(`(raw client message: ${errorInfo.message})`);
+  }
+  sections.push('', '### Request', formatErrorDebugRequest(errorInfo));
 
   const response = formatErrorDebugResponse(errorInfo);
   if (response) {

@@ -23,6 +23,7 @@ import {
   formatErrorDebugForAgent,
   formatErrorDebugRequest,
   formatErrorDebugResponse,
+  resolveErrorDebugSummary,
 } from '@ui/modals/system/error-debug/error-debug-copy.util';
 import { Button } from '@ui/primitives/button';
 import { Check, ChevronDown, ChevronRight, Copy } from 'lucide-react';
@@ -155,12 +156,14 @@ export default function ModalErrorDebug() {
   const responseCopy = errorInfo ? formatErrorDebugResponse(errorInfo) : '';
   const contextCopy = errorInfo ? formatErrorDebugContext(errorInfo) : '';
 
+  const summary = errorInfo ? resolveErrorDebugSummary(errorInfo) : null;
+
   return (
     <Modal
       id={ModalEnum.ERROR_DEBUG}
       title="Request failed"
       isError
-      error={errorInfo?.message}
+      error={summary}
       onClose={handleModalClosed}
       modalBoxClassName="rounded-xl"
     >
@@ -269,12 +272,23 @@ export default function ModalErrorDebug() {
           </div>
 
           <ModalActions className="mt-4">
+            <Button
+              label="Reload"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.LG}
+              className="md:h-9 md:px-4 md:py-2"
+              onClick={() => {
+                handleCancel();
+                refresh();
+              }}
+            />
+
             {errorInfo.errorCode === 'ERROR_BOUNDARY' && errorInfo.onRetry ? (
               <Button
                 label="Try Again"
-                variant={ButtonVariant.DEFAULT}
+                variant={ButtonVariant.SECONDARY}
                 size={ButtonSize.LG}
-                className="bg-warning text-warning-foreground hover:bg-warning/90 md:h-9 md:px-4 md:py-2"
+                className="md:h-9 md:px-4 md:py-2"
                 onClick={() => {
                   errorInfo.onRetry?.();
                   handleCancel();
@@ -283,10 +297,10 @@ export default function ModalErrorDebug() {
             ) : null}
 
             <Button
-              label={didCopyAgent ? 'Copied' : 'Copy for agent'}
+              label={didCopyAgent ? 'Copied for agent' : 'Copy for agent'}
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.LG}
-              className="md:h-9 md:px-4 md:py-2"
+              className="md:h-9 md:gap-2 md:px-4 md:py-2"
               icon={
                 didCopyAgent ? (
                   <Check className="size-4" />
@@ -296,17 +310,6 @@ export default function ModalErrorDebug() {
               }
               onClick={() => {
                 void handleCopyForAgent();
-              }}
-            />
-
-            <Button
-              label="Reload"
-              variant={ButtonVariant.SECONDARY}
-              size={ButtonSize.LG}
-              className="md:h-9 md:px-4 md:py-2"
-              onClick={() => {
-                handleCancel();
-                refresh();
               }}
             />
           </ModalActions>

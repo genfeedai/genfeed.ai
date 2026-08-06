@@ -4,6 +4,7 @@ import {
   formatErrorDebugForAgent,
   formatErrorDebugRequest,
   formatErrorDebugResponse,
+  resolveErrorDebugSummary,
 } from './error-debug-copy.util';
 
 const baseError: IErrorDebugInfo = {
@@ -54,5 +55,21 @@ describe('error-debug-copy.util', () => {
     expect(text).toContain('### Context');
     expect(text).toContain('Diagnose and fix the root cause');
     expect(text).toContain('orgSlug');
+  });
+
+  it('prefers API title/detail over the generic client message', () => {
+    const generic: IErrorDebugInfo = {
+      ...baseError,
+      message: 'Request failed with status code 400',
+    };
+    expect(resolveErrorDebugSummary(generic)).toBe(
+      'No such customer: cus_x — Failed to create checkout session',
+    );
+    expect(formatErrorDebugForAgent(generic)).toContain(
+      'No such customer: cus_x — Failed to create checkout session',
+    );
+    expect(formatErrorDebugForAgent(generic)).toContain(
+      'raw client message: Request failed with status code 400',
+    );
   });
 });
