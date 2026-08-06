@@ -1,0 +1,178 @@
+---
+description: 'Install Genfeed product skills into Claude Code, Codex, and other agents, author your own SKILL.md, and pair them with the Genfeed MCP server.'
+---
+
+import { Callout, Steps } from 'nextra/components';
+
+# Agent Skills
+
+Genfeed publishes a catalog of **product skills**: portable knowledge packages that
+teach an AI agent how to do content work. A skill is a folder with a `SKILL.md`
+file. The agent loads it, reads the instructions inside, and applies them when the
+task matches.
+
+Skills carry knowledge, not credentials or code. They work in any agent that
+supports the `SKILL.md` convention, with or without a Genfeed account.
+
+## What a product skill is
+
+A product skill encodes a repeatable content discipline — writing an X thread,
+scoring a draft against an SEO rubric, planning an editorial calendar, warming up
+a new social account. The skill supplies the framework, the rules, and the output
+format so the agent stops improvising.
+
+Three things in the Genfeed source tree share the word "skill". Only the first is
+something you install:
+
+| Thing | Where it lives | What it is |
+| --- | --- | --- |
+| Product skills | `skills/` in the monorepo, published as [`genfeedai/skills`](https://github.com/genfeedai/skills) | Content knowledge packages you install into your agent |
+| Repository dev skills | `.agents/skills/` | Internal skills that help agents build, test, and ship Genfeed itself — not part of the product |
+| Skill executor | `apps/server/api/src/services/skill-executor/*` | A backend service that runs deterministic generation handlers inside Genfeed |
+
+The catalog lives in
+[`skills/README.md`](https://github.com/genfeedai/genfeed.ai/blob/master/skills/README.md),
+generated from each skill's frontmatter — that file is the current list of what
+ships.
+
+## Install
+
+Skills install with the [`skills`](https://github.com/vercel-labs/skills) CLI,
+which resolves any public GitHub repository that follows the `SKILL.md`
+convention.
+
+<Steps>
+
+### Install the catalog
+
+```bash
+bunx skills add genfeedai/skills
+```
+
+Install a single skill by appending its slug:
+
+```bash
+bunx skills add genfeedai/skills/x-content-creator
+```
+
+### Pick your agents
+
+The CLI prompts for the agents to install into. Pass `-a` to skip the prompt:
+
+```bash
+bunx skills add genfeedai/skills -a claude-code -a codex
+```
+
+Claude Code, Codex, Cursor, Cline, OpenCode, and other spec-compliant agents are
+supported targets.
+
+### Choose a scope
+
+By default skills install into the current project, under the agent's own skills
+directory. Use `-g` to install them once for every project on the machine:
+
+```bash
+bunx skills add genfeedai/skills -g
+```
+
+### Verify
+
+```bash
+bunx skills list
+```
+
+Then ask the agent something the skill covers — "write a tweet about our launch"
+— and it should pick up the matching skill without further prompting.
+
+</Steps>
+
+Keep skills current with `bunx skills update`, and drop one with
+`bunx skills remove <name>`.
+
+<Callout type="info">
+  Skills are plain Markdown directories. Any agent without CLI support can use
+  them by copying the skill folder into whatever path that agent reads, or by
+  pasting the `SKILL.md` body into its system instructions.
+</Callout>
+
+## Authoring a skill
+
+A skill is one directory containing a `SKILL.md` with YAML frontmatter and a
+Markdown body:
+
+```markdown
+---
+name: content-strategist
+description: Build comprehensive content strategies including audience definition, content pillars, platform selection, and posting cadence. Triggers on "content strategy", "editorial calendar", "what should I post".
+license: MIT
+metadata:
+  author: genfeedai
+  version: '1.0.0'
+---
+
+# Content Strategist
+
+You are an expert content marketing strategist and editorial planner...
+```
+
+| Field | Required | Purpose |
+| --- | --- | --- |
+| `name` | yes | Directory-matching identifier, kebab-case |
+| `description` | yes | What the skill does **and** the phrases that should trigger it |
+| `license` | no | SPDX identifier; Genfeed's catalog is MIT |
+| `metadata.author` | no | Publisher handle |
+| `metadata.version` | no | Semver string, bumped on behavior changes |
+
+The `description` is the whole routing mechanism: the agent decides whether to
+load a skill from that line alone. Name the concrete phrases a user would say.
+
+The body is the instruction set. Write it as directions to the agent — role,
+principles, a numbered process, output format, worked examples. Genfeed's skills
+are long on process and short on prose.
+
+Two optional files sit alongside `SKILL.md`:
+
+- `README.md` — human-facing summary and the install command for that one skill.
+- `metadata.json` — machine-readable `triggers`, `tags`, and `outputs` used for
+  catalog and discovery surfaces.
+
+Scaffold a new one with `bunx skills init <name>`.
+
+<Callout type="warning">
+  Product skills belong in the monorepo's root `skills/` directory. Skills that
+  help agents work on the Genfeed codebase itself belong in `.agents/skills/`.
+  Mixing the two ships internal build guidance as product content.
+</Callout>
+
+## Composing with the MCP server
+
+Skills and the [MCP server](/api-reference/mcp) solve different halves of the
+same problem.
+
+- A **skill** is knowledge. It tells the agent what good output looks like and
+  how to get there. It needs no account and no network access.
+- The **MCP server** is capability. It gives the agent authenticated tools to
+  generate images and video, run workflows, publish posts, and read analytics
+  from your Genfeed workspace.
+
+Used together, the agent plans with the skill and executes with the tools: the
+`x-content-creator` skill shapes the thread, then the MCP `create_post` tool
+schedules it. The `openclaw-integration` skill exists specifically to teach an
+agent how to drive the Genfeed MCP surface.
+
+Connect the server once and every installed skill can reach it:
+
+```bash
+claude mcp add --transport http genfeed --scope user https://mcp.genfeed.ai/mcp --header "Authorization: Bearer $GENFEED_API_KEY"
+```
+
+Agents that only need discovery — no key, no tool calls — can read
+[`genfeed.ai/.well-known/agent.json`](https://genfeed.ai/.well-known/agent.json),
+which advertises the agent's headline capabilities and its MCP and REST entry
+points.
+
+## Next steps
+
+- [MCP Server](/api-reference/mcp) — endpoints, authentication, and client setup
+- [Prompting Guide](/guides/prompting-guide) — the CLEAR framework skills build on
+- [Skill catalog](https://github.com/genfeedai/genfeed.ai/blob/master/skills/README.md) — every published product skill
