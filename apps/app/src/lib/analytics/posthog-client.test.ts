@@ -94,6 +94,18 @@ describe('initAnalytics', () => {
     );
   });
 
+  it('uses the default ingestion host when configuration is empty', async () => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_HOST', '');
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogInit).toHaveBeenCalledWith(
+      'phc_test_key',
+      expect.objectContaining({ api_host: 'https://eu.i.posthog.com' }),
+    );
+  });
+
   it('captures pageviews on every SPA navigation with a before_send scrub', async () => {
     const client = await loadClient();
     client.initAnalytics();

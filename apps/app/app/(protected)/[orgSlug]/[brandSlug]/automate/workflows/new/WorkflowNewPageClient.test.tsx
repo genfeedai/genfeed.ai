@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  ANALYTICS_EVENTS,
+  createEditorWorkflowRunTracker,
+} from '@/lib/analytics';
 
 const relativePath =
   'app/(protected)/[orgSlug]/[brandSlug]/automate/workflows/new/WorkflowNewPageClient.tsx';
@@ -12,17 +16,25 @@ describe(relativePath, () => {
   it('uses the canonical execution id for the active run', () => {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
 
-    expect(source).toContain('setActiveExecutionId(execution?.id)');
+    expect(source).toContain('setActiveExecutionId(execution.id)');
     expect(source).not.toContain('execution?._id');
   });
 
   it('tracks bounded workflow start and terminal outcomes', () => {
-    const source = readFileSync(join(process.cwd(), relativePath), 'utf8');
+    const capture = vi.fn();
+    const tracker = createEditorWorkflowRunTracker(capture);
 
-    expect(source).toContain('ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED');
-    expect(source).toContain('ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED');
-    expect(source).toContain("outcome: 'success'");
-    expect(source).toContain("outcome: 'failure'");
-    expect(source).toContain("workflowType: 'editor'");
+    tracker.trackStarted();
+    tracker.trackLaunchAccepted('execution-1');
+    tracker.trackTerminalExecution({ id: 'execution-1', status: 'running' });
+    tracker.trackTerminalExecution({ id: 'execution-1', status: 'failed' });
+
+    expect(capture.mock.calls).toEqual([
+      [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, { workflowType: 'editor' }],
+      [
+        ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED,
+        { outcome: 'failure', workflowType: 'editor' },
+      ],
+    ]);
   });
 });

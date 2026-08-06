@@ -465,7 +465,6 @@ export function useBatchWorkflowPage() {
       return;
     }
 
-    let batchJobCreated = false;
     let runStarted = false;
 
     try {
@@ -477,17 +476,28 @@ export function useBatchWorkflowPage() {
         workflowType: 'batch',
       });
       runStarted = true;
+      startedBatchJobIdRef.current = null;
       const result = await service.runBatch(selectedWorkflowId, ingredientIds);
-      batchJobCreated = true;
       startedBatchJobIdRef.current = result.batchJobId;
-      const batchJob = await service.getBatchStatus(result.batchJobId);
-
-      setActiveBatchStatus(batchJob);
-      setRecentJobs((previousJobs) => upsertRecentJob(previousJobs, batchJob));
-      setSelectedOutputIds(new Set());
       replaceJobQuery(result.batchJobId);
+      setSelectedOutputIds(new Set());
+
+      try {
+        const batchJob = await service.getBatchStatus(result.batchJobId);
+
+        setActiveBatchStatus(batchJob);
+        setRecentJobs((previousJobs) =>
+          upsertRecentJob(previousJobs, batchJob),
+        );
+      } catch (statusError) {
+        setError('Batch started. Reconnecting to its status…');
+        logger.error('Failed to hydrate newly created batch workflow run', {
+          batchJobId: result.batchJobId,
+          error: statusError,
+        });
+      }
     } catch (runError) {
-      if (runStarted && !batchJobCreated) {
+      if (runStarted && !startedBatchJobIdRef.current) {
         captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
           outcome: 'failure',
           workflowType: 'batch',

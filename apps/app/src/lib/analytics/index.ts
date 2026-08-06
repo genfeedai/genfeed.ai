@@ -33,3 +33,4 @@ export {
   resetAnalytics,
   subscribeAnalyticsFeatureFlags,
 } from './posthog-client';
+export { createEditorWorkflowRunTracker } from './workflow-run-tracker';

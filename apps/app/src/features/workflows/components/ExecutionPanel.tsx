@@ -26,6 +26,9 @@ interface ExecutionPanelProps {
   workflowId: string;
   runId?: string;
   onClose: () => void;
+  onTerminalExecution?: (
+    execution: Pick<ExecutionResult, 'id' | 'status'>,
+  ) => void;
 }
 
 interface ExecutionLoadState {
@@ -47,6 +50,7 @@ export function ExecutionPanel({
   workflowId,
   runId,
   onClose,
+  onTerminalExecution,
 }: ExecutionPanelProps) {
   const currentRunId = runId ?? null;
   const [execution, setExecution] = useState<ExecutionResult | null>(null);
@@ -64,6 +68,7 @@ export function ExecutionPanel({
     EnvironmentService.JWT_LABEL,
   );
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reportedTerminalExecutionIdRef = useRef<string | null>(null);
   const etaDisplay = getExecutionEtaDisplayState({
     durationMs: execution?.durationMs,
     eta: execution?.metadata?.eta,
@@ -89,6 +94,13 @@ export function ExecutionPanel({
         }
 
         setExecution(data);
+        if (
+          TERMINAL_STATUSES.has(data.status) &&
+          reportedTerminalExecutionIdRef.current !== data.id
+        ) {
+          reportedTerminalExecutionIdRef.current = data.id;
+          onTerminalExecution?.({ id: data.id, status: data.status });
+        }
         for (const patch of buildExecutionNodePatches(data)) {
           updateNodeData(patch.nodeId, patch.patch);
         }
@@ -113,7 +125,7 @@ export function ExecutionPanel({
         }
       }
     },
-    [currentRunId, runId, getService, updateNodeData],
+    [currentRunId, runId, getService, onTerminalExecution, updateNodeData],
   );
 
   useEffect(() => {
