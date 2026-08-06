@@ -663,7 +663,7 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(container.querySelector('.pb-56')).not.toBeNull();
+    expect(container.querySelector('.pb-36')).not.toBeNull();
     expect(
       portalTarget.querySelector(
         '[data-layout-mode="inflow"][data-show-top-fade="false"]',
@@ -700,7 +700,7 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Submit requested input')).toBeInTheDocument();
     expect(container.querySelector('.pb-6')).not.toBeNull();
-    expect(container.querySelector('.pb-56')).toBeNull();
+    expect(container.querySelector('.pb-36')).toBeNull();
   });
 
   it('uses an inflow prompt bar layout on the empty state even when a surface layout is requested', () => {

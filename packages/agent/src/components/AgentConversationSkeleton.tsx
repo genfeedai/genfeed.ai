@@ -23,7 +23,7 @@ export function AgentConversationSkeleton({
       <div className="flex-1 overflow-y-auto">
         <div
           className={cn(
-            'flex w-full flex-col py-5 pb-56 md:pb-72',
+            'flex w-full flex-col py-5 pb-36 md:pb-40',
             conversationColumnMaxWidthClass,
           )}
         >

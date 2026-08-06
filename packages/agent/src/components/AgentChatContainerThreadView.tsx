@@ -149,12 +149,13 @@ export function AgentChatContainerThreadView({
           className={cn(
             // No horizontal pad — same outer edge as the surface-fixed composer.
             'space-y-1 pt-4',
-            // Floating/portaled composer overlays the transcript — pad so
-            // the last turns can scroll clear of the frosted bar + chip row.
+            // Reserve only what the floating stack actually uses (glass bar
+            // ~7rem + optional chip row ~3rem + bottom offset). Older pb-80/96
+            // values assumed a tall opaque fade strip that no longer exists.
             padBottomForComposer && padBottomForFollowUpChips
-              ? 'pb-80 md:pb-96'
+              ? 'pb-44 md:pb-48'
               : padBottomForComposer
-                ? 'pb-56 md:pb-72'
+                ? 'pb-36 md:pb-40'
                 : 'pb-6',
             conversationColumnMaxWidthClass,
           )}
