@@ -10,6 +10,7 @@ import {
 import { AnalyticsClient } from '@mcp/services/client/analytics.client';
 import { BaseApiClient } from '@mcp/services/client/base-api-client';
 import type {
+  AdsGatewayInsightsParams,
   BrandResponse,
   CreateBatchParams,
   ListBatchesParams,
@@ -718,6 +719,16 @@ export class ClientService {
       limit,
       loginCustomerId,
     );
+  }
+
+  // ── Ads gateway (platform-generic) ──
+
+  getAdsAdSetInsights(params: AdsGatewayInsightsParams): Promise<unknown> {
+    return this.ads.getAdsAdSetInsights(params);
+  }
+
+  getAdsAdInsights(params: AdsGatewayInsightsParams): Promise<unknown> {
+    return this.ads.getAdsAdInsights(params);
   }
 
   // ── LinkedIn ──

@@ -143,6 +143,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'services/integrations/google-ads/controllers/google-ads.controller.ts',
     prefix: 'services/google-ads',
   },
+  adsGateway: {
+    file: 'services/ads-gateway/ads-gateway.controller.ts',
+    prefix: 'ads',
+  },
 };
 
 interface ContractRoute {
@@ -549,6 +553,20 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: 'search-terms/:campaignId',
     controller: 'googleAds',
     tools: ['get_google_ads_search_terms'],
+  },
+
+  // ── Ads gateway (platform-generic, backed by IAdsAdapter) ──
+  {
+    method: 'Get',
+    sub: ':platform/adsets/:adSetId/insights',
+    controller: 'adsGateway',
+    tools: ['get_ads_adset_insights'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/ads/:adId/insights',
+    controller: 'adsGateway',
+    tools: ['get_ads_ad_insights'],
   },
 ];
 

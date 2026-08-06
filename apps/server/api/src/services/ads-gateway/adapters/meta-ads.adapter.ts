@@ -1,5 +1,6 @@
 import type {
   AdsAdapterContext,
+  AdsInsightsParams,
   CreateAdInput,
   CreateAdSetInput,
   CreateCampaignInput,
@@ -13,6 +14,10 @@ import type {
 } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type {
+  MetaInsightsData,
+  MetaInsightsParams,
+} from '@server/services/integrations/meta-ads/interfaces/meta-ads.interface';
 import { MetaAdsService } from '@server/services/integrations/meta-ads/services/meta-ads.service';
 
 @Injectable()
@@ -59,44 +64,43 @@ export class MetaAdsAdapter implements IAdsAdapter {
   async getCampaignInsights(
     ctx: AdsAdapterContext,
     campaignId: string,
-    params?: {
-      datePreset?: string;
-      timeRange?: { since: string; until: string };
-    },
+    params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
     const insights = await this.metaAdsService.getCampaignInsights(
       ctx.accessToken,
       campaignId,
-      {
-        datePreset: params?.datePreset as
-          | 'today'
-          | 'yesterday'
-          | 'last_7d'
-          | 'last_14d'
-          | 'last_30d'
-          | 'last_90d'
-          | undefined,
-        timeRange: params?.timeRange,
-      },
+      this.toMetaInsightsParams(params),
     );
 
-    const row = insights[0];
-    if (!row) {
-      return this.emptyInsights();
-    }
+    return this.toUnifiedInsights(insights);
+  }
 
-    return {
-      clicks: row.clicks,
-      conversions: row.conversions,
-      cpc: row.cpc,
-      cpm: row.cpm,
-      ctr: row.ctr,
-      dateStart: row.dateStart,
-      dateStop: row.dateStop,
-      impressions: row.impressions,
-      platform: this.platform,
-      spend: row.spend,
-    };
+  async getAdSetInsights(
+    ctx: AdsAdapterContext,
+    adSetId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights> {
+    const insights = await this.metaAdsService.getAdSetInsights(
+      ctx.accessToken,
+      adSetId,
+      this.toMetaInsightsParams(params),
+    );
+
+    return this.toUnifiedInsights(insights);
+  }
+
+  async getAdInsights(
+    ctx: AdsAdapterContext,
+    adId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights> {
+    const insights = await this.metaAdsService.getAdInsights(
+      ctx.accessToken,
+      adId,
+      this.toMetaInsightsParams(params),
+    );
+
+    return this.toUnifiedInsights(insights);
   }
 
   async createCampaign(
@@ -288,6 +292,33 @@ export class MetaAdsAdapter implements IAdsAdapter {
       name: p.name,
       value: p.value,
     }));
+  }
+
+  private toMetaInsightsParams(params?: AdsInsightsParams): MetaInsightsParams {
+    return {
+      datePreset: params?.datePreset as MetaInsightsParams['datePreset'],
+      timeRange: params?.timeRange,
+    };
+  }
+
+  private toUnifiedInsights(rows: MetaInsightsData[]): UnifiedInsights {
+    const row = rows[0];
+    if (!row) {
+      return this.emptyInsights();
+    }
+
+    return {
+      clicks: row.clicks,
+      conversions: row.conversions,
+      cpc: row.cpc,
+      cpm: row.cpm,
+      ctr: row.ctr,
+      dateStart: row.dateStart,
+      dateStop: row.dateStop,
+      impressions: row.impressions,
+      platform: this.platform,
+      spend: row.spend,
+    };
   }
 
   private emptyInsights(): UnifiedInsights {

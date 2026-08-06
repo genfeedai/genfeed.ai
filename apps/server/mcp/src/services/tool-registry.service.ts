@@ -14,6 +14,7 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
+import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
   CLIP_PROJECTS_TOOL_NAMES,
@@ -114,6 +115,13 @@ const isGoogleAdsTool = (name: string): boolean =>
   name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
 
 /**
+ * Platform-generic ads gateway tools (`/ads/:platform/*`). The `get_ads_` prefix
+ * is reserved for this executor — per-platform tools use their own platform
+ * prefix (`get_meta_`, `get_google_ads_`), so the namespaces cannot overlap.
+ */
+const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
+
+/**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
  * a registry/handler mismatch fails the boot health check instead of surfacing
@@ -128,6 +136,7 @@ type ExecutorKind =
   | 'legacy'
   | 'meta-ads'
   | 'google-ads'
+  | 'ads-gateway'
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
@@ -336,6 +345,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (LEGACY_TOOL_NAMES.has(name)) return 'legacy';
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
+    if (isAdsGatewayTool(name)) return 'ads-gateway';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
@@ -363,6 +373,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleMetaAdsTool(this.clientService, name, args);
       case 'google-ads':
         return handleGoogleAdsTool(this.clientService, name, args);
+      case 'ads-gateway':
+        return handleAdsGatewayTool(this.clientService, name, args);
       case 'account-management':
         return handleAccountManagementTool(this.clientService, name, args);
       case 'social-messages':
