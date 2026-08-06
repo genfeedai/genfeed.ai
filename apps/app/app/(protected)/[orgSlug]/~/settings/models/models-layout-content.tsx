@@ -2,8 +2,11 @@
 
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isSelfHostedDeployment } from '@genfeedai/config';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { hasTrainingAccess } from '@genfeedai/pricing';
 import type { RouteTabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
@@ -22,6 +25,9 @@ export default function ModelsLayoutContent({
 }) {
   const pathname = usePathname();
   const { orgHref } = useOrgUrl();
+  const { settings } = useBrand();
+  const canTrain =
+    isSelfHostedDeployment() || hasTrainingAccess(settings?.subscriptionTier);
 
   const { refreshTrainings, isRefreshing: isRefreshingTrainings } =
     useTrainingsContext();
@@ -108,7 +114,7 @@ export default function ModelsLayoutContent({
         <>
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
 
-          {isTrainingsTab ? (
+          {isTrainingsTab && canTrain ? (
             <Button
               label="Training"
               icon={<Plus />}
@@ -121,7 +127,7 @@ export default function ModelsLayoutContent({
     >
       {children}
 
-      {isTrainingsTab ? <LazyModalTrainingNew /> : null}
+      {isTrainingsTab && canTrain ? <LazyModalTrainingNew /> : null}
     </Container>
   );
 }

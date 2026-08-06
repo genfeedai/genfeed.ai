@@ -10,6 +10,7 @@ import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
+import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
@@ -47,6 +48,8 @@ export function AgentChatContainer({
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const messages = useAgentChatStore((state) => state.messages);
+  const { isLoading: isRegistryModelsLoading, models: registryModels } =
+    useAgentRegistryModels(apiService);
   const [selectedModel, setSelectedModel] = useState(
     () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
   );
@@ -196,6 +199,8 @@ export function AgentChatContainer({
           removeAttachment={container.removeAttachment}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
+          models={registryModels}
+          isModelsLoading={isRegistryModelsLoading}
         />
       ) : (
         <AgentChatContainerThreadView
@@ -298,6 +303,8 @@ export function AgentChatContainer({
           promptBarSuggestions={promptBarSuggestions}
           removeAttachment={container.removeAttachment}
           selectedModel={selectedModel}
+          models={registryModels}
+          isModelsLoading={isRegistryModelsLoading}
           showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
           socketConnectionState={container.socketConnectionState}
         />

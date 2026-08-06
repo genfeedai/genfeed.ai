@@ -44,6 +44,8 @@ type AgentChatEmptyStateProps = {
   removeAttachment: (id: string) => void;
   selectedModel?: string;
   onModelChange?: (model: string) => void;
+  models?: import('@genfeedai/agent/constants/agent-models.constant').AgentModelOption[];
+  isModelsLoading?: boolean;
 };
 
 export function AgentChatEmptyState({
@@ -70,6 +72,8 @@ export function AgentChatEmptyState({
   removeAttachment,
   selectedModel,
   onModelChange,
+  models,
+  isModelsLoading = false,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
 
@@ -140,6 +144,8 @@ export function AgentChatEmptyState({
                 showStop={isRunActive}
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
+                models={models}
+                isModelsLoading={isModelsLoading}
               />
             </PromptBarContainer>
           ) : null}

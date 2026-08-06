@@ -1,14 +1,22 @@
 'use client';
 
-import { ModalEnum, PageScope } from '@genfeedai/enums';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { APP_ROUTES } from '@genfeedai/constants';
+import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
 import type { ITraining } from '@genfeedai/interfaces';
+import { hasTrainingAccess } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ContentProps } from '@props/layout/content.props';
 import { EmptyState } from '@ui/card/EmptyState';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
-import { Cpu } from 'lucide-react';
+import { Button } from '@ui/primitives/button';
+import { Cpu, Lock } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
@@ -16,6 +24,8 @@ import TrainingsErrorState from './components/TrainingsErrorState';
 import { buildTrainingsTableActions } from './components/TrainingsTableActions';
 import { buildTrainingsTableColumns } from './components/TrainingsTableColumns';
 import { useTrainingsList } from './useTrainingsList';
+
+const TRAINING_UPGRADE_TIER_LABEL = 'Pro';
 
 /**
  * Trainings list body — table, filters, empty state, edit modal.
@@ -29,6 +39,13 @@ export default function TrainingsList({
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const router = useRouter();
+  const { orgHref } = useOrgUrl();
+  const { isReady, settings } = useBrand();
+  const selfHostedDeployment = isSelfHostedDeployment();
+  const canTrain =
+    scope === PageScope.SUPERADMIN ||
+    selfHostedDeployment ||
+    hasTrainingAccess(settings?.subscriptionTier);
 
   const {
     trainings,
@@ -43,7 +60,11 @@ export default function TrainingsList({
     handleToggleActive,
     openTrainingModal,
     openDeleteConfirmation,
-  } = useTrainingsList({ scope, onRefreshRegister });
+  } = useTrainingsList({
+    // Skip list fetch on locked free cloud tiers.
+    scope,
+    onRefreshRegister: canTrain ? onRefreshRegister : undefined,
+  });
 
   const columns = useMemo(
     () =>
@@ -64,6 +85,23 @@ export default function TrainingsList({
       }),
     [openTrainingModal, openDeleteConfirmation, router],
   );
+
+  if (isReady && scope !== PageScope.SUPERADMIN && !canTrain) {
+    return (
+      <CardEmpty
+        actions={
+          <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
+            <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
+              Upgrade to {TRAINING_UPGRADE_TIER_LABEL}
+            </Link>
+          </Button>
+        }
+        description={`Custom model training is included on paid plans. Upgrade to ${TRAINING_UPGRADE_TIER_LABEL} to train brand models on your assets.`}
+        icon={Lock}
+        label={`Unlock trainings with ${TRAINING_UPGRADE_TIER_LABEL}`}
+      />
+    );
+  }
 
   if (error) {
     return (

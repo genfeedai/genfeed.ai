@@ -62,6 +62,8 @@ type AgentChatPromptBarProps = {
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
   onModelChange?: (model: string) => void;
+  models?: import('@genfeedai/agent/constants/agent-models.constant').AgentModelOption[];
+  isModelsLoading?: boolean;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 };
@@ -97,6 +99,8 @@ export function AgentChatPromptBar({
   socketConnectionState,
   selectedModel,
   onModelChange,
+  models,
+  isModelsLoading = false,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatPromptBarProps): ReactElement {
@@ -174,6 +178,8 @@ export function AgentChatPromptBar({
         clearAllAttachments={clearAllAttachments}
         selectedModel={selectedModel}
         onModelChange={onModelChange}
+        models={models}
+        isModelsLoading={isModelsLoading}
         creditsAvailable={creditsAvailable}
         onBuyCredits={onBuyCredits}
       />
