@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `gf generate image` and `gf generate video` now send `brandId` instead of `brand`. The API DTOs
+  declare `brandId`, and the global ValidationPipe strips unknown properties, so the brand was
+  silently dropped and generations fell back to the organization's default brand
+  (`src/api/images.ts`, `src/api/videos.ts`).
+
 ## [0.3.1] - 2026-02-25
 
 ### Added

@@ -39,13 +39,13 @@ describe('api/images', () => {
       });
 
       const result = await createImage({
-        brand: 'brand-1',
+        brandId: 'brand-1',
         text: 'A sunset over mountains',
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/images', {
         body: {
-          brand: 'brand-1',
+          brandId: 'brand-1',
           text: 'A sunset over mountains',
         },
         method: 'POST',
@@ -53,6 +53,29 @@ describe('api/images', () => {
       expect(result.id).toBe('img-1');
       expect(result.status).toBe('processing');
       expect(result.model).toBe('imagen-4');
+    });
+
+    // CreateImageDto declares `brandId`, and the API's ValidationPipe runs with
+    // `whitelist: true` — a legacy `brand` key would be stripped without error
+    // and the generation would silently fall back to the org's default brand.
+    it('sends brandId and never the legacy brand key', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'imagen-4', status: 'processing' },
+          id: 'img-3',
+          type: 'image',
+        },
+      });
+
+      await createImage({
+        brandId: 'brand-1',
+        text: 'A sunset over mountains',
+      });
+
+      const body = mockFetch.mock.calls[0][1].body as Record<string, unknown>;
+
+      expect(body).toHaveProperty('brandId', 'brand-1');
+      expect(body).not.toHaveProperty('brand');
     });
 
     it('passes optional dimensions', async () => {
@@ -70,7 +93,7 @@ describe('api/images', () => {
       });
 
       const result = await createImage({
-        brand: 'brand-1',
+        brandId: 'brand-1',
         height: 768,
         text: 'A cat',
         width: 1024,
