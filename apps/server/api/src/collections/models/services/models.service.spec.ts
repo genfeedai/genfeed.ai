@@ -169,6 +169,33 @@ describe('ModelsService', () => {
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
   });
 
+  it('rejects a bulk patch that omits the organization scope', async () => {
+    await expect(
+      service.patchAll({ key: 'google/imagen-4' }, { isDefault: false }),
+    ).rejects.toThrow('organizationId is required for bulk model updates');
+
+    expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('permits a bulk patch scoped to the global registry', async () => {
+    modelDelegate.updateMany.mockResolvedValue({ count: 2 });
+
+    const result = await service.patchAll(
+      { key: 'google/imagen-4', organizationId: null },
+      { isDefault: false },
+    );
+
+    expect(modelDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDefault: false },
+      where: {
+        isDeleted: false,
+        key: 'google/imagen-4',
+        organizationId: null,
+      },
+    });
+    expect(result).toEqual({ modifiedCount: 2 });
+  });
+
   it('creates a private model from a completed training', async () => {
     modelDelegate.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(
       makeModel({
