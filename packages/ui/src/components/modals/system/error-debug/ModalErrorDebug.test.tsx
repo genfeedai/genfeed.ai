@@ -78,9 +78,7 @@ describe('ModalErrorDebug', () => {
   it('should not render when no error info is set', () => {
     render(<ModalErrorDebug />);
     // Modal is not open, so dialog content should not be in the DOM
-    expect(
-      screen.queryByText('Error Debug Information (Beta)'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Request failed')).not.toBeInTheDocument();
   });
 
   it('should render when error info is set', () => {
@@ -97,9 +95,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(
-      screen.getByText('Error Debug Information (Beta)'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Request failed')).toBeInTheDocument();
     expect(screen.getByText('Test error message')).toBeInTheDocument();
   });
 

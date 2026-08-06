@@ -43,7 +43,9 @@ function ErrorSection({
   return (
     <Card
       variant={CardVariant.DEFAULT}
-      className="rounded-lg border-destructive/30 bg-destructive/10 text-destructive-foreground hover:border-destructive/30"
+      // Nested sections stay neutral so the outer destructive shell is the
+      // only strong status signal (avoids red-on-red mud).
+      className="rounded-lg border border-border bg-background-secondary hover:border-border"
       bodyClassName="gap-0 p-4"
     >
       {onToggle ? (
@@ -51,17 +53,17 @@ function ErrorSection({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           onClick={onToggle}
-          className="flex w-full items-center gap-2 text-left text-destructive-foreground"
+          className="flex w-full items-center gap-2 text-left text-foreground"
         >
           {isExpanded ? (
-            <ChevronDown className="size-4 shrink-0" />
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
           ) : (
-            <ChevronRight className="size-4 shrink-0" />
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           )}
-          <h3 className="font-semibold">{title}</h3>
+          <h3 className="font-semibold text-foreground">{title}</h3>
         </Button>
       ) : (
-        <h3 className="mb-2 font-semibold">{title}</h3>
+        <h3 className="mb-2 font-semibold text-foreground">{title}</h3>
       )}
 
       {children}
@@ -72,7 +74,7 @@ function ErrorSection({
 export default function ModalErrorDebug() {
   const clipboardService = ClipboardService.getInstance();
   const preClassName =
-    'mt-2 max-h-48 overflow-y-auto border-destructive/20 bg-black/30 text-destructive-foreground';
+    'mt-2 max-h-48 overflow-y-auto border border-border bg-background text-foreground/85';
 
   const [errorInfo, setErrorInfo] = useState<IErrorDebugInfo | null>(null);
   const [isResponseExpanded, setIsResponseExpanded] = useState(false);
@@ -103,21 +105,25 @@ export default function ModalErrorDebug() {
   return (
     <Modal
       id={ModalEnum.ERROR_DEBUG}
-      title="Error Debug Information (Beta)"
+      title="Request failed"
       isError
       error={errorInfo?.message}
       onClose={handleModalClosed}
-      modalBoxClassName="rounded-lg border-destructive/50 bg-destructive/10 text-destructive-foreground"
+      // Shell styling is owned by Modal isError — don't wash the whole box red.
+      modalBoxClassName="rounded-xl"
     >
       {errorInfo && (
         <>
-          <div className="space-y-4 text-destructive-foreground">
-            <ErrorSection title="Request Details">
-              <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="space-y-3 text-foreground">
+            <ErrorSection title="Request">
+              <div className="grid grid-cols-[7rem_1fr] gap-x-3 gap-y-2 text-sm">
                 {errorInfo.url && (
                   <>
-                    <span className="text-red-200/70">URL</span>
-                    <span className="font-mono truncate" title={errorInfo.url}>
+                    <span className="text-muted-foreground">URL</span>
+                    <span
+                      className="truncate font-mono text-foreground"
+                      title={errorInfo.url}
+                    >
                       {errorInfo.url}
                     </span>
                   </>
@@ -125,7 +131,7 @@ export default function ModalErrorDebug() {
 
                 {errorInfo.method && (
                   <>
-                    <span className="text-red-200/70">Method</span>
+                    <span className="text-muted-foreground">Method</span>
                     <span className="font-mono uppercase">
                       {errorInfo.method}
                     </span>
@@ -134,7 +140,7 @@ export default function ModalErrorDebug() {
 
                 {errorInfo.status && (
                   <>
-                    <span className="text-red-200/70">Status</span>
+                    <span className="text-muted-foreground">Status</span>
                     <span className="font-mono">
                       {errorInfo.status} {errorInfo.statusText || ''}
                     </span>
@@ -143,19 +149,19 @@ export default function ModalErrorDebug() {
 
                 {errorInfo.errorCode && (
                   <>
-                    <span className="text-red-200/70">Error Code</span>
+                    <span className="text-muted-foreground">Code</span>
                     <span className="font-mono">{errorInfo.errorCode}</span>
                   </>
                 )}
 
-                <span className="text-red-200/70">Timestamp</span>
-                <span className="font-mono">{errorInfo.timestamp}</span>
+                <span className="text-muted-foreground">Time</span>
+                <span className="font-mono text-xs">{errorInfo.timestamp}</span>
               </div>
             </ErrorSection>
 
             {errorInfo.response?.data !== undefined ? (
               <ErrorSection
-                title="Response Data"
+                title="Response"
                 isExpanded={isResponseExpanded}
                 onToggle={() => setIsResponseExpanded(!isResponseExpanded)}
               >
@@ -169,7 +175,7 @@ export default function ModalErrorDebug() {
 
             {errorInfo.stack && (
               <ErrorSection
-                title="Stack Trace"
+                title="Stack"
                 isExpanded={isStackExpanded}
                 onToggle={() => setIsStackExpanded(!isStackExpanded)}
               >
@@ -183,7 +189,7 @@ export default function ModalErrorDebug() {
 
             {errorInfo.context && Object.keys(errorInfo.context).length > 0 && (
               <ErrorSection
-                title="Additional Context"
+                title="Context"
                 isExpanded={isContextExpanded}
                 onToggle={() => setIsContextExpanded(!isContextExpanded)}
               >
@@ -202,7 +208,7 @@ export default function ModalErrorDebug() {
                 label="Try Again"
                 variant={ButtonVariant.DEFAULT}
                 size={ButtonSize.LG}
-                className="md:h-9 md:px-4 md:py-2 bg-warning text-warning-foreground hover:bg-warning/90"
+                className="bg-warning text-warning-foreground hover:bg-warning/90 md:h-9 md:px-4 md:py-2"
                 onClick={() => {
                   errorInfo.onRetry?.();
                   handleCancel();
@@ -214,15 +220,15 @@ export default function ModalErrorDebug() {
               label="Copy"
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.LG}
-              className="border-destructive/30 bg-destructive/10 text-destructive-foreground hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
+              className="md:h-9 md:px-4 md:py-2"
               onClick={handleCopy}
             />
 
             <Button
               label="Reload"
-              variant={ButtonVariant.SECONDARY}
+              variant={ButtonVariant.DESTRUCTIVE}
               size={ButtonSize.LG}
-              className="border-destructive/30 bg-destructive/10 text-destructive-foreground hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
+              className="md:h-9 md:px-4 md:py-2"
               onClick={() => {
                 handleCancel();
                 refresh();
