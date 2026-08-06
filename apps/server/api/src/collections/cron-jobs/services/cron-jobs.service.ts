@@ -43,6 +43,7 @@ import {
   AgentExecutionTrigger,
   AgentType,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, GoneException, Injectable } from '@nestjs/common';
@@ -353,7 +354,7 @@ export class CronJobsService {
       data: {
         cronJobId: jobId,
         organizationId: job.organizationId,
-        result: { trigger } as never,
+        result: { trigger } as Prisma.InputJsonValue,
         startedAt: start,
         status: 'RUNNING',
         userId: job.userId,
@@ -367,7 +368,7 @@ export class CronJobsService {
         config: buildCronJobConfig(
           { lastStatus: 'running' },
           job.config,
-        ) as never,
+        ) as Prisma.InputJsonValue,
         lastRunAt: start,
       },
       where: { id: jobId },
@@ -384,7 +385,7 @@ export class CronJobsService {
       await this.prisma.cronRun.update({
         data: {
           completedAt: new Date(),
-          result: { artifacts, trigger } as never,
+          result: { artifacts, trigger } as Prisma.InputJsonValue,
           status: 'COMPLETED',
         },
         where: { id: runId },
@@ -398,7 +399,7 @@ export class CronJobsService {
               lastStatus: 'success',
             },
             job.config,
-          ) as never,
+          ) as Prisma.InputJsonValue,
           nextRunAt: computeNextRunAtOrThrow(job.schedule, job.timezone),
         },
         where: { id: jobId },
@@ -422,7 +423,7 @@ export class CronJobsService {
         data: {
           completedAt: new Date(),
           error: message,
-          result: { trigger } as never,
+          result: { trigger } as Prisma.InputJsonValue,
           status: 'FAILED',
         },
         where: { id: runId },
@@ -436,7 +437,7 @@ export class CronJobsService {
               lastStatus: 'failed',
             },
             job.config,
-          ) as never,
+          ) as Prisma.InputJsonValue,
           nextRunAt: computeNextRunAtOrThrow(job.schedule, job.timezone),
         },
         where: { id: jobId },

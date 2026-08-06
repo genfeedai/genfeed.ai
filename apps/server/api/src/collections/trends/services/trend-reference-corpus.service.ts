@@ -134,7 +134,10 @@ export class TrendReferenceCorpusService {
       : { postId: payload.postId };
 
     const existing = await this.prisma.trendRemixLineage.findFirst({
-      where: { ...where, isDeleted: false } as never,
+      where: {
+        ...where,
+        isDeleted: false,
+      } as Prisma.TrendRemixLineageWhereInput,
     });
 
     const dataPayload = {
@@ -148,7 +151,7 @@ export class TrendReferenceCorpusService {
     if (existing) {
       await this.prisma.trendRemixLineage.update({
         data: {
-          data: dataPayload as never,
+          data: dataPayload as Prisma.InputJsonValue,
           // Update relations via Prisma connect
           sourceReferences: {
             set: sourceReferenceIds.map((id) => ({ id })),
@@ -156,7 +159,7 @@ export class TrendReferenceCorpusService {
           trends: {
             set: trendIds.map((id) => ({ id })),
           },
-        } as never,
+        } as Prisma.InputJsonValue,
         where: { id: existing.id },
       });
     } else {
@@ -166,7 +169,7 @@ export class TrendReferenceCorpusService {
           contentDraftId: hasContentDraftId
             ? payload.contentDraftId
             : undefined,
-          data: dataPayload as never,
+          data: dataPayload as Prisma.InputJsonValue,
           isDeleted: false,
           organizationId: payload.organizationId,
           postId: hasPostId ? payload.postId : undefined,
@@ -176,7 +179,7 @@ export class TrendReferenceCorpusService {
           trends: {
             connect: trendIds.map((id) => ({ id })),
           },
-        } as never,
+        } as Prisma.InputJsonValue,
       });
     }
   }
@@ -442,7 +445,7 @@ export class TrendReferenceCorpusService {
         isDeleted: false,
         platform: options.platform ? options.platform : { not: null },
       },
-    } as never);
+    } as Prisma.InputJsonValue);
 
     const brandRemixCounts = await this.getBrandRemixCountsByAccount(
       organizationId,
