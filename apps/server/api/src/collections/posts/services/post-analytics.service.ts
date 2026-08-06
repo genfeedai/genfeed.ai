@@ -14,7 +14,7 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { IPlatformAnalyticsTotals } from '@genfeedai/interfaces';
-import type { CredentialPlatform } from '@genfeedai/prisma';
+import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -78,14 +78,14 @@ export class PostAnalyticsService extends BaseService<
           totalLikes: 0,
           totalShares: 0,
           totalViews: 0,
-        } as never,
+        } as Prisma.PostAnalyticsCreateInput,
         update: {},
         where: {
           postId_platform_date: { date: today, platform, postId },
-        } as never,
+        },
       });
 
-      return new PostAnalyticsEntity(result as never);
+      return new PostAnalyticsEntity(result as PostAnalyticsDocument);
     } catch (error: unknown) {
       // Handle duplicate key error in case of race condition
       if ((error as { code?: string })?.code === 'P2002') {
@@ -94,7 +94,7 @@ export class PostAnalyticsService extends BaseService<
         });
 
         if (existing) {
-          return new PostAnalyticsEntity(existing as never);
+          return new PostAnalyticsEntity(existing as PostAnalyticsDocument);
         }
       }
       throw error;
@@ -169,18 +169,20 @@ export class PostAnalyticsService extends BaseService<
         userId: owner.userId,
         ...metrics,
         ...increments,
-      } as never,
+      } as Prisma.PostAnalyticsCreateInput,
       update: {
         engagementRate,
         ...metrics,
         ...increments,
-      } as never,
+      } as Prisma.PostAnalyticsUpdateInput,
       where: {
         postId_platform_date: { date: today, platform, postId },
       },
     });
 
-    return result ? new PostAnalyticsEntity(result as never) : null;
+    return result
+      ? new PostAnalyticsEntity(result as PostAnalyticsDocument)
+      : null;
   }
 
   async getPostAnalyticsSummary(postId: string): Promise<{
@@ -325,10 +327,12 @@ export class PostAnalyticsService extends BaseService<
 
     const results = await this.prisma.postAnalytics.findMany({
       orderBy: { date: 'asc' },
-      where: where as never,
+      where: where as Prisma.PostAnalyticsWhereInput,
     });
 
-    return results.map((doc) => new PostAnalyticsEntity(doc as never));
+    return results.map(
+      (doc) => new PostAnalyticsEntity(doc as PostAnalyticsDocument),
+    );
   }
 
   async trackPostAnalytics(
@@ -406,7 +410,7 @@ export class PostAnalyticsService extends BaseService<
           totalViews: 0,
           totalViewsIncrement: 0,
           userId,
-        } as never);
+        } as Prisma.PostAnalyticsCreateInput);
 
         await this.updateTodayAnalytics(postId, platform, analytics);
 

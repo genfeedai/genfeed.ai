@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { CampaignStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -116,9 +117,9 @@ export class OutreachCampaignsService {
             config: {
               ...cfg,
               ...updater(doc),
-            } as never,
+            } as Prisma.InputJsonValue,
             updatedAt: new Date(),
-          } as never,
+          },
           where: { id },
         });
       },
@@ -159,7 +160,7 @@ export class OutreachCampaignsService {
         where: scopedWhere(organizationId, {
           id: credentialId,
           isConnected: true,
-          platform: toPrismaCredentialPlatform(platform) as never,
+          platform: toPrismaCredentialPlatform(platform),
           ...(brandId ? { brandId } : {}),
         }),
       },
@@ -255,9 +256,9 @@ export class OutreachCampaignsService {
         organizationId,
         platform,
         ...(userId ? { userId } : {}),
-        config: config as never,
+        config: config as Prisma.InputJsonValue,
         status: CampaignStatus.DRAFT,
-      } as never,
+      },
     });
 
     return normalizeDoc(row as unknown as Record<string, unknown>);
@@ -312,8 +313,8 @@ export class OutreachCampaignsService {
         ...(isActive !== undefined ? { isActive } : {}),
         ...(platform !== undefined ? { platform } : {}),
         ...(status ? { status } : {}),
-        config: updatedConfig as never,
-      } as never,
+        config: updatedConfig as Prisma.InputJsonValue,
+      },
       where: { id },
     });
 
@@ -412,9 +413,12 @@ export class OutreachCampaignsService {
 
     const row = await this.prisma.outreachCampaign.update({
       data: {
-        config: { ...cfg, startedAt: new Date().toISOString() } as never,
+        config: {
+          ...cfg,
+          startedAt: new Date().toISOString(),
+        } as Prisma.InputJsonValue,
         status: CampaignStatus.ACTIVE,
-      } as never,
+      },
       where: { id },
     });
 
@@ -440,7 +444,7 @@ export class OutreachCampaignsService {
     }
 
     const row = await this.prisma.outreachCampaign.update({
-      data: { status: CampaignStatus.PAUSED } as never,
+      data: { status: CampaignStatus.PAUSED },
       where: { id },
     });
 
@@ -470,9 +474,12 @@ export class OutreachCampaignsService {
 
     const row = await this.prisma.outreachCampaign.update({
       data: {
-        config: { ...cfg, completedAt: new Date().toISOString() } as never,
+        config: {
+          ...cfg,
+          completedAt: new Date().toISOString(),
+        } as Prisma.InputJsonValue,
         status: CampaignStatus.COMPLETED,
-      } as never,
+      },
       where: { id },
     });
 
@@ -717,7 +724,8 @@ export class OutreachCampaignsService {
 
     const [rows, totalDocs] = await Promise.all([
       this.prisma.outreachCampaign.findMany({
-        orderBy: query.orderBy as never,
+        orderBy:
+          query.orderBy as Prisma.OutreachCampaignOrderByWithRelationInput,
         skip,
         take,
         where,
@@ -746,7 +754,7 @@ export class OutreachCampaignsService {
     }
 
     const row = await this.prisma.outreachCampaign.update({
-      data: { isDeleted: true } as never,
+      data: { isDeleted: true },
       where: { id: existing.id },
     });
 

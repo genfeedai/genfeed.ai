@@ -9,6 +9,7 @@ import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -142,7 +143,7 @@ export class BatchWorkflowService {
     const ownedCount = await this.prisma.ingredient.count({
       where: scopedWhere(organizationId, {
         id: { in: ingredientIds },
-      }) as never,
+      }) as Prisma.BatchWorkflowJobCreateInput,
     });
 
     if (ownedCount !== ingredientIds.length) {
@@ -165,12 +166,12 @@ export class BatchWorkflowService {
 
     const job = await this.prisma.batchWorkflowJob.create({
       data: {
-        items: items as never,
+        items: items as Prisma.InputJsonValue,
         organizationId,
         status: BatchWorkflowJobStatus.PENDING,
         userId,
         workflowId,
-      } as never,
+      },
     });
 
     this.logger.log(`${this.logContext} created batch job`, {
@@ -233,7 +234,7 @@ export class BatchWorkflowService {
    */
   async markProcessing(batchJobId: string): Promise<void> {
     await this.prisma.batchWorkflowJob.update({
-      data: { status: BatchWorkflowJobStatus.PROCESSING } as never,
+      data: { status: BatchWorkflowJobStatus.PROCESSING },
       where: { id: batchJobId },
     });
   }
@@ -263,7 +264,7 @@ export class BatchWorkflowService {
     );
 
     await this.prisma.batchWorkflowJob.update({
-      data: { items: updatedItems as never } as never,
+      data: { items: updatedItems as Prisma.InputJsonValue },
       where: { id: batchJobId },
     });
   }
@@ -306,8 +307,8 @@ export class BatchWorkflowService {
 
     await this.prisma.batchWorkflowJob.update({
       data: {
-        items: updatedItems as never,
-      } as never,
+        items: updatedItems as Prisma.InputJsonValue,
+      },
       where: { id: batchJobId },
     });
 
@@ -342,8 +343,8 @@ export class BatchWorkflowService {
 
     await this.prisma.batchWorkflowJob.update({
       data: {
-        items: updatedItems as never,
-      } as never,
+        items: updatedItems as Prisma.InputJsonValue,
+      },
       where: { id: batchJobId },
     });
 
@@ -371,7 +372,7 @@ export class BatchWorkflowService {
           : BatchWorkflowJobStatus.COMPLETED;
 
       await this.prisma.batchWorkflowJob.update({
-        data: { status: finalStatus } as never,
+        data: { status: finalStatus },
         where: { id: batchJobId },
       });
 
