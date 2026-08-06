@@ -10,6 +10,7 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import type {
   AdsChannel,
@@ -225,11 +226,11 @@ export class AgentAdsResearchToolHandler {
         {
           ctas: [
             {
-              href: `/workflows/${workflow.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: '/workflows',
+              href: APP_ROUTES.AUTOMATE.WORKFLOWS,
               label: 'Open workflows',
             },
           ],
@@ -336,7 +337,7 @@ export class AgentAdsResearchToolHandler {
             ...(launchPrep.workflowId
               ? [
                   {
-                    href: `/workflows/${launchPrep.workflowId}`,
+                    href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${launchPrep.workflowId}`,
                     label: 'Open workflow',
                   },
                 ]

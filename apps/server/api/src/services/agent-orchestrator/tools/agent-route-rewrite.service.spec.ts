@@ -68,6 +68,53 @@ describe('AgentRouteRewriteService', () => {
     });
   });
 
+  // The ads tools emit bare `/discover/ads*` paths. Discover has no org-level
+  // exemption, so it scopes to the brand route when a brand is resolvable and
+  // to the `~` route otherwise — both exist in the app router.
+  it('scopes bare ads hub hrefs onto the brand and org discover routes', async () => {
+    const service = createService();
+    const adsResult: AgentToolResult = {
+      creditsUsed: 0,
+      nextActions: [
+        {
+          ctas: [
+            { href: '/discover/ads/meta', label: 'Open Meta ads' },
+            { href: '/discover/ads/google', label: 'Open Google ads' },
+            { href: '/discover/ads', label: 'Open ads hub' },
+          ],
+          id: 'ads-search-results-1',
+          title: 'Ads search results',
+          type: 'ads_search_results_card',
+        },
+      ],
+      success: true,
+    };
+
+    const scopedToBrand = await service.scopeToolResultHrefs(
+      adsResult,
+      context,
+    );
+
+    expect(scopedToBrand.nextActions?.[0].ctas).toEqual([
+      {
+        href: '/genfeed-ai/launch-brand/discover/ads/meta',
+        label: 'Open Meta ads',
+      },
+      {
+        href: '/genfeed-ai/launch-brand/discover/ads/google',
+        label: 'Open Google ads',
+      },
+      { href: '/genfeed-ai/launch-brand/discover/ads', label: 'Open ads hub' },
+    ]);
+
+    brandsService.findOne.mockResolvedValueOnce(null);
+    const scopedToOrg = await service.scopeToolResultHrefs(adsResult, context);
+
+    expect(scopedToOrg.nextActions?.[0].ctas?.[0]).toMatchObject({
+      href: '/genfeed-ai/~/discover/ads/meta',
+    });
+  });
+
   it('uses org-level routes when no brand slug is available', async () => {
     brandsService.findOne.mockResolvedValueOnce(null);
     const service = createService();
