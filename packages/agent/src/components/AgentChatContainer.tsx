@@ -82,11 +82,11 @@ export function AgentChatContainer({
     await container.handleRetry(lastUser.message);
   }, [container.handleRetry, container.timeline]);
 
-  // Single column track for transcript + composer. Do not re-center each
-  // child with its own max-w-4xl — that drifts by scrollbar/parent and cannot
-  // be pixel-perfect. The outer track owns width; children are w-full.
+  // Full-width pane so the transcript scrollbar sits on the window edge
+  // (Codex-style). Content cards re-center themselves with max-w-4xl inside
+  // the scroll body; the composer portal is also max-w-4xl centered.
   const conversationColumnClass =
-    'relative mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col';
+    'relative flex min-h-0 w-full flex-1 flex-col';
   const activeWorkEvent = useMemo(
     () =>
       selectActiveWorkEvent(container.workEvents, {
@@ -152,23 +152,27 @@ export function AgentChatContainer({
         data-testid="agent-conversation-column"
       >
         {formattedError && shouldRenderInlineComposerFeedback ? (
-          <Alert
-            className="mt-3 w-full"
-            onClose={() => container.setError(null)}
-            type={AlertCategory.ERROR}
-          >
-            <span className="font-medium">{formattedError.title}</span>
-            <span className="mt-0.5 block text-xs opacity-90">
-              {formattedError.summary}
-              {formattedError.recovery ? ` ${formattedError.recovery}` : null}
-            </span>
-          </Alert>
+          <div className="mx-auto w-full max-w-4xl px-0">
+            <Alert
+              className="mt-3 w-full"
+              onClose={() => container.setError(null)}
+              type={AlertCategory.ERROR}
+            >
+              <span className="font-medium">{formattedError.title}</span>
+              <span className="mt-0.5 block text-xs opacity-90">
+                {formattedError.summary}
+                {formattedError.recovery ? ` ${formattedError.recovery}` : null}
+              </span>
+            </Alert>
+          </div>
         ) : null}
 
         {archivedNotice ? (
-          <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
-            {archivedNotice}
-          </Alert>
+          <div className="mx-auto w-full max-w-4xl">
+            <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
+              {archivedNotice}
+            </Alert>
+          </div>
         ) : null}
 
         {isLoadingThread && container.isEmpty ? (

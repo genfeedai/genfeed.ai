@@ -137,11 +137,12 @@ export function AgentChatContainerThreadView({
           variant={onboardingMode ? 'inline' : 'overlay'}
         />
       ) : null}
+      {/* Scroll owns the full pane width so the scrollbar is flush to the
+          window edge (Codex). Content is re-centered with max-w-4xl below. */}
       <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
         <div
           className={cn(
-            // Full width of the shared conversation column (parent max-w-4xl).
-            'w-full space-y-1 pt-4',
+            'mx-auto w-full max-w-4xl space-y-1 pt-4',
             // Reserve only what the floating stack actually uses (glass bar
             // ~7rem + optional chip row ~3rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips
