@@ -102,6 +102,24 @@ Non-interactive login:
 genfeed login --key gf_live_xxx
 ```
 
+Self-hosted login — point the browser flow at your own deployment:
+
+```bash
+genfeed login --api-url https://api.yourdomain.com/v1
+```
+
+Both URLs are saved to the active profile, so subsequent commands target the same deployment. The
+web app URL serving `/oauth/cli` is derived from the API URL (`api.` → `app.`, or the API origin
+when the API is path-mounted). Override it when your app lives somewhere else:
+
+```bash
+genfeed login --api-url https://yourdomain.com/api/v1 --app-url https://studio.yourdomain.com
+```
+
+The same values are settable outside login via `genfeed config set api-url <url>` /
+`genfeed config set app-url <url>`, or the `GENFEED_API_URL` / `GENFEED_APP_URL` env vars.
+`genfeed config show` prints the resolved app URL and marks it `(derived)` when it was inferred.
+
 Check current user:
 
 ```bash
@@ -462,6 +480,7 @@ Config is stored in `~/.gf/config.json`:
   "profiles": {
     "default": {
       "apiUrl": "https://api.genfeed.ai/v1",
+      "appUrl": "https://app.genfeed.ai",
       "role": "user",
       "fleetHost": "100.106.229.81",
       "fleetApiPort": 8189,
@@ -484,6 +503,7 @@ Config is stored in `~/.gf/config.json`:
 |----------|-------------|
 | `GENFEED_API_KEY` | API key |
 | `GENFEED_API_URL` | API base URL |
+| `GENFEED_APP_URL` | Web app URL serving `/oauth/cli` (derived from `GENFEED_API_URL` when unset) |
 | `GENFEED_TOKEN` | Auth token |
 | `GENFEED_ORGANIZATION_ID` | Organization ID |
 | `GENFEED_USER_ID` | User ID |
