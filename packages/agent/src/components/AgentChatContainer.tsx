@@ -17,7 +17,13 @@ import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util
 import { AlertCategory } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import {
+  type ReactElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -48,11 +54,40 @@ export function AgentChatContainer({
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const messages = useAgentChatStore((state) => state.messages);
-  const { isLoading: isRegistryModelsLoading, models: registryModels } =
-    useAgentRegistryModels(apiService);
+  const {
+    defaultModelKey,
+    isLoading: isRegistryModelsLoading,
+    models: registryModels,
+  } = useAgentRegistryModels(apiService);
   const [selectedModel, setSelectedModel] = useState(
     () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
   );
+
+  // Once the registry loads, prefer isDefault / isHighlighted when the current
+  // selection is not in the active list (or was only a constants fallback).
+  useEffect(() => {
+    if (isRegistryModelsLoading || registryModels.length === 0) {
+      return;
+    }
+    const keys = new Set(registryModels.map((entry) => entry.key));
+    if (keys.has(selectedModel)) {
+      return;
+    }
+    const next =
+      (model?.trim() && keys.has(model.trim()) ? model.trim() : null) ||
+      defaultModelKey ||
+      registryModels[0]?.key;
+    if (next && next !== selectedModel) {
+      setSelectedModel(next);
+    }
+  }, [
+    defaultModelKey,
+    isRegistryModelsLoading,
+    model,
+    registryModels,
+    selectedModel,
+  ]);
+
   const container = useAgentChatContainer({
     apiService,
     isLoadingThread,

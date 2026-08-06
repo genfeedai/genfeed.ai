@@ -82,7 +82,9 @@ export function AgentModelSelector({
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const models = modelsOverride ?? AGENT_MODELS;
+  // Phase D: when parent passes registry models (including empty), do not
+  // silently re-expand the hard-coded AGENT_MODELS dual catalogue.
+  const models = modelsOverride !== undefined ? modelsOverride : AGENT_MODELS;
   const modelsIdentity = models.map((model) => model.key).join('\0');
   const [catalogKey, setCatalogKey] = useState(modelsIdentity);
 
