@@ -12,9 +12,8 @@ export function AgentConversationSkeleton({
   isWideLayout = false,
   title,
 }: AgentConversationSkeletonProps): ReactElement {
-  const conversationColumnMaxWidthClass = isWideLayout
-    ? 'max-w-[52rem]'
-    : 'max-w-[46rem]';
+  // Keep skeleton column on the same track as the live transcript + prompt bar.
+  const conversationColumnMaxWidthClass = 'w-full max-w-4xl';
 
   return (
     <div
@@ -24,7 +23,7 @@ export function AgentConversationSkeleton({
       <div className="flex-1 overflow-y-auto">
         <div
           className={cn(
-            'mx-auto flex w-full flex-col px-4 py-5 pb-56 md:px-6 md:pb-72',
+            'mx-auto flex w-full flex-col px-3 py-5 pb-56 md:pb-72',
             conversationColumnMaxWidthClass,
           )}
         >
