@@ -21,6 +21,8 @@ export interface McpTool {
   description: string;
   inputSchema: McpToolInputSchema;
   requiredRole: McpRole;
+  /** Vendor metadata preserved by MCP clients, keyed by `genfeed.ai/*`. */
+  _meta?: Record<string, unknown>;
 }
 
 export interface McpResource {
