@@ -52,7 +52,7 @@ configCommand
       print(formatLabel('Role', profile.role));
       print(formatLabel('Image Model', profile.defaults.imageModel));
       print(formatLabel('Video Model', profile.defaults.videoModel));
-      print(formatLabel('Fleet Host', profile.fleetHost ?? 'not set'));
+      print(formatLabel('Fleet Host', profile.fleetHost));
       print(formatLabel('Fleet Port', String(profile.fleetApiPort)));
     } catch (error) {
       handleError(error);

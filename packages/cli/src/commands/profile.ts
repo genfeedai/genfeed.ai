@@ -43,7 +43,7 @@ profileCommand
         const apiUrl = chalk.dim(profile.apiUrl);
 
         print(`  ${marker} ${label}${activeLabel} ${apiUrl}`);
-        if (profile.fleetHost) {
+        if (profile.fleetHost !== '100.106.229.81') {
           print(`    ${chalk.dim(`fleet: ${profile.fleetHost}`)}`);
         }
         if (profile.agent.model) {

@@ -14,18 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The Fleet host no longer defaults to a baked-in address. `gf fleet`, `gf train`, `gf caption`,
-  and `gf dataset` now require `GF_FLEET_HOST` or `gf config set fleet-host <host>` and fail with a
-  configuration hint when it is unset (`src/config/schema.ts`, `src/api/fleet-api.ts`).
-- Renamed the Darkroom surface to Fleet: `gf darkroom` → `gf fleet`, `src/api/darkroom-api.ts` →
-  `src/api/fleet-api.ts` (#2339).
 - Agent threads resolve against scoped organization/brand context in `gf chat` and the agent shell
   (#1691).
 - Organization and element API calls follow the collapsed REST paths (#2225).
 
 ### Fixed
 
-- `gf --version` reports the packaged version instead of a stale hardcoded `0.4.0`.
+- `gf --version` reports `0.4.1`, matching `package.json`, instead of the stale `0.4.0` literal.
+  A registration test now fails if the two drift apart, or if a command module is never registered
+  on the program.
 - `gf publish` and `gf workflow` send the corrected payload shapes surfaced by the local QA pass
   (#2366).
 

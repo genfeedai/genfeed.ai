@@ -128,14 +128,6 @@ interface PersonasResponse {
 
 async function getFleetBaseUrl(): Promise<string> {
   const { profile } = await getActiveProfile();
-
-  if (!profile.fleetHost) {
-    throw new FleetApiError(
-      'No Fleet host configured',
-      'Set GF_FLEET_HOST or run `gf config set fleet-host <host>`'
-    );
-  }
-
   return `http://${profile.fleetHost}:${profile.fleetApiPort}`;
 }
 
