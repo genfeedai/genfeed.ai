@@ -391,85 +391,103 @@ export default function SettingsUsagePage() {
 
   return (
     <div className="flex flex-col gap-4 pb-10">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="min-w-0">
-          <Heading size="lg">Usage</Heading>
-          <Text size="sm" color="muted">
-            Org credit ledger — filter by brand when deductions include brand
-            context.
-          </Text>
-        </div>
+      <h1 className="sr-only">Usage</h1>
 
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="flex min-w-40 flex-col gap-1.5">
-            <Label htmlFor="usage-filter-brand" className="sr-only">
-              Brand
-            </Label>
-            <Select
-              value={brandId || ALL_BRANDS_VALUE}
-              onValueChange={(value) =>
-                setBrandId(value === ALL_BRANDS_VALUE ? '' : value)
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <fieldset className="m-0 flex items-center gap-1 rounded-md border border-border p-0.5">
+          <legend className="sr-only">Chart range</legend>
+          {(
+            [
+              { key: 'daily', label: 'Daily' },
+              { key: 'weekly', label: 'Weekly' },
+              { key: 'monthly', label: 'Monthly' },
+            ] as const
+          ).map((option) => (
+            <Button
+              key={option.key}
+              type="button"
+              size={ButtonSize.SM}
+              variant={
+                chartRange === option.key
+                  ? ButtonVariant.SECONDARY
+                  : ButtonVariant.GHOST
               }
+              className="h-8 px-3 text-xs"
+              onClick={() => setChartRange(option.key)}
             >
-              <SelectTrigger
-                id="usage-filter-brand"
-                className="h-9 w-full min-w-40"
-                aria-label="Brand"
-              >
-                <SelectValue placeholder="All brands" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_BRANDS_VALUE}>All brands</SelectItem>
-                {brands.map((brand) =>
-                  brand?.id ? (
-                    <SelectItem key={String(brand.id)} value={String(brand.id)}>
-                      {brand.label || brand.slug || String(brand.id)}
-                    </SelectItem>
-                  ) : null,
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+              {option.label}
+            </Button>
+          ))}
+        </fieldset>
 
-          <div className="flex min-w-32 flex-col gap-1.5">
-            <Label htmlFor="usage-filter-category" className="sr-only">
-              Category
-            </Label>
-            <Select
-              value={category || ALL_CATEGORIES_VALUE}
-              onValueChange={(value) =>
-                setCategory(value === ALL_CATEGORIES_VALUE ? '' : value)
-              }
-            >
-              <SelectTrigger
-                id="usage-filter-category"
-                className="h-9 w-full min-w-32"
-                aria-label="Category"
-              >
-                <SelectValue placeholder="All" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL_CATEGORIES_VALUE}>All</SelectItem>
-                <SelectItem value="deduct">Deduct</SelectItem>
-                <SelectItem value="add">Add</SelectItem>
-                <SelectItem value="refund">Refund</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button
-            variant={ButtonVariant.OUTLINE}
-            size={ButtonSize.SM}
-            className="h-9"
-            onClick={refresh}
-            isDisabled={isRefreshing}
+        <div className="flex min-w-40 flex-col gap-1.5">
+          <Label htmlFor="usage-filter-brand" className="sr-only">
+            Brand
+          </Label>
+          <Select
+            value={brandId || ALL_BRANDS_VALUE}
+            onValueChange={(value) =>
+              setBrandId(value === ALL_BRANDS_VALUE ? '' : value)
+            }
           >
-            <RefreshCw
-              className={`mr-2 size-4 ${isRefreshing ? 'animate-spin' : ''}`}
-            />
-            Refresh
-          </Button>
+            <SelectTrigger
+              id="usage-filter-brand"
+              className="h-9 w-full min-w-40"
+              aria-label="Brand"
+            >
+              <SelectValue placeholder="All brands" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_BRANDS_VALUE}>All brands</SelectItem>
+              {brands.map((brand) =>
+                brand?.id ? (
+                  <SelectItem key={String(brand.id)} value={String(brand.id)}>
+                    {brand.label || brand.slug || String(brand.id)}
+                  </SelectItem>
+                ) : null,
+              )}
+            </SelectContent>
+          </Select>
         </div>
+
+        <div className="flex min-w-32 flex-col gap-1.5">
+          <Label htmlFor="usage-filter-category" className="sr-only">
+            Category
+          </Label>
+          <Select
+            value={category || ALL_CATEGORIES_VALUE}
+            onValueChange={(value) =>
+              setCategory(value === ALL_CATEGORIES_VALUE ? '' : value)
+            }
+          >
+            <SelectTrigger
+              id="usage-filter-category"
+              className="h-9 w-full min-w-32"
+              aria-label="Category"
+            >
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_CATEGORIES_VALUE}>All</SelectItem>
+              <SelectItem value="deduct">Deduct</SelectItem>
+              <SelectItem value="add">Add</SelectItem>
+              <SelectItem value="refund">Refund</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          variant={ButtonVariant.OUTLINE}
+          size={ButtonSize.SM}
+          className="h-9"
+          onClick={refresh}
+          isDisabled={isRefreshing}
+        >
+          <RefreshCw
+            className={`mr-2 size-4 ${isRefreshing ? 'animate-spin' : ''}`}
+          />
+          Refresh
+        </Button>
       </div>
 
       {loadError ? (
@@ -525,37 +543,11 @@ export default function SettingsUsagePage() {
       </div>
 
       <Card bodyClassName="gap-3 p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <Heading size="md">Usage over time</Heading>
-            <Text size="sm" color="muted">
-              {chartTotal.toLocaleString()} credits in selected range
-            </Text>
-          </div>
-          <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
-            {(
-              [
-                { key: 'daily', label: 'Daily' },
-                { key: 'weekly', label: 'Weekly' },
-                { key: 'monthly', label: 'Monthly' },
-              ] as const
-            ).map((option) => (
-              <Button
-                key={option.key}
-                type="button"
-                size={ButtonSize.SM}
-                variant={
-                  chartRange === option.key
-                    ? ButtonVariant.SECONDARY
-                    : ButtonVariant.GHOST
-                }
-                className="h-8 px-3 text-xs"
-                onClick={() => setChartRange(option.key)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
+        <div className="mb-4">
+          <Heading size="md">Usage over time</Heading>
+          <Text size="sm" color="muted">
+            {chartTotal.toLocaleString()} credits in selected range
+          </Text>
         </div>
         <UsageChart
           series={chartSeries}

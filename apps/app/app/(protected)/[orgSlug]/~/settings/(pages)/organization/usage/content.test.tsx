@@ -82,10 +82,13 @@ describe('SettingsUsagePage', () => {
   it('renders usage metrics and ledger rows', () => {
     render(<SettingsUsagePage />);
 
-    expect(screen.getByText('Usage')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Usage' })).toBeInTheDocument();
     expect(screen.getByText('88')).toBeInTheDocument();
     expect(screen.getByText('Used (7 days)')).toBeInTheDocument();
     expect(screen.getByText('Usage over time')).toBeInTheDocument();
+    expect(
+      screen.getByRole('group', { name: 'Chart range' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Daily' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Weekly' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Monthly' })).toBeInTheDocument();
