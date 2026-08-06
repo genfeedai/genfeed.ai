@@ -219,8 +219,10 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
 const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/discover/ads/google': 'Ads',
   '/:orgSlug/:brandSlug/discover/ads/meta': 'Ads',
+  '/:orgSlug/:brandSlug/discover/ads/tiktok': 'Ads',
   '/:orgSlug/~/discover/ads/google': 'Ads',
   '/:orgSlug/~/discover/ads/meta': 'Ads',
+  '/:orgSlug/~/discover/ads/tiktok': 'Ads',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -455,6 +457,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/discover/ads',
       '/:orgSlug/~/discover/ads/google',
       '/:orgSlug/~/discover/ads/meta',
+      '/:orgSlug/~/discover/ads/tiktok',
       '/:orgSlug/~/discover/:platform',
     ],
     {
@@ -657,6 +660,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/discover/ads',
       '/:orgSlug/:brandSlug/discover/ads/google',
       '/:orgSlug/:brandSlug/discover/ads/meta',
+      '/:orgSlug/:brandSlug/discover/ads/tiktok',
       '/:orgSlug/:brandSlug/discover/:platform',
     ],
     {

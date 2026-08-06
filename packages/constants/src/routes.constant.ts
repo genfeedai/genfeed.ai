@@ -135,6 +135,7 @@ export const APP_ROUTES = {
     ADS: '/discover/ads',
     ADS_GOOGLE: '/discover/ads/google',
     ADS_META: '/discover/ads/meta',
+    ADS_TIKTOK: '/discover/ads/tiktok',
     /**
      * @deprecated Use OVERVIEW. Bare `/discover/discovery` permanently redirects
      * to `/discover/overview` (same pattern as workspace/analytics/automate).
