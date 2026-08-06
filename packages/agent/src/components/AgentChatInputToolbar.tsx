@@ -5,12 +5,15 @@ import type { ConversationComposerActionName } from '@genfeedai/agent/models/con
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@ui/primitives/popover';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { Input } from '@ui/primitives/input';
 import {
   ArrowUp,
   Link,
@@ -20,13 +23,7 @@ import {
   Square,
   Zap,
 } from 'lucide-react';
-import {
-  type ChangeEvent,
-  memo,
-  type ReactElement,
-  useRef,
-  useState,
-} from 'react';
+import { type ChangeEvent, memo, type ReactElement, useRef } from 'react';
 
 export interface AgentChatInputToolbarProps {
   canSendMessage: boolean;
@@ -80,7 +77,6 @@ function AgentChatInputToolbarInner({
   density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [isActionsOpen, setIsActionsOpen] = useState(false);
   const isCompact = density === 'compact';
   const modelSelector =
     selectedModel && onModelChange ? (
@@ -170,8 +166,8 @@ function AgentChatInputToolbarInner({
           withWrapper={false}
         />
 
-        <Popover open={isActionsOpen} onOpenChange={setIsActionsOpen}>
-          <PopoverTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
               ariaLabel="Open composer actions"
               className={cn(
@@ -189,41 +185,36 @@ function AgentChatInputToolbarInner({
             >
               {isCompact ? null : <span className="text-xs">Actions</span>}
             </Button>
-          </PopoverTrigger>
-          <PopoverContent
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
             align="start"
-            className="w-64 rounded-xl border-border bg-background p-1.5 text-foreground"
+            className="w-56"
             side="top"
+            sideOffset={8}
           >
-            <div aria-label="Composer actions" role="group">
-              {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
-                <Button
-                  className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left"
-                  key={action.name}
-                  onClick={() => {
-                    onSelectAction(action.name);
-                    setIsActionsOpen(false);
-                  }}
-                  textTransform="none"
-                  variant={ButtonVariant.GHOST}
-                  withWrapper={false}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium leading-5 text-foreground">
-                      {action.label}
-                    </span>
-                    <span className="block text-xs leading-4 text-muted-foreground">
-                      {action.description}
-                    </span>
-                  </span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted-foreground/70">
-                    /{action.name}
-                  </span>
-                </Button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
+              <DropdownMenuItem
+                key={action.name}
+                onSelect={() => {
+                  onSelectAction(action.name);
+                }}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-medium text-primary">
+                    {action.label}
+                  </p>
+                  <p className="truncate text-[11px] text-muted">
+                    {action.description}
+                  </p>
+                </div>
+                <DropdownMenuShortcut className="normal-case tracking-normal">
+                  /{action.name}
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div
