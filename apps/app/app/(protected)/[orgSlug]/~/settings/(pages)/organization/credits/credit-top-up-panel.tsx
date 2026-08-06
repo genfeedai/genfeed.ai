@@ -105,7 +105,7 @@ export default function CreditTopUpPanel({
       <div className="space-y-3">
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Amount</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {PAYG_CREDIT_PACKS.map((pack) => {
               const amountUsd = pack.credits / CREDITS_PER_USD;
               const isSelected = !isCustom && selectedUsd === amountUsd;
@@ -132,9 +132,7 @@ export default function CreditTopUpPanel({
                 </Button>
               );
             })}
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
@@ -149,8 +147,20 @@ export default function CreditTopUpPanel({
             </Button>
 
             {isCustom ? (
-              <>
-                <span className="text-sm text-muted-foreground">$</span>
+              <div
+                className={cn(
+                  'inline-flex h-9 items-stretch overflow-hidden rounded border bg-muted/40',
+                  customError
+                    ? 'border-destructive'
+                    : 'border-border focus-within:border-border-strong',
+                )}
+              >
+                <span
+                  className="inline-flex items-center border-r border-border px-2.5 text-sm font-medium text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  $
+                </span>
                 <Input
                   type="number"
                   inputMode="numeric"
@@ -162,20 +172,23 @@ export default function CreditTopUpPanel({
                   onChange={(event) => setCustomValue(event.target.value)}
                   placeholder={String(PAYG_MIN_PURCHASE_USD)}
                   aria-label="Custom credit top-up amount in dollars"
-                  className="h-9 w-28"
+                  className="h-full w-24 rounded-none border-0 bg-transparent px-2.5 shadow-none focus-visible:border-0 focus-visible:ring-0"
                 />
-                <p
-                  className={cn(
-                    'text-xs',
-                    customError ? 'text-destructive' : 'text-muted-foreground',
-                  )}
-                >
-                  {customError ??
-                    `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
-                </p>
-              </>
+              </div>
             ) : null}
           </div>
+
+          {isCustom ? (
+            <p
+              className={cn(
+                'text-xs',
+                customError ? 'text-destructive' : 'text-muted-foreground',
+              )}
+            >
+              {customError ??
+                `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
+            </p>
+          ) : null}
         </div>
 
         {helperContent}
