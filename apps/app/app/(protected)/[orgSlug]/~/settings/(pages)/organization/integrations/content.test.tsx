@@ -101,17 +101,22 @@ vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
 function providerStatuses() {
   return [
     {
+      docsUrl: 'https://platform.openai.com/api-keys',
       hasKey: false,
+      isEnabled: false,
       isValid: false,
       label: 'OpenAI',
+      maskedKey: null,
       provider: 'openai',
       requiresSecret: false,
     },
     {
+      docsUrl: 'https://replicate.com/account/api-tokens',
       hasKey: true,
+      isEnabled: true,
       isValid: true,
-      keyPreview: 'r8_****1234',
       label: 'Replicate',
+      maskedKey: 'r8_****1234',
       provider: 'replicate',
       requiresSecret: true,
     },
