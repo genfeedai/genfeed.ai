@@ -159,14 +159,45 @@ describe('ModelsService', () => {
 
   it('rejects bulk updates without an explicit organization scope', async () => {
     await expect(
-      service.clearOtherDefaults(
-        ModelCategory.IMAGE,
-        undefined as never,
-        'selected-model',
-      ),
+      service.patchAll({ category: ModelCategory.IMAGE }, { isDefault: false }),
     ).rejects.toThrow('organizationId is required for bulk model updates');
 
     expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects bulk updates with an undefined organization scope', async () => {
+    await expect(
+      service.patchAll({ organizationId: undefined }, { isDefault: false }),
+    ).rejects.toThrow('organizationId is required for bulk model updates');
+
+    expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-record bulk update filters', async () => {
+    await expect(
+      service.patchAll([] as never, { isDefault: false }),
+    ).rejects.toThrow('Filter criteria are required');
+
+    expect(modelDelegate.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('permits bulk updates explicitly scoped to the global registry', async () => {
+    modelDelegate.updateMany.mockResolvedValue({ count: 2 });
+
+    const result = await service.patchAll(
+      { key: 'google/imagen-4', organizationId: null },
+      { isDefault: false },
+    );
+
+    expect(modelDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDefault: false },
+      where: {
+        isDeleted: false,
+        key: 'google/imagen-4',
+        organizationId: null,
+      },
+    });
+    expect(result).toEqual({ modifiedCount: 2 });
   });
 
   it('creates a private model from a completed training', async () => {

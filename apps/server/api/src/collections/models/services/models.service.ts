@@ -397,6 +397,35 @@ export class ModelsService extends BaseService<
     });
   }
 
+  /**
+   * Model bulk writes must target either one organization or the global
+   * registry (`organizationId: null`). Omitting the scope would let Prisma
+   * update matching models across every registry.
+   */
+  override async patchAll(
+    filter: Record<string, unknown>,
+    update: Record<string, unknown>,
+  ): Promise<{ modifiedCount: number }> {
+    if (!this.isModelRecord(filter)) {
+      throw new ValidationException('Filter criteria are required');
+    }
+
+    const organizationId = filter.organizationId;
+    const hasValidScope =
+      Object.hasOwn(filter, 'organizationId') &&
+      (organizationId === null ||
+        (typeof organizationId === 'string' &&
+          organizationId.trim().length > 0));
+
+    if (!hasValidScope) {
+      throw new ValidationException(
+        'organizationId is required for bulk model updates',
+      );
+    }
+
+    return super.patchAll(filter, update);
+  }
+
   async touchDiscoveredModels(
     keys: string[],
     lastSyncedAt: Date,
