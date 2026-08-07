@@ -1,0 +1,18 @@
+{
+  "actions": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "retry": "Retry",
+    "save": "Save"
+  },
+  "empty": {
+    "default": "No items found",
+    "results": "No results found"
+  },
+  "errors": {
+    "deleteFailed": "Failed to delete. Please try again.",
+    "loadFailed": "Failed to load. Please try again.",
+    "notFound": "Not found",
+    "updateFailed": "Failed to update. Please try again."
+  }
+}

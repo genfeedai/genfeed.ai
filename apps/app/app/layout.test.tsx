@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const appProvidersSpy = vi.fn();
+const htmlDocumentSpy = vi.fn();
 
 vi.mock('@styles/globals.css', () => ({}));
 
@@ -23,6 +24,20 @@ vi.mock('@helpers/ui/theme/theme.helper', () => ({
   resolveRequestTheme: vi.fn().mockResolvedValue('dark'),
 }));
 
+// The pseudo-locale stands in for "not the default", so a hardcoded 'en'
+// anywhere in the layout would fail the lang assertion below.
+vi.mock('@helpers/ui/locale/locale.helper', () => ({
+  resolveRequestLocale: vi.fn().mockResolvedValue('en-XA'),
+}));
+
+// The real provider reads request-scoped config from i18n/request.ts, which
+// has no request to bind to under vitest.
+vi.mock('next-intl', () => ({
+  NextIntlClientProvider: ({ children }: { children: ReactNode }) => (
+    <div data-testid="next-intl-provider">{children}</div>
+  ),
+}));
+
 vi.mock('@ui/providers/AppProviders', () => ({
   default: ({
     children,
@@ -38,9 +53,10 @@ vi.mock('@ui/providers/AppProviders', () => ({
 }));
 
 vi.mock('@ui/shell/AppHtmlDocument', () => ({
-  default: ({ children }: { children: ReactNode }) => (
-    <div data-testid="app-html-document">{children}</div>
-  ),
+  default: ({ children, ...props }: { children: ReactNode; lang?: string }) => {
+    htmlDocumentSpy(props);
+    return <div data-testid="app-html-document">{children}</div>;
+  },
 }));
 
 vi.mock('@/components/runtime/RuntimeConfigScript', () => ({
@@ -66,6 +82,7 @@ describe('app root layout', () => {
 
   beforeEach(() => {
     appProvidersSpy.mockClear();
+    htmlDocumentSpy.mockClear();
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
   });
 
@@ -95,6 +112,32 @@ describe('app root layout', () => {
         storageKey: 'theme',
       }),
     );
+  });
+
+  it('sets the document language from the resolved request locale', async () => {
+    const { default: RootLayout } = await import('./layout');
+
+    render(
+      await RootLayout({
+        children: <div>App child</div>,
+      } as never),
+    );
+
+    expect(htmlDocumentSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ lang: 'en-XA' }),
+    );
+  });
+
+  it('wraps the tree in the next-intl provider', async () => {
+    const { default: RootLayout } = await import('./layout');
+
+    render(
+      await RootLayout({
+        children: <div>App child</div>,
+      } as never),
+    );
+
+    expect(screen.getByTestId('next-intl-provider')).toBeTruthy();
   });
 
   it('marks the whole studio noindex, nofollow in the root metadata', async () => {

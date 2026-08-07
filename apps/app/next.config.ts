@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 // Deterministic, empty-string-safe build id. A plain `??` chain does NOT skip
 // empty strings, and Vercel sets VERCEL_GIT_COMMIT_SHA="" on CLI deploys with no
@@ -506,7 +507,12 @@ if (process.env.E2E_COVERAGE === '1') {
   config.productionBrowserSourceMaps = true;
 }
 
+// Resolves ./i18n/request.ts, next-intl's default request-config location. The
+// plugin only registers that alias — there is no `[locale]` segment and no
+// next-intl middleware, because locale rides on a cookie (epic #2497).
+const withNextIntl = createNextIntlPlugin();
+
 // Bundler-agnostic: withSerwist only appends esbuild to serverExternalPackages
 // so app/serwist/[path]/route.ts can require it at runtime to compile the
 // service worker. It adds no webpack plugin, so `--turbopack` stays intact.
-export default withSerwist(config);
+export default withSerwist(withNextIntl(config));
