@@ -14,31 +14,31 @@ describe('Badge', () => {
     expect(badge.className).toContain('ship-ui');
   });
 
-  it('preserves the local outline variant API on top of the shared package', () => {
+  it('gives outline a slate tone so it is not bare white text', () => {
     render(<Badge variant="outline">Outline</Badge>);
 
     const badge = screen.getByText('Outline');
 
-    expect(badge.className).toContain('bg-transparent');
-    expect(badge.className).toContain('border-white/[0.08]');
+    expect(badge.className).toContain('text-slate-300');
+    expect(badge.className).toContain('bg-slate-500/15');
   });
 
-  it('renders destructive (failed) with a real red tone, not unstyled white', () => {
-    render(<Badge variant="destructive">FAILED</Badge>);
+  it.each([
+    ['destructive', 'text-destructive', 'bg-destructive/15'],
+    ['success', 'text-success', 'bg-success/15'],
+    ['warning', 'text-warning', 'bg-warning/15'],
+    ['info', 'text-info', 'bg-info/15'],
+    ['secondary', 'text-slate-300', 'bg-slate-500/15'],
+    ['default', 'text-primary', 'bg-primary/15'],
+  ] as const)(
+    'renders %s with a visible semantic tone',
+    (variant, textClass, bgClass) => {
+      render(<Badge variant={variant}>{variant}</Badge>);
 
-    const badge = screen.getByText('FAILED');
+      const badge = screen.getByText(variant);
 
-    expect(badge.className).toContain('text-destructive');
-    expect(badge.className).toContain('bg-destructive/15');
-    expect(badge.className).toContain('border-destructive/40');
-  });
-
-  it('renders success (completed) with the success semantic tone', () => {
-    render(<Badge variant="success">COMPLETED</Badge>);
-
-    const badge = screen.getByText('COMPLETED');
-
-    expect(badge.className).toContain('text-success');
-    expect(badge.className).toContain('bg-success/15');
-  });
+      expect(badge.className).toContain(textClass);
+      expect(badge.className).toContain(bgClass);
+    },
+  );
 });

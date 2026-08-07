@@ -133,11 +133,7 @@ describe('getCredentialBadge', () => {
       { accountHealth: { riskLevel: 'low' }, isConnected: true },
       { label: 'Healthy', variant: 'success' },
     ],
-    [
-      'unknown',
-      { isConnected: true },
-      { label: 'Connected', variant: 'outline' },
-    ],
+    ['unknown', { isConnected: true }, { label: 'Connected', variant: 'info' }],
   ])('maps %s credentials', (_label, credential, expected) => {
     expect(getCredentialBadge(credential as unknown as ICredential)).toEqual(
       expected,
@@ -162,7 +158,7 @@ describe('getActivityBadge', () => {
       { status: 'published' },
       { label: 'Completed', variant: 'success' },
     ],
-    ['unknown', {}, { label: 'Recorded', variant: 'outline' }],
+    ['unknown', {}, { label: 'Recorded', variant: 'info' }],
   ])('maps %s activity', (_label, activity, expected) => {
     expect(getActivityBadge(activity as unknown as IActivity)).toEqual(
       expected,

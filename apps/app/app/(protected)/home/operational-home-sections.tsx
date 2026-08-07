@@ -42,13 +42,13 @@ type ReviewInboxItem =
 
 const RUN_STATUS_VARIANTS: Record<
   AgentExecutionStatus,
-  'destructive' | 'outline' | 'success' | 'warning'
+  'destructive' | 'info' | 'secondary' | 'success' | 'warning'
 > = {
-  [AgentExecutionStatus.CANCELLED]: 'outline',
+  [AgentExecutionStatus.CANCELLED]: 'secondary',
   [AgentExecutionStatus.COMPLETED]: 'success',
   [AgentExecutionStatus.FAILED]: 'destructive',
   [AgentExecutionStatus.PENDING]: 'warning',
-  [AgentExecutionStatus.RUNNING]: 'warning',
+  [AgentExecutionStatus.RUNNING]: 'info',
 };
 
 function LoadingPanel({ label }: { label: string }) {
@@ -354,7 +354,7 @@ function PublishingSurface({
                     variant={
                       RUN_STATUS_VARIANTS[
                         String(run.status).toUpperCase() as AgentExecutionStatus
-                      ] ?? 'outline'
+                      ] ?? 'info'
                     }
                   >
                     {String(run.status).toLowerCase()}
