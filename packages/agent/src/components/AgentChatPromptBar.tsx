@@ -5,6 +5,7 @@ import {
 import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
@@ -62,7 +63,7 @@ type AgentChatPromptBarProps = {
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
   onModelChange?: (model: string) => void;
-  models?: import('@genfeedai/agent/constants/agent-models.constant').AgentModelOption[];
+  models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;

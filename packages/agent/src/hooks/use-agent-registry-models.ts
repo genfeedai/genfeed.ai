@@ -24,7 +24,7 @@ function mapRegistryModelToOption(model: IModel): AgentModelOption {
 }
 
 function isAgentChatRegistryModel(model: IModel): boolean {
-  if (model.category !== ModelCategory.TEXT && model.category !== 'text') {
+  if (model.category !== ModelCategory.TEXT) {
     return false;
   }
   if (model.isLegacy || model.isActive === false) {

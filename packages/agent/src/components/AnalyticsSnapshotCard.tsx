@@ -63,26 +63,32 @@ function extractPeriod(action: AgentUiAction): string {
 function resolvePeriodSnapshots(action: AgentUiAction): PeriodSnapshot[] {
   const raw = action.data?.periodSnapshots;
   if (Array.isArray(raw) && raw.length > 0) {
-    return raw
-      .map((entry) => {
-        if (!entry || typeof entry !== 'object') {
-          return null;
-        }
-        const record = entry as Record<string, unknown>;
-        const period =
-          typeof record.period === 'string'
-            ? record.period
-            : extractPeriod(action);
-        return {
-          period,
-          metrics:
-            record.metrics && typeof record.metrics === 'object'
-              ? (record.metrics as Record<string, unknown>)
-              : undefined,
-          title: typeof record.title === 'string' ? record.title : undefined,
-        } satisfies PeriodSnapshot;
-      })
-      .filter((entry): entry is PeriodSnapshot => entry !== null);
+    return (
+      raw
+        // The return type is annotated rather than inferred: an inferred
+        // `metrics: Record<string, unknown> | undefined` is a *required* property,
+        // which the optional `metrics?` on PeriodSnapshot does not satisfy, and the
+        // filter predicate below then fails to narrow.
+        .map((entry): PeriodSnapshot | null => {
+          if (!entry || typeof entry !== 'object') {
+            return null;
+          }
+          const record = entry as Record<string, unknown>;
+          const period =
+            typeof record.period === 'string'
+              ? record.period
+              : extractPeriod(action);
+          return {
+            period,
+            metrics:
+              record.metrics && typeof record.metrics === 'object'
+                ? (record.metrics as Record<string, unknown>)
+                : undefined,
+            title: typeof record.title === 'string' ? record.title : undefined,
+          };
+        })
+        .filter((entry): entry is PeriodSnapshot => entry !== null)
+    );
   }
 
   return [
