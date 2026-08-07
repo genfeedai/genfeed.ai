@@ -93,7 +93,7 @@ describe('docs SEO metadata', () => {
       return description;
     });
 
-    expect(descriptions).toHaveLength(51);
+    expect(descriptions).toHaveLength(52);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 });
