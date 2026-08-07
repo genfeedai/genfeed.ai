@@ -175,42 +175,6 @@ export interface IKnowledgeSourceFormValues {
 
 // --- RAG/AI interfaces ---
 
-export interface IKnowledgeBase {
-  id: string;
-  organizationId: string;
-  name: string;
-  description: string;
-  type: KnowledgeBaseType;
-  status: 'active' | 'indexing' | 'paused' | 'error';
-  sources: IKnowledgeSource[];
-  settings: IKnowledgeBaseSettings;
-  stats: IKnowledgeBaseStats;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export type KnowledgeBaseType =
-  | 'brand-voice'
-  | 'content-library'
-  | 'audience-data'
-  | 'product-info'
-  | 'campaign-data'
-  | 'custom';
-
-export interface IKnowledgeSource {
-  id: string;
-  type: SourceType;
-  name: string;
-  url?: string;
-  fileId?: string;
-  brandId?: string;
-  content?: string;
-  metadata: Record<string, unknown>;
-  status: 'indexed' | 'pending' | 'error';
-  lastIndexed?: Date;
-  chunkCount: number;
-}
-
 export type SourceType =
   | 'document'
   | 'website'
@@ -218,25 +182,6 @@ export type SourceType =
   | 'analytics-data'
   | 'manual-entry'
   | 'api';
-
-export interface IKnowledgeBaseSettings {
-  autoUpdate: boolean;
-  updateFrequency?: 'daily' | 'weekly' | 'monthly';
-  chunkSize: number;
-  chunkOverlap: number;
-  embeddingModel: string;
-  maxChunks?: number;
-  excludePatterns?: string[];
-  includeMetadata: string[];
-}
-
-export interface IKnowledgeBaseStats {
-  totalChunks: number;
-  totalTokens: number;
-  lastIndexed: Date;
-  queriesCount: number;
-  avgRelevanceScore: number;
-}
 
 export interface IRAGQuery {
   query: string;

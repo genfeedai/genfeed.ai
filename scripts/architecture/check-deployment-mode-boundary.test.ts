@@ -65,4 +65,40 @@ describe('deployment mode boundary', () => {
 
     expect(checkDeploymentModeBoundary({ rootDir })).toEqual([]);
   });
+
+  it('keeps allowlisted files checked on the axes they do not own', () => {
+    const rootDir = fixture({
+      'apps/app/next.config.ts':
+        'export const license = process.env.GENFEED_LICENSE_KEY;',
+      'packages/auth-client/src/config.ts':
+        'export const cloud = process.env.GENFEED_CLOUD;',
+      'packages/config/src/deployment.ts':
+        'export const auth = process.env.BETTER_AUTH_ENABLED;',
+      'packages/config/src/license-server.ts':
+        'export const auth = process.env.BETTER_AUTH_ENABLED;\nexport const cloud = process.env.GENFEED_CLOUD;',
+    });
+
+    expect(checkDeploymentModeBoundary({ rootDir })).toEqual([
+      expect.objectContaining({
+        file: 'apps/app/next.config.ts',
+        reason: 'raw-license-env',
+      }),
+      expect.objectContaining({
+        file: 'packages/auth-client/src/config.ts',
+        reason: 'raw-mode-env',
+      }),
+      expect.objectContaining({
+        file: 'packages/config/src/deployment.ts',
+        reason: 'raw-auth-env',
+      }),
+      expect.objectContaining({
+        file: 'packages/config/src/license-server.ts',
+        reason: 'raw-auth-env',
+      }),
+      expect.objectContaining({
+        file: 'packages/config/src/license-server.ts',
+        reason: 'raw-mode-env',
+      }),
+    ]);
+  });
 });

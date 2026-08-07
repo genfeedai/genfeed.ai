@@ -48,6 +48,7 @@ import {
   truncateBreadcrumbLabel,
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
+import ImpersonationBanner from './impersonation-banner';
 import {
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,
@@ -391,6 +392,9 @@ function AppLayoutWithDynamicMenu({
     ) : null;
   const shellBanner = (
     <>
+      {/* Unconditional: the "Viewing as {user}" state must survive every
+          route the impersonated session can reach, not a subset. */}
+      <ImpersonationBanner />
       {isDesktopShell ? null : <ProductionDataBanner />}
       {lowCreditsBanner}
     </>

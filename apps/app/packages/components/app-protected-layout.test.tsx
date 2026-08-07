@@ -453,6 +453,12 @@ vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
   },
 }));
 
+// Mocked so this suite stays hermetic (the real banner reads the Better Auth
+// session store); its own behavior is covered in impersonation-banner.test.tsx.
+vi.mock('./impersonation-banner', () => ({
+  default: () => <div data-testid="impersonation-banner" />,
+}));
+
 vi.mock('@ui/guards/onboarding/OnboardingGuard', () => ({
   default: ({ children }: { children: ReactNode }) => {
     onboardingGuardSpy();
@@ -533,6 +539,9 @@ describe('AppProtectedLayout', () => {
     mockPathname.value = '/studio/storyboard';
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).not.toHaveBeenCalled();
+    // The impersonation banner has no route carve-outs: it must survive
+    // every route the impersonated session can reach.
+    expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
   });
 
   it('keeps the shell low credits banner on the studio edit surface', () => {
@@ -546,6 +555,7 @@ describe('AppProtectedLayout', () => {
     render(<AppProtectedLayout />);
     expect(lowCreditsBannerSpy).toHaveBeenCalled();
     expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
   });
 
   it('wires the permanent workspace shell through the protected app shell', () => {

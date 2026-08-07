@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
+import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -355,11 +356,17 @@ describe('ToolRegistryService', () => {
     expect(tools.length).toBeGreaterThan(0);
   });
 
-  it('getResources returns two analytics resources', () => {
+  it('getResources returns the shared catalog', () => {
     const resources = service.getResources();
-    expect(resources).toHaveLength(2);
+    expect(resources).toEqual([...MCP_RESOURCES]);
     expect(resources[0].uri).toBe('genfeed://analytics/videos');
     expect(resources[1].uri).toBe('genfeed://analytics/organization');
+  });
+
+  it('getResources hands out a copy, never the shared array', () => {
+    service.getResources().pop();
+
+    expect(service.getResources()).toHaveLength(MCP_RESOURCES.length);
   });
 
   it('handleToolCall generate_video proxies through executeAgentTool', async () => {

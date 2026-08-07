@@ -1,7 +1,10 @@
 export type { AgentToolOutput } from './adapters/to-agent-tool.js';
 export { toAgentTools } from './adapters/to-agent-tool.js';
 export type { McpToolOutput } from './adapters/to-mcp-tool.js';
-export { toMcpTools } from './adapters/to-mcp-tool.js';
+export {
+  MCP_CREDIT_COST_META_KEY,
+  toMcpTools,
+} from './adapters/to-mcp-tool.js';
 export type {
   CanonicalToolDefinition,
   ToolCategory,
