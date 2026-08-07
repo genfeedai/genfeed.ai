@@ -133,11 +133,15 @@ export class MarketplaceInstallService {
 
     const template = (downloadData.template as string) || title;
 
+    // `userId` is required by the prompts table and is the only filter
+    // PromptsController.findAll applies for ownership — omitting it hides the
+    // installed prompt from the installing user's list.
     const prompt = await this.promptsService.create({
       category,
       isFavorite: true,
       organizationId,
       original: template,
+      userId,
     });
 
     return {

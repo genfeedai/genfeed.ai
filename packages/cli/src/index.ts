@@ -13,6 +13,7 @@ import { keysCommand } from './commands/keys';
 import { libraryCommand } from './commands/library';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
+import { organizationsCommand } from './commands/organizations';
 import { performanceCommand } from './commands/performance';
 import { postsCommand } from './commands/posts';
 import { profileCommand } from './commands/profile';
@@ -46,6 +47,7 @@ program
   .addCommand(logoutCommand)
   .addCommand(whoamiCommand)
   .addCommand(keysCommand)
+  .addCommand(organizationsCommand)
   .addCommand(brandsCommand)
   .addCommand(generateCommand)
   .addCommand(statusCommand)
@@ -80,6 +82,7 @@ function printHelp(): void {
   print('  logout         Remove stored credentials');
   print('  whoami         Show current user and organization');
   print('  keys           Manage API keys for headless and MCP access');
+  print('  organizations  List organizations and switch the active one');
   print('  brands         Manage brands');
   print('  generate       Generate AI content (image, video, article)');
   print('  status         Check the status of a generation job');

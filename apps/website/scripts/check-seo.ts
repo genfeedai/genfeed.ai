@@ -32,6 +32,7 @@ import {
   checkSitemapEntriesResolve,
   collectBreadcrumbTargets,
   type Finding,
+  findingKey,
   type PageInput,
   summarize,
 } from './seo/seo-rules';
@@ -64,10 +65,6 @@ const NOT_FOUND_PROBE_PATHS = [
 
 interface Baseline {
   readonly accepted: string[];
-}
-
-function findingKey(item: Finding): string {
-  return `${item.rule} ${item.path}`;
 }
 
 function readBaseline(): Set<string> {
@@ -191,6 +188,7 @@ async function main(): Promise<void> {
 
   const { paths: sitemap, publicOrigin } = await fetchSitemapUniverse({
     origin: BASE_URL,
+    timeoutMs: REQUEST_TIMEOUT_MS,
     userAgent: USER_AGENT,
   });
   console.log(

@@ -148,7 +148,31 @@ describe('MarketplaceInstallService', () => {
         isFavorite: true,
         organizationId: orgId,
         original: 'Make a video',
+        userId,
       });
+    });
+
+    it('persists the installing user so the prompt stays listable and org-scoped', async () => {
+      apiClient.getListingDownloadData.mockResolvedValue({
+        downloadData: {
+          category: 'image-generation',
+          template: 'Make an image',
+        },
+        title: 'Image Prompt',
+        type: ListingType.PROMPT,
+      });
+      promptsService.create.mockResolvedValue({
+        id: { toString: () => 'p-3' },
+      });
+
+      await service.installToWorkspace(listingId, userId, orgId);
+
+      expect(promptsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          organizationId: orgId,
+          userId,
+        }),
+      );
     });
 
     it('falls back to the image category and title template for unknown categories', async () => {

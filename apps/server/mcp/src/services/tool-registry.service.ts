@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
+import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -223,8 +224,9 @@ export class ToolRegistryService implements OnModuleInit {
     private readonly logger: LoggerService,
     // Per-request callers (`StreamableHttpService.buildServer`) pass the
     // authenticated caller's role via `new ToolRegistryService(...)`. When
-    // resolved as a DI singleton (e.g. `ServerService`), there is no per-request
-    // role, so it falls back to `'user'` — deny-by-default for admin tools.
+    // resolved as a DI singleton (`McpController`'s REST mirror), there is no
+    // per-request role, so it falls back to `'user'` — deny-by-default for
+    // admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
   ) {}
 
@@ -260,20 +262,7 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   getResources(): McpResource[] {
-    return [
-      {
-        description: 'Get analytics for all videos in your organization',
-        mimeType: 'application/json',
-        name: 'Video Analytics',
-        uri: 'genfeed://analytics/videos',
-      },
-      {
-        description: 'Get overall organization analytics',
-        mimeType: 'application/json',
-        name: 'Organization Analytics',
-        uri: 'genfeed://analytics/organization',
-      },
-    ];
+    return [...MCP_RESOURCES];
   }
 
   async handleToolCall(params: ToolCallParams) {
@@ -859,7 +848,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     try {
       switch (uri) {
-        case 'genfeed://analytics/videos': {
+        case McpResourceUri.VIDEO_ANALYTICS: {
           const videoAnalytics = await this.clientService.getVideoAnalytics();
           return {
             contents: [
@@ -872,7 +861,7 @@ export class ToolRegistryService implements OnModuleInit {
           };
         }
 
-        case 'genfeed://analytics/organization': {
+        case McpResourceUri.ORGANIZATION_ANALYTICS: {
           const orgAnalytics =
             await this.clientService.getOrganizationAnalytics();
           return {

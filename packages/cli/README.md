@@ -116,6 +116,26 @@ genfeed logout
 
 ## Commands
 
+### Organizations
+
+List your organizations:
+
+```bash
+gf organizations
+```
+
+Switch the active organization (also updates the default brand):
+
+```bash
+gf organizations select
+```
+
+Show the current organization:
+
+```bash
+gf organizations current
+```
+
 ### Brand Management
 
 List all brands:
@@ -178,16 +198,22 @@ Generate an article:
 genfeed generate article "Write about AI marketing trends" --category marketing
 ```
 
+Generate several at once, steered by keywords:
+
+```bash
+genfeed generate article "Write about AI marketing trends" --count 3 --keywords ai,marketing,seo
+```
+
 Generate long-form X article:
 
 ```bash
-genfeed generate article-x "Write a founder update thread"
+genfeed generate article-x "Write a founder update thread" --tone analytical --words 3000
 ```
 
-Start async and poll later:
+Article generation is synchronous — the command returns the finished articles, so
+there is nothing to poll. To re-read one later:
 
 ```bash
-genfeed generate article "Your prompt" --no-wait
 genfeed status <article-id> --type article
 ```
 
@@ -297,6 +323,20 @@ genfeed posts list --platform twitter --status published
 |--------|-------------|
 | `-d, --duration <sec>` | Video duration |
 | `-r, --resolution <res>` | Resolution (720p, 1080p, 4k) |
+
+### Article-specific Options
+
+Articles resolve their brand from the API key's own context, and generation is
+synchronous — neither `--brand` nor `--no-wait` applies.
+
+| Option | Description |
+|--------|-------------|
+| `-c, --count <n>` | Number of standard articles (1-4) |
+| `--category <cat>` | Article category |
+| `--keywords <list>` | Comma-separated keywords |
+| `--tone <tone>` | Tone of voice (`article-x` only) |
+| `--words <n>` | Target word count, 2500-10000 (`article-x` only) |
+| `--no-header-image` | Skip the header image (`article-x` only) |
 
 ## Scripting
 

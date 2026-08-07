@@ -88,8 +88,12 @@ describe('AgentComposerStatusStack', () => {
       />,
     );
 
-    expect(
-      screen.getByText('Offline. Your draft is safe; sending is paused.'),
-    ).toBeInTheDocument();
+    const notice = screen.getByText(
+      'Offline. Your draft is safe; sending is paused.',
+    );
+    expect(notice).toBeInTheDocument();
+    const card = notice.closest('[role="status"]');
+    expect(card?.className).toMatch(/bg-warning/);
+    expect(card?.className).toMatch(/border-warning/);
   });
 });

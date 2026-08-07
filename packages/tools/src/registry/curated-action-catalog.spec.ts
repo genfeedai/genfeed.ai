@@ -85,6 +85,56 @@ describe('curated action catalog', () => {
     ]);
   });
 
+  it('exposes the reviewed generation, edit, and analytics actions on both surfaces', () => {
+    for (const name of [
+      'analyze_performance',
+      'generate_voice',
+      'get_analytics',
+      'get_content_calendar',
+      'reframe_image',
+      'upscale_image',
+    ]) {
+      expect(getToolByName(name)?.surfaces, name).toMatchObject({
+        agent: true,
+        mcp: true,
+      });
+    }
+  });
+
+  it('keeps in-product guided flows on the agent surface only', () => {
+    // Deliberate boundaries — see `.agents/memory/curated_action_surface_boundaries.md`.
+    for (const name of [
+      'create_brand',
+      'get_campaign_analytics',
+      'prepare_voice_clone',
+      'schedule_post',
+    ]) {
+      expect(getToolByName(name)?.surfaces, name).toMatchObject({
+        agent: true,
+        mcp: false,
+      });
+    }
+  });
+
+  it('keeps per-account ad performance reporting on the MCP surface only', () => {
+    const adsReportingTools = ALL_TOOLS.filter(
+      (tool) =>
+        tool.name.startsWith('list_meta_') ||
+        tool.name.startsWith('get_meta_') ||
+        tool.name.startsWith('compare_meta_') ||
+        tool.name.startsWith('list_google_ads_') ||
+        tool.name.startsWith('get_google_ads_'),
+    );
+
+    expect(adsReportingTools).toHaveLength(14);
+    for (const tool of adsReportingTools) {
+      expect(tool.surfaces, tool.name).toMatchObject({
+        agent: false,
+        mcp: true,
+      });
+    }
+  });
+
   it('publishes Instagram inspiration and review-only remix schemas on both surfaces', () => {
     const listTool = getToolByName('list_instagram_inspiration');
     const remixTool = getToolByName('create_instagram_remix_workflow');
