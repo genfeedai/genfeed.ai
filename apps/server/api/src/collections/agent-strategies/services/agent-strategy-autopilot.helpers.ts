@@ -2,6 +2,7 @@ import type { AgentStrategyDocument } from '@api/collections/agent-strategies/sc
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
+import { AgentAutonomyMode } from '@genfeedai/enums';
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
@@ -129,7 +130,7 @@ export function buildImagePrompt(
 
 export function shouldAutoPublish(strategy: AgentStrategyDocument): boolean {
   return (
-    strategy.autonomyMode === 'auto_publish' &&
+    strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH &&
     Boolean(strategy.publishPolicy?.autoPublishEnabled)
   );
 }

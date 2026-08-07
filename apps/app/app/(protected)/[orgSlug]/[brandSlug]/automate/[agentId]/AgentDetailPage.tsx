@@ -1,7 +1,12 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  AgentAutonomyMode,
+  AgentType,
+  ButtonSize,
+  ButtonVariant,
+} from '@genfeedai/enums';
 import {
   LinkedinIcon,
   XTwitterIcon,
@@ -220,7 +225,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
               {typeLabel}
               {strategy.brand ? ` · ${strategy.brand.label}` : ''}
               {' · '}
-              {strategy.autonomyMode === 'auto_publish'
+              {strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH
                 ? 'Auto-Publish'
                 : 'Supervised'}
             </p>

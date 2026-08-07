@@ -1,3 +1,4 @@
+import { AgentAutonomyMode } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import AgentDetailPage from './AgentDetailPage';
@@ -20,7 +21,7 @@ vi.mock('@hooks/data/agent-strategies/use-agent-strategy', () => ({
     refresh: vi.fn(),
     strategy: {
       agentType: 'general',
-      autonomyMode: 'auto_publish',
+      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
       brand: 'Brand One',
       consecutiveFailures: 0,
       creditsUsedThisWeek: 9,
