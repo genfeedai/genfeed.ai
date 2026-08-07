@@ -139,5 +139,8 @@ describe('ImpersonationBanner', () => {
     });
     expect(locationAssign).not.toHaveBeenCalled();
     expect(screen.getByTestId('impersonation-banner')).toBeInTheDocument();
+    expect(
+      screen.getByText('Unable to exit impersonation. Try again.'),
+    ).toBeInTheDocument();
   });
 });

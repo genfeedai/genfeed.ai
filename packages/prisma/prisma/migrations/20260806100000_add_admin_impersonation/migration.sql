@@ -8,5 +8,3 @@ ADD COLUMN IF NOT EXISTS "banExpires" TIMESTAMP(3);
 
 ALTER TABLE "sessions"
 ADD COLUMN IF NOT EXISTS "impersonatedBy" TEXT;
-
-CREATE INDEX IF NOT EXISTS "sessions_impersonatedBy_idx" ON "sessions"("impersonatedBy");

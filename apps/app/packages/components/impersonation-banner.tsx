@@ -19,6 +19,7 @@ const ADMIN_USERS_PATH = '/admin/administration/users';
 export default function ImpersonationBanner() {
   const { data: session } = useSession();
   const [isExiting, setIsExiting] = useState(false);
+  const [exitError, setExitError] = useState<string | null>(null);
 
   const impersonatedBy = session?.session?.impersonatedBy;
   if (!impersonatedBy) {
@@ -28,6 +29,7 @@ export default function ImpersonationBanner() {
   const viewingAs = session?.user?.name || session?.user?.email || 'user';
 
   const handleExit = async () => {
+    setExitError(null);
     setIsExiting(true);
     try {
       const { error } = await authClient.admin.stopImpersonating();
@@ -39,6 +41,7 @@ export default function ImpersonationBanner() {
       window.location.assign(ADMIN_USERS_PATH);
     } catch (error) {
       logger.error('Failed to stop impersonating', error);
+      setExitError('Unable to exit impersonation. Try again.');
       setIsExiting(false);
     }
   };
@@ -61,6 +64,7 @@ export default function ImpersonationBanner() {
         className="rounded-md border border-amber-950/30 px-2 py-0.5 font-bold transition-colors hover:bg-amber-950/10"
         label="Exit"
       />
+      {exitError ? <span role="status">{exitError}</span> : null}
     </div>
   );
 }
