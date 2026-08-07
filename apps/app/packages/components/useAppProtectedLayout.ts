@@ -96,21 +96,15 @@ export function useAppProtectedLayout(
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
-  // Floating product prompt bars are retired on Publish (sidebar agent owns
-  // generation). Studio / automate still flag a few routes for banner layout
-  // (no docked posts prompt bar).
-  const isStudioPromptBarRoute =
-    /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
-  const isMissionControlPromptBarRoute =
+  // Dense studio canvases + mission-control runs: hide shell low-credits strip
+  // so it does not steal vertical space under fixed chrome.
+  const suppressShellLowCreditsBanner =
+    /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname) ||
     pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||
     pathname === APP_ROUTES.AUTOMATE.RUNS;
-  const isPromptBarRoute =
-    isStudioPromptBarRoute || isMissionControlPromptBarRoute;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
-  const hasSecondaryTopbar =
-    !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
   const isEditorCanvasRoute = isProtectedEditorCanvasRoute(pathname);
   const isMoodboardRoute = pathname === APP_ROUTES.LIBRARY.MOODBOARD;
   const isAutomateRoute = pathname.startsWith(APP_ROUTE_PREFIXES.AUTOMATE);
@@ -420,7 +414,7 @@ export function useAppProtectedLayout(
     isMoodboardRoute,
     isOrgRoute,
     isPublishRoute,
-    isPromptBarRoute,
+    suppressShellLowCreditsBanner,
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
@@ -428,7 +422,6 @@ export function useAppProtectedLayout(
     isWorkspaceRoute,
     isUniversalWorkspaceShell,
     workspaceShellRoute,
-    hasSecondaryTopbar,
     // app/org
     currentApp,
     orgSlug,

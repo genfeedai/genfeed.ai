@@ -55,6 +55,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
   Select,
@@ -69,6 +75,7 @@ import {
 } from '@utils/url/desktop-loop-url.util';
 import {
   AtSign,
+  Ellipsis,
   ExternalLink,
   Inbox,
   List,
@@ -695,80 +702,88 @@ function SourcePostCard({
           {title}
         </p>
         <MetricStrip post={post} />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            className="min-w-0 flex-1 sm:flex-none"
+            icon={<Sparkles className="size-3.5" />}
+            label="Remix"
+            onClick={() => onOpenRemix(post)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
           {finding && onSelect ? (
             <Button
               aria-pressed={isSelected}
-              label={isSelected ? 'Selected for context' : 'Use as context'}
+              label={isSelected ? 'Selected' : 'Use as context'}
               onClick={() => onSelect(finding)}
+              size={ButtonSize.SM}
               variant={
                 isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
               }
             />
           ) : null}
-          {post.platform === SocialSourcePlatform.TWITTER ? (
-            <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
-                icon={<MessageSquare className="size-3.5" />}
-                isLoading={
-                  busyId === `${post.id}-${SourcePostActionType.REPLY}`
-                }
-                label="Reply"
-                onClick={() => {
-                  onCreateDraft(post, SourcePostActionType.REPLY).catch(
-                    () => undefined,
-                  );
-                }}
-                variant={ButtonVariant.SECONDARY}
-              />
-              <Button
-                icon={<Zap className="size-3.5" />}
-                isLoading={
-                  busyId === `${post.id}-${SourcePostActionType.QUOTE}`
-                }
-                label="QRT"
-                onClick={() => {
-                  onCreateDraft(post, SourcePostActionType.QUOTE).catch(
-                    () => undefined,
-                  );
-                }}
+                ariaLabel="More following actions"
+                icon={<Ellipsis className="size-4" />}
+                size={ButtonSize.ICON}
                 variant={ButtonVariant.GHOST}
+                withWrapper={false}
               />
-            </>
-          ) : null}
-          <Button
-            icon={<Sparkles className="size-3.5" />}
-            label="Remix"
-            onClick={() => onOpenRemix(post)}
-            variant={ButtonVariant.SECONDARY}
-          />
-          <Button
-            icon={<Send className="size-3.5" />}
-            label="Draft"
-            isLoading={busyId === `${post.id}-${SourcePostActionType.DRAFT}`}
-            onClick={() => {
-              onCreateDraft(post, SourcePostActionType.DRAFT).catch(
-                () => undefined,
-              );
-            }}
-            variant={ButtonVariant.GHOST}
-          />
-          <Button
-            icon={<Zap className="size-3.5" />}
-            label="Agent"
-            onClick={() => onOpenAgent(post)}
-            variant={ButtonVariant.GHOST}
-          />
-          {sourceUrl ? (
-            <Button
-              icon={<ExternalLink className="size-3.5" />}
-              label="Open"
-              onClick={() =>
-                window.open(sourceUrl, '_blank', 'noopener,noreferrer')
-              }
-              variant={ButtonVariant.GHOST}
-            />
-          ) : null}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {post.platform === SocialSourcePlatform.TWITTER ? (
+                <>
+                  <DropdownMenuItem
+                    disabled={
+                      busyId === `${post.id}-${SourcePostActionType.REPLY}`
+                    }
+                    onSelect={() => {
+                      void onCreateDraft(post, SourcePostActionType.REPLY);
+                    }}
+                  >
+                    <MessageSquare className="size-4" />
+                    Reply
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    disabled={
+                      busyId === `${post.id}-${SourcePostActionType.QUOTE}`
+                    }
+                    onSelect={() => {
+                      void onCreateDraft(post, SourcePostActionType.QUOTE);
+                    }}
+                  >
+                    <Zap className="size-4" />
+                    Quote retweet
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+              <DropdownMenuItem
+                disabled={busyId === `${post.id}-${SourcePostActionType.DRAFT}`}
+                onSelect={() => {
+                  void onCreateDraft(post, SourcePostActionType.DRAFT);
+                }}
+              >
+                <Send className="size-4" />
+                Create draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onOpenAgent(post)}>
+                <Zap className="size-4" />
+                Send to agent
+              </DropdownMenuItem>
+              {sourceUrl ? (
+                <DropdownMenuItem
+                  onSelect={() => {
+                    window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  <ExternalLink className="size-4" />
+                  Open source
+                </DropdownMenuItem>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </article>

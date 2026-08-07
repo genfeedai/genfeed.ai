@@ -572,7 +572,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        hasSecondaryTopbar: false,
         shellChromeVariant: 'default',
         topbarChromeVariant: 'default',
       }),
@@ -679,7 +678,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        hasSecondaryTopbar: true,
         topbarChromeVariant: 'default',
       }),
     );
@@ -759,7 +757,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        hasSecondaryTopbar: false,
         topbarChromeVariant: 'default',
         topbarComponent: expect.any(Function),
       }),

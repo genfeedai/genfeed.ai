@@ -14,8 +14,6 @@ export interface AppLayoutProps {
   shellChromeVariant?: 'default' | 'transparent';
   /** Visual treatment override for the topbar chrome */
   topbarChromeVariant?: 'inherit' | 'default' | 'transparent';
-  /** Whether the page renders a secondary toolbar/header directly under the topbar */
-  hasSecondaryTopbar?: boolean;
   /** Menu items for SidebarNavigationProvider (breadcrumbs, nested nav) */
   menuItems?: MenuItemConfig[];
   /** Canonical route breadcrumb, independent of sidebar discovery coverage. */
