@@ -95,11 +95,11 @@ batchCommand
 
       for (const batch of batches) {
         const statusColor =
-          batch.status === 'completed'
+          batch.status === 'COMPLETED'
             ? chalk.green(batch.status)
-            : batch.status === 'failed'
+            : batch.status === 'FAILED'
               ? chalk.red(batch.status)
-              : batch.status === 'processing'
+              : batch.status === 'PROCESSING'
                 ? chalk.yellow(batch.status)
                 : chalk.dim(batch.status);
 
@@ -153,9 +153,9 @@ batchCommand
         print(formatHeader('Items:\n'));
         for (const item of batch.items) {
           const statusColor =
-            item.status === 'completed'
+            item.status === 'COMPLETED'
               ? chalk.green(item.status)
-              : item.status === 'failed'
+              : item.status === 'FAILED'
                 ? chalk.red(item.status)
                 : chalk.dim(item.status);
 
