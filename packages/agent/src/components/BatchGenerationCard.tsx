@@ -4,6 +4,7 @@ import {
   DEFAULT_BATCH_CONTENT_MIX,
   estimateBatchGenerationCredits,
   formatBatchPricingHint,
+  resolveBatchPricingOptions,
 } from '@genfeedai/constants';
 import { ButtonVariant, ContentFormat } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -60,8 +61,14 @@ export function BatchGenerationCard({
     setIsGenerated(true);
   }, [count, selectedPlatforms, onGenerate]);
 
-  // Caption-first pricing (includeMedia: false) — same as server charge today.
-  // Format mix still differentiates image vs video/reel packaging rates.
+  // Same resolver the server charge uses, so the number shown here and the
+  // amount billed cannot drift. The batch pipeline is caption-first, so media
+  // intent is false and the format mix drives image vs video/reel packaging.
+  const pricingOptions = useMemo(
+    () => resolveBatchPricingOptions({ hasMediaGeneration: false }),
+    [],
+  );
+
   const estimatedCredits = useMemo(() => {
     if (action.creditEstimate != null) {
       return action.creditEstimate;
@@ -72,14 +79,13 @@ export function BatchGenerationCard({
         count: Math.max(1, count),
         platforms: Array.from(selectedPlatforms),
       },
-      { includeMedia: false, qualityTier: 'balanced' },
+      pricingOptions,
     );
-  }, [action.creditEstimate, count, selectedPlatforms]);
+  }, [action.creditEstimate, count, pricingOptions, selectedPlatforms]);
 
   const pricingHint = useMemo(
-    () =>
-      formatBatchPricingHint({ includeMedia: false, qualityTier: 'balanced' }),
-    [],
+    () => formatBatchPricingHint(pricingOptions),
+    [pricingOptions],
   );
 
   if (isGenerated) {

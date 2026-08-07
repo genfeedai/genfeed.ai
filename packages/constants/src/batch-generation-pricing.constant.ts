@@ -86,6 +86,37 @@ export type BatchPricingOptions = {
   qualityTier?: BatchPricingQualityTier;
 };
 
+/** Quality tier assumed when the caller has no model context (agent UI). */
+export const DEFAULT_BATCH_PRICING_QUALITY_TIER: BatchPricingQualityTier =
+  'balanced';
+
+export type BatchPricingContext = {
+  /** Chat model round credits (from registry) — scales caption cost. */
+  chatModelRoundCredits?: number | null;
+  /**
+   * Batch-level media intent: true only when the run produces a media asset for
+   * every item. The agent batch pipeline is caption-first, so callers leave this
+   * false and per-item `hasMedia` drives the media rate at charge time.
+   */
+  hasMediaGeneration?: boolean;
+  qualityTier?: BatchPricingQualityTier;
+};
+
+/**
+ * Single source of pricing flags for the agent estimate UI and the server
+ * charge. Both call this so the estimate an operator approves and the amount
+ * that is billed can never drift apart.
+ */
+export function resolveBatchPricingOptions(
+  context: BatchPricingContext = {},
+): BatchPricingOptions {
+  return {
+    chatModelRoundCredits: context.chatModelRoundCredits ?? null,
+    includeMedia: context.hasMediaGeneration === true,
+    qualityTier: context.qualityTier ?? DEFAULT_BATCH_PRICING_QUALITY_TIER,
+  };
+}
+
 /**
  * Format packaging when media is not yet generated (caption + draft row only).
  * Video/reel slots cost more than a still image even before media lands.
@@ -200,6 +231,39 @@ export function chargeBatchGenerationCredits(
     return 0;
   }
   return items.reduce((sum, item) => sum + batchItemCredits(item, options), 0);
+}
+
+export type BatchChargeReconciliation = {
+  /** Credits still owed on top of what was already billed (0 when none). */
+  additionalCredits: number;
+  /** Credits to hand back because the batch cost less than billed. */
+  refundCredits: number;
+  /** Media-aware total for the items that actually landed. */
+  settledCredits: number;
+};
+
+/**
+ * Settle an up-front estimate against what a batch actually produced.
+ *
+ * The async batch path bills the estimate before processing starts, so items
+ * that come back carrying media are under-billed and a batch that fails
+ * outright is over-billed. Charging the delta (or refunding it) keeps the
+ * charge media-aware on both the streamed and the async path.
+ */
+export function reconcileBatchGenerationCredits(
+  chargedCredits: number,
+  items: readonly BatchItemPricingInput[],
+  options: BatchPricingOptions = {},
+): BatchChargeReconciliation {
+  const settledCredits = chargeBatchGenerationCredits(items, options);
+  const billed = Math.max(0, chargedCredits);
+  const delta = settledCredits - billed;
+
+  return {
+    additionalCredits: delta > 0 ? delta : 0,
+    refundCredits: delta < 0 ? -delta : 0,
+    settledCredits,
+  };
 }
 
 /**
