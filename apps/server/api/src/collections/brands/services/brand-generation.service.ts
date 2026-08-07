@@ -16,6 +16,7 @@ import {
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LinkCategory } from '@genfeedai/enums';
 import type { FastlaneFormat, FastlaneIdea } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -88,10 +89,11 @@ export class BrandGenerationService {
         website?: string;
         websiteUrl?: string;
       };
-      const websiteFromLinks = brandWithLinks.links?.find((link) => {
-        const category = (link.category ?? '').toLowerCase();
-        return category === 'website' || category === 'other';
-      })?.url;
+      const websiteFromLinks = brandWithLinks.links?.find(
+        (link) =>
+          link.category === LinkCategory.WEBSITE ||
+          link.category === LinkCategory.OTHER,
+      )?.url;
       const websiteUrl = (
         (typeof brandWithLinks.websiteUrl === 'string' &&
           brandWithLinks.websiteUrl) ||

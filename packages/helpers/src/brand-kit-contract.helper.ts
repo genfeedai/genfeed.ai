@@ -247,7 +247,11 @@ function readSocialLinks(brand: BrandKitSourceBrand): IBrandKitSocialLink[] {
     seenUrls.add(link.url);
     links.push({
       label: link.label,
-      platform: link.category ?? 'link',
+      // `link.category` is a Prisma `LinkCategory` label (SCREAMING), but
+      // `IBrandKitSocialLink.platform` is lowercase product language — every
+      // other producer here emits `instagram` / `website`. Lower at the boundary
+      // rather than leaking enum labels into the display vocabulary.
+      platform: link.category?.toLowerCase() ?? 'link',
       sourceType: 'current_brand',
       url: link.url,
     });

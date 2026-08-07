@@ -739,7 +739,7 @@ describe('Server Serializers', () => {
     it('serializes brand as a relationship, not an attribute', () => {
       const output = LinkSerializer.serialize({
         brand: { id: 'ckbrand000000000000000001', label: 'Acme' },
-        category: 'website',
+        category: 'WEBSITE',
         id: 'cklink0000000000000000001',
         label: 'Homepage',
         url: 'https://genfeed.ai',

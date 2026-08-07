@@ -10,6 +10,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+  AgentAutonomyMode,
+  AgentReplyStyle,
   AgentRunStatus,
   ApiKeyCategory,
   AppSource,
@@ -18,7 +20,9 @@ import {
   AssetParent,
   AssetScope,
   BatchStatus,
+  BookmarkCategory,
   BookmarkIntent,
+  BookmarkPlatform,
   BotStatus,
   ByokBillingStatus,
   ContentRating,
@@ -33,6 +37,7 @@ import {
   IntegrationStatus,
   LeadStatus,
   McpApprovalStatus,
+  LinkCategory,
   MetadataExtension,
   OnboardingType,
   OrganizationCategory,
@@ -58,6 +63,8 @@ import {
 
 /** Prisma labels that MUST appear as domain enum values (extras allowed). */
 const PRISMA_REQUIRED: Record<string, readonly string[]> = {
+  AgentAutonomyMode: ['SUPERVISED', 'AUTO_PUBLISH'],
+  AgentReplyStyle: ['CONCISE', 'DETAILED', 'FRIENDLY', 'PROFESSIONAL'],
   AgentRunStatus: ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'],
   ApiKeyCategory: ['GENFEEDAI', 'ELEVENLABS', 'HEDRA', 'HEYGEN', 'OPUS_PRO'],
   AppSource: ['GENFEED', 'GETSHAREABLE'],
@@ -73,7 +80,9 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'FAILED',
     'CANCELLED',
   ],
+  BookmarkCategory: ['INSTAGRAM', 'TIKTOK', 'TWEET', 'URL', 'YOUTUBE'],
   BookmarkIntent: ['VIDEO', 'IMAGE', 'REPLY', 'REFERENCE', 'INSPIRATION'],
+  BookmarkPlatform: ['INSTAGRAM', 'TIKTOK', 'TWITTER', 'WEB', 'YOUTUBE'],
   BotStatus: ['ACTIVE', 'PAUSED', 'STOPPED'],
   ByokBillingStatus: ['ACTIVE', 'PAST_DUE', 'SUSPENDED'],
   ContentRating: ['SFW', 'SUGGESTIVE', 'NSFW'],
@@ -110,6 +119,16 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   IntegrationStatus: ['ACTIVE', 'PAUSED', 'ERROR'],
   LeadStatus: ['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'LOST'],
   McpApprovalStatus: ['PENDING', 'APPROVED', 'DECLINED'],
+  LinkCategory: [
+    'FACEBOOK',
+    'INSTAGRAM',
+    'LINKEDIN',
+    'OTHER',
+    'TIKTOK',
+    'TWITTER',
+    'WEBSITE',
+    'YOUTUBE',
+  ],
   MetadataExtension: [
     'JPEG',
     'JPG',
@@ -220,6 +239,8 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
 };
 
 const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
+  AgentAutonomyMode,
+  AgentReplyStyle,
   AgentRunStatus,
   ApiKeyCategory,
   AppSource,
@@ -228,7 +249,9 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   AssetParent,
   AssetScope,
   BatchStatus,
+  BookmarkCategory,
   BookmarkIntent,
+  BookmarkPlatform,
   BotStatus,
   ByokBillingStatus,
   ContentRating,
@@ -243,6 +266,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   IntegrationStatus,
   LeadStatus,
   McpApprovalStatus,
+  LinkCategory,
   MetadataExtension,
   OnboardingType,
   OrganizationCategory,
@@ -286,4 +310,26 @@ describe('prisma-parity (domain enum values === Prisma labels)', () => {
       }
     }
   });
+
+  /**
+   * The membership check above allows domain-only extras (`BUDGET_EXHAUSTED`,
+   * Stripe-only subscription states). It does NOT catch a *lowercase* value
+   * sitting alongside the correct labels — which is exactly how `LinkCategory`
+   * and `BookmarkCategory` aliased `Platform` ids into Prisma enum columns and
+   * silently killed every read-side comparison.
+   *
+   * Extras are still fine; lowercase extras are not.
+   */
+  for (const name of Object.keys(PRISMA_REQUIRED)) {
+    it(`${name} has no non-SCREAMING_SNAKE values`, () => {
+      const domain = DOMAIN_ENUMS[name];
+      expect(domain, `missing domain export ${name}`).toBeDefined();
+      for (const value of Object.values(domain)) {
+        expect(
+          value,
+          `${name} value "${value}" is not a Prisma-shaped label`,
+        ).toMatch(/^[A-Z][A-Z0-9_]*$/);
+      }
+    });
+  }
 });

@@ -1,4 +1,5 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { LinkCategory } from '@genfeedai/enums';
 import type {
   IBrandAgentPlatformOverride,
   IBrandAgentStrategy,
@@ -455,10 +456,11 @@ export function useBrandDetailAgentProfileCard({
     try {
       await waitForIdle();
       const service = await getBrandsService();
-      const websiteFromLinks = brand.links?.find((link) => {
-        const category = String(link.category ?? '').toLowerCase();
-        return category === 'website' || category === 'other';
-      })?.url;
+      const websiteFromLinks = brand.links?.find(
+        (link) =>
+          link.category === LinkCategory.WEBSITE ||
+          link.category === LinkCategory.OTHER,
+      )?.url;
       const websiteCandidate =
         websiteFromLinks ||
         (typeof (brand as { website?: string }).website === 'string'
