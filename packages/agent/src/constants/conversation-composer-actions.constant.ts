@@ -17,7 +17,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
  */
 export const CONVERSATION_COMPOSER_ACTIONS = [
   {
-    description: 'Open a trusted creation surface',
+    description: 'New content in Studio',
     isConsequentialProposal: false,
     label: 'Create',
     name: 'create',
@@ -25,7 +25,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.STUDIO.ROOT,
   },
   {
-    description: 'Open the canonical remix workspace',
+    description: 'Remix existing content',
     isConsequentialProposal: false,
     label: 'Remix',
     name: 'remix',
@@ -33,7 +33,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.PUBLISH.REMIX,
   },
   {
-    description: 'Open the discover workspace',
+    description: 'Find trends and inspiration',
     isConsequentialProposal: false,
     label: 'Discover',
     name: 'discover',
@@ -41,15 +41,15 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.DISCOVER.ROOT,
   },
   {
-    description: 'Open deterministic workflows',
+    description: 'Browse and run workflows',
     isConsequentialProposal: false,
-    label: 'Workflow',
+    label: 'Workflows',
     name: 'workflow',
     requiredScope: 'brand',
     route: APP_ROUTES.AUTOMATE.WORKFLOWS,
   },
   {
-    description: 'Open scheduling controls',
+    description: 'Content calendar',
     isConsequentialProposal: true,
     label: 'Schedule',
     name: 'schedule',
@@ -57,7 +57,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.PUBLISH.CALENDAR,
   },
   {
-    description: 'Open version-bound publish review',
+    description: 'Review before publishing',
     isConsequentialProposal: true,
     label: 'Publish',
     name: 'publish',
@@ -65,7 +65,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.PUBLISH.REVIEW,
   },
   {
-    description: 'Open content analytics overview',
+    description: 'Content analytics',
     isConsequentialProposal: false,
     label: 'Analyze',
     name: 'analyze',
@@ -73,7 +73,7 @@ export const CONVERSATION_COMPOSER_ACTIONS = [
     route: APP_ROUTES.ANALYTICS.OVERVIEW,
   },
   {
-    description: 'Open the messaging reply surface',
+    description: 'Messages and replies',
     isConsequentialProposal: true,
     label: 'Reply',
     name: 'reply',

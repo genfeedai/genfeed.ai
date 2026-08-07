@@ -225,10 +225,6 @@ vi.mock('@ui/display/table/Table', () => ({
   ),
 }));
 
-vi.mock('@ui/layout/stack', () => ({
-  VStack: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-
 vi.mock('@ui/typography/heading', () => ({
   Heading: ({
     as: Component = 'h2',

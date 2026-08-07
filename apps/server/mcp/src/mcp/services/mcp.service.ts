@@ -1,39 +1,20 @@
+import type { CanonicalToolDefinition, ToolCategory } from '@genfeedai/tools';
+import { getToolsForRole } from '@genfeedai/tools';
+import * as appMetadata from '@mcp/config/app-metadata.json';
+import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { getPublicMcpUrl } from '@mcp/mcp/setup-page';
 import type {
-  McpClientExamples,
   McpConfiguration,
+  McpExample,
+  McpExampleToolPreview,
 } from '@mcp/shared/interfaces/mcp-config.interface';
 import { Injectable } from '@nestjs/common';
 
-export interface McpExample {
-  capabilities: {
-    resources: { listChanged: boolean };
-    tools: { listChanged: boolean };
-  };
-  description: string;
-  installation: {
-    clientExamples: McpClientExamples;
-    description: string;
-    steps: string[];
-  };
-  name: string;
-  resources: Array<{
-    description: string;
-    mimeType: string;
-    name: string;
-    uri: string;
-  }>;
-  tools: Array<{
-    description: string;
-    inputSchema: {
-      properties: Record<string, unknown>;
-      required?: string[];
-      type: string;
-    };
-    name: string;
-  }>;
-  version: string;
-}
+/**
+ * How many tools the public example samples. The full role-filtered catalog is
+ * served by `GET /v1/tools`; this is documentation, not a substitute for it.
+ */
+const TOOL_PREVIEW_LIMIT = 8;
 
 @Injectable()
 export class MCPService {
@@ -54,8 +35,18 @@ export class MCPService {
     };
   }
 
+  /**
+   * Public setup example for `GET /v1/example`. Everything factual about the
+   * server — description, version, resources, tool surface — is derived from a
+   * canonical source (`app-metadata.json`, {@link MCP_RESOURCES},
+   * `@genfeedai/tools`) rather than transcribed, so the endpoint cannot drift
+   * into advertising tools the server does not serve.
+   */
   getMcpExample(): McpExample {
     const mcpUrl = getPublicMcpUrl();
+    // `user` is the least-privileged role: the public example must never reveal
+    // admin-gated tool names to an unauthenticated reader.
+    const publicTools = getToolsForRole('mcp', 'user');
 
     return {
       capabilities: {
@@ -66,7 +57,7 @@ export class MCPService {
           listChanged: true,
         },
       },
-      description: 'AI-powered video generation and analytics MCP server',
+      description: appMetadata.description,
       installation: {
         clientExamples: {
           claudeCode: {
@@ -101,125 +92,41 @@ bearer_token_env_var = "GENFEED_API_KEY"`,
         ],
       },
       name: 'Genfeed.ai MCP Server',
-      resources: [
-        {
-          description: 'Get analytics for all videos in your organization',
-          mimeType: 'application/json',
-          name: 'Video Analytics',
-          uri: 'genfeed://analytics/videos',
-        },
-        {
-          description: 'Get overall organization analytics',
-          mimeType: 'application/json',
-          name: 'Organization Analytics',
-          uri: 'genfeed://analytics/organization',
-        },
-      ],
-      tools: [
-        {
-          description: 'Create a new video with Genfeed AI',
-          inputSchema: {
-            properties: {
-              description: {
-                description: 'Description or script for the video',
-                type: 'string',
-              },
-              duration: {
-                description: 'Target duration in seconds',
-                maximum: 120,
-                minimum: 10,
-                type: 'number',
-              },
-              style: {
-                description: 'Visual style for the video',
-                enum: [
-                  'professional',
-                  'casual',
-                  'animated',
-                  'documentary',
-                  'tutorial',
-                ],
-                type: 'string',
-              },
-              title: {
-                description: 'Title of the video',
-                type: 'string',
-              },
-              voiceOver: {
-                properties: {
-                  enabled: {
-                    description: 'Whether to include voice-over',
-                    type: 'boolean',
-                  },
-                  voice: {
-                    description: 'Voice type',
-                    enum: ['male', 'female', 'neutral'],
-                    type: 'string',
-                  },
-                },
-                type: 'object',
-              },
-            },
-            required: ['title', 'description'],
-            type: 'object',
-          },
-          name: 'generate_video',
-        },
-        {
-          description: 'Check the status of a video creation job',
-          inputSchema: {
-            properties: {
-              videoId: {
-                description: 'The ID of the video to check',
-                type: 'string',
-              },
-            },
-            required: ['videoId'],
-            type: 'object',
-          },
-          name: 'get_video_status',
-        },
-        {
-          description: 'List all videos in your organization',
-          inputSchema: {
-            properties: {
-              limit: {
-                default: 10,
-                description: 'Maximum number of videos to return',
-                type: 'number',
-              },
-              offset: {
-                default: 0,
-                description: 'Offset for pagination',
-                type: 'number',
-              },
-            },
-            type: 'object',
-          },
-          name: 'list_videos',
-        },
-        {
-          description: 'Get detailed analytics for a specific video',
-          inputSchema: {
-            properties: {
-              timeRange: {
-                default: '7d',
-                description: 'Time range for analytics',
-                enum: ['24h', '7d', '30d', '90d', 'all'],
-                type: 'string',
-              },
-              videoId: {
-                description: 'The ID of the video',
-                type: 'string',
-              },
-            },
-            required: ['videoId'],
-            type: 'object',
-          },
-          name: 'get_video_analytics',
-        },
-      ],
-      version: '1.0.0',
+      resources: [...MCP_RESOURCES],
+      tools: {
+        endpoint: new URL('/v1/tools', mcpUrl).toString(),
+        preview: MCPService.buildToolPreview(publicTools),
+        total: publicTools.length,
+      },
+      version: appMetadata.version,
     };
+  }
+
+  /**
+   * One representative tool per category, alphabetical, capped at
+   * {@link TOOL_PREVIEW_LIMIT}. Deterministic so the public example is stable
+   * between deploys, and category-spread so the sample shows the breadth of the
+   * surface instead of whichever tools happen to sort first.
+   */
+  private static buildToolPreview(
+    tools: CanonicalToolDefinition[],
+  ): McpExampleToolPreview[] {
+    const seenCategories = new Set<ToolCategory>();
+
+    return [...tools]
+      .sort((left, right) => left.name.localeCompare(right.name))
+      .filter((tool) => {
+        if (seenCategories.has(tool.category)) {
+          return false;
+        }
+        seenCategories.add(tool.category);
+        return true;
+      })
+      .slice(0, TOOL_PREVIEW_LIMIT)
+      .map((tool) => ({
+        category: tool.category,
+        description: tool.description,
+        name: tool.name,
+      }));
   }
 }

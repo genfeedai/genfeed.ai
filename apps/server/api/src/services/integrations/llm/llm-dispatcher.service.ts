@@ -39,9 +39,9 @@ export class LlmDispatcherService {
   ) {}
 
   /**
-   * Determine the LLM provider based on model prefix.
+   * Preferred provider from model id prefix only (no key availability).
    */
-  private resolveProvider(model: string): LlmProvider {
+  private preferredProviderForModel(model: string): LlmProvider {
     if (model.startsWith('local/')) {
       return 'local';
     }
@@ -56,6 +56,67 @@ export class LlmDispatcherService {
 
     // Everything else (deepseek/, x-ai/, google/, etc.) routes through OpenRouter
     return 'openrouter';
+  }
+
+  private hasPlatformKey(provider: LlmProvider): boolean {
+    const envKey =
+      provider === 'openai'
+        ? 'OPENAI_API_KEY'
+        : provider === 'anthropic'
+          ? 'ANTHROPIC_API_KEY'
+          : provider === 'openrouter'
+            ? 'OPENROUTER_API_KEY'
+            : null;
+
+    if (!envKey) {
+      return false;
+    }
+
+    const value = this.configService.get(envKey);
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  /**
+   * Pick provider + BYOK override. `openai/*` / `anthropic/*` use the native
+   * client only when a platform or BYOK key exists; otherwise fall back to
+   * OpenRouter (same model id — OpenRouter serves those catalogs).
+   */
+  private async resolveRoute(
+    model: string,
+    organizationId?: string,
+  ): Promise<{ apiKeyOverride?: string; provider: LlmProvider }> {
+    const preferred = this.preferredProviderForModel(model);
+
+    if (preferred === 'local') {
+      return { provider: 'local' };
+    }
+
+    let apiKeyOverride: string | undefined;
+    if (organizationId) {
+      apiKeyOverride = await this.resolveApiKey(organizationId, preferred);
+    }
+
+    if (
+      preferred === 'openrouter' ||
+      apiKeyOverride ||
+      this.hasPlatformKey(preferred)
+    ) {
+      return { apiKeyOverride, provider: preferred };
+    }
+
+    let openRouterOverride: string | undefined;
+    if (organizationId) {
+      openRouterOverride = await this.resolveApiKey(
+        organizationId,
+        'openrouter',
+      );
+    }
+
+    this.loggerService.log(
+      `${this.constructorName}: No ${preferred} key — routing ${model} via openrouter`,
+    );
+
+    return { apiKeyOverride: openRouterOverride, provider: 'openrouter' };
   }
 
   /**
@@ -101,24 +162,20 @@ export class LlmDispatcherService {
     params: OpenRouterChatCompletionParams,
     organizationId?: string,
   ): Promise<OpenRouterChatCompletionResponse> {
-    const provider = this.resolveProvider(params.model);
+    const { apiKeyOverride, provider } = await this.resolveRoute(
+      params.model,
+      organizationId,
+    );
 
     // Local vLLM — bypass BYOK, ensure instance is running, route directly
     if (provider === 'local') {
       return this.callLocalProvider(params);
     }
 
-    let apiKeyOverride: string | undefined;
-
-    // Resolve BYOK key if organization context is available
-    if (organizationId) {
-      apiKeyOverride = await this.resolveApiKey(organizationId, provider);
-
-      if (apiKeyOverride) {
-        this.loggerService.log(
-          `${this.constructorName}: Using BYOK key for ${provider}`,
-        );
-      }
+    if (apiKeyOverride) {
+      this.loggerService.log(
+        `${this.constructorName}: Using BYOK key for ${provider}`,
+      );
     }
 
     this.loggerService.log(
@@ -154,7 +211,10 @@ export class LlmDispatcherService {
     params: OpenRouterChatCompletionParams,
     organizationId?: string,
   ): Promise<ReadableStream<string>> {
-    const provider = this.resolveProvider(params.model);
+    const { apiKeyOverride, provider } = await this.resolveRoute(
+      params.model,
+      organizationId,
+    );
 
     // Local vLLM — bypass BYOK, route directly
     if (provider === 'local') {
@@ -163,12 +223,6 @@ export class LlmDispatcherService {
         undefined,
         String(this.configService.get('GPU_LLM_URL') || ''),
       );
-    }
-
-    let apiKeyOverride: string | undefined;
-
-    if (organizationId) {
-      apiKeyOverride = await this.resolveApiKey(organizationId, provider);
     }
 
     switch (provider) {
@@ -203,22 +257,19 @@ export class LlmDispatcherService {
     organizationId?: string,
     onToken?: OpenRouterStreamTokenHandler,
   ): Promise<OpenRouterChatCompletionResponse> {
-    const provider = this.resolveProvider(params.model);
+    const { apiKeyOverride, provider } = await this.resolveRoute(
+      params.model,
+      organizationId,
+    );
 
     if (provider === 'local') {
       return this.callLocalProviderStreaming(params, onToken);
     }
 
-    let apiKeyOverride: string | undefined;
-
-    if (organizationId) {
-      apiKeyOverride = await this.resolveApiKey(organizationId, provider);
-
-      if (apiKeyOverride) {
-        this.loggerService.log(
-          `${this.constructorName}: Using BYOK key for ${provider} (streaming)`,
-        );
-      }
+    if (apiKeyOverride) {
+      this.loggerService.log(
+        `${this.constructorName}: Using BYOK key for ${provider} (streaming)`,
+      );
     }
 
     this.loggerService.log(

@@ -112,11 +112,11 @@ describe('workflow.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(WorkflowExecutionStatus.PENDING).toBe('pending');
-      expect(WorkflowExecutionStatus.RUNNING).toBe('running');
-      expect(WorkflowExecutionStatus.COMPLETED).toBe('completed');
-      expect(WorkflowExecutionStatus.FAILED).toBe('failed');
-      expect(WorkflowExecutionStatus.CANCELLED).toBe('cancelled');
+      expect(WorkflowExecutionStatus.PENDING).toBe('PENDING');
+      expect(WorkflowExecutionStatus.RUNNING).toBe('RUNNING');
+      expect(WorkflowExecutionStatus.COMPLETED).toBe('COMPLETED');
+      expect(WorkflowExecutionStatus.FAILED).toBe('FAILED');
+      expect(WorkflowExecutionStatus.CANCELLED).toBe('CANCELLED');
     });
   });
 

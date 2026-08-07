@@ -11,7 +11,6 @@ import { TrendsService } from '@services/social/trends.service';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { VStack } from '@ui/layout/stack';
 import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -68,7 +67,7 @@ export default function AnalyticsTrendTurnover() {
   return (
     <div className="space-y-8 pb-12">
       <header>
-        <VStack gap={3}>
+        <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex gap-1">
               {PERIOD_OPTIONS.map((opt) => (
@@ -92,7 +91,7 @@ export default function AnalyticsTrendTurnover() {
           <Heading size="2xl" as="h1" className="sr-only">
             Trend Turnover Dashboard
           </Heading>
-        </VStack>
+        </div>
       </header>
 
       <KPISection

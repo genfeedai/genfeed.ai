@@ -1,6 +1,7 @@
 import { AgentChatInputAttachmentTray } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
 import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInputStyles';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
+import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
@@ -60,6 +61,9 @@ interface AgentChatInputProps {
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
+  /** Override list for the model picker (registry-backed when provided). */
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 }
@@ -97,6 +101,8 @@ export function AgentChatInput({
   models,
   isModelsLoading = false,
   onModelChange,
+  models,
+  isModelsLoading = false,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatInputProps): ReactElement {
@@ -105,18 +111,25 @@ export function AgentChatInput({
   const {
     actionFeedback,
     canSendMessage,
+    contentLibraryItems,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
+    handleRemoveReference,
     handleInsertReference,
     handleSelectAction,
+    handleSelectContentReference,
     handleSend,
     handleShellPointerDown,
     hasAttachments,
+    isContentLibraryLoading,
+    isContentPickerOpen,
     isDragActive,
     isListening,
     isTranscribing,
     references,
+    selectedContentIds,
+    setIsContentPickerOpen,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,
@@ -190,6 +203,7 @@ export function AgentChatInput({
             attachmentStatusById={attachmentStatusById}
             isDisabled={disabled}
             onRemoveAttachedAsset={handleRemoveAttachment}
+            onRemoveReference={handleRemoveReference}
             references={references}
           />
         )}
@@ -219,14 +233,25 @@ export function AgentChatInput({
             onStop={onStop}
             onStopListening={stopListening}
             selectedModel={selectedModel}
+            models={models}
+            isModelsLoading={isModelsLoading}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
-            showStop={showStop}
+            showStop={Boolean(showStop)}
             // Inspector rail is narrow — use compact icon-only toolbar density.
             density={isCompact || isInspector ? 'compact' : 'default'}
           />
         </div>
       </PromptBarShell>
+
+      <ContentLibraryPicker
+        isLoading={isContentLibraryLoading}
+        isOpen={isContentPickerOpen}
+        items={contentLibraryItems}
+        onOpenChange={setIsContentPickerOpen}
+        onSelect={handleSelectContentReference}
+        selectedIds={selectedContentIds}
+      />
     </div>
   );
 }

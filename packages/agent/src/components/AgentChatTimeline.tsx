@@ -128,6 +128,31 @@ export function AgentChatTimeline({
       {pendingUiActions.length > 0 &&
         pendingUiActions
           .filter((action) => action.type !== 'generation_action_card')
+          // Avoid a live pending analytics card stacking on the same card
+          // already rendered from an assistant message in this thread.
+          .filter((action) => {
+            if (
+              action.type !== 'analytics_snapshot_card' &&
+              action.type !== 'completion_summary_card'
+            ) {
+              return true;
+            }
+            const pendingKey = action.id?.startsWith('analytics-snapshot:')
+              ? action.id
+              : `${action.type}:${action.title ?? ''}`;
+            return !timeline.some(
+              (entry) =>
+                entry.kind === 'assistant-message' &&
+                (entry.message.metadata?.uiActions ?? []).some((existing) => {
+                  const existingKey = existing.id?.startsWith(
+                    'analytics-snapshot:',
+                  )
+                    ? existing.id
+                    : `${existing.type}:${existing.title ?? ''}`;
+                  return existingKey === pendingKey;
+                }),
+            );
+          })
           .map((action) => (
             <UiActionRenderer
               key={`pending-ui-action-${action.id}`}

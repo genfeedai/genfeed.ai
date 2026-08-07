@@ -11,7 +11,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
-import { VStack } from '@ui/layout/stack';
 import {
   Collapsible,
   CollapsibleContent,
@@ -101,7 +100,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main Content */}
-        <VStack gap={6} className="lg:col-span-2">
+        <div className="flex flex-col gap-6 lg:col-span-2">
           {/* Overview Card */}
           <DetailCard title="Overview">
             {template.description && (
@@ -145,7 +144,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
 
           {/* Content Card */}
           <DetailCard title="Content">
-            <VStack gap={3}>
+            <div className="flex flex-col gap-3">
               {template.content.prompt && (
                 <div>
                   <Text as="p" size="sm" weight="medium" className="mb-1">
@@ -186,9 +185,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                   </CollapsibleContent>
                 </Collapsible>
               )}
-            </VStack>
+            </div>
           </DetailCard>
-        </VStack>
+        </div>
 
         {/* Sidebar */}
         <TemplateSidebar

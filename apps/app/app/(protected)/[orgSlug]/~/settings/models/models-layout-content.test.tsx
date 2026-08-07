@@ -1,7 +1,10 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModelsLayoutContent from './models-layout-content';
+
+const mockPush = vi.fn();
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'brand', orgSlug: 'acme' }),
@@ -10,29 +13,75 @@ vi.mock('next/navigation', () => ({
     back: vi.fn(),
     forward: vi.fn(),
     prefetch: vi.fn(),
-    push: vi.fn(),
+    push: mockPush,
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock('@contexts/models/models-context/models-context', () => ({
+  useModelsContext: () => ({
+    isRefreshing: false,
+    refreshModels: vi.fn(),
+  }),
+}));
+
+vi.mock('@contexts/models/trainings-context/trainings-context', () => ({
+  useTrainingsContext: () => ({
+    isRefreshing: false,
+    refreshTrainings: vi.fn(),
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) =>
+      `/acme/~${path.startsWith('/') ? path : `/${path}`}`,
+  }),
+}));
+
 describe('ModelsLayoutContent', () => {
   it('should render without crashing', () => {
-    const { container } = render(<ModelsLayoutContent />);
+    const { container } = render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should handle user interactions correctly', () => {
-    // TODO: Add interaction tests
+  it('renders a model type filter instead of type tabs', () => {
+    render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
+
+    expect(
+      screen.getByRole('combobox', { name: 'Model type' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Images' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', { name: 'Images' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('should apply correct styles and classes', () => {
-    render(<ModelsLayoutContent />);
+  it('navigates when a model type is selected', async () => {
+    const user = userEvent.setup();
+    mockPush.mockClear();
 
-    const imagesTab = screen.getByRole('link', { name: 'Images' });
+    render(
+      <ModelsLayoutContent>
+        <div>children</div>
+      </ModelsLayoutContent>,
+    );
 
-    expect(imagesTab).toHaveClass('data-[variant=default]:text-foreground/70');
-    expect(imagesTab).not.toHaveClass('data-[variant=default]:text-secondary');
+    await user.click(screen.getByRole('combobox', { name: 'Model type' }));
+    await user.click(await screen.findByRole('option', { name: 'Images' }));
+
+    expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/models/images');
   });
 });

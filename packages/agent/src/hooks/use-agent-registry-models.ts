@@ -1,7 +1,11 @@
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { AGENT_CHAT_CAPABILITY, REASONING_FEATURE } from '@genfeedai/constants';
+import {
+  AGENT_CHAT_CAPABILITY,
+  isRetiredAgentChatModel,
+  REASONING_FEATURE,
+} from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { ModelsService } from '@services/ai/models.service';
@@ -45,6 +49,9 @@ function isAgentChatRegistryModel(model: IModel): boolean {
     return false;
   }
   if (model.isLegacy || model.isActive === false) {
+    return false;
+  }
+  if (isRetiredAgentChatModel(model.key)) {
     return false;
   }
 
@@ -108,7 +115,15 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
 
         const options = rows
           .filter(isAgentChatRegistryModel)
-          .map(mapRegistryModelToOption);
+          .map(mapRegistryModelToOption)
+          .toSorted((left, right) => {
+            const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
+            const rightCost = right.creditCost ?? Number.POSITIVE_INFINITY;
+            if (leftCost !== rightCost) {
+              return leftCost - rightCost;
+            }
+            return left.label.localeCompare(right.label);
+          });
 
         setModels(options.length > 0 ? options : AGENT_MODELS);
       } catch {

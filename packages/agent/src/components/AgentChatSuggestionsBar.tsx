@@ -41,15 +41,23 @@ export function AgentChatSuggestionsBar({
     return null;
   }
 
+  // Short follow-up labels (e.g. post-analytics "Create a remix") are
+  // one-liner chips — PostHog-style. Cards only when any item has a
+  // multi-line description worth the taller tile.
+  const hasDescriptions = normalized.some((action) =>
+    Boolean(action.description?.trim()),
+  );
+
   return (
     <PromptBarSuggestions
       suggestions={normalized}
       onSuggestionSelect={(action) => {
+        // Full prompt is sent (or typed into the turn) — label stays short.
         onSend(action.prompt);
       }}
       isDisabled={isBusy || isReadOnly}
       maxSuggestions={3}
-      variant="cards"
+      variant={hasDescriptions ? 'cards' : 'chips'}
     />
   );
 }

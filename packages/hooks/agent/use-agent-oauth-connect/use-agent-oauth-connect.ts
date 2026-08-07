@@ -7,6 +7,7 @@ import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
+import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 
@@ -61,7 +62,8 @@ export function useAgentOAuthConnect(
           throw new Error('Select a brand before connecting an account');
         }
 
-        const service = new ServicesService(platform, token);
+        const servicePath = resolveOAuthServicePath(platform);
+        const service = new ServicesService(servicePath, token);
         const credential = await service.postConnect({
           brandId: selectedBrand.id,
         });

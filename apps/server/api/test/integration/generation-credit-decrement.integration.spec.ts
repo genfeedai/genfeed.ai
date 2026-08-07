@@ -201,6 +201,23 @@ const createImageGenerationService = () => {
   };
   const routerService = {
     getDefaultModel: vi.fn().mockResolvedValue(FAL_MODEL),
+    // Stands in for the registry policy: the first candidate the registry
+    // carries wins, otherwise the category default (#2422 Phase C).
+    resolveModelKey: vi
+      .fn()
+      .mockImplementation(
+        ({ candidates }: { candidates?: Array<string | null | undefined> }) => {
+          const key = candidates?.find((candidate): candidate is string =>
+            Boolean(candidate),
+          );
+
+          return Promise.resolve(
+            key
+              ? { key, source: 'candidate' }
+              : { key: FAL_MODEL, source: 'registry-default' },
+          );
+        },
+      ),
     selectModel: vi.fn(),
   };
   const ingredientCompletionService = {

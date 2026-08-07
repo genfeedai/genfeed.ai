@@ -48,6 +48,8 @@ type AgentChatEmptyStateProps = {
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
 };
 
 export function AgentChatEmptyState({
@@ -76,6 +78,8 @@ export function AgentChatEmptyState({
   models,
   isModelsLoading = false,
   onModelChange,
+  models,
+  isModelsLoading = false,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
 
@@ -148,6 +152,8 @@ export function AgentChatEmptyState({
                 showStop={isRunActive}
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
+                models={models}
+                isModelsLoading={isModelsLoading}
               />
             </PromptBarContainer>
           ) : null}

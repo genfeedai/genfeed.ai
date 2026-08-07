@@ -219,17 +219,20 @@ describe('ClientService (MCP)', () => {
         topic: 'AI Content Creation',
       };
 
+      // A standard generation serializes as a collection, one resource per
+      // generated article — the envelope holds an array, not an object.
       const mockResponse = {
         data: {
-          data: {
-            attributes: {
-              content: 'Article content...',
-              status: 'processing',
-              title: 'AI Content Creation',
-              wordCount: 500,
+          data: [
+            {
+              attributes: {
+                content: 'Article content...',
+                label: 'AI Content Creation',
+                status: 'processing',
+              },
+              id: 'article-123',
             },
-            id: 'article-123',
-          },
+          ],
         },
       };
 
@@ -245,6 +248,63 @@ describe('ClientService (MCP)', () => {
       );
       expect(result.id).toBe('article-123');
       expect(result.title).toBe('AI Content Creation');
+      expect(result.content).toBe('Article content...');
+      expect(result.wordCount).toBe(2);
+    });
+
+    /**
+     * `GenerateArticlesDto` declares `prompt`, `tone`, and `keywords` — not
+     * `topic`, `length`, or `targetAudience`. The API's ValidationPipe runs
+     * with `whitelist: true`, so undeclared keys are deleted without an error
+     * and the request used to arrive with no `prompt` at all.
+     */
+    it('sends the tool topic as the DTO prompt, not as `topic`', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: { data: [] },
+      });
+
+      await service.createArticle({
+        length: 'long',
+        targetAudience: 'platform engineers',
+        topic: 'AI Content Creation',
+      });
+
+      const [, body] = (mockAxiosInstance.post as Mock).mock.calls[0];
+      const attributes = body.data.attributes;
+
+      expect(attributes.prompt).toContain('AI Content Creation');
+      expect(attributes.prompt).toContain('platform engineers');
+      expect(attributes.prompt).toContain('long');
+      expect(attributes).not.toHaveProperty('topic');
+      expect(attributes).not.toHaveProperty('length');
+      expect(attributes).not.toHaveProperty('targetAudience');
+    });
+
+    it('keeps the prompt within the length the DTO accepts', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: { data: [] },
+      });
+
+      await service.createArticle({
+        targetAudience: 'platform engineers',
+        topic: 'a'.repeat(600),
+      });
+
+      const [, body] = (mockAxiosInstance.post as Mock).mock.calls[0];
+
+      expect(body.data.attributes.prompt).toHaveLength(500);
+    });
+
+    it('returns an empty article when the API generated nothing', async () => {
+      (mockAxiosInstance.post as Mock).mockResolvedValue({
+        data: { data: [] },
+      });
+
+      const result = await service.createArticle({ topic: 'AI' });
+
+      expect(result.id).toBeUndefined();
+      expect(result.title).toBe('AI');
+      expect(result.wordCount).toBe(0);
     });
   });
 
@@ -254,7 +314,7 @@ describe('ClientService (MCP)', () => {
         data: {
           data: [
             {
-              attributes: { excerpt: 'Preview...', title: 'Article 1' },
+              attributes: { label: 'Article 1', summary: 'Preview...' },
               id: 'a1',
             },
           ],
@@ -269,15 +329,19 @@ describe('ClientService (MCP)', () => {
         params: expect.objectContaining({ 'filter[search]': 'AI' }),
       });
       expect(result).toHaveLength(1);
+      expect(result[0].title).toBe('Article 1');
+      expect(result[0].excerpt).toBe('Preview...');
     });
   });
 
   describe('getArticle', () => {
+    // The article serializer emits `label`, not `title` — see
+    // `articleAttributes` in @genfeedai/serializers.
     it('should return article by ID', async () => {
       const mockResponse = {
         data: {
           data: {
-            attributes: { content: 'Full content', title: 'Article Title' },
+            attributes: { content: 'Full content', label: 'Article Title' },
             id: 'article-123',
           },
         },
@@ -291,6 +355,7 @@ describe('ClientService (MCP)', () => {
         '/articles/article-123',
       );
       expect(result.title).toBe('Article Title');
+      expect(result.wordCount).toBe(2);
     });
   });
 

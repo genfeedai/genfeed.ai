@@ -1,3 +1,4 @@
+import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
@@ -65,6 +66,12 @@ export function useSubscription(): UseSubscriptionReturn {
 
   const hasActiveSubscription =
     subscription?.status === SubscriptionStatus.ACTIVE;
+  // Wallet balance is independent of plan status — free/trial orgs still show
+  // GEN in the topbar and need the low-credits shell banner. Gating only on
+  // ACTIVE subscription left creditsBreakdown null while the chip showed 0.
+  const shouldLoadCredits = Boolean(
+    userId && (hasActiveSubscription || shouldShowCreditsNav()),
+  );
 
   const {
     data: creditsBreakdown = null,
@@ -84,7 +91,7 @@ export function useSubscription(): UseSubscriptionReturn {
       return data as ICreditsBreakdown;
     },
     staleTime: CREDITS_CACHE_TTL_MS,
-    enabled: !!userId && hasActiveSubscription,
+    enabled: shouldLoadCredits,
   });
 
   const isLoading = isLoadingSubscription || isLoadingCredits;

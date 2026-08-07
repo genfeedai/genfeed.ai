@@ -8,6 +8,7 @@ import type {
   BatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
@@ -105,7 +106,7 @@ export class BatchGenerationCreationService {
         isDeleted: false,
         items: items as never,
         organizationId: orgId,
-        status: BatchStatus.PENDING as never,
+        status: toPrismaBatchStatus(BatchStatus.PENDING),
         userId,
       },
     })) as BatchWithConfig;
@@ -183,7 +184,7 @@ export class BatchGenerationCreationService {
           isDeleted: false,
           items: batchItems as never,
           organizationId: orgId,
-          status: BatchStatus.COMPLETED as never,
+          status: toPrismaBatchStatus(BatchStatus.COMPLETED),
           userId,
         },
       })) as BatchWithConfig;

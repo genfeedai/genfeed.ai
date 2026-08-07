@@ -26,25 +26,45 @@ const LEGACY_MODE_PATTERN =
 const FRONTEND_EDITION_IMPORT_PATTERN =
   /(?:@\/lib\/config\/edition|src\/lib\/config\/edition)/gu;
 
-const RAW_ENV_ALLOWLIST = new Set([
-  'apps/app/next.config.ts',
-  'packages/auth-client/src/config.ts',
-  'packages/config/src/deployment.ts',
-  'packages/config/src/license-server.ts',
-  'packages/config/src/license.ts',
-]);
+export type DeploymentModeBoundaryReason =
+  | 'frontend-edition-import'
+  | 'legacy-mode-api'
+  | 'raw-auth-env'
+  | 'raw-license-env'
+  | 'raw-mode-env';
+
+export type RawEnvBoundaryReason = Extract<
+  DeploymentModeBoundaryReason,
+  `raw-${string}`
+>;
 
 export type DeploymentModeBoundaryViolation = {
   file: string;
   line: number;
   match: string;
-  reason:
-    | 'frontend-edition-import'
-    | 'legacy-mode-api'
-    | 'raw-auth-env'
-    | 'raw-license-env'
-    | 'raw-mode-env';
+  reason: DeploymentModeBoundaryReason;
 };
+
+const RAW_ENV_CHECKS: readonly (readonly [RegExp, RawEnvBoundaryReason])[] = [
+  [RAW_AUTH_ENV_PATTERN, 'raw-auth-env'],
+  [RAW_LICENSE_ENV_PATTERN, 'raw-license-env'],
+  [RAW_MODE_ENV_PATTERN, 'raw-mode-env'],
+];
+
+/**
+ * Raw environment reads are exempted per file **and per axis**: a module that
+ * legitimately owns one axis (license, auth, or mode) stays checked on the
+ * other two, so `license-server.ts` cannot quietly grow a raw auth or mode read.
+ */
+const RAW_ENV_ALLOWLIST = new Map<string, ReadonlySet<RawEnvBoundaryReason>>([
+  ['apps/app/next.config.ts', new Set(['raw-mode-env'])],
+  ['packages/auth-client/src/config.ts', new Set(['raw-auth-env'])],
+  ['packages/config/src/deployment.ts', new Set(['raw-mode-env'])],
+  ['packages/config/src/license-server.ts', new Set(['raw-license-env'])],
+  ['packages/config/src/license.ts', new Set(['raw-license-env'])],
+]);
+
+const NO_EXEMPTIONS: ReadonlySet<RawEnvBoundaryReason> = new Set();
 
 export type DeploymentModeBoundaryOptions = {
   ignoreGlobs?: string[];
@@ -60,7 +80,7 @@ function collectMatches(
   source: string,
   pattern: RegExp,
   file: string,
-  reason: DeploymentModeBoundaryViolation['reason'],
+  reason: DeploymentModeBoundaryReason,
 ): DeploymentModeBoundaryViolation[] {
   return [...source.matchAll(pattern)].map((match) => ({
     file,
@@ -98,26 +118,15 @@ export function checkDeploymentModeBoundary(
       ),
     ];
 
-    if (!RAW_ENV_ALLOWLIST.has(normalizedFile)) {
+    const exemptReasons =
+      RAW_ENV_ALLOWLIST.get(normalizedFile) ?? NO_EXEMPTIONS;
+    for (const [pattern, reason] of RAW_ENV_CHECKS) {
+      if (exemptReasons.has(reason)) {
+        continue;
+      }
+
       violations.push(
-        ...collectMatches(
-          source,
-          RAW_AUTH_ENV_PATTERN,
-          normalizedFile,
-          'raw-auth-env',
-        ),
-        ...collectMatches(
-          source,
-          RAW_LICENSE_ENV_PATTERN,
-          normalizedFile,
-          'raw-license-env',
-        ),
-        ...collectMatches(
-          source,
-          RAW_MODE_ENV_PATTERN,
-          normalizedFile,
-          'raw-mode-env',
-        ),
+        ...collectMatches(source, pattern, normalizedFile, reason),
       );
     }
 

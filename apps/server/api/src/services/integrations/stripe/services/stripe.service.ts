@@ -396,6 +396,21 @@ export class StripeService {
 
       return customer as StripeCustomer;
     } catch (error: unknown) {
+      // Stale IDs from a previous Stripe account / deleted customers must not
+      // hard-fail checkout — callers re-create and rebind.
+      const stripeError = error as {
+        code?: string;
+        raw?: { code?: string };
+        type?: string;
+      };
+      const code = stripeError.code ?? stripeError.raw?.code;
+      if (code === 'resource_missing') {
+        this.loggerService.warn(`${url} customer missing on Stripe account`, {
+          customerId,
+        });
+        return null;
+      }
+
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
@@ -466,30 +481,17 @@ export class StripeService {
   }
 
   /**
-   * Apply the configured launch promotion code to a subscription checkout
-   * session for the Creator/Pro plan, falling back to `allow_promotion_codes`
-   * when no promotion code is configured. Stripe rejects sessions that set
-   * both `discounts` and `allow_promotion_codes`, so exactly one is set.
+   * Always open Checkout promo entry. Stripe rejects sessions that set both
+   * `discounts` and `allow_promotion_codes`, so we never force-apply a code
+   * here — public defaults (EARLYGENFEED / EARLYGEN) and customer-restricted
+   * team codes (GENFEED100) are entered at Checkout.
    */
   private applyPromotionCode(
     sessionConfig: NonNullable<StripeCheckoutSessionCreateParams>,
-    stripePriceId: string,
+    _stripePriceId: string,
   ): void {
-    // The launch coupon ($10/mo off for 12 months) is designed for the monthly
-    // Pro plan only — yearly/other tiers keep manual promo entry.
-    const isLaunchEligiblePrice =
-      stripePriceId ===
-      this.configService.get('STRIPE_PRICE_SUBSCRIPTION_PRO_MONTHLY');
-
-    const promotionCodeId = isLaunchEligiblePrice
-      ? this.configService.get('STRIPE_PROMOTION_CODE_LAUNCH')
-      : undefined;
-
-    if (promotionCodeId) {
-      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
-    } else {
-      sessionConfig.allow_promotion_codes = true;
-    }
+    sessionConfig.allow_promotion_codes = true;
+    delete sessionConfig.discounts;
   }
 
   public async createPaymentSession(

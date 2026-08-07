@@ -1,6 +1,7 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { RefreshCw } from 'lucide-react';
+import { ImagePlus, Paintbrush, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 import { AgentErrorMessage } from './AgentErrorMessage';
@@ -19,6 +20,7 @@ type GenerationActionCardStatusPanelProps = {
   qualityFeedback: string[] | undefined;
   onRetry: () => void;
   onRegenerateProp: (() => void) | undefined;
+  onUseAsReference?: () => void;
 };
 
 export function GenerationActionCardStatusPanel({
@@ -32,6 +34,7 @@ export function GenerationActionCardStatusPanel({
   qualityFeedback,
   onRetry,
   onRegenerateProp,
+  onUseAsReference,
 }: GenerationActionCardStatusPanelProps): ReactElement | null {
   if (status === 'idle') return null;
 
@@ -61,6 +64,12 @@ export function GenerationActionCardStatusPanel({
   }
 
   if (status === 'done' && resultUrl) {
+    const libraryHref =
+      generationType === 'video'
+        ? `${APP_ROUTES.LIBRARY.VIDEOS}/${resultId}`
+        : `${APP_ROUTES.LIBRARY.IMAGES}/${resultId}`;
+    const studioHref = `${APP_ROUTES.STUDIO.EDIT}?${generationType === 'video' ? 'videoId' : 'imageId'}=${encodeURIComponent(resultId ?? '')}`;
+
     return (
       <div className="space-y-2">
         <div className="overflow-hidden border border-border">
@@ -83,12 +92,30 @@ export function GenerationActionCardStatusPanel({
             onRegenerate={onRegenerateProp ?? onRetry}
           />
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {onUseAsReference ? (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={onUseAsReference}
+              className="flex-1"
+            >
+              <ImagePlus className="size-3" />
+              Use as input
+            </Button>
+          ) : null}
           <a
-            href={`/${generationType === 'video' ? 'videos' : 'images'}/${resultId}`}
+            href={studioHref}
+            className="flex flex-1 items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            <Paintbrush className="size-3" />
+            Edit in Studio
+          </a>
+          <a
+            href={libraryHref}
             className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Open in Library
+            Library
           </a>
           <Button
             variant={ButtonVariant.SECONDARY}
