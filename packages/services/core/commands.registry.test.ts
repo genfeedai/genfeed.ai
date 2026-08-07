@@ -434,7 +434,7 @@ describe('commands.registry', () => {
       );
 
       expect(billingCmd).toBeDefined();
-      expect(billingCmd?.label).toBe('Billing & Subscription');
+      expect(billingCmd?.label).toBe('Subscription');
       expect(billingCmd?.keywords).toContain('billing');
       delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     });
