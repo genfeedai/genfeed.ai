@@ -747,25 +747,50 @@ export class ToolRegistryService implements OnModuleInit {
           throw new Error('contentId and contentType required');
         }
 
-        if (args.contentType === 'video') {
+        const contentId = args.contentId as string;
+        const contentType = args.contentType as string;
+
+        if (contentType === 'video') {
           const analytics = await this.clientService.getVideoAnalytics(
-            args.contentId as string,
+            contentId,
             (args.timeRange as string) || '7d',
           );
           return {
             content: [
               {
-                text: `Analytics for ${args.contentType} ${args.contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
+                text: `Analytics for ${contentType} ${contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
                 type: 'text',
               },
             ],
           };
         }
 
+        // Articles and images route through the canonical agent executor
+        // (`get_analytics`), which already owns content→published-post
+        // resolution, per-collection analytics rollups, and tenant scoping.
+        // Reusing it keeps the MCP and agent surfaces on one implementation
+        // rather than two that drift — this branch used to return a hardcoded
+        // "data is being compiled" string for exactly these two types.
+        const result = await this.clientService.executeAgentTool(
+          'get_analytics',
+          { contentId },
+        );
+
+        if (!result.success) {
+          throw new Error(
+            result.error ||
+              `Failed to get analytics for ${contentType} ${contentId}`,
+          );
+        }
+
+        // `getPostAnalyticsSummary` and `getArticleAnalyticsSummary` both roll
+        // up every recorded day, so this is a lifetime total; the declared
+        // `timeRange` argument does not narrow it. Say so rather than stamping
+        // a range the numbers do not honor.
         return {
           content: [
             {
-              text: `Analytics for ${args.contentType} ${args.contentId} (${args.timeRange || '7d'}):\n\nAnalytics data is being compiled. Please check the dashboard for detailed metrics.`,
+              text: `Analytics for ${contentType} ${contentId} (lifetime totals):\n\n${JSON.stringify(result.data, null, 2)}`,
               type: 'text',
             },
           ],
