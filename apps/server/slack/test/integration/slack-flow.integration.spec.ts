@@ -57,8 +57,8 @@ describe('Slack Bot Manager Integration Flow', () => {
     createdAt: new Date('2024-01-01'),
     id: 'slack-integration-1',
     orgId: 'org-456',
-    platform: 'slack',
-    status: 'active',
+    platform: 'SLACK',
+    status: 'ACTIVE',
     updatedAt: new Date('2024-01-01'),
   };
 
@@ -184,7 +184,7 @@ describe('Slack Bot Manager Integration Flow', () => {
       callback({
         integrationId: 'new-slack-integration-2',
         orgId: 'org-789',
-        platform: 'slack',
+        platform: 'SLACK',
       });
 
       // Allow async processing (fetchAndAddIntegration is async)
@@ -208,7 +208,7 @@ describe('Slack Bot Manager Integration Flow', () => {
       callback({
         integrationId: mockIntegration.id,
         orgId: mockIntegration.orgId,
-        platform: 'slack',
+        platform: 'SLACK',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 200));

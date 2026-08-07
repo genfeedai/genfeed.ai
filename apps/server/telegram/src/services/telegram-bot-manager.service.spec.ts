@@ -148,8 +148,8 @@ const mockIntegration = {
   createdAt: new Date(),
   id: 'int-1',
   orgId: 'org-1',
-  platform: 'telegram' as const,
-  status: 'active' as const,
+  platform: 'TELEGRAM' as const,
+  status: 'ACTIVE' as const,
   updatedAt: new Date(),
 };
 

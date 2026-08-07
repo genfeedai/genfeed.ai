@@ -1,4 +1,4 @@
-import { ParseMode } from '@genfeedai/enums';
+import { IntegrationPlatform, ParseMode } from '@genfeedai/enums';
 import {
   BaseBotManager,
   type BotHttpAdapter,
@@ -62,7 +62,7 @@ export class TelegramBotManager
   extends BaseBotManager<TelegramBotInstance>
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly platform = 'telegram' as const;
+  private readonly platform = IntegrationPlatform.TELEGRAM;
   private readonly integrationEvents = [
     REDIS_EVENTS.INTEGRATION_CREATED,
     REDIS_EVENTS.INTEGRATION_UPDATED,
