@@ -274,6 +274,63 @@ describe('TerminalService', () => {
     );
   });
 
+  it('evicts oldest scrollback bytes once buffered output exceeds the byte budget', () => {
+    const service = createService({ NODE_ENV: 'development' }, mockAdapter);
+    const session = service.createSession('socket-1', 'user_123', undefined, {
+      onData: vi.fn(),
+      onExit: vi.fn(),
+    });
+    const dataHandler = vi.mocked(mockPty.onData).mock.calls[0][0];
+
+    // Each chunk is just over half the 256KB scrollback budget, so the
+    // second push evicts the first without shifting the backing array.
+    const chunkSize = 128 * 1024 + 1;
+    dataHandler('a'.repeat(chunkSize));
+    dataHandler('b'.repeat(chunkSize));
+
+    const onDataNew = vi.fn();
+    service.attach('socket-2', 'user_123', session.id, {
+      onData: onDataNew,
+      onExit: vi.fn(),
+    });
+
+    const flushed = onDataNew.mock.calls[0][0].data as string;
+    expect(flushed).not.toContain('a');
+    expect(flushed).toContain('b');
+    expect(flushed.length).toBe(chunkSize);
+  });
+
+  it('compacts the scrollback ring after repeated eviction without losing live data', () => {
+    const service = createService({ NODE_ENV: 'development' }, mockAdapter);
+    const session = service.createSession('socket-1', 'user_123', undefined, {
+      onData: vi.fn(),
+      onExit: vi.fn(),
+    });
+    const dataHandler = vi.mocked(mockPty.onData).mock.calls[0][0];
+
+    // 65 pushes drive the eviction head index to the compaction threshold
+    // (64), forcing a splice of the backing array. Each chunk uses a
+    // distinct marker character so we can prove only the last one survives.
+    const chunkSize = 128 * 1024 + 1;
+    const chunkCount = 65;
+    for (let i = 0; i < chunkCount; i++) {
+      dataHandler(String.fromCharCode(33 + i).repeat(chunkSize));
+    }
+
+    const onDataNew = vi.fn();
+    service.attach('socket-2', 'user_123', session.id, {
+      onData: onDataNew,
+      onExit: vi.fn(),
+    });
+
+    const flushed = onDataNew.mock.calls[0][0].data as string;
+    const firstMarker = String.fromCharCode(33);
+    const lastMarker = String.fromCharCode(33 + chunkCount - 1);
+    expect(flushed).not.toContain(firstMarker);
+    expect(flushed).toContain(lastMarker);
+    expect(flushed.length).toBe(chunkSize);
+  });
+
   it('denies attach from a different userId', () => {
     const service = createService({ NODE_ENV: 'development' }, mockAdapter);
     const session = service.createSession('socket-1', 'user_123', undefined, {

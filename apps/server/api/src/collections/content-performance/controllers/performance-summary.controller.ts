@@ -19,12 +19,24 @@ import { ApiTags } from '@nestjs/swagger';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
 import type { Request } from 'express';
 
+const MAX_SUMMARY_LIMIT = 50;
+
 function validateBrandId(brandId: string): void {
   if (!isEntityId(brandId)) {
     throw new BadRequestException(
       'brandId is required and must be a valid entity id',
     );
   }
+}
+
+/** Parses and clamps a client-supplied count query param to [1, MAX_SUMMARY_LIMIT]. */
+function clampSummaryLimit(value: string): number | undefined {
+  const parsed = parseInt(value, 10);
+  if (!Number.isFinite(parsed)) {
+    return undefined;
+  }
+
+  return Math.max(1, Math.min(MAX_SUMMARY_LIMIT, parsed));
 }
 
 @AutoSwagger()
@@ -59,8 +71,8 @@ export class PerformanceSummaryController {
       {
         endDate: endDate || undefined,
         startDate: startDate || undefined,
-        topN: topN ? parseInt(topN, 10) : undefined,
-        worstN: worstN ? parseInt(worstN, 10) : undefined,
+        topN: topN ? clampSummaryLimit(topN) : undefined,
+        worstN: worstN ? clampSummaryLimit(worstN) : undefined,
       },
     );
     return serializeSingle(req, PerformanceSummarySerializer, summary);
@@ -83,7 +95,7 @@ export class PerformanceSummaryController {
     return await this.performanceSummaryService.getTopPerformers(
       organization,
       brandId,
-      limit ? parseInt(limit, 10) : 10,
+      limit ? (clampSummaryLimit(limit) ?? 10) : 10,
       {
         endDate: endDate || undefined,
         startDate: startDate || undefined,

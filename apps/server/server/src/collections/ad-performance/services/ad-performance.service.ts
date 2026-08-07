@@ -12,6 +12,8 @@ import { SERVER_TOKENS, type ServerPrisma } from '@server/server.dependencies';
 import { scopedWhere } from '@server/tenancy/scoped-where';
 
 const DEFAULT_TOP_PERFORMER_LIMIT = 10;
+const MIN_TOP_PERFORMER_LIMIT = 1;
+const MAX_TOP_PERFORMER_LIMIT = 100;
 const JSON_METRIC_CANDIDATE_LIMIT = 500;
 const AD_PERFORMANCE_IDENTITY_KEYS = [
   'brand',
@@ -92,7 +94,10 @@ export class AdPerformanceService {
       return DEFAULT_TOP_PERFORMER_LIMIT;
     }
 
-    return Math.max(0, Math.trunc(limit));
+    return Math.min(
+      MAX_TOP_PERFORMER_LIMIT,
+      Math.max(MIN_TOP_PERFORMER_LIMIT, Math.trunc(limit)),
+    );
   }
 
   private buildTopPerformerWhere(
@@ -313,9 +318,6 @@ export class AdPerformanceService {
   ): Promise<AdPerformanceDocument[]> {
     const metric = params.metric ?? 'performanceScore';
     const limit = this.resolveTopPerformerLimit(params.limit);
-    if (limit === 0) {
-      return [];
-    }
 
     const where = this.buildTopPerformerWhere(params);
 

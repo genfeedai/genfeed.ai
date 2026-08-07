@@ -6,6 +6,7 @@ import { RouterPriority } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -26,8 +27,10 @@ export class CreateImageDto extends CreateIngredientDto {
   @ApiProperty({ description: 'Random generation seed', required: false })
   readonly seed?: number;
 
-  @IsEntityId({ each: true })
   @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsEntityId({ each: true })
   @ApiProperty({
     description: 'Source ingredient IDs used as image references',
     required: false,

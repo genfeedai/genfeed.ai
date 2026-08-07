@@ -191,6 +191,37 @@ describe('PinterestService', () => {
       expect(httpServiceMock.get).not.toHaveBeenCalled();
     });
 
+    it('finds metrics nested under a wrapper object via breadth-first traversal', async () => {
+      (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
+        accessToken: 'stored-token',
+      });
+      (httpServiceMock.get as vi.Mock).mockReturnValue(
+        of({
+          data: {
+            metrics: {
+              daily: {
+                IMPRESSION: { value: 42 },
+                OUTBOUND_CLICK: { value: 1 },
+                PIN_CLICK: { value: 2 },
+                SAVE: { value: 3 },
+              },
+            },
+          },
+        }),
+      );
+
+      const result = await service.getMediaAnalytics('org', 'brand', 'pin-1');
+
+      expect(result).toEqual({
+        clicks: 3,
+        comments: 0,
+        impressions: 42,
+        likes: 0,
+        saves: 3,
+        views: 42,
+      });
+    });
+
     it('throws when Pinterest returns no metric values', async () => {
       (credentialsServiceMock.findOne as vi.Mock).mockResolvedValue({
         accessToken: 'stored-token',

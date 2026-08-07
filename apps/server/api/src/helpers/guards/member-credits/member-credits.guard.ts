@@ -51,18 +51,10 @@ export class MemberCreditsGuard implements CanActivate {
       organizationId: organizationId,
     });
 
-    const activeMembers = await this.membersService.findAll(
-      {
-        where: {
-          isDeleted: false,
-          organizationId: organizationId,
-        },
-      },
-      { pagination: false },
-      false,
-    );
-
-    const activeMembersCount = activeMembers.docs.length;
+    const activeMembersCount = await this.membersService.count({
+      isDeleted: false,
+      organizationId: organizationId,
+    });
 
     const tier =
       settings?.subscriptionTier ?? getSubscriptionTier(user, request);
