@@ -103,7 +103,12 @@ export function AgentFullPage({
     />
   ) : null;
 
-  const hasInlineContextPanel = !inspectorShell && contextPanel !== null;
+  // T3 density on product agent routes: single conversation column.
+  // Onboarding keeps the setup/outputs dual-column chrome. Product routes
+  // project into ConversationInspector when the workspace shell provides it;
+  // mobile drawers still expose outputs/setup without a permanent right rail.
+  const hasInlineContextPanel =
+    !inspectorShell && contextPanel !== null && onboardingMode;
   const setInspectorHasPanel = inspectorShell?.setHasPanel;
   const hasProjectedContextPanel =
     inspectorShell?.isActive === true && contextPanel !== null;

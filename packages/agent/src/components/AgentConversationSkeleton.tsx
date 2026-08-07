@@ -10,14 +10,14 @@ type AgentConversationSkeletonProps = {
 export function AgentConversationSkeleton({
   title,
 }: AgentConversationSkeletonProps): ReactElement {
-  // Full-width scroll (window-edge scrollbar); content track is max-w-4xl.
+  // Full-width scroll (window-edge scrollbar); content track is max-w-3xl.
   return (
     <div
       className="relative flex min-h-full w-full flex-1 flex-col"
       data-testid="conversation-skeleton"
     >
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto flex w-full max-w-4xl flex-col py-5 pb-36 md:pb-40">
+        <div className="mx-auto flex w-full min-w-0 max-w-3xl flex-col px-3 py-5 pb-36 sm:px-4 md:pb-40">
           <div className="mb-8 px-1">
             {title ? (
               <p className="truncate text-sm font-medium text-foreground/70">

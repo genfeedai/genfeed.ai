@@ -1,12 +1,19 @@
+import {
+  AGENT_CONVERSATION_INLINE_ROW_CLASS,
+  AGENT_CONVERSATION_SURFACE_CLASS,
+} from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
   AgentUiActionCta,
   AgentUiActionOutputVariant,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
+  ChevronDown,
+  ChevronUp,
   CircleCheck,
   Clipboard,
   Frown,
@@ -75,6 +82,7 @@ function CompletionActionButton({
   cta,
   isPrimary = false,
   onUiAction,
+  size = 'default',
 }: {
   cta: AgentUiActionCta;
   isPrimary?: boolean;
@@ -82,26 +90,36 @@ function CompletionActionButton({
     action: string,
     payload?: Record<string, unknown>,
   ) => void | Promise<void>;
+  size?: 'default' | 'compact';
 }): ReactElement {
+  // Always go through Button so global `a { color }` rules cannot paint
+  // black text on dark card chrome (raw anchors were unreadable).
+  const buttonSize = size === 'compact' ? ButtonSize.SM : ButtonSize.DEFAULT;
+  const variant = isPrimary ? ButtonVariant.SECONDARY : ButtonVariant.GHOST;
+  const className = cn(
+    'shrink-0 font-medium text-foreground',
+    size === 'compact' && 'h-7 px-2.5 text-xs',
+  );
+
   if (cta.href) {
+    const href = normalizeAgentAppHref(cta.href) ?? cta.href;
     return (
-      <a
-        href={cta.href}
-        className={cn(
-          'inline-flex items-center justify-center px-3 py-2 text-sm font-medium transition-colors',
-          isPrimary
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-            : 'border border-border bg-background text-foreground hover:bg-accent',
-        )}
+      <Button
+        asChild
+        size={buttonSize}
+        variant={variant}
+        withWrapper={false}
+        className={className}
       >
-        {cta.label}
-      </a>
+        <a href={href}>{cta.label}</a>
+      </Button>
     );
   }
 
   return (
     <Button
-      variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
+      size={buttonSize}
+      variant={variant}
       withWrapper={false}
       onClick={() => {
         if (!cta.action) {
@@ -109,23 +127,36 @@ function CompletionActionButton({
         }
         void onUiAction?.(cta.action, cta.payload);
       }}
-      className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium"
+      className={className}
     >
       {cta.label}
     </Button>
   );
 }
 
+/**
+ * T3/Codex density: default is a single inline status row (no card shell).
+ * Expands to a bordered surface only when there are media previews or detail.
+ */
 export function AgentCompletionSummaryCard({
   action,
   onCopy,
   onRetry,
   onUiAction,
 }: AgentCompletionSummaryCardProps): ReactElement {
+  const outputVariants = (action.outputVariants ?? []).slice(0, 4);
+  const hasRichBody =
+    outputVariants.length > 0 ||
+    Boolean(action.summaryText?.trim()) ||
+    (action.outcomeBullets?.length ?? 0) > 0 ||
+    Boolean(action.secondaryCtas?.length);
+
+  // Media previews open by default; text-only stays collapsed (one-line row).
+  const [isExpanded, setIsExpanded] = useState(outputVariants.length > 0);
   const [feedbackState, setFeedbackState] = useState<
     'positive' | 'negative' | null
   >(null);
-  const outputVariants = (action.outputVariants ?? []).slice(0, 4);
+
   const copyValue = useMemo(() => {
     const summary = action.summaryText?.trim() ?? '';
     const bullets = (action.outcomeBullets ?? []).map(
@@ -134,129 +165,186 @@ export function AgentCompletionSummaryCard({
     return [summary, ...bullets].filter(Boolean).join('\n');
   }, [action.outcomeBullets, action.summaryText]);
 
-  return (
-    <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <CircleCheck className="size-4.5 text-emerald-500" />
-        <span>{action.title || 'Done'}</span>
+  const oneLiner =
+    action.summaryText?.trim() ||
+    action.outcomeBullets?.[0] ||
+    action.description?.trim() ||
+    '';
+
+  const header = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <CircleCheck className="size-3.5 shrink-0 text-emerald-500" />
+      <div className="min-w-0 flex-1 basis-32">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-[13px] font-medium text-foreground/90">
+            {action.title || 'Done'}
+          </span>
+          {!isExpanded && oneLiner ? (
+            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
+              · {oneLiner}
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      {action.summaryText ? (
-        <p className="mt-3 text-sm leading-6 text-foreground">
-          {action.summaryText}
-        </p>
-      ) : null}
-
-      {action.outcomeBullets?.length ? (
-        <ul className="mt-3 space-y-1.5 text-sm text-foreground/80">
-          {action.outcomeBullets.slice(0, 4).map((bullet) => (
-            <li key={bullet} className="flex gap-2">
-              <span className="mt-[0.4rem] size-1.5 rounded-full bg-primary/80" />
-              <span>{bullet}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
-      {outputVariants.length > 0 ? (
-        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {outputVariants.map((variant) => {
-            const preview = renderOutputPreview(variant);
-            if (!preview) {
-              return (
-                <div
-                  key={variant.id}
-                  className="flex aspect-square items-center justify-center border border-dashed border-border/60 bg-background/60 text-muted-foreground"
-                >
-                  {variant.kind === 'video' ? (
-                    <Video className="size-5" />
-                  ) : (
-                    <Image className="size-5" />
-                  )}
-                </div>
-              );
-            }
-
-            return <div key={variant.id}>{preview}</div>;
-          })}
-        </div>
-      ) : null}
-
       {action.primaryCta ? (
-        <div className="mt-5">
-          <CompletionActionButton
-            cta={action.primaryCta}
-            isPrimary
-            onUiAction={onUiAction}
-          />
-        </div>
+        <CompletionActionButton
+          cta={action.primaryCta}
+          isPrimary
+          size="compact"
+          onUiAction={onUiAction}
+        />
       ) : null}
 
-      {action.secondaryCtas?.length ? (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {action.secondaryCtas.slice(0, 3).map((cta, index) => (
-            <CompletionActionButton
-              key={`${action.id}-secondary-${cta.label}-${index}`}
-              cta={cta}
-              onUiAction={onUiAction}
-            />
-          ))}
-        </div>
+      {hasRichBody ? (
+        <Button
+          ariaLabel={isExpanded ? 'Collapse summary' : 'Expand summary'}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+          className="h-7 w-7 shrink-0 p-0 text-muted-foreground"
+          onClick={() => setIsExpanded((open) => !open)}
+        >
+          {isExpanded ? (
+            <ChevronUp className="size-3.5" />
+          ) : (
+            <ChevronDown className="size-3.5" />
+          )}
+        </Button>
       ) : null}
+    </div>
+  );
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-        <Button
-          ariaLabel="Copy result summary"
-          variant={ButtonVariant.GHOST}
-          className="h-8 px-2 text-xs"
-          onClick={() => {
-            if (!copyValue) {
-              return;
-            }
-            void onCopy?.(copyValue);
-          }}
-        >
-          <Clipboard className="mr-1 size-3.5" />
-          Copy
-        </Button>
-        <Button
-          ariaLabel="Retry result"
-          variant={ButtonVariant.GHOST}
-          className="h-8 px-2 text-xs"
-          onClick={() => {
-            void onRetry?.();
-          }}
-        >
-          Retry
-        </Button>
-        <Button
-          variant={ButtonVariant.GHOST}
-          ariaLabel="Mark result helpful"
-          className="h-8 px-2 text-xs"
-          onClick={() => setFeedbackState('positive')}
-        >
-          <ThumbsUp className="mr-1 size-3.5" />
-          Good
-        </Button>
-        <Button
-          variant={ButtonVariant.GHOST}
-          ariaLabel="Mark result not helpful"
-          className="h-8 px-2 text-xs"
-          onClick={() => setFeedbackState('negative')}
-        >
-          <ThumbsDown className="mr-1 size-3.5" />
-          Bad
-        </Button>
-        {feedbackState ? (
-          <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
-            {feedbackState === 'positive' ? (
-              <CircleCheck className="size-3.5 text-emerald-500" />
-            ) : (
-              <Frown className="size-3.5 text-amber-500" />
-            )}
-            Thanks for the feedback.
-          </span>
+  // Collapsed / no-detail: borderless inline row (Codex density).
+  if (!isExpanded) {
+    return (
+      <div
+        className={AGENT_CONVERSATION_INLINE_ROW_CLASS}
+        data-testid="agent-completion-summary"
+      >
+        {header}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={cn(
+        AGENT_CONVERSATION_SURFACE_CLASS,
+        'mt-1.5 w-full min-w-0 max-w-full overflow-hidden text-left',
+      )}
+      data-testid="agent-completion-summary"
+    >
+      <div className="px-3 py-2">{header}</div>
+
+      <div className="space-y-2.5 border-t border-border/50 px-3 pb-2.5 pt-2">
+        {action.summaryText ? (
+          <p className="text-[13px] leading-5 text-foreground/90">
+            {action.summaryText}
+          </p>
         ) : null}
+
+        {action.outcomeBullets?.length ? (
+          <ul className="space-y-1 text-[13px] text-foreground/80">
+            {action.outcomeBullets.slice(0, 4).map((bullet) => (
+              <li key={bullet} className="flex gap-2">
+                <span className="mt-[0.4rem] size-1.5 shrink-0 rounded-full bg-primary/80" />
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {outputVariants.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {outputVariants.map((variant) => {
+              const preview = renderOutputPreview(variant);
+              if (!preview) {
+                return (
+                  <div
+                    key={variant.id}
+                    className="flex aspect-square items-center justify-center border border-dashed border-border/60 bg-background/60 text-muted-foreground"
+                  >
+                    {variant.kind === 'video' ? (
+                      <Video className="size-5" />
+                    ) : (
+                      <Image className="size-5" />
+                    )}
+                  </div>
+                );
+              }
+
+              return <div key={variant.id}>{preview}</div>;
+            })}
+          </div>
+        ) : null}
+
+        {action.secondaryCtas?.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {action.secondaryCtas.slice(0, 3).map((cta, index) => (
+              <CompletionActionButton
+                key={`${action.id}-secondary-${cta.label}-${index}`}
+                cta={cta}
+                size="compact"
+                onUiAction={onUiAction}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-2 text-xs text-muted-foreground">
+          <Button
+            ariaLabel="Copy result summary"
+            variant={ButtonVariant.GHOST}
+            className="h-7 px-2 text-xs"
+            onClick={() => {
+              if (!copyValue) {
+                return;
+              }
+              void onCopy?.(copyValue);
+            }}
+          >
+            <Clipboard className="mr-1 size-3.5" />
+            Copy
+          </Button>
+          <Button
+            ariaLabel="Retry result"
+            variant={ButtonVariant.GHOST}
+            className="h-7 px-2 text-xs"
+            onClick={() => {
+              void onRetry?.();
+            }}
+          >
+            Retry
+          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            ariaLabel="Mark result helpful"
+            className="h-7 px-2 text-xs"
+            onClick={() => setFeedbackState('positive')}
+          >
+            <ThumbsUp className="mr-1 size-3.5" />
+            Good
+          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            ariaLabel="Mark result not helpful"
+            className="h-7 px-2 text-xs"
+            onClick={() => setFeedbackState('negative')}
+          >
+            <ThumbsDown className="mr-1 size-3.5" />
+            Bad
+          </Button>
+          {feedbackState ? (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
+              {feedbackState === 'positive' ? (
+                <CircleCheck className="size-3.5 text-emerald-500" />
+              ) : (
+                <Frown className="size-3.5 text-amber-500" />
+              )}
+              Thanks for the feedback.
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );
