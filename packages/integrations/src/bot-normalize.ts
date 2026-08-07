@@ -1,4 +1,5 @@
 import type { IntegrationPlatform } from '@genfeedai/enums';
+import { IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from './types';
 
 /**
@@ -34,7 +35,9 @@ export function normalizeIntegration(
     id: String(rawId),
     orgId: String(rawOrgId),
     platform,
-    status: (raw.status as OrgIntegration['status'] | undefined) || 'active',
+    status:
+      (raw.status as OrgIntegration['status'] | undefined) ||
+      IntegrationStatus.ACTIVE,
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string) : new Date(),
   };
 }

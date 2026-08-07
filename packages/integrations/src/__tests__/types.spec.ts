@@ -28,12 +28,12 @@ describe('Integration Common Types', () => {
         id: 'int-123',
         orgId: 'org-456',
         platform: 'telegram',
-        status: 'active',
+        status: 'ACTIVE',
         updatedAt: new Date('2024-01-02'),
       };
 
       expect(integration.platform).toBe('telegram');
-      expect(integration.status).toBe('active');
+      expect(integration.status).toBe('ACTIVE');
       expect(integration.config.allowedUserIds).toContain('123');
     });
 
@@ -47,12 +47,12 @@ describe('Integration Common Types', () => {
         id: 'int-slack-123',
         orgId: 'org-789',
         platform: 'slack',
-        status: 'paused',
+        status: 'PAUSED',
         updatedAt: new Date(),
       };
 
       expect(integration.platform).toBe('slack');
-      expect(integration.status).toBe('paused');
+      expect(integration.status).toBe('PAUSED');
       expect(integration.config.webhookMode).toBe(true);
     });
 
@@ -66,12 +66,12 @@ describe('Integration Common Types', () => {
         id: 'int-discord-123',
         orgId: 'org-999',
         platform: 'discord',
-        status: 'error',
+        status: 'ERROR',
         updatedAt: new Date(),
       };
 
       expect(integration.platform).toBe('discord');
-      expect(integration.status).toBe('error');
+      expect(integration.status).toBe('ERROR');
       expect(integration.config.defaultWorkflow).toBe('image-gen-wf');
     });
 
@@ -87,7 +87,7 @@ describe('Integration Common Types', () => {
         id: 'int-unipile-123',
         orgId: 'org-999',
         platform: 'unipile',
-        status: 'active',
+        status: 'ACTIVE',
         updatedAt: new Date(),
       };
 
