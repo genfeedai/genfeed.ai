@@ -1,7 +1,8 @@
 # Temporary one-shot workflow for PR #2482: regenerate the spec-typecheck
 # baseline on CI (the only environment allowed to run tsc for this task) and
-# publish it as an artifact. Deleted in the same PR once the baseline is
-# committed.
+# publish it as an artifact. One TypeScript program per process — the
+# single-process --update-baseline run is SIGTERMed on the 7GB runner.
+# Deleted in the same PR once the baseline is committed.
 name: Tmp Spec Baseline
 
 on:
@@ -23,8 +24,18 @@ jobs:
           bun-version: '1.3.14'
       - name: Build packages
         run: bunx turbo run build --filter='./packages/*' --filter='./ee/packages/*'
-      - name: Regenerate spec-typecheck baseline
-        run: bun run check:spec-typecheck --update-baseline
+      - name: Regenerate spec-typecheck baseline (per-workspace shards)
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/spec-shards
+          for config in apps/server/*/tsconfig.typecheck.specs.json; do
+            workspace="${config#apps/server/}"
+            workspace="${workspace%%/*}"
+            echo "::group::dump ${workspace}"
+            bun run scripts/architecture/tmp-spec-baseline-dump.ts "${workspace}" > "/tmp/spec-shards/${workspace}.json"
+            echo "::endgroup::"
+          done
+          bun run scripts/architecture/tmp-spec-baseline-merge.ts /tmp/spec-shards/*.json
       - name: Upload baseline
         uses: actions/upload-artifact@v4
         with:
