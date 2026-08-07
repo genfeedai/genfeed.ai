@@ -239,12 +239,25 @@ export class IntegrationsService {
     };
   }
 
+  /**
+   * `orgIntegration.platform` / `.status` are Prisma enum columns, and the
+   * domain `IntegrationPlatform` / `IntegrationStatus` mirror those labels
+   * 1:1 — so the API wire format is the stored SCREAMING_SNAKE label verbatim.
+   *
+   * These used to lowercase, which stranded the value the moment the domain
+   * enums were harmonized: the bot managers match Redis `integration:*` events
+   * on `IntegrationPlatform.X`, so a lowercased `platform` silently skipped
+   * every hot-reload, and `normalizeIntegration` typed a lowercase `status`
+   * as an uppercase member.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
   private toApiPlatform(platform: unknown): IntegrationPlatform {
-    return String(platform).toLowerCase() as IntegrationPlatform;
+    return String(platform) as IntegrationPlatform;
   }
 
   private toApiStatus(status: unknown): IntegrationStatus {
-    return String(status).toLowerCase() as IntegrationStatus;
+    return String(status) as IntegrationStatus;
   }
 
   /**
