@@ -154,7 +154,8 @@ describe('ImagesController', () => {
         { limit: number; pagination: boolean },
       ];
 
-      expect(options).toMatchObject({ pagination: false });
+      // Paginated so the 50-row cap actually reaches Prisma as `take`.
+      expect(options).toMatchObject({ limit: 10, page: 1, pagination: true });
       expect(aggregate.orderBy).toEqual({ createdAt: -1 });
 
       // Two OR branches: user-owned (training excluded) + brand defaults.

@@ -46,7 +46,8 @@ export class BaseQueryDto {
 
   @ApiProperty({
     default: true,
-    description: 'Enable or disable pagination',
+    description:
+      'Accepted for backward compatibility only — server-side pagination is always enforced on HTTP list endpoints (see QueryDefaultsUtil), so `pagination=false` has no effect.',
     required: false,
   })
   @IsOptional()

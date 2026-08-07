@@ -1139,22 +1139,6 @@
     {
       "delegate": "listeningTopic",
       "file": "apps/server/api/src/collections/listening-topics/services/listening-topics.service.ts",
-      "fingerprint": "fe21f9d7f08042c3333a",
-      "method": "count",
-      "model": "ListeningTopic",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "listeningTopic",
-      "file": "apps/server/api/src/collections/listening-topics/services/listening-topics.service.ts",
-      "fingerprint": "7d5f076809a4a63ef4b2",
-      "method": "findMany",
-      "model": "ListeningTopic",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "listeningTopic",
-      "file": "apps/server/api/src/collections/listening-topics/services/listening-topics.service.ts",
       "fingerprint": "969151256679eddf1bf4",
       "method": "update",
       "model": "ListeningTopic",
