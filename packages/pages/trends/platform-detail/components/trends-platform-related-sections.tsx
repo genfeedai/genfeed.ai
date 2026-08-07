@@ -14,6 +14,7 @@ import {
   toTrendVideoFinding,
 } from '@pages/research/work-surface/research-work-surface.types';
 import { Film, Hash, Music } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 import RelatedMetricCard from './related-metric-card';
 
@@ -33,6 +34,25 @@ type TrendsPlatformRelatedSectionsProps = {
   onSelect?: (finding: AuthorizedResearchFinding) => void;
 };
 
+function SectionHeader({ icon, title }: { icon: ReactNode; title: string }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {icon}
+      <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
+        {title}
+      </h2>
+    </div>
+  );
+}
+
+function EmptyBlock({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-card bg-background px-4 py-6 text-sm text-muted-foreground shadow-border">
+      {children}
+    </div>
+  );
+}
+
 export default function TrendsPlatformRelatedSections({
   showVideos,
   isLoadingVideos,
@@ -49,19 +69,17 @@ export default function TrendsPlatformRelatedSections({
   return (
     <>
       {showVideos ? (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Film className="size-5 text-foreground/70" />
-            <h2 className="text-lg font-semibold text-foreground">
-              Related viral videos
-            </h2>
-          </div>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Related viral videos"
+            icon={<Film className="size-4 text-muted-foreground" />}
+          />
           {isLoadingVideos ? (
-            <div className="py-3 text-sm text-foreground/40">
+            <p className="py-3 text-sm text-muted-foreground">
               Loading viral videos…
-            </div>
+            </p>
           ) : viralVideos.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {viralVideos.map((video: ITrendVideo) => {
                 const finding = toTrendVideoFinding(video);
                 return (
@@ -83,27 +101,23 @@ export default function TrendsPlatformRelatedSections({
               })}
             </div>
           ) : (
-            <div className="py-3 text-sm text-foreground/40">
-              No viral videos available right now.
-            </div>
+            <EmptyBlock>No viral videos available right now.</EmptyBlock>
           )}
         </section>
       ) : null}
 
       {showHashtags ? (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Hash className="size-5 text-foreground/70" />
-            <h2 className="text-lg font-semibold text-foreground">
-              Trending hashtags
-            </h2>
-          </div>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Trending hashtags"
+            icon={<Hash className="size-4 text-muted-foreground" />}
+          />
           {isLoadingHashtags ? (
-            <div className="py-3 text-sm text-foreground/40">
+            <p className="py-3 text-sm text-muted-foreground">
               Loading hashtags…
-            </div>
+            </p>
           ) : hashtags.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {hashtags.map((hashtag: ITrendHashtag) => {
                 const finding = toTrendHashtagFinding(hashtag);
                 return (
@@ -125,27 +139,23 @@ export default function TrendsPlatformRelatedSections({
               })}
             </div>
           ) : (
-            <div className="py-3 text-sm text-foreground/40">
-              No trending hashtags available right now.
-            </div>
+            <EmptyBlock>No trending hashtags available right now.</EmptyBlock>
           )}
         </section>
       ) : null}
 
       {showSounds ? (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <Music className="size-5 text-foreground/70" />
-            <h2 className="text-lg font-semibold text-foreground">
-              Trending sounds
-            </h2>
-          </div>
+        <section className="space-y-3">
+          <SectionHeader
+            title="Trending sounds"
+            icon={<Music className="size-4 text-muted-foreground" />}
+          />
           {isLoadingSounds ? (
-            <div className="py-3 text-sm text-foreground/40">
+            <p className="py-3 text-sm text-muted-foreground">
               Loading sounds…
-            </div>
+            </p>
           ) : sounds.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {sounds.map((sound: ITrendSound) => {
                 const finding = toTrendSoundFinding(sound);
                 return (
@@ -167,9 +177,7 @@ export default function TrendsPlatformRelatedSections({
               })}
             </div>
           ) : (
-            <div className="py-3 text-sm text-foreground/40">
-              No trending sounds available right now.
-            </div>
+            <EmptyBlock>No trending sounds available right now.</EmptyBlock>
           )}
         </section>
       ) : null}

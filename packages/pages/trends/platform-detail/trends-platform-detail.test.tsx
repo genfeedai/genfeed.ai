@@ -182,6 +182,8 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
+    // Feed type is a MetricCard value now (same hierarchy as Discover overview).
+    expect(screen.getByText('Feed type')).toBeInTheDocument();
     expect(screen.getByText('Public references')).toBeInTheDocument();
     expect(
       screen.queryByText(/LinkedIn topics are curated/i),
@@ -215,6 +217,7 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
+    expect(screen.getByText('Feed type')).toBeInTheDocument();
     expect(screen.getByText('Public references')).toBeInTheDocument();
     expect(screen.queryByText('Real-time')).not.toBeInTheDocument();
   });
