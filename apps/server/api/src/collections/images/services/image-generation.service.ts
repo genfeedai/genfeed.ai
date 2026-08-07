@@ -22,7 +22,6 @@ import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -32,7 +31,6 @@ import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
   MetadataExtension,
@@ -244,6 +242,7 @@ export class ImageGenerationService {
       promptOriginalText,
       brand,
       organizationSettings,
+      publicMetadata.organization,
     );
 
     // Validate resolved model against org (catches default-resolution bypassing
@@ -424,6 +423,7 @@ export class ImageGenerationService {
     promptOriginalText: string,
     brand: ImageGenerationResolvedBrand,
     organizationSettings: { defaultImageModel?: unknown } | null,
+    organizationId?: string,
   ): Promise<string> {
     if (createImageDto.autoSelectModel) {
       // Auto model routing - let RouterService pick the best model
@@ -433,6 +433,7 @@ export class ImageGenerationService {
           height: createImageDto.height,
           width: createImageDto.width,
         },
+        organizationId,
         outputs: createImageDto.outputs,
         prioritize: createImageDto.prioritize || 'balanced',
         prompt: promptOriginalText,
@@ -448,31 +449,29 @@ export class ImageGenerationService {
       return recommendation.selectedModel as string;
     }
 
-    // Manual selection: user-provided > brand default > system default
-    const modelKeys = Object.values(MODEL_KEYS) as string[];
-    const userModel =
-      createImageDto.model && modelKeys.includes(createImageDto.model as string)
-        ? (createImageDto.model as string)
-        : undefined;
-    const brandDefaultModel =
-      brand.defaultImageModel &&
-      modelKeys.includes(brand.defaultImageModel as string)
-        ? (brand.defaultImageModel as string)
-        : undefined;
-    const organizationDefaultModel =
-      organizationSettings?.defaultImageModel &&
-      modelKeys.includes(organizationSettings.defaultImageModel as string)
-        ? (organizationSettings.defaultImageModel as string)
-        : undefined;
-    const systemDefaultModel = (await this.routerService.getDefaultModel(
-      ModelCategory.IMAGE,
-    )) as string;
-    return resolveGenerationDefaultModel<string>({
-      brandDefault: brandDefaultModel,
-      explicit: userModel,
-      organizationDefault: organizationDefaultModel,
-      systemDefault: systemDefaultModel,
+    // Manual selection runs through the one registry policy (#2422 Phase C):
+    // each candidate is honoured only if the registry carries it as an active,
+    // non-legacy row, so a request naming a retired key — or a brand still
+    // pointing at one — falls through to the registry default instead of being
+    // waved past a hard-coded MODEL_KEYS allowlist.
+    const resolution = await this.routerService.resolveModelKey({
+      candidates: [
+        createImageDto.model as string | undefined,
+        brand.defaultImageModel as string | undefined,
+        organizationSettings?.defaultImageModel as string | undefined,
+      ],
+      category: ModelCategory.IMAGE,
+      organizationId,
     });
+
+    if (resolution.source === 'fallback-constant') {
+      this.loggerService.error('Image model resolved from constant fallback', {
+        model: resolution.key,
+        service: this.constructorName,
+      });
+    }
+
+    return resolution.key;
   }
 
   /**

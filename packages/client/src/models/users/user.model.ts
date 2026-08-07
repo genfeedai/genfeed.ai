@@ -1,4 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
+import type { PlatformRole } from '@genfeedai/enums';
 import type {
   IBrand,
   IOrganization,
@@ -10,6 +11,7 @@ export class User extends BaseEntity implements IUser {
   public declare organization?: IOrganization;
   public declare brands?: IBrand[];
   public declare email: string;
+  public declare platformRole?: PlatformRole;
   public declare firstName: string;
   public declare lastName: string;
   public declare username?: string;

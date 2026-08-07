@@ -2878,6 +2878,39 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
+  it('should prefer explicit context brandId over isSelected', async () => {
+    const { brandsService, service } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      description: 'Scoped brand',
+      handle: 'scoped',
+      id: 'c7a1234567890123456789bb',
+      isActive: true,
+      label: 'Scoped',
+      text: 'Scoped brand',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GET_CURRENT_BRAND,
+      {},
+      {
+        brandId: 'c7a1234567890123456789bb',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'c7a1234567890123456789bb',
+      isDeleted: false,
+      organizationId: 'c7a123456789012345678901',
+    });
+    expect(brandsService.findOne).not.toHaveBeenCalledWith(
+      expect.objectContaining({ isSelected: true }),
+    );
+  });
+
   it('should return an error when no selected brand exists', async () => {
     const { brandsService, service } = createService();
 

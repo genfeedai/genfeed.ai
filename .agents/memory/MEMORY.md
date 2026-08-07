@@ -24,6 +24,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [genfeedai_managed_provider](genfeedai_managed_provider.md) — managed inference is `provider=genfeedai`
 - [system_workflows_content_os](system_workflows_content_os.md) — automation via immutable system workflows
 - [curated_agent_mcp_actions](curated_agent_mcp_actions.md) — one reviewed action catalog; OpenAPI ≠ tool parity
+- [curated_action_surface_boundaries](curated_action_surface_boundaries.md) — why each agent-only / MCP-only action stays that way
 - [pricing_output_meter](pricing_output_meter.md) — credits throttle usage; no hard product caps
 - [release_tag_after_green_deploy](release_tag_after_green_deploy.md) — one manual stable release ships community + SaaS from one SHA; failed deploys reuse the same version
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
