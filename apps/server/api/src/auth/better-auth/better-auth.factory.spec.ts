@@ -1,7 +1,9 @@
+import { PlatformRole } from '@genfeedai/enums';
 import type { RateLimit } from 'better-auth';
 import { describe, expect, it, vi } from 'vitest';
 import {
   assertSignupMagicLinkCanCreateUser,
+  buildBetterAuthAdminOptions,
   buildBetterAuthOrganizationOptions,
   buildBetterAuthUserDatabaseHooks,
   buildRateLimitStorage,
@@ -356,6 +358,45 @@ describe('buildBetterAuthOrganizationOptions', () => {
   });
 });
 
+describe('buildBetterAuthAdminOptions', () => {
+  it('gates Better Auth admin capability on the existing platformRole column', () => {
+    const options = buildBetterAuthAdminOptions();
+
+    expect(options.adminRoles).toEqual([PlatformRole.SUPERADMIN]);
+    // The plugin's user-create hook writes defaultRole through the field
+    // mapping into the PlatformRole enum column — it must be a valid enum
+    // value or every first-time sign-up fails at the Prisma write.
+    expect(options.defaultRole).toBe(PlatformRole.USER);
+    const userFields = options.schema?.user?.fields;
+    expect(
+      userFields && 'role' in userFields ? userFields.role : undefined,
+    ).toBe('platformRole');
+    expect(Object.keys(options.roles ?? {}).sort()).toEqual([
+      PlatformRole.SUPERADMIN,
+      PlatformRole.USER,
+    ]);
+    // 1h default impersonation-session expiry is intentional — no override.
+    expect(options.impersonationSessionDuration).toBeUndefined();
+    expect(options.allowImpersonatingAdmins).toBeUndefined();
+  });
+
+  it('grants impersonation to SUPERADMIN and no admin permission to USER', () => {
+    const options = buildBetterAuthAdminOptions();
+    const superAdminRole = options.roles?.[PlatformRole.SUPERADMIN];
+    const userRole = options.roles?.[PlatformRole.USER];
+
+    expect(superAdminRole?.authorize({ user: ['impersonate'] }).success).toBe(
+      true,
+    );
+    // Superadmins cannot impersonate each other (impersonate-admins withheld).
+    expect(
+      superAdminRole?.authorize({ user: ['impersonate-admins'] }).success,
+    ).toBe(false);
+    expect(userRole?.authorize({ user: ['impersonate'] }).success).toBe(false);
+    expect(userRole?.authorize({ user: ['list'] }).success).toBe(false);
+  });
+});
+
 describe('buildBetterAuthUserDatabaseHooks', () => {
   it('generates a URL-safe handle when first-time user creation has none', async () => {
     const hooks = requireUserCreateHooks();
@@ -561,6 +602,14 @@ describe('createBetterAuthInstance source', () => {
     expect(source).toContain('trustedProviders');
     expect(source).toContain('enabled: true');
     expect(source).toContain('rateLimit');
+  });
+
+  it('registers the platform-role-gated admin plugin', () => {
+    const source = createBetterAuthInstance.toString();
+
+    expect(source).toMatch(
+      /admin\)?\s*\(\s*buildBetterAuthAdminOptions\(\)\s*\)/,
+    );
   });
 
   it('declares `handle` as a known user field so first-time sign-ups persist it', () => {

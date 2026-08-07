@@ -143,6 +143,24 @@ describe('StreamableHttpService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('transport readiness', () => {
+    it('is not ready until the bootstrap mounts the /mcp routes', () => {
+      expect(service.isTransportReady()).toBe(false);
+    });
+
+    it('is ready once the routes are mounted', () => {
+      service.markTransportMounted();
+
+      expect(service.isTransportReady()).toBe(true);
+    });
+
+    it('does not become ready merely by serving a request', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+
+      expect(service.isTransportReady()).toBe(false);
+    });
+  });
+
   describe('handlePost', () => {
     it('builds a fresh stateless server + transport per request and handles it', async () => {
       const req = makeReq({ headers: {} });

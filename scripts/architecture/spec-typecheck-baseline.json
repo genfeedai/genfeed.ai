@@ -1682,14 +1682,6 @@
     },
     {
       "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/prompts/controllers/prompts.controller.spec.ts",
-      "fingerprint": "5a5f78266b442e0badd7",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'PromptQueryDto'.   Type '{}' is missing the following properties from type 'PromptQueryDto': page, limit, pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 4,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
       "fingerprint": "74b44315694671a936b3",
