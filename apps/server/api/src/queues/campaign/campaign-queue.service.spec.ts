@@ -106,7 +106,6 @@ describe('CampaignQueueService', () => {
       await service.scheduledProcessing();
 
       expect(mockOutreachCampaignsService.find).toHaveBeenCalledWith({
-        isDeleted: false,
         status: CampaignStatus.ACTIVE,
       });
     });

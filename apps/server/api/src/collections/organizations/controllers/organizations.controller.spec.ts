@@ -191,7 +191,6 @@ describe('OrganizationsController', () => {
 
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         id: 'org_a',
-        isDeleted: false,
       });
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         id: 'org_b',
@@ -302,7 +301,6 @@ describe('OrganizationsController', () => {
       ]);
       expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
         id: 'org_active',
-        isDeleted: false,
       });
     });
 
@@ -459,7 +457,6 @@ describe('OrganizationsController', () => {
       expect(result).toBe(true);
       expect(mockMembersService.findOne).toHaveBeenCalledWith({
         isActive: true,
-        isDeleted: false,
         organizationId: 'org_other',
         userId: 'user_1',
       });

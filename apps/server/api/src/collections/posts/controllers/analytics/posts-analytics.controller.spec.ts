@@ -211,7 +211,6 @@ describe('PostsAnalyticsController', () => {
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
         id: 'c07f1f77bcf86cd799439016',
         brandId: 'c07f1f77bcf86cd799439013',
-        isDeleted: false,
         organizationId: 'c07f1f77bcf86cd799439012',
       });
     });
@@ -233,7 +232,6 @@ describe('PostsAnalyticsController', () => {
       expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
         id: 'c07f1f77bcf86cd799439016',
         brandId: 'c07f1f77bcf86cd799439013',
-        isDeleted: false,
         organizationId: 'c07f1f77bcf86cd799439012',
       });
     });

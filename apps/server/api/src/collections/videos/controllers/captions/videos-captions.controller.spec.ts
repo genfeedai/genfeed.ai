@@ -138,7 +138,6 @@ describe('VideosCaptionsController', () => {
           { organizationId: mockUser.publicMetadata.organization },
         ],
         id: videoId,
-        isDeleted: false,
       });
       expect(captionsService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({

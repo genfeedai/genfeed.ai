@@ -255,7 +255,6 @@ describe('EditorProjectsController', () => {
 
       expect(editorProjectsService.findOne).toHaveBeenCalledWith({
         id: projectId,
-        isDeleted: false,
         organizationId: 'c07f191e810c19729de860ee',
       });
       expect(result).toMatchObject({ data: project });

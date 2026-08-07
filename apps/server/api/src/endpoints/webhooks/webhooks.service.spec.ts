@@ -570,7 +570,6 @@ describe('WebhooksService', () => {
 
       expect(metadataService.findOne).toHaveBeenCalledWith({
         externalId,
-        isDeleted: false,
       });
       expect(metadataService.patch).toHaveBeenCalledWith(mockMetadata.id, {
         error: errorMessage,

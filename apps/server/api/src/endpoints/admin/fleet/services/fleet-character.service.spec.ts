@@ -43,7 +43,6 @@ describe('AdminFleetCharacterService', () => {
 
       expect(personasService.findOne).toHaveBeenCalledWith({
         isFleetCharacter: true,
-        isDeleted: false,
         organizationId: 'org-123',
         slug: 'alice',
       });

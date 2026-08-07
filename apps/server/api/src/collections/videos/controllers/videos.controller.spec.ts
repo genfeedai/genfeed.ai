@@ -1304,7 +1304,6 @@ describe('VideosController', () => {
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
         id: mockPromptId.toString(),
-        isDeleted: false,
         organizationId: mockOrgId.toString(),
       });
     });

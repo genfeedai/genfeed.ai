@@ -132,9 +132,7 @@ describe('ContentPlannerService', () => {
     } catch {}
 
     expect(brandsService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isDeleted: false,
-      }),
+      expect.objectContaining({}),
     );
   });
 

@@ -166,7 +166,6 @@ describe('UsersController', () => {
 
       expect(organizationsService.findOne).toHaveBeenCalledWith({
         id: 'organization-canonical-id',
-        isDeleted: false,
         userId,
       });
       expect(usersService.patch).toHaveBeenCalledWith(userId, {
@@ -401,7 +400,6 @@ describe('UsersController', () => {
       );
 
       expect(settingsService.findOne).toHaveBeenCalledWith({
-        isDeleted: false,
         userId: 'prisma-user-id',
       });
       expect(settingsService.patch).toHaveBeenCalledWith(
@@ -435,7 +433,6 @@ describe('UsersController', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: userId,
-        isDeleted: false,
       });
       expect(settingsService.patch).toHaveBeenCalledWith(
         settingsId,
@@ -495,7 +492,6 @@ describe('UsersController', () => {
 
       expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
         id: userId,
-        isDeleted: false,
       });
       expect(usersService.patch).toHaveBeenCalledWith(
         'user_canonical_1',
@@ -603,7 +599,6 @@ describe('UsersController', () => {
       expect(usersService.patch).not.toHaveBeenCalled();
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: userId,
-        isDeleted: false,
       });
       expect(result).toBeDefined();
     });

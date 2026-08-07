@@ -199,7 +199,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       );
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(supportService.markOnboardingComplete).toHaveBeenCalled();
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
@@ -261,7 +260,6 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_deleted_1',
-        isDeleted: false,
       });
       expect(supportService.recordCreditsActivity).toHaveBeenCalledWith(
         expect.not.objectContaining({ userId: expect.any(String) }),
@@ -480,7 +478,6 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(supportService.withCheckoutSessionProcessing).toHaveBeenCalledWith(
         'cs_user_1',
@@ -658,7 +655,6 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         email,
-        isDeleted: false,
       });
       expect(usersService.create).toHaveBeenCalledTimes(1);
       const createArg = usersService.create.mock.calls[0][0] as Record<
@@ -695,7 +691,6 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
         email,
-        isDeleted: false,
       });
       expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
         email,
@@ -720,7 +715,6 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenNthCalledWith(1, {
         email,
-        isDeleted: false,
       });
       expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
         email,
@@ -748,7 +742,6 @@ describe('StripeCheckoutWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         email,
-        isDeleted: false,
       });
       expect(usersService.create).not.toHaveBeenCalled();
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();

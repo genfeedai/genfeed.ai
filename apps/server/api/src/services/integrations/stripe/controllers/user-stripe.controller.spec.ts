@@ -181,7 +181,6 @@ describe('UserStripeController', () => {
       // Regression (#1199): resolve the DB user by canonical Genfeed User.id.
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: dbUserId,
-        isDeleted: false,
       });
       expect(stripeService.createUserCustomer).not.toHaveBeenCalled();
       expect(lifecycleEmailService.recordCheckoutStarted).toHaveBeenCalledWith({

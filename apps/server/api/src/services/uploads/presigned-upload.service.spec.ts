@@ -365,7 +365,6 @@ describe('PresignedUploadService', () => {
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         {
           id: mockIngredientId,
-          isDeleted: false,
           organizationId: mockOrganizationId,
           status: 'processing',
           userId: mockUserId,

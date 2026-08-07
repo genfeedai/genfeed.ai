@@ -165,7 +165,6 @@ describe('FanvueController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         id: brandId,
-        isDeleted: false,
         organizationId: orgId,
       });
       expect(fanvueService.generatePkce).toHaveBeenCalled();

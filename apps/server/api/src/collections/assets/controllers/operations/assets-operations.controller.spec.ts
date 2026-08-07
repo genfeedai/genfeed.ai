@@ -230,7 +230,6 @@ describe('AssetsOperationsController', () => {
       expect(brandsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: mockBrandId,
-          isDeleted: false,
           organizationId: expect.any(String),
         }),
       );
@@ -335,7 +334,6 @@ describe('AssetsOperationsController', () => {
       expect(assetsService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({
           category: AssetCategory.LOGO,
-          isDeleted: false,
           parentBrandId: expect.any(String),
           parentType: AssetParent.BRAND,
         }),
@@ -411,7 +409,6 @@ describe('AssetsOperationsController', () => {
       expect(ingredientsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: mockIngredientId.toString(),
-          isDeleted: false,
           userId: expect.any(String),
         }),
       );

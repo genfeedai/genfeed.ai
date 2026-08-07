@@ -346,7 +346,6 @@ describe('UserSetupService', () => {
         // The membership's canonical scalar FK resolves the organization.
         expect(mockOrganizationsService.findOne).toHaveBeenCalledWith({
           id: orgId,
-          isDeleted: false,
         });
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(

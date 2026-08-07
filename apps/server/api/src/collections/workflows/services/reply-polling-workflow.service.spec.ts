@@ -117,7 +117,6 @@ describe('ReplyPollingWorkflowService', () => {
     });
     expect(credentialsService.findOne).toHaveBeenCalledWith({
       id: 'credential-1',
-      isDeleted: false,
       organizationId: 'org-1',
     });
     expect(

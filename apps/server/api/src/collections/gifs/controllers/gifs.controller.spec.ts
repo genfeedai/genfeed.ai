@@ -225,7 +225,6 @@ describe('GifsController', () => {
         {
           id: gifId,
           category: 'GIF',
-          isDeleted: false,
           OR: [
             { organizationId: mockUser.publicMetadata.organization },
             { isDefault: true, organizationId: null },

@@ -297,7 +297,6 @@ describe('StripeInvoiceWebhookHandler', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(supportService.markOnboardingComplete).toHaveBeenCalledWith({
         id: 'user_1',

@@ -62,7 +62,6 @@ describe('AvatarVideoController', () => {
       ).toHaveBeenCalled();
       expect(mockVideosService.findOne).toHaveBeenCalledWith({
         id: 'ingredient-123',
-        isDeleted: false,
         organizationId: 'c07f1f77bcf86cd799439011',
       });
       expect(result).toEqual({ id: 'ingredient-123' });

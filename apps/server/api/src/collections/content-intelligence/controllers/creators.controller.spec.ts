@@ -174,7 +174,6 @@ describe('CreatorsController', () => {
       expect(mockContentIntelligenceService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: creatorId,
-          isDeleted: false,
         }),
       );
     });

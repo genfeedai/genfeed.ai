@@ -1003,7 +1003,9 @@ describe('AgentOrchestratorService', () => {
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalledTimes(1);
-    expect(result.creditsUsed).toBe(4);
+    expect(result.creditsUsed).toBe(
+      getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY),
+    );
   });
 
   it('does not overwrite a manually renamed thread title', async () => {
@@ -1030,7 +1032,9 @@ describe('AgentOrchestratorService', () => {
 
     expect(agentThreadsService.updateThreadMetadata).not.toHaveBeenCalled();
     expect(llmDispatcher.chatCompletion).toHaveBeenCalledTimes(1);
-    expect(result.creditsUsed).toBe(4);
+    expect(result.creditsUsed).toBe(
+      getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY),
+    );
   });
 
   it('proposes a plan and pauses execution when plan mode is enabled on the thread', async () => {
@@ -1729,7 +1733,10 @@ describe('AgentOrchestratorService', () => {
       'Agent tool: generate_music',
       expect.anything(),
     );
-    expect(result.creditsUsed).toBe(8);
+    // Two LLM rounds, priced per round against the model that answered.
+    expect(result.creditsUsed).toBe(
+      2 * getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY),
+    );
   });
 
   it('should deduct the flat credit cost exactly once when billing is not delegated', async () => {
@@ -1794,7 +1801,9 @@ describe('AgentOrchestratorService', () => {
     expect(
       creditsUtilsService.deductCreditsFromOrganization,
     ).toHaveBeenCalledTimes(2);
-    expect(result.creditsUsed).toBe(18);
+    expect(result.creditsUsed).toBe(
+      2 * getAgentChatModelRoundCredits(DEFAULT_AGENT_CHAT_MODEL_KEY) + 10,
+    );
   });
 
   it('should apply org agent policy defaults for strategy-driven runs', async () => {

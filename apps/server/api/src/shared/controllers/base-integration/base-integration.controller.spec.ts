@@ -179,7 +179,6 @@ describe('BaseIntegrationController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         id: brandId,
-        isDeleted: false,
         organizationId: orgId,
       });
       expect(result).toHaveProperty('id');

@@ -30,6 +30,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -277,7 +278,7 @@ describe('ImagesTransformationsController', () => {
       expect(mockServices.imagesService.patch).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439017',
         expect.objectContaining({
-          status: 'generated',
+          status: IngredientStatus.GENERATED,
           transformations: ['resized'],
         }),
       );

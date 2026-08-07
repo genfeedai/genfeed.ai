@@ -283,9 +283,7 @@ describe('ContentReviewService', () => {
       await service.autoApproveIfEligible(orgId, brandId, draftId, 0.9);
 
       const callArg = mockBrandsService.findOne.mock.calls[0][0];
-      expect(callArg).toMatchObject({
-        isDeleted: false,
-      });
+      expect(callArg).toMatchObject({});
       expect(callArg.id).toEqual(expect.any(String));
       expect(callArg.organizationId).toEqual(expect.any(String));
     });

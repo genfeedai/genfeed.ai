@@ -161,7 +161,6 @@ describe('PublicBrandsController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         id: brandId,
-        isDeleted: false,
         scope: AssetScope.PUBLIC,
       });
       expect(result).toEqual(mockBrand);

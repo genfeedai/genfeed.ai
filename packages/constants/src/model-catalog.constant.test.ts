@@ -5,6 +5,7 @@ import {
   RETIRED_AGENT_CHAT_MODELS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import {
   AGENT_CHAT_CAPABILITY,
   UNIFIED_MODEL_CATALOG,
@@ -71,13 +72,20 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(defaults[0]?.isActive).toBe(true);
   });
 
-  it('seeds retired chat keys as legacy rows pointing at their successor', () => {
+  it('seeds retired chat keys without replacing existing catalog rows', () => {
     for (const [key, succeededBy] of Object.entries(
       RETIRED_AGENT_CHAT_MODELS,
     )) {
       const row = UNIFIED_MODEL_CATALOG.find((entry) => entry.key === key);
 
       expect(row).toBeDefined();
+
+      if (Object.hasOwn(MODEL_OUTPUT_CAPABILITIES, key)) {
+        expect(row?.isLegacy).toBe(false);
+        expect(row?.succeededBy).toBeUndefined();
+        continue;
+      }
+
       expect(row?.isLegacy).toBe(true);
       expect(row?.isActive).toBe(false);
       expect(row?.succeededBy).toBe(succeededBy);

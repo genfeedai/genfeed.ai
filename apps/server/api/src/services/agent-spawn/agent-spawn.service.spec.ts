@@ -1,4 +1,5 @@
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { AgentType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -82,7 +83,7 @@ describe('AgentSpawnService', () => {
       expect.objectContaining({
         agentType: AgentType.X_CONTENT,
         content: 'Draft an X thread',
-        model: 'openai/gpt-5.6-terra',
+        model: DEFAULT_AGENT_CHAT_MODEL,
       }),
       expect.objectContaining({
         organizationId: 'org-1',
