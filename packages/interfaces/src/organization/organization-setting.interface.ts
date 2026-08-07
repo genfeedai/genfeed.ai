@@ -1,3 +1,4 @@
+import type { AppLocale } from '@genfeedai/constants';
 import type { AgentAutonomyMode } from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
 import type { IOnboardingJourneyMissionState } from '../onboarding/onboarding-journey.interface';
@@ -68,6 +69,7 @@ export interface IOrganizationSetting extends IBaseEntity {
   seatsLimit: number;
   brandsLimit: number;
   timezone?: string;
+  defaultLocale?: AppLocale;
 
   enabledModelIds?: string[];
   subscriptionTier?: string;

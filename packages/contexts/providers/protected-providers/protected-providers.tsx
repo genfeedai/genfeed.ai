@@ -18,6 +18,7 @@ import { AccessStateProvider } from '@providers/access-state/access-state.provid
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ElementsProvider from '@providers/elements/elements.provider';
 import { GlobalModalsProvider } from '@providers/global-modals/global-modals.provider';
+import LocaleCookieSync from '@providers/locale-sync/locale-cookie-sync';
 import PromptBarProvider from '@providers/promptbar/promptbar.provider';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -134,7 +135,17 @@ export default function ProtectedProviders({
     content = additionalProviders(children);
   }
 
-  content = <GlobalModalsProvider>{content}</GlobalModalsProvider>;
+  // Innermost on purpose: this is the only layer that sits inside both
+  // UserProvider and (when enabled) BrandProvider, so the sync sees the personal
+  // and organization halves of the locale preference. Without BrandProvider,
+  // `useBrand()` falls back to its default context and the personal preference
+  // still applies.
+  content = (
+    <GlobalModalsProvider>
+      <LocaleCookieSync />
+      {content}
+    </GlobalModalsProvider>
+  );
 
   if (includeAssetSelectionProvider) {
     content = <AssetSelectionProvider>{content}</AssetSelectionProvider>;

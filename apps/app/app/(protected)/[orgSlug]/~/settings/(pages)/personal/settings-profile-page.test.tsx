@@ -60,4 +60,11 @@ describe('SettingsProfilePage', () => {
     expect(screen.getByText('Workflow Emails')).toBeInTheDocument();
     expect(screen.getByText('Video Emails')).toBeInTheDocument();
   });
+
+  it('offers a language picker for the app interface', () => {
+    render(<SettingsProfilePage />);
+
+    expect(screen.getByText('Language')).toBeInTheDocument();
+    expect(screen.getByTestId('personal-locale-trigger')).toBeInTheDocument();
+  });
 });

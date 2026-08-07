@@ -2,6 +2,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const settingAttributes = createEntityAttributes([
   'theme',
+  'locale',
   'isVerified',
   'isFirstLogin',
   'isMenuCollapsed',

@@ -28,6 +28,7 @@ export class OrganizationSettingEntity extends BaseEntity {
   declare readonly seatsLimit: number;
   declare readonly brandsLimit: number;
   declare readonly timezone: string;
+  declare readonly defaultLocale: string;
 
   declare readonly quotaYoutube: number;
   declare readonly quotaTiktok: number;

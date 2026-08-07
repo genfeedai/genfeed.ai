@@ -1,3 +1,4 @@
+import type { AppLocale } from '@genfeedai/constants';
 import type {
   GenerationPriority,
   TrendNotificationFrequency,
@@ -7,6 +8,11 @@ import type { DashboardPreferences } from '../settings/dashboard-settings.interf
 
 export interface ISetting extends IBaseEntity {
   theme: string;
+  /**
+   * Typed against the allowlist rather than `string` (unlike `theme`) so a
+   * value that cannot be rendered never reaches a message catalog lookup.
+   */
+  locale?: AppLocale;
   isVerified: boolean;
   isFirstLogin: boolean;
   isMenuCollapsed: boolean;

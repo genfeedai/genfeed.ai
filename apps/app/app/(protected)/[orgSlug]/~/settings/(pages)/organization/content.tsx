@@ -1,18 +1,37 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  type AppLocale,
+  DEFAULT_LOCALE,
+  getSelectableLocales,
+  LOCALE_LABELS,
+} from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
 import { Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import OrganizationGenerationDefaultsCard from './organization-generation-defaults-card';
 import OrganizationIdentityDefaultsCard from './organization-identity-defaults-card';
+
+// The pseudo-locale is a QA instrument, not a language — offering it to an
+// entire organization would put every member on accented, padded English.
+const SELECTABLE_LOCALES = getSelectableLocales(
+  process.env.NODE_ENV !== 'production',
+);
 
 export default function SettingsOrganizationPage() {
   const { organizationId, selectedBrand, isReady } = useBrand();
@@ -22,6 +41,25 @@ export default function SettingsOrganizationPage() {
 
   const isFleetConnected = Boolean(selectedBrand?.isFleetEnabled);
   const agentHref = orgHref(APP_ROUTES.AGENT.NEW);
+  // A stored locale that is not selectable here (the pseudo-locale in a
+  // production build) would leave the trigger blank, so the picker shows the
+  // default and offers the way back out.
+  const storedDefaultLocale = settings?.defaultLocale ?? DEFAULT_LOCALE;
+  const defaultLocale = SELECTABLE_LOCALES.includes(storedDefaultLocale)
+    ? storedDefaultLocale
+    : DEFAULT_LOCALE;
+
+  const handleDefaultLocaleChange = useCallback(
+    async (value: string) => {
+      setIsSaving(true);
+      try {
+        await updateSettings('defaultLocale', value as AppLocale);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [updateSettings],
+  );
 
   const handleFleetNsfwToggle = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +98,33 @@ export default function SettingsOrganizationPage() {
             <p className="font-medium">{selectedBrand?.label || 'Not set'}</p>
           </div>
         </div>
+      </Card>
+
+      <Card
+        label="Language"
+        description="Applied to members who have not picked a language of their own."
+        bodyClassName="gap-3 p-4"
+      >
+        <Select
+          disabled={isSaving}
+          onValueChange={handleDefaultLocaleChange}
+          value={defaultLocale}
+        >
+          <SelectTrigger
+            id="org-default-locale"
+            className="w-full"
+            data-testid="org-default-locale-trigger"
+          >
+            <SelectValue placeholder="Select a language" />
+          </SelectTrigger>
+          <SelectContent>
+            {SELECTABLE_LOCALES.map((locale) => (
+              <SelectItem key={locale} value={locale}>
+                {LOCALE_LABELS[locale]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </Card>
 
       <Card
