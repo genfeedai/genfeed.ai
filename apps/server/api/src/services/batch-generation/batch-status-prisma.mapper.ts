@@ -1,33 +1,48 @@
 /**
- * BatchStatus domain values are identical to Prisma `$Enums.BatchStatus`.
- * These helpers exist only to give Prisma the generated type without `as never`.
+ * BatchStatus domain values must match Prisma/Postgres labels (SCREAMING_SNAKE).
  *
- * Do not reintroduce lowercase domain spellings. If a new status is added,
- * update both `packages/enums` and `schema.prisma` in the same change.
+ * This mapper always emits literal Postgres labels so a stale `@genfeedai/enums`
+ * dist (lowercase `pending` / `generating`) cannot write invalid enum values.
+ *
+ * @see packages/enums/src/batch.enum.ts
+ * @see packages/prisma/prisma/schema.prisma `enum BatchStatus`
  */
 import { BatchStatus } from '@genfeedai/enums';
 import { BatchStatus as PrismaBatchStatus } from '@genfeedai/prisma';
 
-const PRISMA_BY_DOMAIN: Record<BatchStatus, PrismaBatchStatus> = {
-  [BatchStatus.PENDING]: PrismaBatchStatus.PENDING,
-  [BatchStatus.PROCESSING]: PrismaBatchStatus.PROCESSING,
-  [BatchStatus.COMPLETED]: PrismaBatchStatus.COMPLETED,
-  [BatchStatus.PARTIAL]: PrismaBatchStatus.PARTIAL,
-  [BatchStatus.FAILED]: PrismaBatchStatus.FAILED,
-  [BatchStatus.CANCELLED]: PrismaBatchStatus.CANCELLED,
-};
+/** Postgres `BatchStatus` labels — never derived from a possibly-stale domain enum. */
+const PRISMA_PENDING = 'PENDING' as PrismaBatchStatus;
+const PRISMA_PROCESSING = 'PROCESSING' as PrismaBatchStatus;
+const PRISMA_COMPLETED = 'COMPLETED' as PrismaBatchStatus;
+const PRISMA_PARTIAL = 'PARTIAL' as PrismaBatchStatus;
+const PRISMA_FAILED = 'FAILED' as PrismaBatchStatus;
+const PRISMA_CANCELLED = 'CANCELLED' as PrismaBatchStatus;
 
-const DOMAIN_BY_PRISMA: Record<PrismaBatchStatus, BatchStatus> = {
-  [PrismaBatchStatus.PENDING]: BatchStatus.PENDING,
-  [PrismaBatchStatus.PROCESSING]: BatchStatus.PROCESSING,
-  [PrismaBatchStatus.COMPLETED]: BatchStatus.COMPLETED,
-  [PrismaBatchStatus.PARTIAL]: BatchStatus.PARTIAL,
-  [PrismaBatchStatus.FAILED]: BatchStatus.FAILED,
-  [PrismaBatchStatus.CANCELLED]: BatchStatus.CANCELLED,
-};
-
-export function toPrismaBatchStatus(status: BatchStatus): PrismaBatchStatus {
-  return PRISMA_BY_DOMAIN[status];
+/**
+ * Accept domain SCREAMING_SNAKE, legacy lowercase, and the retired GENERATING
+ * alias, and always return a Prisma-valid BatchStatus label.
+ */
+export function toPrismaBatchStatus(
+  status: BatchStatus | string | null | undefined,
+): PrismaBatchStatus {
+  switch (String(status ?? '').toUpperCase()) {
+    case 'PENDING':
+      return PRISMA_PENDING;
+    case 'PROCESSING':
+    case 'GENERATING':
+      return PRISMA_PROCESSING;
+    case 'COMPLETED':
+      return PRISMA_COMPLETED;
+    case 'PARTIAL':
+      return PRISMA_PARTIAL;
+    case 'FAILED':
+      return PRISMA_FAILED;
+    case 'CANCELLED':
+    case 'CANCELED':
+      return PRISMA_CANCELLED;
+    default:
+      return PRISMA_PENDING;
+  }
 }
 
 /**
@@ -37,25 +52,20 @@ export function toPrismaBatchStatus(status: BatchStatus): PrismaBatchStatus {
 export function fromPrismaBatchStatus(
   status: string | null | undefined,
 ): BatchStatus {
-  const raw = String(status ?? '');
-  if (raw in DOMAIN_BY_PRISMA) {
-    return DOMAIN_BY_PRISMA[raw as PrismaBatchStatus];
-  }
-
-  switch (raw.toLowerCase()) {
-    case 'pending':
+  switch (String(status ?? '').toUpperCase()) {
+    case 'PENDING':
       return BatchStatus.PENDING;
-    case 'processing':
-    case 'generating':
+    case 'PROCESSING':
+    case 'GENERATING':
       return BatchStatus.PROCESSING;
-    case 'completed':
+    case 'COMPLETED':
       return BatchStatus.COMPLETED;
-    case 'partial':
+    case 'PARTIAL':
       return BatchStatus.PARTIAL;
-    case 'failed':
+    case 'FAILED':
       return BatchStatus.FAILED;
-    case 'cancelled':
-    case 'canceled':
+    case 'CANCELLED':
+    case 'CANCELED':
       return BatchStatus.CANCELLED;
     default:
       return BatchStatus.PENDING;

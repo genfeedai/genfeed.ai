@@ -7,10 +7,16 @@ import {
 } from './batch-status-prisma.mapper';
 
 describe('batch-status-prisma.mapper', () => {
-  it('is identity for every domain status (values match Prisma 1:1)', () => {
+  it('emits Prisma SCREAMING_SNAKE for every domain status', () => {
     for (const status of Object.values(BatchStatus)) {
-      expect(toPrismaBatchStatus(status)).toBe(status);
-      expect(fromPrismaBatchStatus(status)).toBe(status);
+      const prismaStatus = toPrismaBatchStatus(status);
+      expect(Object.values(PrismaBatchStatus)).toContain(prismaStatus);
+      expect(fromPrismaBatchStatus(prismaStatus)).toBe(
+        // GENERATING is not a domain member — PROCESSING is the canonical name
+        status === ('GENERATING' as BatchStatus)
+          ? BatchStatus.PROCESSING
+          : status,
+      );
     }
   });
 
@@ -22,10 +28,25 @@ describe('batch-status-prisma.mapper', () => {
     }
   });
 
-  it('accepts legacy lowercase domain spellings on read', () => {
+  it('accepts legacy lowercase domain spellings on write and read', () => {
+    expect(toPrismaBatchStatus('pending')).toBe(PrismaBatchStatus.PENDING);
+    expect(toPrismaBatchStatus('generating')).toBe(
+      PrismaBatchStatus.PROCESSING,
+    );
+    expect(toPrismaBatchStatus('processing')).toBe(
+      PrismaBatchStatus.PROCESSING,
+    );
+    expect(toPrismaBatchStatus('cancelled')).toBe(PrismaBatchStatus.CANCELLED);
+
     expect(fromPrismaBatchStatus('pending')).toBe(BatchStatus.PENDING);
     expect(fromPrismaBatchStatus('generating')).toBe(BatchStatus.PROCESSING);
     expect(fromPrismaBatchStatus('processing')).toBe(BatchStatus.PROCESSING);
     expect(fromPrismaBatchStatus('cancelled')).toBe(BatchStatus.CANCELLED);
+  });
+
+  it('always writes PENDING not pending (regression for stale enums dist)', () => {
+    // Even if a stale package still exposes BatchStatus.PENDING === 'pending'
+    expect(toPrismaBatchStatus('pending' as BatchStatus)).toBe('PENDING');
+    expect(toPrismaBatchStatus(BatchStatus.PENDING)).toBe('PENDING');
   });
 });
