@@ -17,13 +17,11 @@ import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstra
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
-import AppTable from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -492,38 +490,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
     limit: 5,
     scope: PageScope.ORGANIZATION,
   });
-
-  const columns = useMemo(
-    () => [
-      {
-        header: 'Activity',
-        key: 'description',
-        render: (activity: IActivity) => (
-          <div className="min-w-0">
-            <p className="line-clamp-1 text-sm font-medium text-foreground">
-              {getActivityDescription(activity)}
-            </p>
-            <ClientFormattedDate
-              className="mt-1 block text-xs text-foreground/45"
-              fallback="Time unavailable"
-              format="relative"
-              value={activity.createdAt}
-            />
-          </div>
-        ),
-      },
-      {
-        className: 'w-28 text-right',
-        header: 'Status',
-        key: 'status',
-        render: (activity: IActivity) => {
-          const badge = getActivityBadge(activity);
-          return <Badge variant={badge.variant}>{badge.label}</Badge>;
-        },
-      },
-    ],
-    [],
-  );
+  const recentActivities = filteredActivities.slice(0, 5);
 
   return (
     <WorkspaceSurface
@@ -548,21 +515,40 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
           description="Recent activity is temporarily unavailable. Approval, publishing, and credential summaries remain available."
           onRetry={refresh}
         />
-      ) : filteredActivities.length === 0 ? (
+      ) : recentActivities.length === 0 ? (
         <EmptyPanel
           actionHref={activityHref}
           actionLabel="Open activity"
           description="No activity has been recorded for this organization yet."
         />
       ) : (
-        <AppTable<IActivity>
-          columns={columns}
-          emptyLabel="No activity yet"
-          getItemId={(activity) => activity.id}
-          getRowClassName={(activity) => (activity.isRead ? 'opacity-70' : '')}
-          getRowKey={(activity) => activity.id}
-          items={filteredActivities.slice(0, 5)}
-        />
+        <div className="space-y-2">
+          {recentActivities.map((activity: IActivity) => {
+            const badge = getActivityBadge(activity);
+            return (
+              <div
+                className="flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border"
+                data-testid="operational-home-activity-row"
+                key={activity.id}
+              >
+                <div className="min-w-0">
+                  <p className="line-clamp-1 text-sm font-medium text-foreground">
+                    {getActivityDescription(activity)}
+                  </p>
+                  <ClientFormattedDate
+                    className="mt-1 block text-xs text-foreground/45"
+                    fallback="Time unavailable"
+                    format="relative"
+                    value={activity.createdAt}
+                  />
+                </div>
+                <Badge className="shrink-0" variant={badge.variant}>
+                  {badge.label}
+                </Badge>
+              </div>
+            );
+          })}
+        </div>
       )}
     </WorkspaceSurface>
   );

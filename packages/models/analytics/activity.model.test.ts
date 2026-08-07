@@ -102,61 +102,55 @@ describe('Activity', () => {
   });
 
   describe('label', () => {
-    it('should return processing label for VIDEO_PROCESSING', () => {
-      const activity = createActivity({
-        key: ActivityKey.VIDEO_PROCESSING,
-        value: 'my-video',
-      });
-      expect(activity.label).toBe('Video my-video started to be processed');
+    it('formats media lifecycle keys from the catalog', () => {
+      expect(
+        createActivity({
+          key: ActivityKey.VIDEO_PROCESSING,
+          value: 'my-video',
+        }).label,
+      ).toBe('Generating a video...');
+      expect(
+        createActivity({
+          key: ActivityKey.VIDEO_GENERATED,
+          value: 'my-video',
+        }).label,
+      ).toBe('Generated a video');
+      expect(
+        createActivity({
+          key: ActivityKey.IMAGE_PROCESSING,
+          value: '{"ingredientId":"x"}',
+        }).label,
+      ).toBe('Generating an image...');
+      expect(
+        createActivity({
+          key: ActivityKey.IMAGE_FAILED,
+          value: 'boom',
+        }).label,
+      ).toBe('Failed to generate image');
     });
 
-    it('should return generated label for VIDEO_COMPLETED', () => {
-      const activity = createActivity({
-        key: ActivityKey.VIDEO_COMPLETED,
-        value: 'my-video',
-      });
-      expect(activity.label).toBe('Video my-video generated');
+    it('formats credit amounts without $GENFEED or raw keys', () => {
+      expect(
+        createActivity({
+          key: ActivityKey.CREDITS_ADD,
+          value: '1000',
+        }).label,
+      ).toBe('1,000 credits added');
+      expect(
+        createActivity({
+          key: ActivityKey.CREDITS_REMOVE,
+          value: '8',
+        }).label,
+      ).toBe('8 credits used');
     });
 
-    it('should return generated label for VIDEO_GENERATED', () => {
+    it('never returns the raw wire key for unknown activity keys', () => {
       const activity = createActivity({
-        key: ActivityKey.VIDEO_GENERATED,
-        value: 'my-video',
-      });
-      expect(activity.label).toBe('Video my-video generated');
-    });
-
-    it('should return processing label for IMAGE_PROCESSING', () => {
-      const activity = createActivity({
-        key: ActivityKey.IMAGE_PROCESSING,
-        value: 'img-456',
-      });
-      expect(activity.label).toBe('Image img-456 Processing');
-    });
-
-    it('should return credits add label for CREDITS_ADD', () => {
-      const activity = createActivity({
-        key: ActivityKey.CREDITS_ADD,
-        value: '1000',
-      });
-      expect(activity.label).toContain('$GENFEED added');
-      expect(activity.label).toContain('1,000');
-    });
-
-    it('should return credits remove label for CREDITS_REMOVE', () => {
-      const activity = createActivity({
-        key: ActivityKey.CREDITS_REMOVE,
-        value: '500',
-      });
-      expect(activity.label).toContain('$GENFEED removed');
-    });
-
-    it('should return key as fallback for unknown activity keys', () => {
-      const activity = createActivity({
-        key: 'UNKNOWN_KEY',
+        key: 'unknown-widget-failed',
         value: 'test',
       });
-      expect(activity.label).toBe('UNKNOWN_KEY');
+      expect(activity.label).not.toBe('unknown-widget-failed');
+      expect(activity.label.length).toBeGreaterThan(0);
     });
   });
 });

@@ -1,7 +1,36 @@
 import { Activity as BaseActivity } from '@genfeedai/client/models';
-import { ActivityKey } from '@genfeedai/enums';
+import {
+  ActivityKey,
+  formatActivityMessage,
+  getActivityMessageDescriptor,
+} from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
 import { User } from '@models/auth/user.model';
+
+function formatCreditLabel(
+  key: string,
+  value: string | undefined,
+): string | null {
+  if (
+    key !== ActivityKey.CREDITS_ADD &&
+    key !== ActivityKey.CREDITS_REMOVE &&
+    key !== 'credits-add' &&
+    key !== 'credits-remove'
+  ) {
+    return null;
+  }
+
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
+  const amountLabel = amount.toLocaleString();
+  if (key === ActivityKey.CREDITS_ADD || key === 'credits-add') {
+    return `${amountLabel} credits added`;
+  }
+  return `${amountLabel} credits used`;
+}
 
 export class Activity extends BaseActivity {
   constructor(partial: Partial<IActivity>) {
@@ -12,21 +41,21 @@ export class Activity extends BaseActivity {
     }
   }
 
-  public get label() {
-    switch (this.key) {
-      case ActivityKey.VIDEO_PROCESSING:
-        return `Video ${this.value} started to be processed`;
-      case ActivityKey.VIDEO_COMPLETED:
-      case ActivityKey.VIDEO_GENERATED:
-        return `Video ${this.value} generated`;
-      case ActivityKey.IMAGE_PROCESSING:
-        return `Image ${this.value} Processing`;
-      case ActivityKey.CREDITS_ADD:
-        return `${Number(this.value).toLocaleString()} $GENFEED added`;
-      case ActivityKey.CREDITS_REMOVE:
-        return `${Number(this.value).toLocaleString()} $GENFEED removed`;
-      default:
-        return this.key;
+  /**
+   * Human-readable title from the activity-key catalog.
+   * Wire keys and raw payload values never surface as labels.
+   */
+  public get label(): string {
+    const key = typeof this.key === 'string' ? this.key.trim() : '';
+    if (!key) {
+      return 'Activity recorded';
     }
+
+    const creditLabel = formatCreditLabel(key, this.value);
+    if (creditLabel) {
+      return creditLabel;
+    }
+
+    return formatActivityMessage(getActivityMessageDescriptor(key));
   }
 }
