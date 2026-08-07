@@ -9,6 +9,7 @@ export * from './analytics-social-job.interface';
 export * from './analytics-sync-job.interface';
 export * from './analytics-twitter-job.interface';
 export * from './analytics-youtube-job.interface';
+export * from './batch-generation-job.interface';
 export * from './batch-workflow-job.interface';
 export * from './campaign-job.interface';
 export * from './clip-analyze-job.interface';

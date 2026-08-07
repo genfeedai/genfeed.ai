@@ -10,6 +10,7 @@ import {
   type ExecuteAiActionDto,
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -20,6 +21,8 @@ import {
   takeBatchPostPreviews,
 } from '@api/services/agent-orchestrator/tools/batch-post-preview.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
+import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
   type BatchEstimateInput,
@@ -81,6 +84,12 @@ export class AgentMediaGenerationToolHandler {
     private readonly contentQualityScorerService?: ContentQualityScorerService,
     @Optional()
     private readonly creditsUtilsService?: CreditsUtilsService,
+    @Optional()
+    private readonly batchCreditsService?: BatchGenerationCreditsService,
+    @Optional()
+    private readonly batchStreamService?: BatchGenerationStreamService,
+    @Optional()
+    private readonly batchGenerationQueueService?: BatchGenerationQueueService,
   ) {}
 
   private resolveBatchPricingOptions(ctx: ToolExecutionContext): {
@@ -953,6 +962,16 @@ export class AgentMediaGenerationToolHandler {
     const batchId = String(batch.id);
     const totalCount = batch.totalCount;
     const platformLabel = this.formatBatchPlatformsLabel(platforms);
+
+    // Pin the pricing on the batch before any item runs. A run that is resumed
+    // in another process settles from the batch itself, so the rates have to
+    // outlive this request rather than live in the closure that created it.
+    await this.batchCreditsService?.recordUpfrontCharge({
+      batchId,
+      credits: 0,
+      organizationId: ctx.organizationId,
+      pricingOptions,
+    });
     const streamedItems: Array<{
       error?: string;
       format?: string;
@@ -1185,6 +1204,13 @@ export class AgentMediaGenerationToolHandler {
         organizationId: ctx.organizationId,
         userId: ctx.userId,
       });
+      // Put it on the ledger so a later settlement — a sweep, a resume — sees
+      // these drafts as already paid for and moves nothing.
+      await this.batchCreditsService?.recordUpfrontCharge({
+        batchId,
+        credits: creditsUsed,
+        organizationId: ctx.organizationId,
+      });
 
       return {
         creditsUsed,
@@ -1235,136 +1261,45 @@ export class AgentMediaGenerationToolHandler {
       };
     }
 
-    // Trigger async processing
-    this.batchGenerationService
-      .processBatch(batchId, ctx.organizationId, {
-        onBatchStarted: async ({ batchId: currentBatchId, totalCount }) => {
-          await runEffectPromise(
-            this.publishWorkEventEffect({
-              detail: `Queued ${totalCount} post${totalCount === 1 ? '' : 's'} for generation.`,
-              event: 'started',
-              label: 'Batch generation started',
-              progress: 0,
-              runId: ctx.runId,
-              startedAt: new Date().toISOString(),
-              status: 'running',
-              threadId: ctx.threadId!,
-              toolCallId: `batch:${currentBatchId}`,
-              toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-              userId: ctx.userId!,
-            }),
-          );
-        },
-        onItemCompleted: async ({
-          completedCount,
-          index,
-          item,
-          postId,
-          previewText,
-          topic,
-          totalCount: total,
-        }) => {
-          await runEffectPromise(
-            this.publishWorkEventEffect({
-              detail: `Draft ${completedCount}/${total} is ready.`,
-              event: 'tool_completed',
-              label: `Generated post ${index + 1}`,
-              parameters: {
-                batchId,
-                platform: item.platform,
-                postId,
-                previewText,
-                topic,
-              },
-              progress: Math.round((completedCount / total) * 100),
-              resultSummary: previewText || topic,
-              runId: ctx.runId,
-              status: 'completed',
-              threadId: ctx.threadId!,
-              toolCallId: `batch:${batchId}:item:${String(item.id)}`,
-              toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-              userId: ctx.userId!,
-            }),
-          );
-        },
-        onItemFailed: async ({
-          completedCount,
-          failedCount,
-          index,
-          item,
-          error,
-          topic,
-          totalCount: total,
-        }) => {
-          await runEffectPromise(
-            this.publishWorkEventEffect({
-              detail: error || 'Draft generation failed.',
-              event: 'tool_completed',
-              label: `Failed post ${index + 1}`,
-              parameters: {
-                batchId,
-                platform: item.platform,
-                topic,
-              },
-              progress: Math.round(
-                ((completedCount + failedCount) / Math.max(total, 1)) * 100,
-              ),
-              resultSummary: error || 'Unknown error',
-              runId: ctx.runId,
-              status: 'failed',
-              threadId: ctx.threadId!,
-              toolCallId: `batch:${batchId}:item:${String(item.id)}`,
-              toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-              userId: ctx.userId!,
-            }),
-          );
-        },
-        onItemStarted: async ({
-          completedCount,
-          failedCount,
-          index,
-          item,
-          totalCount: total,
-        }) => {
-          await runEffectPromise(
-            this.publishWorkEventEffect({
-              detail: `Generating draft ${index + 1}/${total}.`,
-              event: 'tool_started',
-              label: `Generating post ${index + 1}`,
-              parameters: {
-                batchId,
-                format: item.format,
-                platform: item.platform,
-              },
-              progress: Math.round(
-                ((completedCount + failedCount) / Math.max(total, 1)) * 100,
-              ),
-              runId: ctx.runId,
-              status: 'running',
-              threadId: ctx.threadId!,
-              toolCallId: `batch:${batchId}:item:${String(item.id)}`,
-              toolName: AgentToolName.GENERATE_CONTENT_BATCH,
-              userId: ctx.userId!,
-            }),
-          );
-        },
-      })
-      .catch((err: Error) => {
-        this.loggerService.error(
-          `Batch processing failed: ${err.message}`,
-          this.constructorName,
-        );
-      });
-
-    // Async path: reserve/estimate was checked above; settle when processing
-    // finishes is not yet streamed back into this result. Charge the estimate
-    // up front so we do not give free async batches; reconcile later if needed.
+    // Async path: charge the estimate up front so we do not give free async
+    // batches, and record it on the batch's credit ledger *before* the run
+    // starts. Settlement later prices what actually landed and moves only the
+    // delta, so a resumed or redelivered run never bills these drafts twice.
     await this.chargeBatchCredits({
       amount: estimatedCredits,
       batchId,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
+    await this.batchCreditsService?.recordUpfrontCharge({
+      batchId,
+      credits: estimatedCredits,
+      organizationId: ctx.organizationId,
+      pricingOptions,
+    });
+
+    // Hand the run to the workers process. It used to be a bare in-process
+    // promise, so an API reload mid-batch killed it and stranded every
+    // remaining item in PROCESSING with no way to re-run it (issue #2501).
+    const queuedJobId = await this.batchGenerationQueueService?.queueBatch({
+      batchId,
+      organizationId: ctx.organizationId,
+      runId: ctx.runId,
+      threadId: ctx.threadId,
+      userId: ctx.userId,
+    });
+
+    if (!queuedJobId) {
+      // No queue configured (single-process self-hosted): run in-process as
+      // before, and settle here since no worker will.
+      this.runBatchInProcess({
+        batchId,
+        organizationId: ctx.organizationId,
+        runId: ctx.runId,
+        threadId: ctx.threadId,
+        userId: ctx.userId,
+      });
+    }
 
     return {
       creditsUsed: estimatedCredits,
@@ -1378,6 +1313,58 @@ export class AgentMediaGenerationToolHandler {
       isBillingDelegated: true,
       success: true,
     };
+  }
+
+  /**
+   * Fallback for deployments without a workers process.
+   *
+   * Deliberately not awaited — the tool result returns as soon as the batch is
+   * created, exactly as it did before batches moved onto the queue.
+   */
+  private runBatchInProcess(context: {
+    batchId: string;
+    organizationId: string;
+    runId?: string;
+    threadId?: string;
+    userId: string;
+  }): void {
+    if (!this.batchGenerationService) {
+      return;
+    }
+
+    const streamOptions =
+      context.threadId && this.batchStreamService
+        ? this.batchStreamService.buildProcessOptions({
+            batchId: context.batchId,
+            runId: context.runId,
+            threadId: context.threadId,
+            userId: context.userId,
+          })
+        : undefined;
+
+    this.batchGenerationService
+      .processBatch(context.batchId, context.organizationId, streamOptions)
+      .catch((err: Error) => {
+        this.loggerService.error(
+          `Batch processing failed: ${err.message}`,
+          this.constructorName,
+        );
+      })
+      // Settles on failure too: the estimate is already charged, so a batch
+      // that dies half-done must still be priced down to what landed.
+      .then(async () => {
+        await this.batchCreditsService?.settleBatchCredits({
+          batchId: context.batchId,
+          organizationId: context.organizationId,
+          userId: context.userId,
+        });
+      })
+      .catch((err: Error) => {
+        this.loggerService.error(
+          `Batch settlement failed: ${err.message}`,
+          this.constructorName,
+        );
+      });
   }
 
   private formatBatchPlatformsLabel(platforms: string[]): string {

@@ -11,6 +11,7 @@
 export const SYSTEM_SWEEPS_QUEUE = 'system-sweeps';
 
 export const SYSTEM_SWEEP_JOBS = {
+  BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile-sweep',
   POSTS_PUBLISH: 'posts-publish-sweep',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout-sweep',
   STREAK_MAINTENANCE: 'streak-maintenance-sweep',
@@ -51,6 +52,14 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
   {
     jobName: SYSTEM_SWEEP_JOBS.REVIEW_GATE_TIMEOUT,
     pattern: '*/15 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    // Batch runs are re-claimed after a 5-minute stale lease, so sweeping on
+    // the same cadence keeps a batch orphaned by a lost job down to minutes
+    // instead of forever.
+    jobName: SYSTEM_SWEEP_JOBS.BATCH_GENERATION_RECONCILE,
+    pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
 ];

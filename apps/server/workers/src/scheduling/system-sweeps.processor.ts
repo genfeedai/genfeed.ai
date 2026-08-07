@@ -2,6 +2,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
+import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
@@ -25,6 +26,7 @@ export class SystemSweepsProcessor extends WorkerHost {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly cronBatchGenerationReconcileService: CronBatchGenerationReconcileService,
     private readonly cronPostsService: CronPostsService,
     private readonly cronReviewGateTimeoutService: CronReviewGateTimeoutService,
     private readonly cronStreaksService: CronStreaksService,
@@ -63,6 +65,10 @@ export class SystemSweepsProcessor extends WorkerHost {
 
       case SYSTEM_SWEEP_JOBS.REVIEW_GATE_TIMEOUT:
         await this.cronReviewGateTimeoutService.resolveTimedOutReviewGates();
+        return;
+
+      case SYSTEM_SWEEP_JOBS.BATCH_GENERATION_RECONCILE:
+        await this.cronBatchGenerationReconcileService.resumeStrandedBatches();
         return;
 
       default:

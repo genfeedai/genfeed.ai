@@ -34,6 +34,7 @@ import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/ag
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { BatchContentModule } from '@api/services/batch-content/batch-content.module';
+import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { CampaignModule } from '@api/services/campaign/campaign.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
@@ -90,6 +91,7 @@ import { AnalyticsSyncProcessor } from '@workers/processors/api/queues/analytics
 import { AnalyticsThreadsProcessor } from '@workers/processors/api/queues/analytics-threads/analytics-threads.processor';
 import { AnalyticsTwitterProcessor } from '@workers/processors/api/queues/analytics-twitter/analytics-twitter.processor';
 import { AnalyticsYouTubeProcessor } from '@workers/processors/api/queues/analytics-youtube/analytics-youtube.processor';
+import { BatchGenerationProcessor } from '@workers/processors/api/queues/batch-generation/batch-generation.processor';
 import { CampaignProcessor } from '@workers/processors/api/queues/campaign/campaign.processor';
 import { ClipAnalyzeProcessor } from '@workers/processors/api/queues/clip-analyze/clip-analyze.processor';
 import { ClipFactoryProcessor } from '@workers/processors/api/queues/clip-factory/clip-factory.processor';
@@ -152,6 +154,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
     forwardRef(() => AgentOrchestratorModule),
     AgentStreamPublisherModule,
     forwardRef(() => BatchContentModule),
+    forwardRef(() => BatchGenerationModule),
     forwardRef(() => CampaignModule),
     forwardRef(() => ContentOptimizationModule),
     forwardRef(() => ContentOrchestrationModule),
@@ -265,6 +268,7 @@ import { AdsServicesModule } from '@workers/services/ads-services.module';
 
     // --- services/ processors (8) ---
     BatchContentProcessor,
+    BatchGenerationProcessor,
     CampaignMemoryProcessor,
     ContentOptimizationProcessor,
     ContentPipelineProcessor,

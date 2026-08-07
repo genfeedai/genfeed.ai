@@ -35,6 +35,7 @@ import { AdsResearchModule } from '@api/endpoints/ads-research/ads-research.modu
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
+import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
@@ -132,6 +133,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostGroupsModule),
     forwardRef(() => PostsModule),
+    forwardRef(() => QueuesModule),
     forwardRef(() => SettingsModule),
     forwardRef(() => SocialInboxModule),
     forwardRef(() => TrendsModule),
