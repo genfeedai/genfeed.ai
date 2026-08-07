@@ -43,10 +43,6 @@ export function formatProgress(progress: number): string {
   return `[${'█'.repeat(filled)}${'░'.repeat(empty)}] ${progress}%`;
 }
 
-export function isTerminalStatus(status: string): boolean {
-  return status === 'completed' || status === 'failed' || status === 'cancelled';
-}
-
 /** Default polling timeout: 30 min for generation */
 export const POLL_TIMEOUT_GENERATION = 30 * 60 * 1000;
 

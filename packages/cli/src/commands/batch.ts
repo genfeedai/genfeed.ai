@@ -1,3 +1,4 @@
+import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
@@ -5,7 +6,31 @@ import { batchItemAction, cancelBatch, createBatch, getBatch, listBatches } from
 import { requireAuth } from '@/api/client';
 import { getActiveBrand } from '@/config/store';
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
-import { handleError, NoBrandError } from '@/utils/errors';
+import { GenfeedError, handleError, NoBrandError } from '@/utils/errors';
+
+const BATCH_STATUS_VALUES = Object.values(BatchStatus);
+
+/**
+ * `--status` is user input, so accept the friendlier lowercase spelling and
+ * resolve it to the SCREAMING_SNAKE wire value the API filters on.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+function parseBatchStatusFilter(value: string | undefined): BatchStatus | undefined {
+  if (!value) return undefined;
+
+  const normalized = value.trim().toUpperCase();
+  const match = BATCH_STATUS_VALUES.find((status) => status === normalized);
+
+  if (!match) {
+    throw new GenfeedError(
+      `Unknown batch status: ${value}`,
+      `Expected one of: ${BATCH_STATUS_VALUES.join(', ')}`
+    );
+  }
+
+  return match;
+}
 
 export const batchCommand = new Command('batch').description('Batch content generation');
 
@@ -67,7 +92,7 @@ batchCommand
 batchCommand
   .command('list')
   .description('List batch jobs')
-  .option('--status <status>', 'Filter by status (pending, processing, completed, failed)')
+  .option('--status <status>', `Filter by status (${BATCH_STATUS_VALUES.join(', ')})`)
   .option('-l, --limit <n>', 'Max items to return', Number.parseInt, 20)
   .option('--json', 'Output as JSON')
   .action(async (options) => {
@@ -77,7 +102,7 @@ batchCommand
       const spinner = ora('Fetching batches...').start();
       const batches = await listBatches({
         limit: options.limit,
-        status: options.status,
+        status: parseBatchStatusFilter(options.status),
       });
       spinner.stop();
 
@@ -95,11 +120,11 @@ batchCommand
 
       for (const batch of batches) {
         const statusColor =
-          batch.status === 'COMPLETED'
+          batch.status === BatchStatus.COMPLETED
             ? chalk.green(batch.status)
-            : batch.status === 'FAILED'
+            : batch.status === BatchStatus.FAILED
               ? chalk.red(batch.status)
-              : batch.status === 'PROCESSING'
+              : batch.status === BatchStatus.PROCESSING
                 ? chalk.yellow(batch.status)
                 : chalk.dim(batch.status);
 
@@ -153,9 +178,9 @@ batchCommand
         print(formatHeader('Items:\n'));
         for (const item of batch.items) {
           const statusColor =
-            item.status === 'COMPLETED'
+            item.status === BatchItemStatus.COMPLETED
               ? chalk.green(item.status)
-              : item.status === 'FAILED'
+              : item.status === BatchItemStatus.FAILED
                 ? chalk.red(item.status)
                 : chalk.dim(item.status);
 
@@ -245,7 +270,7 @@ batchCommand
       spinner.succeed('Batch cancelled');
 
       if (options.json) {
-        printJson({ batchId: id, status: 'CANCELLED' });
+        printJson({ batchId: id, status: BatchStatus.CANCELLED });
       } else {
         print(formatSuccess(`Batch ${id} cancelled`));
       }

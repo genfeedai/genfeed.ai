@@ -1,3 +1,4 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createImage, getImage } from '../../src/api/images';
 
@@ -30,7 +31,7 @@ describe('api/images', () => {
           attributes: {
             createdAt: '2024-01-01T00:00:00Z',
             model: 'imagen-4',
-            status: 'processing',
+            status: IngredientStatus.PROCESSING,
             updatedAt: '2024-01-01T00:00:00Z',
           },
           id: 'img-1',
@@ -51,7 +52,7 @@ describe('api/images', () => {
         method: 'POST',
       });
       expect(result.id).toBe('img-1');
-      expect(result.status).toBe('processing');
+      expect(result.status).toBe(IngredientStatus.PROCESSING);
       expect(result.model).toBe('imagen-4');
     });
 
@@ -61,7 +62,7 @@ describe('api/images', () => {
     it('sends brandId and never the legacy brand key', async () => {
       mockFetch.mockResolvedValue({
         data: {
-          attributes: { model: 'imagen-4', status: 'processing' },
+          attributes: { model: 'imagen-4', status: IngredientStatus.PROCESSING },
           id: 'img-3',
           type: 'image',
         },
@@ -84,7 +85,7 @@ describe('api/images', () => {
           attributes: {
             height: 768,
             model: 'imagen-4',
-            status: 'processing',
+            status: IngredientStatus.PROCESSING,
             width: 1024,
           },
           id: 'img-2',
@@ -105,14 +106,14 @@ describe('api/images', () => {
   });
 
   describe('getImage', () => {
-    it('flattens completed image with url', async () => {
+    it('flattens generated image with url', async () => {
       mockFetch.mockResolvedValue({
         data: {
           attributes: {
             completedAt: '2024-01-01T00:01:00Z',
             height: 1024,
             model: 'imagen-4',
-            status: 'completed',
+            status: IngredientStatus.GENERATED,
             url: 'https://cdn.genfeed.ai/img.png',
             width: 1024,
           },
@@ -125,7 +126,7 @@ describe('api/images', () => {
 
       expect(mockFetch).toHaveBeenCalledWith('/images/img-1', { method: 'GET' });
       expect(result.id).toBe('img-1');
-      expect(result.status).toBe('completed');
+      expect(result.status).toBe(IngredientStatus.GENERATED);
       expect(result.url).toBe('https://cdn.genfeed.ai/img.png');
       expect(result.width).toBe(1024);
     });
@@ -136,7 +137,7 @@ describe('api/images', () => {
           attributes: {
             error: 'Content policy violation',
             model: 'imagen-4',
-            status: 'failed',
+            status: IngredientStatus.FAILED,
           },
           id: 'img-1',
           type: 'image',
@@ -145,7 +146,7 @@ describe('api/images', () => {
 
       const result = await getImage('img-1');
 
-      expect(result.status).toBe('failed');
+      expect(result.status).toBe(IngredientStatus.FAILED);
       expect(result.error).toBe('Content policy violation');
     });
 

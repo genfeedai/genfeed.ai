@@ -1,3 +1,4 @@
+import { PersistedArticleStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateArticles, generateXArticle, getArticle } from '../../src/api/articles';
 
@@ -32,7 +33,7 @@ describe('api/articles', () => {
               category: 'post',
               label: 'AI in Healthcare',
               slug: 'ai-in-healthcare',
-              status: 'draft',
+              status: PersistedArticleStatus.DRAFT,
               summary: 'How AI changes patient care',
             },
             id: 'art-1',
@@ -43,7 +44,7 @@ describe('api/articles', () => {
               category: 'post',
               label: 'AI in Radiology',
               slug: 'ai-in-radiology',
-              status: 'draft',
+              status: PersistedArticleStatus.DRAFT,
             },
             id: 'art-2',
             type: 'article',
@@ -95,7 +96,7 @@ describe('api/articles', () => {
           attributes: {
             category: 'x-article',
             label: 'Why agent evaluation is hard',
-            status: 'draft',
+            status: PersistedArticleStatus.DRAFT,
             xArticleMetadata: {
               estimatedReadTime: 12,
               wordCount: 3120,
@@ -145,7 +146,7 @@ describe('api/articles', () => {
             category: 'post',
             label: 'AI in Healthcare',
             slug: 'ai-in-healthcare',
-            status: 'public',
+            status: PersistedArticleStatus.PUBLISHED,
           },
           id: 'art-1',
           type: 'article',
@@ -156,7 +157,7 @@ describe('api/articles', () => {
 
       expect(mockFetch).toHaveBeenCalledWith('/articles/art-1', { method: 'GET' });
       expect(result.id).toBe('art-1');
-      expect(result.status).toBe('public');
+      expect(result.status).toBe(PersistedArticleStatus.PUBLISHED);
       expect(result.category).toBe('post');
     });
 

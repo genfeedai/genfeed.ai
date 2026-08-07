@@ -1,3 +1,4 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createVideo, getVideo } from '../../src/api/videos';
 
@@ -29,7 +30,7 @@ describe('api/videos', () => {
         data: {
           attributes: {
             model: 'google-veo-3',
-            status: 'processing',
+            status: IngredientStatus.PROCESSING,
           },
           id: 'vid-1',
           type: 'video',
@@ -49,7 +50,7 @@ describe('api/videos', () => {
         method: 'POST',
       });
       expect(result.id).toBe('vid-1');
-      expect(result.status).toBe('processing');
+      expect(result.status).toBe(IngredientStatus.PROCESSING);
     });
 
     // CreateVideoDto declares `brandId`, and the API's ValidationPipe runs with
@@ -58,7 +59,7 @@ describe('api/videos', () => {
     it('sends brandId and never the legacy brand key', async () => {
       mockFetch.mockResolvedValue({
         data: {
-          attributes: { model: 'google-veo-3', status: 'processing' },
+          attributes: { model: 'google-veo-3', status: IngredientStatus.PROCESSING },
           id: 'vid-3',
           type: 'video',
         },
@@ -82,7 +83,7 @@ describe('api/videos', () => {
             duration: 10,
             model: 'google-veo-3',
             resolution: '1080p',
-            status: 'processing',
+            status: IngredientStatus.PROCESSING,
           },
           id: 'vid-2',
           type: 'video',
@@ -102,7 +103,7 @@ describe('api/videos', () => {
   });
 
   describe('getVideo', () => {
-    it('flattens completed video with url', async () => {
+    it('flattens generated video with url', async () => {
       mockFetch.mockResolvedValue({
         data: {
           attributes: {
@@ -110,7 +111,7 @@ describe('api/videos', () => {
             duration: 5,
             model: 'google-veo-3',
             resolution: '1080p',
-            status: 'completed',
+            status: IngredientStatus.GENERATED,
             url: 'https://cdn.genfeed.ai/vid.mp4',
           },
           id: 'vid-1',
@@ -122,7 +123,7 @@ describe('api/videos', () => {
 
       expect(mockFetch).toHaveBeenCalledWith('/videos/vid-1', { method: 'GET' });
       expect(result.id).toBe('vid-1');
-      expect(result.status).toBe('completed');
+      expect(result.status).toBe(IngredientStatus.GENERATED);
       expect(result.url).toBe('https://cdn.genfeed.ai/vid.mp4');
       expect(result.duration).toBe(5);
     });
@@ -133,7 +134,7 @@ describe('api/videos', () => {
           attributes: {
             error: 'Generation failed',
             model: 'google-veo-3',
-            status: 'failed',
+            status: IngredientStatus.FAILED,
           },
           id: 'vid-1',
           type: 'video',
@@ -142,7 +143,7 @@ describe('api/videos', () => {
 
       const result = await getVideo('vid-1');
 
-      expect(result.status).toBe('failed');
+      expect(result.status).toBe(IngredientStatus.FAILED);
       expect(result.error).toBe('Generation failed');
     });
 

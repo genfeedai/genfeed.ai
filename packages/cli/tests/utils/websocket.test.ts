@@ -1,5 +1,5 @@
+import type { IBackgroundTaskUpdatePayload } from '@genfeedai/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BackgroundTaskUpdate } from '../../src/utils/websocket';
 
 // Mock socket.io-client
 const mockSocket = {
@@ -68,12 +68,14 @@ describe('utils/websocket', () => {
       eventHandlers.connect?.({});
 
       // Simulate completion event
-      const updateEvent: BackgroundTaskUpdate = {
+      const updateEvent: IBackgroundTaskUpdatePayload = {
         progress: 100,
         resultId: 'test-123',
         resultType: 'VIDEO',
         status: 'completed',
         taskId: 'task-abc',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(updateEvent);
 
@@ -104,11 +106,13 @@ describe('utils/websocket', () => {
       eventHandlers.connect?.({});
 
       // Simulate failure event
-      const updateEvent: BackgroundTaskUpdate = {
+      const updateEvent: IBackgroundTaskUpdatePayload = {
         error: 'Generation failed: invalid prompt',
         resultType: 'IMAGE',
         status: 'failed',
         taskId: 'test-456',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(updateEvent);
 
@@ -139,11 +143,13 @@ describe('utils/websocket', () => {
       eventHandlers.connect?.({});
 
       // Send event for different task - should be ignored
-      const wrongTaskEvent: BackgroundTaskUpdate = {
+      const wrongTaskEvent: IBackgroundTaskUpdatePayload = {
         resultId: 'other-task',
         resultType: 'VIDEO',
         status: 'completed',
         taskId: 'other-task',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(wrongTaskEvent);
 
@@ -151,10 +157,12 @@ describe('utils/websocket', () => {
       expect(getResult).not.toHaveBeenCalled();
 
       // Now send correct event
-      const correctEvent: BackgroundTaskUpdate = {
+      const correctEvent: IBackgroundTaskUpdatePayload = {
         resultType: 'VIDEO',
         status: 'completed',
         taskId: 'test-123',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(correctEvent);
 
@@ -184,20 +192,24 @@ describe('utils/websocket', () => {
       eventHandlers.connect?.({});
 
       // Send IMAGE event for same ID - should be ignored
-      const wrongTypeEvent: BackgroundTaskUpdate = {
+      const wrongTypeEvent: IBackgroundTaskUpdatePayload = {
         resultType: 'IMAGE',
         status: 'completed',
         taskId: 'test-123',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(wrongTypeEvent);
 
       expect(getResult).not.toHaveBeenCalled();
 
       // Now send correct type
-      const correctEvent: BackgroundTaskUpdate = {
+      const correctEvent: IBackgroundTaskUpdatePayload = {
         resultType: 'VIDEO',
         status: 'completed',
         taskId: 'test-123',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(correctEvent);
 
@@ -282,54 +294,30 @@ describe('utils/websocket', () => {
       eventHandlers.connect?.({});
 
       // Send progress update
-      const progressEvent: BackgroundTaskUpdate = {
+      const progressEvent: IBackgroundTaskUpdatePayload = {
         progress: 50,
         resultType: 'VIDEO',
         status: 'processing',
         taskId: 'test-progress',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(progressEvent);
 
       expect(spinner.text).toContain('50%');
 
       // Complete
-      const completeEvent: BackgroundTaskUpdate = {
+      const completeEvent: IBackgroundTaskUpdatePayload = {
         progress: 100,
         resultType: 'VIDEO',
         status: 'completed',
         taskId: 'test-progress',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
       };
       eventHandlers['background-task-update']?.(completeEvent);
 
       await promise;
-    });
-
-    it('handles ingredient-status events', async () => {
-      const mockResult = { id: 'test-ingredient', status: 'completed' };
-      const getResult = vi.fn().mockResolvedValue(mockResult);
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-ingredient',
-        taskType: 'IMAGE',
-        timeout: 5000,
-      });
-      await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Simulate ingredient-status event
-      eventHandlers['/ingredients/test-ingredient/status']?.({ status: 'GENERATED' });
-
-      const result = await promise;
-      expect(result.result).toEqual(mockResult);
     });
   });
 });

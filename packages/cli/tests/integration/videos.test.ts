@@ -1,3 +1,4 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';
@@ -7,12 +8,12 @@ import { createTestClient, hasCredentials, testConfig } from './setup';
 interface Ingredient {
   id: string;
   category: string;
-  status: string;
+  status: IngredientStatus;
 }
 
 interface Video {
   id: string;
-  status: string;
+  status: IngredientStatus;
   model?: string;
   url?: string;
 }
@@ -61,7 +62,7 @@ describe.skipIf(!hasCredentials)('integration/videos', () => {
 
       const video = flattenSingle<Video>(response);
       expect(video.id).toBe(videoId);
-      expect(video.status).toBeTruthy();
+      expect(Object.values(IngredientStatus)).toContain(video.status);
     } catch (error: unknown) {
       const status = (error as { status?: number }).status;
       if (status === 401 || status === 403) {

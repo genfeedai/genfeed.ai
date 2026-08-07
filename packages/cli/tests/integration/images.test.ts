@@ -1,3 +1,4 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import type { CreateImageRequest } from '../../src/api/images';
 import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
@@ -7,12 +8,12 @@ import { createTestClient, hasCredentials, testConfig } from './setup';
 interface Ingredient {
   id: string;
   category: string;
-  status: string;
+  status: IngredientStatus;
 }
 
 interface Image {
   id: string;
-  status: string;
+  status: IngredientStatus;
   model?: string;
   url?: string;
 }
@@ -68,7 +69,7 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
 
       const image = flattenSingle<Image>(response);
       expect(image.id).toBe(imageId);
-      expect(image.status).toBeTruthy();
+      expect(Object.values(IngredientStatus)).toContain(image.status);
     } catch (error: unknown) {
       // 401/403 is the known server-side auth bug — document it, don't fail
       const status = (error as { status?: number }).status;
