@@ -1,10 +1,11 @@
 import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
+import { estimateBatchGenerationCredits } from '@genfeedai/constants';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('BatchGenerationCard', () => {
-  it('estimates a flat batch tool fee of 5 credits, not count × platforms × 10', () => {
+  it('estimates format-aware credits, not count × platforms × 10', () => {
     render(
       <BatchGenerationCard
         action={{
@@ -17,11 +18,16 @@ describe('BatchGenerationCard', () => {
       />,
     );
 
-    expect(screen.getByText(/Estimated cost: 5 credits/i)).toBeInTheDocument();
+    const expected = estimateBatchGenerationCredits(
+      { count: 20, platforms: ['twitter'] },
+      { includeMedia: false, qualityTier: 'balanced' },
+    );
+
     expect(
-      screen.getByText(/flat batch fee, not per post/i),
+      screen.getByText(new RegExp(`Estimated cost: ${expected} credits`, 'i')),
     ).toBeInTheDocument();
     expect(screen.queryByText(/200 credits/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/flat batch fee/i)).not.toBeInTheDocument();
   });
 
   it('honors an explicit creditEstimate from the action', () => {

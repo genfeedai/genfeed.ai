@@ -1,9 +1,14 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import {
+  DEFAULT_BATCH_CONTENT_MIX,
+  estimateBatchGenerationCredits,
+  formatBatchPricingHint,
+} from '@genfeedai/constants';
+import { ButtonVariant, ContentFormat } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Check, DollarSign, Layers } from 'lucide-react';
-import { type ReactElement, useCallback, useState } from 'react';
+import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 interface BatchGenerationCardProps {
   action: AgentUiAction;
@@ -17,13 +22,6 @@ const AVAILABLE_PLATFORMS = [
   'tiktok',
   'facebook',
 ];
-
-/**
- * Flat tool fee for `generate_content_batch` (see
- * packages/tools/src/registry/source/overlap-generation.tools.ts `creditCost`).
- * Not per-item: the handler reports creditsUsed: 5 for the whole batch.
- */
-const BATCH_TOOL_CREDIT_COST = 5;
 
 export function BatchGenerationCard({
   action,
@@ -60,7 +58,27 @@ export function BatchGenerationCard({
     setIsGenerated(true);
   }, [count, selectedPlatforms, onGenerate]);
 
-  const estimatedCredits = action.creditEstimate ?? BATCH_TOOL_CREDIT_COST;
+  // Caption-first pricing (includeMedia: false) — same as server charge today.
+  // Format mix still differentiates image vs video/reel packaging rates.
+  const estimatedCredits = useMemo(() => {
+    if (action.creditEstimate != null) {
+      return action.creditEstimate;
+    }
+    return estimateBatchGenerationCredits(
+      {
+        contentMix: DEFAULT_BATCH_CONTENT_MIX,
+        count: Math.max(1, count),
+        platforms: Array.from(selectedPlatforms),
+      },
+      { includeMedia: false, qualityTier: 'balanced' },
+    );
+  }, [action.creditEstimate, count, selectedPlatforms]);
+
+  const pricingHint = useMemo(
+    () =>
+      formatBatchPricingHint({ includeMedia: false, qualityTier: 'balanced' }),
+    [],
+  );
 
   if (isGenerated) {
     return (
@@ -90,7 +108,6 @@ export function BatchGenerationCard({
         </p>
       )}
 
-      {/* Count input */}
       <div className="mb-3">
         <label
           htmlFor="batch-count"
@@ -108,7 +125,6 @@ export function BatchGenerationCard({
         />
       </div>
 
-      {/* Platform checkboxes */}
       <div className="mb-3">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
@@ -135,20 +151,22 @@ export function BatchGenerationCard({
         </div>
       </div>
 
-      {/* Credit estimate — flat batch tool fee, not count × platforms */}
-      <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
         <DollarSign className="size-3.5" />
         <span>
           Estimated cost: {estimatedCredits} credit
           {estimatedCredits === 1 ? '' : 's'}
-          <span className="text-muted-foreground/70">
-            {' '}
-            (flat batch fee, not per post)
-          </span>
         </span>
       </div>
+      <p className="mb-3 text-[10px] leading-4 text-muted-foreground/80">
+        Based on default mix (image{' '}
+        {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.IMAGE]}% / video{' '}
+        {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.VIDEO]}% / reel{' '}
+        {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.REEL]}% / carousel{' '}
+        {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.CAROUSEL]}%). {pricingHint}.
+        Chat model round is billed separately.
+      </p>
 
-      {/* Generate button */}
       <Button
         variant={ButtonVariant.DEFAULT}
         onClick={handleGenerate}

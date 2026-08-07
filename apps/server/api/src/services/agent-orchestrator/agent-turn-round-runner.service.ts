@@ -541,13 +541,19 @@ export class AgentTurnRoundRunnerService {
         state.highestRiskLevel = 'medium';
       }
 
-      // Generation tools delegate billing to their endpoint (dynamic
-      // amount); deducting the flat creditCost here would double-charge.
+      // Generation tools may bill themselves (dynamic amount). Do not also
+      // deduct the catalog creditCost. Still record result.creditsUsed so the
+      // turn total and UI reflect real spend.
       // Bill + record the summary *before* onAfterTool cancel: the tool already
       // ran (side effects done). Cancelled streams must still charge
       // orchestrator-billed tools and leave an audit trail.
       const isOrchestratorBilled =
         result.success && creditCost > 0 && !result.isBillingDelegated;
+      const delegatedCredits =
+        result.success && result.isBillingDelegated
+          ? Math.max(0, Math.round(result.creditsUsed ?? 0))
+          : 0;
+
       if (isOrchestratorBilled) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
           context.organizationId,
@@ -557,10 +563,12 @@ export class AgentTurnRoundRunnerService {
           ActivitySource.SCRIPT,
         );
         state.totalCreditsUsed += creditCost;
+      } else if (delegatedCredits > 0) {
+        state.totalCreditsUsed += delegatedCredits;
       }
 
       const summary: ToolCallSummary = {
-        creditsUsed: isOrchestratorBilled ? creditCost : 0,
+        creditsUsed: isOrchestratorBilled ? creditCost : delegatedCredits,
         durationMs,
         error: result.error,
         parameters: toolParams,
