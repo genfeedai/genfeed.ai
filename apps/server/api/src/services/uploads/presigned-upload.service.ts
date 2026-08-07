@@ -103,7 +103,7 @@ export class PresignedUploadService {
       {
         id: id,
         organizationId: publicMetadata.organization,
-        status: 'processing',
+        status: IngredientStatus.PROCESSING,
         userId: publicMetadata.user,
       },
       [{ path: 'metadata' }],
@@ -121,7 +121,11 @@ export class PresignedUploadService {
 
     // Extract metadata from the uploaded file
     // Use the same workflow as AI-generated content
-    const category = ingredient.category || 'image';
+    // ingredient.category is Prisma SCREAMING_SNAKE (e.g. 'VIDEO'); the S3
+    // folder convention is lowercase plural (e.g. 'videos').
+    const category = (
+      ingredient.category || IngredientCategory.IMAGE
+    ).toLowerCase();
     const s3Type = `${category}s`;
 
     try {

@@ -72,22 +72,31 @@ export class PromptParser {
       return type;
     }
 
-    // Pass through valid category prefixes without modification
-    if (
-      type.startsWith('models-prompt-') ||
-      type.startsWith('presets-') ||
-      type.startsWith('brand-') ||
-      type.startsWith('storyboard-') ||
-      type.startsWith('post-content-') ||
-      type.startsWith('post-title-')
-    ) {
+    // Already the canonical Prisma SCREAMING_SNAKE form (e.g.
+    // 'MODELS_PROMPT_IMAGE') — pass through unmodified.
+    if (PromptParser.isValidPromptCategory(type)) {
       return type;
     }
 
-    // Training models (special case)
+    // Training models (special case) — checked before the generic hyphen
+    // normalization below since 'genfeedai'/'trainer' aren't literal
+    // category spellings.
     const key = type.toLowerCase();
     if (key.includes('genfeedai') || key.includes('trainer')) {
-      return 'models-prompt-genfeedai';
+      return PromptCategory.MODELS_PROMPT_TRAINING;
+    }
+
+    // Legacy lowercase-hyphen spellings (e.g. 'models-prompt-image') map onto
+    // the Prisma SCREAMING_SNAKE form.
+    if (
+      key.startsWith('models-prompt-') ||
+      key.startsWith('presets-') ||
+      key.startsWith('brand-') ||
+      key.startsWith('storyboard-') ||
+      key.startsWith('post-content-') ||
+      key.startsWith('post-title-')
+    ) {
+      return key.replace(/-/g, '_').toUpperCase();
     }
 
     // Model category should come from DB via ModelsGuard, not guessed from strings
@@ -137,24 +146,25 @@ export class PromptParser {
   static getSystemPromptTemplateKey(category: string): string {
     // Map category to template key following pattern: system.{platform/type}.{subtype}
     const categoryMap: Record<string, string> = {
-      'brand-description': 'system.brand-description',
-      'models-prompt-genfeedai': 'system.model.training',
-      'models-prompt-image': 'system.image', // Use rich image enhancement template
-      'models-prompt-music': 'system.music', // Use rich music enhancement template
-      'models-prompt-video': 'system.video', // Use rich video enhancement template
-      'post-content-instagram': 'system.instagram.content',
-      'post-content-tiktok': 'system.tiktok.content',
-      'post-content-twitter': 'system.twitter.content',
-      'post-content-youtube': 'system.youtube.content',
-      'post-title-instagram': 'system.instagram.title',
-      'post-title-tiktok': 'system.tiktok.title',
-      'post-title-twitter': 'system.twitter.title',
-      'post-title-youtube': 'system.youtube.title',
-      'presets-description-image': 'system.preset.image',
-      'presets-description-music': 'system.preset.music',
-      'presets-description-text': 'system.preset.text',
-      'presets-description-video': 'system.preset.video',
-      'storyboard-script-description': 'system.storyboard.script',
+      [PromptCategory.BRAND_DESCRIPTION]: 'system.brand-description',
+      [PromptCategory.MODELS_PROMPT_TRAINING]: 'system.model.training',
+      [PromptCategory.MODELS_PROMPT_IMAGE]: 'system.image', // Use rich image enhancement template
+      [PromptCategory.MODELS_PROMPT_MUSIC]: 'system.music', // Use rich music enhancement template
+      [PromptCategory.MODELS_PROMPT_VIDEO]: 'system.video', // Use rich video enhancement template
+      [PromptCategory.POST_CONTENT_INSTAGRAM]: 'system.instagram.content',
+      [PromptCategory.POST_CONTENT_TIKTOK]: 'system.tiktok.content',
+      [PromptCategory.POST_CONTENT_TWITTER]: 'system.twitter.content',
+      [PromptCategory.POST_CONTENT_YOUTUBE]: 'system.youtube.content',
+      [PromptCategory.POST_TITLE_INSTAGRAM]: 'system.instagram.title',
+      [PromptCategory.POST_TITLE_TIKTOK]: 'system.tiktok.title',
+      [PromptCategory.POST_TITLE_TWITTER]: 'system.twitter.title',
+      [PromptCategory.POST_TITLE_YOUTUBE]: 'system.youtube.title',
+      [PromptCategory.PRESET_DESCRIPTION_IMAGE]: 'system.preset.image',
+      [PromptCategory.PRESET_DESCRIPTION_MUSIC]: 'system.preset.music',
+      [PromptCategory.PRESET_DESCRIPTION_TEXT]: 'system.preset.text',
+      [PromptCategory.PRESET_DESCRIPTION_VIDEO]: 'system.preset.video',
+      [PromptCategory.STORYBOARD_SCRIPT_DESCRIPTION]:
+        'system.storyboard.script',
     };
 
     return categoryMap[category] || 'system.default';

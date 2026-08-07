@@ -1,4 +1,5 @@
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
+import { PromptCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 
 describe('PromptParser', () => {
@@ -41,7 +42,7 @@ describe('PromptParser', () => {
         prompt: 'Generate an image of a cat',
       };
 
-      expect(result.normalizedType).toBe('models-prompt-image');
+      expect(result.normalizedType).toBe(PromptCategory.MODELS_PROMPT_IMAGE);
       expect(result.promptObject).toEqual(expectedPromptObject);
       expect(result.promptString).toBe(JSON.stringify(result.promptObject));
     });
@@ -94,9 +95,11 @@ describe('PromptParser', () => {
     it('should return all supported prompt types from enum', () => {
       const supportedTypes = PromptParser.getSupportedTypes();
 
-      expect(supportedTypes).toContain('models-prompt-image');
-      expect(supportedTypes).toContain('brand-description');
-      expect(supportedTypes).toContain('storyboard-script-description');
+      expect(supportedTypes).toContain(PromptCategory.MODELS_PROMPT_IMAGE);
+      expect(supportedTypes).toContain(PromptCategory.BRAND_DESCRIPTION);
+      expect(supportedTypes).toContain(
+        PromptCategory.STORYBOARD_SCRIPT_DESCRIPTION,
+      );
       expect(supportedTypes.length).toBeGreaterThan(0);
     });
   });

@@ -593,7 +593,7 @@ export class UnipileService {
   }
 
   private toApiStatus(value: unknown): IntegrationStatus {
-    return String(value).toLowerCase() as IntegrationStatus;
+    return String(value).toUpperCase() as IntegrationStatus;
   }
 
   private toOptionalString(value: unknown): string | undefined {

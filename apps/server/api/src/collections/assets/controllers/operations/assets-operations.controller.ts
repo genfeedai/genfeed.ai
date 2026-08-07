@@ -141,7 +141,7 @@ export class AssetsOperationsController {
       {
         maxLength: 50,
       },
-    ).toLowerCase() as AssetCategory;
+    ).toUpperCase() as AssetCategory;
 
     const text = InputValidationUtil.validateString(
       generateAssetDto.text,

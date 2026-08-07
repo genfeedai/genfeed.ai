@@ -178,8 +178,10 @@ export class VideosLipSyncController {
       }
 
       // 3. Build CDN URLs
+      // audioIngredient.category is Prisma SCREAMING_SNAKE (e.g. 'VIDEO'); the
+      // CDN path convention is lowercase plural (e.g. 'videos').
       const photoUrl = `${this.configService.ingredientsEndpoint}/images/${createLipSyncDto.parent}`;
-      const audioUrl = `${this.configService.ingredientsEndpoint}/${audioIngredient.category}s/${createLipSyncDto.voice}`;
+      const audioUrl = `${this.configService.ingredientsEndpoint}/${String(audioIngredient.category).toLowerCase()}s/${createLipSyncDto.voice}`;
 
       this.loggerService.log(`${url} resolved URLs`, {
         audioCategory: audioIngredient.category,

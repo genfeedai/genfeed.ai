@@ -12,7 +12,7 @@ import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory } from '@genfeedai/enums';
+import { ModelCategory, PromptStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -293,7 +293,7 @@ describe('ImageGenerationService', () => {
       expect(promptsService.create).not.toHaveBeenCalled();
       expect(promptsService.patch).toHaveBeenCalledWith(
         'p07f1f77bcf86cd799439015',
-        expect.objectContaining({ status: 'processing' }),
+        expect.objectContaining({ status: PromptStatus.PROCESSING }),
       );
     });
   });

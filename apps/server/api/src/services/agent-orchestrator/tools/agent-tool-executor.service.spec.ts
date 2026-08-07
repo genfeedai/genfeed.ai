@@ -36,7 +36,12 @@ import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/a
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
-import { ApiKeyScope, PostStatus, ReleaseStatus } from '@genfeedai/enums';
+import {
+  ApiKeyScope,
+  IngredientCategory,
+  PostStatus,
+  ReleaseStatus,
+} from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -1831,7 +1836,7 @@ describe('AgentToolExecutorService', () => {
     ingredientsService.findOne.mockResolvedValue({
       id: 'c7a123456789012345678940',
       brandId: 'c7a123456789012345678941',
-      category: 'video',
+      category: IngredientCategory.VIDEO,
     });
     credentialsService.find.mockResolvedValue([
       {
@@ -2920,13 +2925,13 @@ describe('AgentToolExecutorService', () => {
 
     imagesService.findAllByOrganization.mockResolvedValue([
       {
-        category: 'image',
+        category: IngredientCategory.IMAGE,
         cdnUrl: 'https://cdn.genfeed.ai/images/test.jpg',
         id: 'c07f191e810c19729de860ea',
         metadata: { label: 'Test Image' },
       },
       {
-        category: 'video',
+        category: IngredientCategory.VIDEO,
         cdnUrl: 'https://cdn.genfeed.ai/videos/test.mp4',
         id: 'c07f191e810c19729de860eb',
         metadata: null,
@@ -2970,7 +2975,7 @@ describe('AgentToolExecutorService', () => {
     imagesService.findAllByOrganization.mockResolvedValue([
       {
         id: 'c07f191e810c19729de860ec',
-        category: 'image',
+        category: IngredientCategory.IMAGE,
         cdnUrl: 'https://cdn.genfeed.ai/images/img.jpg',
         metadata: null,
       },
@@ -2990,7 +2995,7 @@ describe('AgentToolExecutorService', () => {
     expect(imagesService.findAllByOrganization).toHaveBeenCalledWith(
       'c7a123456789012345678901',
       expect.objectContaining({
-        category: expect.objectContaining({ in: ['image'] }),
+        category: expect.objectContaining({ in: [IngredientCategory.IMAGE] }),
       }),
       { createdAt: -1 },
       expect.any(Array),

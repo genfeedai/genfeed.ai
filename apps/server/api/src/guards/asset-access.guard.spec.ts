@@ -7,7 +7,7 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('normalizeAssetScope', () => {
-  it('maps Prisma UPPER_SNAKE scopes onto app lowercase enums', () => {
+  it('maps Prisma UPPER_SNAKE scopes onto the AssetScope enum', () => {
     expect(normalizeAssetScope('USER')).toBe(AssetScope.USER);
     expect(normalizeAssetScope('BRAND')).toBe(AssetScope.BRAND);
     expect(normalizeAssetScope('ORGANIZATION')).toBe(AssetScope.ORGANIZATION);

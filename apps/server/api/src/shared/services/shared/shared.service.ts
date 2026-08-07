@@ -85,7 +85,7 @@ const resolveMetadataExtension = (
     );
   }
 
-  switch (String(input.category).toLowerCase()) {
+  switch (String(input.category).toUpperCase()) {
     case IngredientCategory.MUSIC:
     case IngredientCategory.VOICE:
       return MetadataExtension.MP3;

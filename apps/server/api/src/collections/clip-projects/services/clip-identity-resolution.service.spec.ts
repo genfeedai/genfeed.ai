@@ -1,5 +1,6 @@
 import { ClipIdentityResolutionService } from '@api/collections/clip-projects/services/clip-identity-resolution.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { VoiceProvider } from '@genfeedai/enums';
 
 describe('ClipIdentityResolutionService', () => {
   const organizationId = 'org-1';
@@ -42,14 +43,14 @@ describe('ClipIdentityResolutionService', () => {
     });
     expect(identity).toEqual({
       avatarId: 'brand-avatar-1',
-      avatarProvider: 'heygen',
+      avatarProvider: VoiceProvider.HEYGEN,
       isComplete: true,
       label: 'Brand clip defaults',
       missing: [],
       source: 'brand',
       useIdentity: true,
       voiceId: 'brand-voice-1',
-      voiceProvider: 'heygen',
+      voiceProvider: VoiceProvider.HEYGEN,
     });
   });
 

@@ -3,6 +3,7 @@ import type { AgentGoalsService } from '@api/collections/agent-goals/services/ag
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
+import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
@@ -65,6 +66,9 @@ describe('AgentOrchestratorController', () => {
     const creditsService = {
       getOrganizationCreditsBalance: vi.fn(),
     };
+    const agentChatModelRegistry = {
+      getRoundCostsMap: vi.fn().mockResolvedValue({}),
+    };
     const loggerService = {
       debug: vi.fn(),
       error: vi.fn(),
@@ -74,6 +78,7 @@ describe('AgentOrchestratorController', () => {
 
     controller = new AgentOrchestratorController(
       service as unknown as AgentOrchestratorService,
+      agentChatModelRegistry as unknown as AgentChatModelRegistryService,
       creditsService as unknown as CreditsUtilsService,
       agentGoalsService as unknown as AgentGoalsService,
       usersService as unknown as UsersService,

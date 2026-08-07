@@ -25,6 +25,7 @@ describe('AgentSpawnService', () => {
     const service = new AgentSpawnService(
       { log: vi.fn() } as unknown as LoggerService,
       {} as AgentContextAssemblyService,
+      {} as never,
       moduleRef as never,
     );
 
@@ -60,6 +61,9 @@ describe('AgentSpawnService', () => {
         }),
         buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
       } as unknown as AgentContextAssemblyService,
+      {
+        getDefaultModelKey: vi.fn().mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL),
+      } as never,
       { get: vi.fn() } as never,
     );
 
@@ -125,6 +129,9 @@ describe('AgentSpawnService', () => {
         }),
         buildSystemPrompt: vi.fn().mockReturnValue('spawn-prompt'),
       } as unknown as AgentContextAssemblyService,
+      {
+        getDefaultModelKey: vi.fn().mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL),
+      } as never,
       { get: vi.fn() } as never,
     );
 

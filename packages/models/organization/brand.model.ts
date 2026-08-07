@@ -14,10 +14,12 @@ export class Brand extends BaseBrand {
   constructor(partial: Partial<IBrand>) {
     super(partial);
 
-    // Prisma wire format is UPPERCASE (PUBLIC); app AssetScope is lowercase
-    // (public). Normalize so UI checks like scope === AssetScope.PUBLIC work.
+    // AssetScope mirrors the Prisma AssetScope enum 1:1 (SCREAMING_SNAKE,
+    // PUBLIC). Normalize with toUpperCase so a stray legacy-lowercase value
+    // still lands on a valid AssetScope member for checks like
+    // scope === AssetScope.PUBLIC.
     if (typeof this.scope === 'string') {
-      this.scope = this.scope.toLowerCase() as AssetScope;
+      this.scope = this.scope.toUpperCase() as AssetScope;
     }
 
     if (
