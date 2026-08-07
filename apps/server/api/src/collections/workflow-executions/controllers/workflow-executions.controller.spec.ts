@@ -153,7 +153,6 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findOne).toHaveBeenCalledWith({
         id: 'exec-1',
-        isDeleted: false,
         organizationId: '507f1f77bcf86cd799439011',
       });
       expect(result).toEqual(mockExecution);
@@ -199,7 +198,6 @@ describe('WorkflowExecutionsController', () => {
       });
       expect(mockService.findOne).toHaveBeenCalledWith({
         id: 'exec-new',
-        isDeleted: false,
         organizationId: '507f1f77bcf86cd799439011',
       });
       expect(mockService.createExecution).not.toHaveBeenCalled();
@@ -271,7 +269,6 @@ describe('WorkflowExecutionsController', () => {
 
       expect(mockService.findOne).toHaveBeenCalledWith({
         id: 'exec-1',
-        isDeleted: false,
         organizationId: '507f1f77bcf86cd799439011',
       });
       expect(mockService.cancelExecution).toHaveBeenCalledWith('exec-1');

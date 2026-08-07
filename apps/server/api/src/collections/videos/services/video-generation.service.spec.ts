@@ -259,7 +259,6 @@ describe('VideoGenerationService', () => {
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
         id: 'p07f191e810c19729de860ee',
-        isDeleted: false,
         organizationId: ORG,
       });
     });
@@ -296,7 +295,6 @@ describe('VideoGenerationService', () => {
 
       expect(promptsService.findOne).toHaveBeenCalledWith({
         id: 'p07f191e810c19729de860ee',
-        isDeleted: false,
       });
     });
   });

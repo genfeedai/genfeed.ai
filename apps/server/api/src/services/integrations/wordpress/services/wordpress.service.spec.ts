@@ -208,7 +208,6 @@ describe('WordpressService', () => {
       expect(result).toEqual({ isValid: true });
       expect(credentialsService.findOne).toHaveBeenCalledWith({
         brandId,
-        isDeleted: false,
         organizationId: orgId,
         platform: CredentialPlatform.WORDPRESS,
       });

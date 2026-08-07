@@ -170,7 +170,7 @@ describe('AgentThreadsController', () => {
 
       expect(usersService.findOne).toHaveBeenCalledTimes(1);
       expect(usersService.findOne).toHaveBeenCalledWith(
-        { id: 'u07f1f77bcf86cd799439011', isDeleted: false },
+        { id: 'u07f1f77bcf86cd799439011' },
         [],
       );
       expect(service.getUserThreads).toHaveBeenCalledWith(
@@ -285,7 +285,6 @@ describe('AgentThreadsController', () => {
 
       expect(messagesService.findOne).toHaveBeenCalledWith({
         id: 'message-id',
-        isDeleted: false,
         organizationId: 'org_current',
         threadId: 'thread-id',
       });

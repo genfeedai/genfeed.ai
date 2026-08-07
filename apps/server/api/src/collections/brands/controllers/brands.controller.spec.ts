@@ -503,7 +503,6 @@ describe('BrandsController', () => {
           { organizationId: 'cmorganization000000000000001' },
         ],
         id: brandId,
-        isDeleted: false,
       });
       expect(brandsService.crawlWebsiteBrandKitDraft).toHaveBeenCalledWith(
         brandId,
@@ -587,7 +586,6 @@ describe('BrandsController', () => {
           { organizationId: mockUser.publicMetadata.organization },
         ],
         id: brandId,
-        isDeleted: false,
       });
       expect(brandsService.applyBrandKitDraft).toHaveBeenCalledWith(
         brandId,
@@ -689,7 +687,6 @@ describe('BrandsController', () => {
           { organizationId: mockUser.publicMetadata.organization },
         ],
         id: brandId,
-        isDeleted: false,
       });
       expect(brandsService.buildManualBrandKitDraft).toHaveBeenCalledWith(
         brandId,

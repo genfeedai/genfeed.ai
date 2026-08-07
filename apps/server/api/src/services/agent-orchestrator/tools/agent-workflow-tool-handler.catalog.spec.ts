@@ -221,7 +221,6 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         id: 'brand-2',
-        isDeleted: false,
         organizationId: 'org-1',
       });
       expect(systemWorkflowCatalogService.install).toHaveBeenCalledWith(

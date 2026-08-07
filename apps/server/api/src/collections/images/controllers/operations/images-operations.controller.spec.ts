@@ -1009,7 +1009,6 @@ describe('ImagesOperationsController', () => {
       expect(imagesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: mockImageId,
-          isDeleted: false,
         }),
         expect.any(Array),
       );

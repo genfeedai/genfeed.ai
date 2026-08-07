@@ -13,6 +13,8 @@ import {
 
 const contentDirectory = fileURLToPath(new URL('../content', import.meta.url));
 
+const MINIMUM_DOCS_PAGES = 54;
+
 function findMdxFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(directory, entry.name);
@@ -93,7 +95,10 @@ describe('docs SEO metadata', () => {
       return description;
     });
 
-    expect(descriptions).toHaveLength(53);
+    // Floor, not an exact count: adding a well-described page must not require
+    // editing this test, but pages vanishing silently still trips it. Lower it
+    // deliberately in the same PR that removes a page.
+    expect(descriptions.length).toBeGreaterThanOrEqual(MINIMUM_DOCS_PAGES);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 });

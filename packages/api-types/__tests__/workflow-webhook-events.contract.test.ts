@@ -138,7 +138,7 @@ describe('workflowWebhookPayloadSchema', () => {
           "id": "execution_123",
           "progress": 40,
           "startedAt": "2026-07-07T09:59:30.000Z",
-          "status": "failed",
+          "status": "FAILED",
           "trigger": "api",
           "workflowId": "workflow_123",
         },

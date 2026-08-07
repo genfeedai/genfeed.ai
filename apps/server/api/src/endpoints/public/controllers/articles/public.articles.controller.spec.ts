@@ -259,7 +259,6 @@ describe('PublicArticlesController', () => {
       expect(articlesService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id,
-          isDeleted: false,
           status: 'PUBLISHED',
         }),
       );

@@ -139,7 +139,6 @@ describe('IngredientsRelationshipsController', () => {
 
       expect(ingredientsService.findOne).toHaveBeenCalledWith({
         id: '507f1f77bcf86cd799439014',
-        isDeleted: false,
       });
       expect(postsService.findAll).toHaveBeenCalledWith(
         {

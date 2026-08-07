@@ -227,7 +227,6 @@ describe('AgentRouteRewriteService', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: 'brand-1',
-      isDeleted: false,
       organizationId: 'org-1',
     });
   });

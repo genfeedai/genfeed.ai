@@ -133,7 +133,9 @@ describe('AgentWorkspacePageShell', () => {
     };
     props.onSelectCreditPack({ label: 'Pro' });
 
-    expect(pushMock).toHaveBeenCalledWith('/test-org/~/settings/credits');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/test-org/~/settings/credits?pack=pro',
+    );
   });
 
   it('creates workspace follow-up tasks through the shared workspace service', async () => {

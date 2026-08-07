@@ -151,7 +151,8 @@ describe('VotesController', () => {
 
     expect(service.patchAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        isDeleted: false,
+        entityId: validEntityId,
+        userId: mockUser.publicMetadata.user,
       }),
       { isDeleted: true },
     );

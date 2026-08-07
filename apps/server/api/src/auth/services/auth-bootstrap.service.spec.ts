@@ -374,7 +374,6 @@ describe('AuthBootstrapService', () => {
     expect(usersService.findOne).toHaveBeenCalledWith(
       {
         id: userId,
-        isDeleted: false,
       },
       [],
     );

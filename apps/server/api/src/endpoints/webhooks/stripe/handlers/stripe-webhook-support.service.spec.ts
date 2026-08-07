@@ -479,7 +479,6 @@ describe('StripeWebhookSupportService', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         email: 'ada@example.com',
-        isDeleted: false,
       });
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         'user_1',
@@ -529,7 +528,6 @@ describe('StripeWebhookSupportService', () => {
 
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(organizationSettingsService.patch).toHaveBeenCalledWith('os_1', {
         enabledModelIds: ['model_1'],

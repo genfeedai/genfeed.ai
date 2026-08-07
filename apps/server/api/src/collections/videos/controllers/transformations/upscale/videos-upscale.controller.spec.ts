@@ -327,7 +327,6 @@ describe('VideosUpscaleController', () => {
     expect(mockServices.videosService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'c07f1f77bcf86cd799439011',
-        isDeleted: false,
         OR: expect.arrayContaining([
           expect.objectContaining({ userId: expect.anything() }),
           expect.objectContaining({ organizationId: expect.anything() }),

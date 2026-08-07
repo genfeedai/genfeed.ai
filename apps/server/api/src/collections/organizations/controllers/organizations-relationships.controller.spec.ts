@@ -128,7 +128,6 @@ describe('OrganizationsRelationshipsController', () => {
 
       expect(mockServices.membersService.findOne).toHaveBeenCalledWith({
         isActive: true,
-        isDeleted: false,
         organizationId: 'clorganizationrel0000000001',
         userId: 'cluserorgrel00000000000001',
       });

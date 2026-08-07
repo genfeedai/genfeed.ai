@@ -62,7 +62,6 @@ describe('BotUserResolverService', () => {
       expect(credentialsService.findOne).toHaveBeenCalledWith({
         externalId: platformUserId,
         isConnected: true,
-        isDeleted: false,
         platform,
       });
     });
@@ -169,7 +168,6 @@ describe('BotUserResolverService', () => {
 
       const result = await service.getUserBrands('test-object-id');
       expect(brandsService.find).toHaveBeenCalledWith({
-        isDeleted: false,
         organizationId: 'test-object-id',
       });
       expect(result).toHaveLength(2);

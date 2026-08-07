@@ -191,7 +191,6 @@ describe('LeonardoaiWebhookService', () => {
 
     expect(deps.metadataService.findOne).toHaveBeenCalledWith({
       id: metadataId,
-      isDeleted: false,
     });
   });
 

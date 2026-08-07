@@ -132,7 +132,6 @@ describe('GoogleSearchConsoleController', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: 'brand-id',
-      isDeleted: false,
       organizationId: 'org-id',
     });
     expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(

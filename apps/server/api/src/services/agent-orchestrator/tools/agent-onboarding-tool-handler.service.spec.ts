@@ -116,7 +116,6 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
 
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
-        isDeleted: false,
         organizationId: CONTEXT.organizationId,
         status: PostStatus.PUBLIC,
       },

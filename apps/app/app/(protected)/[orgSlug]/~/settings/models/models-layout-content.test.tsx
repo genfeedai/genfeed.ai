@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import ModelsLayoutContent from './models-layout-content';
 
@@ -40,6 +40,16 @@ vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
       `/acme/~${path.startsWith('/') ? path : `/${path}`}`,
   }),
 }));
+
+beforeAll(() => {
+  // Radix Select drives its trigger through Pointer Events and scrolls the
+  // highlighted option into view; jsdom implements neither, so opening the
+  // listbox throws before any option renders.
+  Element.prototype.hasPointerCapture = vi.fn(() => false);
+  Element.prototype.setPointerCapture = vi.fn();
+  Element.prototype.releasePointerCapture = vi.fn();
+  Element.prototype.scrollIntoView = vi.fn();
+});
 
 describe('ModelsLayoutContent', () => {
   it('should render without crashing', () => {

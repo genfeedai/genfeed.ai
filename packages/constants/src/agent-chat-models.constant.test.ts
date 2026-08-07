@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AGENT_CHAT_MODEL_KEYS,
   AGENT_CHAT_MODELS,
   AGENT_FALLBACK_ROUND_CREDITS,
   calculateAgentRoundCredits,
@@ -133,6 +134,16 @@ describe('getAgentChatModelRoundCredits', () => {
       AGENT_FALLBACK_ROUND_CREDITS,
     );
     expect(AGENT_FALLBACK_ROUND_CREDITS).toBeGreaterThan(0);
+  });
+
+  // A successor is chosen by price tier, not by brand. `x-ai/grok-4-fast`
+  // ($0.20/$0.50) once pointed at Grok 4.5 ($2/$6) purely because it was the
+  // only xAI row in the catalogue, which moved every stale binding onto a 10x
+  // model. Pin the direction so a brand-match cannot creep back in.
+  it('retires a budget model onto a budget successor, not its premium sibling', () => {
+    expect(getAgentChatModelRoundCredits('x-ai/grok-4-fast')).toBeLessThan(
+      getAgentChatModelRoundCredits(AGENT_CHAT_MODEL_KEYS.GROK_4_5),
+    );
   });
 });
 
