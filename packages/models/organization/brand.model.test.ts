@@ -233,10 +233,19 @@ describe('Brand', () => {
       expect(brand.label).toBe('Test Brand');
     });
 
-    it('normalizes Prisma UPPERCASE scope to app lowercase AssetScope', () => {
+    it('normalizes scope to the Prisma-backed SCREAMING_SNAKE AssetScope', () => {
       const brand = createBrand({
         id: 'brand-123',
         scope: 'PUBLIC' as unknown as AssetScope,
+      });
+
+      expect(brand.scope).toBe(AssetScope.PUBLIC);
+    });
+
+    it('normalizes a stray legacy-lowercase scope value', () => {
+      const brand = createBrand({
+        id: 'brand-123',
+        scope: 'public' as unknown as AssetScope,
       });
 
       expect(brand.scope).toBe(AssetScope.PUBLIC);
