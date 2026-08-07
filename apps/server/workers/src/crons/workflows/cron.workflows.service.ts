@@ -396,14 +396,11 @@ export class CronWorkflowsService {
     }
 
     await this.notificationsService.sendNotification({
+      action: 'send_message',
       organizationId: workflow.organizationId,
       payload: {
-        action: 'send_message',
-        payload: {
-          chatId: workflow.userId,
-          message,
-        },
-        type: 'telegram',
+        chatId: workflow.userId,
+        message,
       },
       type: 'telegram',
       userId: workflow.userId,
