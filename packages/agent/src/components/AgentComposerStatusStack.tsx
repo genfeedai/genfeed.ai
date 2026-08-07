@@ -25,10 +25,9 @@ interface AgentComposerStatusStackProps {
   socketConnectionState: AgentSocketConnectionState;
 }
 
-// Every notice in this stack sits on the same opaque surface. Translucent
-// tone fills (10% alpha) were unreadable over the conversation behind the
-// composer, so tone now drives only the border and the icon — never the text
-// contrast.
+// Neutral notices stay on the opaque secondary surface so they stay readable
+// over the conversation. Tonal cards (connection warning, composer error) use
+// the same pattern as AgentRunFailureCard: tinted fill + matching border/text.
 const STATUS_SURFACE_CLASS =
   'rounded-lg border bg-background-secondary px-3 py-2 shadow-sm';
 
@@ -109,24 +108,24 @@ export function AgentComposerStatusStack({
         <div
           className={cn(
             STATUS_SURFACE_CLASS,
-            'flex items-start gap-2 border-destructive/50',
+            'flex items-start gap-2 border-destructive/50 bg-destructive/15 text-destructive',
           )}
           role="alert"
         >
           <TriangleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="font-medium text-foreground text-sm leading-5">
+            <p className="font-medium text-sm leading-5 text-destructive">
               {composerError.summary}
             </p>
             {composerError.detail ? (
-              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-muted-foreground text-xs leading-5">
+              <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-xs leading-5 text-destructive/80">
                 {composerError.detail}
               </p>
             ) : null}
           </div>
           <Button
             ariaLabel="Dismiss composer error"
-            className="size-7 shrink-0"
+            className="size-7 shrink-0 text-destructive hover:bg-destructive/20 hover:text-destructive"
             icon={<X className="size-4" />}
             onClick={onClearError}
             variant={ButtonVariant.GHOST}
@@ -140,16 +139,18 @@ export function AgentComposerStatusStack({
           aria-live="polite"
           className={cn(
             STATUS_SURFACE_CLASS,
-            'flex items-center gap-2 border-warning/50 text-foreground text-sm leading-5',
+            'flex items-center gap-2 border-warning/50 bg-warning/15 text-sm leading-5 text-warning',
           )}
           role="status"
         >
-          <SignalZero className="size-4 shrink-0 text-warning" />
-          {socketConnectionState === 'offline'
-            ? 'Offline. Your draft is safe; sending is paused.'
-            : socketConnectionState === 'connecting'
-              ? 'Connecting. Your draft is safe; sending starts when connected.'
-              : 'Reconnecting. Your draft is safe; sending resumes when connected.'}
+          <SignalZero className="size-4 shrink-0 text-warning" aria-hidden />
+          <p className="min-w-0 font-medium text-warning">
+            {socketConnectionState === 'offline'
+              ? 'Offline. Your draft is safe; sending is paused.'
+              : socketConnectionState === 'connecting'
+                ? 'Connecting. Your draft is safe; sending starts when connected.'
+                : 'Reconnecting. Your draft is safe; sending resumes when connected.'}
+          </p>
         </div>
       ) : null}
 
