@@ -142,7 +142,7 @@ export function AgentChatPromptBar({
     </>
   );
   const isPortaled = Boolean(composerShell?.portalTarget);
-  // Surface canvas portal is already max-w-4xl (Codex-aligned with transcript).
+  // Surface canvas portal already owns AGENT_CONVERSATION_TRACK_CLASS (max-w-3xl).
   // Inspector rail is narrower — fill it. Never re-center with a second max-w.
   const promptBar = (
     <PromptBarContainer
@@ -152,7 +152,7 @@ export function AgentChatPromptBar({
       topContent={topContent}
       zIndex={40}
       className={cn(
-        'w-full',
+        'w-full min-w-0 max-w-full',
         isPortaled && 'pointer-events-auto',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
         layoutMode === 'surface-fixed' && 'bottom-0',

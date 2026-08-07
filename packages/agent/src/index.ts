@@ -67,6 +67,12 @@ export {
   parseConversationComposerCommand,
   resolveConversationComposerDestinationHref,
 } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
+export {
+  AGENT_CONVERSATION_INLINE_ROW_CLASS,
+  AGENT_CONVERSATION_SURFACE_CLASS,
+  AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+  AGENT_CONVERSATION_TRACK_CLASS,
+} from '@genfeedai/agent/constants/conversation-layout.constant';
 export type {
   DashboardBlocksParseResult,
   DashboardOpenUIComponent,

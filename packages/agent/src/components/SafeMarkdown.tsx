@@ -151,11 +151,21 @@ export function SafeMarkdown({
               codeClassName.includes('language-');
 
             if (!isBlockCode) {
-              return <Code className="text-[0.9em]">{children}</Code>;
+              // Inline code must wrap — mono tokens are the #1 horizontal
+              // overflow source in agent failure dumps.
+              return (
+                <Code className="break-all text-[0.9em] [overflow-wrap:anywhere]">
+                  {children}
+                </Code>
+              );
             }
 
             return (
-              <Code display="block" size="sm" className="bg-muted/70">
+              <Code
+                display="block"
+                size="sm"
+                className="max-w-full min-w-0 overflow-x-auto break-words bg-muted/70 whitespace-pre-wrap"
+              >
                 {children}
               </Code>
             );

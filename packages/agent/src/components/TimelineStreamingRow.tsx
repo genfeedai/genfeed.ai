@@ -93,21 +93,28 @@ export function TimelineStreamingRow({
     (event) => event.toolName || event.toolCallId || event.detail,
   );
 
+  // When tools or text already paint the turn, drop the pure "Thinking/Working"
+  // header row — composer status stack mirrors busy state (T3 density).
+  const showStatusHeader =
+    !hasContent &&
+    toolCallEvents.length === 0 &&
+    meaningfulNonToolEvents.length === 0;
+
   return (
-    <div className="mb-2 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
-      <div className="w-full max-w-none space-y-2 border-0 bg-transparent px-0.5 py-1">
-        {!hasContent ? (
-          <div className="flex items-center gap-1.5 text-[11px] text-foreground/50">
-            <Sparkles className="size-3.5 text-primary/70" />
+    <div className="mb-2 flex min-w-0 w-full justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
+      <div className="w-full min-w-0 max-w-full space-y-1.5 border-0 bg-transparent px-0.5 py-1">
+        {showStatusHeader ? (
+          <div className="flex min-w-0 items-center gap-1.5 text-[11px] text-foreground/50">
+            <Sparkles className="size-3.5 shrink-0 text-primary/70" />
             <AnimatedStatusText
               text={progressSummary.label}
-              className="font-medium tracking-[0.01em]"
+              className="min-w-0 font-medium tracking-[0.01em]"
             />
           </div>
         ) : null}
 
-        {progressSummary.detail && !hasContent ? (
-          <p className="text-[12px] leading-relaxed text-foreground/55">
+        {progressSummary.detail && showStatusHeader ? (
+          <p className="min-w-0 break-words text-[12px] leading-relaxed text-foreground/55">
             {progressSummary.detail}
           </p>
         ) : null}
@@ -121,8 +128,8 @@ export function TimelineStreamingRow({
         ))}
 
         {hasContent ? (
-          <div className="px-0 py-0.5">
-            <p className="whitespace-pre-wrap break-words text-[15px] leading-7 text-foreground">
+          <div className="min-w-0 px-0 py-0.5">
+            <p className="min-w-0 whitespace-pre-wrap break-words [overflow-wrap:anywhere] text-[15px] leading-7 text-foreground">
               {displayedText}
               {(streamState.isStreaming || isAnimating) && (
                 <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-foreground align-middle" />
@@ -132,9 +139,9 @@ export function TimelineStreamingRow({
         ) : null}
 
         {durationFooter ? (
-          <div className="flex items-center gap-1.5 pt-1 text-xs text-foreground/50">
+          <div className="flex min-w-0 items-center gap-1.5 pt-1 text-xs text-foreground/50">
             <Clock className="size-3.5 shrink-0 text-foreground/40" />
-            <span className="font-medium text-foreground/65">
+            <span className="min-w-0 font-medium text-foreground/65">
               {durationFooter}
             </span>
           </div>

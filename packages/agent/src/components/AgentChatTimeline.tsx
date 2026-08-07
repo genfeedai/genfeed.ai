@@ -43,6 +43,11 @@ type AgentChatTimelineProps = {
     action: string,
     payload?: Record<string, unknown>,
   ) => Promise<void>;
+  /**
+   * When true, pure "Thinking" placeholders are suppressed — composer status
+   * (or a live streaming row) already owns busy chrome (T3 density).
+   */
+  suppressThinkingPlaceholder?: boolean;
 };
 
 export function AgentChatTimeline({
@@ -63,6 +68,7 @@ export function AgentChatTimeline({
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
+  suppressThinkingPlaceholder = true,
 }: AgentChatTimelineProps): ReactElement {
   // Only the terminal timeline entry may own the failure card / retry context.
   // An older failed work-group must not surface when a later group succeeded
@@ -167,10 +173,13 @@ export function AgentChatTimeline({
             />
           ))}
 
+      {/* Composer status stack owns busy chrome when docked; only show a
+          timeline Thinking row when that path is unavailable. */}
       {isGenerating &&
+        !suppressThinkingPlaceholder &&
         !isStreamingActive &&
         !timeline.some((e) => e.kind === 'streaming') && (
-          <div className="flex items-center gap-2.5 py-3">
+          <div className="flex min-w-0 items-center gap-2.5 py-2">
             <AnimatedStatusText
               text="Thinking"
               className="text-xs text-muted-foreground"
