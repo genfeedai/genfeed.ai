@@ -188,6 +188,38 @@ describe('AgentRouteRewriteService', () => {
     });
   });
 
+  it('rewrites legacy /review and /calendar paths before brand scoping', async () => {
+    const service = createService();
+
+    const scoped = await service.scopeToolResultHrefs(
+      {
+        nextActions: [
+          {
+            ctas: [
+              { href: '/review', label: 'Review Queue' },
+              { href: '/calendar/posts', label: 'View Calendar' },
+            ],
+            title: 'Content calendar',
+            type: 'content_preview_card',
+          },
+        ],
+        success: true,
+      },
+      context,
+    );
+
+    expect(scoped.nextActions?.[0].ctas).toEqual([
+      {
+        href: '/genfeed-ai/launch-brand/publish/review',
+        label: 'Review Queue',
+      },
+      {
+        href: '/genfeed-ai/launch-brand/publish/calendar',
+        label: 'View Calendar',
+      },
+    ]);
+  });
+
   it('preserves the original result when organization slug resolution fails', async () => {
     organizationsService.findOne.mockResolvedValueOnce({ id: 'org-1' });
     const service = createService();

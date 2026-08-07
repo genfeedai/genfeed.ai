@@ -3,6 +3,7 @@ import type {
   AgentUiAction,
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant, isTwitterPlatform } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
@@ -31,6 +32,8 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
 
   const isPrimary = index === 0;
 
+  const href = normalizeAgentAppHref(cta.href) ?? cta.href;
+
   return (
     <Button
       key={cta.label}
@@ -40,7 +43,7 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
       withWrapper={false}
       className="font-medium"
     >
-      <a href={cta.href}>{cta.label}</a>
+      <a href={href}>{cta.label}</a>
     </Button>
   );
 }

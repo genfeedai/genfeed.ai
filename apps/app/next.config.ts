@@ -263,6 +263,31 @@ const config = createAppNextConfig({
         APP_ROUTES.WORKSPACE.INBOX,
       ),
     },
+    // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
+    // it to `/:org/:brand/review`) — that page never existed. Send both dead
+    // shapes to Publish Review so stored thread links stop 404ing.
+    {
+      destination: APP_ROUTES.PUBLISH.REVIEW,
+      permanent: true,
+      source: '/review',
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.PUBLISH.REVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/review'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.PUBLISH.REVIEW,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/review'),
+    },
     {
       destination: APP_ROUTES.DISCOVER.OVERVIEW,
       permanent: false,

@@ -1,5 +1,6 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type {
   AgentToolResult,
   IBrandAgentPrompting,
@@ -125,8 +126,14 @@ export class AgentBrandContentToolHandler {
         nextActions: [
           {
             ctas: [
-              { href: '/calendar/posts', label: 'View Calendar' },
-              { href: '/review', label: 'Review Queue' },
+              {
+                href: APP_ROUTES.PUBLISH.CALENDAR,
+                label: 'View Calendar',
+              },
+              {
+                href: APP_ROUTES.PUBLISH.REVIEW,
+                label: 'Review Queue',
+              },
             ],
             description: `${batchResult.itemCount} content items scheduled over the next 30 days`,
             id: `calendar-gen-${batchResult.batchId}`,

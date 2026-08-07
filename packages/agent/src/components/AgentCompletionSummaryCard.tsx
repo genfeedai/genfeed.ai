@@ -7,6 +7,7 @@ import type {
   AgentUiActionCta,
   AgentUiActionOutputVariant,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -101,6 +102,7 @@ function CompletionActionButton({
   );
 
   if (cta.href) {
+    const href = normalizeAgentAppHref(cta.href) ?? cta.href;
     return (
       <Button
         asChild
@@ -109,7 +111,7 @@ function CompletionActionButton({
         withWrapper={false}
         className={className}
       >
-        <a href={cta.href}>{cta.label}</a>
+        <a href={href}>{cta.label}</a>
       </Button>
     );
   }
