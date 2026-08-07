@@ -13,6 +13,10 @@ import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conve
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  readPreferredAgentChatModel,
+  writePreferredAgentChatModel,
+} from '@genfeedai/agent/stores/agent-preferred-model.store';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { AlertCategory } from '@genfeedai/enums';
@@ -59,9 +63,22 @@ export function AgentChatContainer({
     isLoading: isRegistryModelsLoading,
     models: registryModels,
   } = useAgentRegistryModels(apiService);
-  const [selectedModel, setSelectedModel] = useState(
-    () => model?.trim() || UNRESOLVED_RUNTIME_AGENT_MODEL,
-  );
+  const [selectedModel, setSelectedModel] = useState(() => {
+    const fromProp = model?.trim();
+    if (fromProp) {
+      return fromProp;
+    }
+    return readPreferredAgentChatModel() || UNRESOLVED_RUNTIME_AGENT_MODEL;
+  });
+
+  const handleModelChange = useCallback((nextModel: string) => {
+    const trimmed = nextModel.trim();
+    if (!trimmed) {
+      return;
+    }
+    setSelectedModel(trimmed);
+    writePreferredAgentChatModel(trimmed);
+  }, []);
 
   useEffect(() => {
     if (isRegistryModelsLoading || registryModels.length === 0) {
@@ -69,15 +86,22 @@ export function AgentChatContainer({
     }
     const keys = new Set(registryModels.map((entry) => entry.key));
     if (selectedModel && keys.has(selectedModel)) {
+      // Keep a valid user pick durable across reloads.
+      writePreferredAgentChatModel(selectedModel);
       return;
     }
+    const preferred = readPreferredAgentChatModel();
     const next =
       (model?.trim() && keys.has(model.trim()) ? model.trim() : null) ||
+      (preferred && keys.has(preferred) ? preferred : null) ||
       defaultModelKey ||
       registryModels[0]?.key ||
       UNRESOLVED_RUNTIME_AGENT_MODEL;
     if (next !== selectedModel) {
       setSelectedModel(next);
+      if (next) {
+        writePreferredAgentChatModel(next);
+      }
     }
   }, [
     defaultModelKey,
@@ -246,7 +270,7 @@ export function AgentChatContainer({
             promptBarSuggestions={promptBarSuggestions}
             removeAttachment={container.removeAttachment}
             selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
+            onModelChange={handleModelChange}
             models={registryModels}
             isModelsLoading={isRegistryModelsLoading}
           />
@@ -336,7 +360,7 @@ export function AgentChatContainer({
             latestProposedPlan={container.latestProposedPlan}
             layoutMode={promptBarLayoutMode}
             onClearError={() => container.setError(null)}
-            onModelChange={setSelectedModel}
+            onModelChange={handleModelChange}
             onSend={container.handleSend}
             onStop={container.handleStopRun}
             onSubmitInputRequest={container.handleSubmitInputRequest}
