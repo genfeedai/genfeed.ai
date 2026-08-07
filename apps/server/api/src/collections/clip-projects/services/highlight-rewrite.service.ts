@@ -55,7 +55,6 @@ Return ONLY the rewritten script. No explanation, no markdown, just the script t
     const project: ClipProjectDocument | null =
       await this.clipProjectsService.findOne({
         id: projectId,
-        isDeleted: false,
       });
 
     if (!project) {

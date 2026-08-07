@@ -84,7 +84,6 @@ export class ClipProjectsService extends BaseService<
   ): Promise<ClipProjectDocument> {
     const existing = await this.findOne({
       id: id,
-      isDeleted: false,
       ...(organizationId !== undefined ? { organizationId } : {}),
     });
     if (!existing) {
@@ -113,7 +112,6 @@ export class ClipProjectsService extends BaseService<
   ): Promise<ClipProjectDocument> {
     const project = await this.findOne({
       id: projectId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -173,7 +171,6 @@ export class ClipProjectsService extends BaseService<
       preloadedProject ??
       (await this.findOne({
         id: projectId,
-        isDeleted: false,
         ...(organizationId ? { organizationId: organizationId } : {}),
       }));
 

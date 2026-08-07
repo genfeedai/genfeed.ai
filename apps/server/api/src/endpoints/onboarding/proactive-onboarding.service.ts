@@ -575,7 +575,7 @@ export class ProactiveOnboardingService {
     // Fetch brand details if available
     if (lead.proactiveBrandId) {
       const brand = await this.brandsService.findOne(
-        { id: lead.proactiveBrandId, isDeleted: false },
+        { id: lead.proactiveBrandId },
         'none',
       );
 
@@ -810,7 +810,6 @@ export class ProactiveOnboardingService {
     }
 
     const posts = await this.postsService.find({
-      isDeleted: false,
       organizationId: lead.proactiveOrganizationId,
     });
 
@@ -955,11 +954,9 @@ export class ProactiveOnboardingService {
   private async resolveDefaultRoleId(): Promise<string> {
     const role =
       (await this.rolesService.findOne({
-        isDeleted: false,
         key: 'admin',
       })) ??
       (await this.rolesService.findOne({
-        isDeleted: false,
         key: 'user',
       }));
 
@@ -978,7 +975,6 @@ export class ProactiveOnboardingService {
     }
 
     const posts = await this.postsService.find({
-      isDeleted: false,
       organizationId: lead.proactiveOrganizationId,
     });
 

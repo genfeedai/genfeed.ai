@@ -9,7 +9,10 @@ import type {
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@api/services/router/interfaces/router.interfaces';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -26,7 +29,7 @@ const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
  * the install gets fixed rather than silently running on constants (#2422).
  */
 const FALLBACK_MODEL_KEYS: Record<ModelCategory, string> = {
-  [ModelCategory.EMBEDDING]: MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
+  [ModelCategory.EMBEDDING]: DEFAULT_CONTEXT_EMBEDDING_MODEL,
   [ModelCategory.IMAGE]: DEFAULT_IMAGE_MODEL,
   [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
   [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
@@ -608,7 +611,6 @@ export class RouterService {
         // Fallback to default model
         const defaultKey = await this.getDefaultModel(options.category);
         const defaultModel = await this.modelsService.findOne({
-          isDeleted: false,
           key: defaultKey,
         });
 
@@ -756,6 +758,17 @@ export class RouterService {
     organizationId?: string,
   ): Promise<string> {
     const resolution = await this.resolveModelKey({ category, organizationId });
+
+    if (
+      category === ModelCategory.EMBEDDING &&
+      resolution.key !== DEFAULT_CONTEXT_EMBEDDING_MODEL
+    ) {
+      this.logger.warn(
+        `Ignoring embedding default ${resolution.key}; context vectors require ${DEFAULT_CONTEXT_EMBEDDING_MODEL}`,
+      );
+
+      return DEFAULT_CONTEXT_EMBEDDING_MODEL;
+    }
 
     return resolution.key;
   }

@@ -7,12 +7,8 @@ import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.d
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -60,19 +56,6 @@ describe('ContextsController', () => {
       controllers: [ContextsController],
       providers: [
         {
-          provide: CreditsUtilsService,
-          useValue: {
-            checkOrganizationCreditsAvailable: vi.fn().mockResolvedValue(true),
-            getOrganizationCreditsBalance: vi.fn().mockResolvedValue(0),
-          },
-        },
-        {
-          provide: ModelsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-          },
-        },
-        {
           provide: LoggerService,
           useValue: {
             debug: vi.fn(),
@@ -87,14 +70,7 @@ describe('ContextsController', () => {
         },
       ],
     })
-      .overrideInterceptor(CreditsInterceptor)
-      .useValue({
-        intercept: (_context: unknown, next: { handle: () => unknown }) =>
-          next.handle(),
-      })
       .overrideGuard(SubscriptionGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(CreditsGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
@@ -279,29 +255,31 @@ describe('ContextsController', () => {
   });
 
   describe('enhancePrompt', () => {
-    it('should enhance prompt with RAG', async () => {
+    it('should return retrieved context without a billing callback', async () => {
       const dto: EnhancePromptDto = {
         contentType: 'caption',
         contextBaseIds: ['context1', 'context2'],
         prompt: 'Original prompt',
       };
 
-      const enhancedPrompt = {
-        context: [],
-        enhanced: 'Enhanced prompt with context',
-        original: 'Original prompt',
+      const retrievedContext = {
+        context: [
+          { content: 'Brand fact', relevance: 0.9, source: 'Brand voice' },
+        ],
+        enhancedPrompt: 'Original prompt',
+        estimatedQualityBoost: 45,
+        originalPrompt: 'Original prompt',
       };
 
-      mockContextsService.enhancePrompt.mockResolvedValue(enhancedPrompt);
+      mockContextsService.enhancePrompt.mockResolvedValue(retrievedContext);
 
-      const result = await controller.enhancePrompt(mockReq, dto, mockUser);
+      const result = await controller.enhancePrompt(dto, mockUser);
 
       expect(service.enhancePrompt).toHaveBeenCalledWith(
         dto,
         mockUser.publicMetadata.organization,
-        expect.any(Function),
       );
-      expect(result).toEqual(enhancedPrompt);
+      expect(result).toEqual(retrievedContext);
     });
   });
 

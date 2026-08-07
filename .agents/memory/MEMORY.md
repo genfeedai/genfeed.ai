@@ -35,7 +35,7 @@ Keep it that way: this file is auto-loaded into every request.
 
 Always in context — repo-wide prohibitions, do not re-read them to "check":
 
-- [prisma_legacy_alias_fields](rules/prisma_legacy_alias_fields.md) · [server_not_core](rules/server_not_core.md)
+- [enum_source_of_truth](rules/enum_source_of_truth.md) · [prisma_legacy_alias_fields](rules/prisma_legacy_alias_fields.md) · [server_not_core](rules/server_not_core.md)
 
 Scoped by `paths` frontmatter — load only when the matching files are in play:
 

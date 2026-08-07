@@ -120,7 +120,6 @@ export class ClipResultsController {
 
     const data = await this.clipResultsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -143,7 +142,6 @@ export class ClipResultsController {
 
     const existing = await this.clipResultsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

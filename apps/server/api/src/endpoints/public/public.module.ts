@@ -3,6 +3,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ImagesModule } from '@api/collections/images/images.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { LinksModule } from '@api/collections/links/links.module';
+import { ModelsModule } from '@api/collections/models/models.module';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
@@ -10,6 +11,7 @@ import { PublicArticlesController } from '@api/endpoints/public/controllers/arti
 import { PublicBrandsController } from '@api/endpoints/public/controllers/brands/public.brands.controller';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { PublicMediaController } from '@api/endpoints/public/controllers/media/public-media.controller';
+import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
 import { PublicMusicsController } from '@api/endpoints/public/controllers/musics/public.musics.controller';
 import { PublicPostsController } from '@api/endpoints/public/controllers/posts/public.posts.controller';
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
@@ -25,6 +27,7 @@ import { forwardRef, Module } from '@nestjs/common';
     PublicBrandsController,
     PublicImagesController,
     PublicMediaController,
+    PublicModelsController,
     PublicMusicsController,
     PublicPostsController,
     PublicRSSController,
@@ -38,6 +41,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ImagesModule),
     forwardRef(() => IngredientsModule),
     forwardRef(() => LinksModule),
+    forwardRef(() => ModelsModule),
     forwardRef(() => MusicsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => VideosModule),

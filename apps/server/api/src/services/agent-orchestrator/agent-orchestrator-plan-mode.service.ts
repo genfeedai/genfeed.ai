@@ -295,7 +295,6 @@ export class AgentOrchestratorPlanModeService {
   ): Promise<boolean> {
     const thread = await this.agentThreadsService.findOne({
       id: threadId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

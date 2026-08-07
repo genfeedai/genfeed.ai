@@ -132,7 +132,6 @@ export class AgentOrchestratorContextService {
     if (isEntityId(request.threadId)) {
       thread = (await this.agentThreadsService.findOne({
         id: request.threadId,
-        isDeleted: false,
         organizationId: context.organizationId,
       })) as { systemPrompt?: string; memoryEntryIds?: string[] } | null;
     }

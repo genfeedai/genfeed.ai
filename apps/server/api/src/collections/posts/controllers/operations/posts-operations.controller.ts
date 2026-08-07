@@ -117,7 +117,6 @@ export class PostsOperationsController {
       const credential = await this.credentialsService.findOne({
         id: dto.credentialId,
         isConnected: true,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
 
@@ -250,7 +249,6 @@ export class PostsOperationsController {
       const credential = await this.credentialsService.findOne({
         id: createPostDto.credentialId,
         isConnected: true,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
 
@@ -322,7 +320,6 @@ export class PostsOperationsController {
         for (const ingredientId of createPostDto.ingredients) {
           const ingredient = await this.ingredientsService.findOne({
             id: ingredientId,
-            isDeleted: false,
             organizationId: publicMetadata.organization,
           });
 

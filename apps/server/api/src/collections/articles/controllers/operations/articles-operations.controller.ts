@@ -391,7 +391,6 @@ export class ArticlesOperationsController {
     }
 
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(modelKey),
     });
 

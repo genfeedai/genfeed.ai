@@ -98,7 +98,6 @@ export class EditorProjectsController {
       const video = await this.ingredientsService.findOne({
         id: createDto.sourceVideoId,
         category: IngredientCategory.VIDEO,
-        isDeleted: false,
         organizationId: orgId,
       });
 
@@ -228,7 +227,6 @@ export class EditorProjectsController {
     // brand; brand-filtering here caused false 404s ("Controller doesn't exist").
     const data = await this.editorProjectsService.findOne({
       id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -251,7 +249,6 @@ export class EditorProjectsController {
 
     const existing = await this.editorProjectsService.findOne({
       id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -278,7 +275,6 @@ export class EditorProjectsController {
 
     const existing = await this.editorProjectsService.findOne({
       id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

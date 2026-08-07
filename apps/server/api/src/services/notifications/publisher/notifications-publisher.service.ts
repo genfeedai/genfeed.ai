@@ -353,7 +353,7 @@ export class NotificationsPublisherService {
         select: { email: true },
         where: { id: userId, isDeleted: false },
       }),
-      this.settingsService.findOne({ isDeleted: false, userId: userId }),
+      this.settingsService.findOne({ userId: userId }),
     ]);
 
     return {

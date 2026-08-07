@@ -1,33 +1,39 @@
 /**
- * Unified model catalog — single seed source for the `Model` registry.
+ * Unified model catalog — the single seed source for the `Model` registry.
  *
- * Combines:
- * - Media generation keys from MODEL_OUTPUT_CAPABILITIES (image/video/voice/…)
- * - Agent chat LLMs from SELECTABLE_AGENT_CHAT_MODELS (category TEXT)
- * - Curated self-hosted image defaults (labels/cost/isDefault)
+ * Combines the curated inputs into one list of registry rows:
+ * - media generation keys from MODEL_OUTPUT_CAPABILITIES (image/video/voice/…)
+ * - curated media defaults (label/cost/isDefault) from SELF_HOSTED_MODELS
+ * - agent chat LLMs from AGENT_CHAT_MODELS (category TEXT)
+ * - one legacy row per retired chat key, so a stored binding always resolves to
+ *   a registry row instead of falling off the catalogue
  *
- * Settings → Models, agent picker (TEXT), and routers all read DB rows that
- * start from this list. Discovery can still add drafts on top.
+ * Settings → Models, the agent picker and the routers read the DB rows that
+ * start from this list; provider discovery adds drafts on top. These constants
+ * are seed *input* only — never a parallel runtime allowlist.
  */
+import type { CostTier } from '@genfeedai/enums';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import {
   AGENT_CHAT_MODELS,
+  AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
-  HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
-  SELECTABLE_AGENT_CHAT_MODELS,
+  getAgentChatModel,
+  RETIRED_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import { SELF_HOSTED_MODELS } from './self-hosted-models.constant';
 
-/** Marker in `capabilities` so agent picker can identify chat models. */
+/** Marker in `capabilities` so the agent picker can identify chat models. */
 export const AGENT_CHAT_CAPABILITY = 'agent-chat';
 
 export interface ModelCatalogSeedEntry {
   aspectRatios?: readonly string[];
   capabilities?: readonly string[];
   category: ModelCategory;
+  config?: Readonly<Record<string, string>>;
   cost: number;
-  costTier?: string;
+  costTier?: CostTier;
   defaultAspectRatio?: string;
   defaultDuration?: number;
   description: string;
@@ -45,10 +51,16 @@ export interface ModelCatalogSeedEntry {
   outputCostPerMillionTokens?: number;
   provider: ModelProvider;
   recommendedFor?: readonly string[];
+  succeededBy?: string;
+  supportsFeatures?: readonly string[];
 }
+
+/** `supportsFeatures` marker for chat models that reason before answering. */
+export const REASONING_FEATURE = 'reasoning';
 
 function labelFromKey(key: string): string {
   const leaf = key.split('/').pop() ?? key;
+
   return leaf
     .replace(/[-_.]+/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
@@ -62,34 +74,46 @@ function providerFromMediaKey(key: string): ModelProvider {
   if (key.startsWith('genfeed-ai/')) {
     return ModelProvider.GENFEED_AI;
   }
+
   return ModelProvider.REPLICATE;
 }
 
-const SELF_HOSTED_BY_KEY = new Map(
-  SELF_HOSTED_MODELS.map((model) => [model.key, model] as const),
-);
+const CURATED_MEDIA_BY_KEY = new Map<
+  string,
+  (typeof SELF_HOSTED_MODELS)[number]
+>(SELF_HOSTED_MODELS.map((model) => [model.key, model]));
 
+/**
+ * Every media key we know how to call, so Settings → Models lists the real
+ * catalogue rather than the four curated defaults.
+ *
+ * Only curated keys carry a price, and `Model.cost` is what generation bills
+ * against — so an uncurated key is seeded present but inactive. Activating one
+ * at cost 0 would hand out free generations.
+ */
 function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
   return Object.entries(MODEL_OUTPUT_CAPABILITIES).map(([key, capability]) => {
-    const selfHosted = SELF_HOSTED_BY_KEY.get(
-      key as (typeof SELF_HOSTED_MODELS)[number]['key'],
-    );
+    const curated = CURATED_MEDIA_BY_KEY.get(key);
+    const isCurated = Boolean(curated);
+
     const entry: ModelCatalogSeedEntry = {
       category: capability.category,
-      cost: selfHosted?.cost ?? 0,
+      cost: curated?.cost ?? 0,
       description:
-        selfHosted?.description ??
-        `${labelFromKey(key)} (${capability.category})`,
-      isActive: true,
-      isDefault: selfHosted?.isDefault ?? false,
-      isHighlighted: selfHosted?.isHighlighted ?? false,
+        curated?.description ?? `${labelFromKey(key)} (${capability.category})`,
+      isActive: isCurated,
+      isDefault: curated?.isDefault ?? false,
+      isHighlighted: curated?.isHighlighted ?? false,
       isLegacy: false,
-      isPublic: true,
+      isPublic: isCurated,
       key,
-      label: selfHosted?.label ?? labelFromKey(key),
-      provider: providerFromMediaKey(key),
+      label: curated?.label ?? labelFromKey(key),
+      provider: curated?.provider ?? providerFromMediaKey(key),
     };
 
+    if (curated?.providerConfig) {
+      entry.config = curated.providerConfig;
+    }
     if ('aspectRatios' in capability && capability.aspectRatios) {
       entry.aspectRatios = capability.aspectRatios;
     }
@@ -113,39 +137,78 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
   });
 }
 
+/**
+ * Agent chat models as TEXT registry rows.
+ *
+ * Self-hosted entries get a row but stay inactive: they only resolve on an
+ * install running its own inference fleet, so activation is an operator toggle
+ * rather than a cloud default. Seeding them anyway is what makes that toggle
+ * possible at all.
+ */
 function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
-  const selectableKeys = new Set(
-    SELECTABLE_AGENT_CHAT_MODELS.map((model) => model.key),
-  );
+  return AGENT_CHAT_MODELS.map((model) => {
+    const isDefault = model.key === DEFAULT_AGENT_CHAT_MODEL_KEY;
+    const isSelfHosted = Boolean(model.isSelfHosted);
 
-  return AGENT_CHAT_MODELS.filter((model) => !model.isSelfHosted).map(
-    (model) => {
-      const isSelectable = selectableKeys.has(model.key);
-      return {
-        capabilities: [AGENT_CHAT_CAPABILITY],
-        category: ModelCategory.TEXT,
-        cost: model.creditCostPerRound,
-        costTier: model.costTier,
-        description: model.description,
-        inputCostPerMillionTokens: model.pricing.promptPerMillion,
-        isActive: isSelectable,
-        isDefault: model.key === DEFAULT_AGENT_CHAT_MODEL_KEY,
-        isHighlighted: model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
-        isLegacy: !isSelectable,
-        isPublic: true,
-        key: model.key,
-        label: model.label,
-        outputCostPerMillionTokens: model.pricing.completionPerMillion,
-        provider: ModelProvider.OPENROUTER,
-        recommendedFor: isSelectable ? [AGENT_CHAT_CAPABILITY] : [],
-      } satisfies ModelCatalogSeedEntry;
-    },
-  );
+    return {
+      capabilities: [AGENT_CHAT_CAPABILITY],
+      category: ModelCategory.TEXT,
+      cost: model.creditCostPerRound,
+      costTier: model.costTier,
+      description: model.description,
+      inputCostPerMillionTokens: model.pricing.promptPerMillion,
+      isActive: !isSelfHosted,
+      isDefault,
+      isHighlighted: isDefault,
+      isLegacy: false,
+      isPublic: !isSelfHosted,
+      key: model.key,
+      label: model.label,
+      outputCostPerMillionTokens: model.pricing.completionPerMillion,
+      provider: isSelfHosted
+        ? ModelProvider.GENFEED_AI
+        : ModelProvider.OPENROUTER,
+      recommendedFor: [AGENT_CHAT_CAPABILITY],
+      supportsFeatures: model.isReasoning ? [REASONING_FEATURE] : [],
+    } satisfies ModelCatalogSeedEntry;
+  });
 }
 
 /**
- * Full catalog seed list. Media entries first, then agent TEXT models.
- * Keys are unique across both sources (agent keys are openrouter-style).
+ * Retired chat keys as legacy rows carrying `succeededBy`.
+ *
+ * Persisted rows (org settings, brand agent config, thread bindings, scheduled
+ * runs) still hold these keys. A row priced at its successor keeps a stale
+ * binding billable at what the run actually costs — 0 would make it free, which
+ * is the exact failure `openrouter/auto` shipped.
+ */
+function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
+  return Object.entries(RETIRED_AGENT_CHAT_MODELS).map(([key, succeededBy]) => {
+    const successor = getAgentChatModel(succeededBy);
+
+    return {
+      capabilities: [AGENT_CHAT_CAPABILITY],
+      category: ModelCategory.TEXT,
+      cost: successor?.creditCostPerRound ?? AGENT_FALLBACK_ROUND_CREDITS,
+      description: `Retired — superseded by ${successor?.label ?? succeededBy}`,
+      isActive: false,
+      isDefault: false,
+      isHighlighted: false,
+      isLegacy: true,
+      isPublic: false,
+      key,
+      label: labelFromKey(key),
+      provider: ModelProvider.OPENROUTER,
+      succeededBy,
+      ...(successor ? { costTier: successor.costTier } : {}),
+    } satisfies ModelCatalogSeedEntry;
+  });
+}
+
+/**
+ * Full catalog seed list, deduped by key. Live agent rows win over a media key
+ * of the same name (they carry the chat billing metadata), and a retired key
+ * never displaces a row that is still live.
  */
 export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {
   const byKey = new Map<string, ModelCatalogSeedEntry>();
@@ -154,8 +217,12 @@ export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {
     byKey.set(entry.key, entry);
   }
   for (const entry of buildAgentCatalogEntries()) {
-    // Agent TEXT models win on key collision (chat billing metadata).
     byKey.set(entry.key, entry);
+  }
+  for (const entry of buildRetiredAgentCatalogEntries()) {
+    if (!byKey.has(entry.key)) {
+      byKey.set(entry.key, entry);
+    }
   }
 
   return [...byKey.values()];

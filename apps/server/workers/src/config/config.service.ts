@@ -45,6 +45,7 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     // default so the llm-idle cron's own `|| 'us-east-1'` fallback is preserved.
     // - OPENROUTER_API_KEY: clip-factory/clip-analyze processors
     // - REPLICATE_KEY: model-watcher cron + model-discovery service (soft-fails)
+    // - FAL_API_KEY: fal-model-watcher cron (soft-fails when absent, #2422)
     // - AWS_*: llm-idle cron's EC2Client credentials/region
     // - GPU_LLM_INSTANCE_ID: llm-idle cron (gpuFleetSchema is not exported from
     //   @genfeedai/config, so the single consumed key is inlined here)
@@ -52,6 +53,7 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     AWS_ACCESS_KEY_ID: Joi.string().optional().allow(''),
     AWS_REGION: Joi.string().optional(),
     AWS_SECRET_ACCESS_KEY: Joi.string().optional().allow(''),
+    FAL_API_KEY: Joi.string().optional().allow(''),
     GPU_LLM_INSTANCE_ID: Joi.string().optional().allow(''),
     OPENROUTER_API_KEY: Joi.string().optional().allow(''),
     REPLICATE_KEY: Joi.string().optional().allow(''),

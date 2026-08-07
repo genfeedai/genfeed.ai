@@ -15,7 +15,7 @@ import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
-import { ActionOrigin, AgentRunStatus } from '@genfeedai/enums';
+import { ActionOrigin, AgentExecutionStatus } from '@genfeedai/enums';
 import { AGENT_RUN_QUEUE, AgentRunJobData } from '@genfeedai/queue-contracts';
 import { runWithActionOrigin } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -239,7 +239,7 @@ export class AgentRunProcessor extends WorkerHost {
           contentGenerated,
           creditsUsed: runCreditsUsed,
           startedAt: completedRun.startedAt ?? new Date(),
-          status: AgentRunStatus.COMPLETED,
+          status: AgentExecutionStatus.COMPLETED,
           threadId: data.runId,
         });
 

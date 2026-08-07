@@ -135,13 +135,11 @@ export class VideoProvenanceService {
     const metadata = video.metadataId
       ? ((await this.metadataService.findOne({
           id: video.metadataId,
-          isDeleted: false,
         })) as unknown as IMetadataProvenanceRecord | null)
       : null;
 
     const captions = (await this.captionsService.find({
       ingredientId: videoId,
-      isDeleted: false,
     })) as unknown as Array<{ content?: string | null }>;
 
     const transcriptText =

@@ -43,7 +43,6 @@ export class CampaignWinnerExtractionService {
   ): Promise<CampaignWinnerExtractionResult> {
     const campaign = await this.agentCampaignsService.findOne({
       id: campaignId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

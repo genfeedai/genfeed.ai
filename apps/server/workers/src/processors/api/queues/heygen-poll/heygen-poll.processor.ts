@@ -155,7 +155,6 @@ export class HeygenPollProcessor extends WorkerHost {
     try {
       const ingredient = await this.ingredientsService.findOne({
         id: data.ingredientId,
-        isDeleted: false,
       });
       if (ingredient?.metadataId) {
         await this.metadataService.patch(ingredient.metadataId, {

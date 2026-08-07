@@ -376,7 +376,6 @@ export class ArticlesService extends BaseService<
         { userId: params.userId },
         { organizationId: params.organizationId },
       ],
-      isDeleted: false,
     });
 
     if (currentArticle) {
@@ -679,7 +678,6 @@ export class ArticlesService extends BaseService<
     const article = await this.findOne({
       id: articleId,
       OR: [{ userId }, { organizationId }],
-      isDeleted: false,
     });
 
     if (!article) {
@@ -758,7 +756,6 @@ export class ArticlesService extends BaseService<
     const article = await this.findOne({
       id: articleId,
       OR: [{ userId }, { organizationId }],
-      isDeleted: false,
     });
 
     if (!article) {
@@ -841,7 +838,6 @@ export class ArticlesService extends BaseService<
     const article = await this.findOne({
       id: articleId,
       OR: [{ userId }, { organizationId }],
-      isDeleted: false,
     });
 
     if (!article) {

@@ -119,7 +119,6 @@ export class PublicImagesController {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
-        isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
@@ -143,7 +142,6 @@ export class PublicImagesController {
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.IMAGE,
       ),
-      isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
     });

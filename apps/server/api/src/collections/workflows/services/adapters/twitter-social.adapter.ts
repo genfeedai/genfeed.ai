@@ -152,7 +152,6 @@ export class TwitterSocialAdapter {
 
       // Get the brand's Twitter username from credentials
       const credential = await this.credentialsService.findOne({
-        isDeleted: false,
         organizationId: organizationId,
         platform: 'twitter',
       });
@@ -212,7 +211,6 @@ export class TwitterSocialAdapter {
       const { lastFollowerId, minFollowerCount, organizationId } = params;
 
       const credential = await this.credentialsService.findOne({
-        isDeleted: false,
         organizationId: organizationId,
         platform: 'twitter',
       });

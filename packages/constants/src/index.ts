@@ -3,6 +3,7 @@ export * from './api.constant';
 export * from './api-key-presets.constant';
 export * from './api-key-scope-labels.constant';
 export * from './carousel.constant';
+export * from './context-embedding.constant';
 export * from './empty-states.constant';
 export * from './error-messages.constant';
 export * from './feature-flags.constant';

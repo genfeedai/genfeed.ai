@@ -2,7 +2,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { type LoginEndpoints, resolveLoginEndpoints } from './endpoints';
-import { type Config, configSchema, defaultConfig, defaultProfile, type Profile } from './schema';
+import {
+  type Config,
+  configSchema,
+  defaultConfig,
+  defaultProfile,
+  type Profile,
+} from './schema';
 
 const CONFIG_DIR = path.join(os.homedir(), '.gf');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
@@ -15,13 +21,14 @@ type RuntimeProfileOverrides = Omit<Partial<Profile>, 'agent'> & {
 
 function mergeAgentConfig(
   profileAgent: Profile['agent'],
-  runtimeAgent: Partial<Profile['agent']> | undefined
+  runtimeAgent: Partial<Profile['agent']> | undefined,
 ): Profile['agent'] {
   return {
     ...profileAgent,
     ...runtimeAgent,
     lastThreadIdByOrganization:
-      runtimeAgent?.lastThreadIdByOrganization ?? profileAgent.lastThreadIdByOrganization,
+      runtimeAgent?.lastThreadIdByOrganization ??
+      profileAgent.lastThreadIdByOrganization,
   };
 }
 
@@ -51,14 +58,14 @@ export function clearConfigCache(): void {
 
 export function resolveProfile(
   config: Config,
-  explicitName?: string
+  explicitName?: string,
 ): { name: string; profile: Profile } {
   const name = explicitName ?? config.activeProfile;
   const profile = config.profiles[name];
 
   if (!profile) {
     throw new Error(
-      `Profile "${name}" does not exist. Run \`gf profile list\` to see available profiles.`
+      `Profile "${name}" does not exist. Run \`gf profile list\` to see available profiles.`,
     );
   }
 
@@ -67,7 +74,7 @@ export function resolveProfile(
 
 export function mergeProfileWithRuntime(
   profile: Profile,
-  runtime: RuntimeProfileOverrides
+  runtime: RuntimeProfileOverrides,
 ): Profile {
   return {
     ...profile,
@@ -75,8 +82,6 @@ export function mergeProfileWithRuntime(
     apiKey: runtime.apiKey ?? profile.apiKey,
     apiUrl: runtime.apiUrl ?? profile.apiUrl,
     appUrl: runtime.appUrl ?? profile.appUrl,
-    fleetApiPort: runtime.fleetApiPort ?? profile.fleetApiPort,
-    fleetHost: runtime.fleetHost ?? profile.fleetHost,
     organizationId: runtime.organizationId ?? profile.organizationId,
     role: runtime.role ?? profile.role,
     token: runtime.token ?? profile.token,
@@ -87,17 +92,17 @@ export function mergeProfileWithRuntime(
 export function readRuntimeOverrides(): RuntimeProfileOverrides {
   const overrides: RuntimeProfileOverrides = {};
 
-  if (process.env.GENFEED_API_KEY) overrides.apiKey = process.env.GENFEED_API_KEY;
-  if (process.env.GENFEED_API_URL) overrides.apiUrl = process.env.GENFEED_API_URL;
-  if (process.env.GENFEED_APP_URL) overrides.appUrl = process.env.GENFEED_APP_URL;
+  if (process.env.GENFEED_API_KEY)
+    overrides.apiKey = process.env.GENFEED_API_KEY;
+  if (process.env.GENFEED_API_URL)
+    overrides.apiUrl = process.env.GENFEED_API_URL;
+  if (process.env.GENFEED_APP_URL)
+    overrides.appUrl = process.env.GENFEED_APP_URL;
   if (process.env.GENFEED_TOKEN) overrides.token = process.env.GENFEED_TOKEN;
   if (process.env.GENFEED_ORGANIZATION_ID)
     overrides.organizationId = process.env.GENFEED_ORGANIZATION_ID;
-  if (process.env.GENFEED_USER_ID) overrides.userId = process.env.GENFEED_USER_ID;
-  if (process.env.GF_FLEET_HOST) overrides.fleetHost = process.env.GF_FLEET_HOST;
-  if (process.env.GF_FLEET_PORT) {
-    overrides.fleetApiPort = Number(process.env.GF_FLEET_PORT);
-  }
+  if (process.env.GENFEED_USER_ID)
+    overrides.userId = process.env.GENFEED_USER_ID;
   if (process.env.GENFEED_AGENT_MODEL) {
     overrides.agent = {
       ...(overrides.agent ?? {}),
@@ -109,7 +114,10 @@ export function readRuntimeOverrides(): RuntimeProfileOverrides {
 }
 
 // Convenience getters that work with the active profile
-export async function getActiveProfile(): Promise<{ name: string; profile: Profile }> {
+export async function getActiveProfile(): Promise<{
+  name: string;
+  profile: Profile;
+}> {
   const config = await loadConfig();
   const runtime = readRuntimeOverrides();
   const { name, profile } = resolveProfile(config);
@@ -146,16 +154,6 @@ export async function getActiveBrand(): Promise<string | undefined> {
   return profile.activeBrand;
 }
 
-export async function getFleetHost(): Promise<string> {
-  const { profile } = await getActiveProfile();
-  return profile.fleetHost;
-}
-
-export async function getFleetApiPort(): Promise<number> {
-  const { profile } = await getActiveProfile();
-  return profile.fleetApiPort;
-}
-
 export async function getRole(): Promise<string> {
   const { profile } = await getActiveProfile();
   return profile.role;
@@ -164,7 +162,7 @@ export async function getRole(): Promise<string> {
 export async function setProfileField<K extends keyof Profile>(
   field: K,
   value: Profile[K],
-  profileName?: string
+  profileName?: string,
 ): Promise<void> {
   const config = await loadConfig();
   const { name } = resolveProfile(config, profileName);
@@ -172,7 +170,10 @@ export async function setProfileField<K extends keyof Profile>(
   await saveConfig(config);
 }
 
-export async function setApiKey(key: string, profileName?: string): Promise<void> {
+export async function setApiKey(
+  key: string,
+  profileName?: string,
+): Promise<void> {
   await setProfileField('apiKey', key, profileName);
 }
 
@@ -180,7 +181,10 @@ export async function clearApiKey(profileName?: string): Promise<void> {
   await setProfileField('apiKey', undefined, profileName);
 }
 
-export async function setActiveBrand(brandId: string, profileName?: string): Promise<void> {
+export async function setActiveBrand(
+  brandId: string,
+  profileName?: string,
+): Promise<void> {
   await setProfileField('activeBrand', brandId, profileName);
 }
 
@@ -188,13 +192,9 @@ export async function clearActiveBrand(profileName?: string): Promise<void> {
   await setProfileField('activeBrand', undefined, profileName);
 }
 
-export async function setActivePersona(handle: string, profileName?: string): Promise<void> {
-  await setProfileField('activePersona', handle, profileName);
-}
-
 export async function setAgentModel(
   model: string | undefined,
-  profileName?: string
+  profileName?: string,
 ): Promise<void> {
   const config = await loadConfig();
   const { name, profile } = resolveProfile(config, profileName);
@@ -217,7 +217,7 @@ export async function getOrganizationId(): Promise<string | undefined> {
 
 export async function setOrganizationId(
   organizationId: string,
-  profileName?: string
+  profileName?: string,
 ): Promise<void> {
   await setProfileField('organizationId', organizationId, profileName);
 }
@@ -228,27 +228,31 @@ function resolveAgentThreadStorageKey(organizationId?: string): string {
 
 export async function getLastAgentThreadId(
   organizationId?: string,
-  profileName?: string
+  profileName?: string,
 ): Promise<string | undefined> {
   const config = await loadConfig();
   const runtime = readRuntimeOverrides();
   const { profile } = resolveProfile(config, profileName);
   const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
   return resolvedProfile.agent.lastThreadIdByOrganization[
-    resolveAgentThreadStorageKey(organizationId ?? resolvedProfile.organizationId)
+    resolveAgentThreadStorageKey(
+      organizationId ?? resolvedProfile.organizationId,
+    )
   ];
 }
 
 export async function setLastAgentThreadId(
   threadId: string,
   organizationId?: string,
-  profileName?: string
+  profileName?: string,
 ): Promise<void> {
   const config = await loadConfig();
   const runtime = readRuntimeOverrides();
   const { name, profile } = resolveProfile(config, profileName);
   const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
-  const storageKey = resolveAgentThreadStorageKey(organizationId ?? resolvedProfile.organizationId);
+  const storageKey = resolveAgentThreadStorageKey(
+    organizationId ?? resolvedProfile.organizationId,
+  );
 
   config.profiles[name] = {
     ...profile,
@@ -266,15 +270,19 @@ export async function setLastAgentThreadId(
 
 export async function clearLastAgentThreadId(
   organizationId?: string,
-  profileName?: string
+  profileName?: string,
 ): Promise<void> {
   const config = await loadConfig();
   const runtime = readRuntimeOverrides();
   const { name, profile } = resolveProfile(config, profileName);
   const resolvedProfile = mergeProfileWithRuntime(profile, runtime);
-  const storageKey = resolveAgentThreadStorageKey(organizationId ?? resolvedProfile.organizationId);
+  const storageKey = resolveAgentThreadStorageKey(
+    organizationId ?? resolvedProfile.organizationId,
+  );
 
-  const lastThreadIdByOrganization = { ...profile.agent.lastThreadIdByOrganization };
+  const lastThreadIdByOrganization = {
+    ...profile.agent.lastThreadIdByOrganization,
+  };
   delete lastThreadIdByOrganization[storageKey];
 
   config.profiles[name] = {
@@ -288,18 +296,24 @@ export async function clearLastAgentThreadId(
   await saveConfig(config);
 }
 
-export async function setRole(role: 'user' | 'admin', profileName?: string): Promise<void> {
+export async function setRole(
+  role: 'user' | 'admin',
+  profileName?: string,
+): Promise<void> {
   await setProfileField('role', role, profileName);
 }
 
-export async function createProfile(name: string, profile?: Partial<Profile>): Promise<void> {
+export async function createProfile(
+  name: string,
+  profile?: Partial<Profile>,
+): Promise<void> {
   const config = await loadConfig();
   if (config.profiles[name]) {
     throw new Error(`Profile "${name}" already exists.`);
   }
 
   const profileOverrides = Object.fromEntries(
-    Object.entries(profile ?? {}).filter(([, value]) => value !== undefined)
+    Object.entries(profile ?? {}).filter(([, value]) => value !== undefined),
   ) as Partial<Profile>;
 
   config.profiles[name] = {

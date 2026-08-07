@@ -1,24 +1,45 @@
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { isRetiredAgentChatModel } from '@genfeedai/constants';
-import { type CostTier, ModelCategory } from '@genfeedai/enums';
+import {
+  AGENT_CHAT_CAPABILITY,
+  isRetiredAgentChatModel,
+  REASONING_FEATURE,
+} from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { ModelsService } from '@services/ai/models.service';
 import { useEffect, useState } from 'react';
 
-const AGENT_CHAT_CAPABILITY = 'agent-chat';
+const REGISTRY_PAGE_LIMIT = 100;
+
+/**
+ * Logo slug for the model's vendor.
+ *
+ * Registry keys are OpenRouter-shaped (`anthropic/claude-opus-5`), so the
+ * prefix is the vendor. Self-hosted keys (`local/…`) name no vendor — their
+ * provider (`genfeed-ai`) is the slug instead.
+ */
+function brandSlugFromModel(model: IModel): string {
+  const [prefix] = model.key.split('/');
+
+  return prefix && prefix !== 'local' ? prefix : model.provider;
+}
 
 function mapRegistryModelToOption(model: IModel): AgentModelOption {
-  const costTier = model.costTier as CostTier | undefined;
+  const isReasoning = (model.supportsFeatures ?? []).includes(
+    REASONING_FEATURE,
+  );
+
   return {
-    brandSlug: model.provider || 'openrouter',
+    brandSlug: brandSlugFromModel(model),
     description: model.description || model.label,
     key: model.key,
     label: model.label,
     ...(typeof model.cost === 'number' && model.cost > 0
       ? { creditCost: Math.max(1, Math.round(model.cost)) }
       : {}),
-    ...(costTier ? { costTier } : {}),
+    ...(model.costTier ? { costTier: model.costTier } : {}),
+    ...(isReasoning ? { isReasoning: true } : {}),
   };
 }
 
@@ -32,8 +53,10 @@ function isAgentChatRegistryModel(model: IModel): boolean {
   if (isRetiredAgentChatModel(model.key)) {
     return false;
   }
+
   const capabilities = model.capabilities ?? [];
   const recommended = model.recommendedFor ?? [];
+
   return (
     capabilities.includes(AGENT_CHAT_CAPABILITY) ||
     recommended.includes(AGENT_CHAT_CAPABILITY) ||
@@ -63,26 +86,28 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
     }
 
     const controller = new AbortController();
-    let cancelled = false;
+    let isCancelled = false;
 
     setIsLoading(true);
 
     void (async () => {
       try {
         const token = await apiService.getToken();
-        if (!token || cancelled) {
+        if (!token || isCancelled || controller.signal.aborted) {
           return;
         }
 
-        const service = ModelsService.getInstance(token);
-        const rows = await service.findAll({
-          category: ModelCategory.TEXT,
-          isActive: true,
-          limit: 100,
-          sort: 'label: 1',
-        });
+        const rows = await ModelsService.getInstance(token).findAll(
+          {
+            category: ModelCategory.TEXT,
+            isActive: true,
+            limit: REGISTRY_PAGE_LIMIT,
+            sort: 'label: 1',
+          },
+          controller.signal,
+        );
 
-        if (cancelled || controller.signal.aborted) {
+        if (isCancelled || controller.signal.aborted) {
           return;
         }
 
@@ -106,19 +131,19 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
         setModels(options);
         setDefaultModelKey(defaultRow?.key ?? null);
       } catch {
-        if (!cancelled) {
+        if (!isCancelled) {
           setModels([]);
           setDefaultModelKey(null);
         }
       } finally {
-        if (!cancelled) {
+        if (!isCancelled) {
           setIsLoading(false);
         }
       }
     })();
 
     return () => {
-      cancelled = true;
+      isCancelled = true;
       controller.abort();
     };
   }, [apiService]);

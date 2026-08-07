@@ -230,7 +230,7 @@ export class BatchGenerationSummaryService {
     return batchItems.filter(
       (item) =>
         item.status === BatchItemStatus.PENDING ||
-        item.status === BatchItemStatus.GENERATING,
+        item.status === BatchItemStatus.PROCESSING,
     ).length;
   }
 

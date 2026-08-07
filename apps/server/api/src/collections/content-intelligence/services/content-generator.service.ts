@@ -8,6 +8,10 @@ import { HarnessProfilesService } from '@api/collections/harness-profiles/servic
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import {
+  BRAND_CONTEXT_CHARACTER_BUDGET,
+  fitBrandContextToBudget,
+} from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
   buildHarnessInput,
@@ -86,7 +90,9 @@ export class ContentGeneratorService {
     });
 
     const baseSystemPrompt = brandContext
-      ? this.contextAssemblyService.buildSystemPrompt('', brandContext)
+      ? this.contextAssemblyService.buildSystemPrompt('', brandContext, {
+          maxBrandContextLength: Number.POSITIVE_INFINITY,
+        })
       : undefined;
     const harnessSystemPrompt = await this.buildHarnessSystemPrompt(
       organizationId,
@@ -97,9 +103,10 @@ export class ContentGeneratorService {
       dto,
     );
     const systemPrompt =
-      [baseSystemPrompt, topPerformerSystemPrompt, harnessSystemPrompt]
-        .filter(Boolean)
-        .join('\n\n') || undefined;
+      fitBrandContextToBudget(
+        [baseSystemPrompt, topPerformerSystemPrompt, harnessSystemPrompt],
+        BRAND_CONTEXT_CHARACTER_BUDGET,
+      ) || undefined;
 
     // Get patterns to use
     const patterns = await this.selectPatterns(organizationId, dto);
@@ -119,7 +126,6 @@ export class ContentGeneratorService {
     if (dto.playbookId) {
       const playbook = await this.playbookBuilderService.findOne({
         id: dto.playbookId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       if (playbook) {
@@ -168,7 +174,6 @@ export class ContentGeneratorService {
     if (dto.patternId) {
       const pattern = await this.patternStoreService.findOne({
         id: dto.patternId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       return pattern ? [pattern] : [];
@@ -199,7 +204,6 @@ export class ContentGeneratorService {
       const brand = await this.brandsService.findOne(
         {
           id: dto.brandId,
-          isDeleted: false,
           organizationId: organizationId,
         },
         'none',
@@ -211,7 +215,6 @@ export class ContentGeneratorService {
 
       const persona = await this.personasService.findOne({
         brandId: dto.brandId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       const profileContribution =

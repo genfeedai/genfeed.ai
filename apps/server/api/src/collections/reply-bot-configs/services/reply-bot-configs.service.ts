@@ -290,7 +290,6 @@ export class ReplyBotConfigsService extends BaseService<
   findAllActive(): Promise<ReplyBotConfigDocument[]> {
     return this.find({
       isActive: true,
-      isDeleted: false,
       organization: { is: { isDeleted: false } },
     });
   }
@@ -323,7 +322,6 @@ export class ReplyBotConfigsService extends BaseService<
   findActiveByType(type: ReplyBotType): Promise<ReplyBotConfigDocument[]> {
     return this.find({
       isActive: true,
-      isDeleted: false,
       type,
     });
   }

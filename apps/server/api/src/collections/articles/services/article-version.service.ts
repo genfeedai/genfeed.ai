@@ -115,7 +115,6 @@ export class ArticleVersionService {
       const prompt = await this.promptsService.findOne({
         id: promptId,
         articleId,
-        isDeleted: false,
         userId,
       });
 

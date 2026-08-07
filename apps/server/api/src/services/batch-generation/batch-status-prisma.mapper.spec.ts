@@ -7,37 +7,25 @@ import {
 } from './batch-status-prisma.mapper';
 
 describe('batch-status-prisma.mapper', () => {
-  it('maps every domain status to a Prisma enum value', () => {
-    expect(toPrismaBatchStatus(BatchStatus.PENDING)).toBe(
-      PrismaBatchStatus.PENDING,
-    );
-    expect(toPrismaBatchStatus(BatchStatus.GENERATING)).toBe(
-      PrismaBatchStatus.PROCESSING,
-    );
-    expect(toPrismaBatchStatus(BatchStatus.COMPLETED)).toBe(
-      PrismaBatchStatus.COMPLETED,
-    );
-    expect(toPrismaBatchStatus(BatchStatus.PARTIAL)).toBe(
-      PrismaBatchStatus.PARTIAL,
-    );
-    expect(toPrismaBatchStatus(BatchStatus.FAILED)).toBe(
-      PrismaBatchStatus.FAILED,
-    );
-    expect(toPrismaBatchStatus(BatchStatus.CANCELLED)).toBe(
-      PrismaBatchStatus.CANCELLED,
-    );
-  });
-
-  it('round-trips Prisma → domain for every Prisma value', () => {
-    for (const prismaStatus of Object.values(PrismaBatchStatus)) {
-      const domain = fromPrismaBatchStatus(prismaStatus);
-      expect(toPrismaBatchStatus(domain)).toBe(prismaStatus);
+  it('is identity for every domain status (values match Prisma 1:1)', () => {
+    for (const status of Object.values(BatchStatus)) {
+      expect(toPrismaBatchStatus(status)).toBe(status);
+      expect(fromPrismaBatchStatus(status)).toBe(status);
     }
   });
 
-  it('accepts domain lowercase strings when reading legacy payloads', () => {
+  it('round-trips every Prisma label', () => {
+    for (const prismaStatus of Object.values(PrismaBatchStatus)) {
+      expect(toPrismaBatchStatus(fromPrismaBatchStatus(prismaStatus))).toBe(
+        prismaStatus,
+      );
+    }
+  });
+
+  it('accepts legacy lowercase domain spellings on read', () => {
     expect(fromPrismaBatchStatus('pending')).toBe(BatchStatus.PENDING);
-    expect(fromPrismaBatchStatus('generating')).toBe(BatchStatus.GENERATING);
+    expect(fromPrismaBatchStatus('generating')).toBe(BatchStatus.PROCESSING);
+    expect(fromPrismaBatchStatus('processing')).toBe(BatchStatus.PROCESSING);
     expect(fromPrismaBatchStatus('cancelled')).toBe(BatchStatus.CANCELLED);
   });
 });

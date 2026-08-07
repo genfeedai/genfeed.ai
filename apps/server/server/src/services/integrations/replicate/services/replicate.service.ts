@@ -1,5 +1,5 @@
 import { isCloudDeployment } from '@genfeedai/config';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -332,14 +332,19 @@ export class ReplicateService {
     }
   }
 
-  /**
-   * Generate text embedding using CLIP model
-   * Returns 512-dimensional vector for semantic similarity search
-   *
-   * @param text - Text to encode into embedding vector
-   * @returns 512-dimensional embedding vector
-   */
+  private isNumberVector(value: unknown): value is number[] {
+    return (
+      Array.isArray(value) &&
+      value.every(
+        (component) =>
+          typeof component === 'number' && Number.isFinite(component),
+      )
+    );
+  }
+
+  /** Generate a fixed-width text embedding through a routed Replicate model. */
   public async generateEmbedding(
+    modelIdentifier: string,
     text: string,
     apiKeyOverride?: string,
   ): Promise<number[]> {
@@ -349,15 +354,25 @@ export class ReplicateService {
 
       const client = this.getClientForRequest(apiKeyOverride);
       const prediction = await client.predictions.create({
-        input: { text },
-        ...resolvePredictionTarget(MODEL_KEYS.REPLICATE_OPENAI_CLIP),
+        input: { texts: JSON.stringify([text]) },
+        ...resolvePredictionTarget(modelIdentifier),
       });
 
       // Wait for the prediction to complete
       const result = await client.wait(prediction);
 
-      // CLIP returns embedding as array of numbers
-      const embedding = result.output as number[];
+      const output = result.output;
+      const embedding = this.isNumberVector(output)
+        ? output
+        : Array.isArray(output) && this.isNumberVector(output[0])
+          ? output[0]
+          : undefined;
+
+      if (!embedding || embedding.length !== CONTEXT_EMBEDDING_DIMENSION) {
+        throw new Error(
+          `Embedding model ${modelIdentifier} returned ${embedding?.length ?? 0} dimensions; expected ${CONTEXT_EMBEDDING_DIMENSION}`,
+        );
+      }
 
       this.loggerService.log(`${url} completed`, {
         dimensions: embedding?.length,

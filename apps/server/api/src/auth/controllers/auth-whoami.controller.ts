@@ -95,7 +95,6 @@ export class AuthWhoamiController {
       const member = (await this.membersService.findOne(
         {
           isActive: true,
-          isDeleted: false,
           organizationId: String(organizationId),
           userId: String(userId),
         },

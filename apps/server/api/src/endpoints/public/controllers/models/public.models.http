@@ -1,0 +1,49 @@
+### Genfeed API - Public Model Catalog
+### These endpoints are PUBLIC (no authentication required)
+
+@import ../../../../../../http/_environment.http
+
+########################################
+# Public Model Catalog (#2422)
+########################################
+
+### Get the full public catalog (default params)
+GET {{baseUrl}}/public/models
+
+
+### Paginated
+GET {{baseUrl}}/public/models?page=1&limit=20
+
+
+### Filter by category
+GET {{baseUrl}}/public/models?category=image
+
+
+### Filter by provider
+GET {{baseUrl}}/public/models?provider=replicate
+
+
+### Filter by category and provider
+GET {{baseUrl}}/public/models?category=video&provider=fal
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unknown category is rejected (400)
+GET {{baseUrl}}/public/models?category=not-a-category
+
+
+### Test: Unknown provider is rejected (400)
+GET {{baseUrl}}/public/models?provider=not-a-provider
+
+
+### Test: Limit above the cap is rejected (400)
+GET {{baseUrl}}/public/models?limit=500
+
+
+### Test: Registry-internal filters are not part of the public surface
+# organizationId / isDeleted / registryStatus are ignored — the catalog owns
+# its visibility gate.
+GET {{baseUrl}}/public/models?organizationId=c07f191e810c19729de860ee&isDeleted=true

@@ -403,7 +403,6 @@ export class StripeSubscriptionWebhookHandler {
 
     const user = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
 
     if (!user) {

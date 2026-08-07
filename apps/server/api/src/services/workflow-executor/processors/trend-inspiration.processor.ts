@@ -302,7 +302,6 @@ export class TrendInspirationProcessor {
   ): Promise<void> {
     // Get user settings
     const settings = await this.settingsService.findOne({
-      isDeleted: false,
       userId: userId,
     });
 
@@ -749,7 +748,6 @@ Return ONLY the prompt text, no explanations.`;
 
   private async getDefaultTextModel() {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(DEFAULT_TEXT_MODEL),
     });
 

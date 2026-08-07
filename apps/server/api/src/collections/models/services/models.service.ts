@@ -7,6 +7,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -277,7 +278,9 @@ export class ModelsService extends BaseService<
     }
 
     const model = await this.prisma.model.findFirst({
-      where: this.normalizeWhereForModel(scopedParams) as never,
+      where: this.normalizeWhereForModel(
+        scopedParams,
+      ) as Prisma.ModelWhereInput,
     });
     return model ? this.normalizeModelDocument(model) : null;
   }
@@ -288,7 +291,7 @@ export class ModelsService extends BaseService<
   ): Promise<ModelDocument[]> {
     void populate;
     const models = await this.prisma.model.findMany({
-      where: this.normalizeWhereForModel(params) as never,
+      where: this.normalizeWhereForModel(params) as Prisma.ModelWhereInput,
     });
     return models.map((model) => this.normalizeModelDocument(model));
   }
@@ -301,7 +304,7 @@ export class ModelsService extends BaseService<
     const created = await this.prisma.model.create({
       data: this.splitModelData(
         createDto as unknown as Record<string, unknown>,
-      ) as never,
+      ) as Prisma.InputJsonValue,
     });
     return this.normalizeModelDocument(created);
   }
@@ -318,7 +321,7 @@ export class ModelsService extends BaseService<
       this.getProviderConfig(existing),
     );
     const updated = await this.prisma.model.update({
-      data: data as never,
+      data: data as Prisma.ModelUpdateInput,
       where: { id },
     });
     return this.normalizeModelDocument(updated);
@@ -347,12 +350,12 @@ export class ModelsService extends BaseService<
     const isPaginated = options.pagination !== false;
     const [docs, totalDocs] = await Promise.all([
       this.prisma.model.findMany({
-        orderBy: orderBy as never,
+        orderBy: orderBy as Prisma.ModelOrderByWithRelationInput,
         skip: isPaginated ? (page - 1) * limit : undefined,
         take: isPaginated ? limit : undefined,
-        where: dbWhere as never,
+        where: dbWhere as Prisma.ModelWhereInput,
       }),
-      this.prisma.model.count({ where: dbWhere as never }),
+      this.prisma.model.count({ where: dbWhere as Prisma.ModelWhereInput }),
     ]);
     const normalizedDocs = docs.map((model) =>
       this.normalizeModelDocument(model),
@@ -447,7 +450,7 @@ export class ModelsService extends BaseService<
 
   async count(filter: Record<string, unknown>): Promise<number> {
     return this.prisma.model.count({
-      where: this.normalizeWhereForModel(filter) as never,
+      where: this.normalizeWhereForModel(filter) as Prisma.ModelWhereInput,
     });
   }
 
@@ -456,7 +459,7 @@ export class ModelsService extends BaseService<
     updateDto: Partial<UpdateModelDto> = {},
     reviewedBy?: string,
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -482,7 +485,7 @@ export class ModelsService extends BaseService<
     modelId: string,
     params: { reason?: string; reviewedBy?: string } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -504,7 +507,7 @@ export class ModelsService extends BaseService<
       succeededBy?: string;
     } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -590,7 +593,7 @@ export class ModelsService extends BaseService<
       ...(filter ?? {}),
     });
     const models = await this.prisma.model.findMany({
-      where: dbWhere as never,
+      where: dbWhere as Prisma.ModelWhereInput,
     });
 
     return models.map((model) => this.normalizeModelDocument(model));
@@ -616,7 +619,7 @@ export class ModelsService extends BaseService<
     }
 
     const models = await this.prisma.model.findMany({
-      where: where as never,
+      where: where as Prisma.ModelWhereInput,
     });
 
     return models.map((model) => this.normalizeModelDocument(model));

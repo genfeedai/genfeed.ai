@@ -457,7 +457,6 @@ export class AgentAdsResearchToolHandler {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
         id: params.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -467,7 +466,6 @@ export class AgentAdsResearchToolHandler {
     }
 
     const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
       isSelected: true,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
@@ -480,7 +478,6 @@ export class AgentAdsResearchToolHandler {
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
         id: ctx.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -490,7 +487,6 @@ export class AgentAdsResearchToolHandler {
     }
 
     const firstOrgBrand = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 

@@ -16,6 +16,15 @@ describe('SAAS_NODE_DEFINITIONS', () => {
       expect(Array.isArray(def.outputs)).toBe(true);
     }
   });
+
+  it('exposes the full voice config without removing the legacy voice output', () => {
+    expect(SAAS_NODE_DEFINITIONS.brandContext.outputs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'voice', type: 'text' }),
+        expect.objectContaining({ id: 'voiceConfig', type: 'object' }),
+      ]),
+    );
+  });
 });
 
 describe('isSaaSNode', () => {

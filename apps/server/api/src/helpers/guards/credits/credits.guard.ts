@@ -242,7 +242,6 @@ export class CreditsGuard implements CanActivate {
         } else {
           // Try to find model in database first (for known models like Ideogram, Imagen, nano-banana-pro, etc.)
           const model = await this.modelsService.findOne({
-            isDeleted: false,
             key: normalized,
           });
 
@@ -327,7 +326,6 @@ export class CreditsGuard implements CanActivate {
         } else {
           // Try to find model in database first (for known models like Ideogram, Imagen, nano-banana-pro, etc.)
           const model = await this.modelsService.findOne({
-            isDeleted: false,
             key: normalized,
           });
 

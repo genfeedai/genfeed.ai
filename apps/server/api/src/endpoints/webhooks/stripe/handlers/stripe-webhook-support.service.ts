@@ -377,7 +377,6 @@ export class StripeWebhookSupportService {
     let dbUser = subscription
       ? await this.usersService.findOne({
           id: subscription.userId,
-          isDeleted: false,
         })
       : null;
 
@@ -385,7 +384,6 @@ export class StripeWebhookSupportService {
     if (!dbUser && session.customer_details?.email) {
       dbUser = await this.usersService.findOne({
         email: session.customer_details.email,
-        isDeleted: false,
       });
     }
 
@@ -410,7 +408,6 @@ export class StripeWebhookSupportService {
         : String(
             (
               await this.organizationsService.findOne({
-                isDeleted: false,
                 userId: String(dbUser.id),
               })
             )?.id ?? '',

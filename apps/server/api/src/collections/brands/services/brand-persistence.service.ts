@@ -133,7 +133,6 @@ export class BrandPersistenceService {
     const existingWebsiteLink = await this.linksService.findOne({
       brandId: brandId,
       category: LinkCategory.WEBSITE,
-      isDeleted: false,
     });
 
     if (existingWebsiteLink) {
@@ -189,7 +188,6 @@ export class BrandPersistenceService {
       const existingLink = await this.linksService.findOne({
         brandId: brandId,
         category,
-        isDeleted: false,
       });
 
       if (existingLink) {
@@ -262,7 +260,6 @@ export class BrandPersistenceService {
   ): Promise<void> {
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
     });
 
     if (!brand) {
@@ -331,7 +328,6 @@ export class BrandPersistenceService {
     const brand = await this.brandsService.findOne(
       {
         id: brandId,
-        isDeleted: false,
         organizationId: organizationId,
       },
       'none',

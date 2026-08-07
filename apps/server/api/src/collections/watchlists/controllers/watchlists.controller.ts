@@ -65,7 +65,6 @@ export class WatchlistsController {
   ) {
     const item = await this.service.findOne({
       id: watchlistId,
-      isDeleted: false,
     });
     if (!item) {
       throw new NotFoundException('Watchlist item');
@@ -129,7 +128,6 @@ export class WatchlistsController {
   ) {
     const existing = await this.service.findOne({
       id: watchlistId,
-      isDeleted: false,
     });
     if (!existing) {
       throw new NotFoundException('Watchlist item');

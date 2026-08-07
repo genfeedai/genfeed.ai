@@ -17,6 +17,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -42,11 +43,11 @@ export class BatchGenerationProcessingService {
     orgId: string,
     options?: BatchProcessOptions,
   ): Promise<IBatchSummary> {
-    // Idempotency guard: atomically transition PENDING → GENERATING.
+    // Idempotency guard: atomically transition PENDING → PROCESSING.
     // If two concurrent calls race, exactly one updateMany will match (count=1);
     // the other gets count=0 and exits early, preventing duplicate processing.
     const claimed = await this.prisma.batch.updateMany({
-      data: { status: toPrismaBatchStatus(BatchStatus.GENERATING) },
+      data: { status: toPrismaBatchStatus(BatchStatus.PROCESSING) },
       where: scopedWhere(orgId, {
         id: batchId,
         status: toPrismaBatchStatus(BatchStatus.PENDING),
@@ -120,13 +121,13 @@ export class BatchGenerationProcessingService {
 
     const finalized = await this.prisma.batch.updateMany({
       data: {
-        config: updatedConfig as never,
-        items: batchItems as never,
+        config: updatedConfig as Prisma.InputJsonValue,
+        items: batchItems as Prisma.InputJsonValue,
         status: toPrismaBatchStatus(finalStatus),
       },
       where: scopedWhere(orgId, {
         id: batchId,
-        status: toPrismaBatchStatus(BatchStatus.GENERATING),
+        status: toPrismaBatchStatus(BatchStatus.PROCESSING),
       }),
     });
 
@@ -188,7 +189,7 @@ export class BatchGenerationProcessingService {
       }
 
       try {
-        item.status = BatchItemStatus.GENERATING;
+        item.status = BatchItemStatus.PROCESSING;
 
         const topics = batchConfig.topics ?? [];
         const topic =
@@ -218,7 +219,7 @@ export class BatchGenerationProcessingService {
               ? [batchConfig.style]
               : undefined,
             brandId: batchRecord.brandId ?? undefined,
-            platform: item.platform as never,
+            platform: item.platform,
             topic,
             variationsCount: 1,
           },
@@ -231,18 +232,18 @@ export class BatchGenerationProcessingService {
         // Create a draft post as placeholder
         const post = await this.postsService.create({
           brandId: batchRecord.brandId,
-          credentialId: undefined as never,
+          credentialId: undefined,
           description: item.caption,
           ingredients: [],
           label: `Batch: ${topic}`,
           organizationId: orgId,
-          platform: item.platform as never,
+          platform: item.platform,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
           status: PostStatus.DRAFT,
           userId: batchRecord.userId,
-        } as never);
+        } as Prisma.PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
         item.postId = postId;
@@ -319,7 +320,7 @@ export class BatchGenerationProcessingService {
       select: { status: true },
       where: scopedWhere(orgId, { id: batchId }),
     });
-    return fromPrismaBatchStatus(batch?.status) === BatchStatus.GENERATING;
+    return fromPrismaBatchStatus(batch?.status) === BatchStatus.PROCESSING;
   }
 
   private async invokeLifecycleCallback(

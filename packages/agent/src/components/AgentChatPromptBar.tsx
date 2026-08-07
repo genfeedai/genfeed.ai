@@ -62,9 +62,10 @@ type AgentChatPromptBarProps = {
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
-  onModelChange?: (model: string) => void;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
+  onModelChange?: (model: string) => void;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 };
@@ -99,9 +100,9 @@ export function AgentChatPromptBar({
   pendingInputRequest,
   socketConnectionState,
   selectedModel,
-  onModelChange,
   models,
   isModelsLoading = false,
+  onModelChange,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatPromptBarProps): ReactElement {
@@ -183,9 +184,9 @@ export function AgentChatPromptBar({
         getCompletedAttachments={getCompletedAttachments}
         clearAllAttachments={clearAllAttachments}
         selectedModel={selectedModel}
-        onModelChange={onModelChange}
         models={models}
         isModelsLoading={isModelsLoading}
+        onModelChange={onModelChange}
         creditsAvailable={creditsAvailable}
         onBuyCredits={onBuyCredits}
       />

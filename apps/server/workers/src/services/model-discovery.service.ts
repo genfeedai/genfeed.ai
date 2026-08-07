@@ -92,7 +92,6 @@ export class ModelDiscoveryService {
     try {
       // Verify model doesn't already exist (defense in depth)
       const existing = await this.modelsService.findOne({
-        isDeleted: false,
         key: modelKey,
       });
 
@@ -120,8 +119,11 @@ export class ModelDiscoveryService {
               existingModels,
             );
 
-      // Build the display label from owner/name
-      const label = this.buildDisplayLabel(modelInfo.owner, modelInfo.name);
+      // Providers that publish a display name win; the rest get a title-cased
+      // model name.
+      const label =
+        modelInfo.label?.trim() ||
+        this.buildDisplayLabel(modelInfo.owner, modelInfo.name);
 
       // Create draft model document with base DTO fields
       const createData = {
@@ -142,7 +144,7 @@ export class ModelDiscoveryService {
           discoverySource: 'provider-sync',
           name: modelInfo.name,
           owner: modelInfo.owner,
-          replicateUrl: modelInfo.replicateUrl,
+          providerUrl: modelInfo.providerUrl,
           versionId: modelInfo.versionId,
         },
         providerCostUsd: modelInfo.providerCostUsd,
@@ -397,10 +399,11 @@ export class ModelDiscoveryService {
    *
    * @example "black-forest-labs/flux-2-pro" -> "Flux 2 Pro"
    * @example "google/imagen-4" -> "Imagen 4"
+   * @example "fal-ai/flux/dev" -> "Flux Dev"
    */
   private buildDisplayLabel(_owner: string, name: string): string {
     return name
-      .split('-')
+      .split(/[-/]/)
       .map((part) => {
         // Keep version numbers as-is
         if (/^\d/.test(part)) {

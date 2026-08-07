@@ -7,7 +7,6 @@
  * for workspaces created before Member became the authorization source of truth.
  */
 
-import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { MemberRole } from '@genfeedai/enums';
@@ -23,7 +22,6 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly moduleRef: ModuleRef,
-    private readonly modelCatalogSeed: ModelCatalogSeedService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -37,7 +35,6 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
 
     if (existingOrg) {
       await this.ensureOwnerMembership(existingOrg.id, existingOrg.userId);
-      await this.modelCatalogSeed.reconcileCatalog();
       this.logger.log(
         'Default workspace already exists — seed reconciliation complete',
         this.context,
@@ -93,7 +90,6 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
     await this.ensureOwnerMembership(org.id, user.id);
 
     await this.provisionDefaultWorkflows(user.id, org.id);
-    await this.modelCatalogSeed.reconcileCatalog();
 
     this.logger.log(
       `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { AgentExecutionStatus } from '../src/agent-run.enum';
 import { AgentRunFrequency, AgentRunStatus } from '../src/agent-strategy.enum';
 
 describe('agent-strategy.enum', () => {
@@ -15,14 +16,21 @@ describe('agent-strategy.enum', () => {
   });
 
   describe('AgentRunStatus', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(AgentRunStatus)).toHaveLength(3);
+    it('matches Prisma AgentRunStatus labels plus domain BUDGET_EXHAUSTED', () => {
+      expect(Object.values(AgentRunStatus)).toEqual([
+        'PENDING',
+        'RUNNING',
+        'COMPLETED',
+        'FAILED',
+        'CANCELLED',
+        'BUDGET_EXHAUSTED',
+      ]);
     });
 
-    it('should have correct values', () => {
-      expect(AgentRunStatus.COMPLETED).toBe('completed');
-      expect(AgentRunStatus.FAILED).toBe('failed');
-      expect(AgentRunStatus.BUDGET_EXHAUSTED).toBe('budget_exhausted');
+    it('overlaps AgentExecutionStatus 1:1 for Prisma-backed labels', () => {
+      for (const status of Object.values(AgentExecutionStatus)) {
+        expect(Object.values(AgentRunStatus)).toContain(status);
+      }
     });
   });
 });

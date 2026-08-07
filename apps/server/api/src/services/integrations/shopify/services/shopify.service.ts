@@ -96,7 +96,6 @@ export class ShopifyService {
     try {
       const credential = await this.credentialsService.findOne({
         brandId: brandId,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.SHOPIFY,
       });

@@ -70,7 +70,6 @@ export class VideoGenerationPreparationService {
 
     const brand = await this.brandsService.findOne({
       id: createVideoDto.brandId || publicMetadata.brand,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
     if (!brand) {
@@ -280,7 +279,6 @@ export class VideoGenerationPreparationService {
       resolved.request.context?.organizationId;
     const prompt = await this.promptsService.findOne({
       id: resolved.createVideoDto.promptId.toString(),
-      isDeleted: false,
       ...(validationOrgId ? { organizationId: validationOrgId } : {}),
     });
     if (!prompt?.id) {

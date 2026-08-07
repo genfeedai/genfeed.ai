@@ -57,10 +57,10 @@ interface AgentChatInputProps {
   clearAllAttachments?: () => void;
   density?: 'compact' | 'default' | 'inspector';
   selectedModel?: string;
-  onModelChange?: (model: string) => void;
-  /** Override list for the model picker (registry-backed when provided). */
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
+  onModelChange?: (model: string) => void;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 }
@@ -95,9 +95,9 @@ export function AgentChatInput({
   clearAllAttachments,
   density = 'default',
   selectedModel,
-  onModelChange,
   models,
   isModelsLoading = false,
+  onModelChange,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatInputProps): ReactElement {
@@ -214,8 +214,10 @@ export function AgentChatInput({
             disabled={disabled}
             hasEditor={Boolean(editor)}
             isListening={isListening}
+            isModelsLoading={isModelsLoading}
             isTranscribing={isTranscribing}
             isUploading={isUploading}
+            models={models}
             onAddFiles={addFiles}
             onBuyCredits={onBuyCredits}
             onInsertReference={handleInsertReference}
@@ -226,8 +228,6 @@ export function AgentChatInput({
             onStop={onStop}
             onStopListening={stopListening}
             selectedModel={selectedModel}
-            models={models}
-            isModelsLoading={isModelsLoading}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={Boolean(showStop)}
