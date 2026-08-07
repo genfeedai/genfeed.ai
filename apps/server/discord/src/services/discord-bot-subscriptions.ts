@@ -1,3 +1,4 @@
+import { IntegrationPlatform } from '@genfeedai/enums';
 import {
   type DiscordSendToChannelEvent,
   type IntegrationEvent,
@@ -125,7 +126,10 @@ export class DiscordBotSubscriptions {
 
     for (const event of this.integrationEvents) {
       await this.redisService.subscribe(event, (data: unknown) => {
-        if (!isIntegrationEvent(data) || data.platform !== 'discord') {
+        if (
+          !isIntegrationEvent(data) ||
+          data.platform !== IntegrationPlatform.DISCORD
+        ) {
           return;
         }
         this.handlers
