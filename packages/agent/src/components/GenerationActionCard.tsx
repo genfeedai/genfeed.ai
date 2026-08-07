@@ -1,10 +1,13 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
 import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Image, Video } from 'lucide-react';
 import type { ReactElement } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import { GenerationActionCanvas } from './GenerationActionCanvas';
 import { GenerationActionCardControls } from './GenerationActionCardControls';
 import { GenerationActionCardHeader } from './GenerationActionCardHeader';
 import { GenerationActionCardStatusPanel } from './GenerationActionCardStatusPanel';
@@ -18,6 +21,21 @@ interface GenerationActionCardProps {
   onRegenerate?: () => void;
   onUiAction?: AgentUiActionHandler;
   className?: string;
+}
+
+function statusLabelFor(
+  status: 'idle' | 'generating' | 'done' | 'error',
+): string | null {
+  switch (status) {
+    case 'generating':
+      return 'Generating…';
+    case 'done':
+      return 'Done';
+    case 'error':
+      return 'Failed';
+    default:
+      return null;
+  }
 }
 
 export function GenerationActionCard({
@@ -53,15 +71,41 @@ export function GenerationActionCard({
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleToggleReference,
+    handleUseResultAsReference,
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,
+    referenceIds,
   } = useGenerationActionCard({
     action,
     apiService,
     onRegenerate,
     onUiAction,
   });
+
+  // Large prompt cards own the chat column — collapse frees the thread.
+  // Auto-collapse once generation starts so the run error/progress stays
+  // visible without burying prior messages.
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (status === 'generating') {
+      setIsCollapsed(true);
+    }
+  }, [status]);
+
+  const handleToggleAssetReference = useCallback(
+    (asset: ThreadAsset) => {
+      handleToggleReference(asset.id);
+    },
+    [handleToggleReference],
+  );
+
+  const handleUseAsReference = useCallback(() => {
+    handleUseResultAsReference();
+    setIsCollapsed(false);
+  }, [handleUseResultAsReference]);
 
   const isImage = generationType === 'image';
   const Icon = isImage ? Image : Video;
@@ -73,48 +117,85 @@ export function GenerationActionCard({
         className,
       )}
     >
-      <GenerationActionCardHeader Icon={Icon} title={action.title} />
+      <GenerationActionCardHeader
+        Icon={Icon}
+        title={action.title}
+        isCollapsed={isCollapsed}
+        statusLabel={statusLabelFor(status)}
+        onToggleCollapsed={() => setIsCollapsed((current) => !current)}
+      />
 
-      <div className="space-y-3 p-3">
-        <GenerationActionCardControls
-          prompt={prompt}
-          onPromptChange={setPrompt}
-          textareaRef={textareaRef}
-          isDisabled={status === 'generating'}
-          modelsLoading={modelsLoading}
-          filteredModels={filteredModels}
-          isAutoMode={isAutoMode}
-          modelKey={modelKey}
-          autoModelLabel={autoModelLabel}
-          prioritize={prioritize}
-          onPrioritizeChange={setPrioritize}
-          onModelChange={handleModelChange}
-          aspectRatio={aspectRatio}
-          availableAspectRatios={availableAspectRatios}
-          onAspectRatioChange={handleAspectRatioChange}
-          showDuration={showDuration}
-          duration={duration}
-          durationOptions={durationOptions}
-          onDurationChange={handleDurationChange}
-          isImage={isImage}
-          isPromptEmpty={!prompt.trim()}
-          showGenerate={status === 'idle'}
-          onGenerate={handleGenerateVoid}
-        />
+      {isCollapsed ? (
+        status === 'error' || status === 'done' ? (
+          <div className="border-t border-border p-3">
+            <GenerationActionCardStatusPanel
+              status={status}
+              isImage={isImage}
+              resultUrl={resultUrl}
+              resultId={resultId}
+              error={error}
+              generationType={generationType}
+              qualityScore={qualityScore}
+              qualityFeedback={qualityFeedback}
+              onRetry={handleRetryVoid}
+              onRegenerateProp={onRegenerateProp}
+              onUseAsReference={handleUseAsReference}
+            />
+          </div>
+        ) : null
+      ) : (
+        <div className="space-y-3 p-3">
+          <GenerationActionCardControls
+            prompt={prompt}
+            onPromptChange={setPrompt}
+            textareaRef={textareaRef}
+            isDisabled={status === 'generating'}
+            modelsLoading={modelsLoading}
+            filteredModels={filteredModels}
+            isAutoMode={isAutoMode}
+            modelKey={modelKey}
+            autoModelLabel={autoModelLabel}
+            prioritize={prioritize}
+            onPrioritizeChange={setPrioritize}
+            onModelChange={handleModelChange}
+            aspectRatio={aspectRatio}
+            availableAspectRatios={availableAspectRatios}
+            onAspectRatioChange={handleAspectRatioChange}
+            showDuration={showDuration}
+            duration={duration}
+            durationOptions={durationOptions}
+            onDurationChange={handleDurationChange}
+            isImage={isImage}
+            isPromptEmpty={!prompt.trim()}
+            showGenerate={status === 'idle'}
+            onGenerate={handleGenerateVoid}
+          />
 
-        <GenerationActionCardStatusPanel
-          status={status}
-          isImage={isImage}
-          resultUrl={resultUrl}
-          resultId={resultId}
-          error={error}
-          generationType={generationType}
-          qualityScore={qualityScore}
-          qualityFeedback={qualityFeedback}
-          onRetry={handleRetryVoid}
-          onRegenerateProp={onRegenerateProp}
-        />
-      </div>
+          <GenerationActionCanvas
+            generationType={generationType}
+            currentResult={
+              resultId && resultUrl ? { id: resultId, url: resultUrl } : null
+            }
+            isDisabled={status === 'generating'}
+            referenceIds={referenceIds}
+            onToggleReference={handleToggleAssetReference}
+          />
+
+          <GenerationActionCardStatusPanel
+            status={status}
+            isImage={isImage}
+            resultUrl={resultUrl}
+            resultId={resultId}
+            error={error}
+            generationType={generationType}
+            qualityScore={qualityScore}
+            qualityFeedback={qualityFeedback}
+            onRetry={handleRetryVoid}
+            onRegenerateProp={onRegenerateProp}
+            onUseAsReference={handleUseAsReference}
+          />
+        </div>
+      )}
     </div>
   );
 }

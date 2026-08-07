@@ -4,6 +4,28 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) =>
+      `/test-org/~${path.startsWith('/') ? path : `/${path}`}`,
+  }),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 const mocks = vi.hoisted(() => ({
   authedServices: new WeakMap<
     (token: string) => unknown,
@@ -102,13 +124,26 @@ vi.mock('@ui/card/Card', () => ({
     bodyClassName,
     children,
     className,
+    description,
+    headerAction,
+    label,
     ...props
   }: {
     bodyClassName?: string;
     children: ReactNode;
     className?: string;
+    description?: string;
+    headerAction?: ReactNode;
+    label?: string;
   } & React.HTMLAttributes<HTMLElement>) => (
     <section className={className} {...props}>
+      {(label || description || headerAction) && (
+        <div>
+          {label ? <h3>{label}</h3> : null}
+          {description ? <p>{description}</p> : null}
+          {headerAction}
+        </div>
+      )}
       <div className={bodyClassName}>{children}</div>
     </section>
   ),
@@ -233,14 +268,6 @@ function productApiKeys() {
   ];
 }
 
-async function openProviderKeysTab() {
-  fireEvent.mouseDown(screen.getByRole('tab', { name: 'Provider keys' }), {
-    button: 0,
-    ctrlKey: false,
-  });
-  await screen.findByText('OpenAI');
-}
-
 describe('SettingsApiKeysPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -285,34 +312,18 @@ describe('SettingsApiKeysPage', () => {
     mocks.validateByokProviderKey.mockResolvedValue({ isValid: true });
   });
 
-  it('loads hosted BYOK provider state and explains credit behavior', async () => {
+  it('loads Genfeed API keys without provider tabs', async () => {
     render(<SettingsApiKeysPage />);
 
-    expect(await screen.findByText('API Keys')).toBeInTheDocument();
-    expect(screen.getByText('Genfeed API keys')).toBeInTheDocument();
+    expect(await screen.findByText('API keys')).toBeInTheDocument();
     expect(await screen.findByText('MCP Key')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Genfeed keys' })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
-    expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
-
-    await openProviderKeysTab();
     expect(
-      screen.getByText(/server-configured providers by default/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/do not deduct credits/)).toBeInTheDocument();
-    expect(screen.getByText('OpenAI')).toBeInTheDocument();
-    expect(screen.getByText('Replicate')).toBeInTheDocument();
-    expect(screen.getByText('r8_****1234')).toBeInTheDocument();
-    const providerRow = screen.getByTestId('provider-openai');
-    expect(providerRow.firstElementChild).toHaveClass('gap-0', 'p-0');
-    expect(providerRow.firstElementChild?.firstElementChild).toHaveClass(
-      'min-h-12',
-      'py-2',
-    );
-
-    expect(mocks.getByokAllProviders).toHaveBeenCalledWith('org-1');
+      screen.queryByRole('tab', { name: 'Genfeed keys' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('tab', { name: 'Provider keys' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
     expect(mocks.findAllApiKeys).toHaveBeenCalledWith({ limit: 100 });
   });
 
@@ -365,21 +376,25 @@ describe('SettingsApiKeysPage', () => {
     expect(screen.getByText('gf_test_created')).toBeInTheDocument();
   });
 
-  it('disables Genfeed API key creation for free-tier organizations', async () => {
+  it('locks the API keys page for free-tier organizations', async () => {
     mocks.settingsSubscriptionTier = 'free';
     render(<SettingsApiKeysPage />);
 
-    await screen.findByText('MCP Key');
+    expect(
+      await screen.findByText('Unlock API keys with Pro'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText(/API access is included on paid plans/),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Create Key' })).toBeDisabled();
-
-    fireEvent.change(screen.getByPlaceholderText('MCP Server'), {
-      target: { value: 'Automation MCP' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
-
+    expect(
+      screen.getByRole('link', { name: /Upgrade to Pro/i }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringContaining('/settings/subscription'),
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Create Key' }),
+    ).not.toBeInTheDocument();
     expect(mocks.createApiKey).not.toHaveBeenCalled();
   });
 
@@ -403,144 +418,6 @@ describe('SettingsApiKeysPage', () => {
       expect(mocks.revokeApiKey).toHaveBeenCalledWith('key-1');
       expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
         'API key revoked',
-      );
-    });
-  });
-
-  it('validates and saves a provider key, then refreshes provider statuses', async () => {
-    render(<SettingsApiKeysPage />);
-
-    await openProviderKeysTab();
-    fireEvent.click(screen.getByRole('button', { name: 'Add Key' }));
-    fireEvent.change(screen.getByPlaceholderText('Enter API key...'), {
-      target: { value: 'sk-test' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Validate & Save' }));
-
-    await waitFor(() => {
-      expect(mocks.validateByokProviderKey).toHaveBeenCalledWith(
-        'org-1',
-        'openai',
-        'sk-test',
-        undefined,
-      );
-      expect(mocks.saveByokProviderKey).toHaveBeenCalledWith(
-        'org-1',
-        'openai',
-        'sk-test',
-        undefined,
-      );
-      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-        'OpenAI API key saved',
-      );
-    });
-  });
-
-  it('requires provider secrets, reports invalid keys, and removes connected keys', async () => {
-    render(<SettingsApiKeysPage />);
-
-    await openProviderKeysTab();
-    fireEvent.click(screen.getByRole('button', { name: 'Replace Key' }));
-    expect(
-      screen.getByRole('button', { name: 'Validate & Save' }),
-    ).toBeDisabled();
-
-    const secretInputs = screen.getAllByPlaceholderText(/Enter API/);
-    fireEvent.change(secretInputs[0], { target: { value: 'r8-new' } });
-    fireEvent.change(secretInputs[1], { target: { value: 'secret-new' } });
-    mocks.validateByokProviderKey.mockResolvedValueOnce({
-      error: 'Invalid replicate key',
-      isValid: false,
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Validate & Save' }));
-
-    await waitFor(() => {
-      expect(mocks.notificationsError).toHaveBeenCalledWith(
-        'Invalid replicate key',
-      );
-      expect(mocks.saveByokProviderKey).not.toHaveBeenCalled();
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Remove Replicate key' }),
-    );
-
-    await waitFor(() => {
-      expect(mocks.removeByokProviderKey).toHaveBeenCalledWith(
-        'org-1',
-        'replicate',
-      );
-      expect(mocks.notificationsSuccess).toHaveBeenCalledWith(
-        'Replicate API key removed',
-      );
-    });
-  });
-
-  it('renders desktop local provider settings without waiting for organization readiness', () => {
-    mocks.desktop = true;
-    mocks.isReady = false;
-    mocks.organizationId = '';
-
-    render(<SettingsApiKeysPage />);
-
-    expect(screen.getByText('Desktop providers: card')).toBeInTheDocument();
-    expect(screen.getByText('API Keys')).toBeInTheDocument();
-    expect(mocks.getByokAllProviders).not.toHaveBeenCalled();
-  });
-
-  it('logs provider loading and mutation failures', async () => {
-    mocks.getByokAllProviders.mockRejectedValueOnce(new Error('load failed'));
-    const { unmount } = render(<SettingsApiKeysPage />);
-
-    await waitFor(() => {
-      expect(mocks.loggerError).toHaveBeenCalledWith(
-        'Failed to fetch BYOK statuses',
-        expect.any(Error),
-      );
-    });
-
-    unmount();
-    mocks.getByokAllProviders.mockResolvedValue(providerStatuses());
-    render(<SettingsApiKeysPage />);
-    await openProviderKeysTab();
-
-    mocks.removeByokProviderKey.mockRejectedValueOnce(
-      new Error('remove failed'),
-    );
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Remove Replicate key' }),
-    );
-
-    await waitFor(() => {
-      expect(mocks.loggerError).toHaveBeenCalledWith(
-        'Failed to remove BYOK key',
-        expect.any(Error),
-      );
-      expect(mocks.notificationsError).toHaveBeenCalledWith(
-        'Failed to remove API key',
-      );
-    });
-
-    fireEvent.click(screen.getByRole('button', { name: 'Replace Key' }));
-    fireEvent.change(screen.getByPlaceholderText('Enter API key...'), {
-      target: { value: 'r8-new' },
-    });
-    fireEvent.change(screen.getByPlaceholderText('Enter API secret...'), {
-      target: { value: 'secret-new' },
-    });
-    mocks.validateByokProviderKey.mockRejectedValueOnce(
-      new Error('save failed'),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Validate & Save' }));
-
-    await waitFor(() => {
-      expect(mocks.loggerError).toHaveBeenCalledWith(
-        'Failed to save BYOK key',
-        expect.any(Error),
-      );
-      expect(mocks.notificationsError).toHaveBeenCalledWith(
-        'Failed to save API key',
       );
     });
   });

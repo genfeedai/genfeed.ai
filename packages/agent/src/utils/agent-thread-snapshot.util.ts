@@ -212,7 +212,7 @@ export function mapSnapshotWorkEvents(snapshot: AgentThreadSnapshot) {
     toolName: string | undefined;
   };
 
-  return snapshot.timeline.reduce<WorkEvent[]>((acc, entry) => {
+  const events = snapshot.timeline.reduce<WorkEvent[]>((acc, entry) => {
     const event = mapTimelineEventType(entry);
     if (!event) {
       return acc;
@@ -268,6 +268,45 @@ export function mapSnapshotWorkEvents(snapshot: AgentThreadSnapshot) {
     });
     return acc;
   }, []);
+
+  const isRunLive =
+    snapshot.activeRun?.status === 'queued' ||
+    snapshot.activeRun?.status === 'running';
+
+  if (isRunLive) {
+    return events;
+  }
+
+  // Snapshot says the run is done (or never had an active run). Orphaned
+  // tool.started rows still map to RUNNING via mapTimelineStatus and were
+  // rehydrated as a live "Working for 26m…" row forever. Settle them.
+  const pendingInputIds = new Set(
+    snapshot.pendingInputRequests
+      .map((request) => request.requestId)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  return events.map((event) => {
+    if (
+      event.status !== AgentWorkEventStatus.RUNNING &&
+      event.status !== AgentWorkEventStatus.PENDING
+    ) {
+      return event;
+    }
+
+    if (
+      event.event === AgentWorkEventType.INPUT_REQUESTED &&
+      event.inputRequestId &&
+      pendingInputIds.has(event.inputRequestId)
+    ) {
+      return event;
+    }
+
+    return {
+      ...event,
+      status: AgentWorkEventStatus.COMPLETED,
+    };
+  });
 }
 
 export function mapSnapshotPendingInputRequest(

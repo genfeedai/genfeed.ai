@@ -1,11 +1,20 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@ui/primitives/dialog';
 import { Input } from '@ui/primitives/input';
-import { ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 type ByokProviderCardState = {
   isExpanded: boolean;
@@ -25,6 +34,70 @@ type Props = {
   onValidateAndSave: () => void;
   onRemoveKey: () => void;
 };
+
+function providerFaviconDomain(docsUrl: string): string | null {
+  try {
+    return new URL(docsUrl).hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+function ProviderLogo({
+  provider,
+  docsUrl,
+  label,
+  size = 'md',
+}: {
+  provider: string;
+  docsUrl: string;
+  label: string;
+  size?: 'md' | 'lg';
+}) {
+  const BrandIcon = getModelBrandIcon(provider);
+  const domain = useMemo(() => providerFaviconDomain(docsUrl), [docsUrl]);
+  const [faviconFailed, setFaviconFailed] = useState(false);
+  const shell = size === 'lg' ? 'size-12 rounded-xl' : 'size-11 rounded-xl';
+  const icon = size === 'lg' ? 'size-7' : 'size-6';
+
+  if (BrandIcon) {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center border border-border bg-muted/40 text-foreground ${shell}`}
+        aria-hidden
+      >
+        <BrandIcon className={icon} />
+      </div>
+    );
+  }
+
+  if (domain && !faviconFailed) {
+    return (
+      <div
+        className={`flex shrink-0 items-center justify-center overflow-hidden border border-border bg-muted/40 ${shell}`}
+      >
+        <img
+          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`}
+          alt=""
+          width={size === 'lg' ? 28 : 24}
+          height={size === 'lg' ? 28 : 24}
+          className={icon}
+          onError={() => setFaviconFailed(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center border border-border bg-muted/40 text-sm font-semibold uppercase text-muted-foreground ${shell}`}
+      aria-hidden
+      title={label}
+    >
+      {label.slice(0, 1)}
+    </div>
+  );
+}
 
 export default function ByokProviderCard({
   providerStatus,
@@ -46,48 +119,54 @@ export default function ByokProviderCard({
     isValidating ||
     isSaving;
 
+  const statusLine =
+    isConnected && providerStatus.maskedKey
+      ? providerStatus.maskedKey
+      : isConnected
+        ? 'Connected'
+        : 'Not configured';
+
+  const modalTitle = isConnected
+    ? `Replace ${providerStatus.label} key`
+    : `Add ${providerStatus.label} key`;
+
   return (
-    <Card
-      key={providerStatus.provider}
-      bodyClassName="gap-0 p-0"
-      data-testid={`provider-${providerStatus.provider}`}
-    >
-      <div className="flex min-h-12 items-center gap-3 px-3 py-2">
-        <Button
-          aria-expanded={isExpanded}
-          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${providerStatus.label} provider`}
-          className="shrink-0 text-muted-foreground"
-          onClick={onToggleExpand}
-          variant={ButtonVariant.GHOST}
-        >
-          {isExpanded ? (
-            <ChevronDown className="size-4" />
-          ) : (
-            <ChevronRight className="size-4" />
-          )}
-        </Button>
-        <div className="min-w-0 flex-1 sm:flex sm:items-center sm:gap-3">
-          <h3 className="truncate text-sm font-medium">
-            {providerStatus.label}
-          </h3>
-          <p className="truncate text-xs text-muted-foreground">
-            {isConnected && providerStatus.maskedKey
-              ? providerStatus.maskedKey
-              : providerStatus.description}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {isConnected ? (
-            <>
-              <span className="flex items-center gap-1.5 text-xs text-success">
-                <span className="size-2 rounded-full bg-success" />
+    <>
+      <Card
+        key={providerStatus.provider}
+        bodyClassName="gap-3 p-4"
+        data-testid={`provider-${providerStatus.provider}`}
+      >
+        <div className="flex items-start gap-3">
+          <ProviderLogo
+            provider={providerStatus.provider}
+            docsUrl={providerStatus.docsUrl}
+            label={providerStatus.label}
+          />
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-sm font-semibold tracking-[-0.01em]">
+              {providerStatus.label}
+            </h3>
+            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+              {statusLine}
+            </p>
+            {isConnected ? (
+              <span className="mt-2 inline-flex items-center gap-1.5 text-xs text-success">
+                <span className="size-1.5 rounded-full bg-success" />
                 Connected
               </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          {isConnected ? (
+            <>
               <Button
                 variant={ButtonVariant.SECONDARY}
                 onClick={onToggleExpand}
               >
-                {isExpanded ? 'Cancel' : 'Replace Key'}
+                Replace Key
               </Button>
               <Button
                 variant={ButtonVariant.SECONDARY}
@@ -99,27 +178,38 @@ export default function ByokProviderCard({
               </Button>
             </>
           ) : (
-            <>
-              <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-                <span className="size-2 rounded-full bg-muted-foreground/30" />
-                Not configured
-              </span>
-              <Button
-                variant={ButtonVariant.SECONDARY}
-                onClick={onToggleExpand}
-              >
-                Add Key
-              </Button>
-            </>
+            <Button variant={ButtonVariant.SECONDARY} onClick={onToggleExpand}>
+              Add Key
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
 
-      {isExpanded && (
-        <div className="border-t border-border px-3 py-3">
-          <div className="space-y-3 sm:pl-11">
+      <Dialog
+        open={isExpanded}
+        onOpenChange={(open) => {
+          if (open === isExpanded) {
+            return;
+          }
+          onToggleExpand();
+        }}
+      >
+        <DialogContent className="max-w-md" aria-describedby={undefined}>
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <ProviderLogo
+                provider={providerStatus.provider}
+                docsUrl={providerStatus.docsUrl}
+                label={providerStatus.label}
+                size="lg"
+              />
+              <DialogTitle>{modalTitle}</DialogTitle>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-3">
             <div>
-              <span className="text-xs text-muted-foreground mb-1 block">
+              <span className="mb-1 block text-xs text-muted-foreground">
                 API Key
               </span>
               <Input
@@ -128,11 +218,12 @@ export default function ByokProviderCard({
                 onChange={(e) => onApiKeyChange(e.target.value)}
                 placeholder="Enter API key..."
                 className="w-full"
+                autoFocus
               />
             </div>
-            {providerStatus.requiresSecret && (
+            {providerStatus.requiresSecret ? (
               <div>
-                <span className="text-xs text-muted-foreground mb-1 block">
+                <span className="mb-1 block text-xs text-muted-foreground">
                   API Secret
                 </span>
                 <Input
@@ -143,32 +234,40 @@ export default function ByokProviderCard({
                   className="w-full"
                 />
               </div>
-            )}
-            <div className="flex items-center justify-between">
-              <PrimitiveButton
-                asChild
-                variant={ButtonVariant.LINK}
-                className="text-xs"
+            ) : null}
+            <PrimitiveButton
+              asChild
+              variant={ButtonVariant.LINK}
+              className="h-auto px-0 text-xs"
+            >
+              <a
+                href={providerStatus.docsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                <a
-                  href={providerStatus.docsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Get API key
-                </a>
-              </PrimitiveButton>
-              <Button onClick={onValidateAndSave} isDisabled={isSaveDisabled}>
-                {isValidating
-                  ? 'Validating...'
-                  : isSaving
-                    ? 'Saving...'
-                    : 'Validate & Save'}
-              </Button>
-            </div>
+                Get API key
+              </a>
+            </PrimitiveButton>
           </div>
-        </div>
-      )}
-    </Card>
+
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              onClick={onToggleExpand}
+              isDisabled={isValidating || isSaving}
+            >
+              Cancel
+            </Button>
+            <Button onClick={onValidateAndSave} isDisabled={isSaveDisabled}>
+              {isValidating
+                ? 'Validating...'
+                : isSaving
+                  ? 'Saving...'
+                  : 'Validate & Save'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

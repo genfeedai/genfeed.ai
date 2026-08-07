@@ -101,7 +101,7 @@ creditsCommand
       }
 
       print();
-      print(chalk.dim('Manage billing at https://app.genfeed.ai/settings/billing'));
+      print(chalk.dim('Manage billing at https://app.genfeed.ai/settings/credits'));
     } catch (error) {
       handleError(error);
     }

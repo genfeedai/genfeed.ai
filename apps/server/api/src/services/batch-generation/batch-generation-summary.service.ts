@@ -5,8 +5,9 @@ import {
   type BatchWithConfig,
   cloneBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
+import { fromPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BatchItemStatus, BatchStatus } from '@genfeedai/enums';
+import { BatchItemStatus } from '@genfeedai/enums';
 import type {
   IBatchReviewEvent,
   IBatchReviewEventReviewer,
@@ -203,7 +204,7 @@ export class BatchGenerationSummaryService {
         }),
         pendingCount,
         platforms: batchConfig.platforms ?? [],
-        status: String(batch.status) as BatchStatus,
+        status: fromPrismaBatchStatus(String(batch.status)),
         totalCount: batchConfig.totalCount ?? batchItems.length,
       };
     });
