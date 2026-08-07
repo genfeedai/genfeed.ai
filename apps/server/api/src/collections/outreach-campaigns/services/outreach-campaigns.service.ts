@@ -8,8 +8,8 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { CampaignStatus } from '@genfeedai/enums';
-import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
+import { CampaignStatus, toPrismaCredentialPlatform } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -57,10 +57,6 @@ function normalizeDoc(row: Record<string, unknown>): OutreachCampaignDocument {
 
 function normalizeDocs(rows: unknown[]): OutreachCampaignDocument[] {
   return rows.map((r) => normalizeDoc(r as Record<string, unknown>));
-}
-
-function toPrismaCredentialPlatform(platform: string): CredentialPlatform {
-  return platform.toUpperCase() as CredentialPlatform;
 }
 
 @Injectable()
@@ -154,13 +150,20 @@ export class OutreachCampaignsService {
     brandId: string | undefined,
     platform: string,
   ): Promise<void> {
+    const credentialPlatform = toPrismaCredentialPlatform(platform);
+    if (!credentialPlatform) {
+      throw new BadRequestException(
+        `Unsupported credential platform: ${platform}`,
+      );
+    }
+
     await findOrThrow(
       this.prisma.credential,
       {
         where: scopedWhere(organizationId, {
           id: credentialId,
           isConnected: true,
-          platform: toPrismaCredentialPlatform(platform),
+          platform: credentialPlatform,
           ...(brandId ? { brandId } : {}),
         }),
       },

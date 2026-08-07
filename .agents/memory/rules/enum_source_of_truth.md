@@ -1,6 +1,6 @@
 ---
 name: enum_source_of_truth
-description: Canonical status enums live as Prisma SCREAMING_SNAKE; domain packages mirror those values; ban as never for enum writes
+description: Canonical status enums live as Prisma SCREAMING_SNAKE; domain packages mirror those values; ban as never for enum writes; Platform/CredentialPlatform uses mandatory mapper
 type: project
 last_verified: 2026-08-07
 ---
@@ -57,25 +57,64 @@ New casts fail CI. Cleanups must prune the baseline in the same PR.
    direction allows later).
 3. Update serializers, clients, and tests to the new member — no `as never`.
 
+## Done vs residual matrix (2026-08-07)
+
+| Area | Storage | Domain casing | Agent rule |
+| --- | --- | --- | --- |
+| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, ContentDraftStatus, BotStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
+| **`PostStatus`, `TaskStatus`, and similar product statuses** | **String** column | **lowercase product language** | Keep as-is. Do **not** re-harmonize into SCREAMING or invent dual maps. |
+| **`WorkflowStatus`** | **String** column | product lowercase | Keep as-is. Orphan Prisma enum dropped in #2492 — do not reintroduce. |
+| **`CampaignTargetStatus`** | no column yet | richer outreach vocabulary | Domain-only until a Prisma column ships. |
+| **`Platform` (domain)** | posts / UI / OAuth free text | **lowercase** (`instagram`, `devto`) | Product language. Posts store lowercase `String`. |
+| **`credentials.platform`** | Prisma **`CredentialPlatform`** enum | **SCREAMING** (`INSTAGRAM`, `DEVTO`) | **Mandatory mapper** — see below. |
+| Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`) | n/a | SCREAMING | Map before any Prisma write. |
+
+### Platform / CredentialPlatform — mandatory mapper
+
+Domain `Platform` and the re-export `CredentialPlatform` stay **lowercase** for
+OAuth, UI, and `posts.platform` (String). The Prisma column
+`credentials.platform` is **SCREAMING** (`enum CredentialPlatform`, with the
+intentional exception **`DEVTO`** not `DEV_TO`).
+
+**Always** use the shared helpers when reading or writing credentials by platform:
+
+```ts
+import {
+  toPrismaCredentialPlatform,
+  fromPrismaCredentialPlatform,
+} from '@genfeedai/enums';
+
+// credential find / create / update
+platform: toPrismaCredentialPlatform(platform) // → 'INSTAGRAM' | undefined
+
+// credential row → post / UI domain id
+platform: fromPrismaCredentialPlatform(credential.platform) // → Platform.INSTAGRAM
+```
+
+**Do not:**
+
+- Write `platform: 'instagram'` (or domain `CredentialPlatform.INSTAGRAM`) into
+  `prisma.credential.findFirst` / `create` / `update` filters or data.
+- Hand-roll `.toUpperCase()` / local switch maps for credential platforms.
+- Use `as never` / `as any` for enum or platform Prisma writes.
+- “Re-harmonize” String columns (`posts.platform`, `PostStatus`, `TaskStatus`,
+  `WorkflowStatus`) into SCREAMING to match credentials — that is the wrong fix.
+
+Implementation: `packages/enums/src/platform-prisma.mapper.ts`.
+Tests: `packages/enums/__tests__/platform-prisma.mapper.test.ts`.
+
 ## Status (2026-08-07)
 
-Harmonized to SCREAMING_SNAKE matching Prisma:
+All shared-name domain enums that back a Prisma **column** are SCREAMING_SNAKE
+and include every Prisma label as a value. Guard: `packages/enums/__tests__/prisma-parity.enum.test.ts`.
 
-- `BatchStatus` / `BatchItemStatus` (pilot)
-- `AgentRunStatus`, `IngredientStatus`, `WorkflowExecutionStatus`
-- `TrainingStage`, `SubscriptionStatus`, `ByokBillingStatus` (#2504)
-
-Still intentional exceptions:
+Still intentional exceptions (see matrix above):
 
 - **`WorkflowStatus`** — domain stays product lowercase; `workflows.status` is a
-  `String` column (orphan Prisma type drop tracked separately).
+  `String` column (orphan Prisma type dropped in #2492).
 - **`CampaignTargetStatus`** — domain keeps a richer outreach pipeline vocabulary
   (orphan Prisma type; no column yet).
-- **`Platform` / `CredentialPlatform`** — still product-lowercase OAuth/UI
-  language; BaseService + write mappers upper-case for the Prisma column.
+- **`Platform` / credential `CredentialPlatform`** — intentional split +
+  **mandatory** `toPrismaCredentialPlatform` / `fromPrismaCredentialPlatform`.
 - Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`, Stripe-only
   subscription states) stay SCREAMING and must be mapped before a Prisma write.
-
-Residual dual-case candidates: `ArticleStatus` (`PUBLIC`→`PUBLISHED` rename),
-`IngredientCategory` and other category enums, `AgentAutonomyMode`,
-`PersonaStatus`, `ContentDraftStatus`, `BotStatus`, `LeadStatus`, etc.

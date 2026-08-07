@@ -21,6 +21,7 @@ import {
   BatchStatus,
   ContentIntelligencePlatform,
   PostStatus,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -33,6 +34,36 @@ type BatchProcessingCounts = {
   completedCount: number;
   failedCount: number;
 };
+
+/** Posts store lowercase platform strings (String column, not Prisma enum). */
+function toPostPlatform(platform: string): string {
+  return platform.trim().toLowerCase().replace(/-/g, '_');
+}
+
+function toBatchItemFailureMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'Unknown error';
+  }
+
+  const message = error.message;
+  if (
+    /Null constraint violation|Argument `.+` is missing|Invalid.*credentialId/i.test(
+      message,
+    )
+  ) {
+    const fieldMatch = message.match(/`([A-Za-z]+)`/);
+    const field = fieldMatch?.[1];
+    return field
+      ? `Draft post create failed: missing or invalid "${field}". Connect a brand social account for this platform, or leave the draft untargeted.`
+      : 'Draft post create failed due to a database constraint. Connect a brand social account for this platform, or leave the draft untargeted.';
+  }
+
+  const firstLine = message
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  return firstLine ?? message;
+}
 
 @Injectable()
 export class BatchGenerationProcessingService {
@@ -235,15 +266,56 @@ export class BatchGenerationProcessingService {
         item.prompt = content?.content ?? topic;
         item.caption = content?.content ?? '';
 
-        // Create a draft post as placeholder
+        if (!batchRecord.brandId || !batchRecord.userId) {
+          throw new BadRequestException(
+            'Batch is missing brandId or userId; cannot create draft posts',
+          );
+        }
+
+        const caption =
+          item.caption?.trim() ||
+          item.prompt?.trim() ||
+          topic.trim() ||
+          'Draft post';
+
+        // Posts store lowercase platform strings; credentials use Prisma
+        // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
+        const platformRaw =
+          typeof item.platform === 'string' && item.platform.trim().length > 0
+            ? item.platform.trim()
+            : undefined;
+        const platformForPost = platformRaw
+          ? toPostPlatform(platformRaw)
+          : undefined;
+        const platformForCredential = platformRaw
+          ? toPrismaCredentialPlatform(platformRaw)
+          : undefined;
+
+        // Prefer a connected brand credential for the item platform so drafts
+        // land on a real target. credentialId remains nullable for untargeted
+        // drafts when no matching credential exists.
+        let credentialId: string | null = null;
+        if (platformForCredential) {
+          const credential = await this.prisma.credential.findFirst({
+            select: { id: true },
+            where: scopedWhere(orgId, {
+              brandId: batchRecord.brandId,
+              isConnected: true,
+              isDeleted: false,
+              platform: platformForCredential,
+            }),
+          });
+          credentialId = credential?.id ?? null;
+        }
+
         const post = await this.postsService.create({
           brandId: batchRecord.brandId,
-          credentialId: undefined,
-          description: item.caption,
+          ...(credentialId ? { credentialId } : {}),
+          description: caption,
           ingredients: [],
-          label: `Batch: ${topic}`,
+          label: `Batch: ${topic}`.slice(0, 200),
           organizationId: orgId,
-          platform: item.platform,
+          platform: platformForPost,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
@@ -274,7 +346,7 @@ export class BatchGenerationProcessingService {
         );
       } catch (error: unknown) {
         item.status = BatchItemStatus.FAILED;
-        item.error = error instanceof Error ? error.message : 'Unknown error';
+        item.error = toBatchItemFailureMessage(error);
         failedCount++;
 
         this.logger.error(`Batch item ${item.id} failed: ${item.error}`, {

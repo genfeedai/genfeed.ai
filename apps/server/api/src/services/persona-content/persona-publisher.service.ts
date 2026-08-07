@@ -4,7 +4,11 @@ import { type PersonaDocument } from '@api/collections/personas/schemas/persona.
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  fromPrismaCredentialPlatform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -73,7 +77,12 @@ export class PersonaPublisherService {
           continue;
         }
 
-        const credentialPlatform = String(credential.platform).toLowerCase();
+        // credentials.platform is Prisma SCREAMING; posts.platform is lowercase.
+        const domainPlatform = fromPrismaCredentialPlatform(
+          String(credential.platform ?? ''),
+        );
+        const credentialPlatform =
+          domainPlatform ?? String(credential.platform).toLowerCase();
         if (platformFilter && !platformFilter.has(credentialPlatform)) {
           continue;
         }
@@ -88,7 +97,7 @@ export class PersonaPublisherService {
           label: persona.label ?? 'Persona post',
           organizationId: input.organizationId,
           personaId: input.personaId,
-          platform: credential.platform as CredentialPlatform,
+          platform: credentialPlatform,
           scheduledDate: input.scheduledDate ?? new Date(),
           status: input.scheduledDate
             ? PostStatus.SCHEDULED

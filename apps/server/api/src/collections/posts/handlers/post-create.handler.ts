@@ -14,6 +14,7 @@ import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
+  fromPrismaCredentialPlatform,
   IngredientCategory,
   PostCategory,
   PostStatus,
@@ -89,14 +90,17 @@ export async function createPost({
     );
   }
 
+  const domainPlatform = fromPrismaCredentialPlatform(
+    String(credential.platform ?? ''),
+  );
   const textOnlyPlatforms = new Set([
     CredentialPlatform.THREADS,
     CredentialPlatform.TWITTER,
     CredentialPlatform.LINKEDIN,
   ]);
-  const isTextOnlyPlatform = textOnlyPlatforms.has(
-    credential.platform as CredentialPlatform,
-  );
+  const isTextOnlyPlatform = domainPlatform
+    ? textOnlyPlatforms.has(domainPlatform)
+    : false;
 
   if (
     createPostDto.status === PostStatus.SCHEDULED &&
@@ -218,7 +222,8 @@ export async function createPost({
         : ''),
     organizationId:
       firstIngredient?.organizationId ?? publicMetadata.organization,
-    platform: credential.platform as never,
+    // credentials.platform is Prisma SCREAMING; posts.platform is lowercase.
+    platform: domainPlatform ?? String(credential.platform ?? '').toLowerCase(),
     publishIntent: warmupHoldReason ? 'warmup_hold' : undefined,
     publicationDate: createPostDto.publicationDate,
     reviewFeedback: warmupHoldReason,
@@ -244,10 +249,7 @@ export async function createPost({
     }),
   );
 
-  if (
-    !warmupHoldReason &&
-    String(credential.platform) === CredentialPlatform.YOUTUBE
-  ) {
+  if (!warmupHoldReason && domainPlatform === CredentialPlatform.YOUTUBE) {
     dependencies.postsService.handleYoutubePost(data).catch((error) => {
       dependencies.loggerService.error(
         `Failed to trigger YouTube upload for post ${data.id}: ${error.message}`,
