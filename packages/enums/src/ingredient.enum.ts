@@ -15,15 +15,19 @@ export enum IngredientCategory {
   SOURCE = 'source',
 }
 
+/**
+ * Ingredient lifecycle. Values match Prisma `IngredientStatus` (SCREAMING_SNAKE).
+ * @see packages/prisma/prisma/schema.prisma `enum IngredientStatus`
+ */
 export enum IngredientStatus {
-  DRAFT = 'draft',
-  PROCESSING = 'processing',
-  UPLOADED = 'uploaded',
-  GENERATED = 'generated',
-  VALIDATED = 'validated',
-  FAILED = 'failed',
-  ARCHIVED = 'archived',
-  REJECTED = 'rejected',
+  DRAFT = 'DRAFT',
+  PROCESSING = 'PROCESSING',
+  UPLOADED = 'UPLOADED',
+  GENERATED = 'GENERATED',
+  VALIDATED = 'VALIDATED',
+  FAILED = 'FAILED',
+  ARCHIVED = 'ARCHIVED',
+  REJECTED = 'REJECTED',
 }
 
 export enum TransformationCategory {

@@ -545,12 +545,12 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="fixed"][data-max-width="4xl"]',
+      '[data-layout-mode="fixed"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
@@ -602,12 +602,12 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="surface-fixed"][data-max-width="4xl"]',
+      '[data-layout-mode="surface-fixed"][data-max-width="full"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
     expect(promptBarContainers[0]?.getAttribute('data-show-top-fade')).toBe(
-      'true',
+      'false',
     );
   });
 
@@ -643,7 +643,7 @@ describe('AgentChatContainer', () => {
     portalTarget.remove();
   });
 
-  it('pads the transcript and fades into a portaled surface composer', () => {
+  it('pads the transcript under a portaled surface composer without a black fade slab', () => {
     const apiService = createApiService();
     const portalTarget = document.createElement('div');
     document.body.append(portalTarget);
@@ -663,10 +663,10 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(container.querySelector('.pb-56')).not.toBeNull();
+    expect(container.querySelector('.pb-36')).not.toBeNull();
     expect(
       portalTarget.querySelector(
-        '[data-layout-mode="inflow"][data-show-top-fade="true"]',
+        '[data-layout-mode="inflow"][data-show-top-fade="false"]',
       ),
     ).not.toBeNull();
 
@@ -700,7 +700,7 @@ describe('AgentChatContainer', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Submit requested input')).toBeInTheDocument();
     expect(container.querySelector('.pb-6')).not.toBeNull();
-    expect(container.querySelector('.pb-56')).toBeNull();
+    expect(container.querySelector('.pb-36')).toBeNull();
   });
 
   it('uses an inflow prompt bar layout on the empty state even when a surface layout is requested', () => {

@@ -1,7 +1,7 @@
 const LEGACY_NEST_AUTH_ROUTES: Readonly<Record<string, ReadonlySet<string>>> = {
   GET: new Set(['/bootstrap', '/bootstrap/overview', '/whoami']),
   HEAD: new Set(['/bootstrap', '/bootstrap/overview', '/whoami']),
-  POST: new Set(['/cli/token', '/desktop/authorize', '/desktop/exchange']),
+  POST: new Set(['/desktop/authorize', '/desktop/exchange']),
 };
 
 function normalizeMountedPath(path: string): string {

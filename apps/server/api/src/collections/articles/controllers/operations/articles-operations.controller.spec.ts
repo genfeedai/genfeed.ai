@@ -13,7 +13,9 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { ArticleCategory, AssetScope } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ArticleCategory, AssetScope, ModelCategory } from '@genfeedai/enums';
+import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
@@ -75,9 +77,14 @@ describe('ArticlesOperationsController', () => {
     findOne: vi.fn(),
   };
 
+  const mockModelsService = {
+    findOne: vi.fn(),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockArticlesService.findAll.mockResolvedValue({ docs: [mockArticle] });
+    mockModelsService.findOne.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticlesOperationsController],
@@ -99,9 +106,7 @@ describe('ArticlesOperationsController', () => {
         },
         {
           provide: ModelsService,
-          useValue: {
-            findOne: vi.fn().mockResolvedValue(null),
-          },
+          useValue: mockModelsService,
         },
         {
           provide: NotificationsPublisherService,
@@ -179,6 +184,109 @@ describe('ArticlesOperationsController', () => {
         expect.any(Function),
       );
       expect(result).toBeDefined();
+    });
+
+    it('resolves the credit pre-flight against the per-request model', async () => {
+      const dto: GenerateArticlesDto = {
+        model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+        prompt: 'AI Technology',
+      };
+
+      mockModelsService.findOne.mockResolvedValue({
+        category: ModelCategory.TEXT,
+        cost: 1,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+      });
+      mockArticlesService.generateArticles.mockResolvedValue([mockArticle]);
+      mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
+        generationModel: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+        reviewModel: 'default-text-model',
+        updateModel: 'default-text-model',
+      });
+      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+      mockActivitiesService.create.mockResolvedValue({
+        id: '507f191e810c19729de860ee',
+      });
+      mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
+        undefined,
+      );
+
+      await controller.generateArticles(mockRequest, dto, mockUser);
+
+      expect(service.resolveArticleCycleModelConfig).toHaveBeenCalledWith(
+        mockPublicMetadata.organization,
+        MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+      );
+      expect(service.generateArticles).toHaveBeenCalledWith(
+        dto,
+        mockPublicMetadata.user,
+        mockPublicMetadata.organization,
+        mockPublicMetadata.brand,
+        expect.any(Function),
+      );
+    });
+
+    it('rejects a generation model that is not a known text model', async () => {
+      const dto: GenerateArticlesDto = {
+        model: 'not-a-real-model',
+        prompt: 'AI Technology',
+      };
+
+      mockModelsService.findOne.mockResolvedValue(null);
+      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.generateArticles(mockRequest, dto, mockUser),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+
+      expect(service.resolveArticleCycleModelConfig).not.toHaveBeenCalled();
+      expect(service.generateArticles).not.toHaveBeenCalled();
+    });
+
+    it('rejects a generation model from a non-text category', async () => {
+      const dto: GenerateArticlesDto = {
+        model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+        prompt: 'AI Technology',
+      };
+
+      mockModelsService.findOne.mockResolvedValue({
+        category: ModelCategory.IMAGE,
+        key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+      });
+      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        controller.generateArticles(mockRequest, dto, mockUser),
+      ).rejects.toMatchObject({ status: HttpStatus.BAD_REQUEST });
+
+      expect(service.generateArticles).not.toHaveBeenCalled();
+    });
+
+    it('passes no override to model resolution when the request omits one', async () => {
+      const dto: GenerateArticlesDto = {
+        prompt: 'AI Technology',
+      };
+
+      mockArticlesService.generateArticles.mockResolvedValue([mockArticle]);
+      mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
+        generationModel: 'default-text-model',
+        reviewModel: 'default-text-model',
+        updateModel: 'default-text-model',
+      });
+      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+      mockActivitiesService.create.mockResolvedValue({
+        id: '507f191e810c19729de860ee',
+      });
+      mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
+        undefined,
+      );
+
+      await controller.generateArticles(mockRequest, dto, mockUser);
+
+      expect(service.resolveArticleCycleModelConfig).toHaveBeenCalledWith(
+        mockPublicMetadata.organization,
+        undefined,
+      );
     });
   });
 

@@ -1,3 +1,6 @@
+import { getToolsForRole, getToolsForSurface } from '@genfeedai/tools';
+import * as appMetadata from '@mcp/config/app-metadata.json';
+import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -62,16 +65,62 @@ describe('MCPService', () => {
 
       expect(example).toBeDefined();
       expect(example.name).toBe('Genfeed.ai MCP Server');
-      expect(example.version).toBe('1.0.0');
-      expect(example.description).toContain('AI-powered video generation');
-      expect(example.capabilities).toBeDefined();
       expect(example.installation.clientExamples.claudeCode.command).toContain(
         'claude mcp add --transport http genfeed',
       );
       expect(example.installation.clientExamples.codex.command).toContain(
         'codex mcp add genfeed --url https://mcp.genfeed.ai/mcp',
       );
-      expect(example.tools).toBeDefined();
+    });
+
+    it('takes its description and version from the app manifest', () => {
+      const example = service.getMcpExample();
+
+      expect(example.description).toBe(appMetadata.description);
+      expect(example.version).toBe(appMetadata.version);
+      // The endpoint serves the whole platform, not a video-only server.
+      expect(example.description).not.toContain('video generation and');
+    });
+
+    it('advertises the shared resource catalog', () => {
+      expect(service.getMcpExample().resources).toEqual([...MCP_RESOURCES]);
+    });
+
+    it('reports the real MCP tool count instead of a hardcoded sample', () => {
+      const example = service.getMcpExample();
+
+      expect(example.tools.total).toBe(getToolsForRole('mcp', 'user').length);
+      expect(example.tools.total).toBeGreaterThan(example.tools.preview.length);
+      expect(example.tools.endpoint).toBe('https://mcp.genfeed.ai/v1/tools');
+    });
+
+    it('previews only tools the MCP surface actually serves', () => {
+      const mcpToolNames = new Set(
+        getToolsForSurface('mcp').map((tool) => tool.name),
+      );
+
+      for (const tool of service.getMcpExample().tools.preview) {
+        expect(mcpToolNames.has(tool.name)).toBe(true);
+      }
+    });
+
+    it('never leaks a privileged tool to the unauthenticated example', () => {
+      const publicNames = new Set(
+        getToolsForRole('mcp', 'user').map((tool) => tool.name),
+      );
+
+      for (const tool of service.getMcpExample().tools.preview) {
+        expect(publicNames.has(tool.name)).toBe(true);
+      }
+    });
+
+    it('is deterministic and spreads the preview across categories', () => {
+      const { preview } = service.getMcpExample().tools;
+      const categories = preview.map((tool) => tool.category);
+
+      expect(preview).toEqual(service.getMcpExample().tools.preview);
+      expect(new Set(categories).size).toBe(categories.length);
+      expect(preview.length).toBeLessThanOrEqual(8);
     });
 
     it('should include capabilities configuration', () => {

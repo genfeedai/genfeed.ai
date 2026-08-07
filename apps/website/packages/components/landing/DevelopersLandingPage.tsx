@@ -5,7 +5,6 @@ import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack, VStack } from '@ui/layout/stack';
 import { Code } from '@ui/primitives/code';
 import { Pre } from '@ui/primitives/pre';
 import { Heading } from '@ui/typography/heading';
@@ -170,7 +169,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
         {/* Positioning card */}
         <section className="gsap-section max-w-4xl mx-auto pb-16 px-6">
           <div className="gen-card-spotlight p-8">
-            <VStack className="gap-3">
+            <div className="flex flex-col gap-3">
               <Heading as="h3" className="text-2xl font-bold">
                 Distribution Is the Bottleneck, Not Generation
               </Heading>
@@ -181,7 +180,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 worked. Genfeed is that layer: open source, agent-ready, and
                 built to run on your terms.
               </Text>
-              <HStack className="flex-wrap gap-2">
+              <div className="flex flex-row items-center flex-wrap gap-2">
                 {['Generate', 'Review', 'Publish', 'Measure'].map((tag) => (
                   <span
                     key={tag}
@@ -190,8 +189,8 @@ export default function DevelopersLandingPage(): React.ReactElement {
                     {tag}
                   </span>
                 ))}
-              </HStack>
-            </VStack>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -235,19 +234,19 @@ export default function DevelopersLandingPage(): React.ReactElement {
               const Icon = step.icon;
               return (
                 <div key={step.label}>
-                  <HStack className="items-center gap-6 py-6">
+                  <div className="flex flex-row items-center gap-6 py-6">
                     <div className="flex-shrink-0 size-14 flex items-center justify-center border border-[var(--gen-accent-border)] bg-[var(--gen-accent-bg)]">
                       <Icon className="size-6 text-[color:hsl(var(--gen-accent))]" />
                     </div>
-                    <VStack className="gap-1">
+                    <div className="flex flex-col gap-1">
                       <Text className="text-lg font-bold text-surface">
                         {step.label}
                       </Text>
                       <Text className="text-sm text-surface/65">
                         {step.sublabel}
                       </Text>
-                    </VStack>
-                  </HStack>
+                    </div>
+                  </div>
                   {index < STEPS.length - 1 && (
                     <div className="gen-divider-accent" />
                   )}
@@ -278,7 +277,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
               Connect the MCP server, or clone the repo and run the whole stack
               yourself. Free to start, open source forever.
             </Text>
-            <HStack className="flex-wrap gap-4 justify-center">
+            <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
@@ -309,7 +308,7 @@ export default function DevelopersLandingPage(): React.ReactElement {
                   View on GitHub
                 </Link>
               </ButtonTracked>
-            </HStack>
+            </div>
           </div>
         </section>
       </PageLayout>

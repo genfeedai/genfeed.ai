@@ -39,15 +39,17 @@ describe('ingredient.enum', () => {
       expect(Object.values(IngredientStatus)).toHaveLength(8);
     });
 
-    it('should have correct values', () => {
-      expect(IngredientStatus.DRAFT).toBe('draft');
-      expect(IngredientStatus.PROCESSING).toBe('processing');
-      expect(IngredientStatus.UPLOADED).toBe('uploaded');
-      expect(IngredientStatus.GENERATED).toBe('generated');
-      expect(IngredientStatus.VALIDATED).toBe('validated');
-      expect(IngredientStatus.FAILED).toBe('failed');
-      expect(IngredientStatus.ARCHIVED).toBe('archived');
-      expect(IngredientStatus.REJECTED).toBe('rejected');
+    it('matches Prisma IngredientStatus SCREAMING_SNAKE labels', () => {
+      expect(Object.values(IngredientStatus)).toEqual([
+        'DRAFT',
+        'PROCESSING',
+        'UPLOADED',
+        'GENERATED',
+        'VALIDATED',
+        'FAILED',
+        'ARCHIVED',
+        'REJECTED',
+      ]);
     });
   });
 

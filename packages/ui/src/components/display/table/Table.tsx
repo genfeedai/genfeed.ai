@@ -18,6 +18,33 @@ const Checkbox = dynamic(
   { ssr: false },
 );
 
+function TableSectionHeader({
+  label,
+  description,
+}: {
+  label?: string;
+  description?: string;
+}) {
+  if (!label && !description) {
+    return null;
+  }
+
+  return (
+    <div className="border-b border-border px-4 py-3">
+      {label ? (
+        <h3 className="truncate text-sm font-semibold tracking-[-0.01em]">
+          {label}
+        </h3>
+      ) : null}
+      {description ? (
+        <p className="mt-0.5 text-xs leading-snug text-muted-foreground">
+          {description}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AppTable<T>({
   items = EMPTY_ARRAY,
   isLoading = false,
@@ -26,6 +53,8 @@ export default function AppTable<T>({
 
   getRowKey,
   getRowClassName,
+  label,
+  description,
   emptyLabel = EMPTY_STATES.DEFAULT,
   emptyDescription,
   emptyState,
@@ -106,6 +135,7 @@ export default function AppTable<T>({
   if (isLoading) {
     // Shared list loading contract: table skeleton in the same card chrome as
     // empty/list so height does not clip when the fetch settles.
+    // SkeletonTable already owns the card shell — do not wrap it again.
     return (
       <SkeletonTable
         rows={Math.max(items?.length ?? 0, 6)}
@@ -124,6 +154,7 @@ export default function AppTable<T>({
         className="relative min-h-[12rem] w-full overflow-hidden rounded-card bg-card shadow-border"
         data-testid="table-empty"
       >
+        <TableSectionHeader label={label} description={description} />
         <CardEmptyContent
           label={emptyLabel}
           description={emptyDescription}
@@ -135,6 +166,7 @@ export default function AppTable<T>({
 
   return (
     <div className="relative overflow-hidden rounded-card bg-card shadow-border">
+      <TableSectionHeader label={label} description={description} />
       <div className="overflow-x-auto rounded">
         <table className="w-full caption-bottom">
           <thead

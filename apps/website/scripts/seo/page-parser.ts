@@ -40,13 +40,25 @@ const HTML_ENTITIES: Record<string, string> = {
   quot: '"',
 };
 
+/** Highest value String.fromCodePoint accepts; anything above throws RangeError. */
+const MAX_CODE_POINT = 0x10ffff;
+
 export function decodeEntities(text: string): string {
   return text.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, (match, entity: string) => {
-    if (entity.startsWith('#x') || entity.startsWith('#X')) {
-      return String.fromCodePoint(Number.parseInt(entity.slice(2), 16));
-    }
     if (entity.startsWith('#')) {
-      return String.fromCodePoint(Number.parseInt(entity.slice(1), 10));
+      const isHex = entity[1] === 'x' || entity[1] === 'X';
+      const digits = isHex ? entity.slice(2) : entity.slice(1);
+      const isWellFormed = (isHex ? /^[0-9a-f]+$/i : /^[0-9]+$/).test(digits);
+      const codePoint = Number.parseInt(digits, isHex ? 16 : 10);
+      // The character class also admits hex digits in a decimal entity, and any
+      // digit run can exceed the Unicode range. Both would make fromCodePoint
+      // throw out of parsePage, taking the whole audit down — including the
+      // SEO_SOFT guard, which sits far downstream. Leave the source text alone
+      // instead, the same way an unparseable JSON-LD block is tolerated.
+      if (!isWellFormed || codePoint > MAX_CODE_POINT) {
+        return match;
+      }
+      return String.fromCodePoint(codePoint);
     }
     return HTML_ENTITIES[entity.toLowerCase()] ?? match;
   });

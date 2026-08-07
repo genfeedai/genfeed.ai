@@ -2,7 +2,11 @@ import { cn } from '../lib/utils';
 
 export function getTabsListClassName(className?: string) {
   return cn(
-    'ship-ui inline-flex h-auto items-center gap-1 text-foreground/70',
+    'ship-ui inline-flex h-auto items-center gap-0.5 text-foreground/70',
+    // Segmented track for bare TabsList (no data-variant). Enhanced Tabs set
+    // data-variant and their own chrome via className — skip the default track.
+    'rounded-md border border-border bg-muted/40 p-0.5',
+    'data-[variant]:rounded-none data-[variant]:border-0 data-[variant]:bg-transparent data-[variant]:p-0',
     className,
   );
 }

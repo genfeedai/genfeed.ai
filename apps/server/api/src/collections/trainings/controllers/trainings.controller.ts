@@ -13,6 +13,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { TrainingAccessGuard } from '@api/helpers/guards/training-access/training-access.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
@@ -235,7 +236,7 @@ export class TrainingsController extends BaseCRUDController<
    * Override create method to handle training creation, archive generation, and Replicate submission
    */
   @Post()
-  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseGuards(SubscriptionGuard, TrainingAccessGuard, CreditsGuard)
   @Credits({
     description: 'Model training',
     modelKey: MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER,

@@ -57,12 +57,17 @@ export enum WorkflowLifecycle {
   ARCHIVED = 'archived',
 }
 
+/**
+ * Workflow execution lifecycle. Values match Prisma
+ * `WorkflowExecutionStatus` (SCREAMING_SNAKE).
+ * @see packages/prisma/prisma/schema.prisma `enum WorkflowExecutionStatus`
+ */
 export enum WorkflowExecutionStatus {
-  PENDING = 'pending',
-  RUNNING = 'running',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  CANCELLED = 'cancelled',
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum WorkflowExecutionTrigger {

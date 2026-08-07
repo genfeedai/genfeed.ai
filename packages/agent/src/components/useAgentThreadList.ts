@@ -48,6 +48,9 @@ export function useAgentThreadList({
   const setActiveRun = useAgentChatStore((s) => s.setActiveRun);
   const setWorkEvents = useAgentChatStore((s) => s.setWorkEvents);
   const resetStreamState = useAgentChatStore((s) => s.resetStreamState);
+  const resetActiveConversationState = useAgentChatStore(
+    (s) => s.resetActiveConversationState,
+  );
   const isStreaming = useAgentChatStore((s) => s.stream.isStreaming);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -87,7 +90,8 @@ export function useAgentThreadList({
     }
 
     abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     // Only flip loading when the store is empty so thread switches / soft
     // refreshes do not replace the list with a spinner.
@@ -103,9 +107,12 @@ export function useAgentThreadList({
             status: viewStatus,
             brandId: brandId || undefined,
           },
-          abortRef.current.signal,
+          controller.signal,
         ),
       );
+      if (controller.signal.aborted || abortRef.current !== controller) {
+        return false;
+      }
       setAuthError(null);
       setLoadError(null);
       const matchesBrandScope = (thread: {
@@ -147,7 +154,7 @@ export function useAgentThreadList({
       setListRevision((revision) => revision + 1);
       return true;
     } catch (error) {
-      if (abortRef.current?.signal.aborted) {
+      if (controller.signal.aborted || abortRef.current !== controller) {
         return false;
       }
       if (isAuthError(error)) {
@@ -162,13 +169,19 @@ export function useAgentThreadList({
       setListRevision((revision) => revision + 1);
       return false;
     } finally {
-      setIsLoading(false);
+      if (abortRef.current === controller && !controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [apiService, brandId, isActive, setThreads, viewStatus]);
 
   // Brand scope changes must clear the previous list, but this must happen in
   // an effect. Writing to the Zustand store during render causes React to
   // update the parent layout while AgentThreadList is still rendering.
+  // The active conversation belongs to the previous scope too, so it gets the
+  // same full reset the main chat uses (setActiveThread(null) +
+  // resetActiveConversationState) — clearing threads alone would leave stale
+  // messages, preset, run and stream state rendering under the new brand.
   useEffect(() => {
     if (!isActive || previousBrandIdRef.current === brandId) {
       return;
@@ -176,8 +189,16 @@ export function useAgentThreadList({
 
     previousBrandIdRef.current = brandId;
     setThreads([]);
+    setActiveThread(null);
+    resetActiveConversationState();
     setIsLoading(true);
-  }, [brandId, isActive, setThreads]);
+  }, [
+    brandId,
+    isActive,
+    resetActiveConversationState,
+    setActiveThread,
+    setThreads,
+  ]);
 
   // Retry uses effect-scoped setTimeout; cleanup clears it + aborts in-flight fetch.
   // react-doctor-disable-next-line react-doctor/effect-needs-cleanup

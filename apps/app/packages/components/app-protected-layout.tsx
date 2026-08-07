@@ -48,6 +48,7 @@ import {
   truncateBreadcrumbLabel,
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
+import ImpersonationBanner from './impersonation-banner';
 import {
   isProtectedEditorCanvasRoute,
   isProtectedWorkspaceRoute,
@@ -391,6 +392,9 @@ function AppLayoutWithDynamicMenu({
     ) : null;
   const shellBanner = (
     <>
+      {/* Unconditional: the "Viewing as {user}" state must survive every
+          route the impersonated session can reach, not a subset. */}
+      <ImpersonationBanner />
       {isDesktopShell ? null : <ProductionDataBanner />}
       {lowCreditsBanner}
     </>
@@ -497,6 +501,10 @@ function AppLayoutWithDynamicMenu({
         menuItems={navigationMenuItems}
         orgSlug={orgSlug}
         isWorkspaceShell={isWorkspaceShellMounted}
+        // Agent conversation owns its own thread scroller. Lock the shell so
+        // the credits banner cannot push min-h page content past the viewport
+        // (document scrollbar + thread scrollbar).
+        lockViewportHeight={isConversationRoute}
       >
         {/* The shell is the body of a frame that is already there, so a route
           it does not know still renders — it just renders without the

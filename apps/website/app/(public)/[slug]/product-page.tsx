@@ -3,7 +3,6 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { getPlanLabel } from '@helpers/business/pricing/pricing.helper';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import { VStack } from '@ui/layout/stack';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import { Heading } from '@ui/typography/heading';
@@ -135,14 +134,14 @@ export default function ProductPage({ product }: { product: Product }) {
 
       <section className="max-w-4xl mx-auto pb-20">
         <Card label="Perfect For">
-          <VStack gap={2}>
+          <div className="flex flex-col gap-2">
             {product.targetAudience.map((audience) => (
               <li key={audience} className="flex items-start gap-2 list-none">
                 <Check className="size-4 text-success mt-1 flex-shrink-0" />
                 <span>{audience}</span>
               </li>
             ))}
-          </VStack>
+          </div>
         </Card>
       </section>
 

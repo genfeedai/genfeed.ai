@@ -33,7 +33,7 @@ export const videoCommand = new Command('video')
       const spinner = ora('Creating video...').start();
 
       const video = await createVideo({
-        brand: brandId,
+        brandId,
         duration: options.duration,
         model,
         resolution: options.resolution,

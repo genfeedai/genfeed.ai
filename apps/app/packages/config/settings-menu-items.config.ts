@@ -14,6 +14,8 @@ import {
   MessageSquare,
   Mic,
   Palette,
+  Plug,
+  Receipt,
   Send,
   Share2,
   Sparkles,
@@ -142,18 +144,7 @@ function buildOrganizationMenuItems(
       outline: Bot,
       solid: Bot,
     },
-    ...(isEnterprise
-      ? [
-          {
-            group: 'Billing',
-            href: APP_ROUTES.SETTINGS.BILLING,
-            hrefScope: 'organization' as const,
-            label: 'Billing',
-            outline: CreditCard,
-            solid: CreditCard,
-          },
-        ]
-      : []),
+    // Billing is a sidebar group header only — pages live under it.
     ...(showCredits
       ? [
           {
@@ -164,6 +155,22 @@ function buildOrganizationMenuItems(
             outline: CreditCard,
             solid: CreditCard,
           },
+        ]
+      : []),
+    ...(isEnterprise
+      ? [
+          {
+            group: 'Billing',
+            href: APP_ROUTES.SETTINGS.SUBSCRIPTION,
+            hrefScope: 'organization' as const,
+            label: 'Subscription',
+            outline: Receipt,
+            solid: Receipt,
+          },
+        ]
+      : []),
+    ...(showCredits
+      ? [
           {
             group: 'Billing',
             href: APP_ROUTES.SETTINGS.USAGE,
@@ -181,6 +188,14 @@ function buildOrganizationMenuItems(
       label: 'API Keys',
       outline: Key,
       solid: Key,
+    },
+    {
+      group: 'Developer',
+      href: APP_ROUTES.SETTINGS.INTEGRATIONS,
+      hrefScope: 'organization',
+      label: 'Integrations',
+      outline: Plug,
+      solid: Plug,
     },
     {
       group: 'Developer',

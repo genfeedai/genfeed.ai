@@ -161,7 +161,7 @@ describe('WorkflowExecutionController', () => {
       mockWorkflowRunControlService.resumeFromFailed.mockResolvedValue({
         message: 'Partial execution started',
         runId: 'exec-2',
-        status: 'pending',
+        status: 'PENDING',
       });
 
       const result = await controller.resumeExecution(

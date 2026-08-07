@@ -1,96 +1,134 @@
 import { get } from './client';
 import { flattenSingle, type JsonApiSingleResponse } from './json-api';
 
-export interface PerformanceItem {
-  id: string;
-  title?: string;
-  platform?: string;
-  engagementRate?: number;
-  impressions?: number;
-  clicks?: number;
-  likes?: number;
-  shares?: number;
+/**
+ * Query parameter names mirror
+ * apps/server/api/src/collections/content-performance/controllers/performance-summary.controller.ts
+ * exactly (`brandId`, `topN`, `worstN`, `limit`, `startDate`, `endDate`).
+ * The controller rejects a missing or malformed `brandId` with a 400.
+ */
+
+export interface PerformanceContentItem {
+  postId: string;
+  title: string;
+  description: string;
+  platform: string;
+  engagementRate: number;
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  publishDate?: string;
+}
+
+export interface PlatformEngagement {
+  platform: string;
+  avgEngagementRate: number;
+  totalPosts: number;
+}
+
+export interface ContentTypeEngagement {
+  category: string;
+  avgEngagementRate: number;
+  totalPosts: number;
+}
+
+export interface PostingTimeAnalysis {
+  hour: number;
+  avgEngagementRate: number;
+  postCount: number;
+}
+
+export interface WeekOverWeekTrend {
+  direction: 'up' | 'down' | 'stable';
+  percentageChange: number;
+  currentEngagement: number;
+  previousEngagement: number;
 }
 
 export interface WeeklySummary {
-  period: string;
+  topPerformers: PerformanceContentItem[];
+  worstPerformers: PerformanceContentItem[];
+  avgEngagementByPlatform: PlatformEngagement[];
+  avgEngagementByContentType: ContentTypeEngagement[];
+  bestPostingTimes: PostingTimeAnalysis[];
+  topHooks: string[];
+  weekOverWeekTrend: WeekOverWeekTrend;
+}
+
+export interface PromptPerformanceItem {
+  promptSnippet: string;
+  avgEngagementRate: number;
   totalPosts: number;
-  totalEngagement: number;
-  averageEngagementRate: number;
-  topPerformers: PerformanceItem[];
-  worstPerformers: PerformanceItem[];
+  totalViews: number;
 }
 
-export interface TopPerformers {
-  items: PerformanceItem[];
-  period?: string;
+export interface DateRangeParams {
+  endDate?: string;
+  startDate?: string;
 }
 
-export interface PromptPerformance {
-  prompts: PromptStat[];
-  period?: string;
+export interface WeeklySummaryParams extends DateRangeParams {
+  brandId: string;
+  topN?: number;
+  worstN?: number;
 }
 
-export interface PromptStat {
-  prompt: string;
-  uses: number;
-  averageEngagement: number;
-  bestPerformer?: PerformanceItem;
+export interface TopPerformersParams extends DateRangeParams {
+  brandId: string;
+  limit?: number;
 }
 
-export async function getWeeklySummary(params?: {
-  brand?: string;
-  end?: string;
-  start?: string;
-  top?: number;
-  worst?: number;
-}): Promise<WeeklySummary> {
+export interface PromptPerformanceParams extends DateRangeParams {
+  brandId: string;
+}
+
+function buildQuery(params: Record<string, number | string | undefined>): string {
   const query = new URLSearchParams();
-  if (params?.brand) query.set('brand', params.brand);
-  if (params?.top) query.set('top', String(params.top));
-  if (params?.worst) query.set('worst', String(params.worst));
-  if (params?.start) query.set('start', params.start);
-  if (params?.end) query.set('end', params.end);
-  const qs = query.toString();
-  const path = qs
-    ? `/content-performance/summary/weekly?${qs}`
-    : '/content-performance/summary/weekly';
-  const response = await get<JsonApiSingleResponse>(path);
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') {
+      query.set(key, String(value));
+    }
+  }
+  return query.toString();
+}
+
+export async function getWeeklySummary(params: WeeklySummaryParams): Promise<WeeklySummary> {
+  const qs = buildQuery({
+    brandId: params.brandId,
+    endDate: params.endDate,
+    startDate: params.startDate,
+    topN: params.topN,
+    worstN: params.worstN,
+  });
+  const response = await get<JsonApiSingleResponse>(`/content-performance/summary/weekly?${qs}`);
   return flattenSingle<WeeklySummary>(response);
 }
 
-export async function getTopPerformers(params?: {
-  brand?: string;
-  end?: string;
-  limit?: number;
-  start?: string;
-}): Promise<TopPerformers> {
-  const query = new URLSearchParams();
-  if (params?.brand) query.set('brand', params.brand);
-  if (params?.limit) query.set('limit', String(params.limit));
-  if (params?.start) query.set('start', params.start);
-  if (params?.end) query.set('end', params.end);
-  const qs = query.toString();
-  const path = qs
-    ? `/content-performance/summary/top-performers?${qs}`
-    : '/content-performance/summary/top-performers';
-  const response = await get<JsonApiSingleResponse>(path);
-  return flattenSingle<TopPerformers>(response);
+/** The controller returns a plain array here — no JSON:API envelope. */
+export async function getTopPerformers(
+  params: TopPerformersParams
+): Promise<PerformanceContentItem[]> {
+  const qs = buildQuery({
+    brandId: params.brandId,
+    endDate: params.endDate,
+    limit: params.limit,
+    startDate: params.startDate,
+  });
+  return await get<PerformanceContentItem[]>(`/content-performance/summary/top-performers?${qs}`);
 }
 
-export async function getPromptPerformance(params?: {
-  brand?: string;
-  end?: string;
-  start?: string;
-}): Promise<PromptPerformance> {
-  const query = new URLSearchParams();
-  if (params?.brand) query.set('brand', params.brand);
-  if (params?.start) query.set('start', params.start);
-  if (params?.end) query.set('end', params.end);
-  const qs = query.toString();
-  const path = qs
-    ? `/content-performance/summary/prompt-performance?${qs}`
-    : '/content-performance/summary/prompt-performance';
-  const response = await get<JsonApiSingleResponse>(path);
-  return flattenSingle<PromptPerformance>(response);
+/** The controller returns a plain array here — no JSON:API envelope. */
+export async function getPromptPerformance(
+  params: PromptPerformanceParams
+): Promise<PromptPerformanceItem[]> {
+  const qs = buildQuery({
+    brandId: params.brandId,
+    endDate: params.endDate,
+    startDate: params.startDate,
+  });
+  return await get<PromptPerformanceItem[]>(
+    `/content-performance/summary/prompt-performance?${qs}`
+  );
 }

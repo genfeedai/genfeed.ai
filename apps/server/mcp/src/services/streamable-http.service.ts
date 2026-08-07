@@ -47,12 +47,33 @@ interface AuthenticatedRequest extends Request {
  */
 @Injectable()
 export class StreamableHttpService {
+  /**
+   * Whether the `/mcp` Express routes are live. Each request builds a throwaway
+   * `Server` + transport pair, so there is no long-lived object to poll —
+   * "ready" means the bootstrap in `main.ts` mounted the routes that create
+   * them. Health and manifest endpoints report this, and nothing else.
+   */
+  private isTransportMounted = false;
+
   constructor(
     private readonly logger: LoggerService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly analyticsService: PostHogAnalyticsService,
   ) {}
+
+  /**
+   * Called once by the bootstrap after the `/mcp` POST/GET/DELETE routes are
+   * registered on the Express instance.
+   */
+  markTransportMounted(): void {
+    this.isTransportMounted = true;
+    this.logger.log('MCP Streamable HTTP transport mounted at /mcp');
+  }
+
+  isTransportReady(): boolean {
+    return this.isTransportMounted;
+  }
 
   async handlePost(req: Request, res: Response): Promise<void> {
     await this.processRequest(req, res);

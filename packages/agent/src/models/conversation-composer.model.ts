@@ -82,8 +82,17 @@ export interface PersistedConversationComposerAttachment {
   url?: string;
 }
 
+/** Library content picked via the visual reference picker (not TipTap tokens). */
+export interface PersistedConversationComposerContentReference {
+  contentTitle: string;
+  contentType: string;
+  id: string;
+  thumbnailUrl?: string;
+}
+
 export interface PersistedConversationComposerDraft {
   attachments: PersistedConversationComposerAttachment[];
+  contentReferences: PersistedConversationComposerContentReference[];
   document: JSONContent | null;
   hasFocusIntent: boolean;
   plainText: string;

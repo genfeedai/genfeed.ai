@@ -28,7 +28,14 @@ export const AGENT_MODELS: AgentModelOption[] =
     ...(model.isReasoning ? { isReasoning: true } : {}),
     key: model.key,
     label: model.label,
-  }));
+  })).toSorted((left, right) => {
+    const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
+    const rightCost = right.creditCost ?? Number.POSITIVE_INFINITY;
+    if (leftCost !== rightCost) {
+      return leftCost - rightCost;
+    }
+    return left.label.localeCompare(right.label);
+  });
 
 export function getAgentModelByKey(key: string): AgentModelOption | undefined {
   return AGENT_MODELS.find((m) => m.key === key);

@@ -602,6 +602,7 @@
       "name": "@genfeedai/website",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/api-types": "*",
         "@genfeedai/auth-client": "*",
         "@genfeedai/config": "*",
         "@genfeedai/constants": "*",

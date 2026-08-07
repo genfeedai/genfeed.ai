@@ -3,9 +3,9 @@ import {
   AGENT_SLASH_COMMANDS,
   type AgentSlashCommand,
 } from '@genfeedai/agent/constants/agent-slash-commands.constant';
-import { Extension, ReactRenderer } from '@tiptap/react';
+import { createSuggestionPopupRenderer } from '@genfeedai/agent/utils/suggestion-popup.util';
+import { Extension } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
-import tippy, { type Instance } from 'tippy.js';
 
 type SlashCommandSuggestionOptions = Omit<
   SuggestionOptions<AgentSlashCommand>,
@@ -39,51 +39,7 @@ export const SlashCommands = Extension.create<{
               cmd.label.toLowerCase().includes(lower),
           );
         },
-        render: () => {
-          let component: ReactRenderer;
-          let popup: Instance[];
-
-          return {
-            onExit: () => {
-              popup[0].destroy();
-              component.destroy();
-            },
-            onKeyDown: (props) => {
-              if (props.event.key === 'Escape') {
-                popup[0].hide();
-                return true;
-              }
-              return (
-                (
-                  component.ref as {
-                    onKeyDown?: (props: { event: KeyboardEvent }) => boolean;
-                  }
-                )?.onKeyDown?.(props) ?? false
-              );
-            },
-            onStart: (props) => {
-              component = new ReactRenderer(AgentCommandList, {
-                editor: props.editor,
-                props,
-              });
-              popup = tippy('body', {
-                appendTo: () => document.body,
-                content: component.element,
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-                interactive: true,
-                placement: 'bottom-start',
-                showOnCreate: true,
-                trigger: 'manual',
-              });
-            },
-            onUpdate: (props) => {
-              component.updateProps(props);
-              popup[0].setProps({
-                getReferenceClientRect: props.clientRect as () => DOMRect,
-              });
-            },
-          };
-        },
+        render: () => createSuggestionPopupRenderer(AgentCommandList),
         startOfLine: true,
       } satisfies Partial<SlashCommandSuggestionOptions>,
     };
