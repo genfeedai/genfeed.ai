@@ -1,6 +1,5 @@
 'use client';
 
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { authClient } from '@genfeedai/auth-client';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { PlatformRole } from '@genfeedai/enums';
@@ -11,6 +10,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { UsersService } from '@services/organization/users.service';
 import { useQuery } from '@tanstack/react-query';
+import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Users, VenetianMask } from 'lucide-react';
