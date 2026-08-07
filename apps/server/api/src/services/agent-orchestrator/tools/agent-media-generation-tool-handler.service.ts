@@ -25,13 +25,54 @@ import {
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
 } from '@genfeedai/constants';
-import { ActivitySource, formatPlatformLabel, Status } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  ContentFormat,
+  formatPlatformLabel,
+  Status,
+} from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
+
+/**
+ * Translate the API's `ContentMixConfig` (`imagePercent`, `videoPercent`, …)
+ * into the `ContentFormat`-keyed record `estimateBatchGenerationCredits` reads.
+ *
+ * The two shapes share no keys. Passing the config straight through — which an
+ * `as never` used to allow — spread junk keys over the pricing defaults and
+ * left every format at its default weight, so the pre-flight credit estimate
+ * silently ignored the caller's requested mix.
+ */
+function toBatchEstimateContentMix(
+  contentMix: unknown,
+): Partial<Record<ContentFormat, number>> | undefined {
+  if (!contentMix || typeof contentMix !== 'object') {
+    return undefined;
+  }
+
+  const mix = contentMix as Record<string, unknown>;
+  const byFormat: Array<[ContentFormat, unknown]> = [
+    [ContentFormat.CAROUSEL, mix.carouselPercent],
+    [ContentFormat.IMAGE, mix.imagePercent],
+    [ContentFormat.REEL, mix.reelPercent],
+    [ContentFormat.STORY, mix.storyPercent],
+    [ContentFormat.VIDEO, mix.videoPercent],
+  ];
+
+  const estimate: Partial<Record<ContentFormat, number>> = {};
+  for (const [format, percent] of byFormat) {
+    if (typeof percent === 'number' && Number.isFinite(percent)) {
+      estimate[format] = percent;
+    }
+  }
+
+  // No recognizable keys: let the estimator apply its own defaults.
+  return Object.keys(estimate).length > 0 ? estimate : undefined;
+}
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -906,7 +947,7 @@ export class AgentMediaGenerationToolHandler {
     const pricingOptions = this.resolveBatchPricingOptions(ctx);
     const estimatedCredits = estimateBatchGenerationCredits(
       {
-        contentMix: params.contentMix as never,
+        contentMix: toBatchEstimateContentMix(params.contentMix),
         count,
         platforms,
       },

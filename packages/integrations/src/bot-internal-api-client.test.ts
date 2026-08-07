@@ -33,7 +33,7 @@ const validPayload = {
   id: 'int-1',
   organizationId: 'org-1',
   botToken: 'tok',
-  status: 'active',
+  status: 'ACTIVE',
   config: {},
 };
 

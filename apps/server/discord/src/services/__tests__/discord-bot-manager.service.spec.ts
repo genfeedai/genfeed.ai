@@ -94,7 +94,7 @@ describe('DiscordBotManager', () => {
     id: 'discord-integration-1',
     orgId: 'org-789',
     platform: 'discord',
-    status: 'active',
+    status: 'ACTIVE',
     updatedAt: new Date('2024-01-01'),
   };
 

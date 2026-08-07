@@ -68,6 +68,77 @@ const KIND_PATTERNS: Record<AssertionKind, RegExp> = {
   ts_ignore: /@ts-ignore\b/g,
 };
 
+/**
+ * `as any` / `as never` are code constructs, so prose and string data that
+ * merely spell them are not violations — a doc comment reading "never `as
+ * never`" used to count as one and fail the ratchet on a clean file.
+ *
+ * `@ts-expect-error` is the opposite: it only ever *is* a comment, so it is matched
+ * against the raw line and never goes through here.
+ *
+ * Comments and string bodies are blanked rather than deleted so column
+ * positions still line up with the source; a `//` comment is the one case that
+ * truncates, since nothing after it is code. Returning the block-comment state
+ * lets the caller carry it across lines.
+ */
+export function stripCommentsAndStrings(
+  line: string,
+  inBlockComment: boolean,
+): { inBlockComment: boolean; code: string } {
+  let code = '';
+  let block = inBlockComment;
+  let quote: string | null = null;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i] as string;
+    const next = line[i + 1];
+
+    if (block) {
+      if (char === '*' && next === '/') {
+        block = false;
+        code += '  ';
+        i += 1;
+        continue;
+      }
+      code += ' ';
+      continue;
+    }
+
+    if (quote) {
+      // Skip the escaped character wholesale so `'\\'` ends the string here.
+      if (char === '\\') {
+        code += '  ';
+        i += 1;
+        continue;
+      }
+      if (char === quote) {
+        quote = null;
+      }
+      code += ' ';
+      continue;
+    }
+
+    if (char === '/' && next === '*') {
+      block = true;
+      code += '  ';
+      i += 1;
+      continue;
+    }
+    if (char === '/' && next === '/') {
+      break;
+    }
+    if (char === "'" || char === '"' || char === '`') {
+      quote = char;
+      code += ' ';
+      continue;
+    }
+
+    code += char;
+  }
+
+  return { code, inBlockComment: block };
+}
+
 function toPosix(filePath: string): string {
   return filePath.split(path.sep).join('/');
 }
@@ -99,17 +170,23 @@ export function scanTypeAssertions(
     }
 
     const lines = text.split(/\r?\n/);
+    let inBlockComment = false;
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index] ?? '';
+      const stripped = stripCommentsAndStrings(line, inBlockComment);
+      inBlockComment = stripped.inBlockComment;
+
       for (const [kind, pattern] of Object.entries(KIND_PATTERNS) as Array<
         [AssertionKind, RegExp]
       >) {
+        // `@ts-expect-error` lives in a comment by definition; the cast kinds do not.
+        const haystack = kind === 'ts_ignore' ? line : stripped.code;
         pattern.lastIndex = 0;
-        if (!pattern.test(line)) {
+        if (!pattern.test(haystack)) {
           continue;
         }
         // Reset after test(); count matches on a fresh regex.
-        const matches = line.match(new RegExp(pattern.source, 'g')) ?? [];
+        const matches = haystack.match(new RegExp(pattern.source, 'g')) ?? [];
         for (const match of matches) {
           occurrences.push({
             file,
