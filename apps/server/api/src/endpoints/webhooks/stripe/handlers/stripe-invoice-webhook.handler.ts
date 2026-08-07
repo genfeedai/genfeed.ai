@@ -4,7 +4,11 @@ import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhoo
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import { extractInvoiceSubscriptionId } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
-import { ActivitySource, ByokBillingStatus } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  ByokBillingStatus,
+  SubscriptionStatus,
+} from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
@@ -69,7 +73,7 @@ export class StripeInvoiceWebhookHandler {
       const updatedSubscription = await this.subscriptionsService.patch(
         String(subscription.id),
         {
-          status: 'active',
+          status: SubscriptionStatus.ACTIVE,
         },
       );
 
@@ -179,13 +183,13 @@ export class StripeInvoiceWebhookHandler {
           stripeSubscriptionId,
         });
 
-        // Update subscription status to past_due so the app can show
+        // Update subscription status to PAST_DUE so the app can show
         // a banner prompting the user to update their payment method
         await this.subscriptionsService.patch(String(subscription.id), {
-          status: 'past_due',
+          status: SubscriptionStatus.PAST_DUE,
         });
 
-        this.loggerService.log(`${url} subscription marked as past_due`, {
+        this.loggerService.log(`${url} subscription marked as PAST_DUE`, {
           subscriptionId: subscription.id,
         });
       }

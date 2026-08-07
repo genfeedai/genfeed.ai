@@ -4,7 +4,11 @@ import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhoo
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { type SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
+import {
+  SubscriptionStatus,
+  SubscriptionTier,
+  toPrismaSubscriptionStatus,
+} from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
   type ISubscriptionsService,
@@ -158,7 +162,7 @@ export class StripeSubscriptionWebhookHandler {
       currentPeriodEnd: currentPeriodEnd && new Date(currentPeriodEnd * 1000),
       currentPeriodStart:
         currentPeriodStart && new Date(currentPeriodStart * 1000),
-      status: subscription.status as SubscriptionStatus,
+      status: toPrismaSubscriptionStatus(subscription.status),
       stripePriceId: subscription.items.data[0].price.id,
       stripeSubscriptionId: subscription.id,
       plan,
@@ -212,7 +216,7 @@ export class StripeSubscriptionWebhookHandler {
         currentPeriodEnd: currentPeriodEnd
           ? new Date(currentPeriodEnd * 1000)
           : undefined,
-        status: subscription.status,
+        status: toPrismaSubscriptionStatus(subscription.status),
       };
 
       const updatedSubscription = await this.subscriptionsService.patch(
@@ -290,7 +294,7 @@ export class StripeSubscriptionWebhookHandler {
         {
           cancelAtPeriodEnd: subscription.cancel_at_period_end,
           isDeleted: true,
-          status: 'canceled',
+          status: SubscriptionStatus.CANCELLED,
         },
       );
 

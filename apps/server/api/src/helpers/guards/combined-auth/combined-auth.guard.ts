@@ -5,6 +5,7 @@ import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   Brand,
   Organization,
@@ -108,7 +109,7 @@ export class CombinedAuthGuard implements CanActivate {
           brand: defaultBrand.id,
           isSuperAdmin: true,
           organization: defaultOrg.id,
-          stripeSubscriptionStatus: 'active',
+          stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
           subscriptionTier: 'free',
           user: defaultUser.id,
         },

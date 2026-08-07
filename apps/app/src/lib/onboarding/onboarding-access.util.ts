@@ -21,7 +21,7 @@ const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
   [SubscriptionStatus.ACTIVE]: 'Active',
   [SubscriptionStatus.TRIALING]: 'Trialing',
   [SubscriptionStatus.PAST_DUE]: 'Past due',
-  [SubscriptionStatus.CANCELED]: 'Canceled',
+  [SubscriptionStatus.CANCELLED]: 'Canceled',
   [SubscriptionStatus.INCOMPLETE]: 'Incomplete',
   [SubscriptionStatus.INCOMPLETE_EXPIRED]: 'Incomplete (expired)',
   [SubscriptionStatus.UNPAID]: 'Unpaid',

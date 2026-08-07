@@ -161,7 +161,7 @@ export class AdminFleetTrainingOrchestratorService {
       progress: 0,
       provider: TrainingProvider.GENFEED_AI,
       sources: sourceIds,
-      stage: TrainingStage.QUEUED,
+      stage: TrainingStage.PENDING,
       steps,
       trigger: triggerWord,
       userId,
