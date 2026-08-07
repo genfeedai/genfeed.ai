@@ -2121,14 +2121,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/services/video-music-orchestration.service.spec.ts",
-      "fingerprint": "7dc25e9011c810bf2c7f",
-      "message": "Property 'MUSICGEN' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 104 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/voices/entities/voice.entity.spec.ts",
