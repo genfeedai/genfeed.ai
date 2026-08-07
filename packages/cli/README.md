@@ -17,7 +17,7 @@ CLI tool for [Genfeed.ai](https://genfeed.ai) - Generate, schedule, analyze, and
 
 ## Last Verified
 
-- **Date:** 2026-05-03
+- **Date:** 2026-08-06
 - **Implemented state source:** local `packages/cli/` commands and package metadata
 - **Delivery state source:** GitHub issues/project metadata
 
@@ -88,18 +88,22 @@ genfeed generate video "A drone flying over mountains"
 
 ## Authentication
 
-Get your API key from the [Genfeed.ai dashboard](https://app.genfeed.ai/settings/api-keys).
-
-Interactive login:
+Browser login (opens `https://app.genfeed.ai/oauth/cli` and completes a PKCE flow):
 
 ```bash
 genfeed login
 ```
 
-Non-interactive login:
+Non-interactive login with an API key from the [Genfeed.ai dashboard](https://app.genfeed.ai/settings/api-keys) — also the path for self-hosted deployments:
 
 ```bash
 genfeed login --key gf_live_xxx
+```
+
+Paste a key manually instead of opening a browser:
+
+```bash
+genfeed login --interactive
 ```
 
 Self-hosted login — point the browser flow at your own deployment:
@@ -120,6 +124,7 @@ The same values are settable outside login via `genfeed config set api-url <url>
 `genfeed config set app-url <url>`, or the `GENFEED_API_URL` / `GENFEED_APP_URL` env vars.
 `genfeed config show` prints the resolved app URL and marks it `(derived)` when it was inferred.
 
+>>>>>>> origin/master
 Check current user:
 
 ```bash
@@ -133,6 +138,32 @@ genfeed logout
 ```
 
 ## Commands
+
+### API Keys
+
+List, create, rotate, and revoke API keys for headless and MCP access:
+
+```bash
+genfeed keys list
+genfeed keys create -n "CI publisher" -p content
+genfeed keys rotate <id>
+genfeed keys revoke <id>
+```
+
+`create` takes a scope preset via `-p` (`mcp`, `read`, `content`, `full`) or an explicit `--scopes` list, plus optional `--expires-at`, `--rate-limit`, and `--allow-ip`. The secret is printed once, on creation and on rotation.
+
+### CLI Configuration
+
+Inspect and edit the active profile:
+
+```bash
+genfeed config show
+genfeed config path
+genfeed config set api-url http://localhost:3010/v1
+genfeed config reset --force
+```
+
+Settable keys: `agent-model`, `api-key`, `api-url`, `brand`, `fleet-host`, `fleet-port`, `org-id`, `persona`, `role`.
 
 ### Organizations
 
@@ -485,7 +516,7 @@ Config is stored in `~/.gf/config.json`:
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please see the monorepo [CONTRIBUTING.md](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md) for guidelines.
 
 ## License
 
