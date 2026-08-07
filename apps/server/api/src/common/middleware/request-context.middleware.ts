@@ -13,6 +13,7 @@ import {
 import { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { SubscriptionStatus } from '@genfeedai/enums';
 import {
   type ISubscriptionsService,
   SUBSCRIPTIONS_SERVICE,
@@ -157,7 +158,7 @@ export class RequestContextMiddleware implements NestMiddleware {
         hydratedAt: Date.now(),
         isSuperAdmin: true,
         organizationId: defaultOrg.id,
-        stripeSubscriptionStatus: 'active',
+        stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
         subscriptionTier: settings?.subscriptionTier || 'free',
         userId: defaultUser.id,
       };

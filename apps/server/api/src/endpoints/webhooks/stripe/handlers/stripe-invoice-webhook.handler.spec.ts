@@ -7,6 +7,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import {
   ByokBillingStatus,
   SubscriptionPlan,
+  SubscriptionStatus,
   SubscriptionTier,
 } from '@genfeedai/enums';
 import {
@@ -503,7 +504,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         stripeSubscriptionId: 'sub_stripe_1',
       });
       expect(subscriptionsService.patch).toHaveBeenCalledWith('sub_db_1', {
-        status: 'past_due',
+        status: SubscriptionStatus.PAST_DUE,
       });
     });
 

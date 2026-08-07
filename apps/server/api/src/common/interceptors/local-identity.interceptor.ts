@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
+import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   Brand,
   Organization,
@@ -64,7 +65,7 @@ export class LocalIdentityInterceptor implements NestInterceptor {
           brand: defaultBrand.id,
           isSuperAdmin: true,
           organization: defaultOrg.id,
-          stripeSubscriptionStatus: 'active',
+          stripeSubscriptionStatus: SubscriptionStatus.ACTIVE,
           subscriptionTier: 'free',
           user: defaultUser.id,
         },

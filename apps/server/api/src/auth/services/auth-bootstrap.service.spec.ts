@@ -17,10 +17,10 @@ const {
 
 vi.mock('@genfeedai/enums', () => ({
   SubscriptionStatus: {
-    ACTIVE: 'active',
-    CANCELED: 'canceled',
-    PAST_DUE: 'past_due',
-    TRIALING: 'trialing',
+    ACTIVE: 'ACTIVE',
+    CANCELLED: 'CANCELLED',
+    PAST_DUE: 'PAST_DUE',
+    TRIALING: 'TRIALING',
   },
   SubscriptionTier: {
     BYOK: 'byok',
@@ -29,6 +29,15 @@ vi.mock('@genfeedai/enums', () => ({
     FREE: 'free',
     PRO: 'pro',
     SCALE: 'scale',
+  },
+  subscriptionStatusFromStripe: (status: string | null | undefined) => {
+    const normalized = String(status ?? '')
+      .replace(/-/g, '_')
+      .toUpperCase();
+    if (normalized === 'CANCELED' || normalized === 'CANCELLED') {
+      return 'CANCELLED';
+    }
+    return normalized || 'INCOMPLETE';
   },
 }));
 

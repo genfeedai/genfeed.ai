@@ -168,13 +168,13 @@ describe('AdminFleetTrainingService', () => {
 
   describe('updateStage', () => {
     it('should patch training with stage and progress', async () => {
-      await service.updateStage('training-1', TrainingStage.PREPROCESSING, 10);
+      await service.updateStage('training-1', TrainingStage.PENDING, 10);
 
       expect(trainingsService.patch).toHaveBeenCalledWith(
         'training-1',
         expect.objectContaining({
           progress: 10,
-          stage: TrainingStage.PREPROCESSING,
+          stage: TrainingStage.PENDING,
         }),
       );
     });
@@ -192,14 +192,14 @@ describe('AdminFleetTrainingService', () => {
       );
     });
 
-    it('should set completedAt and COMPLETED status for COMPLETED stage', async () => {
-      await service.updateStage('training-1', TrainingStage.COMPLETED, 100);
+    it('should set completedAt and COMPLETED status for READY stage', async () => {
+      await service.updateStage('training-1', TrainingStage.READY, 100);
 
       expect(trainingsService.patch).toHaveBeenCalledWith(
         'training-1',
         expect.objectContaining({
           completedAt: expect.any(Date),
-          stage: TrainingStage.COMPLETED,
+          stage: TrainingStage.READY,
           status: TrainingStatus.COMPLETED,
         }),
       );

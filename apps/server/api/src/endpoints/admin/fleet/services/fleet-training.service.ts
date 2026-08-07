@@ -196,10 +196,10 @@ export class AdminFleetTrainingService {
       update.startedAt = new Date();
       update.status = TrainingStatus.PROCESSING;
     }
-    if (stage === TrainingStage.COMPLETED || stage === TrainingStage.FAILED) {
+    if (stage === TrainingStage.READY || stage === TrainingStage.FAILED) {
       update.completedAt = new Date();
       update.status =
-        stage === TrainingStage.COMPLETED
+        stage === TrainingStage.READY
           ? TrainingStatus.COMPLETED
           : TrainingStatus.FAILED;
     }
@@ -228,12 +228,8 @@ export class AdminFleetTrainingService {
     });
 
     try {
-      // Stage: PREPROCESSING — verify dataset on GPU via HTTP
-      await this.updateStage(
-        params.trainingId,
-        TrainingStage.PREPROCESSING,
-        10,
-      );
+      // Stage: PENDING — verify dataset on GPU via HTTP (queued/preprocess)
+      await this.updateStage(params.trainingId, TrainingStage.PENDING, 10);
 
       const dataset = await this.requestImagesApi<ImagesDatasetResponse>(
         `datasets/${encodeURIComponent(params.personaSlug)}`,
@@ -251,11 +247,7 @@ export class AdminFleetTrainingService {
         message: 'Dataset verified via NestJS images service',
       });
 
-      await this.updateStage(
-        params.trainingId,
-        TrainingStage.PREPROCESSING,
-        30,
-      );
+      await this.updateStage(params.trainingId, TrainingStage.PENDING, 30);
 
       // Stage: TRAINING — start training via NestJS images service
       await this.updateStage(params.trainingId, TrainingStage.TRAINING, 30);
@@ -328,11 +320,13 @@ export class AdminFleetTrainingService {
         { timeoutMs: 15_000 },
       );
 
-      // Map GPU job stage to TrainingStage enum
+      // Map GPU job stages into the Prisma TrainingStage set.
       const stageMap: Record<string, TrainingStage> = {
-        completed: TrainingStage.COMPLETED,
+        completed: TrainingStage.READY,
         failed: TrainingStage.FAILED,
-        postprocessing: TrainingStage.POSTPROCESSING,
+        postprocessing: TrainingStage.UPLOADING,
+        preprocessing: TrainingStage.PENDING,
+        queued: TrainingStage.PENDING,
         training: TrainingStage.TRAINING,
         uploading: TrainingStage.UPLOADING,
       };
@@ -349,7 +343,7 @@ export class AdminFleetTrainingService {
           LoraStatus.READY,
           `${loraName}.safetensors`,
         );
-        await this.updateStage(trainingId, TrainingStage.COMPLETED, 100, {
+        await this.updateStage(trainingId, TrainingStage.READY, 100, {
           loraName,
         });
 
