@@ -1,15 +1,13 @@
-import { createHash } from 'node:crypto';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { assertSafeWebhookEndpoint } from '@api/services/webhook-client/webhook-endpoint.validator';
+import {
+  PUBLISH_WEBHOOK_JOB_ID_PREFIX,
+  WebhookDispatchService,
+} from '@api/services/webhook-client/webhook-dispatch.service';
 import {
   classifyPublishWebhookError,
   createPublishWebhookEventId,
-  createSamplePublishWebhookPayload,
-  PUBLISH_WEBHOOK_EVENT_TYPES,
   PUBLISH_WEBHOOK_SCHEMA_VERSION,
-  type PublishWebhookEventType,
   type PublishWebhookPayload,
   type PublishWebhookRelease,
   type PublishWebhookTarget,
@@ -18,14 +16,8 @@ import {
 } from '@api-types/contracts/publish-webhook-events.contract';
 import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
-import {
-  WEBHOOK_CLIENT_QUEUE,
-  type WebhookJobData,
-} from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { BadRequestException, Injectable } from '@nestjs/common';
-import type { Queue } from 'bullmq';
+import { Injectable } from '@nestjs/common';
 
 type PublishWebhookPostSnapshot = {
   brand?: unknown;
@@ -69,20 +61,14 @@ type TerminalTargetResolution =
       reason: 'non-terminal';
     };
 
-const PUBLISH_WEBHOOK_DEDUPE_RETENTION_SECONDS = 24 * 60 * 60;
-const PUBLISH_WEBHOOK_FAILED_RETENTION_SECONDS = 7 * 24 * 60 * 60;
-const PUBLISH_WEBHOOK_JOB_ID_PREFIX = 'publish-webhook-';
-
 @Injectable()
 export class PublishEventWebhookService {
   private readonly constructorName = 'PublishEventWebhookService';
 
   constructor(
-    @InjectQueue(WEBHOOK_CLIENT_QUEUE)
-    private readonly webhookQueue: Queue<WebhookJobData>,
     private readonly logger: LoggerService,
-    private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly postsService: PostsService,
+    private readonly webhookDispatchService: WebhookDispatchService,
   ) {}
 
   async emitLegacyPostPublished(input: PublishOutcomeInput): Promise<void> {
@@ -91,67 +77,6 @@ export class PublishEventWebhookService {
 
   async emitLegacyPostFailed(input: PublishOutcomeInput): Promise<void> {
     await this.emitLegacyPostOutcome(input, TargetExecutionState.FAILED);
-  }
-
-  async sendTestDelivery(input: {
-    event?: PublishWebhookEventType;
-    organizationId: string;
-  }): Promise<IWebhookDeliveryStatus> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: input.organizationId,
-    });
-
-    if (
-      !settings?.isWebhookEnabled ||
-      !settings.webhookEndpoint ||
-      !settings.webhookSecret
-    ) {
-      throw new BadRequestException('Webhook endpoint is not configured');
-    }
-
-    const event =
-      input.event ??
-      readWebhookEventTypes(settings.webhookEventTypes)[0] ??
-      'target.published';
-    const payload = createSamplePublishWebhookPayload({
-      event,
-      occurredAt: new Date(),
-      releaseId: 'release_test',
-      targetId: 'target_test',
-    });
-
-    try {
-      const status = await this.queuePublishWebhook(
-        input.organizationId,
-        payload,
-        {
-          deliveryId: [
-            'publish-test',
-            input.organizationId,
-            payload.event,
-            Date.now().toString(36),
-          ].join(':'),
-          ignoreEventFilter: true,
-          isTest: true,
-        },
-      );
-
-      if (!status) {
-        throw new BadRequestException('Webhook endpoint is not configured');
-      }
-
-      return status;
-    } catch (error: unknown) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new BadRequestException(
-        redactPublishWebhookText(
-          (error as Error)?.message || 'Webhook test delivery failed',
-        ),
-      );
-    }
   }
 
   private async emitLegacyPostOutcome(
@@ -435,116 +360,12 @@ export class PublishEventWebhookService {
   private async queuePublishWebhook(
     organizationId: string,
     payload: PublishWebhookPayload,
-    options: {
-      deliveryId?: string;
-      ignoreEventFilter?: boolean;
-      isTest?: boolean;
-    } = {},
   ): Promise<IWebhookDeliveryStatus | null> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
+    return this.webhookDispatchService.dispatch(organizationId, payload, {
+      jobIdPrefix: PUBLISH_WEBHOOK_JOB_ID_PREFIX,
+      logLabel: `${this.constructorName} publish`,
     });
-
-    if (
-      !settings?.isWebhookEnabled ||
-      !settings.webhookEndpoint ||
-      !settings.webhookSecret
-    ) {
-      return null;
-    }
-
-    if (
-      !options.ignoreEventFilter &&
-      !isPublishWebhookEventEnabled(settings.webhookEventTypes, payload.event)
-    ) {
-      this.logger.log(`${this.constructorName} publish webhook filtered`, {
-        event: payload.event,
-        eventId: payload.eventId,
-        organizationId,
-      });
-      return null;
-    }
-
-    await assertSafeWebhookEndpoint(settings.webhookEndpoint);
-
-    const deliveryId = options.deliveryId ?? payload.eventId;
-    const jobData: WebhookJobData = {
-      deliveryId,
-      endpoint: settings.webhookEndpoint,
-      isTest: options.isTest,
-      organizationId,
-      payload: payload as WebhookJobData['payload'],
-      secret: settings.webhookSecret,
-    };
-
-    await this.webhookQueue.add(
-      'send-webhook',
-      jobData,
-      options.isTest
-        ? { jobId: createPublishWebhookJobId(deliveryId) }
-        : {
-            // Retried publish workers must resolve to the same BullMQ jobId long
-            // enough to suppress duplicate terminal events.
-            jobId: createPublishWebhookJobId(payload.eventId),
-            removeOnComplete: {
-              age: PUBLISH_WEBHOOK_DEDUPE_RETENTION_SECONDS,
-              count: 10_000,
-            },
-            removeOnFail: {
-              age: PUBLISH_WEBHOOK_FAILED_RETENTION_SECONDS,
-              count: 10_000,
-            },
-          },
-    );
-
-    const status: IWebhookDeliveryStatus = {
-      attempt: 0,
-      deliveryId,
-      event: payload.event,
-      isTest: Boolean(options.isTest),
-      queuedAt: new Date().toISOString(),
-      status: 'queued',
-    };
-    await this.organizationSettingsService.recordWebhookDeliveryStatus(
-      organizationId,
-      status,
-    );
-
-    this.logger.log(`${this.constructorName} publish webhook queued`, {
-      event: payload.event,
-      deliveryId,
-      eventId: payload.eventId,
-      organizationId,
-    });
-
-    return status;
   }
-}
-
-function createPublishWebhookJobId(eventId: string): string {
-  return `${PUBLISH_WEBHOOK_JOB_ID_PREFIX}${createHash('sha256')
-    .update(eventId)
-    .digest('hex')}`;
-}
-
-function readWebhookEventTypes(value: unknown): PublishWebhookEventType[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter(
-    (event): event is PublishWebhookEventType =>
-      typeof event === 'string' &&
-      PUBLISH_WEBHOOK_EVENT_TYPES.includes(event as PublishWebhookEventType),
-  );
-}
-
-function isPublishWebhookEventEnabled(
-  configuredEvents: unknown,
-  event: PublishWebhookEventType,
-): boolean {
-  const eventTypes = readWebhookEventTypes(configuredEvents);
-  return eventTypes.length === 0 || eventTypes.includes(event);
 }
 
 function deriveReleaseStatus(

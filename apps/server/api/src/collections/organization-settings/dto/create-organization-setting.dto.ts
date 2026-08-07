@@ -5,9 +5,9 @@ import {
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
 import {
-  PUBLISH_WEBHOOK_EVENT_TYPES,
-  type PublishWebhookEventType,
-} from '@api-types/contracts/publish-webhook-events.contract';
+  ORGANIZATION_WEBHOOK_EVENT_TYPES,
+  type OrganizationWebhookEventType,
+} from '@api-types/contracts/webhook-events.contract';
 import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -375,15 +375,15 @@ export class CreateOrganizationSettingDto {
   @IsArray()
   @ArrayUnique()
   @IsOptional()
-  @IsIn(PUBLISH_WEBHOOK_EVENT_TYPES, { each: true })
+  @IsIn(ORGANIZATION_WEBHOOK_EVENT_TYPES, { each: true })
   @ApiProperty({
     description:
-      'Optional publish webhook event filter. Empty means all publish webhook events are delivered.',
-    enum: PUBLISH_WEBHOOK_EVENT_TYPES,
+      'Optional webhook event filter. Empty means every webhook event is delivered.',
+    enum: ORGANIZATION_WEBHOOK_EVENT_TYPES,
     isArray: true,
     required: false,
   })
-  readonly webhookEventTypes?: PublishWebhookEventType[];
+  readonly webhookEventTypes?: OrganizationWebhookEventType[];
 
   @IsEntityId({ each: true })
   @IsOptional()

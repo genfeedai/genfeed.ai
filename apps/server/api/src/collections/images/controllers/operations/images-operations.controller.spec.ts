@@ -74,6 +74,7 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -275,6 +276,13 @@ describe('ImagesOperationsController', () => {
           provide: FailedGenerationService,
           useValue: {
             handleFailedImageGeneration: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: GenerationEventWebhookService,
+          useValue: {
+            emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
+            emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
