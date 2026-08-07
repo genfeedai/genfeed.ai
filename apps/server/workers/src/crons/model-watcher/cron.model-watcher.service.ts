@@ -146,7 +146,7 @@ export class CronModelWatcherService {
             name: model.name,
             owner: model.owner,
             provider: ModelProvider.REPLICATE,
-            replicateUrl: model.url,
+            providerUrl: model.url,
             versionId: model.latest_version?.id ?? null,
           };
 
