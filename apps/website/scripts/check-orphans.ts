@@ -108,7 +108,11 @@ async function main(): Promise<void> {
   console.info(`Link check + orphan scan against ${BASE_URL}\n`);
 
   const [sitemap, outcome] = await Promise.all([
-    fetchSitemapUniverse({ origin: ORIGIN, userAgent: USER_AGENT }),
+    fetchSitemapUniverse({
+      origin: ORIGIN,
+      timeoutMs: REQUEST_TIMEOUT_MS,
+      userAgent: USER_AGENT,
+    }),
     crawlSite({
       concurrency: CONCURRENCY,
       isSuppressed: isApiDependent,

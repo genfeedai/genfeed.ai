@@ -17,7 +17,7 @@ export interface CuratedActionCatalogEntry {
 export const CURATED_ACTION_CATALOG = [
   { name: 'ai_action', surfaces: ['agent'] },
   { name: 'analyze_clip_project', surfaces: ['mcp'] },
-  { name: 'analyze_performance', surfaces: ['agent'] },
+  { name: 'analyze_performance', surfaces: ['agent', 'mcp'] },
   {
     isPublishingApprovalRequired: true,
     name: 'approve_social_draft',
@@ -75,12 +75,12 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_music', surfaces: ['agent', 'mcp'] },
   { name: 'generate_onboarding_content', surfaces: ['agent'] },
   { name: 'generate_video', surfaces: ['agent', 'mcp'] },
-  { name: 'generate_voice', surfaces: ['agent'] },
+  { name: 'generate_voice', surfaces: ['agent', 'mcp'] },
   { name: 'get_account_info', surfaces: ['mcp'] },
   { name: 'get_ad_research_detail', surfaces: ['agent', 'mcp'] },
   { name: 'get_agent_run', surfaces: ['mcp'] },
   { name: 'get_agent_run_content', surfaces: ['mcp'] },
-  { name: 'get_analytics', surfaces: ['agent'] },
+  { name: 'get_analytics', surfaces: ['agent', 'mcp'] },
   { name: 'get_approval_summary', surfaces: ['agent'] },
   { name: 'get_article', surfaces: ['mcp'] },
   { name: 'get_brand', surfaces: ['mcp'] },
@@ -90,7 +90,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_clip_project', surfaces: ['mcp'] },
   { name: 'get_connection_status', surfaces: ['agent'] },
   { name: 'get_content_analytics', surfaces: ['mcp'] },
-  { name: 'get_content_calendar', surfaces: ['agent'] },
+  { name: 'get_content_calendar', surfaces: ['agent', 'mcp'] },
   { name: 'get_credits_balance', surfaces: ['agent', 'mcp'] },
   { name: 'get_current_brand', surfaces: ['agent'] },
   { name: 'get_dashboard_layout', surfaces: ['agent'] },
@@ -159,7 +159,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'present_payment_options', surfaces: ['agent'] },
   { name: 'rate_content', surfaces: ['agent'] },
   { name: 'rate_ingredient', surfaces: ['agent'] },
-  { name: 'reframe_image', surfaces: ['agent'] },
+  { name: 'reframe_image', surfaces: ['agent', 'mcp'] },
   { name: 'reject_social_draft', surfaces: ['mcp'] },
   { name: 'render_dashboard', surfaces: ['agent'] },
   { name: 'replicate_top_ingredient', surfaces: ['agent'] },
@@ -194,7 +194,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
   },
   { name: 'update_strategy_state', surfaces: ['agent'] },
-  { name: 'upscale_image', surfaces: ['agent'] },
+  { name: 'upscale_image', surfaces: ['agent', 'mcp'] },
 ] as const satisfies readonly CuratedActionCatalogEntry[];
 
 export type CuratedActionName = (typeof CURATED_ACTION_CATALOG)[number]['name'];

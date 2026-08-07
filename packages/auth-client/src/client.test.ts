@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const fetchMock = vi.hoisted(() => vi.fn());
 
 vi.mock('better-auth/client/plugins', () => ({
+  adminClient: vi.fn(() => 'admin-plugin'),
   jwtClient: vi.fn(() => 'jwt-plugin'),
   magicLinkClient: vi.fn(() => 'magic-link-plugin'),
 }));
