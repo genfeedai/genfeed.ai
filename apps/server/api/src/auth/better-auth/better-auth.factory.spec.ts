@@ -607,7 +607,9 @@ describe('createBetterAuthInstance source', () => {
   it('registers the platform-role-gated admin plugin', () => {
     const source = createBetterAuthInstance.toString();
 
-    expect(source).toContain('admin(buildBetterAuthAdminOptions())');
+    expect(source).toMatch(
+      /admin\)?\s*\(\s*buildBetterAuthAdminOptions\(\)\s*\)/,
+    );
   });
 
   it('declares `handle` as a known user field so first-time sign-ups persist it', () => {
