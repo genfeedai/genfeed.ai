@@ -1,0 +1,11 @@
+-- 20260609150437_reconcile_prod_schema converted "workflows"."status" to TEXT
+-- but left the enum type behind. No column has referenced it since.
+--
+-- Dropping it removes a name collision with the live domain enum
+-- WorkflowStatus in @genfeedai/enums, whose member set differs (lowercase
+-- values, adds completed/failed/running, omits archived). Leaving a stale
+-- declaration in the schema invites a future promotion of the column to reuse
+-- it and ship a migration that rejects rows the app actually writes.
+--
+-- "workflows"."status" stays TEXT; the domain enum is unchanged.
+DROP TYPE IF EXISTS "WorkflowStatus";
