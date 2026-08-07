@@ -434,7 +434,9 @@ describe('commands.registry', () => {
       );
 
       expect(billingCmd).toBeDefined();
-      expect(billingCmd?.label).toBe('Billing & Subscription');
+      // #2466 renamed the destination Billing → Subscription; `billing` stays a
+      // search keyword so the old name still finds the command.
+      expect(billingCmd?.label).toBe('Subscription');
       expect(billingCmd?.keywords).toContain('billing');
       delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     });

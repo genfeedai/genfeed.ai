@@ -2,6 +2,16 @@ import type { Ora } from 'ora';
 import { io, type Socket } from 'socket.io-client';
 import { getApiKey, getApiUrl } from '@/config/store';
 
+/**
+ * Terminal wire values of `IngredientStatus` in `@genfeedai/enums` / Prisma.
+ *
+ * The gateway forwards the enum member verbatim, so these are SCREAMING_SNAKE.
+ * `background-task-update` below carries activity state instead — a separate,
+ * lowercase vocabulary that is not backed by a Prisma enum.
+ */
+const INGREDIENT_COMPLETED_STATUSES = new Set(['COMPLETED', 'GENERATED']);
+const INGREDIENT_FAILED_STATUS = 'FAILED';
+
 export interface BackgroundTaskUpdate {
   taskId: string;
   activityId?: string;
@@ -130,9 +140,9 @@ export async function waitForCompletion<T>(
     });
 
     socket.on(`/ingredients/${taskId}/status`, (data: { status: string; error?: string }) => {
-      if (data.status === 'completed' || data.status === 'generated') {
+      if (INGREDIENT_COMPLETED_STATUSES.has(data.status)) {
         handleCompletion('completed');
-      } else if (data.status === 'failed') {
+      } else if (data.status === INGREDIENT_FAILED_STATUS) {
         handleCompletion('failed', data.error);
       }
     });
