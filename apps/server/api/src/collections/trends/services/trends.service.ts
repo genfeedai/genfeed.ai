@@ -26,7 +26,6 @@ import { TrendAnalysisService } from '@api/collections/trends/services/modules/t
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
-import { TrendPrelaunchCorpusService } from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
@@ -37,15 +36,13 @@ import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-export type {
-  PrelaunchReferenceCorpusBackfillOptions,
-  PrelaunchReferenceCorpusBackfillResult,
-} from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
-
 /**
  * Orchestrates trend retrieval, access control, and discovery, delegating the
- * source-item subsystem, preview persistence, read queries, and prelaunch
- * corpus seeding to focused module services (issue #752).
+ * source-item subsystem, preview persistence, and read queries to focused
+ * module services (issue #752).
+ *
+ * Prelaunch/bootstrap seed corpus is hard-cut — empty feed when there is no
+ * real data.
  */
 @Injectable()
 export class TrendsService {
@@ -62,14 +59,27 @@ export class TrendsService {
     private readonly trendVideoService: TrendVideoService,
     private readonly trendQueryService: TrendQueryService,
     private readonly trendSourcePreviewService: TrendSourcePreviewService,
-    private readonly trendPrelaunchCorpusService: TrendPrelaunchCorpusService,
   ) {}
 
-  getGlobalCorpusStats(): Promise<{
+  async getGlobalCorpusStats(): Promise<{
     activeTrends: number;
     referenceRecords: number;
   }> {
-    return this.trendPrelaunchCorpusService.getGlobalCorpusStats();
+    const [activeTrends, referenceRecords] = await Promise.all([
+      this.trendQueryService.countActiveGlobalTrends(),
+      this.trendReferenceCorpusService.countGlobalReferences(),
+    ]);
+    return { activeTrends, referenceRecords };
+  }
+
+  async purgeSyntheticTrendRows(): Promise<{ purged: number }> {
+    const result = await this.trendQueryService.purgeSyntheticTrendRows();
+    // Drop any cached feed payloads that still hold seed cards.
+    await this.trendSourcePreviewService.invalidateContentCache([
+      'trends',
+      'trends:content',
+    ]);
+    return result;
   }
 
   // ==================== Orchestrator Methods ====================
@@ -212,9 +222,9 @@ export class TrendsService {
     }
 
     this.loggerService.log(
-      'Fresh trend fetch returned no data, returning bootstrap trend fallback',
+      'Fresh trend fetch returned no data; returning empty (no synthetic seed)',
     );
-    return this.trendQueryService.getBootstrapTrends(platform);
+    return [];
   }
 
   /**
@@ -270,19 +280,10 @@ export class TrendsService {
       (p) => !connectedPlatforms.includes(p),
     );
 
-    // Get trends
+    // Get trends — never inject synthetic prelaunch/bootstrap rows.
     let trends = await this.getTrends(organizationId, brandId, platform, {
       allowFetchIfMissing: options.allowFetchIfMissing ?? false,
     });
-
-    // The raw getTrends probe returns [] on a cold cache so programmatic callers
-    // (e.g. the agent tool executor) can detect a true cache-miss and trigger a
-    // live fetch themselves. Access-control / display consumers reach trends
-    // through this wrapper and still need bootstrap references to render, so
-    // restore the fallback here when nothing is cached.
-    if (trends.length === 0) {
-      trends = this.trendQueryService.getBootstrapTrends(platform);
-    }
 
     // Filter by brand description if brandId provided
     if (brandId && organizationId) {
@@ -440,18 +441,6 @@ export class TrendsService {
     ]);
 
     return { processed };
-  }
-
-  backfillPrelaunchReferenceCorpus(
-    options: Parameters<
-      TrendPrelaunchCorpusService['backfillPrelaunchReferenceCorpus']
-    >[0] = {},
-  ): ReturnType<
-    TrendPrelaunchCorpusService['backfillPrelaunchReferenceCorpus']
-  > {
-    return this.trendPrelaunchCorpusService.backfillPrelaunchReferenceCorpus(
-      options,
-    );
   }
 
   async getReferenceCorpus(

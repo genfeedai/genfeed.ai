@@ -10,7 +10,6 @@ import { TrendContentIdeasService } from '@api/collections/trends/services/modul
 import { TrendCorpusFreshnessService } from '@api/collections/trends/services/modules/trend-corpus-freshness.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
-import { TrendPrelaunchCorpusService } from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendReferenceSyncService } from '@api/collections/trends/services/modules/trend-reference-sync.service';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
@@ -68,7 +67,6 @@ import { forwardRef, Module } from '@nestjs/common';
     TrendFetchService,
     TrendFilteringService,
     TrendPreferencesService,
-    TrendPrelaunchCorpusService,
     TrendQueryService,
     TrendReferenceCorpusService,
     TrendReferenceSyncService,

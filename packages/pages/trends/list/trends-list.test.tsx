@@ -16,6 +16,12 @@ vi.mock('@hooks/data/trends/use-trend-content/use-trend-content', () => ({
   useTrendContent: (...args: unknown[]) => mockUseTrendContent(...args),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => path,
+  }),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
 }));
@@ -216,16 +222,13 @@ describe('TrendsList', () => {
     expect(screen.getByText('Locked sources')).toBeInTheDocument();
     expect(screen.getByText('Feed state')).toBeInTheDocument();
     expect(
-      screen.getByText('No remixable trend content yet'),
+      screen.getByText('Warm this workspace with real sources'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', { name: 'Source' }),
+      screen.getByRole('link', { name: /Connect accounts/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Source' })).toHaveClass(
-      'text-foreground/72',
-    );
     expect(
-      screen.getByRole('columnheader', { name: 'Content' }),
+      screen.getByRole('link', { name: /Follow creators/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Refresh feed' }),
