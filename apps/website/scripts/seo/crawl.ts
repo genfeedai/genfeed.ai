@@ -160,17 +160,29 @@ export interface SitemapUniverse {
 
 /** Read /sitemap.xml and return its <loc> set plus the origin it declares. */
 export async function fetchSitemapUniverse(
-  options: Pick<CrawlOptions, 'origin' | 'userAgent'>,
+  options: Pick<CrawlOptions, 'origin' | 'timeoutMs' | 'userAgent'>,
 ): Promise<SitemapUniverse> {
-  const response = await fetch(`${options.origin}/sitemap.xml`, {
-    headers: { 'user-agent': options.userAgent },
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Could not load /sitemap.xml (HTTP ${response.status}). Is the site built and running on ${options.origin}?`,
-    );
+  // Every consumer awaits this before any other work, so an unbounded fetch
+  // stalls the whole run until the CI job timeout kills it with no diagnostic.
+  // Bound it exactly like fetchPath does.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs);
+  let xml: string;
+  try {
+    const response = await fetch(`${options.origin}/sitemap.xml`, {
+      headers: { 'user-agent': options.userAgent },
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Could not load /sitemap.xml (HTTP ${response.status}). Is the site built and running on ${options.origin}?`,
+      );
+    }
+    xml = await response.text();
+  } finally {
+    clearTimeout(timeout);
   }
-  const xml = await response.text();
+
   const paths = new Set<string>();
   let publicOrigin = options.origin;
   let hasOrigin = false;

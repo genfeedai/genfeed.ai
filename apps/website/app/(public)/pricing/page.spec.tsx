@@ -17,4 +17,16 @@ describe('pricing metadata', () => {
     );
     expect(result.description).not.toContain('Scale unlocks unlimited seats');
   });
+
+  it('keeps the JSON-LD entitlement copy aligned with pricing metadata', () => {
+    const jsonLd = PageModule.buildPricingJsonLd();
+
+    expect(jsonLd.description).toContain(
+      'all paid tiers include unlimited seats',
+    );
+    expect(jsonLd.description).toContain(
+      'adds a shared credit pool and multi-organization workflows',
+    );
+    expect(jsonLd.description).not.toContain('adds unlimited seats');
+  });
 });

@@ -113,8 +113,16 @@ SET
   "trigger" = NULLIF("config"->>'trigger', ''),
   "triggerWord" = NULLIF("config"->>'triggerWord', '');
 
+-- `||` concatenates arrays when either operand is an array, so a
+-- `providerConfig` holding an array/scalar/null would leave "config"
+-- array-shaped in a column the schema declares as Json @default("{}").
+-- Only object-typed values are merged; anything else falls back to '{}'.
 UPDATE "models"
-SET "config" = COALESCE("config"->'providerConfig', '{}'::JSONB) ||
+SET "config" = CASE
+    WHEN jsonb_typeof("config"->'providerConfig') = 'object'
+    THEN "config"->'providerConfig'
+    ELSE '{}'::JSONB
+  END ||
   ("config"
     - 'aspectRatios' - 'capabilities' - 'category' - 'cost' - 'costPerUnit'
     - 'costTier' - 'defaultAspectRatio' - 'defaultDuration' - 'deprecatedAt'
