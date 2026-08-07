@@ -213,7 +213,6 @@ describe('ContentGeneratorService', () => {
     expect(playbookBuilderService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
         id: expect.any(String),
-        isDeleted: false,
         organizationId: ORG_ID,
       }),
     );

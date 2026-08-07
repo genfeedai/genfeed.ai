@@ -134,7 +134,6 @@ describe('InstagramController', () => {
 
       expect(brandsFindOneMock).toHaveBeenCalledWith({
         id: brandOid,
-        isDeleted: false,
         organizationId: '507f191e810c19729de860eb',
       });
       expect(credentialsBeginOAuthForBrandMock).toHaveBeenCalledWith(

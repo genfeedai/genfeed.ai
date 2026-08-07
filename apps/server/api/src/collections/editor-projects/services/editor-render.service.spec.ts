@@ -16,6 +16,7 @@ import {
   EditorTrackType,
   IngredientCategory,
   IngredientFormat,
+  IngredientStatus,
 } from '@genfeedai/enums';
 import { EDITOR_RENDERER_VERSION } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -332,7 +333,7 @@ describe('EditorRenderService', () => {
       expect.any(String),
     );
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
-      status: 'failed',
+      status: IngredientStatus.FAILED,
     });
   });
 
@@ -360,7 +361,7 @@ describe('EditorRenderService', () => {
       expect.objectContaining({ reason: 'cancelled' }),
     );
     expect(ingredientsService.patch).toHaveBeenCalledWith('output-video-123', {
-      status: 'failed',
+      status: IngredientStatus.FAILED,
     });
     expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
       CACHE_PATTERNS.EDITOR_PROJECTS_LIST(organizationId),

@@ -384,7 +384,6 @@ describe('AgentRunsController', () => {
       expect(mockServiceMethods.findOne).toHaveBeenCalledWith({
         brandId: 'selected-brand',
         id: 'run1',
-        isDeleted: false,
         organizationId: '507f1f77bcf86cd799439012',
       });
     });

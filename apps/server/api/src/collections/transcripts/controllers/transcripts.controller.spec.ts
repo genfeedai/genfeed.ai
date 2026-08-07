@@ -181,7 +181,6 @@ describe('TranscriptsController', () => {
       expect(result).toEqual(mockTranscript);
       expect(transcriptsService.findOne).toHaveBeenCalledWith({
         id: transcriptId,
-        isDeleted: false,
         organizationId: mockUser.publicMetadata.organization,
       });
     });

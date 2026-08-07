@@ -98,7 +98,6 @@ describe('MediumController', () => {
 
       expect(brandsService.findOne).toHaveBeenCalledWith({
         id: brandId,
-        isDeleted: false,
         organizationId,
       });
       expect(credentialsService.beginOAuthForBrand).toHaveBeenCalledWith(

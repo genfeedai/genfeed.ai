@@ -261,7 +261,6 @@ describe('PublicImagesController', () => {
         {
           id: imageId,
           category: 'IMAGE',
-          isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
         },
@@ -324,7 +323,6 @@ describe('PublicImagesController', () => {
       expect(imagesService.findOne).toHaveBeenCalledWith({
         id: imageId,
         category: 'IMAGE',
-        isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       });

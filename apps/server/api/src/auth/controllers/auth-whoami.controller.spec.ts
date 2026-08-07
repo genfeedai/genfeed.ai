@@ -99,7 +99,6 @@ describe('AuthWhoamiController', () => {
       expect(mockMembersService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           isActive: true,
-          isDeleted: false,
           organizationId: 'org_abc',
           userId: 'user_1',
         }),

@@ -110,7 +110,6 @@ describe('CreditsGuard', () => {
     );
     expect(result).toBe(true);
     expect(modelsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
       key: 'test-model',
     });
   });

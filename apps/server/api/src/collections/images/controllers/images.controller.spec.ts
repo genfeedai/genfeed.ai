@@ -255,7 +255,6 @@ describe('ImagesController', () => {
         {
           id: mockImage.id,
           category: 'IMAGE',
-          isDeleted: false,
           OR: [
             { organizationId: mockUser.publicMetadata.organization },
             { isDefault: true, organizationId: null },

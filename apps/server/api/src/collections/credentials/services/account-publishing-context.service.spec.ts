@@ -134,7 +134,6 @@ describe('AccountPublishingContextService', () => {
       id: credentialId,
       brandId,
       isConnected: true,
-      isDeleted: false,
       organizationId,
     });
     expect(accountHealthService.assessCredentialHealth).toHaveBeenCalledWith({

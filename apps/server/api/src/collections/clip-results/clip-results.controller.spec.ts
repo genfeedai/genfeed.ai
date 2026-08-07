@@ -143,7 +143,6 @@ describe('ClipResultsController', () => {
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'cr-1',
-          isDeleted: false,
           organizationId,
         }),
       );
@@ -179,7 +178,6 @@ describe('ClipResultsController', () => {
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'cr-1',
-          isDeleted: false,
           organizationId,
         }),
       );

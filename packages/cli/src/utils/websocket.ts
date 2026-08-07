@@ -129,10 +129,13 @@ export async function waitForCompletion<T>(
       }
     });
 
+    // Terminal values mirror `IngredientStatus` in `@genfeedai/enums`, which is
+    // Prisma-backed and therefore SCREAMING_SNAKE on the wire. There is no
+    // COMPLETED member — GENERATED is the success terminal.
     socket.on(`/ingredients/${taskId}/status`, (data: { status: string; error?: string }) => {
-      if (data.status === 'completed' || data.status === 'generated') {
+      if (data.status === 'GENERATED') {
         handleCompletion('completed');
-      } else if (data.status === 'failed') {
+      } else if (data.status === 'FAILED') {
         handleCompletion('failed', data.error);
       }
     });

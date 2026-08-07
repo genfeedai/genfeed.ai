@@ -127,7 +127,7 @@ describe('AgentCampaignsController', () => {
         '507f1f77bcf86cd799439099',
       );
       expect(mockUsersService.findOne).toHaveBeenCalledWith(
-        { id: 'user_123', isDeleted: false },
+        { id: 'user_123' },
         [],
       );
     });

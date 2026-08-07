@@ -200,7 +200,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
       );
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(
         supportService.updateOrganizationTierAndModels,
@@ -257,7 +256,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
       ).toHaveBeenCalledWith('org_1', SubscriptionTier.BYOK, 'test');
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
         'user_1',

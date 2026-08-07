@@ -892,18 +892,9 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
-    [MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST]: {
-      category: ModelCategory.TEXT,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 0,
-    },
-    [MODEL_KEYS.OPENROUTER_XAI_GROK_4]: {
-      category: ModelCategory.TEXT,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 0,
-    },
+    // Live, and deliberately not in the agent chat catalogue:
+    // `TwitterPipelineService.draft` calls OpenRouter with this key directly.
+    // Do not retire it alongside its sibling `grok-4`/`grok-4-fast` rows.
     [MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST]: {
       category: ModelCategory.TEXT,
       isBatchSupported: false,

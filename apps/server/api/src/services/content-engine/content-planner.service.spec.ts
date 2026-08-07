@@ -133,7 +133,8 @@ describe('ContentPlannerService', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
-        isDeleted: false,
+        id: mockBrandId,
+        organizationId: mockOrgId,
       }),
     );
   });

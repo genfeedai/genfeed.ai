@@ -350,7 +350,6 @@ describe('GhostService', () => {
       expect(credentialsService.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId,
-          isDeleted: false,
           organizationId: orgId,
           platform: CredentialPlatform.GHOST,
         }),

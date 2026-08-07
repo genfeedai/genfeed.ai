@@ -651,7 +651,7 @@ describe('AdsResearchPageClient', () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText('Connect Meta or Google Ads'),
+      screen.queryByText('Connect Meta, Google/YouTube, or TikTok Ads'),
     ).not.toBeInTheDocument();
 
     useQueryCallIndex = 0;
@@ -710,7 +710,9 @@ describe('AdsResearchPageClient', () => {
 
     render(<AdsResearchPageClient />);
 
-    expect(screen.getByText('Connect Meta or Google Ads')).toBeInTheDocument();
+    expect(
+      screen.getByText('Connect Meta, Google/YouTube, or TikTok Ads'),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('No ads match the current filters.'),
     ).not.toBeInTheDocument();

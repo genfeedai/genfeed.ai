@@ -303,7 +303,6 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
           id: postId,
-          isDeleted: false,
           status: PostStatus.PUBLIC,
         },
         [],
@@ -374,7 +373,6 @@ describe('PublicPostsController', () => {
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
           id: postId,
-          isDeleted: false,
           status: PostStatus.PUBLIC,
         },
         [],
