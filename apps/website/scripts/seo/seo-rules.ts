@@ -29,6 +29,12 @@ export interface Finding {
   readonly severity: Severity;
   readonly path: string;
   readonly detail: string;
+  /**
+   * What on the page the finding is about, for rules that can fire more than
+   * once per path (the schema.org type, for structured data). Part of the
+   * baseline identity, so two defects on one page stay separately accountable.
+   */
+  readonly subject?: string;
 }
 
 export interface PageInput {
@@ -43,8 +49,19 @@ function finding(
   severity: Severity,
   path: string,
   detail: string,
+  subject?: string,
 ): Finding {
-  return { detail, path, rule, severity };
+  return { detail, path, rule, severity, subject };
+}
+
+/**
+ * Baseline identity for a finding. Accepting one entry must not silently accept
+ * every other defect the same rule can report on the same page, so a rule that
+ * can fire more than once per path keys on its subject as well.
+ */
+export function findingKey(item: Finding): string {
+  const base = `${item.rule} ${item.path}`;
+  return item.subject === undefined ? base : `${base} ${item.subject}`;
 }
 
 /** Titles/descriptions that mean "this page does not exist". */
@@ -331,7 +348,7 @@ export function checkStructuredData(input: PageInput): Finding[] {
   const { facts, path } = input;
   const findings: Finding[] = [];
 
-  for (const block of facts.jsonLd) {
+  for (const [blockIndex, block] of facts.jsonLd.entries()) {
     if (block.parseError !== null) {
       findings.push(
         finding(
@@ -344,7 +361,7 @@ export function checkStructuredData(input: PageInput): Finding[] {
       continue;
     }
 
-    for (const node of collectTypedNodes(block.value)) {
+    for (const [nodeIndex, node] of collectTypedNodes(block.value).entries()) {
       for (const type of typesOf(node)) {
         const isPresent = (field: string): boolean => {
           const value = node[field];
@@ -372,6 +389,9 @@ export function checkStructuredData(input: PageInput): Finding[] {
               'error',
               path,
               `${type} is missing ${missing.join(', ')} — not eligible for a rich result.`,
+              // The block/node coordinates distinguish repeated nodes of the
+              // same schema type; the type distinguishes multi-type nodes.
+              `${type} block-${blockIndex}.node-${nodeIndex}`,
             ),
           );
         }

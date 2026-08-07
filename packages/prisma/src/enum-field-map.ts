@@ -3766,6 +3766,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'createdAt',
       'expiresAt',
       'id',
+      'impersonatedBy',
       'ipAddress',
       'token',
       'updatedAt',
@@ -4618,6 +4619,9 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     allFields: [
       'appSource',
       'avatar',
+      'banExpires',
+      'banReason',
+      'banned',
       'createdAt',
       'email',
       'emailVerified',

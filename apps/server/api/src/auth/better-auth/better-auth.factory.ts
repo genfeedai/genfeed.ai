@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { dash } from '@better-auth/infra';
+import { PlatformRole } from '@genfeedai/enums';
 import type { IBetterAuthJwtUserPayloadSource } from '@genfeedai/interfaces';
 import {
   APIError,
@@ -9,12 +10,15 @@ import {
 } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import {
+  type AdminOptions,
+  admin,
   jwt,
   type MagicLinkOptions,
   magicLink,
   type OrganizationOptions,
   organization,
 } from 'better-auth/plugins';
+import { adminAc, userAc } from 'better-auth/plugins/admin/access';
 import { BETTER_AUTH_BASE_PATH } from './better-auth.constants';
 import type {
   IBetterAuthRateLimitStorage,
@@ -394,6 +398,42 @@ export function buildBetterAuthOrganizationOptions(
 }
 
 /**
+ * Better Auth admin plugin (#2423) gated on the existing platform role system.
+ *
+ * The plugin's `role` field maps onto the existing `users.platformRole` column
+ * so there is exactly one role system — the same column `isPlatformSuperAdmin`
+ * checks. `SUPERADMIN` carries the plugin's default admin permission set
+ * (impersonation included, but not `impersonate-admins`, so superadmins cannot
+ * impersonate each other), while `USER` carries no admin permission and every
+ * `/admin/*` endpoint rejects it with 403.
+ *
+ * `defaultRole` must stay `USER` (a valid `PlatformRole` enum value): the
+ * plugin's user-create hook writes it through the field mapping into the enum
+ * column, and the plugin's lowercase `'user'` default would fail the Prisma
+ * enum write and break first-time sign-up.
+ *
+ * Impersonation keeps the plugin's default 1h session expiry;
+ * `Session.impersonatedBy` is the audit trail.
+ */
+export function buildBetterAuthAdminOptions(): AdminOptions {
+  return {
+    adminRoles: [PlatformRole.SUPERADMIN],
+    defaultRole: PlatformRole.USER,
+    roles: {
+      [PlatformRole.SUPERADMIN]: adminAc,
+      [PlatformRole.USER]: userAc,
+    },
+    schema: {
+      user: {
+        fields: {
+          role: 'platformRole',
+        },
+      },
+    },
+  };
+}
+
+/**
  * Derive a unique, URL-safe `User.handle` for first-party sign-ups. The existing
  * `handle` column is required + unique and Better Auth does not populate it, so a
  * `user.create.before` hook fills it. The random suffix avoids collisions on the
@@ -578,7 +618,8 @@ export async function resolveBetterAuthJwtIsSuperAdmin(
  *
  * Runs against the existing Postgres via the Prisma adapter. Better Auth's `user`
  * model maps onto the existing `User` table (`image` → `avatar`; `handle` filled
- * by a create hook). Plugins: magic-link, organization bridge, and jwt. The
+ * by a create hook). Plugins: magic-link, organization bridge, jwt, and admin
+ * (platform-role-gated impersonation, #2423). The
  * organization plugin is compatibility-only: active org / string-role session
  * state maps onto existing Organization/Member rows while Genfeed remains the
  * tenant authorization source. The desktop-session plugin owns server-only
@@ -738,6 +779,7 @@ export function createBetterAuthInstance(options: ICreateBetterAuthOptions) {
           },
         },
       }),
+      admin(buildBetterAuthAdminOptions()),
       desktopSession(),
     ],
   });

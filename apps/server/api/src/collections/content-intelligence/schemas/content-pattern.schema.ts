@@ -21,7 +21,6 @@ export interface ContentPatternDocument
   extends Omit<PrismaContentPattern, 'data'> {
   data?: Record<string, unknown>;
   description?: string;
-  embedding?: number[];
   extractedFormula?: string;
   patternType?: ContentPatternType;
   placeholders?: string[];
