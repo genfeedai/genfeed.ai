@@ -149,9 +149,23 @@ describe('useAgentChatInput references', () => {
       expect(result.current.editor).not.toBeNull();
     });
 
+    // Legacy `contentMention` nodes migrate into visual reference tiles, so a
+    // content entry carries its type/title instead of a `^` caret token.
     expect(result.current.references).toEqual([
-      { id: 'post-1', label: '^Launch post', type: 'content' },
-      { id: 'post-2', label: '^Campaign brief', type: 'content' },
+      {
+        contentType: 'post',
+        id: 'post-1',
+        label: 'Launch post',
+        thumbnailUrl: undefined,
+        type: 'content',
+      },
+      {
+        contentType: 'post',
+        id: 'post-2',
+        label: 'Campaign brief',
+        thumbnailUrl: undefined,
+        type: 'content',
+      },
       { id: 'post-3', label: '^post:post-3', type: 'asset' },
     ]);
 

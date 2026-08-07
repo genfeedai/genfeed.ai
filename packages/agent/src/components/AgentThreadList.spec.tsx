@@ -345,7 +345,8 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Recent thread')).toBeInTheDocument();
 
-    fireEvent.click(
+    // Radix opens a dropdown trigger on pointerdown, not click.
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     fireEvent.click(
@@ -356,7 +357,7 @@ describe('AgentThreadList', () => {
       expect(screen.getByText('Archived thread')).toBeInTheDocument();
     });
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     expect(
@@ -481,7 +482,7 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('No threads')).toBeInTheDocument();
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     fireEvent.click(
@@ -636,7 +637,7 @@ describe('AgentThreadList', () => {
     });
 
     expect(storeState.threads[0]?.id).toBe('conv-2');
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     expect(
@@ -737,7 +738,7 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Thread one')).toBeInTheDocument();
 
-    fireEvent.click(
+    fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     fireEvent.click(

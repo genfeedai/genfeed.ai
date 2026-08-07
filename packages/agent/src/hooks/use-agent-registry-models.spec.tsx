@@ -1,4 +1,3 @@
-import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { AGENT_CHAT_CAPABILITY, REASONING_FEATURE } from '@genfeedai/constants';
@@ -82,8 +81,17 @@ describe('useAgentRegistryModels', () => {
 
   it('drops registry rows that are not agent chat models', async () => {
     findAll.mockResolvedValue([
-      registryModel({ capabilities: [], recommendedFor: [] }),
-      registryModel({ id: 'model-2', isLegacy: true, key: 'openai/retired' }),
+      registryModel(),
+      // No agent-chat capability and not an OpenRouter row.
+      registryModel({
+        capabilities: [],
+        id: 'model-2',
+        key: 'local/qwen-32b',
+        provider: ModelProvider.GENFEED_AI,
+        recommendedFor: [],
+      }),
+      registryModel({ id: 'model-3', isLegacy: true, key: 'openai/retired' }),
+      registryModel({ id: 'model-4', key: 'openrouter/auto' }),
     ]);
 
     const { result } = renderHook(() =>
@@ -91,8 +99,9 @@ describe('useAgentRegistryModels', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    // Empty registry result keeps the constants catalogue until phase D.
-    expect(result.current.models).toEqual(AGENT_MODELS);
+    expect(result.current.models.map((model) => model.key)).toEqual([
+      'anthropic/claude-opus-5',
+    ]);
   });
 
   it('uses the provider as the brand slug for self-hosted keys', async () => {
@@ -111,7 +120,7 @@ describe('useAgentRegistryModels', () => {
     expect(result.current.models[0]?.brandSlug).toBe('genfeed-ai');
   });
 
-  it('falls back to the constants catalogue when the request fails', async () => {
+  it('returns an empty picker when the registry request fails', async () => {
     findAll.mockRejectedValue(new Error('network down'));
 
     const { result } = renderHook(() =>
@@ -119,6 +128,9 @@ describe('useAgentRegistryModels', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.models).toEqual(AGENT_MODELS);
+    // Phase D (#2422/#2472): the registry is the only source. An empty list
+    // means the seed or API is incomplete — never a silent constants fallback.
+    expect(result.current.models).toEqual([]);
+    expect(result.current.defaultModelKey).toBeNull();
   });
 });
