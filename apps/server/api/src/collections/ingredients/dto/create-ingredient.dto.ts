@@ -7,6 +7,7 @@ import {
   IngredientAvatarCategory,
   IngredientCategory,
   IngredientStatus,
+  QualityStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
@@ -253,14 +254,14 @@ export class CreateIngredientDto {
   })
   readonly qualityFeedback?: string[];
 
-  @IsString()
+  @IsEnum(QualityStatus)
   @IsOptional()
   @ApiProperty({
-    description: 'Quality status: unrated, good, or needs_review',
-    enum: ['unrated', 'good', 'needs_review'],
+    description: 'Automated quality verdict for the ingredient',
+    enum: QualityStatus,
     required: false,
   })
-  readonly qualityStatus?: string;
+  readonly qualityStatus?: QualityStatus;
 
   @IsEnum(ContentRating)
   @IsOptional()

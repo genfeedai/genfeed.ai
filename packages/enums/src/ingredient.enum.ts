@@ -35,6 +35,26 @@ export enum IngredientStatus {
 }
 
 /**
+ * Automated quality verdict for an ingredient. Values match Prisma
+ * `QualityStatus` exactly.
+ *
+ * `ingredients.qualityStatus` is a Postgres enum column (`@default(UNRATED)`),
+ * written by `ContentQualityScorerService`. Distinct from that service's
+ * `category` label (`excellent` / `good` / `needs_work` / `poor`), which is a
+ * presentation-only vocabulary with no column behind it.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum QualityStatus`
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+export const QualityStatus = {
+  UNRATED: 'UNRATED',
+  GOOD: 'GOOD',
+  NEEDS_REVIEW: 'NEEDS_REVIEW',
+} as const;
+
+export type QualityStatus = (typeof QualityStatus)[keyof typeof QualityStatus];
+
+/**
  * Transformation category. Values match Prisma `TransformationCategory`
  * (orphan type today — no column yet). Keep SCREAMING so a future column
  * write needs no cast.

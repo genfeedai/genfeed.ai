@@ -1,7 +1,5 @@
-import {
-  ContentQualityScorerService,
-  type QualityStatus,
-} from '@api/services/content-quality/content-quality-scorer.service';
+import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { QualityStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
@@ -72,7 +70,7 @@ describe('ContentQualityScorerService', () => {
       expect(result.feedback).toBeDefined();
     });
 
-    it('should set qualityStatus to "good" when score >= 6', async () => {
+    it('should set qualityStatus to GOOD when score >= 6', async () => {
       mocks.openRouterService.chatCompletion.mockResolvedValue({
         choices: [
           {
@@ -89,14 +87,14 @@ describe('ContentQualityScorerService', () => {
 
       const result = await service.scoreAndTag('ingredient-456', 'image');
 
-      expect(result.status).toBe('good');
+      expect(result.status).toBe(QualityStatus.GOOD);
       expect(mocks.ingredientsService.patch).toHaveBeenCalledWith(
         'ingredient-456',
-        expect.objectContaining({ qualityStatus: 'good' }),
+        expect.objectContaining({ qualityStatus: QualityStatus.GOOD }),
       );
     });
 
-    it('should set qualityStatus to "needs_review" when score < 6', async () => {
+    it('should set qualityStatus to NEEDS_REVIEW when score < 6', async () => {
       mocks.openRouterService.chatCompletion.mockResolvedValue({
         choices: [
           {
@@ -113,13 +111,13 @@ describe('ContentQualityScorerService', () => {
 
       const result = await service.scoreAndTag('ingredient-789', 'image');
 
-      expect(result.status).toBe('needs_review');
+      expect(result.status).toBe(QualityStatus.NEEDS_REVIEW);
       expect(result.score).toBe(4);
       expect(mocks.ingredientsService.patch).toHaveBeenCalledWith(
         'ingredient-789',
         expect.objectContaining({
           qualityScore: 4,
-          qualityStatus: 'needs_review',
+          qualityStatus: QualityStatus.NEEDS_REVIEW,
         }),
       );
     });
@@ -145,15 +143,27 @@ describe('ContentQualityScorerService', () => {
 
   describe('resolveStatus', () => {
     it('should return "good" for scores >= 6', () => {
-      expect(ContentQualityScorerService.resolveStatus(6)).toBe('good');
-      expect(ContentQualityScorerService.resolveStatus(8)).toBe('good');
-      expect(ContentQualityScorerService.resolveStatus(10)).toBe('good');
+      expect(ContentQualityScorerService.resolveStatus(6)).toBe(
+        QualityStatus.GOOD,
+      );
+      expect(ContentQualityScorerService.resolveStatus(8)).toBe(
+        QualityStatus.GOOD,
+      );
+      expect(ContentQualityScorerService.resolveStatus(10)).toBe(
+        QualityStatus.GOOD,
+      );
     });
 
     it('should return "needs_review" for scores < 6', () => {
-      expect(ContentQualityScorerService.resolveStatus(5)).toBe('needs_review');
-      expect(ContentQualityScorerService.resolveStatus(3)).toBe('needs_review');
-      expect(ContentQualityScorerService.resolveStatus(0)).toBe('needs_review');
+      expect(ContentQualityScorerService.resolveStatus(5)).toBe(
+        QualityStatus.NEEDS_REVIEW,
+      );
+      expect(ContentQualityScorerService.resolveStatus(3)).toBe(
+        QualityStatus.NEEDS_REVIEW,
+      );
+      expect(ContentQualityScorerService.resolveStatus(0)).toBe(
+        QualityStatus.NEEDS_REVIEW,
+      );
     });
   });
 
@@ -181,7 +191,7 @@ describe('ContentQualityScorerService', () => {
       const score = 9;
       const status: QualityStatus =
         ContentQualityScorerService.resolveStatus(score);
-      expect(status).toBe('good');
+      expect(status).toBe(QualityStatus.GOOD);
       expect(score).toBeGreaterThanOrEqual(8);
     });
 
@@ -189,7 +199,7 @@ describe('ContentQualityScorerService', () => {
       const score = 4;
       const status: QualityStatus =
         ContentQualityScorerService.resolveStatus(score);
-      expect(status).toBe('needs_review');
+      expect(status).toBe(QualityStatus.NEEDS_REVIEW);
       expect(score).toBeLessThan(6);
     });
   });

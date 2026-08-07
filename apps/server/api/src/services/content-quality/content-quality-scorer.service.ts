@@ -5,13 +5,12 @@ import type {
   OpenRouterChatCompletionResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { QualityStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
-
-export type QualityStatus = 'unrated' | 'good' | 'needs_review';
 
 export interface ContentQualityResult {
   score: number; // 1-10
@@ -170,9 +169,9 @@ export class ContentQualityScorerService {
    */
   static resolveStatus(score: number): QualityStatus {
     if (score >= 6) {
-      return 'good';
+      return QualityStatus.GOOD;
     }
-    return 'needs_review';
+    return QualityStatus.NEEDS_REVIEW;
   }
 
   /**
