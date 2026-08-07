@@ -217,6 +217,29 @@ describe('AgentContextAssemblyService', () => {
     expect(prompt).toContain('Ship the sharp version.');
   });
 
+  it('owns the single brand-memory insight section', () => {
+    const context: AssembledBrandContext = {
+      assembledAt: new Date('2026-08-07T00:00:00.000Z'),
+      brandId: 'brand-1',
+      brandName: 'Acme',
+      layersUsed: ['brandIdentity', 'brandMemory'],
+      memoryInsights: [
+        {
+          category: 'hook',
+          confidence: 0.8,
+          insight: 'Founder-led teardowns outperform generic tips.',
+        },
+      ],
+    };
+
+    const prompt = service.buildSystemPrompt('', context);
+
+    expect(prompt).toContain('## Performance Insights');
+    expect(prompt).toContain(
+      '- [hook] Founder-led teardowns outperform generic tips.',
+    );
+  });
+
   it('resolves visual identity from brand assets, not from the brand row', async () => {
     const brandWithoutAssetColumns = createCompleteBrand();
 

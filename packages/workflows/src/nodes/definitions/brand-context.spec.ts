@@ -17,6 +17,7 @@ describe('brand-context node', () => {
 
     it('should default all resolved fields to null', () => {
       expect(DEFAULT_BRAND_CONTEXT_DATA.resolvedVoice).toBeNull();
+      expect(DEFAULT_BRAND_CONTEXT_DATA.resolvedVoiceConfig).toBeNull();
       expect(DEFAULT_BRAND_CONTEXT_DATA.resolvedColors).toBeNull();
       expect(DEFAULT_BRAND_CONTEXT_DATA.resolvedFonts).toBeNull();
       expect(DEFAULT_BRAND_CONTEXT_DATA.resolvedModels).toBeNull();
