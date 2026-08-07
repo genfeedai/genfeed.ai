@@ -514,9 +514,13 @@ describe('SubscriptionsController', () => {
       await controller.getCreditUsage({});
 
       expect(mockOrganizationsService.find).toHaveBeenCalledTimes(1);
+      // No `isDeleted: false` here: #2429 moved that default into
+      // `BaseService.find` via `withSoftDeleteFilter`, so passing it again is
+      // redundant. Soft-deleted organizations are still excluded — the filter
+      // is now applied one layer down, and is covered by the base service's
+      // own tests.
       expect(mockOrganizationsService.find).toHaveBeenCalledWith({
         id: { in: ['org_a', 'org_b'] },
-        isDeleted: false,
       });
     });
   });
