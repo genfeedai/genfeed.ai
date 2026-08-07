@@ -5,6 +5,7 @@ export class SettingEntity extends BaseEntity implements Setting {
   declare readonly id: string;
   declare readonly userId: string;
   declare readonly theme: Setting['theme'];
+  declare readonly locale: Setting['locale'];
   declare readonly isVerified: Setting['isVerified'];
   declare readonly isFirstLogin: Setting['isFirstLogin'];
   declare readonly isMenuCollapsed: Setting['isMenuCollapsed'];

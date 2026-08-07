@@ -1,5 +1,9 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import {
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+} from '@genfeedai/constants';
 import {
   GenerationPriority,
   TrendNotificationFrequency,
@@ -9,6 +13,7 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsIn,
   IsNumber,
   IsObject,
   IsOptional,
@@ -32,6 +37,16 @@ export class CreateSettingDto {
     required: true,
   })
   readonly theme!: string;
+
+  @IsIn(SUPPORTED_LOCALES)
+  @IsOptional()
+  @ApiProperty({
+    default: DEFAULT_LOCALE,
+    description: 'The language the app UI is rendered in',
+    enum: SUPPORTED_LOCALES,
+    required: false,
+  })
+  readonly locale?: string;
 
   @IsBoolean()
   @ApiProperty({

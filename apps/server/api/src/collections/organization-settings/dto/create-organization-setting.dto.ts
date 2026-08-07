@@ -8,6 +8,7 @@ import {
   ORGANIZATION_WEBHOOK_EVENT_TYPES,
   type OrganizationWebhookEventType,
 } from '@api-types/contracts/webhook-events.contract';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@genfeedai/constants';
 import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -346,6 +347,17 @@ export class CreateOrganizationSettingDto {
     required: false,
   })
   readonly timezone?: string;
+
+  @IsIn(SUPPORTED_LOCALES)
+  @IsOptional()
+  @ApiProperty({
+    default: DEFAULT_LOCALE,
+    description:
+      'Locale applied to members who have not chosen one of their own',
+    enum: SUPPORTED_LOCALES,
+    required: false,
+  })
+  readonly defaultLocale?: string;
 
   @IsBoolean()
   @ApiProperty({

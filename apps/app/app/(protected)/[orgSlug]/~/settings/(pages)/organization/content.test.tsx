@@ -88,6 +88,17 @@ describe('SettingsOrganizationPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('offers an organization default language', () => {
+    render(<SettingsOrganizationPage />);
+
+    expect(
+      screen.getByText(/members who have not picked a language/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId('org-default-locale-trigger'),
+    ).toBeInTheDocument();
+  });
+
   it('shows fleet NSFW control when the brand has fleet connected', () => {
     vi.mocked(useBrand).mockReturnValue({
       isReady: true,
