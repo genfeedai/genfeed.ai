@@ -1,5 +1,6 @@
 'use client';
 
+import type { WorkflowLifecycle } from '@genfeedai/enums';
 import {
   selectIsDirty,
   selectIsSaving,
@@ -37,7 +38,7 @@ interface UseCloudWorkflowReturn {
   /** Cloud-specific error message, if any */
   error: string | null;
   /** Current lifecycle status */
-  lifecycle: 'draft' | 'published' | 'archived';
+  lifecycle: WorkflowLifecycle;
   /** Save the current workflow to the cloud */
   save: () => Promise<void>;
   /** Publish the workflow */

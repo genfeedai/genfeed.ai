@@ -4,7 +4,7 @@ import {
   BatchStatus,
   ButtonSize,
   ButtonVariant,
-  type WorkflowBatchItemStatus,
+  WorkflowBatchItemStatus,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
