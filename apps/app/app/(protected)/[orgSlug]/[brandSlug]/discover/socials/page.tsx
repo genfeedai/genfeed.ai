@@ -1,14 +1,18 @@
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import TrendsList from '@pages/trends/list/trends-list';
-import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
-import { Suspense } from 'react';
+import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
+import { permanentRedirect } from 'next/navigation';
 
-export const generateMetadata = createPageMetadata('Social Research');
+/**
+ * Retired Socials peer — same TrendsList as Overview.
+ * Keep the route for deep links; permanently redirect.
+ */
+export default async function DiscoverSocialsLegacyRoute({
+  params,
+}: {
+  params: Promise<{ brandSlug: string; orgSlug: string }>;
+}) {
+  const { brandSlug, orgSlug } = await params;
 
-export default function DiscoverSocialsPage() {
-  return (
-    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <TrendsList />
-    </Suspense>
+  permanentRedirect(
+    createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.DISCOVER.OVERVIEW),
   );
 }

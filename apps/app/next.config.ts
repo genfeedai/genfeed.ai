@@ -325,6 +325,36 @@ const config = createAppNextConfig({
         APP_ROUTES.DISCOVER.DISCOVERY,
       ),
     },
+    // Retired Socials peer — same TrendsList surface as Overview.
+    {
+      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.DISCOVER.SOCIALS,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.SOCIALS,
+      ),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.DISCOVER.OVERVIEW,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.DISCOVER.SOCIALS,
+      ),
+    },
     {
       destination: APP_ROUTES.LIBRARY.OVERVIEW,
       permanent: false,

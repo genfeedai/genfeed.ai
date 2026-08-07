@@ -22,9 +22,12 @@ function getDiscoverScopedPath(pathname: string, orgSlug: string): string {
   }
 
   const rest = pathname.slice(index + marker.length);
-  // Collapse legacy /discovery segment to canonical /overview.
+  // Collapse legacy /discovery and retired /socials to canonical /overview.
   if (rest === '/discovery' || rest.startsWith('/discovery/')) {
     return `/discover/overview${rest.slice('/discovery'.length)}`;
+  }
+  if (rest === '/socials' || rest.startsWith('/socials/')) {
+    return `/discover/overview${rest.slice('/socials'.length)}`;
   }
   return rest ? `/discover${rest}` : '/discover/overview';
 }

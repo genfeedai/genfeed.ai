@@ -266,6 +266,29 @@ describe('app next.config', () => {
     });
   });
 
+  it('redirects retired /discover/socials to /discover/overview', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.DISCOVER.OVERVIEW,
+      permanent: true,
+      source: APP_ROUTES.DISCOVER.SOCIALS,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.OVERVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.DISCOVER.SOCIALS,
+      ),
+    });
+  });
+
   it('redirects /studio to the storyboard production surface', async () => {
     const redirects = await config.redirects?.();
     const studioRedirect = redirects?.find(

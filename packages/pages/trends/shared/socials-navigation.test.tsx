@@ -25,7 +25,7 @@ vi.mock('next/link', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/discover/socials',
+  usePathname: () => '/discover/overview',
   useRouter: () => ({
     prefetch: vi.fn(),
     push: vi.fn(),
@@ -41,7 +41,7 @@ describe('SocialsNavigation', () => {
 
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
-      '/discover/socials',
+      '/discover/overview',
     );
     expect(
       screen.queryByRole('link', { name: 'Following' }),
@@ -84,7 +84,7 @@ describe('SocialsNavigation', () => {
     expect(allPlatforms.className).not.toMatch(/rounded-full/);
   });
 
-  it('marks the all-platforms item as active on the socials landing page', () => {
+  it('marks the all-platforms item as active on the discover overview page', () => {
     render(<SocialsNavigation active="overview" />);
 
     expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(

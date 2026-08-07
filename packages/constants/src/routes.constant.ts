@@ -160,6 +160,10 @@ export const APP_ROUTES = {
     PLATFORM_TWITTER: '/discover/twitter',
     PLATFORM_YOUTUBE: '/discover/youtube',
     ROOT: '/discover',
+    /**
+     * @deprecated Same TrendsList as OVERVIEW. Permanently redirects to
+     * `/discover/overview` — keep for deep-link compatibility only.
+     */
     SOCIALS: '/discover/socials',
   },
   /**

@@ -230,7 +230,6 @@ vi.mock('@app-config/discover-menu-items.config', () => ({
   DISCOVER_LOGO_HREF: '/discover/overview',
   DISCOVER_MENU_ITEMS: [
     { href: '/discover/overview', label: 'Overview' },
-    { href: '/discover/socials', label: 'Socials' },
     { href: '/discover/following', label: 'Following' },
     { href: '/discover/ads', label: 'Ads' },
   ],
@@ -1378,7 +1377,6 @@ describe('AppProtectedLayout', () => {
         currentApp: 'discover',
         items: [
           { href: '/discover/overview', label: 'Overview' },
-          { href: '/discover/socials', label: 'Socials' },
           { href: '/discover/following', label: 'Following' },
           { href: '/discover/ads', label: 'Ads' },
         ],
