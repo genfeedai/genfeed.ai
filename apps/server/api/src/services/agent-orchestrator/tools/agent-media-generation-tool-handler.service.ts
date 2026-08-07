@@ -22,6 +22,7 @@ import {
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
+  type BatchEstimateInput,
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
 } from '@genfeedai/constants';
@@ -906,7 +907,7 @@ export class AgentMediaGenerationToolHandler {
     const pricingOptions = this.resolveBatchPricingOptions(ctx);
     const estimatedCredits = estimateBatchGenerationCredits(
       {
-        contentMix: params.contentMix as never,
+        contentMix: params.contentMix as BatchEstimateInput['contentMix'],
         count,
         platforms,
       },

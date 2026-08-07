@@ -147,6 +147,18 @@ export const APP_ROUTES = {
      * is a complete path (same pattern as workspace/overview).
      */
     OVERVIEW: '/discover/overview',
+    /**
+     * Platform feeds. Served by the dynamic `/discover/[platform]` route, but
+     * enumerated here because they are real menu destinations — same reason
+     * `ADS_*` are spelled out rather than built from a segment.
+     */
+    PLATFORM_INSTAGRAM: '/discover/instagram',
+    PLATFORM_LINKEDIN: '/discover/linkedin',
+    PLATFORM_PINTEREST: '/discover/pinterest',
+    PLATFORM_REDDIT: '/discover/reddit',
+    PLATFORM_TIKTOK: '/discover/tiktok',
+    PLATFORM_TWITTER: '/discover/twitter',
+    PLATFORM_YOUTUBE: '/discover/youtube',
     ROOT: '/discover',
     SOCIALS: '/discover/socials',
   },
