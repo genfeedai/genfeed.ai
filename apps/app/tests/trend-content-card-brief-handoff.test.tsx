@@ -83,7 +83,10 @@ describe('TrendContentCard brief handoff', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save Brief' }));
+    fireEvent.click(screen.getByRole('button', { name: 'More trend actions' }));
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Save brief' }),
+    );
 
     await waitFor(() => {
       expect(createResearchBriefRun).toHaveBeenCalledWith(
