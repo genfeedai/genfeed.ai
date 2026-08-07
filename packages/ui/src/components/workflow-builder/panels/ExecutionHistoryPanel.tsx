@@ -5,7 +5,7 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
-  type WorkflowExecutionStatus,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
