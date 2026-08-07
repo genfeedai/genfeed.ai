@@ -18,6 +18,8 @@ curated actions; the reviewed hand-authored union is the correct baseline.
 truth for Agent/MCP surface intent. Keep schemas and metadata in the definition
 shards, and require focused Agent/MCP executor coverage for every surfaced
 action. Catalog additions, removals, and surface transitions must be intentional
-and are reported by `.github/workflows/curated-action-catalog.yml`. Preserve
+and reviewable in the PR that makes them; CI reporting for that diff is in
+flight in #2452 and has not landed on `master` — do not treat it as an existing
+check, and do not re-implement it. Preserve
 ordinary OpenAPI emit/validation for API documentation, but never use OpenAPI to
 generate tools or parity gates.

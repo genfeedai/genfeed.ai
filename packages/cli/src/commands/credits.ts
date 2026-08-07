@@ -3,6 +3,7 @@ import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
 import { getCreditSummary, getCreditUsage } from '@/api/credits';
+import { getAppUrl } from '@/config/store';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 
@@ -101,7 +102,7 @@ creditsCommand
       }
 
       print();
-      print(chalk.dim('Manage billing at https://app.genfeed.ai/settings/billing'));
+      print(chalk.dim(`Manage billing at ${await getAppUrl()}/settings/credits`));
     } catch (error) {
       handleError(error);
     }

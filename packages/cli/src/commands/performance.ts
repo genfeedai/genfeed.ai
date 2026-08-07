@@ -2,14 +2,53 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
-import { getPromptPerformance, getTopPerformers, getWeeklySummary } from '@/api/performance';
+import {
+  getPromptPerformance,
+  getTopPerformers,
+  getWeeklySummary,
+  type PerformanceContentItem,
+} from '@/api/performance';
 import { getActiveBrand } from '@/config/store';
 import { formatHeader, formatLabel, print, printJson } from '@/ui/theme';
-import { handleError } from '@/utils/errors';
+import { handleError, NoBrandError } from '@/utils/errors';
 
 export const performanceCommand = new Command('performance').description(
   'Content performance analytics'
 );
+
+/**
+ * The API requires a brand id on every performance endpoint, so resolve it
+ * before spending a request that would come back as a 400.
+ */
+async function requirePerformanceBrand(brand?: string): Promise<string> {
+  const brandId = brand ?? (await getActiveBrand());
+  if (brandId) return brandId;
+  throw new NoBrandError();
+}
+
+function formatRate(rate: number): string {
+  return `${rate.toFixed(2)}%`;
+}
+
+function formatItemStats(item: PerformanceContentItem): string {
+  return [
+    item.platform || null,
+    `${item.views} views`,
+    `${item.likes} likes`,
+    `${item.shares} shares`,
+  ]
+    .filter(Boolean)
+    .join(' | ');
+}
+
+function printItems(items: PerformanceContentItem[], colorRate: (rate: string) => string): void {
+  for (const item of items) {
+    print(
+      `  ${chalk.cyan(item.title || item.postId)} ${colorRate(formatRate(item.engagementRate))}`
+    );
+    print(`    ${chalk.dim(formatItemStats(item))}`);
+  }
+}
 
 performanceCommand
   .command('weekly')
@@ -24,16 +63,15 @@ performanceCommand
     try {
       await requireAuth();
 
-      const activeBrandId = await getActiveBrand();
-      const brandId = options.brand ?? activeBrandId;
+      const brandId = await requirePerformanceBrand(options.brand);
 
       const spinner = ora('Fetching weekly summary...').start();
       const summary = await getWeeklySummary({
-        brand: brandId,
-        end: options.end,
-        start: options.start,
-        top: options.top,
-        worst: options.worst,
+        brandId,
+        endDate: options.end,
+        startDate: options.start,
+        topN: options.top,
+        worstN: options.worst,
       });
       spinner.stop();
 
@@ -42,39 +80,55 @@ performanceCommand
         return;
       }
 
+      const trend = summary.weekOverWeekTrend;
+
       print(formatHeader('\nWeekly Performance Summary:\n'));
-      print(formatLabel('Period', summary.period));
-      print(formatLabel('Total Posts', String(summary.totalPosts)));
-      print(formatLabel('Total Engagement', String(summary.totalEngagement)));
-      print(formatLabel('Avg Engagement Rate', `${summary.averageEngagementRate.toFixed(2)}%`));
+      print(formatLabel('Trend', `${trend.direction} ${formatRate(trend.percentageChange)}`));
+      print(formatLabel('Avg Engagement Rate', formatRate(trend.currentEngagement)));
+      print(formatLabel('Previous Week', formatRate(trend.previousEngagement)));
 
       if (summary.topPerformers.length > 0) {
         print();
         print(formatHeader('Top Performers:\n'));
-        for (const item of summary.topPerformers) {
-          const rate =
-            item.engagementRate !== undefined
-              ? chalk.green(`${item.engagementRate.toFixed(2)}%`)
-              : '';
-          print(`  ${chalk.cyan(item.title ?? item.id)} ${rate}`);
-          if (item.platform) {
-            print(`    ${chalk.dim(item.platform)}`);
-          }
-        }
+        printItems(summary.topPerformers, chalk.green);
       }
 
       if (summary.worstPerformers.length > 0) {
         print();
         print(formatHeader('Needs Improvement:\n'));
-        for (const item of summary.worstPerformers) {
-          const rate =
-            item.engagementRate !== undefined
-              ? chalk.red(`${item.engagementRate.toFixed(2)}%`)
-              : '';
-          print(`  ${chalk.dim(item.title ?? item.id)} ${rate}`);
-          if (item.platform) {
-            print(`    ${chalk.dim(item.platform)}`);
-          }
+        printItems(summary.worstPerformers, chalk.red);
+      }
+
+      if (summary.avgEngagementByPlatform.length > 0) {
+        print();
+        print(formatHeader('Engagement by Platform:\n'));
+        for (const platform of summary.avgEngagementByPlatform) {
+          print(
+            `  ${chalk.cyan(platform.platform)} ${formatRate(platform.avgEngagementRate)} ${chalk.dim(
+              `(${platform.totalPosts} posts)`
+            )}`
+          );
+        }
+      }
+
+      if (summary.bestPostingTimes.length > 0) {
+        print();
+        print(formatHeader('Best Posting Times:\n'));
+        for (const slot of summary.bestPostingTimes) {
+          const hour = `${String(slot.hour).padStart(2, '0')}:00`;
+          print(
+            `  ${chalk.cyan(hour)} ${formatRate(slot.avgEngagementRate)} ${chalk.dim(
+              `(${slot.postCount} posts)`
+            )}`
+          );
+        }
+      }
+
+      if (summary.topHooks.length > 0) {
+        print();
+        print(formatHeader('Top Hooks:\n'));
+        for (const hook of summary.topHooks) {
+          print(`  ${chalk.dim(hook)}`);
         }
       }
     } catch (error) {
@@ -94,48 +148,38 @@ performanceCommand
     try {
       await requireAuth();
 
-      const activeBrandId = await getActiveBrand();
-      const brandId = options.brand ?? activeBrandId;
+      const brandId = await requirePerformanceBrand(options.brand);
 
       const spinner = ora('Fetching top performers...').start();
-      const data = await getTopPerformers({
-        brand: brandId,
-        end: options.end,
+      const items = await getTopPerformers({
+        brandId,
+        endDate: options.end,
         limit: options.limit,
-        start: options.start,
+        startDate: options.start,
       });
       spinner.stop();
 
-      if (data.items.length === 0) {
+      if (options.json) {
+        printJson(items);
+        return;
+      }
+
+      if (items.length === 0) {
         print(chalk.dim('No performance data available.'));
         return;
       }
 
-      if (options.json) {
-        printJson(data);
-        return;
-      }
+      print(formatHeader(`\nTop Performers (${items.length}):\n`));
 
-      print(formatHeader(`\nTop Performers (${data.items.length}):\n`));
-
-      for (let i = 0; i < data.items.length; i++) {
-        const item = data.items[i];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
         const rank = chalk.dim(`${i + 1}.`);
-        const rate =
-          item.engagementRate !== undefined
-            ? chalk.green(`${item.engagementRate.toFixed(2)}%`)
-            : '';
-        print(`  ${rank} ${chalk.cyan(item.title ?? item.id)} ${rate}`);
-        const stats = [
-          item.impressions !== undefined ? `${item.impressions} impressions` : null,
-          item.likes !== undefined ? `${item.likes} likes` : null,
-          item.shares !== undefined ? `${item.shares} shares` : null,
-        ]
-          .filter(Boolean)
-          .join(' | ');
-        if (stats) {
-          print(`     ${chalk.dim(stats)}`);
-        }
+        print(
+          `  ${rank} ${chalk.cyan(item.title || item.postId)} ${chalk.green(
+            formatRate(item.engagementRate)
+          )}`
+        );
+        print(`     ${chalk.dim(formatItemStats(item))}`);
         print();
       }
     } catch (error) {
@@ -154,34 +198,38 @@ performanceCommand
     try {
       await requireAuth();
 
-      const activeBrandId = await getActiveBrand();
-      const brandId = options.brand ?? activeBrandId;
+      const brandId = await requirePerformanceBrand(options.brand);
 
       const spinner = ora('Fetching prompt performance...').start();
-      const data = await getPromptPerformance({
-        brand: brandId,
-        end: options.end,
-        start: options.start,
+      const prompts = await getPromptPerformance({
+        brandId,
+        endDate: options.end,
+        startDate: options.start,
       });
       spinner.stop();
 
-      if (data.prompts.length === 0) {
+      if (options.json) {
+        printJson(prompts);
+        return;
+      }
+
+      if (prompts.length === 0) {
         print(chalk.dim('No prompt performance data available.'));
         return;
       }
 
-      if (options.json) {
-        printJson(data);
-        return;
-      }
+      print(formatHeader(`\nPrompt Performance (${prompts.length}):\n`));
 
-      print(formatHeader(`\nPrompt Performance (${data.prompts.length}):\n`));
-
-      for (const p of data.prompts) {
-        const engagement = chalk.dim(`avg engagement: ${p.averageEngagement.toFixed(2)}%`);
-        const uses = chalk.dim(`${p.uses} uses`);
-        print(`  ${chalk.cyan(p.prompt.slice(0, 60))}${p.prompt.length > 60 ? '...' : ''}`);
-        print(`    ${uses} | ${engagement}`);
+      for (const prompt of prompts) {
+        const engagement = chalk.dim(`avg engagement: ${formatRate(prompt.avgEngagementRate)}`);
+        const posts = chalk.dim(`${prompt.totalPosts} posts`);
+        const views = chalk.dim(`${prompt.totalViews} views`);
+        print(
+          `  ${chalk.cyan(prompt.promptSnippet.slice(0, 60))}${
+            prompt.promptSnippet.length > 60 ? '...' : ''
+          }`
+        );
+        print(`    ${posts} | ${views} | ${engagement}`);
         print();
       }
     } catch (error) {

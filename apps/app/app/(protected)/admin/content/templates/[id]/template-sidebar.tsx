@@ -6,7 +6,6 @@ import type {
   TemplatePerformance,
 } from '@genfeedai/interfaces/content/template-ui.interface';
 import Badge from '@ui/display/badge/Badge';
-import { VStack } from '@ui/layout/stack';
 import { Text } from '@ui/typography/text';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import { DetailCard, MetadataRow } from './template-detail-helpers';
@@ -25,10 +24,10 @@ export default function TemplateSidebar({
   updatedAt,
 }: Props) {
   return (
-    <VStack gap={6}>
+    <div className="flex flex-col gap-6">
       {/* Metadata Card */}
       <DetailCard title="Metadata">
-        <VStack gap={2} className="text-sm">
+        <div className="flex flex-col gap-2 text-sm">
           {metadata?.version && (
             <MetadataRow label="Version">{metadata.version}</MetadataRow>
           )}
@@ -78,12 +77,12 @@ export default function TemplateSidebar({
                 </div>
               </div>
             )}
-        </VStack>
+        </div>
       </DetailCard>
 
       {/* Performance Card */}
       <DetailCard title="Performance">
-        <VStack gap={2} className="text-sm">
+        <div className="flex flex-col gap-2 text-sm">
           {performance?.usageCount !== undefined && (
             <MetadataRow label="Usage Count">
               {performance.usageCount}
@@ -112,12 +111,12 @@ export default function TemplateSidebar({
               {(performance.successRate * 100).toFixed(1)}%
             </MetadataRow>
           )}
-        </VStack>
+        </div>
       </DetailCard>
 
       {/* Timestamps */}
       <DetailCard title="Timestamps">
-        <VStack gap={2} className="text-sm">
+        <div className="flex flex-col gap-2 text-sm">
           {createdAt && (
             <MetadataRow label="Created">
               <ClientFormattedDate value={createdAt} />
@@ -128,8 +127,8 @@ export default function TemplateSidebar({
               <ClientFormattedDate value={updatedAt} />
             </MetadataRow>
           )}
-        </VStack>
+        </div>
       </DetailCard>
-    </VStack>
+    </div>
   );
 }

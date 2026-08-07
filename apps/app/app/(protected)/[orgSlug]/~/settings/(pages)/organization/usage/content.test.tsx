@@ -82,13 +82,14 @@ describe('SettingsUsagePage', () => {
   it('renders usage metrics and ledger rows', () => {
     render(<SettingsUsagePage />);
 
-    expect(screen.getByText('Usage')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Usage' })).toBeInTheDocument();
     expect(screen.getByText('88')).toBeInTheDocument();
     expect(screen.getByText('Used (7 days)')).toBeInTheDocument();
-    expect(screen.getByText('Usage over time')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Daily' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Weekly' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Monthly' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Usage over time' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Ledger' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Chart range')).toBeInTheDocument();
     expect(
       screen.getByText('Agent chat turn (openai/gpt-5.6-terra)'),
     ).toBeInTheDocument();

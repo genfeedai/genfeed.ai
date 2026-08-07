@@ -74,6 +74,19 @@ describe('useAgentOAuthConnect', () => {
     );
   });
 
+  it('maps underscore platform enums to hyphenated Nest service paths', async () => {
+    selectedBrand = { id: 'brand-1' };
+    const { result } = renderHook(() => useAgentOAuthConnect());
+
+    await act(async () => {
+      await result.current('google_ads');
+    });
+
+    expect(mockPostConnect).toHaveBeenCalledWith('google-ads', 'token-abc', {
+      brandId: 'brand-1',
+    });
+  });
+
   it('includes the active brand and threads the return_to when available', async () => {
     selectedBrand = { id: 'brand-9' };
     mockUseParams.mockReturnValue({ threadId: 'thread-5' });

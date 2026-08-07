@@ -1,7 +1,6 @@
 'use client';
 
 import Card from '@ui/card/Card';
-import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import type { ReactNode } from 'react';
@@ -16,10 +15,10 @@ export function DetailCard({
 }) {
   return (
     <Card>
-      <VStack gap={4} className="p-6">
+      <div className="flex flex-col gap-4 p-6">
         <Heading size="lg">{title}</Heading>
         {children}
-      </VStack>
+      </div>
     </Card>
   );
 }

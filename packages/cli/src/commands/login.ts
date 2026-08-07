@@ -6,12 +6,18 @@ import { Command } from 'commander';
 import ora from 'ora';
 import { validateApiKey } from '@/api/auth';
 import { listBrands } from '@/api/brands';
-import { setActiveBrand, setApiKey, setOrganizationId, setRole } from '@/config/store';
+import { type LoginEndpoints, normalizeBaseUrl } from '@/config/endpoints';
+import {
+  getLoginEndpoints,
+  setActiveBrand,
+  setApiKey,
+  setOrganizationId,
+  setProfileField,
+  setRole,
+} from '@/config/store';
 import { formatHeader, formatLabel, formatSuccess, formatWarning, print } from '@/ui/theme';
 import { GenfeedError, handleError } from '@/utils/errors';
 
-const AUTH_URL = 'https://app.genfeed.ai/oauth/cli';
-const API_BASE_URL = 'https://api.genfeed.ai/v1';
 const CALLBACK_TIMEOUT = 120_000; // 2 minutes
 
 interface PkceParams {
@@ -28,8 +34,60 @@ interface ExchangeResponse {
 }
 
 export interface LoginOptions {
+  apiUrl?: string;
+  appUrl?: string;
   key?: string;
   interactive?: boolean;
+}
+
+/**
+ * Build the authorization page URL the browser is sent to. The web app reads
+ * `port` to know which localhost listener to redirect the one-time code back to.
+ */
+export function buildAuthorizeUrl(
+  authUrl: string,
+  params: { challenge: string; port: number; state: string }
+): string {
+  const query = new URLSearchParams({
+    code_challenge: params.challenge,
+    code_challenge_method: 'S256',
+    port: String(params.port),
+    state: params.state,
+  });
+
+  return `${authUrl}?${query.toString()}`;
+}
+
+/**
+ * Exchange the one-time authorization code for a long-lived API key against the
+ * deployment's own API (`POST /auth/desktop/exchange`).
+ */
+export async function exchangeAuthCode(
+  apiBaseUrl: string,
+  params: { code: string; codeVerifier: string; state: string }
+): Promise<ExchangeResponse> {
+  const response = await fetch(`${apiBaseUrl}/auth/desktop/exchange`, {
+    body: JSON.stringify({
+      code: params.code,
+      codeVerifier: params.codeVerifier,
+      state: params.state,
+    }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => 'Unknown error');
+    throw new GenfeedError(`Token exchange failed: ${body}`);
+  }
+
+  const data = (await response.json()) as ExchangeResponse;
+
+  if (!data.token) {
+    throw new GenfeedError('No token returned by server');
+  }
+
+  return data;
 }
 
 function generatePkce(): PkceParams {
@@ -46,7 +104,7 @@ function generateState(): string {
  * Start a temporary localhost HTTP server to receive the PKCE OAuth callback.
  * Validates state, exchanges the code for a token, and returns the token.
  */
-function waitForOAuthCallback(): Promise<string> {
+function waitForOAuthCallback(endpoints: LoginEndpoints): Promise<string> {
   return new Promise((resolve, reject) => {
     const pkce = generatePkce();
     const expectedState = generateState();
@@ -82,34 +140,11 @@ function waitForOAuthCallback(): Promise<string> {
         }
 
         try {
-          const exchangeRes = await fetch(`${API_BASE_URL}/auth/desktop/exchange`, {
-            body: JSON.stringify({
-              code,
-              codeVerifier: pkce.verifier,
-              state: expectedState,
-            }),
-            headers: { 'Content-Type': 'application/json' },
-            method: 'POST',
+          const data = await exchangeAuthCode(endpoints.apiBaseUrl, {
+            code,
+            codeVerifier: pkce.verifier,
+            state: expectedState,
           });
-
-          if (!exchangeRes.ok) {
-            const body = await exchangeRes.text().catch(() => 'Unknown error');
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(callbackPage('Authentication failed', body, false));
-            cleanup();
-            reject(new GenfeedError(`Token exchange failed: ${body}`));
-            return;
-          }
-
-          const data = (await exchangeRes.json()) as ExchangeResponse;
-
-          if (!data.token) {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
-            res.end(callbackPage('Authentication failed', 'No token returned by server.', false));
-            cleanup();
-            reject(new GenfeedError('No token returned by server'));
-            return;
-          }
 
           res.writeHead(200, { 'Content-Type': 'text/html' });
           res.end(
@@ -164,14 +199,11 @@ function waitForOAuthCallback(): Promise<string> {
     server.listen(0, '127.0.0.1', () => {
       const addr = server.address();
       if (addr && typeof addr === 'object') {
-        const port = addr.port;
-        const params = new URLSearchParams({
-          code_challenge: pkce.challenge,
-          code_challenge_method: 'S256',
-          port: String(port),
+        const authUrl = buildAuthorizeUrl(endpoints.authUrl, {
+          challenge: pkce.challenge,
+          port: addr.port,
           state: expectedState,
         });
-        const authUrl = `${AUTH_URL}?${params.toString()}`;
 
         print();
         print(formatHeader('Opening browser to authenticate...'));
@@ -232,7 +264,7 @@ function callbackPage(title: string, message: string, success: boolean): string 
 </div></body></html>`;
 }
 
-async function completeLogin(apiKey: string): Promise<void> {
+async function completeLogin(apiKey: string, endpoints: LoginEndpoints): Promise<void> {
   await setApiKey(apiKey);
 
   const spinner = ora('Validating...').start();
@@ -259,7 +291,7 @@ async function completeLogin(apiKey: string): Promise<void> {
       const brands = await listBrands(whoamiData.organization.id);
 
       if (brands.length === 0) {
-        print(formatWarning('No brands found. Create one at https://app.genfeed.ai'));
+        print(formatWarning(`No brands found. Create one at ${endpoints.appUrl}`));
       } else if (brands.length === 1) {
         await setActiveBrand(brands[0].id);
         print(formatSuccess(`Active brand: ${chalk.bold(brands[0].label)}`));
@@ -290,6 +322,17 @@ async function completeLogin(apiKey: string): Promise<void> {
 
 export async function runLogin(options: LoginOptions): Promise<void> {
   try {
+    // Persist endpoint overrides first so every subsequent command — and the
+    // browser flow below — targets the same deployment.
+    if (options.apiUrl) {
+      await setProfileField('apiUrl', normalizeBaseUrl(options.apiUrl));
+    }
+    if (options.appUrl) {
+      await setProfileField('appUrl', normalizeBaseUrl(options.appUrl));
+    }
+
+    const endpoints = await getLoginEndpoints();
+
     // Direct key — skip everything
     if (options.key) {
       if (!options.key.startsWith('gf_live_') && !options.key.startsWith('gf_test_')) {
@@ -298,7 +341,7 @@ export async function runLogin(options: LoginOptions): Promise<void> {
           'API keys should start with gf_live_ or gf_test_'
         );
       }
-      await completeLogin(options.key);
+      await completeLogin(options.key, endpoints);
       return;
     }
 
@@ -323,7 +366,7 @@ export async function runLogin(options: LoginOptions): Promise<void> {
         );
       }
 
-      await completeLogin(apiKey);
+      await completeLogin(apiKey, endpoints);
       return;
     }
 
@@ -331,9 +374,9 @@ export async function runLogin(options: LoginOptions): Promise<void> {
     const spinner = ora('Waiting for authentication...').start();
 
     try {
-      const apiKey = await waitForOAuthCallback();
+      const apiKey = await waitForOAuthCallback(endpoints);
       spinner.succeed('Authenticated');
-      await completeLogin(apiKey);
+      await completeLogin(apiKey, endpoints);
     } catch (error) {
       spinner.fail('Authentication failed');
       throw error;
@@ -348,6 +391,14 @@ export function createLoginCommand(name = 'login'): Command {
     .description('Authenticate with Genfeed (opens browser)')
     .option('-k, --key <key>', 'API key (skip browser, non-interactive)')
     .option('-i, --interactive', 'Paste API key manually instead of browser')
+    .option(
+      '--api-url <url>',
+      'API base URL for a self-hosted deployment (saved to the active profile)'
+    )
+    .option(
+      '--app-url <url>',
+      'Web app URL serving /oauth/cli (saved to the active profile; derived from --api-url when omitted)'
+    )
     .action(runLogin);
 }
 

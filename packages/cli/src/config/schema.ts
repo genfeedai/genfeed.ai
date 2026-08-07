@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SAAS_API_URL } from './endpoints';
 
 export const profileSchema = z.object({
   activeBrand: z.string().optional(),
@@ -9,7 +10,9 @@ export const profileSchema = z.object({
     })
     .default({ lastThreadIdByOrganization: {} }),
   apiKey: z.string().optional(),
-  apiUrl: z.string().url().default('https://api.genfeed.ai/v1'),
+  apiUrl: z.string().url().default(SAAS_API_URL),
+  /** Web app origin serving `/oauth/cli`. Derived from `apiUrl` when unset. */
+  appUrl: z.string().url().optional(),
   defaults: z
     .object({
       imageModel: z.string().default('imagen-4'),

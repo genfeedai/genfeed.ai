@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
 import { listMyOrganizations, switchOrganization } from '@/api/organizations';
-import { setActiveBrand, setOrganizationId } from '@/config/store';
+import { getAppUrl, setActiveBrand, setOrganizationId } from '@/config/store';
 import {
   formatHeader,
   formatLabel,
@@ -68,7 +68,7 @@ organizationsCommand
       spinner.stop();
 
       if (organizations.length === 0) {
-        throw new GenfeedError('No organizations found', 'Create one at https://app.genfeed.ai');
+        throw new GenfeedError('No organizations found', `Create one at ${await getAppUrl()}`);
       }
 
       const active = organizations.find((org) => org.isActive);

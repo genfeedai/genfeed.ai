@@ -33,7 +33,7 @@ export const imageCommand = new Command('image')
       const spinner = ora('Creating image...').start();
 
       const image = await createImage({
-        brand: brandId,
+        brandId,
         height: options.height,
         model,
         text: prompt,

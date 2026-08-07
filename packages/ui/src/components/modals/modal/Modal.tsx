@@ -65,11 +65,12 @@ export default function Modal({
         aria-describedby={undefined}
         size={isFullScreen ? 'full' : 'lg'}
         className={cn(
-          'flex flex-col max-h-[calc(100vh-5rem)]',
+          'flex max-h-[calc(100vh-5rem)] flex-col',
           isFullScreen ? 'overflow-hidden' : 'overflow-auto',
-          // Door-3 status: destructive ring when the modal is in an error state.
-          // A ring composes over the dialog's inset containment without doubling it.
-          isError && 'ring-1 ring-destructive/40',
+          // Error shell must set border WIDTH + color. Color-only utilities
+          // (border-destructive/50) paint nothing without `border`.
+          isError &&
+            'border-2 border-destructive bg-card text-foreground shadow-[0_0_0_1px_rgba(239,68,68,0.35)]',
           modalBoxClassName,
         )}
         showCloseButton={showCloseButton}
@@ -85,7 +86,7 @@ export default function Modal({
             {title && <CompoundModal.Title>{title}</CompoundModal.Title>}
 
             {error && (
-              <div className="flex items-center gap-3 rounded border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive mt-4">
+              <div className="mt-4 flex items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/15 px-4 py-3 text-sm font-medium text-destructive">
                 <TriangleAlert className="size-5 shrink-0" />
                 <span>{error}</span>
               </div>

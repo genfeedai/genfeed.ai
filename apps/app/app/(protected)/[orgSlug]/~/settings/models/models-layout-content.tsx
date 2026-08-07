@@ -2,18 +2,53 @@
 
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
-import type { RouteTabItem } from '@genfeedai/props/ui/navigation/tabs.props';
+import { hasTrainingAccess } from '@genfeedai/pricing';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Cpu, Plus } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useMemo } from 'react';
+
+const MODEL_TYPE_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'images', label: 'Images' },
+  { value: 'videos', label: 'Videos' },
+  { value: 'text', label: 'Text' },
+  { value: 'trainings', label: 'Trainings' },
+] as const;
+
+type ModelTypeValue = (typeof MODEL_TYPE_OPTIONS)[number]['value'];
+
+function resolveModelType(pathname: string | null): ModelTypeValue {
+  if (pathname?.includes('/trainings')) {
+    return 'trainings';
+  }
+  if (pathname?.includes('/text')) {
+    return 'text';
+  }
+  if (pathname?.includes('/videos')) {
+    return 'videos';
+  }
+  if (pathname?.includes('/images')) {
+    return 'images';
+  }
+  return 'all';
+}
 
 export default function ModelsLayoutContent({
   children,
@@ -21,62 +56,20 @@ export default function ModelsLayoutContent({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { orgHref } = useOrgUrl();
+  const { settings } = useBrand();
+  const canTrain =
+    isSelfHostedDeployment() || hasTrainingAccess(settings?.subscriptionTier);
 
   const { refreshTrainings, isRefreshing: isRefreshingTrainings } =
     useTrainingsContext();
   const { refreshModels, isRefreshing: isRefreshingModels } =
     useModelsContext();
 
-  const tabs: RouteTabItem[] = useMemo(
-    () => [
-      {
-        href: orgHref('/settings/models/all'),
-        id: 'all',
-        label: 'All',
-      },
-      {
-        href: orgHref('/settings/models/images'),
-        id: 'images',
-        label: 'Images',
-      },
-      {
-        href: orgHref('/settings/models/videos'),
-        id: 'videos',
-        label: 'Videos',
-      },
-      {
-        href: orgHref('/settings/models/text'),
-        id: 'text',
-        label: 'Text',
-      },
-      {
-        href: orgHref('/settings/models/trainings'),
-        id: 'trainings',
-        label: 'Trainings',
-      },
-    ],
-    [orgHref],
-  );
+  const activeType = useMemo(() => resolveModelType(pathname), [pathname]);
 
-  // Determine active tab based on pathname
-  const activeTab = useMemo(() => {
-    if (pathname?.includes('/trainings')) {
-      return 'trainings';
-    }
-    if (pathname?.includes('/text')) {
-      return 'text';
-    }
-    if (pathname?.includes('/videos')) {
-      return 'videos';
-    }
-    if (pathname?.includes('/images')) {
-      return 'images';
-    }
-    return 'all';
-  }, [pathname]);
-
-  const isTrainingsTab = activeTab === 'trainings';
+  const isTrainingsTab = activeType === 'trainings';
   const isRefreshing = isTrainingsTab
     ? isRefreshingTrainings
     : isRefreshingModels;
@@ -89,26 +82,46 @@ export default function ModelsLayoutContent({
     }
   }, [isTrainingsTab, refreshTrainings, refreshModels]);
 
+  const handleTypeChange = useCallback(
+    (value: string) => {
+      if (!MODEL_TYPE_OPTIONS.some((option) => option.value === value)) {
+        return;
+      }
+      if (value === activeType) {
+        return;
+      }
+      router.push(orgHref(`/settings/models/${value}`));
+    },
+    [activeType, orgHref, router],
+  );
+
   return (
     <Container
       label="Models"
       description="Manage available AI models."
       icon={Cpu}
-      headerTabs={{
-        activeTab,
-        fullWidth: false,
-        items: tabs.map((tab) => ({
-          href: tab.href,
-          id: tab.id,
-          label: tab.label,
-        })),
-        variant: 'default',
-      }}
       right={
         <>
+          <Select value={activeType} onValueChange={handleTypeChange}>
+            <SelectTrigger
+              id="models-type-filter"
+              className="h-9 min-w-36"
+              aria-label="Model type"
+            >
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              {MODEL_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <ButtonRefresh onClick={handleRefresh} isRefreshing={isRefreshing} />
 
-          {isTrainingsTab ? (
+          {isTrainingsTab && canTrain ? (
             <Button
               label="Training"
               icon={<Plus />}
@@ -121,7 +134,7 @@ export default function ModelsLayoutContent({
     >
       {children}
 
-      {isTrainingsTab ? <LazyModalTrainingNew /> : null}
+      {isTrainingsTab && canTrain ? <LazyModalTrainingNew /> : null}
     </Container>
   );
 }

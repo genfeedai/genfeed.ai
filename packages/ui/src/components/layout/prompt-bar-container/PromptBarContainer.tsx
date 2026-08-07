@@ -76,10 +76,12 @@ export default function PromptBarContainer({
   );
 
   const innerClassName = cn(
-    'mx-auto pointer-events-auto',
+    'mx-auto w-full pointer-events-auto',
     maxWidthClass,
+    // No horizontal padding on surface-fixed — the agent transcript uses the
+    // same max-width track with no inset so card edges match the composer.
     layoutMode === 'fixed' && 'px-5 pb-5',
-    layoutMode === 'surface-fixed' && 'px-3 pb-3',
+    layoutMode === 'surface-fixed' && 'px-0 pb-3',
     layoutMode === 'inflow' && 'px-0 pb-0',
     layoutMode === 'inflow-desktop' && 'px-5 pb-5 md:px-0 md:pb-0',
   );
@@ -103,16 +105,21 @@ export default function PromptBarContainer({
         <div
           aria-hidden="true"
           className={cn(
-            'pointer-events-none absolute inset-x-0 bottom-full h-24 bg-gradient-to-t from-background via-background/70 to-transparent opacity-100 transition-opacity duration-300',
-            layoutMode === 'surface-fixed' && 'h-20',
-            layoutMode === 'inflow' && 'h-16',
+            // Soft short scrim only — elevation lives on chips/composer, not a
+            // tall opaque slab that paints half the transcript black.
+            'pointer-events-none absolute inset-x-0 bottom-full bg-gradient-to-t from-background/90 via-background/35 to-transparent transition-opacity duration-300',
+            topContent ? 'h-16' : 'h-12',
+            layoutMode === 'surface-fixed' && (topContent ? 'h-14' : 'h-10'),
+            layoutMode === 'inflow' && 'h-10',
             topFadeClassName,
           )}
         />
       ) : null}
-      <div className={cn(innerClassName, topContent && 'flex flex-col')}>
-        {topContent ? <div className="w-full">{topContent}</div> : null}
-        {children}
+      <div className={cn(innerClassName, topContent && 'flex flex-col gap-2')}>
+        {topContent ? (
+          <div className="relative z-10 w-full">{topContent}</div>
+        ) : null}
+        <div className="relative z-10 w-full">{children}</div>
       </div>
     </div>
   );

@@ -279,8 +279,8 @@ describe('StripeService', () => {
     });
   });
 
-  describe('launch promotion code on Creator/Pro subscription checkout', () => {
-    it('uses allow_promotion_codes when STRIPE_PROMOTION_CODE_LAUNCH is unset', async () => {
+  describe('promotion codes on subscription checkout', () => {
+    it('always opens allow_promotion_codes and never force-applies discounts', async () => {
       const createSpy = vi
         .spyOn(service.stripe.checkout.sessions, 'create')
         .mockResolvedValue({
@@ -294,7 +294,7 @@ describe('StripeService', () => {
       expect(callArg).not.toHaveProperty('discounts');
     });
 
-    it('applies discounts with the configured promotion code when set for the Pro price', async () => {
+    it('still opens the promo field when STRIPE_PROMOTION_CODE_LAUNCH is set', async () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
@@ -335,13 +335,11 @@ describe('StripeService', () => {
       );
 
       const callArg = createSpy.mock.calls[0][0];
-      expect(callArg.discounts).toEqual([
-        { promotion_code: 'promo_launch123' },
-      ]);
-      expect(callArg).not.toHaveProperty('allow_promotion_codes');
+      expect(callArg.allow_promotion_codes).toBe(true);
+      expect(callArg).not.toHaveProperty('discounts');
     });
 
-    it('does not apply the launch promotion code to other subscription tiers', async () => {
+    it('opens the promo field for non-Pro subscription tiers', async () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',
@@ -386,7 +384,7 @@ describe('StripeService', () => {
       expect(callArg).not.toHaveProperty('discounts');
     });
 
-    it('treats the yearly Pro price as a subscription without auto-applying the monthly launch coupon', async () => {
+    it('treats the yearly Pro price as a subscription with an open promo field', async () => {
       const configGetMock = vi.fn((key: string) => {
         const map: Record<string, string> = {
           GENFEEDAI_APP_URL: 'http://localhost:3000',

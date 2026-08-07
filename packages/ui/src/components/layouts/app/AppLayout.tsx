@@ -31,6 +31,7 @@ export default function AppLayout({
   orgSlug,
   brandSlug,
   isWorkspaceShell = false,
+  lockViewportHeight = false,
 }: AppLayoutProps) {
   const {
     agentPanelHeight,
@@ -75,7 +76,10 @@ export default function AppLayout({
       items={menuItems}
     >
       <div
-        className="ship-ui min-h-screen overflow-x-hidden bg-background"
+        className={cn(
+          'ship-ui overflow-x-hidden bg-background',
+          lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',
+        )}
         data-workspace-shell={isWorkspaceShell ? 'true' : undefined}
         style={layoutStyle}
       >
@@ -133,7 +137,12 @@ export default function AppLayout({
 
         <section
           data-testid="app-content-shell"
-          className="relative min-h-screen bg-background md:pl-[var(--desktop-sidebar-width)] lg:pb-[var(--desktop-agent-height)] xl:pr-[var(--workspace-inspector-width,0px)]"
+          className={cn(
+            'relative bg-background md:pl-[var(--desktop-sidebar-width)] lg:pb-[var(--desktop-agent-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
+            lockViewportHeight
+              ? 'flex h-dvh flex-col overflow-hidden'
+              : 'min-h-screen',
+          )}
           style={{ transition: sidebarOffsetTransition }}
         >
           {topbarContent ? (
@@ -155,7 +164,11 @@ export default function AppLayout({
 
           <main
             data-testid="app-main-content"
-            className={cn('relative z-0 bg-background')}
+            className={cn(
+              'relative z-0 bg-background',
+              lockViewportHeight &&
+                'flex min-h-0 flex-1 flex-col overflow-hidden',
+            )}
             style={{
               paddingTop: topbarContent
                 ? 'calc(var(--desktop-titlebar-height) + 3rem)'
@@ -163,9 +176,17 @@ export default function AppLayout({
             }}
           >
             {bannerComponent ? (
-              <div data-testid="app-banner-shell">{bannerComponent}</div>
+              <div className="shrink-0" data-testid="app-banner-shell">
+                {bannerComponent}
+              </div>
             ) : null}
-            {children}
+            {lockViewportHeight ? (
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                {children}
+              </div>
+            ) : (
+              children
+            )}
           </main>
         </section>
 

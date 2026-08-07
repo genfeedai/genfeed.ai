@@ -92,8 +92,21 @@ describe('LlmDispatcherService', () => {
     llmInstanceService = {
       ensureRunning: vi.fn().mockResolvedValue(undefined),
     };
+    // Platform keys present by default so openai/* and anthropic/* prefer
+    // native clients. Tests that assert OpenRouter fallback clear these.
     configService = {
-      get: vi.fn().mockReturnValue(''),
+      get: vi.fn((key: string) => {
+        if (key === 'ANTHROPIC_API_KEY') {
+          return 'sk-ant-test';
+        }
+        if (key === 'OPENAI_API_KEY') {
+          return 'sk-oai-test';
+        }
+        if (key === 'OPENROUTER_API_KEY') {
+          return 'sk-or-test';
+        }
+        return '';
+      }),
     };
     loggerService = {
       debug: vi.fn(),
@@ -137,10 +150,28 @@ describe('LlmDispatcherService', () => {
       expect(result).toEqual(mockResponse);
     });
 
-    it('should route openai/ models to OpenAiLlmService', async () => {
+    it('should route openai/ models to OpenAiLlmService when OPENAI_API_KEY is set', async () => {
       await service.chatCompletion(makeParams('openai/gpt-5.6-terra'));
 
       expect(openAiLlmService.chatCompletion).toHaveBeenCalled();
+      expect(openRouterService.chatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('should route openai/ models via OpenRouter when OPENAI_API_KEY is missing', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'OPENROUTER_API_KEY' ? 'sk-or-test' : '',
+      );
+
+      await service.chatCompletion(makeParams('openai/gpt-5.6-terra'));
+
+      expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'openai/gpt-5.6-terra' }),
+        undefined,
+      );
+      expect(openAiLlmService.chatCompletion).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('No openai key — routing'),
+      );
     });
 
     it('should route deepseek/ models to OpenRouterService', async () => {
@@ -166,7 +197,9 @@ describe('LlmDispatcherService', () => {
 
   describe('chatCompletion — local provider', () => {
     it('should fall back to deepseek when GPU_LLM_URL is not configured', async () => {
-      configService.get.mockReturnValue('');
+      configService.get.mockImplementation((key: string) =>
+        key === 'OPENROUTER_API_KEY' ? 'sk-or-test' : '',
+      );
 
       await service.chatCompletion(makeParams('local/my-model'));
 
@@ -177,7 +210,9 @@ describe('LlmDispatcherService', () => {
     });
 
     it('should use local vLLM when GPU_LLM_URL is configured', async () => {
-      configService.get.mockReturnValue('http://10.0.0.10:8000');
+      configService.get.mockImplementation((key: string) =>
+        key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
+      );
 
       await service.chatCompletion(makeParams('local/my-model'));
 
@@ -240,7 +275,7 @@ describe('LlmDispatcherService', () => {
       expect(byokService.resolveApiKey).not.toHaveBeenCalled();
     });
 
-    it('should pass undefined apiKeyOverride when BYOK returns null', async () => {
+    it('should pass undefined apiKeyOverride when BYOK returns null but platform key exists', async () => {
       byokService.resolveApiKey.mockResolvedValue(null);
 
       await service.chatCompletion(
@@ -251,6 +286,35 @@ describe('LlmDispatcherService', () => {
       expect(anthropicService.chatCompletion).toHaveBeenCalledWith(
         expect.any(Object),
         undefined,
+      );
+    });
+
+    it('should fall back to OpenRouter BYOK when openai platform key and OpenAI BYOK are missing', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'OPENROUTER_API_KEY' ? 'sk-or-test' : '',
+      );
+      byokService.resolveApiKey.mockImplementation(
+        async (_org: string, provider: ByokProvider) => {
+          if (provider === ByokProvider.OPENROUTER) {
+            return { apiKey: 'or-byok' };
+          }
+          return null;
+        },
+      );
+
+      await service.chatCompletion(makeParams('openai/gpt-5.6-terra'), orgId);
+
+      expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+        orgId,
+        ByokProvider.OPENAI,
+      );
+      expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+        orgId,
+        ByokProvider.OPENROUTER,
+      );
+      expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'openai/gpt-5.6-terra' }),
+        'or-byok',
       );
     });
   });
@@ -343,7 +407,9 @@ describe('LlmDispatcherService', () => {
     });
 
     it('should route local/ models to OpenAiLlmService with GPU URL for streaming', async () => {
-      configService.get.mockReturnValue('http://10.0.0.10:8000');
+      configService.get.mockImplementation((key: string) =>
+        key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
+      );
 
       await service.streamChatCompletion(makeParams('local/my-model'));
 
@@ -416,7 +482,9 @@ describe('LlmDispatcherService', () => {
     });
 
     it('should warm and stream local/ models via GPU vLLM URL', async () => {
-      configService.get.mockReturnValue('http://10.0.0.10:8000');
+      configService.get.mockImplementation((key: string) =>
+        key === 'GPU_LLM_URL' ? 'http://10.0.0.10:8000' : '',
+      );
       const onToken = vi.fn();
 
       await service.streamChatCompletionAggregated(
