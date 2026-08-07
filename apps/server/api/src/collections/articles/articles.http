@@ -15,42 +15,53 @@
 
 # Local overrides (optional - update as needed)
 @articleId = {{testArticleId}}
-@promptId =
+@versionId =
 @prompt = "AI in healthcare and patient care"
 @count = 1
 
 ########################################
-# 🎯 Article Generation (NEW!)
+# 🎯 Article Generation
 ########################################
+# POST /articles/generations runs the whole generate → review → update cycle
+# inline and answers with the finished articles:
+# - type "standard"  -> JSON:API collection ({ "data": [ ... ] })
+# - type "x-article" -> JSON:API single resource ({ "data": { ... } })
+# There is no separate activity to poll.
 
 ### Generate 1 Article
 # @name generate1Article
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
   "prompt": {{prompt}},
-  "count": {{count}}
+  "count": {{count}},
+  "type": "standard"
 }
 
-# Expected Response:
-# [
-#   {
-#     "id": "...",
-#     "label": "AI in Healthcare: Transforming Patient Care",
-#     "slug": "ai-in-healthcare-transforming-patient-care",
-#     "summary": "Discover how AI is revolutionizing...",
-#     "content": "<h2>Introduction</h2><p>AI is changing healthcare.</p><br>...",
-#     "tags": [...],
-#     "status": "DRAFT"
-#   }
-# ]
+# Expected Response (JSON:API collection):
+# {
+#   "data": [
+#     {
+#       "type": "article",
+#       "id": "...",
+#       "attributes": {
+#         "label": "AI in Healthcare: Transforming Patient Care",
+#         "slug": "ai-in-healthcare-transforming-patient-care",
+#         "summary": "Discover how AI is revolutionizing...",
+#         "content": "<h2>Introduction</h2><p>AI is changing healthcare.</p><br>...",
+#         "category": "post",
+#         "status": "draft"
+#       }
+#     }
+#   ]
+# }
 
 ###
 
 ### Generate 2 Articles (Bulk)
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -62,7 +73,7 @@ Content-Type: application/json
 ###
 
 ### Generate 4 Articles (Maximum)
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -75,15 +86,33 @@ Content-Type: application/json
 ###
 
 ### Generate 2 Articles with Category
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
   "prompt": "I want to create an article about vibe coding and why it's useless.",
   "count": 2,
-  "category": "POST"
+  "category": "post"
 }
+
+###
+
+### Generate a Long-Form X Article
+# @name generateXArticle
+POST {{apiBaseUrl}}/articles/generations
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Why agent evaluation is harder than agent building",
+  "type": "x-article",
+  "tone": "analytical",
+  "targetWordCount": 3000,
+  "generateHeaderImage": true
+}
+
+# Expected Response: JSON:API single resource ({ "data": { ... } })
 
 ###
 
@@ -103,9 +132,8 @@ Authorization: Bearer {{bearerToken}}
 
 ###
 
-### Get Article by Slug
-GET {{apiBaseUrl}}/articles/slug/ai-in-healthcare-transforming-patient-care
-Authorization: Bearer {{bearerToken}}
+### Get Published Article by Slug (public endpoint)
+GET {{apiBaseUrl}}/public/articles/slug/ai-in-healthcare-transforming-patient-care
 
 ###
 
@@ -119,8 +147,8 @@ Content-Type: application/json
   "slug": "manual-article-test-123",
   "summary": "This is a test article created manually",
   "content": "<h2>Introduction</h2><p>This is test content.</p><br><p>Second paragraph with another idea.</p><br>",
-  "category": "POST",
-  "status": "DRAFT"
+  "category": "post",
+  "status": "draft"
 }
 
 ###
@@ -133,8 +161,8 @@ Content-Type: application/json
 {
   "label": "Updated Article Title",
   "summary": "Updated summary here",
-  "status": "PUBLISHED",
-  "scope": "PUBLIC"
+  "status": "public",
+  "scope": "public"
 }
 
 ###
@@ -146,11 +174,11 @@ Authorization: Bearer {{bearerToken}}
 ###
 
 ########################################
-# 🤖 AI-Powered Editing (NEW!)
+# 🤖 AI-Powered Editing
 ########################################
 
 ### Edit: Rephrase Paragraph
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -163,7 +191,7 @@ Content-Type: application/json
 ###
 
 ### Edit: Add Content
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -174,7 +202,7 @@ Content-Type: application/json
 ###
 
 ### Edit: Make Shorter
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -185,7 +213,7 @@ Content-Type: application/json
 ###
 
 ### Edit: Change Tone
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -196,7 +224,7 @@ Content-Type: application/json
 ###
 
 ### Edit: Improve SEO (general prompt)
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -212,7 +240,7 @@ Content-Type: application/json
 
 ### Enhance for SEO - Full Optimization
 # Uses ARTICLE_SEO template for comprehensive SEO rewriting
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -224,7 +252,7 @@ Content-Type: application/json
 ###
 
 ### Enhance for SEO - Target Specific Keyword
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -235,8 +263,17 @@ Content-Type: application/json
 
 ###
 
+### Score Article SEO
+POST {{apiBaseUrl}}/articles/{{articleId}}/seo-scores
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
+
+###
+
 ########################################
-# 📜 Version History (NEW!)
+# 📜 Version History
 ########################################
 
 ### Get All Versions (Prompts)
@@ -262,20 +299,29 @@ Authorization: Bearer {{bearerToken}}
 ###
 
 ### Restore to Specific Version
-# Replace {{promptId}} with actual ID from getVersions
-POST {{apiBaseUrl}}/articles/{{articleId}}/versions/{{promptId}}/restore
+# Restoring is a PATCH on the article with the version (prompt) id.
+# Replace {{versionId}} with an actual ID from getVersions.
+PATCH {{apiBaseUrl}}/articles/{{articleId}}
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "restoreFromVersionId": "{{versionId}}"
+}
 
 ###
 
 ########################################
-# 🧵 Twitter Thread Conversion (NEW!)
+# 🧵 Twitter Thread Conversion
 ########################################
 
 ### Convert Article to Twitter Thread
 # @name convertThread
-POST {{apiBaseUrl}}/articles/{{articleId}}/thread
+POST {{apiBaseUrl}}/articles/{{articleId}}/thread-conversions
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
 
 # Response:
 # {
@@ -297,13 +343,16 @@ Authorization: Bearer {{bearerToken}}
 ###
 
 ########################################
-# 📊 Virality Analysis (NEW!)
+# 📊 Virality Analysis
 ########################################
 
 ### Analyze Article Virality
 # @name analyzeVirality
-POST {{apiBaseUrl}}/articles/{{articleId}}/analyze-virality
+POST {{apiBaseUrl}}/articles/{{articleId}}/virality-analyses
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
 
 # Response:
 # {
@@ -333,7 +382,49 @@ Authorization: Bearer {{bearerToken}}
 ###
 
 ########################################
-# 🎨 Prompt Templates (Admin - NEW!)
+# 🖼️ Article Media
+########################################
+
+### Generate Header Image Prompt
+POST {{apiBaseUrl}}/articles/{{articleId}}/prompts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
+
+###
+
+### Generate Header Image
+POST {{apiBaseUrl}}/articles/{{articleId}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "width": 1536,
+  "height": 1024
+}
+
+###
+
+### Generate Article Video
+POST {{apiBaseUrl}}/articles/{{articleId}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "duration": 8
+}
+
+###
+
+### Mint a Preview Link for an Unpublished Article
+GET {{apiBaseUrl}}/articles/{{articleId}}/preview-links
+Authorization: Bearer {{bearerToken}}
+
+###
+
+########################################
+# 🎨 Prompt Templates (Admin)
 ########################################
 
 ### Get All Prompt Templates
@@ -387,7 +478,7 @@ Authorization: Bearer {{bearerToken}}
 ########################################
 
 ### STEP 1: Generate Article
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -396,12 +487,12 @@ Content-Type: application/json
   "count": 1
 }
 
-# 📝 Copy the article ID from response and update @articleId variable above
+# 📝 Copy the article ID from data[0].id and update @articleId variable above
 
 ###
 
 ### STEP 2: Edit with AI (Add Content)
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -412,7 +503,7 @@ Content-Type: application/json
 ###
 
 ### STEP 3: Edit with AI (Improve Engagement)
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -431,15 +522,18 @@ Authorization: Bearer {{bearerToken}}
 ###
 
 ### STEP 5: Analyze Virality
-POST {{apiBaseUrl}}/articles/{{articleId}}/analyze-virality
+POST {{apiBaseUrl}}/articles/{{articleId}}/virality-analyses
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
 
 # Check the score and suggestions
 
 ###
 
 ### STEP 6: Apply Virality Suggestions
-POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -450,14 +544,20 @@ Content-Type: application/json
 ###
 
 ### STEP 7: Re-Analyze (Should Show Improvement)
-POST {{apiBaseUrl}}/articles/{{articleId}}/analyze-virality
+POST {{apiBaseUrl}}/articles/{{articleId}}/virality-analyses
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
 
 ###
 
 ### STEP 8: Convert to Twitter Thread
-POST {{apiBaseUrl}}/articles/{{articleId}}/to-thread
+POST {{apiBaseUrl}}/articles/{{articleId}}/thread-conversions
 Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
 
 ###
 
@@ -467,8 +567,8 @@ Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
 {
-  "status": "PUBLISHED",
-  "scope": "PUBLIC"
+  "status": "public",
+  "scope": "public"
 }
 
 ###
@@ -478,7 +578,7 @@ Content-Type: application/json
 ########################################
 
 ### No Auth (Should Fail with 401)
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Content-Type: application/json
 
 {
@@ -488,7 +588,7 @@ Content-Type: application/json
 ###
 
 ### Invalid Count (Should Fail - max is 4)
-POST {{apiBaseUrl}}/articles/generate
+POST {{apiBaseUrl}}/articles/generations
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -499,8 +599,20 @@ Content-Type: application/json
 
 ###
 
+### Invalid Generation Type (Should Fail - standard | x-article)
+POST {{apiBaseUrl}}/articles/generations
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "test",
+  "type": "long-form"
+}
+
+###
+
 ### Edit Non-Existent Article
-POST {{apiBaseUrl}}/articles/507f1f77bcf86cd799439999/enhance
+POST {{apiBaseUrl}}/articles/507f1f77bcf86cd799439999/enhancements
 Authorization: Bearer {{bearerToken}}
 Content-Type: application/json
 
@@ -527,9 +639,9 @@ Authorization: Bearer {{bearerToken}}
 # 4. Network tab → Any API request → Copy Authorization header
 
 # Test flow:
-# 1. Generate article (get ID from response)
+# 1. Generate article (get ID from data[0].id)
 # 2. Update @articleId variable above
-# 3. Edit with AI
+# 3. Enhance with AI
 # 4. Check versions
 # 5. Analyze virality
 # 6. Convert to thread
