@@ -2,13 +2,19 @@ import type { BaseApiClient } from './base-api-client';
 import type { AdsGatewayInsightsParams } from './client.types';
 
 /**
- * Meta Ads and Google Ads read methods, plus the platform-generic ads gateway.
+ * Meta Ads, Google Ads, and TikTok Ads read methods, plus the platform-generic
+ * ads gateway.
  *
  * Meta/Google paths target the API's `services/*-ads/*` controllers (not
  * `integrations/*`). Those controllers live at
  * `apps/server/api/src/services/integrations/{meta,google}-ads` but are mounted
  * under `@Controller('services/meta-ads')` / `@Controller('services/google-ads')`,
  * so the proxy path segment is `services`.
+ *
+ * TikTok has no per-platform controller. It is served by the platform-generic
+ * ads gateway at `@Controller('ads')` → `/ads/:platform/*`, which already
+ * accepts `tiktok` and dispatches to `TikTokAdsAdapter`. Reusing the gateway
+ * keeps one adapter contract instead of a second TikTok REST surface.
  *
  * Ad-set and ad level insights go through the gateway at `@Controller('ads')`
  * → `/ads/:platform/*` instead, because that surface is backed by the shared
@@ -259,6 +265,108 @@ export class AdsClient {
           }),
         ),
       this.base.failWith('Failed to get Google Ads search terms'),
+    );
+  }
+
+  // ── TikTok Ads (platform-generic ads gateway) ──
+
+  listTikTokAdAccounts(credentialId: string): Promise<unknown[]> {
+    return this.base.request(
+      'listing TikTok ad accounts',
+      async (http) =>
+        this.base.unwrapList(
+          await http.get('/ads/tiktok/accounts', { params: { credentialId } }),
+        ),
+      this.base.failWith('Failed to list TikTok ad accounts'),
+    );
+  }
+
+  listTikTokCampaigns(
+    credentialId: string,
+    adAccountId: string,
+  ): Promise<unknown[]> {
+    return this.base.request(
+      'listing TikTok campaigns',
+      async (http) =>
+        this.base.unwrapList(
+          await http.get('/ads/tiktok/campaigns', {
+            params: { adAccountId, credentialId },
+          }),
+        ),
+      this.base.failWith('Failed to list TikTok campaigns'),
+    );
+  }
+
+  getTikTokCampaignInsights(
+    credentialId: string,
+    adAccountId: string,
+    campaignId: string,
+    datePreset?: string,
+    since?: string,
+    until?: string,
+  ): Promise<unknown> {
+    return this.base.request(
+      'getting TikTok campaign insights',
+      async (http) =>
+        this.base.unwrapData(
+          await http.get(`/ads/tiktok/campaigns/${campaignId}/insights`, {
+            params: { adAccountId, credentialId, datePreset, since, until },
+          }),
+        ),
+      this.base.failWith('Failed to get TikTok campaign insights'),
+    );
+  }
+
+  getTikTokTopPerformers(
+    credentialId: string,
+    adAccountId: string,
+    metric?: string,
+    limit?: number,
+    datePreset?: string,
+  ): Promise<unknown[]> {
+    return this.base.request(
+      'getting TikTok top performers',
+      async (http) =>
+        this.base.unwrapList(
+          await http.get('/ads/tiktok/top-performers', {
+            params: { adAccountId, credentialId, datePreset, limit, metric },
+          }),
+        ),
+      this.base.failWith('Failed to get TikTok top performers'),
+    );
+  }
+
+  listTikTokAdGroups(
+    credentialId: string,
+    adAccountId: string,
+    campaignId: string,
+  ): Promise<unknown[]> {
+    return this.base.request(
+      'listing TikTok ad groups',
+      async (http) =>
+        this.base.unwrapList(
+          await http.get('/ads/tiktok/adsets', {
+            params: { adAccountId, campaignId, credentialId },
+          }),
+        ),
+      this.base.failWith('Failed to list TikTok ad groups'),
+    );
+  }
+
+  listTikTokAds(
+    credentialId: string,
+    adAccountId: string,
+    adGroupId?: string,
+  ): Promise<unknown[]> {
+    return this.base.request(
+      'listing TikTok ads',
+      async (http) =>
+        this.base.unwrapList(
+          await http.get('/ads/tiktok/ads', {
+            params: { adAccountId, adSetId: adGroupId, credentialId },
+          }),
+        ),
+      this.base.failWith('Failed to list TikTok ads'),
     );
   }
 

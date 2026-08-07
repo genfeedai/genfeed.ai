@@ -721,6 +721,69 @@ export class ClientService {
     );
   }
 
+  // ── TikTok Ads ──
+
+  listTikTokAdAccounts(credentialId: string): Promise<unknown[]> {
+    return this.ads.listTikTokAdAccounts(credentialId);
+  }
+
+  listTikTokCampaigns(
+    credentialId: string,
+    adAccountId: string,
+  ): Promise<unknown[]> {
+    return this.ads.listTikTokCampaigns(credentialId, adAccountId);
+  }
+
+  getTikTokCampaignInsights(
+    credentialId: string,
+    adAccountId: string,
+    campaignId: string,
+    datePreset?: string,
+    since?: string,
+    until?: string,
+  ): Promise<unknown> {
+    return this.ads.getTikTokCampaignInsights(
+      credentialId,
+      adAccountId,
+      campaignId,
+      datePreset,
+      since,
+      until,
+    );
+  }
+
+  getTikTokTopPerformers(
+    credentialId: string,
+    adAccountId: string,
+    metric?: string,
+    limit?: number,
+    datePreset?: string,
+  ): Promise<unknown[]> {
+    return this.ads.getTikTokTopPerformers(
+      credentialId,
+      adAccountId,
+      metric,
+      limit,
+      datePreset,
+    );
+  }
+
+  listTikTokAdGroups(
+    credentialId: string,
+    adAccountId: string,
+    campaignId: string,
+  ): Promise<unknown[]> {
+    return this.ads.listTikTokAdGroups(credentialId, adAccountId, campaignId);
+  }
+
+  listTikTokAds(
+    credentialId: string,
+    adAccountId: string,
+    adGroupId?: string,
+  ): Promise<unknown[]> {
+    return this.ads.listTikTokAds(credentialId, adAccountId, adGroupId);
+  }
+
   // ── Ads gateway (platform-generic) ──
 
   getAdsAdSetInsights(params: AdsGatewayInsightsParams): Promise<unknown> {

@@ -24,7 +24,7 @@ const ADS_DETAIL_PROPERTIES = {
   },
   platform: {
     description: 'Optional platform hint for connected ads.',
-    enum: ['meta', 'google'],
+    enum: ['meta', 'google', 'tiktok'],
     type: 'string',
   },
   source: {
@@ -206,7 +206,7 @@ export const OVERLAP_INSPIRATION_TOOLS: SourceTool[] = [
         },
         platform: {
           description: 'Ads platform filter.',
-          enum: ['meta', 'google'],
+          enum: ['meta', 'google', 'tiktok'],
           type: 'string',
         },
         source: {

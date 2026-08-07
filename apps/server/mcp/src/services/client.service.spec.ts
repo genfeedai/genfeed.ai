@@ -1449,6 +1449,136 @@ describe('ClientService (MCP)', () => {
     });
   });
 
+  // ==================== TIKTOK ADS TESTS ====================
+
+  // TikTok has no per-platform controller — every call goes through the
+  // platform-generic ads gateway at `/ads/:platform/*`, so these assert the
+  // gateway path shape and the credential/account scoping it requires.
+  describe('TikTok Ads', () => {
+    it('lists advertiser accounts through the ads gateway', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: { data: [{ id: 'advertiser-1' }] },
+      });
+
+      const result = await service.listTikTokAdAccounts('credential-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/ads/tiktok/accounts',
+        { params: { credentialId: 'credential-1' } },
+      );
+      expect(result).toEqual([{ id: 'advertiser-1' }]);
+    });
+
+    it('lists campaigns scoped to a credential and advertiser account', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: { data: [{ id: 'campaign-1' }] },
+      });
+
+      await service.listTikTokCampaigns('credential-1', 'advertiser-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/ads/tiktok/campaigns',
+        {
+          params: {
+            adAccountId: 'advertiser-1',
+            credentialId: 'credential-1',
+          },
+        },
+      );
+    });
+
+    it('sends the campaign id in the path and the date range as params', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: { data: { ctr: 1.2 } },
+      });
+
+      await service.getTikTokCampaignInsights(
+        'credential-1',
+        'advertiser-1',
+        'campaign-1',
+        'last_7d',
+        '2026-08-01',
+        '2026-08-06',
+      );
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/ads/tiktok/campaigns/campaign-1/insights',
+        {
+          params: {
+            adAccountId: 'advertiser-1',
+            credentialId: 'credential-1',
+            datePreset: 'last_7d',
+            since: '2026-08-01',
+            until: '2026-08-06',
+          },
+        },
+      );
+    });
+
+    it('passes ranking options to top performers', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: { data: [{ metric: 'ctr', value: 3.1 }] },
+      });
+
+      await service.getTikTokTopPerformers(
+        'credential-1',
+        'advertiser-1',
+        'ctr',
+        5,
+        'last_30d',
+      );
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/ads/tiktok/top-performers',
+        {
+          params: {
+            adAccountId: 'advertiser-1',
+            credentialId: 'credential-1',
+            datePreset: 'last_30d',
+            limit: 5,
+            metric: 'ctr',
+          },
+        },
+      );
+    });
+
+    it('lists ad groups via the gateway adsets route', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: { data: [{ id: 'adgroup-1' }] },
+      });
+
+      await service.listTikTokAdGroups(
+        'credential-1',
+        'advertiser-1',
+        'campaign-1',
+      );
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/ads/tiktok/adsets', {
+        params: {
+          adAccountId: 'advertiser-1',
+          campaignId: 'campaign-1',
+          credentialId: 'credential-1',
+        },
+      });
+    });
+
+    it('maps the ad group filter onto the gateway adSetId param', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: { data: [{ id: 'ad-1' }] },
+      });
+
+      await service.listTikTokAds('credential-1', 'advertiser-1', 'adgroup-1');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/ads/tiktok/ads', {
+        params: {
+          adAccountId: 'advertiser-1',
+          adSetId: 'adgroup-1',
+          credentialId: 'credential-1',
+        },
+      });
+    });
+  });
+
   // ==================== ERROR HANDLING TESTS ====================
 
   describe('error handling', () => {

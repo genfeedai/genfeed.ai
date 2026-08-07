@@ -563,6 +563,44 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     tools: ['get_google_ads_search_terms'],
   },
 
+  // ── TikTok Ads (platform-generic ads gateway, `/ads/:platform/*`) ──
+  {
+    method: 'Get',
+    sub: ':platform/accounts',
+    controller: 'adsGateway',
+    tools: ['list_tiktok_ad_accounts'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/campaigns',
+    controller: 'adsGateway',
+    tools: ['list_tiktok_campaigns'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/campaigns/:campaignId/insights',
+    controller: 'adsGateway',
+    tools: ['get_tiktok_campaign_insights'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/top-performers',
+    controller: 'adsGateway',
+    tools: ['get_tiktok_top_performers'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/adsets',
+    controller: 'adsGateway',
+    tools: ['list_tiktok_adgroups'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/ads',
+    controller: 'adsGateway',
+    tools: ['list_tiktok_ads'],
+  },
+
   // ── Ads gateway (platform-generic, backed by IAdsAdapter) ──
   {
     method: 'Get',

@@ -36,6 +36,9 @@ describe('ToolRegistryService.classify', () => {
     ['get_video_status', 'legacy'],
     ['list_meta_campaigns', 'meta-ads'],
     ['get_google_ads_campaign_metrics', 'google-ads'],
+    ['list_tiktok_campaigns', 'tiktok-ads'],
+    ['list_tiktok_adgroups', 'tiktok-ads'],
+    ['get_tiktok_top_performers', 'tiktok-ads'],
     // The platform-generic gateway tools own the `get_ads_` prefix; the
     // per-platform prefixes are checked first so they cannot be captured here.
     ['get_ads_adset_insights', 'ads-gateway'],

@@ -21,6 +21,24 @@ import type {
 import { Injectable, Optional } from '@nestjs/common';
 
 /**
+ * Discover pages that exist per ads platform. Research covers every
+ * `AdsResearchPlatform`, but only platforms with their own Discover route get a
+ * deep link — anything else falls back to the hub rather than a dead CTA.
+ */
+const PLATFORM_ADS_HREFS: Partial<Record<AdsResearchPlatform, string>> = {
+  google: '/discover/ads/google',
+  meta: '/discover/ads/meta',
+};
+
+const ADS_HUB_HREF = '/discover/ads';
+
+function adsPlatformHref(platform: AdsResearchPlatform | 'all'): string {
+  return platform === 'all'
+    ? ADS_HUB_HREF
+    : (PLATFORM_ADS_HREFS[platform] ?? ADS_HUB_HREF);
+}
+
+/**
  * Ads research hub tools (`list_ads_research`, `get_ad_research_detail`,
  * `create_ad_remix_workflow`, `generate_ad_pack`, `prepare_ad_launch_review`).
  * Extracted from AgentToolExecutorService per #519.
@@ -69,12 +87,7 @@ export class AgentAdsResearchToolHandler {
       0,
       6,
     );
-    const platformHref =
-      result.summary.selectedPlatform === 'google'
-        ? '/discover/ads/google'
-        : result.summary.selectedPlatform === 'meta'
-          ? '/discover/ads/meta'
-          : '/discover/ads';
+    const platformHref = adsPlatformHref(result.summary.selectedPlatform);
 
     return {
       creditsUsed: 0,
@@ -161,10 +174,7 @@ export class AgentAdsResearchToolHandler {
         {
           ctas: [
             {
-              href:
-                detail.platform === 'google'
-                  ? '/discover/ads/google'
-                  : '/discover/ads/meta',
+              href: adsPlatformHref(detail.platform),
               label: 'Open platform ads',
             },
             { href: '/discover/ads', label: 'Open ads hub' },

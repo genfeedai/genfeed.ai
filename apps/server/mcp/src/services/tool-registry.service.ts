@@ -31,6 +31,7 @@ import {
   handleSocialMessagesTool,
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
+import { handleTikTokAdsTool } from '@mcp/tools/tiktok-ads.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
@@ -115,6 +116,9 @@ const isMetaAdsTool = (name: string): boolean =>
 const isGoogleAdsTool = (name: string): boolean =>
   name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
 
+const isTikTokAdsTool = (name: string): boolean =>
+  name.startsWith('list_tiktok_') || name.startsWith('get_tiktok_');
+
 /**
  * Platform-generic ads gateway tools (`/ads/:platform/*`). The `get_ads_` prefix
  * is reserved for this executor — per-platform tools use their own platform
@@ -137,6 +141,7 @@ type ExecutorKind =
   | 'legacy'
   | 'meta-ads'
   | 'google-ads'
+  | 'tiktok-ads'
   | 'ads-gateway'
   | 'account-management'
   | 'social-messages'
@@ -334,6 +339,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (LEGACY_TOOL_NAMES.has(name)) return 'legacy';
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
+    if (isTikTokAdsTool(name)) return 'tiktok-ads';
     if (isAdsGatewayTool(name)) return 'ads-gateway';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
@@ -362,6 +368,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleMetaAdsTool(this.clientService, name, args);
       case 'google-ads':
         return handleGoogleAdsTool(this.clientService, name, args);
+      case 'tiktok-ads':
+        return handleTikTokAdsTool(this.clientService, name, args);
       case 'ads-gateway':
         return handleAdsGatewayTool(this.clientService, name, args);
       case 'account-management':

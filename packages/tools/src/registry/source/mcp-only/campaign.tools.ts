@@ -166,4 +166,70 @@ export const MCP_CAMPAIGN_TOOLS: SourceTool[] = [
     },
     requiredRole: 'user',
   },
+  {
+    creditCost: 0,
+    description: 'List TikTok ad campaigns for an advertiser account',
+    name: 'list_tiktok_campaigns',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description: 'TikTok advertiser account ID',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected TikTok Ads credential',
+          type: 'string',
+        },
+      },
+      required: ['credentialId', 'adAccountId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Get detailed performance insights for a TikTok ad campaign including spend, impressions, clicks, CTR, CPC, CPM, and conversions',
+    name: 'get_tiktok_campaign_insights',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description: 'TikTok advertiser account ID',
+          type: 'string',
+        },
+        campaignId: {
+          description: 'The campaign ID',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected TikTok Ads credential',
+          type: 'string',
+        },
+        datePreset: {
+          default: 'last_30d',
+          description: 'Predefined date range',
+          enum: [
+            'today',
+            'yesterday',
+            'last_7d',
+            'last_14d',
+            'last_30d',
+            'last_90d',
+          ],
+          type: 'string',
+        },
+        since: {
+          description: 'Start date (YYYY-MM-DD) for custom range',
+          type: 'string',
+        },
+        until: {
+          description: 'End date (YYYY-MM-DD) for custom range',
+          type: 'string',
+        },
+      },
+      required: ['credentialId', 'adAccountId', 'campaignId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
 ];
