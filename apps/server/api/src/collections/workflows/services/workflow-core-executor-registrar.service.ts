@@ -1,8 +1,11 @@
+import type { Brand } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
+import type { IBrandAgentVoice } from '@genfeedai/interfaces';
 import type { AnalyticsFeedbackOutput } from '@genfeedai/workflows/engine';
 import {
   createAnalyticsFeedbackExecutor,
@@ -67,6 +70,7 @@ type WorkflowBrandContext = {
   };
   slug: string;
   voice: string | null;
+  voiceConfig: IBrandAgentVoice | null;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -79,10 +83,9 @@ function optionalString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
-function toWorkflowBrandContext(brand: unknown): WorkflowBrandContext {
+function toWorkflowBrandContext(brand: Brand): WorkflowBrandContext {
   const row = asRecord(brand);
-  const agentConfig = asRecord(row.agentConfig);
-  const voiceConfig = asRecord(agentConfig.voice);
+  const effectiveVoice = resolveEffectiveBrandAgentConfig({ brand }).voice;
 
   return {
     brandId: String(row.id),
@@ -101,7 +104,9 @@ function toWorkflowBrandContext(brand: unknown): WorkflowBrandContext {
     },
     slug: String(row.slug ?? ''),
     voice:
-      optionalString(voiceConfig.style) ?? optionalString(voiceConfig.tone),
+      optionalString(effectiveVoice?.style) ??
+      optionalString(effectiveVoice?.tone),
+    voiceConfig: effectiveVoice ?? null,
   };
 }
 
@@ -138,10 +143,14 @@ export class WorkflowCoreExecutorRegistrarService {
       });
       if (!brand) return null;
       const context = toWorkflowBrandContext(brand);
-      const { slug, ...brandContext } = context;
       return {
-        ...brandContext,
-        handle: slug,
+        brandId: context.brandId,
+        colors: context.colors,
+        fonts: context.fonts,
+        handle: context.slug,
+        label: context.label,
+        models: context.models,
+        voice: context.voice,
       };
     });
     engine.registerExecutor(

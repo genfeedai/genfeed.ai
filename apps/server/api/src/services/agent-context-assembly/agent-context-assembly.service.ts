@@ -21,6 +21,10 @@ import type { IBrandKitResolvedAssets } from '@genfeedai/interfaces';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import {
+  BRAND_CONTEXT_CHARACTER_BUDGET,
+  fitBrandContextToBudget,
+} from './brand-context-budget.util';
 
 const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandGuidance: true,
@@ -294,8 +298,9 @@ export class AgentContextAssemblyService {
     context: AssembledBrandContext,
     options: SystemPromptOptions = {},
   ): string {
-    const maxLength = options.maxBrandContextLength ?? 6000;
-    const sections: string[] = [basePrompt];
+    const maxLength =
+      options.maxBrandContextLength ?? BRAND_CONTEXT_CHARACTER_BUDGET;
+    const sections: string[] = [];
 
     // Reply style
     if (options.replyStyle) {
@@ -485,20 +490,11 @@ export class AgentContextAssemblyService {
 
     // RAG context
     if (options.includeRagContext !== false && context.ragEntries?.length) {
-      let ragSection = '\n## Relevant Knowledge';
-      let charBudget =
-        maxLength -
-        sections.reduce((sum, s) => sum + s.length, 0) -
-        ragSection.length;
-
-      for (const entry of context.ragEntries) {
-        if (charBudget <= 0) break;
-        const line = `\n- [${entry.source}]: ${entry.content}`;
-        if (line.length > charBudget) break;
-        ragSection += line;
-        charBudget -= line.length;
-      }
-      sections.push(ragSection);
+      sections.push(
+        `\n## Relevant Knowledge${context.ragEntries
+          .map((entry) => `\n- [${entry.source}]: ${entry.content}`)
+          .join('')}`,
+      );
     }
 
     // Credential context (posting as a specific social account)
@@ -516,23 +512,15 @@ export class AgentContextAssemblyService {
       options.includeRecentPosts !== false &&
       context.recentPostSummaries?.length
     ) {
-      let postsSection = '\n## Recent Posts (avoid repetition)';
-      let charBudget =
-        maxLength -
-        sections.reduce((sum, s) => sum + s.length, 0) -
-        postsSection.length;
-
-      for (const summary of context.recentPostSummaries) {
-        if (charBudget <= 0) break;
-        const line = `\n- ${summary}`;
-        if (line.length > charBudget) break;
-        postsSection += line;
-        charBudget -= line.length;
-      }
-      sections.push(postsSection);
+      sections.push(
+        `\n## Recent Posts (avoid repetition)${context.recentPostSummaries
+          .map((summary) => `\n- ${summary}`)
+          .join('')}`,
+      );
     }
 
-    return sections.join('');
+    const brandContextPrompt = fitBrandContextToBudget(sections, maxLength);
+    return [basePrompt, brandContextPrompt].filter(Boolean).join('\n\n');
   }
 
   private readTextField(value: unknown): string | undefined {
