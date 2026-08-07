@@ -335,9 +335,9 @@ export class EditorRenderService {
         throw new NotFoundException('Source asset');
       }
 
-      const category = String(ingredient.category)
-        .toLowerCase()
-        .replaceAll('_', '-') as IngredientCategory;
+      const category = String(
+        ingredient.category,
+      ).toUpperCase() as IngredientCategory;
       if (
         !isRenderIngredientCategory(category) ||
         !ALLOWED_ASSET_CATEGORIES[asset.type].has(category)

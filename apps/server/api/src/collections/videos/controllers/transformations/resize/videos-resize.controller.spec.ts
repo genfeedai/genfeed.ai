@@ -1,6 +1,10 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { IngredientStatus } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+} from '@genfeedai/enums';
 import type { IResizeBodyParams } from '@genfeedai/interfaces';
 import { HttpException } from '@nestjs/common';
 import type { Request } from 'express';
@@ -185,8 +189,8 @@ describe('VideosResizeController', () => {
     ).toHaveBeenCalledWith(
       mockUser,
       expect.objectContaining({
-        category: 'video',
-        extension: 'mp4',
+        category: IngredientCategory.VIDEO,
+        extension: MetadataExtension.MP4,
         status: IngredientStatus.PROCESSING,
       }),
     );

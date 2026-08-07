@@ -34,7 +34,7 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
 
 function isHeygenProvider(value: unknown): boolean {
   return (
-    typeof value === 'string' && value.toLowerCase() === VoiceProvider.HEYGEN
+    typeof value === 'string' && value.toUpperCase() === VoiceProvider.HEYGEN
   );
 }
 

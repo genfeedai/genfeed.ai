@@ -497,7 +497,7 @@ describe('WebhooksService', () => {
 
       expect(mediaUploadService.uploadAndUpdateMetadata).toHaveBeenCalledWith(
         expect.any(String),
-        'image',
+        IngredientCategory.IMAGE,
         url,
         expect.any(String),
         externalId,

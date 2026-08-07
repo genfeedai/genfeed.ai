@@ -61,6 +61,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { TransformationCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -348,7 +349,9 @@ describe('VideosUpscaleController', () => {
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
       mockUser,
-      expect.objectContaining({ transformations: ['upscaled'] }),
+      expect.objectContaining({
+        transformations: [TransformationCategory.UPSCALED],
+      }),
     );
   });
 

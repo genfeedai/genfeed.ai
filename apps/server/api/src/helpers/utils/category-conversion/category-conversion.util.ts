@@ -1,33 +1,39 @@
 import { IngredientCategory } from '@genfeedai/enums';
 
 /**
- * Normalizes a category string or enum value to IngredientCategory.
+ * Normalizes a category string or enum value to IngredientCategory,
+ * matching case-insensitively against the known enum members.
+ * Unrecognized values are upper-cased and returned as-is.
  */
 export function normalizeCategory(
   category: IngredientCategory | string,
 ): IngredientCategory {
-  return (
-    typeof category === 'string' ? category : category
-  ) as IngredientCategory;
+  const upperCased = String(category).toUpperCase();
+  const match = Object.values(IngredientCategory).find(
+    (value) => value === upperCased,
+  );
+
+  return (match ?? upperCased) as IngredientCategory;
 }
 
 /**
- * Converts a category to its string representation.
+ * Converts a category to its lower-cased string representation.
  */
 export function categoryToString(
   category: IngredientCategory | string,
 ): string {
-  return String(category);
+  return String(category).toLowerCase();
 }
 
 /**
- * Converts a category to its plural form used in URL paths and S3 keys.
- * e.g., "video" → "videos", "image" → "images", "music" → "musics"
+ * Converts a category to its plural form used in URL paths, cache tags, and
+ * S3 keys. e.g., IngredientCategory.VIDEO → "videos", IngredientCategory.IMAGE
+ * → "images", IngredientCategory.MUSIC → "musics"
  */
 export function categoryToPlural(
   category: IngredientCategory | string,
 ): string {
-  return `${String(category)}s`;
+  return `${String(category).toLowerCase()}s`;
 }
 
 /**
@@ -37,7 +43,7 @@ export function categoryToPlural(
 export function categoryToMediaType(
   category: IngredientCategory | string,
 ): 'image' | 'video' | 'music' {
-  const categoryStr = String(category);
+  const categoryStr = String(category).toUpperCase();
 
   if (categoryStr === String(IngredientCategory.VIDEO)) {
     return 'video';

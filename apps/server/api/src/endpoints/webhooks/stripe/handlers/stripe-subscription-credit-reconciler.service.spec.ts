@@ -1,7 +1,11 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
+import {
+  SubscriptionPlan,
+  SubscriptionStatus,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import type { ISubscriptionOssReadModel } from '@genfeedai/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -69,7 +73,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
         periodStart,
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
-        subscriptionStatus: 'active',
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
         trigger: 'customer.subscription.created',
         url: 'test',
       }),
@@ -203,7 +207,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
       periodStart,
       stripeSubscriptionId: 'sub_stripe_1',
       subscription: monthlySubscription,
-      subscriptionStatus: 'active',
+      subscriptionStatus: SubscriptionStatus.ACTIVE,
       trigger: 'customer.subscription.created',
       url: 'test',
     });
@@ -246,7 +250,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
         periodStart,
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
-        subscriptionStatus: 'incomplete',
+        subscriptionStatus: SubscriptionStatus.INCOMPLETE,
         trigger: 'customer.subscription.created',
         url: 'test',
       }),
@@ -274,7 +278,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
         billingReason: 'subscription_create',
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
-        subscriptionStatus: 'active',
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
         trigger: 'customer.subscription.created',
         url: 'test',
       }),
@@ -298,7 +302,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
         billingReason: 'subscription_create',
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
-        subscriptionStatus: 'active',
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
         trigger: 'customer.subscription.created',
         url: 'test',
       }),

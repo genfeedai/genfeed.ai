@@ -21,9 +21,10 @@ import {
  *
  * Expects 'ingredientId' parameter in the route.
  *
- * Prisma persists AssetScope as UPPER_SNAKE (`USER`); app enums are lowercase
- * (`user`). Always normalize before comparing or every USER/BRAND/ORG asset
- * falls through to "Invalid asset scope" → 403.
+ * AssetScope is UPPER_SNAKE (`USER`, `BRAND`, `ORGANIZATION`, `PUBLIC`) end to
+ * end — Prisma and the app enum share the same labels. Always normalize case
+ * before comparing (some callers pass lowercase) or every USER/BRAND/ORG
+ * asset falls through to "Invalid asset scope" → 403.
  */
 @Injectable()
 export class AssetAccessGuard implements CanActivate {
@@ -110,14 +111,15 @@ export class AssetAccessGuard implements CanActivate {
 }
 
 /**
- * Map Prisma (`USER`) and app (`user`) scope values onto the app enum.
+ * Map any-case scope input (Prisma persists UPPER_SNAKE; some callers still
+ * pass lowercase) onto the canonical UPPER_SNAKE `AssetScope` enum.
  */
 export function normalizeAssetScope(scope: unknown): AssetScope {
   if (typeof scope !== 'string' || scope.trim().length === 0) {
     return AssetScope.USER;
   }
 
-  const normalized = scope.trim().toLowerCase();
+  const normalized = scope.trim().toUpperCase();
   switch (normalized) {
     case AssetScope.PUBLIC:
       return AssetScope.PUBLIC;

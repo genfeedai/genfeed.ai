@@ -164,9 +164,7 @@ export class AgentPrepareToolHandler {
       }) ?? [];
 
     const readyVoices = existingVoices.filter(
-      (voice) =>
-        voice.cloneStatus?.toLowerCase() === VoiceCloneStatus.READY ||
-        voice.cloneStatus?.toLowerCase() === 'ready',
+      (voice) => voice.cloneStatus?.toUpperCase() === VoiceCloneStatus.READY,
     );
 
     const effectiveBrandAgentConfig = resolveEffectiveBrandAgentConfig({

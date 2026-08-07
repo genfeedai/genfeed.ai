@@ -28,7 +28,11 @@ import { VideosGifController } from '@api/collections/videos/controllers/transfo
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientStatus } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -152,7 +156,10 @@ describe('VideosGifController', () => {
       mockServices.sharedService.createMediaDocuments,
     ).toHaveBeenCalledWith(
       mockUser,
-      expect.objectContaining({ category: 'gif', extension: 'gif' }),
+      expect.objectContaining({
+        category: IngredientCategory.GIF,
+        extension: MetadataExtension.GIF,
+      }),
     );
   });
 

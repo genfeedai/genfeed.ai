@@ -18,6 +18,10 @@ const CONTEXT: AgentChatContext = {
 
 function createService(): AgentOrchestratorContextService {
   return new AgentOrchestratorContextService(
+    {
+      getLocalDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
+      resolveModelKey: vi.fn().mockResolvedValue('test-model'),
+    } as never,
     {} as never,
     { findOne: vi.fn() } as never,
     {

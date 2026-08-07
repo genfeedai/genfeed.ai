@@ -245,7 +245,7 @@ export class AssetsController {
       userId &&
       updatedAsset &&
       [AssetCategory.LOGO, AssetCategory.BANNER].includes(
-        String(updatedAsset.category).toLowerCase() as AssetCategory,
+        String(updatedAsset.category).toUpperCase() as AssetCategory,
       ) &&
       String(updatedAsset.parentType) === 'BRAND' &&
       updatedAsset.parentBrandId
@@ -258,7 +258,7 @@ export class AssetsController {
           assetId: updatedAsset.id.toString(),
           category: String(
             updatedAsset.category,
-          ).toLowerCase() as AssetCategory,
+          ).toUpperCase() as AssetCategory,
         },
       );
     }
