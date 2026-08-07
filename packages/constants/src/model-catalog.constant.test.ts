@@ -5,6 +5,7 @@ import {
   RETIRED_AGENT_CHAT_MODELS,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
+import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 import {
   AGENT_CHAT_CAPABILITY,
   UNIFIED_MODEL_CATALOG,
@@ -69,6 +70,16 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(defaults).toHaveLength(1);
     expect(defaults[0]?.key).toBe(DEFAULT_AGENT_CHAT_MODEL_KEY);
     expect(defaults[0]?.isActive).toBe(true);
+  });
+
+  // A retired key that is also registered as a live media capability wins the
+  // catalog dedup and silently suppresses its own legacy row — the key then
+  // reads as an active, billable model. Assert at the registration so the
+  // failure names the stale entry rather than the missing row.
+  it('never registers a retired chat key as a live media capability', () => {
+    for (const key of Object.keys(RETIRED_AGENT_CHAT_MODELS)) {
+      expect(MODEL_OUTPUT_CAPABILITIES).not.toHaveProperty(key);
+    }
   });
 
   it('seeds retired chat keys as legacy rows pointing at their successor', () => {
