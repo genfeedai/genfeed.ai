@@ -1,18 +1,7 @@
+import type { IBackgroundTaskUpdatePayload } from '@genfeedai/interfaces';
 import type { Ora } from 'ora';
 import { io, type Socket } from 'socket.io-client';
 import { getApiKey, getApiUrl } from '@/config/store';
-
-export interface BackgroundTaskUpdate {
-  taskId: string;
-  activityId?: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  progress?: number;
-  resultId?: string;
-  resultType?: 'IMAGE' | 'VIDEO' | 'MUSIC';
-  error?: string;
-  label?: string;
-  timestamp?: string;
-}
 
 export interface WaitForCompletionOptions<T> {
   taskId: string;
@@ -108,7 +97,7 @@ export async function waitForCompletion<T>(
       }
     });
 
-    socket.on('background-task-update', (data: BackgroundTaskUpdate) => {
+    socket.on('background-task-update', (data: IBackgroundTaskUpdatePayload) => {
       if (data.resultId !== taskId && data.taskId !== taskId) {
         return;
       }
@@ -125,17 +114,6 @@ export async function waitForCompletion<T>(
       if (data.status === 'completed') {
         handleCompletion('completed');
       } else if (data.status === 'failed') {
-        handleCompletion('failed', data.error);
-      }
-    });
-
-    // Terminal values mirror `IngredientStatus` in `@genfeedai/enums`, which is
-    // Prisma-backed and therefore SCREAMING_SNAKE on the wire. There is no
-    // COMPLETED member — GENERATED is the success terminal.
-    socket.on(`/ingredients/${taskId}/status`, (data: { status: string; error?: string }) => {
-      if (data.status === 'GENERATED') {
-        handleCompletion('completed');
-      } else if (data.status === 'FAILED') {
         handleCompletion('failed', data.error);
       }
     });

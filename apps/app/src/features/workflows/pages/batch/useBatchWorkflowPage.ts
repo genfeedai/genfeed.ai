@@ -1,5 +1,6 @@
 import {
   AssetScope,
+  BatchStatus,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
@@ -19,6 +20,7 @@ import type {
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import { isTerminalBatchStatus } from '@/features/workflows/utils/batch-status';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 
 interface UploadedFile {
@@ -28,10 +30,6 @@ interface UploadedFile {
 }
 
 const BATCH_POLL_INTERVAL_MS = 2000;
-
-function isTerminalBatchStatus(status: string): boolean {
-  return status === 'completed' || status === 'failed';
-}
 
 function mapBatchCategoryToIngredientCategory(
   category?: string,
@@ -92,9 +90,7 @@ function buildBatchIngredient(item: BatchItemStatus): IIngredient | null {
     metadata: { label: metadataLabel } as IMetadata,
     metadataLabel,
     scope: AssetScope.USER,
-    status:
-      (outputSummary.status as IngredientStatus | undefined) ??
-      IngredientStatus.GENERATED,
+    status: outputSummary.status ?? IngredientStatus.GENERATED,
     thumbnailUrl: outputSummary.thumbnailUrl,
     totalChildren: 0,
     totalVotes: 0,
@@ -312,7 +308,9 @@ export function useBatchWorkflowPage() {
 
     captureAnalyticsEvent(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
       outcome:
-        activeBatchLifecycleStatus === 'completed' ? 'success' : 'failure',
+        activeBatchLifecycleStatus === BatchStatus.COMPLETED
+          ? 'success'
+          : 'failure',
       workflowType: 'batch',
     });
     startedBatchJobIdRef.current = null;

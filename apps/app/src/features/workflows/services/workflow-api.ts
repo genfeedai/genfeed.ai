@@ -1,4 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type {
+  BatchStatus,
+  IngredientStatus,
+  WorkflowBatchItemStatus,
+  WorkflowExecutionStatus,
+} from '@genfeedai/enums';
 import { WorkflowLifecycle } from '@genfeedai/enums';
 import {
   getSystemWorkflowMetadata,
@@ -43,7 +49,7 @@ export interface CloudWorkflowData {
   inputVariables?: WorkflowInputVariable[];
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;
-  lifecycle: 'draft' | 'published' | 'archived';
+  lifecycle: WorkflowLifecycle;
   organizationId: string;
   brandId?: string | null;
   schedule?: string;
@@ -65,7 +71,7 @@ export interface WorkflowSummary {
   id: string;
   label: string;
   description?: string;
-  lifecycle: 'draft' | 'published' | 'archived';
+  lifecycle: WorkflowLifecycle;
   brandId?: string | null;
   nodeCount: number;
   thumbnail?: string | null;
@@ -152,14 +158,14 @@ export interface WorkflowActionContext {
 export interface ResumeExecutionResult {
   message: string;
   runId: string;
-  status: string;
+  status: WorkflowExecutionStatus;
 }
 
 /** Node-level result within an execution */
 export interface ExecutionNodeResult {
   nodeId: string;
   nodeType: string;
-  status: string;
+  status: WorkflowExecutionStatus;
   input?: Record<string, unknown>;
   output?: Record<string, unknown>;
   error?: string;
@@ -191,7 +197,7 @@ export interface ExecutionResult {
   id: string;
   workflowId: string;
   workflow?: { id: string; label?: string; description?: string };
-  status: string;
+  status: WorkflowExecutionStatus;
   trigger: string;
   inputValues?: Record<string, unknown>;
   nodeResults: ExecutionNodeResult[];
@@ -210,7 +216,7 @@ export interface ExecutionResult {
 /** Query params for listing executions */
 export interface ListExecutionsParams {
   workflowId?: string;
-  status?: string;
+  status?: WorkflowExecutionStatus;
   trigger?: string;
   limit?: number;
   offset?: number;
@@ -229,16 +235,21 @@ export interface BatchRunResult {
 interface BatchOutputSummary {
   id: string;
   category: string;
-  status?: string;
+  status?: IngredientStatus;
   ingredientUrl?: string;
   thumbnailUrl?: string;
 }
 
-/** Status of a single batch item */
+/**
+ * Status of a single batch item.
+ *
+ * `batch_workflow_jobs.items` is a `Json` column, so item statuses stay
+ * lowercase — unlike the job's own Prisma-backed `BatchStatus` column.
+ */
 export interface BatchItemStatus {
   id: string;
   ingredientId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: WorkflowBatchItemStatus;
   executionId?: string;
   outputIngredientId?: string;
   outputCategory?: string;
@@ -252,7 +263,7 @@ export interface BatchItemStatus {
 export interface BatchJobStatus {
   id: string;
   workflowId: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: BatchStatus;
   totalCount: number;
   completedCount: number;
   failedCount: number;
@@ -265,7 +276,7 @@ export interface BatchJobStatus {
 export interface BatchJobSummary {
   id: string;
   workflowId: string;
-  status: string;
+  status: BatchStatus;
   totalCount: number;
   completedCount: number;
   failedCount: number;
@@ -409,9 +420,11 @@ export interface BrandSummary {
  * ```
  */
 export class WorkflowApiService extends HTTPBaseService {
-  private readonly workflowLifecycles = new Set<CloudWorkflowData['lifecycle']>(
-    ['archived', 'draft', 'published'],
-  );
+  private readonly workflowLifecycles = new Set<WorkflowLifecycle>([
+    WorkflowLifecycle.ARCHIVED,
+    WorkflowLifecycle.DRAFT,
+    WorkflowLifecycle.PUBLISHED,
+  ]);
 
   private isJsonApiDocument(
     payload: unknown,
@@ -919,7 +932,7 @@ export class WorkflowApiService extends HTTPBaseService {
       edges: Array.isArray(data.edges) ? data.edges : [],
       lifecycle: this.workflowLifecycles.has(data.lifecycle)
         ? data.lifecycle
-        : 'draft',
+        : WorkflowLifecycle.DRAFT,
       nodes: Array.isArray(data.nodes) ? data.nodes : [],
     };
   }

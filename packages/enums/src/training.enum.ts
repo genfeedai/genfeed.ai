@@ -3,6 +3,7 @@ export enum TrainingCategory {
   STYLE = 'style',
 }
 
+/** Training job status (string column / app state — not a Prisma enum). */
 export enum TrainingStatus {
   PROCESSING = 'processing',
   COMPLETED = 'completed',
@@ -14,12 +15,19 @@ export enum TrainingProvider {
   GENFEED_AI = 'genfeed-ai',
 }
 
+/**
+ * Training pipeline stage. Values match Prisma `TrainingStage` (SCREAMING_SNAKE).
+ *
+ * GPU job stages map into this set at the fleet boundary:
+ * queued/preprocessing → PENDING, postprocessing → UPLOADING, completed → READY.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum TrainingStage`
+ */
 export enum TrainingStage {
-  QUEUED = 'queued',
-  PREPROCESSING = 'preprocessing',
-  TRAINING = 'training',
-  POSTPROCESSING = 'postprocessing',
-  UPLOADING = 'uploading',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  PENDING = 'PENDING',
+  UPLOADING = 'UPLOADING',
+  TRAINING = 'TRAINING',
+  READY = 'READY',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
 }

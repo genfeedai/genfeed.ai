@@ -119,7 +119,7 @@ describe('SubscriptionGuard', () => {
 
   it('allows users with BYOK tier regardless of subscription status', () => {
     vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
-      SubscriptionStatus.CANCELED,
+      SubscriptionStatus.CANCELLED,
     );
     vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue(
       SubscriptionTier.BYOK,
@@ -130,7 +130,7 @@ describe('SubscriptionGuard', () => {
 
   it('throws 403 when subscription is inactive', () => {
     vi.mocked(authProviderUtil.getStripeSubscriptionStatus).mockReturnValue(
-      SubscriptionStatus.CANCELED,
+      SubscriptionStatus.CANCELLED,
     );
     const ctx = buildContext(buildUser());
     expect(() => guard.canActivate(ctx)).toThrow(

@@ -1,6 +1,6 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
-import type { AgentThreadStatus } from '@genfeedai/enums';
+import type { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
@@ -566,7 +566,14 @@ export interface AgentRunSummary {
   progress?: number;
   retryCount?: number;
   startedAt?: string;
-  status: string;
+  /**
+   * Serialized straight off the `agent_runs.status` Prisma enum, so the wire
+   * value is SCREAMING_SNAKE. Map it with `mapRunStatusToClientStatus` before
+   * comparing against the store's lowercase `activeRunStatus`.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
+  status: AgentExecutionStatus;
   steps?: AgentRunStepSummary[];
   strategy?: string;
   summary?: string;

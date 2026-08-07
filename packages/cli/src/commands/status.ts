@@ -1,51 +1,98 @@
+import { IngredientStatus, PersistedArticleStatus } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { type ArticleStatus, getArticle } from '@/api/articles';
+import { getArticle } from '@/api/articles';
 import { requireAuth } from '@/api/client';
 import { getImage } from '@/api/images';
 import { getVideo } from '@/api/videos';
 import { formatError, formatLabel, print, printJson } from '@/ui/theme';
 import { ApiError, handleError } from '@/utils/errors';
 
-type ContentType = 'article' | 'image' | 'video';
-type MediaStatus = 'pending' | 'processing' | 'completed' | 'failed';
-// Articles carry publish-lifecycle statuses (`draft`, `public`, …) rather than
-// the media generation statuses, so both vocabularies are rendered here.
-type Status = MediaStatus | ArticleStatus;
+/**
+ * Both vocabularies are Prisma-backed, so both arrive SCREAMING_SNAKE and are
+ * rendered by their own formatter. Images and videos are ingredients — their
+ * success state is `GENERATED`, not a `COMPLETED` that does not exist — while
+ * articles carry a publish lifecycle.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+type Status = IngredientStatus | PersistedArticleStatus;
 
-interface StatusResult {
+/** Media is finished and downloadable once the ingredient has an asset. */
+const SUCCESS_STATUSES: ReadonlySet<Status> = new Set([
+  IngredientStatus.GENERATED,
+  IngredientStatus.UPLOADED,
+  IngredientStatus.VALIDATED,
+]);
+
+/** The generation pipeline is still expected to move these along. */
+const IN_PROGRESS_STATUSES: ReadonlySet<Status> = new Set([
+  IngredientStatus.DRAFT,
+  IngredientStatus.PROCESSING,
+]);
+
+interface BaseStatusResult {
   id: string;
-  type: ContentType;
-  status: Status;
+  createdAt: string;
+}
+
+interface MediaStatusResult extends BaseStatusResult {
+  type: 'image' | 'video';
+  status: IngredientStatus;
+  model: string;
   url?: string;
   error?: string;
-  model: string;
-  createdAt: string;
   completedAt?: string;
   dimensions?: { width: number; height: number };
   duration?: number;
   resolution?: string;
+}
+
+interface ArticleStatusResult extends BaseStatusResult {
+  type: 'article';
+  status: PersistedArticleStatus;
   title?: string;
   category?: string;
   slug?: string;
 }
 
-function formatStatus(status: Status): string {
+type StatusResult = MediaStatusResult | ArticleStatusResult;
+
+function formatIngredientStatus(status: IngredientStatus): string {
   switch (status) {
-    case 'pending':
-    case 'draft':
-      return chalk.yellow(`● ${status === 'draft' ? 'Draft' : 'Pending'}`);
-    case 'processing':
+    case IngredientStatus.DRAFT:
+      return chalk.yellow('● Pending');
+    case IngredientStatus.PROCESSING:
       return chalk.blue('● Processing');
-    case 'completed':
-    case 'public':
-      return chalk.green(`● ${status === 'public' ? 'Public' : 'Completed'}`);
-    case 'archived':
+    case IngredientStatus.GENERATED:
+    case IngredientStatus.UPLOADED:
+    case IngredientStatus.VALIDATED:
+      return chalk.green('● Generated');
+    case IngredientStatus.ARCHIVED:
       return chalk.dim('● Archived');
-    case 'failed':
+    case IngredientStatus.REJECTED:
+      return chalk.red('● Rejected');
+    case IngredientStatus.FAILED:
       return chalk.red('● Failed');
   }
+}
+
+function formatArticleStatus(status: PersistedArticleStatus): string {
+  switch (status) {
+    case PersistedArticleStatus.DRAFT:
+      return chalk.yellow('● Draft');
+    case PersistedArticleStatus.PUBLISHED:
+      return chalk.green('● Published');
+    case PersistedArticleStatus.ARCHIVED:
+      return chalk.dim('● Archived');
+  }
+}
+
+function formatStatus(result: StatusResult): string {
+  return result.type === 'article'
+    ? formatArticleStatus(result.status)
+    : formatIngredientStatus(result.status);
 }
 
 export const statusCommand = new Command('status')
@@ -70,7 +117,6 @@ export const statusCommand = new Command('status')
             id: article.id,
             // The article serializer exposes no generation model; the headline
             // is `label`, not `title`.
-            model: 'n/a',
             slug: article.slug,
             status: article.status,
             title: article.label,
@@ -141,31 +187,37 @@ export const statusCommand = new Command('status')
 
       print(formatLabel('ID', result.id));
       print(formatLabel('Type', result.type));
-      print(formatLabel('Status', formatStatus(result.status)));
+      print(formatLabel('Status', formatStatus(result)));
+
       if (result.type !== 'article') {
         print(formatLabel('Model', result.model));
-      }
 
-      if (result.status === 'completed' && result.url) {
-        print(formatLabel('URL', result.url));
+        if (SUCCESS_STATUSES.has(result.status) && result.url) {
+          print(formatLabel('URL', result.url));
 
-        if (result.dimensions) {
-          print(
-            formatLabel('Dimensions', `${result.dimensions.width} × ${result.dimensions.height}`)
-          );
+          if (result.dimensions) {
+            print(
+              formatLabel('Dimensions', `${result.dimensions.width} × ${result.dimensions.height}`)
+            );
+          }
+
+          if (result.duration) {
+            print(formatLabel('Duration', `${result.duration}s`));
+          }
+
+          if (result.resolution) {
+            print(formatLabel('Resolution', result.resolution));
+          }
+
+          if (result.completedAt) {
+            const completedDate = new Date(result.completedAt);
+            print(formatLabel('Completed', completedDate.toLocaleString()));
+          }
         }
 
-        if (result.duration) {
-          print(formatLabel('Duration', `${result.duration}s`));
-        }
-
-        if (result.resolution) {
-          print(formatLabel('Resolution', result.resolution));
-        }
-
-        if (result.completedAt) {
-          const completedDate = new Date(result.completedAt);
-          print(formatLabel('Completed', completedDate.toLocaleString()));
+        if (result.status === IngredientStatus.FAILED && result.error) {
+          print();
+          print(formatError(`Error: ${result.error}`));
         }
       }
 
@@ -181,12 +233,7 @@ export const statusCommand = new Command('status')
         }
       }
 
-      if (result.status === 'failed' && result.error) {
-        print();
-        print(formatError(`Error: ${result.error}`));
-      }
-
-      if (result.status === 'pending' || result.status === 'processing') {
+      if (IN_PROGRESS_STATUSES.has(result.status)) {
         print();
         print(chalk.dim('Generation is still in progress. Check again later.'));
       }

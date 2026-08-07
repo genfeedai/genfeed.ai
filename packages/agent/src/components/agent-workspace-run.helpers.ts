@@ -3,16 +3,23 @@ import type {
   AgentRunSummary,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { AgentExecutionStatus, AgentRunStatus } from '@genfeedai/enums';
 
 const RUN_STATUS_CLASS_NAMES: Readonly<Record<string, string>> = {
-  COMPLETED: 'bg-success/10 text-success',
-  FAILED: 'bg-destructive/10 text-destructive',
-  PENDING: 'bg-warning/10 text-warning',
-  RUNNING: 'bg-info/10 text-info',
+  [AgentExecutionStatus.COMPLETED]: 'bg-success/10 text-success',
+  [AgentExecutionStatus.FAILED]: 'bg-destructive/10 text-destructive',
+  [AgentExecutionStatus.PENDING]: 'bg-warning/10 text-warning',
+  [AgentExecutionStatus.RUNNING]: 'bg-info/10 text-info',
 };
 
-const CANCELLABLE_RUN_STATUSES = new Set(['PENDING', 'RUNNING']);
-const RETRYABLE_RUN_STATUSES = new Set(['CANCELLED', 'FAILED']);
+const CANCELLABLE_RUN_STATUSES: ReadonlySet<string> = new Set([
+  AgentExecutionStatus.PENDING,
+  AgentExecutionStatus.RUNNING,
+]);
+const RETRYABLE_RUN_STATUSES: ReadonlySet<string> = new Set([
+  AgentExecutionStatus.CANCELLED,
+  AgentExecutionStatus.FAILED,
+]);
 const RUN_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeStyle: 'short',
@@ -53,6 +60,33 @@ export function isRunCancellable(status?: string): boolean {
 
 export function isRunRetryable(status?: string): boolean {
   return RETRYABLE_RUN_STATUSES.has(normalizeRunStatus(status));
+}
+
+/**
+ * The agent-runs API serializes the Prisma `AgentRunStatus` enum verbatim
+ * (SCREAMING_SNAKE), while the chat store tracks its own lowercase lifecycle —
+ * which additionally carries `cancelling`, a client-only state with no server
+ * counterpart. Cross the boundary here rather than comparing wire values
+ * against store literals, which silently never match.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+export function mapRunStatusToClientStatus(
+  status?: string,
+): 'running' | 'completed' | 'failed' | 'cancelled' {
+  switch (normalizeRunStatus(status)) {
+    case AgentExecutionStatus.CANCELLED:
+      return 'cancelled';
+    case AgentExecutionStatus.COMPLETED:
+      return 'completed';
+    case AgentExecutionStatus.FAILED:
+    case AgentRunStatus.BUDGET_EXHAUSTED:
+      return 'failed';
+    default:
+      // PENDING, RUNNING, and anything unrecognised: the run is still live as
+      // far as the composer is concerned.
+      return 'running';
+  }
 }
 
 export function getRunThreadId(run: AgentRunSummary): string | null {

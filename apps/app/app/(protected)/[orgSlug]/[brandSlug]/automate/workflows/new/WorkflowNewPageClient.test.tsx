@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -26,8 +27,14 @@ describe(relativePath, () => {
 
     tracker.trackStarted();
     tracker.trackLaunchAccepted('execution-1');
-    tracker.trackTerminalExecution({ id: 'execution-1', status: 'running' });
-    tracker.trackTerminalExecution({ id: 'execution-1', status: 'failed' });
+    tracker.trackTerminalExecution({
+      id: 'execution-1',
+      status: WorkflowExecutionStatus.RUNNING,
+    });
+    tracker.trackTerminalExecution({
+      id: 'execution-1',
+      status: WorkflowExecutionStatus.FAILED,
+    });
 
     expect(capture.mock.calls).toEqual([
       [ANALYTICS_EVENTS.WORKFLOW_RUN_STARTED, { workflowType: 'editor' }],

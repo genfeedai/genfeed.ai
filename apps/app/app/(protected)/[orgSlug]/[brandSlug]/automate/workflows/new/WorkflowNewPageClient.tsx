@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  type WorkflowExecutionStatus,
+  WorkflowLifecycle,
+} from '@genfeedai/enums';
 import {
   buildWorkflowEtaSnapshot,
   formatEtaDuration,
@@ -256,7 +261,7 @@ export default function WorkflowNewPageClient() {
   }, [save]);
 
   const handleTerminalExecution = useCallback(
-    (execution: { id: string; status: string }) => {
+    (execution: { id: string; status: WorkflowExecutionStatus }) => {
       workflowRunTracker.trackTerminalExecution(execution);
     },
     [workflowRunTracker],
@@ -394,7 +399,7 @@ export default function WorkflowNewPageClient() {
                       >
                         {isRunning ? 'Running…' : 'Run'}
                       </Button>
-                      {lifecycle === 'draft' && (
+                      {lifecycle === WorkflowLifecycle.DRAFT && (
                         <Button
                           variant={ButtonVariant.DEFAULT}
                           size={ButtonSize.SM}
@@ -403,7 +408,7 @@ export default function WorkflowNewPageClient() {
                           Publish
                         </Button>
                       )}
-                      {lifecycle !== 'archived' && (
+                      {lifecycle !== WorkflowLifecycle.ARCHIVED && (
                         <Button
                           variant={ButtonVariant.DESTRUCTIVE}
                           size={ButtonSize.SM}

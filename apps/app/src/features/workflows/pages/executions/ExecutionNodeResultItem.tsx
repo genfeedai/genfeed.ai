@@ -1,5 +1,6 @@
 'use client';
 
+import type { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { Button } from '@ui/primitives/button';
@@ -12,7 +13,7 @@ import {
 type NodeResult = {
   nodeId: string;
   nodeLabel: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  status: WorkflowExecutionStatus;
   error?: string;
   output?: Record<string, unknown>;
   startedAt: string;

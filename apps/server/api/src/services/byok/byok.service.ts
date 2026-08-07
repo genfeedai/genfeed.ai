@@ -160,7 +160,11 @@ export class ByokService {
     }
 
     const status = orgSettings.byokBillingStatus;
-    return !status || String(status).toLowerCase() === ByokBillingStatus.ACTIVE;
+    if (!status) {
+      return true;
+    }
+    const normalized = String(status).toUpperCase().replace(/-/g, '_');
+    return normalized === ByokBillingStatus.ACTIVE;
   }
 
   /**

@@ -1,4 +1,8 @@
-import { ReviewGateStatus, WorkflowNodeStatus } from '@genfeedai/enums';
+import {
+  ReviewGateStatus,
+  WorkflowExecutionStatus,
+  WorkflowNodeStatus,
+} from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -17,7 +21,7 @@ describe('execution-node-sync', () => {
         inputCaption: 'Ready to approve',
         inputMedia: 'https://cdn.example.com/image.jpg',
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(patch).toEqual({
@@ -48,7 +52,7 @@ describe('execution-node-sync', () => {
         inputMedia: 'https://cdn.example.com/video.mp4',
         outputCaption: 'Ready to approve',
       },
-      status: 'completed',
+      status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(patch).toEqual({
@@ -77,7 +81,7 @@ describe('execution-node-sync', () => {
         inputCaption: 'Needs changes',
         rejectionReason: 'Rejected via review gate',
       },
-      status: 'failed',
+      status: WorkflowExecutionStatus.FAILED,
     });
 
     expect(patch).toEqual({
@@ -100,7 +104,7 @@ describe('execution-node-sync', () => {
         {
           nodeId: 'node-1',
           nodeType: 'postReply',
-          status: 'completed',
+          status: WorkflowExecutionStatus.COMPLETED,
         },
         {
           nodeId: 'review-1',
@@ -109,7 +113,7 @@ describe('execution-node-sync', () => {
             approvalId: 'exec-1',
             approvalStatus: 'pending',
           },
-          status: 'running',
+          status: WorkflowExecutionStatus.RUNNING,
         },
       ],
     });
@@ -122,5 +126,15 @@ describe('execution-node-sync', () => {
         status: WorkflowNodeStatus.COMPLETE,
       },
     });
+  });
+
+  it('maps cancelled executions to idle nodes', () => {
+    const patch = buildExecutionNodePatch({
+      nodeId: 'node-1',
+      nodeType: 'postReply',
+      status: WorkflowExecutionStatus.CANCELLED,
+    });
+
+    expect(patch?.patch.status).toBe(WorkflowNodeStatus.IDLE);
   });
 });

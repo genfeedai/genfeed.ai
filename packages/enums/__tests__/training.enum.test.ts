@@ -42,18 +42,17 @@ describe('training.enum', () => {
   });
 
   describe('TrainingStage', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(TrainingStage)).toHaveLength(7);
+    it('should have 6 members matching Prisma', () => {
+      expect(Object.values(TrainingStage)).toHaveLength(6);
     });
 
-    it('should have correct values', () => {
-      expect(TrainingStage.QUEUED).toBe('queued');
-      expect(TrainingStage.PREPROCESSING).toBe('preprocessing');
-      expect(TrainingStage.TRAINING).toBe('training');
-      expect(TrainingStage.POSTPROCESSING).toBe('postprocessing');
-      expect(TrainingStage.UPLOADING).toBe('uploading');
-      expect(TrainingStage.COMPLETED).toBe('completed');
-      expect(TrainingStage.FAILED).toBe('failed');
+    it('should match Prisma SCREAMING_SNAKE', () => {
+      expect(TrainingStage.PENDING).toBe('PENDING');
+      expect(TrainingStage.UPLOADING).toBe('UPLOADING');
+      expect(TrainingStage.TRAINING).toBe('TRAINING');
+      expect(TrainingStage.READY).toBe('READY');
+      expect(TrainingStage.FAILED).toBe('FAILED');
+      expect(TrainingStage.CANCELLED).toBe('CANCELLED');
     });
   });
 });

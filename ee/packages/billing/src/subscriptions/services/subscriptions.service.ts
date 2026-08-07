@@ -9,7 +9,11 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
+import {
+  SubscriptionPlan,
+  SubscriptionStatus,
+  toPrismaSubscriptionStatus,
+} from '@genfeedai/enums';
 import type {
   ISubscriptionFindAllOptions,
   ISubscriptionFindAllResult,
@@ -327,7 +331,7 @@ export class SubscriptionsService
               updatedStripeSubscription.items.data[0].current_period_end * 1000,
             )
           : undefined,
-        status: updatedStripeSubscription.status,
+        status: toPrismaSubscriptionStatus(updatedStripeSubscription.status),
         stripePriceId: newPriceId,
         plan: newPlan,
       });

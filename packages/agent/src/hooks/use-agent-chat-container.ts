@@ -1,4 +1,5 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
+import { mapRunStatusToClientStatus } from '@genfeedai/agent/components/agent-workspace-run.helpers';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
@@ -663,14 +664,7 @@ export function useAgentChatContainer({
 
         setActiveRun(matchingRun.id, {
           startedAt: matchingRun.startedAt ?? null,
-          status:
-            matchingRun.status === 'cancelled'
-              ? 'cancelled'
-              : matchingRun.status === 'completed'
-                ? 'completed'
-                : matchingRun.status === 'failed'
-                  ? 'failed'
-                  : 'running',
+          status: mapRunStatusToClientStatus(matchingRun.status),
         });
       })
       .catch(() => {

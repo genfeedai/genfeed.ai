@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  WorkflowExecutionStatus,
+} from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
@@ -522,7 +526,7 @@ export function WorkflowSurfaceInspector({
       ) : null}
 
       <div className="space-y-2">
-        {execution?.status === 'failed' ? (
+        {execution?.status === WorkflowExecutionStatus.FAILED ? (
           <Button
             disabled={isResuming}
             icon={<RefreshCw className="size-4" />}
