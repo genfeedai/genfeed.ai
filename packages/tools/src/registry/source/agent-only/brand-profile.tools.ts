@@ -1,13 +1,16 @@
-import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
-import type { AgentToolDefinition } from '@genfeedai/interfaces';
-import { AgentToolName } from '@genfeedai/interfaces';
+import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
 
-export const AGENT_BRAND_PROFILE_TOOLS: AgentToolDefinition[] = [
+/**
+ * `draft_brand_voice_profile` costs one generation credit. The API mirrors this
+ * value as `BRAND_PROFILE_GENERATION_CREDIT_COST`; the two are pinned together
+ * by `agent-tool-registry.spec.ts` because this package cannot import from an app.
+ */
+export const AGENT_BRAND_PROFILE_TOOLS: SourceTool[] = [
   {
-    creditCost: BRAND_PROFILE_GENERATION_CREDIT_COST,
+    creditCost: 1,
     description:
       'Build one reusable brand profile, including voice, strategy, prompt seeds, and conversation starters, from website/social context, audience, positioning, and examples.',
-    name: AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+    name: 'draft_brand_voice_profile',
     parameters: {
       properties: {
         brandId: {
@@ -46,12 +49,13 @@ export const AGENT_BRAND_PROFILE_TOOLS: AgentToolDefinition[] = [
       },
       type: 'object',
     },
+    requiredRole: 'user',
   },
   {
     creditCost: 0,
     description:
       'Save an approved structured brand voice profile to the selected brand agent config.',
-    name: AgentToolName.SAVE_BRAND_VOICE_PROFILE,
+    name: 'save_brand_voice_profile',
     parameters: {
       properties: {
         brandId: {
@@ -66,5 +70,6 @@ export const AGENT_BRAND_PROFILE_TOOLS: AgentToolDefinition[] = [
       required: ['voiceProfile'],
       type: 'object',
     },
+    requiredRole: 'user',
   },
 ];

@@ -85,6 +85,39 @@ describe('curated action catalog', () => {
     ]);
   });
 
+  it('reviews the agent-only ad remix, brand voice, and workflow input actions', () => {
+    for (const name of [
+      'draft_brand_voice_profile',
+      'generate_ad_pack',
+      'get_workflow_inputs',
+      'prepare_ad_launch_review',
+      'save_brand_voice_profile',
+    ]) {
+      const tool = getToolByName(name);
+      expect(tool, name).toBeDefined();
+      expect(tool?.surfaces, name).toMatchObject({ agent: true, mcp: false });
+      expect(tool?.description.length, name).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps the ad remix schemas selectable and the launch draft review-only', () => {
+    const adPack = getToolByName('generate_ad_pack');
+    const launchReview = getToolByName('prepare_ad_launch_review');
+
+    expect(adPack?.parameters.required).toEqual(['adId', 'source']);
+    expect(launchReview?.parameters.required).toEqual(['adId', 'source']);
+    expect(launchReview?.parameters.properties).toHaveProperty('dailyBudget');
+    expect(launchReview?.description).toContain('never publishes live');
+  });
+
+  it('prices the brand voice draft and leaves the save free', () => {
+    expect(getToolByName('draft_brand_voice_profile')?.creditCost).toBe(1);
+    expect(getToolByName('save_brand_voice_profile')?.creditCost).toBe(0);
+    expect(
+      getToolByName('save_brand_voice_profile')?.parameters.required,
+    ).toEqual(['voiceProfile']);
+  });
+
   it('exposes the reviewed generation, edit, and analytics actions on both surfaces', () => {
     for (const name of [
       'analyze_performance',

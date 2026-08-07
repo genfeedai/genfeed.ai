@@ -1,6 +1,8 @@
+import { BRAND_PROFILE_GENERATION_CREDIT_COST } from '@api/collections/brands/constants/brand-profile.constant';
 import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import { AgentToolName } from '@genfeedai/interfaces';
+import { getToolByName, getToolsForSurface } from '@genfeedai/tools';
 
 describe('agent-tool-registry', () => {
   it('should include onboarding tool definitions', () => {
@@ -37,6 +39,54 @@ describe('agent-tool-registry', () => {
     const uniqueNames = new Set(names);
 
     expect(uniqueNames.size).toBe(names.length);
+  });
+
+  it('should expose exactly the actions the curated catalog surfaces to the agent', () => {
+    const shipped = getToolDefinitions()
+      .map((tool) => String(tool.name))
+      .sort((a, b) => a.localeCompare(b));
+    const curated = getToolsForSurface('agent')
+      .map((tool) => tool.name)
+      .sort((a, b) => a.localeCompare(b));
+
+    expect(shipped).toEqual(curated);
+  });
+
+  it('should ship the previously uncataloged cloud tools from the catalog', () => {
+    const names = getToolDefinitions().map((tool) => String(tool.name));
+
+    for (const name of [
+      AgentToolName.DRAFT_BRAND_VOICE_PROFILE,
+      AgentToolName.GENERATE_AD_PACK,
+      AgentToolName.GET_WORKFLOW_INPUTS,
+      AgentToolName.PREPARE_AD_LAUNCH_REVIEW,
+      AgentToolName.SAVE_BRAND_VOICE_PROFILE,
+    ]) {
+      expect(names, name).toContain(name);
+      expect(getToolByName(name)?.surfaces.agent, name).toBe(true);
+    }
+  });
+
+  it('should price every agent tool, including the folded cloud tools', () => {
+    for (const tool of getToolDefinitions()) {
+      expect(AGENT_CREDIT_COSTS[String(tool.name)], String(tool.name)).toBe(
+        tool.creditCost,
+      );
+    }
+
+    expect(AGENT_CREDIT_COSTS[AgentToolName.GET_WORKFLOW_INPUTS]).toBe(0);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.SAVE_BRAND_VOICE_PROFILE]).toBe(0);
+  });
+
+  it('should keep the catalog brand profile draft cost pinned to the API constant', () => {
+    expect(
+      getToolByName(AgentToolName.DRAFT_BRAND_VOICE_PROFILE)?.creditCost,
+    ).toBe(BRAND_PROFILE_GENERATION_CREDIT_COST);
+  });
+
+  it('should keep the in-app create_post draft free while the catalog prices the MCP publish', () => {
+    expect(AGENT_CREDIT_COSTS[AgentToolName.CREATE_POST]).toBe(0);
+    expect(getToolByName(AgentToolName.CREATE_POST)?.creditCost).toBe(1);
   });
 
   it('should set non-zero credit costs for generation tools', () => {

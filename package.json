@@ -61,6 +61,7 @@
     "build:web:parallel": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs",
     "build:web:sequential": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs --concurrency=1",
     "build:website": "bunx turbo run build --filter=@genfeedai/website",
+    "check:agent-tool-dispatch": "bun run scripts/architecture/check-agent-tool-dispatch.ts",
     "check:architecture": "bun run scripts/check-architecture.ts",
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:deterministic-locale": "bun run scripts/architecture/check-deterministic-locale.ts",
