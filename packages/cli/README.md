@@ -116,6 +116,26 @@ genfeed logout
 
 ## Commands
 
+### Organizations
+
+List your organizations:
+
+```bash
+gf organizations
+```
+
+Switch the active organization (also updates the default brand):
+
+```bash
+gf organizations select
+```
+
+Show the current organization:
+
+```bash
+gf organizations current
+```
+
 ### Brand Management
 
 List all brands:
