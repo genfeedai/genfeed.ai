@@ -475,22 +475,6 @@
     {
       "delegate": "contextBase",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "5268d4e4e9b6a1c31a87",
-      "method": "findUnique",
-      "model": "ContextBase",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "c7327efc7f41e376370d",
-      "method": "findUnique",
-      "model": "ContextBase",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextBase",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "2d1c61291704ebfa1c63",
       "method": "update",
       "model": "ContextBase",
@@ -539,47 +523,7 @@
     {
       "delegate": "contextEntry",
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "102087961f8d9364fd25",
-      "method": "findMany",
-      "model": "ContextEntry",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "647aaf73e7e9f3f48abe",
-      "method": "findMany",
-      "model": "ContextEntry",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "f82de0bd84aa847c59e3",
-      "method": "findUnique",
-      "model": "ContextEntry",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "247e5a56f2e33a8d36a9",
-      "method": "findUnique",
-      "model": "ContextEntry",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "31c99752b9cecf9f335e",
-      "method": "update",
-      "model": "ContextEntry",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "82260947adb970699430",
       "method": "update",
       "model": "ContextEntry",
       "reason": "missing-is-deleted"
@@ -589,22 +533,6 @@
       "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
       "fingerprint": "318e1b186bc0b1692484",
       "method": "update",
-      "model": "ContextEntry",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "42751b5397f22764fd71",
-      "method": "update",
-      "model": "ContextEntry",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "contextEntry",
-      "file": "apps/server/api/src/collections/contexts/services/contexts.service.ts",
-      "fingerprint": "3248ac1185f1e520d70f",
-      "method": "updateMany",
       "model": "ContextEntry",
       "reason": "missing-organization-id"
     },

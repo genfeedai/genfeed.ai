@@ -4,7 +4,10 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -1008,6 +1011,31 @@ describe('RouterService', () => {
       const result = await service.getDefaultModel(ModelCategory.VOICE);
 
       expect(result).toBe('elevenlabs');
+    });
+
+    it('should return the fixed BGE model for EMBEDDING category', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const result = await service.getDefaultModel(ModelCategory.EMBEDDING);
+
+      expect(result).toBe(DEFAULT_CONTEXT_EMBEDDING_MODEL);
+    });
+
+    it('should ignore a legacy CLIP database default for embeddings', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          category: ModelCategory.EMBEDDING,
+          isDefault: true,
+          key: MODEL_KEYS.REPLICATE_OPENAI_CLIP,
+        }),
+      ]);
+
+      const result = await service.getDefaultModel(ModelCategory.EMBEDDING);
+
+      expect(result).toBe(DEFAULT_CONTEXT_EMBEDDING_MODEL);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Ignoring embedding default'),
+      );
     });
   });
 

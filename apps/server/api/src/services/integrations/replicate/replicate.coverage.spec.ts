@@ -7,6 +7,10 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
+import {
+  CONTEXT_EMBEDDING_DIMENSION,
+  DEFAULT_CONTEXT_EMBEDDING_MODEL,
+} from '@genfeedai/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -561,47 +565,67 @@ describe('ReplicateService (coverage)', () => {
   // -------------------------------------------------------------------------
 
   describe('generateEmbedding', () => {
-    it('returns embedding array from CLIP prediction output', async () => {
-      const embedding = [0.1, 0.2, 0.3];
+    it('returns a fixed-width embedding from BGE prediction output', async () => {
+      const embedding = Array(CONTEXT_EMBEDDING_DIMENSION).fill(0.1);
       const wait = vi
         .fn()
-        .mockResolvedValue({ id: 'pred_clip', output: embedding });
-      const create = vi.fn().mockResolvedValue({ id: 'pred_clip' });
+        .mockResolvedValue({ id: 'pred_bge', output: [embedding] });
+      const create = vi.fn().mockResolvedValue({ id: 'pred_bge' });
       service.client = makeClient({
         predictions: { create, get: vi.fn() },
         wait,
       }) as unknown as typeof service.client;
 
-      const result = await service.generateEmbedding('some text about cats');
+      const result = await service.generateEmbedding(
+        DEFAULT_CONTEXT_EMBEDDING_MODEL,
+        'some text about cats',
+      );
 
       expect(result).toEqual(embedding);
       expect(create).toHaveBeenCalledWith(
         expect.objectContaining({
-          input: { text: 'some text about cats' },
+          input: { texts: '["some text about cats"]' },
         }),
       );
     });
 
     it('propagates error and logs on failure', async () => {
-      const err = new Error('clip failed');
+      const err = new Error('embedding failed');
       service.client = makeClient({
         predictions: { create: vi.fn().mockRejectedValue(err), get: vi.fn() },
       }) as unknown as typeof service.client;
 
-      await expect(service.generateEmbedding('text')).rejects.toThrow(
-        'clip failed',
-      );
+      await expect(
+        service.generateEmbedding(DEFAULT_CONTEXT_EMBEDDING_MODEL, 'text'),
+      ).rejects.toThrow('embedding failed');
       expect(mockLoggerService.error).toHaveBeenCalled();
     });
 
-    it('accepts apiKeyOverride', async () => {
-      const embedding = [0.5, 0.6];
+    it('rejects embedding dimension drift', async () => {
       const wait = vi
         .fn()
-        .mockResolvedValue({ id: 'pred_clip_ov', output: embedding });
+        .mockResolvedValue({ id: 'pred_bge_short', output: [[0.1, 0.2]] });
+      service.client = makeClient({
+        predictions: {
+          create: vi.fn().mockResolvedValue({ id: 'pred_bge_short' }),
+          get: vi.fn(),
+        },
+        wait,
+      }) as unknown as typeof service.client;
+
+      await expect(
+        service.generateEmbedding(DEFAULT_CONTEXT_EMBEDDING_MODEL, 'text'),
+      ).rejects.toThrow(`expected ${CONTEXT_EMBEDDING_DIMENSION}`);
+    });
+
+    it('accepts apiKeyOverride', async () => {
+      const embedding = Array(CONTEXT_EMBEDDING_DIMENSION).fill(0.5);
+      const wait = vi
+        .fn()
+        .mockResolvedValue({ id: 'pred_bge_override', output: embedding });
       const overrideClient = makeClient({
         predictions: {
-          create: vi.fn().mockResolvedValue({ id: 'pred_clip_ov' }),
+          create: vi.fn().mockResolvedValue({ id: 'pred_bge_override' }),
           get: vi.fn(),
         },
         wait,
@@ -619,7 +643,11 @@ describe('ReplicateService (coverage)', () => {
           >,
         );
 
-      const result = await service.generateEmbedding('override text', 'my-key');
+      const result = await service.generateEmbedding(
+        DEFAULT_CONTEXT_EMBEDDING_MODEL,
+        'override text',
+        'my-key',
+      );
 
       expect(result).toEqual(embedding);
       expect(spy).toHaveBeenCalledWith('my-key');

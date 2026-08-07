@@ -1,11 +1,6 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  type ContextBase,
-  type ContextEntry,
-  type Post,
-} from '@genfeedai/prisma';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -40,14 +35,12 @@ describe('ContextsService', () => {
           },
         },
         {
-          provide: ModelsService,
-          useValue: {
-            getOneByKey: vi.fn().mockResolvedValue(null),
-          },
-        },
-        {
           provide: ReplicateService,
           useValue: { generateEmbedding: vi.fn().mockResolvedValue([]) },
+        },
+        {
+          provide: RouterService,
+          useValue: { getDefaultModel: vi.fn().mockResolvedValue('bge') },
         },
       ],
     }).compile();

@@ -6,8 +6,8 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import type { RouterService } from '@api/services/router/router.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -73,8 +73,8 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
         log: vi.fn(),
         warn: vi.fn(),
       } as unknown as LoggerService,
-      {} as unknown as ModelsService,
       {} as unknown as ReplicateService,
+      {} as unknown as RouterService,
     );
 
     return { contextBase, contextEntry, service };
@@ -172,7 +172,11 @@ describe('ContextsService — findOrThrow tenant scoping', () => {
     });
     expect(contextEntry.updateMany).toHaveBeenCalledWith({
       data: { isDeleted: true },
-      where: { contextBaseId: 'ctx-1', isDeleted: false },
+      where: {
+        contextBaseId: 'ctx-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
     });
   });
 

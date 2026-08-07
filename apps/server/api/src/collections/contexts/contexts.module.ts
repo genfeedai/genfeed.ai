@@ -1,16 +1,12 @@
 /**
- * Contexts Module (RAG System)
- * Retrieval Augmented Generation: brand voice knowledge bases, content library indexing,
- * semantic search with embeddings, and prompt enhancement for 50% better AI results.
+ * Contexts Module
+ * Brand knowledge storage and semantic retrieval for direct context injection.
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
-import { CreditsModule } from '@api/collections/credits/credits.module';
-import { ModelsModule } from '@api/collections/models/models.module';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
-import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { RouterModule } from '@api/services/router/router.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -20,10 +16,9 @@ import { forwardRef, Module } from '@nestjs/common';
   imports: [
     forwardRef(() => ByokModule),
     forwardRef(() => ConfigModule),
-    forwardRef(() => CreditsModule),
-    forwardRef(() => ModelsModule),
     forwardRef(() => ReplicateModule),
+    forwardRef(() => RouterModule),
   ],
-  providers: [ContextsService, CreditsGuard, CreditsInterceptor],
+  providers: [ContextsService],
 })
 export class ContextsModule {}

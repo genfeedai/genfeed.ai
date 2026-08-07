@@ -5,15 +5,26 @@ import { EnhancePromptDto } from '@api/collections/contexts/dto/enhance-prompt.d
 import { QueryContextDto } from '@api/collections/contexts/dto/query.dto';
 import { UpdateContextDto } from '@api/collections/contexts/dto/update-context.dto';
 import type { ContextBase } from '@api/collections/contexts/schemas/context-base.schema';
-import type { ContextEntry } from '@api/collections/contexts/schemas/context-entry.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import type {
+  ContextEntry,
+  ContextEntryPendingEmbeddingRow,
+  ContextEntrySimilarityResult,
+  ContextEntrySimilarityRow,
+} from '@api/collections/contexts/schemas/context-entry.schema';
+import {
+  buildContextSimilarityQuery,
+  serializeContextEmbedding,
+} from '@api/collections/contexts/utils/context-similarity-query.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  ModelCategory,
+  PostStatus,
+} from '@genfeedai/enums';
+import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -32,8 +43,8 @@ export class ContextsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
-    private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
+    private readonly routerService: RouterService,
   ) {}
 
   private isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -125,11 +136,12 @@ export class ContextsService {
 
   private async adjustContextBaseMetric(
     contextBaseId: string,
+    organizationId: string,
     metric: 'entryCount' | 'usageCount',
     delta: number,
   ): Promise<void> {
-    const existing = await this.prisma.contextBase.findUnique({
-      where: { id: contextBaseId },
+    const existing = await this.prisma.contextBase.findFirst({
+      where: scopedWhere(organizationId, { id: contextBaseId }),
     });
 
     if (!existing) {
@@ -147,29 +159,6 @@ export class ContextsService {
         } as never,
       },
       where: { id: contextBaseId },
-    });
-  }
-
-  private async updateContextEntryData(
-    entryId: string,
-    patch: Record<string, unknown>,
-  ): Promise<void> {
-    const existing = await this.prisma.contextEntry.findUnique({
-      where: { id: entryId },
-    });
-
-    if (!existing) {
-      return;
-    }
-
-    await this.prisma.contextEntry.update({
-      data: {
-        data: {
-          ...this.getDataRecord(existing.data),
-          ...patch,
-        } as never,
-      },
-      where: { id: entryId },
     });
   }
 
@@ -311,7 +300,7 @@ export class ContextsService {
 
     await this.prisma.contextEntry.updateMany({
       data: { isDeleted: true },
-      where: { contextBaseId: id, isDeleted: false },
+      where: { contextBaseId: id, isDeleted: false, organizationId },
     });
   }
 
@@ -335,7 +324,6 @@ export class ContextsService {
           contextBaseId,
           data: {
             content: dto.content,
-            embedding,
             metadata: dto.metadata as Record<string, unknown>,
             relevanceWeight: dto.relevanceWeight || 1.0,
           } as never,
@@ -343,7 +331,14 @@ export class ContextsService {
         },
       });
 
-      await this.adjustContextBaseMetric(contextBaseId, 'entryCount', 1);
+      await this.writeEntryEmbedding(entry.id, organizationId, embedding);
+
+      await this.adjustContextBaseMetric(
+        contextBaseId,
+        organizationId,
+        'entryCount',
+        1,
+      );
 
       this.logger.debug('Entry added', { entryId: entry.id });
 
@@ -372,13 +367,17 @@ export class ContextsService {
       where: { id: entryId },
     });
 
-    await this.adjustContextBaseMetric(contextBaseId, 'entryCount', -1);
+    await this.adjustContextBaseMetric(
+      contextBaseId,
+      organizationId,
+      'entryCount',
+      -1,
+    );
   }
 
   async enhancePrompt(
     dto: EnhancePromptDto,
     organizationId: string,
-    onBilling?: (amount: number) => void,
   ): Promise<{
     originalPrompt: string;
     enhancedPrompt: string;
@@ -386,7 +385,7 @@ export class ContextsService {
     estimatedQualityBoost: number;
   }> {
     try {
-      this.logger.debug('Enhancing prompt with RAG', {
+      this.logger.debug('Retrieving prompt context', {
         contentType: dto.contentType,
         organizationId,
       });
@@ -409,6 +408,7 @@ export class ContextsService {
         contextBases,
         dto.prompt,
         dto.maxResults || 5,
+        organizationId,
       );
 
       if (relevantEntries.length === 0) {
@@ -420,20 +420,17 @@ export class ContextsService {
         };
       }
 
-      const contextString = this.buildContextString(relevantEntries);
-      const enhancedPrompt = await this.performRAGEnhancement(
-        dto.prompt,
-        dto.contentType,
-        contextString,
-        onBilling,
-      );
-
       for (const base of contextBases) {
         const baseId = String(
           (base as Record<string, unknown>).id ??
             (base as Record<string, unknown>).id,
         );
-        await this.adjustContextBaseMetric(baseId, 'usageCount', 1);
+        await this.adjustContextBaseMetric(
+          baseId,
+          organizationId,
+          'usageCount',
+          1,
+        );
       }
 
       const avgRelevance =
@@ -446,7 +443,7 @@ export class ContextsService {
           relevance: e.relevance,
           source: e.source,
         })),
-        enhancedPrompt,
+        enhancedPrompt: dto.prompt,
         estimatedQualityBoost: Math.round(avgRelevance * 50),
         originalPrompt: dto.prompt,
       };
@@ -470,7 +467,8 @@ export class ContextsService {
       await this.findOne(dto.contextBaseId, organizationId);
       const queryEmbedding = await this.generateEmbedding(dto.query);
       const entries = await this.findSimilarEntries(
-        dto.contextBaseId,
+        organizationId,
+        [dto.contextBaseId],
         queryEmbedding,
         dto.limit || 10,
         dto.minRelevance || 0.7,
@@ -581,7 +579,7 @@ export class ContextsService {
 
     const entries = this.normalizeContextEntries(
       await this.prisma.contextEntry.findMany({
-        where: { contextBaseId: id, isDeleted: false },
+        where: { contextBaseId: id, isDeleted: false, organizationId },
       }),
     );
 
@@ -606,8 +604,14 @@ export class ContextsService {
     };
   }
 
-  private generateEmbedding(text: string): Promise<number[]> {
-    return this.replicateService.generateEmbedding(text);
+  private async generateEmbedding(
+    text: string,
+    modelIdentifier?: string,
+  ): Promise<number[]> {
+    const model =
+      modelIdentifier ??
+      (await this.routerService.getDefaultModel(ModelCategory.EMBEDDING));
+    return this.replicateService.generateEmbedding(model, text);
   }
 
   private async getRelevantContextBases(
@@ -643,199 +647,131 @@ export class ContextsService {
     contextBases: ContextBase[],
     query: string,
     limit: number,
+    organizationId: string,
   ): Promise<Array<{ content: string; source: string; relevance: number }>> {
     const queryEmbedding = await this.generateEmbedding(query);
-    const allEntries: Array<{
-      content: string;
-      source: string;
-      relevance: number;
-    }> = [];
+    const sourceByContextBaseId = new Map(
+      contextBases.map((contextBase) => [
+        contextBase.id,
+        contextBase.label ?? 'context',
+      ]),
+    );
+    const entries = await this.findSimilarEntries(
+      organizationId,
+      contextBases.map((contextBase) => contextBase.id),
+      queryEmbedding,
+      limit,
+      0.7,
+    );
 
-    for (const contextBase of contextBases) {
-      const contextBaseId = String(
-        (contextBase as Record<string, unknown>).id ??
-          (contextBase as Record<string, unknown>).id,
-      );
-      const entries = await this.findSimilarEntries(
-        contextBaseId,
+    return entries.map((entry) => ({
+      content: entry.content,
+      relevance: entry.similarity,
+      source: sourceByContextBaseId.get(entry.contextBaseId) ?? 'context',
+    }));
+  }
+
+  private async findSimilarEntries(
+    organizationId: string,
+    contextBaseIds: string[],
+    queryEmbedding: number[],
+    limit: number,
+    minSimilarity: number,
+  ): Promise<ContextEntrySimilarityResult[]> {
+    await this.rebuildMissingEntryEmbeddings(organizationId, contextBaseIds);
+
+    const rows = await this.prisma.$queryRaw<ContextEntrySimilarityRow[]>(
+      buildContextSimilarityQuery(
+        organizationId,
+        contextBaseIds,
         queryEmbedding,
         limit,
-        0.7,
-      );
+        minSimilarity,
+      ),
+    );
 
-      for (const e of entries) {
-        allEntries.push({
-          content: e.content,
-          relevance: e.similarity,
-          source: contextBase.label ?? 'context',
+    return rows.flatMap((row) =>
+      row.content
+        ? [
+            {
+              content: row.content,
+              contextBaseId: row.contextBaseId,
+              ...(this.isPlainObject(row.metadata)
+                ? { metadata: row.metadata }
+                : {}),
+              similarity: Number(row.similarity),
+            },
+          ]
+        : [],
+    );
+  }
+
+  private async rebuildMissingEntryEmbeddings(
+    organizationId: string,
+    contextBaseIds: string[],
+  ): Promise<void> {
+    const rows = await this.prisma.$queryRaw<
+      ContextEntryPendingEmbeddingRow[]
+    >(Prisma.sql`
+      SELECT "id", "data"->>'content' AS "content"
+      FROM "context_entries"
+      WHERE "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+        AND "contextBaseId" IN (${Prisma.join(contextBaseIds)})
+        AND "embedding" IS NULL
+    `);
+
+    if (rows.length === 0) {
+      return;
+    }
+
+    const model = await this.routerService.getDefaultModel(
+      ModelCategory.EMBEDDING,
+    );
+    let rebuiltCount = 0;
+
+    for (const row of rows) {
+      if (!row.content) {
+        continue;
+      }
+
+      try {
+        const embedding = await this.generateEmbedding(row.content, model);
+        await this.writeEntryEmbedding(row.id, organizationId, embedding);
+        rebuiltCount += 1;
+      } catch (error: unknown) {
+        this.logger.error('Failed to lazily re-embed context entry', {
+          contextEntryId: row.id,
+          error,
+          organizationId,
         });
       }
     }
 
-    return allEntries.sort((a, b) => b.relevance - a.relevance).slice(0, limit);
-  }
-
-  private async findSimilarEntries(
-    contextBaseId: string,
-    queryEmbedding: number[],
-    limit: number,
-    minSimilarity: number,
-  ): Promise<
-    Array<{
-      content: string;
-      similarity: number;
-      metadata?: Record<string, unknown>;
-    }>
-  > {
-    const entries = this.normalizeContextEntries(
-      await this.prisma.contextEntry.findMany({
-        where: { contextBaseId, isDeleted: false },
-      }),
-    );
-
-    const preparedEntries: Array<{
-      content: string;
-      embedding: number[];
-      metadata?: Record<string, unknown>;
-    }> = [];
-
-    const mismatchedDimensions = new Set<number>();
-    let reembeddedCount = 0;
-
-    for (const entry of entries) {
-      const rawEmbedding = entry.embedding as unknown as number[];
-      if (!rawEmbedding || rawEmbedding.length === 0) continue;
-
-      let embedding = rawEmbedding;
-
-      if (embedding.length !== queryEmbedding.length) {
-        mismatchedDimensions.add(embedding.length);
-        try {
-          embedding = await this.rebuildEntryEmbedding(
-            entry.id,
-            entry.content ?? '',
-          );
-          reembeddedCount += 1;
-        } catch (error: unknown) {
-          this.logger.error('Failed to re-embed context entry', {
-            contextBaseId,
-            contextEntryId: entry.id,
-            error,
-          });
-        }
-
-        if (embedding.length !== queryEmbedding.length) continue;
-      }
-
-      preparedEntries.push({
-        content: entry.content ?? '',
-        embedding,
-        metadata: entry.metadata as Record<string, unknown> | undefined,
+    if (rebuiltCount > 0) {
+      this.logger.log('Lazily rebuilt context entry embeddings', {
+        organizationId,
+        rebuiltCount,
       });
     }
-
-    if (reembeddedCount > 0 || mismatchedDimensions.size > 0) {
-      this.logger.warn('Realigned context entry embeddings for similarity', {
-        contextBaseId,
-        mismatchedDimensions: Array.from(mismatchedDimensions),
-        reembeddedCount,
-        targetDimensions: queryEmbedding.length,
-      });
-    }
-
-    return preparedEntries
-      .map((entry) => ({
-        content: entry.content,
-        metadata: entry.metadata,
-        similarity: this.cosineSimilarity(queryEmbedding, entry.embedding),
-      }))
-      .filter((r) => r.similarity >= minSimilarity)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit);
   }
 
-  private async rebuildEntryEmbedding(
+  private async writeEntryEmbedding(
     entryId: string,
-    content: string,
-  ): Promise<number[]> {
-    const embedding = await this.generateEmbedding(content);
-    await this.updateContextEntryData(entryId, { embedding });
-    return embedding;
-  }
+    organizationId: string,
+    embedding: number[],
+  ): Promise<void> {
+    const serializedEmbedding = serializeContextEmbedding(embedding);
+    const updatedCount = await this.prisma.$executeRaw(Prisma.sql`
+      UPDATE "context_entries"
+      SET "embedding" = ${serializedEmbedding}::vector
+      WHERE "id" = ${entryId}
+        AND "organizationId" = ${organizationId}
+        AND "isDeleted" = false
+    `);
 
-  private cosineSimilarity(a: number[], b: number[]): number {
-    const length = Math.min(a.length, b.length);
-    if (length === 0) return 0;
-
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
+    if (updatedCount !== 1) {
+      throw new Error(`Context entry ${entryId} was not available for update`);
     }
-
-    if (normA === 0 || normB === 0) return 0;
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
-
-  private buildContextString(
-    entries: Array<{ content: string; source: string; relevance: number }>,
-  ): string {
-    return entries
-      .map(
-        (e, i) =>
-          `[${i + 1}] From ${e.source} (${Math.round(e.relevance * 100)}% relevant):\n${e.content}`,
-      )
-      .join('\n\n');
-  }
-
-  private async performRAGEnhancement(
-    prompt: string,
-    contentType: string,
-    context: string,
-    onBilling?: (amount: number) => void,
-  ): Promise<string> {
-    const enhancePrompt = `You are enhancing a ${contentType} generation prompt using RAG (Retrieval Augmented Generation).
-
-Original prompt: "${prompt}"
-
-Relevant context from the knowledge base:
-${context}
-
-Using this context, enhance the original prompt to:
-1. Incorporate brand voice and style from the context
-2. Use successful patterns from past content
-3. Align with audience preferences
-4. Maintain the original intent
-
-Return ONLY the enhanced prompt, no explanation.`;
-
-    const input = { max_completion_tokens: 2048, prompt: enhancePrompt };
-    const result = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
-      input,
-    );
-    onBilling?.(await this.calculateDefaultTextCharge(input, result));
-    return result || prompt;
-  }
-
-  private async calculateDefaultTextCharge(
-    input: Record<string, unknown>,
-    output: string,
-  ): Promise<number> {
-    const model = await this.modelsService.findOne({
-      key: baseModelKey(DEFAULT_TEXT_MODEL),
-    });
-
-    if (!model) {
-      throw new Error(
-        `Model pricing is not configured for ${DEFAULT_TEXT_MODEL}`,
-      );
-    }
-
-    return calculateEstimatedTextCredits(model, input, output);
   }
 }

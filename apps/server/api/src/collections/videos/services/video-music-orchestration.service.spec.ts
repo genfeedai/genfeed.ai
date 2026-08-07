@@ -69,7 +69,9 @@ describe('VideoMusicOrchestrationService', () => {
       waitForIngredientCompletion: vi.fn().mockResolvedValue(undefined),
     };
     routerService = {
-      getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.MUSICGEN),
+      getDefaultModel: vi
+        .fn()
+        .mockResolvedValue(MODEL_KEYS.REPLICATE_META_MUSICGEN),
     };
     promptsService = {
       create: vi.fn().mockResolvedValue({ id: 'test-object-id' }),
