@@ -223,6 +223,24 @@ describe('BaseService', () => {
       expect(result.page).toBe(1);
       expect(result.totalPages).toBe(1);
       expect(result.hasNextPage).toBe(false);
+
+      // The cached page carries the collection-scoped paginated tag (used by
+      // every per-write invalidation) plus the reserved global tag (used only
+      // by the deliberate system-wide flush helper) — never a bare
+      // collection-agnostic 'query:paginated' tag.
+      expect(cacheService.set).toHaveBeenCalledWith(
+        expect.any(String),
+        result,
+        expect.objectContaining({
+          tags: [
+            'collection:testModel',
+            'query:testModel',
+            'query:paginated:testModel',
+            'query:paginated:all',
+          ],
+          ttl: 300,
+        }),
+      );
     });
 
     it('returns all docs without pagination when pagination: false', async () => {
@@ -1210,6 +1228,67 @@ describe('BaseService', () => {
       await expect(service.remove(null as unknown as string)).rejects.toThrow(
         ValidationException,
       );
+    });
+  });
+
+  describe('cache tag scoping', () => {
+    it('scopes the paginated-query cache tag to the writing collection on create/patch/remove', async () => {
+      delegate.create.mockResolvedValue({ id: 'id_1' });
+      await service.create({ foo: 'bar' });
+      expect(cacheService.invalidateByTags).toHaveBeenLastCalledWith([
+        'testModel',
+        'collection:testModel',
+        'query:testModel',
+        'query:paginated:testModel',
+      ]);
+
+      delegate.update.mockResolvedValue({ id: 'id_1', foo: 'updated' });
+      await service.patch('id_1', { foo: 'updated' });
+      expect(cacheService.invalidateByTags).toHaveBeenLastCalledWith([
+        'testModel',
+        'collection:testModel',
+        'query:testModel',
+        'query:paginated:testModel',
+      ]);
+
+      delegate.update.mockResolvedValue({ id: 'id_1', isDeleted: true });
+      await service.remove('id_1');
+      expect(cacheService.invalidateByTags).toHaveBeenLastCalledWith([
+        'testModel',
+        'collection:testModel',
+        'query:testModel',
+        'query:paginated:testModel',
+      ]);
+    });
+
+    it('does not invalidate another collection’s paginated-query cache tag on write', async () => {
+      class OtherTestService extends BaseService<TestDocument> {}
+      const otherDelegate = {
+        create: vi.fn().mockResolvedValue({ id: 'id_2' }),
+      };
+      const otherPrisma = {
+        otherModel: otherDelegate,
+      } as unknown as PrismaService;
+      const otherService = new OtherTestService(
+        otherPrisma,
+        'otherModel',
+        logger,
+        undefined,
+        cacheService as never,
+      );
+
+      // A write to `testModel` must not carry `otherModel`'s tag.
+      delegate.create.mockResolvedValue({ id: 'id_1' });
+      await service.create({ foo: 'bar' });
+      let tags = cacheService.invalidateByTags.mock.calls.at(-1)?.[0];
+      expect(tags).toContain('query:paginated:testModel');
+      expect(tags).not.toContain('query:paginated:otherModel');
+
+      // A write to `otherModel` must not carry `testModel`'s tag.
+      await otherService.create({ foo: 'bar' });
+      tags = cacheService.invalidateByTags.mock.calls.at(-1)?.[0];
+      expect(tags).toContain('query:paginated:otherModel');
+      expect(tags).not.toContain('query:paginated:testModel');
     });
   });
 
