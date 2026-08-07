@@ -1,12 +1,19 @@
 import type { BaseApiClient } from './base-api-client';
+import type { AdsGatewayInsightsParams } from './client.types';
 
 /**
- * Meta Ads and Google Ads read methods.
+ * Meta Ads and Google Ads read methods, plus the platform-generic ads gateway.
  *
- * Paths target the API's `services/*-ads/*` controllers (not `integrations/*`).
- * The controllers live at `apps/server/api/src/services/integrations/{meta,google}-ads`
- * but are mounted under `@Controller('services/meta-ads')` /
- * `@Controller('services/google-ads')`, so the proxy path segment is `services`.
+ * Meta/Google paths target the API's `services/*-ads/*` controllers (not
+ * `integrations/*`). Those controllers live at
+ * `apps/server/api/src/services/integrations/{meta,google}-ads` but are mounted
+ * under `@Controller('services/meta-ads')` / `@Controller('services/google-ads')`,
+ * so the proxy path segment is `services`.
+ *
+ * Ad-set and ad level insights go through the gateway at `@Controller('ads')`
+ * → `/ads/:platform/*` instead, because that surface is backed by the shared
+ * `IAdsAdapter` contract and therefore works for every supported platform
+ * rather than only the two with dedicated controllers.
  */
 export class AdsClient {
   constructor(private readonly base: BaseApiClient) {}
@@ -253,5 +260,48 @@ export class AdsClient {
         ),
       this.base.failWith('Failed to get Google Ads search terms'),
     );
+  }
+
+  // ── Ads gateway (platform-generic, `/ads/:platform/*`) ──
+
+  getAdsAdSetInsights(params: AdsGatewayInsightsParams): Promise<unknown> {
+    return this.base.request(
+      'getting ad set insights',
+      async (http) =>
+        this.base.unwrapData(
+          await http.get(
+            `/ads/${params.platform}/adsets/${params.entityId}/insights`,
+            { params: this.toGatewayQuery(params) },
+          ),
+        ),
+      this.base.failWith('Failed to get ad set insights'),
+    );
+  }
+
+  getAdsAdInsights(params: AdsGatewayInsightsParams): Promise<unknown> {
+    return this.base.request(
+      'getting ad insights',
+      async (http) =>
+        this.base.unwrapData(
+          await http.get(
+            `/ads/${params.platform}/ads/${params.entityId}/insights`,
+            { params: this.toGatewayQuery(params) },
+          ),
+        ),
+      this.base.failWith('Failed to get ad insights'),
+    );
+  }
+
+  private toGatewayQuery(
+    params: AdsGatewayInsightsParams,
+  ): Record<string, string | undefined> {
+    return {
+      adAccountId: params.adAccountId,
+      credentialId: params.credentialId,
+      datePreset: params.datePreset,
+      loginCustomerId: params.loginCustomerId,
+      since: params.since,
+      until: params.until,
+    };
   }
 }

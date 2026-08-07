@@ -105,6 +105,11 @@ export interface CreateAdInput {
   };
 }
 
+export interface AdsInsightsParams {
+  datePreset?: string;
+  timeRange?: { since: string; until: string };
+}
+
 export interface AdsAdapterContext {
   organizationId: string;
   brandId?: string;
@@ -123,10 +128,27 @@ export interface IAdsAdapter {
   getCampaignInsights(
     ctx: AdsAdapterContext,
     campaignId: string,
-    params?: {
-      datePreset?: string;
-      timeRange?: { since: string; until: string };
-    },
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights>;
+  /**
+   * Insights for one ad set (Meta), ad group (Google), or ad group (TikTok).
+   * Every supported platform exposes this level natively — Meta via
+   * `{adSetId}/insights`, Google via a GAQL `FROM ad_group` report, TikTok via
+   * `report/integrated/get` at `AUCTION_ADGROUP` data level.
+   */
+  getAdSetInsights(
+    ctx: AdsAdapterContext,
+    adSetId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights>;
+  /**
+   * Insights for a single ad. Meta reports on `{adId}/insights`, Google on a
+   * GAQL `FROM ad_group_ad` report, TikTok at `AUCTION_AD` data level.
+   */
+  getAdInsights(
+    ctx: AdsAdapterContext,
+    adId: string,
+    params?: AdsInsightsParams,
   ): Promise<UnifiedInsights>;
   createCampaign(
     ctx: AdsAdapterContext,

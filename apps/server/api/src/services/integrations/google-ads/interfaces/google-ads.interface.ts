@@ -16,6 +16,19 @@ export interface GoogleAdsAdGroupInsights {
   averageCpc: number;
 }
 
+export interface GoogleAdsAdInsights {
+  adId: string;
+  adName: string;
+  adGroupName: string;
+  campaignName: string;
+  impressions: number;
+  clicks: number;
+  costMicros: number;
+  conversions: number;
+  ctr: number;
+  averageCpc: number;
+}
+
 export interface GoogleAdsAdGroup {
   id: string;
   name: string;

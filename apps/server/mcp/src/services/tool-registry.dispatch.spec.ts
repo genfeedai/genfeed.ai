@@ -36,6 +36,10 @@ describe('ToolRegistryService.classify', () => {
     ['get_video_status', 'legacy'],
     ['list_meta_campaigns', 'meta-ads'],
     ['get_google_ads_campaign_metrics', 'google-ads'],
+    // The platform-generic gateway tools own the `get_ads_` prefix; the
+    // per-platform prefixes are checked first so they cannot be captured here.
+    ['get_ads_adset_insights', 'ads-gateway'],
+    ['get_ads_ad_insights', 'ads-gateway'],
     ['get_account_info', 'account-management'],
     ['post_social_reply', 'social-messages'],
     // generate_content_batch is an AgentToolName, so it routes through the

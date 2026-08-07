@@ -1,6 +1,8 @@
+import type { TikTokInsightsData } from '@api/services/integrations/tiktok-ads/interfaces/tiktok-ads.interface';
 import { TikTokAdsService } from '@api/services/integrations/tiktok-ads/services/tiktok-ads.service';
 import type {
   AdsAdapterContext,
+  AdsInsightsParams,
   CreateAdInput,
   CreateAdSetInput,
   CreateCampaignInput,
@@ -59,10 +61,7 @@ export class TikTokAdsAdapter implements IAdsAdapter {
   async getCampaignInsights(
     ctx: AdsAdapterContext,
     campaignId: string,
-    params?: {
-      datePreset?: string;
-      timeRange?: { since: string; until: string };
-    },
+    params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
     const dateRange = this.resolveDateRange(params);
 
@@ -76,36 +75,47 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       },
     );
 
-    if (insights.length === 0) {
-      return this.emptyInsights();
-    }
+    return this.aggregateInsights(insights, dateRange);
+  }
 
-    // Aggregate all rows into a single insight
-    let totalSpend = 0;
-    let totalImpressions = 0;
-    let totalClicks = 0;
-    let totalConversions = 0;
+  async getAdSetInsights(
+    ctx: AdsAdapterContext,
+    adSetId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights> {
+    const dateRange = this.resolveDateRange(params);
 
-    for (const row of insights) {
-      totalSpend += row.spend;
-      totalImpressions += row.impressions;
-      totalClicks += row.clicks;
-      totalConversions += row.conversions || 0;
-    }
+    const insights = await this.tiktokAdsService.getAdGroupInsights(
+      ctx.accessToken,
+      ctx.adAccountId,
+      adSetId,
+      {
+        endDate: dateRange.endDate,
+        startDate: dateRange.startDate,
+      },
+    );
 
-    return {
-      clicks: totalClicks,
-      conversions: totalConversions || undefined,
-      cpa: totalConversions > 0 ? totalSpend / totalConversions : undefined,
-      cpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
-      cpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
-      ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
-      dateStart: dateRange.startDate,
-      dateStop: dateRange.endDate,
-      impressions: totalImpressions,
-      platform: this.platform,
-      spend: totalSpend,
-    };
+    return this.aggregateInsights(insights, dateRange);
+  }
+
+  async getAdInsights(
+    ctx: AdsAdapterContext,
+    adId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights> {
+    const dateRange = this.resolveDateRange(params);
+
+    const insights = await this.tiktokAdsService.getAdInsights(
+      ctx.accessToken,
+      ctx.adAccountId,
+      adId,
+      {
+        endDate: dateRange.endDate,
+        startDate: dateRange.startDate,
+      },
+    );
+
+    return this.aggregateInsights(insights, dateRange);
   }
 
   async createCampaign(
@@ -341,6 +351,46 @@ export class TikTokAdsAdapter implements IAdsAdapter {
       })
       .sort((a, b) => b.value - a.value)
       .slice(0, params?.limit || 10);
+  }
+
+  /**
+   * TikTok reports one row per `stat_time_day`, so every level is collapsed
+   * into a single window total. Ratio metrics are recomputed from the totals
+   * rather than averaged, which would weight days equally regardless of volume.
+   */
+  private aggregateInsights(
+    rows: TikTokInsightsData[],
+    dateRange: { startDate: string; endDate: string },
+  ): UnifiedInsights {
+    if (rows.length === 0) {
+      return this.emptyInsights();
+    }
+
+    let totalSpend = 0;
+    let totalImpressions = 0;
+    let totalClicks = 0;
+    let totalConversions = 0;
+
+    for (const row of rows) {
+      totalSpend += row.spend;
+      totalImpressions += row.impressions;
+      totalClicks += row.clicks;
+      totalConversions += row.conversions || 0;
+    }
+
+    return {
+      clicks: totalClicks,
+      conversions: totalConversions || undefined,
+      cpa: totalConversions > 0 ? totalSpend / totalConversions : undefined,
+      cpc: totalClicks > 0 ? totalSpend / totalClicks : 0,
+      cpm: totalImpressions > 0 ? (totalSpend / totalImpressions) * 1000 : 0,
+      ctr: totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0,
+      dateStart: dateRange.startDate,
+      dateStop: dateRange.endDate,
+      impressions: totalImpressions,
+      platform: this.platform,
+      spend: totalSpend,
+    };
   }
 
   private resolveDateRange(params?: {

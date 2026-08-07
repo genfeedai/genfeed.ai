@@ -3,6 +3,7 @@ import type {
   GoogleAdsAd,
   GoogleAdsAdGroup,
   GoogleAdsAdGroupInsights,
+  GoogleAdsAdInsights,
   GoogleAdsCampaign,
   GoogleAdsCampaignMetrics,
   GoogleAdsCreateAdGroupInput,
@@ -720,6 +721,53 @@ export class GoogleAdsService {
       return results.map((r) => ({
         adGroupId: r.adGroup.id,
         adGroupName: r.adGroup.name,
+        averageCpc: r.metrics.averageCpc,
+        campaignName: r.campaign.name,
+        clicks: Number(r.metrics.clicks),
+        conversions: r.metrics.conversions,
+        costMicros: Number(r.metrics.costMicros),
+        ctr: r.metrics.ctr,
+        impressions: Number(r.metrics.impressions),
+      }));
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  async getAdInsights(
+    accessToken: string,
+    customerId: string,
+    adId: string,
+    params?: GoogleAdsMetricsParams,
+    loginCustomerId?: string,
+  ): Promise<GoogleAdsAdInsights[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      let query = `SELECT ad_group_ad.ad.id, ad_group_ad.ad.name, ad_group.name, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions, metrics.ctr, metrics.average_cpc FROM ad_group_ad WHERE ad_group_ad.ad.id = ${adId}`;
+      if (params?.dateRange) {
+        query += ` AND segments.date BETWEEN '${params.dateRange.startDate}' AND '${params.dateRange.endDate}'`;
+      }
+
+      const results = await this.executeGaql<{
+        adGroup: { name: string };
+        adGroupAd: { ad: { id: string; name: string } };
+        campaign: { name: string };
+        metrics: {
+          impressions: string;
+          clicks: string;
+          costMicros: string;
+          conversions: number;
+          ctr: number;
+          averageCpc: number;
+        };
+      }>(accessToken, customerId, query, loginCustomerId);
+
+      return results.map((r) => ({
+        adGroupName: r.adGroup.name,
+        adId: r.adGroupAd.ad.id,
+        adName: r.adGroupAd.ad.name,
         averageCpc: r.metrics.averageCpc,
         campaignName: r.campaign.name,
         clicks: Number(r.metrics.clicks),

@@ -76,6 +76,8 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'generate_voice', surfaces: ['agent', 'mcp'] },
   { name: 'get_account_info', surfaces: ['mcp'] },
   { name: 'get_ad_research_detail', surfaces: ['agent', 'mcp'] },
+  { name: 'get_ads_ad_insights', surfaces: ['mcp'] },
+  { name: 'get_ads_adset_insights', surfaces: ['mcp'] },
   { name: 'get_agent_run', surfaces: ['mcp'] },
   { name: 'get_agent_run_content', surfaces: ['mcp'] },
   { name: 'get_analytics', surfaces: ['agent', 'mcp'] },

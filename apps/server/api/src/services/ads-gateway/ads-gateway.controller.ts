@@ -6,6 +6,7 @@ import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
 import type {
   AdsAdapterContext,
+  AdsInsightsParams,
   AdsPlatform,
   CreateAdInput,
   CreateAdSetInput,
@@ -180,14 +181,85 @@ export class AdsGatewayController {
       organizationId: reqCtx.organizationId,
     });
 
-    const params: {
-      datePreset?: string;
-      timeRange?: { since: string; until: string };
-    } = {};
-    if (datePreset) params.datePreset = datePreset;
-    if (since && until) params.timeRange = { since, until };
+    return adapter.getCampaignInsights(
+      ctx,
+      campaignId,
+      this.buildInsightsParams({ datePreset, since, until }),
+    );
+  }
 
-    return adapter.getCampaignInsights(ctx, campaignId, params);
+  @Get(':platform/adsets/:adSetId/insights')
+  async getAdSetInsights(
+    @CurrentUser() user: User,
+    @Param('platform') platform: string,
+    @Param('adSetId') adSetId: string,
+    @Query('credentialId') credentialId: string,
+    @Query('adAccountId') adAccountId: string,
+    @Query('datePreset') datePreset?: string,
+    @Query('since') since?: string,
+    @Query('until') until?: string,
+    @Query('loginCustomerId') loginCustomerId?: string,
+  ) {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.logger.log(`${caller} started for ${platform}`);
+
+    const reqCtx = extractRequestContext(user);
+    const accessToken = await this.resolveAccessToken(
+      credentialId,
+      reqCtx.organizationId,
+    );
+    const validPlatform = this.validatePlatform(platform);
+    const adapter = this.adsGatewayService.getAdapter(validPlatform);
+    const ctx = this.buildContext({
+      accessToken,
+      adAccountId,
+      credentialId,
+      loginCustomerId,
+      organizationId: reqCtx.organizationId,
+    });
+
+    return adapter.getAdSetInsights(
+      ctx,
+      adSetId,
+      this.buildInsightsParams({ datePreset, since, until }),
+    );
+  }
+
+  @Get(':platform/ads/:adId/insights')
+  async getAdInsights(
+    @CurrentUser() user: User,
+    @Param('platform') platform: string,
+    @Param('adId') adId: string,
+    @Query('credentialId') credentialId: string,
+    @Query('adAccountId') adAccountId: string,
+    @Query('datePreset') datePreset?: string,
+    @Query('since') since?: string,
+    @Query('until') until?: string,
+    @Query('loginCustomerId') loginCustomerId?: string,
+  ) {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.logger.log(`${caller} started for ${platform}`);
+
+    const reqCtx = extractRequestContext(user);
+    const accessToken = await this.resolveAccessToken(
+      credentialId,
+      reqCtx.organizationId,
+    );
+    const validPlatform = this.validatePlatform(platform);
+    const adapter = this.adsGatewayService.getAdapter(validPlatform);
+    const ctx = this.buildContext({
+      accessToken,
+      adAccountId,
+      credentialId,
+      loginCustomerId,
+      organizationId: reqCtx.organizationId,
+    });
+
+    return adapter.getAdInsights(
+      ctx,
+      adId,
+      this.buildInsightsParams({ datePreset, since, until }),
+    );
   }
 
   @Get(':platform/top-performers')
@@ -439,6 +511,19 @@ export class AdsGatewayController {
     }
 
     return EncryptionUtil.decrypt(credential.accessToken);
+  }
+
+  private buildInsightsParams(query: {
+    datePreset?: string;
+    since?: string;
+    until?: string;
+  }): AdsInsightsParams {
+    const params: AdsInsightsParams = {};
+    if (query.datePreset) params.datePreset = query.datePreset;
+    if (query.since && query.until)
+      params.timeRange = { since: query.since, until: query.until };
+
+    return params;
   }
 
   private validatePlatform(platform: string): AdsPlatform {
