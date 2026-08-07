@@ -138,4 +138,15 @@ describe('SectionTopbar', () => {
     const tabs = screen.getByTestId('section-topbar-tabs');
     expect(actions.parentElement).toContainElement(tabs);
   });
+
+  it('does not reserve an empty border strip when only an sr-only title remains', () => {
+    navigationState.hasCanonicalBreadcrumb = true;
+
+    render(<SectionTopbar title="Library" />);
+
+    const topbar = screen.getByTestId('section-topbar');
+    expect(topbar.tagName).toBe('H1');
+    expect(topbar).toHaveClass('sr-only');
+    expect(topbar.className).not.toMatch(/border-b/);
+  });
 });

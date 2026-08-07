@@ -37,6 +37,15 @@ export default function SectionTopbar({
   const hasActions = Boolean(actions);
   const hasTabs = Boolean(tabs);
 
+  // Chrome-only title with no tools: do not paint an empty border-b strip.
+  if (!hasVisibleTitle && !hasTabs && !hasActions) {
+    return (
+      <h1 className="sr-only" data-testid="section-topbar">
+        {title}
+      </h1>
+    );
+  }
+
   if (!hasVisibleTitle) {
     return (
       <div
@@ -44,31 +53,29 @@ export default function SectionTopbar({
         className={cn('w-full border-b border-border', className)}
       >
         <h1 className="sr-only">{title}</h1>
-        {(hasTabs || hasActions) && (
-          <div
-            className={cn(
-              'flex w-full items-center gap-3 px-4 py-1.5 sm:px-6',
-              !hasTabs && hasActions && 'justify-end',
-            )}
-          >
-            {hasTabs ? (
-              <div
-                data-testid="section-topbar-tabs"
-                className="min-w-0 flex-1 overflow-x-auto scrollbar-thin"
-              >
-                {tabs}
-              </div>
-            ) : null}
-            {hasActions ? (
-              <div
-                data-testid="section-topbar-actions"
-                className="flex shrink-0 flex-wrap items-center justify-end gap-2"
-              >
-                {actions}
-              </div>
-            ) : null}
-          </div>
-        )}
+        <div
+          className={cn(
+            'flex w-full items-center gap-3 px-4 py-1.5 sm:px-6',
+            !hasTabs && hasActions && 'justify-end',
+          )}
+        >
+          {hasTabs ? (
+            <div
+              data-testid="section-topbar-tabs"
+              className="min-w-0 flex-1 overflow-x-auto scrollbar-thin"
+            >
+              {tabs}
+            </div>
+          ) : null}
+          {hasActions ? (
+            <div
+              data-testid="section-topbar-actions"
+              className="flex shrink-0 flex-wrap items-center justify-end gap-2"
+            >
+              {actions}
+            </div>
+          ) : null}
+        </div>
       </div>
     );
   }

@@ -113,15 +113,23 @@ export default function Container({
     />
   ) : null;
 
+  // Title suppressed by shell breadcrumb / sr-only and no module tools: only
+  // body padding — do not keep a full title-row vertical budget for empty air.
+  const classicPaddingClassName =
+    isTitleChromeSuppressed && !usesTitleActionToolbar
+      ? fullWidth
+        ? 'mx-0 max-w-none pt-3 pb-5 sm:pt-4 sm:pb-6'
+        : 'mx-auto max-w-[1280px] px-5 pt-3 pb-5 sm:px-6 sm:pt-4 sm:pb-6'
+      : fullWidth
+        ? 'mx-0 max-w-none py-5 sm:py-6'
+        : 'mx-auto max-w-[1280px] px-5 py-5 sm:px-6 sm:py-6';
+
   return (
     <div
       data-testid="container"
       className={cn(
         'w-full',
-        !usesModuleLocalChrome &&
-          (fullWidth
-            ? 'mx-0 max-w-none py-5 sm:py-6'
-            : 'mx-auto max-w-[1280px] px-5 py-5 sm:px-6 sm:py-6'),
+        !usesModuleLocalChrome && classicPaddingClassName,
         usesModuleLocalChrome &&
           (fullWidth ? 'mx-0 max-w-none' : 'mx-auto max-w-[1280px]'),
         className,

@@ -199,16 +199,15 @@ export default function LibraryOverviewPage() {
       description="Browse reusable assets across your workspace."
       icon={Folder}
     >
-      <div data-testid="library-landing-title" className="sr-only">
-        Library
-      </div>
-
       <div data-testid="library-landing" className="space-y-8">
-        <div className="opacity-80">
-          <Suspense fallback={null}>
-            <LibraryOverviewCreditNotice />
-          </Suspense>
-        </div>
+        {/*
+          Credit notice returns null when balance is fine. Do not wrap it in a
+          permanent shell — space-y still margins the next sibling after an
+          empty div, which looked like a dead sub-topbar gap.
+        */}
+        <Suspense fallback={null}>
+          <LibraryOverviewCreditNotice />
+        </Suspense>
 
         <LibrarySection
           title="Visual Assets"

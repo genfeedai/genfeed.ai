@@ -10,10 +10,11 @@ describe('LibraryOverviewPage', () => {
   it('renders plain library sections with full-tile category links', () => {
     render(<LibraryOverviewPage />);
 
-    expect(screen.getByTestId('library-landing-title')).toHaveTextContent(
-      'Library',
-    );
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Library' }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('library-credit-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('library-landing')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { level: 3, name: 'Visual Assets' }),
