@@ -69,7 +69,6 @@ export class AgentRouteRewriteService {
     try {
       const organization = await this.organizationsService.findOne({
         id: ctx.organizationId,
-        isDeleted: false,
       });
       const orgSlug = this.readRecordString(organization, 'slug');
 
@@ -99,13 +98,11 @@ export class AgentRouteRewriteService {
     if (ctx.brandId) {
       return this.brandsService.findOne({
         id: ctx.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
     }
 
     return this.brandsService.findOne({
-      isDeleted: false,
       isSelected: true,
       organizationId: ctx.organizationId,
       userId: ctx.userId,

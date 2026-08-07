@@ -35,6 +35,28 @@ vi.mock('@genfeedai/agent/hooks/use-credential-mentions', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/agent/hooks/use-content-mentions', () => ({
+  useContentMentions: () => ({
+    isLoading: false,
+    mentions: [
+      {
+        contentTitle: 'Launch post',
+        contentType: 'post',
+        id: 'post-1',
+        thumbnailUrl: 'https://cdn.example/launch.jpg',
+      },
+    ],
+  }),
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-brand-mentions', () => ({
+  useBrandMentions: () => ({ isLoading: false, mentions: [] }),
+}));
+
+vi.mock('@genfeedai/agent/hooks/use-team-mentions', () => ({
+  useTeamMentions: () => ({ isLoading: false, mentions: [] }),
+}));
+
 vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
   useMicrophoneInput: () => ({
     isListening: false,
@@ -350,7 +372,7 @@ describe('AgentChatInput', () => {
     expect(screen.getByText('^post:post-1')).toBeInTheDocument();
   });
 
-  it('renders one tray item and count when an editor mention overlaps a workspace selection', () => {
+  it('migrates legacy content mentions into visual reference tiles (deduped with workspace selection)', async () => {
     const draftScopeKey = 'acme:thread-overlap:1';
     writeConversationComposerDocument(
       draftScopeKey,
@@ -396,11 +418,51 @@ describe('AgentChatInput', () => {
       </ConversationComposerShellProvider>,
     );
 
-    const tray = screen.getByRole('group', {
+    const tray = await screen.findByRole('group', {
       name: 'Composer attachments and references',
     });
-    // Overlapping mention + workspace selection collapses to one chip.
-    expect(within(tray).getAllByText('^Launch post')).toHaveLength(1);
+    // Legacy ^ tokens become visual tiles; same id as workspace selection → one entry.
+    expect(
+      within(tray).getByLabelText('Referenced content: Launch post'),
+    ).toBeInTheDocument();
+    expect(within(tray).queryByText('^Launch post')).not.toBeInTheDocument();
+  });
+
+  it('opens the library picker from the reference toolbar control', async () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Reference library content'));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Reference library content' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Reference Launch post' }),
+    ).toBeInTheDocument();
+  });
+
+  it('attaches a library pick as a removable visual tile (no caret token)', async () => {
+    render(<AgentChatInput onSend={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText('Reference library content'));
+    fireEvent.click(
+      await screen.findByRole('option', { name: 'Reference Launch post' }),
+    );
+
+    const tray = await screen.findByRole('group', {
+      name: 'Composer attachments and references',
+    });
+    expect(
+      within(tray).getByLabelText('Referenced content: Launch post'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('^Launch post')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove reference Launch post' }),
+    );
+    expect(
+      screen.queryByLabelText('Referenced content: Launch post'),
+    ).not.toBeInTheDocument();
   });
 
   it('sends the draft when Enter is pressed without a modifier', async () => {

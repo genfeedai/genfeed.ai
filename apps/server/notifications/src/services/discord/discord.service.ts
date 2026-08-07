@@ -635,8 +635,8 @@ export class DiscordService {
     try {
       const managerUrl = this.configService.get('GENFEEDAI_APP_URL');
       const billingUrl = managerUrl
-        ? `${managerUrl}/settings/billing`
-        : 'https://app.genfeed.ai/settings/billing';
+        ? `${managerUrl}/settings/subscription`
+        : 'https://app.genfeed.ai/settings/subscription';
 
       const isCritical = payload.balance === 0;
 

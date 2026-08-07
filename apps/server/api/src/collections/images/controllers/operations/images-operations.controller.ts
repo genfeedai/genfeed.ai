@@ -140,7 +140,6 @@ export class ImagesOperationsController {
     const sourceImage = await this.imagesService.findOne(
       {
         id: id,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       },
       [PopulatePatterns.metadataFull],
@@ -184,7 +183,6 @@ export class ImagesOperationsController {
     // Find or create "splitted" tag
     let splittedTag = await this.tagsService.findOne({
       category: TagCategory.INGREDIENT,
-      isDeleted: false,
       key: TagKey.SPLITTED,
       organizationId: publicMetadata.organization,
     });

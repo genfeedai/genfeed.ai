@@ -258,7 +258,6 @@ export class ImagesController {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.IMAGE,
         ),
-        isDeleted: false,
         OR: [
           { organizationId: publicMetadata.organization },
           { isDefault: true, organizationId: null },
@@ -294,7 +293,6 @@ export class ImagesController {
     const vote = await this.votesService.findOne({
       entityId: imageId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 

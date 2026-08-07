@@ -111,7 +111,6 @@ export class BatchInterpolationController {
 
     // Validate model exists.
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: dto.modelKey,
     });
 
@@ -143,7 +142,6 @@ export class BatchInterpolationController {
     // Get brand for organization context
     const brand = await this.brandsService.findOne({
       id: publicMetadata.brand,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

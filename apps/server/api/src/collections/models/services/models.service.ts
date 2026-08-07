@@ -379,7 +379,9 @@ export class ModelsService extends BaseService<
    * global registry. Require the key to be **present**, not truthy:
    * `organizationId: null` is the global model registry this service is built to
    * maintain (see `touchDiscoveredModels`), so a truthiness check would reject
-   * legitimate registry writes.
+   * legitimate registry writes. Presence alone is not enough either:
+   * `normalizeWhere` drops `undefined`, so `{ organizationId: undefined }`
+   * passes an `in` check and still widens the write.
    */
   override async patchAll(
     filter: Parameters<BaseService<ModelDocument>['patchAll']>[0],
@@ -389,7 +391,14 @@ export class ModelsService extends BaseService<
       throw new ValidationException('Filter criteria are required');
     }
 
-    if (!('organizationId' in filter)) {
+    const organizationId = filter.organizationId;
+    const hasValidScope =
+      Object.hasOwn(filter, 'organizationId') &&
+      (organizationId === null ||
+        (typeof organizationId === 'string' &&
+          organizationId.trim().length > 0));
+
+    if (!hasValidScope) {
       throw new ValidationException(
         'organizationId is required for bulk model updates',
       );
@@ -447,7 +456,7 @@ export class ModelsService extends BaseService<
     updateDto: Partial<UpdateModelDto> = {},
     reviewedBy?: string,
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -473,7 +482,7 @@ export class ModelsService extends BaseService<
     modelId: string,
     params: { reason?: string; reviewedBy?: string } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -495,7 +504,7 @@ export class ModelsService extends BaseService<
       succeededBy?: string;
     } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }

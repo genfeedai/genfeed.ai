@@ -266,7 +266,6 @@ export class AgentOrchestratorUiActionService {
 
     const thread = await this.agentThreadsService.findOne({
       id: threadId,
-      isDeleted: false,
       organizationId: organizationId,
       userId: { in: [userId] },
     });

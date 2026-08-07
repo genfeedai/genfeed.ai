@@ -138,7 +138,6 @@ export class AdminAnnouncementsService {
     // Find the org's Twitter credential
     const credential = await this.credentialsService.findOne({
       isConnected: true,
-      isDeleted: false,
       organizationId: organizationId,
       platform: CredentialPlatform.TWITTER,
     });

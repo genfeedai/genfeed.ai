@@ -194,7 +194,6 @@ export class ActivitiesService extends BaseService<
         path: ['value'],
         string_contains: value,
       },
-      isDeleted: false,
       userId,
     });
   }

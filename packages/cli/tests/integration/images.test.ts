@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { CreateImageRequest } from '../../src/api/images';
 import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';
 import { createTestClient, hasCredentials, testConfig } from './setup';
@@ -21,9 +22,11 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
   const orgId = testConfig?.organizationId ?? '';
 
   it('POST /images request shape is valid (mocked — no credits burned)', async () => {
-    // Validate the request shape that createImage would send
-    const request = {
-      brand: 'test-brand-id',
+    // Validate the request shape that createImage would send. Typed as
+    // CreateImageRequest so the key name is checked at compile time:
+    // CreateImageDto declares `brandId`, and the API strips unknown keys.
+    const request: CreateImageRequest = {
+      brandId: 'test-brand-id',
       height: 1024,
       model: 'imagen-4',
       text: 'A sunset over mountains',
@@ -32,9 +35,10 @@ describe.skipIf(!hasCredentials)('integration/images', () => {
 
     // Validate required fields exist
     expect(request.text).toBeTruthy();
-    expect(request.brand).toBeTruthy();
+    expect(request.brandId).toBeTruthy();
     expect(typeof request.text).toBe('string');
-    expect(typeof request.brand).toBe('string');
+    expect(typeof request.brandId).toBe('string');
+    expect(request).not.toHaveProperty('brand');
 
     // Validate optional fields types
     expect(typeof request.width).toBe('number');

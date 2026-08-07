@@ -76,7 +76,6 @@ export class BotActivitiesController {
     const activity = await this.botActivitiesService.findOne({
       ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
     return serializeSingle(req, BotActivitySerializer, activity);

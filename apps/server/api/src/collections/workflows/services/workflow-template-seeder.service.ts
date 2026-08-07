@@ -29,6 +29,7 @@ import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflow
 import { type WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowLifecycle, WorkflowStatus } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -202,11 +203,11 @@ export class WorkflowTemplateSeederService {
           metadata: {
             ...metadata,
             [SYSTEM_WORKFLOW_DUPLICATE_METADATA_KEY]: reconciledMetadata,
-          },
-        } as never,
+          } as Prisma.InputJsonValue,
+        },
         where: scopedWhere(organizationId, {
           id: duplicate.id,
-          metadata: { equals: duplicate.metadata } as never,
+          metadata: { equals: duplicate.metadata as Prisma.InputJsonValue },
         }),
       });
 
@@ -270,7 +271,7 @@ export class WorkflowTemplateSeederService {
 
       if (metadataPatch) {
         await this.prisma.workflow.update({
-          data: { metadata: metadataPatch } as never,
+          data: { metadata: metadataPatch as Prisma.InputJsonValue },
           where: { id: preCheck.id },
         });
       }
@@ -297,7 +298,7 @@ export class WorkflowTemplateSeederService {
 
             if (metadataPatch) {
               await tx.workflow.update({
-                data: { metadata: metadataPatch } as never,
+                data: { metadata: metadataPatch as Prisma.InputJsonValue },
                 where: { id: existing.id },
               });
             }
@@ -305,7 +306,7 @@ export class WorkflowTemplateSeederService {
           }
 
           await tx.workflow.create({
-            data: input.createData as never,
+            data: input.createData as Prisma.WorkflowCreateInput,
           });
         },
         { isolationLevel: 'Serializable' },
@@ -340,9 +341,9 @@ export class WorkflowTemplateSeederService {
 
     return {
       description: template.description,
-      edges: (template.edges ?? []) as never,
+      edges: (template.edges ?? []) as Prisma.InputJsonValue,
       executionCount: 0,
-      inputVariables: (template.inputVariables ?? []) as never,
+      inputVariables: (template.inputVariables ?? []) as Prisma.InputJsonValue,
       isDeleted: false,
       isScheduleEnabled: true,
       label: template.name,
@@ -352,12 +353,12 @@ export class WorkflowTemplateSeederService {
         sourceIssue,
         sourceTemplateId: template.id,
       }),
-      nodes: (template.nodes ?? []) as never,
+      nodes: (template.nodes ?? []) as Prisma.InputJsonValue,
       organizationId,
       progress: 0,
       schedule: template.schedule,
       status: WorkflowStatus.ACTIVE,
-      steps: (template.steps ?? []) as never,
+      steps: (template.steps ?? []) as Prisma.InputJsonValue,
       timezone: 'UTC',
       userId,
     };
@@ -432,9 +433,11 @@ export class WorkflowTemplateSeederService {
       if (!preCheck.isScheduleEnabled || metadataPatch) {
         await this.prisma.workflow.update({
           data: {
-            ...(metadataPatch ? { metadata: metadataPatch } : {}),
+            ...(metadataPatch
+              ? { metadata: metadataPatch as Prisma.InputJsonValue }
+              : {}),
             ...(!preCheck.isScheduleEnabled ? { isScheduleEnabled: true } : {}),
-          } as never,
+          },
           where: { id: preCheck.id },
         });
       }
@@ -461,11 +464,13 @@ export class WorkflowTemplateSeederService {
             if (!existing.isScheduleEnabled || metadataPatch) {
               await tx.workflow.update({
                 data: {
-                  ...(metadataPatch ? { metadata: metadataPatch } : {}),
+                  ...(metadataPatch
+                    ? { metadata: metadataPatch as Prisma.InputJsonValue }
+                    : {}),
                   ...(!existing.isScheduleEnabled
                     ? { isScheduleEnabled: true }
                     : {}),
-                } as never,
+                },
                 where: { id: existing.id },
               });
             }
@@ -473,7 +478,7 @@ export class WorkflowTemplateSeederService {
           }
 
           await tx.workflow.create({
-            data: createData as never,
+            data: createData as Prisma.WorkflowCreateInput,
           });
         },
         { isolationLevel: 'Serializable' },
@@ -501,7 +506,7 @@ export class WorkflowTemplateSeederService {
     organizationId: string,
   ): Record<string, unknown> {
     return {
-      edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as never,
+      edges: DAILY_TRENDS_DIGEST_TEMPLATE.edges as Prisma.InputJsonValue,
       executionCount: 0,
       isDeleted: false,
       isScheduleEnabled: true,
@@ -512,7 +517,7 @@ export class WorkflowTemplateSeederService {
         sourceTemplateId: DAILY_TRENDS_DIGEST_TEMPLATE_ID,
         version: DAILY_TRENDS_DIGEST_TEMPLATE.version,
       }),
-      nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as never,
+      nodes: DAILY_TRENDS_DIGEST_TEMPLATE.nodes as Prisma.InputJsonValue,
       organizationId,
       progress: 0,
       schedule: DAILY_TRENDS_DIGEST_TEMPLATE.schedule ?? '0 7 * * *',
@@ -837,12 +842,12 @@ export class WorkflowTemplateSeederService {
         async (tx) => {
           const concurrent = await tx.workflow.findFirst({
             select: { id: true },
-            where: where as never,
+            where: where as Prisma.WorkflowWhereInput,
           });
 
           if (concurrent) {
             await tx.workflow.update({
-              data: data as never,
+              data: data as Prisma.WorkflowUpdateInput,
               where: { id: concurrent.id },
             });
             return;
@@ -852,13 +857,13 @@ export class WorkflowTemplateSeederService {
             data: {
               ...data,
               executionCount: 0,
-              inputVariables: [] as never,
+              inputVariables: [] as Prisma.InputJsonValue,
               isDeleted: false,
               organizationId,
               progress: 0,
-              steps: [] as never,
+              steps: [] as Prisma.InputJsonValue,
               userId,
-            } as never,
+            } as Prisma.WorkflowCreateInput,
           });
         },
         { isolationLevel: 'Serializable' },
@@ -879,7 +884,7 @@ export class WorkflowTemplateSeederService {
     // both the update and create paths, including a concurrent writer's row).
     const synced = await this.prisma.workflow.findFirst({
       select: WORKFLOW_SCHEDULER_SYNC_SELECT,
-      where: where as never,
+      where: where as Prisma.WorkflowWhereInput,
     });
 
     if (synced) {
@@ -935,7 +940,7 @@ export class WorkflowTemplateSeederService {
     return {
       brandId: schedule.brandId,
       description: `Workflow-backed content schedule ${schedule.id}`,
-      edges: [] as never,
+      edges: [] as Prisma.InputJsonValue,
       isScheduleEnabled: schedule.isEnabled === true,
       label: `Content Schedule: ${schedule.name || schedule.id}`,
       metadata: {
@@ -945,7 +950,7 @@ export class WorkflowTemplateSeederService {
         sourceTemplateId: CONTENT_SCHEDULE_WORKFLOW_TEMPLATE_ID,
         sourceType: 'content-schedule',
       },
-      nodes: this.buildContentScheduleNodes(schedule) as never,
+      nodes: this.buildContentScheduleNodes(schedule) as Prisma.InputJsonValue,
       schedule: schedule.cronExpression ?? '* * * * *',
       status: WorkflowStatus.ACTIVE,
       timezone: schedule.timezone ?? 'UTC',

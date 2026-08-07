@@ -42,7 +42,6 @@ export class DiscordController {
     const { organization, user: userId } = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: organization,
     });
 

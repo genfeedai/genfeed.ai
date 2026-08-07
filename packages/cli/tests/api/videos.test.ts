@@ -37,19 +37,42 @@ describe('api/videos', () => {
       });
 
       const result = await createVideo({
-        brand: 'brand-1',
+        brandId: 'brand-1',
         text: 'A flying bird',
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/videos', {
         body: {
-          brand: 'brand-1',
+          brandId: 'brand-1',
           text: 'A flying bird',
         },
         method: 'POST',
       });
       expect(result.id).toBe('vid-1');
       expect(result.status).toBe('processing');
+    });
+
+    // CreateVideoDto declares `brandId`, and the API's ValidationPipe runs with
+    // `whitelist: true` — a legacy `brand` key would be stripped without error
+    // and the generation would silently fall back to the org's default brand.
+    it('sends brandId and never the legacy brand key', async () => {
+      mockFetch.mockResolvedValue({
+        data: {
+          attributes: { model: 'google-veo-3', status: 'processing' },
+          id: 'vid-3',
+          type: 'video',
+        },
+      });
+
+      await createVideo({
+        brandId: 'brand-1',
+        text: 'A flying bird',
+      });
+
+      const body = mockFetch.mock.calls[0][1].body as Record<string, unknown>;
+
+      expect(body).toHaveProperty('brandId', 'brand-1');
+      expect(body).not.toHaveProperty('brand');
     });
 
     it('passes optional duration and resolution', async () => {
@@ -67,7 +90,7 @@ describe('api/videos', () => {
       });
 
       const result = await createVideo({
-        brand: 'brand-1',
+        brandId: 'brand-1',
         duration: 10,
         resolution: '1080p',
         text: 'Ocean waves',

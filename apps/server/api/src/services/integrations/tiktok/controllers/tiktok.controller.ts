@@ -77,7 +77,6 @@ export class TiktokController {
 
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

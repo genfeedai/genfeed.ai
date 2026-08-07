@@ -69,7 +69,6 @@ export class BrandsRelationshipsController {
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
       ],
-      isDeleted: false,
     });
 
     if (!brand) {

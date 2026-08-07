@@ -464,7 +464,9 @@ enum BatchStatus {
   PENDING
   PROCESSING
   COMPLETED
+  PARTIAL
   FAILED
+  CANCELLED
 }
 
 enum PlatformRole {

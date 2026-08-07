@@ -132,7 +132,6 @@ export class ReplyBotQueueService implements OnModuleInit {
       }
 
       const credentials = await this.credentialsService.find({
-        isDeleted: false,
         organizationId: { in: organizationIds },
         platform: CredentialPlatform.TWITTER,
       });

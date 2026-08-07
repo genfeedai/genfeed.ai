@@ -187,6 +187,11 @@ export default function AdsResearchPageClient({
                   id: 'google',
                   label: 'Google + YouTube',
                 },
+                {
+                  href: APP_ROUTES.DISCOVER.ADS_TIKTOK,
+                  id: 'tiktok',
+                  label: 'TikTok',
+                },
               ],
               variant: 'default',
             }
@@ -211,8 +216,8 @@ export default function AdsResearchPageClient({
       {isSetupEmpty ? (
         <CardEmpty
           icon={Megaphone}
-          label="Connect Meta or Google Ads"
-          description="Meta uses your Facebook connection; Google Ads is its own OAuth. Public winners can appear without a connection, but your campaigns only show after you connect and pick an ad account in Filters."
+          label="Connect Meta, Google/YouTube, or TikTok Ads"
+          description="Meta uses Facebook OAuth; Google/YouTube Ads and TikTok Ads each need their ad credentials. Public winners can appear without a connection; your campaigns show after you connect and pick an ad account in Filters."
           actions={
             <Button
               asChild

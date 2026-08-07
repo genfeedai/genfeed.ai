@@ -113,7 +113,6 @@ export class AgentOnboardingToolHandler {
     const voice = (params.voice as string) || 'conversational';
 
     const existing = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
       slug: normalizedHandle,
     });
@@ -167,19 +166,16 @@ export class AgentOnboardingToolHandler {
     const [brand, credential, firstImage, firstVideo, publishedPost, settings] =
       await Promise.all([
         this.brandsService.findOne({
-          isDeleted: false,
           organizationId,
         }),
         this.credentialsService
           ? this.credentialsService.findOne({
               isConnected: true,
-              isDeleted: false,
               organizationId,
             })
           : null,
         this.imagesService
           ? this.imagesService.findOne({
-              isDeleted: false,
               organizationId,
             })
           : null,
@@ -190,7 +186,6 @@ export class AgentOnboardingToolHandler {
         ),
         this.postsService.findOne(
           {
-            isDeleted: false,
             organizationId,
             status: PostStatus.PUBLIC,
           },
@@ -551,7 +546,6 @@ export class AgentOnboardingToolHandler {
       if (this.usersService) {
         const dbUser = await this.usersService.findOne({
           id: ctx.userId,
-          isDeleted: false,
         });
 
         if (dbUser?.id) {
@@ -642,7 +636,6 @@ export class AgentOnboardingToolHandler {
     if (this.usersService) {
       const dbUser = await this.usersService.findOne({
         id: ctx.userId,
-        isDeleted: false,
       });
 
       if (dbUser) {
@@ -808,7 +801,7 @@ export class AgentOnboardingToolHandler {
    */
   presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
     const billingHref = hasOrganizationBilling()
-      ? '/settings/billing'
+      ? '/settings/subscription'
       : '/settings/api-keys';
     const billingLabel = hasOrganizationBilling()
       ? 'View all plans'

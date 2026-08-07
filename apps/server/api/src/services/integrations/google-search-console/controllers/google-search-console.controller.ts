@@ -70,7 +70,6 @@ export class GoogleSearchConsoleController {
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -253,7 +252,6 @@ export class GoogleSearchConsoleController {
     const credential = await this.credentialsService.findOne({
       ...(brandId ? { brandId: brandId } : {}),
       isConnected: true,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
       platform: CredentialPlatform.GOOGLE_SEARCH_CONSOLE,
       userId: publicMetadata.user,

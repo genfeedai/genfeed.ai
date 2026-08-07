@@ -3,7 +3,6 @@
 import { FAQ_ITEMS_CORE } from '@data/faq.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack, VStack } from '@ui/layout/stack';
 import {
   Accordion,
   AccordionContent,
@@ -22,7 +21,7 @@ export default function HomeFAQ(): React.ReactElement {
   return (
     <section id="faq" className="gen-section-spacing-lg border-b border-edge/5">
       <div className="container mx-auto max-w-3xl px-6">
-        <VStack className="mb-8 gap-4">
+        <div className="flex flex-col mb-8 gap-4">
           <Text className={EYEBROW_CLASS}>FAQ</Text>
           <Heading
             as="h2"
@@ -30,7 +29,7 @@ export default function HomeFAQ(): React.ReactElement {
           >
             Common questions, answered.
           </Heading>
-        </VStack>
+        </div>
 
         <Accordion type="single" collapsible className="space-y-3">
           {FAQ_ITEMS_CORE.map((item) => (
@@ -49,7 +48,7 @@ export default function HomeFAQ(): React.ReactElement {
           ))}
         </Accordion>
 
-        <HStack className="mt-8">
+        <div className="flex flex-row items-center gap-4 mt-8">
           <ButtonTracked
             asChild
             size={ButtonSize.PUBLIC}
@@ -61,7 +60,7 @@ export default function HomeFAQ(): React.ReactElement {
               <ArrowRight className="size-3" />
             </Link>
           </ButtonTracked>
-        </HStack>
+        </div>
       </div>
     </section>
   );

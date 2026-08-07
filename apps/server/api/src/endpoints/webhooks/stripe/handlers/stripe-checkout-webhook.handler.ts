@@ -249,7 +249,6 @@ export class StripeCheckoutWebhookHandler {
 
         const dbUser = await this.usersService.findOne({
           id: subscription.userId,
-          isDeleted: false,
         });
 
         if (dbUser) {
@@ -547,7 +546,6 @@ export class StripeCheckoutWebhookHandler {
 
     let dbUser = await this.usersService.findOne({
       email,
-      isDeleted: false,
     });
 
     let isNewUser = false;
@@ -573,7 +571,6 @@ export class StripeCheckoutWebhookHandler {
         }
         dbUser = await this.usersService.findOne({
           email,
-          isDeleted: false,
         });
         if (!dbUser) {
           throw error;
@@ -604,7 +601,6 @@ export class StripeCheckoutWebhookHandler {
     dbUser: UserDocument,
   ): Promise<ManagedCheckoutResources> {
     let organization = await this.organizationsService.findOne({
-      isDeleted: false,
       userId: String(dbUser.id),
     });
 
@@ -730,7 +726,6 @@ export class StripeCheckoutWebhookHandler {
       // Find user
       const dbUser = await this.usersService.findOne({
         id: userId,
-        isDeleted: false,
       });
 
       if (!dbUser) {
@@ -744,7 +739,6 @@ export class StripeCheckoutWebhookHandler {
       // Find user's creator org (every user gets a personal org on signup)
       const creatorOrg = await this.organizationsService.findOne({
         category: OrganizationCategory.CREATOR,
-        isDeleted: false,
         members: userId,
       });
 
@@ -756,7 +750,6 @@ export class StripeCheckoutWebhookHandler {
 
         // Fall back to first org the user belongs to
         const fallbackOrg = await this.organizationsService.findOne({
-          isDeleted: false,
           members: userId,
         });
 

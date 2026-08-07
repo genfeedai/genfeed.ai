@@ -74,7 +74,6 @@ export class AccountPublishingContextService {
       id: params.credentialId,
       brandId: params.brandId,
       isConnected: true,
-      isDeleted: false,
       organizationId: params.organizationId,
     });
 

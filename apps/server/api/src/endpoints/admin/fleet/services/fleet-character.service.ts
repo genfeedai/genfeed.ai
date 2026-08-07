@@ -28,7 +28,6 @@ export class AdminFleetCharacterService {
   ): Promise<PersonaDocument | null> {
     return this.personasService.findOne({
       isFleetCharacter: true,
-      isDeleted: false,
       organizationId: organizationId,
       slug,
     });

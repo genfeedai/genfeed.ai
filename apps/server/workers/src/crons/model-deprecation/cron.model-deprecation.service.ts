@@ -75,7 +75,6 @@ export class CronModelDeprecationService {
       // Find all active models that have a successor defined
       const candidates = await this.modelsService.find({
         isActive: true,
-        isDeleted: false,
         succeededBy: { not: null },
       });
 
@@ -149,7 +148,6 @@ export class CronModelDeprecationService {
     // 1. Check that the successor model exists and is active
     const successor = await this.modelsService.findOne({
       isActive: true,
-      isDeleted: false,
       key: model.succeededBy,
     });
 
@@ -225,7 +223,6 @@ export class CronModelDeprecationService {
       // Get all active models in the same category to find their keys
       const categoryModels = await this.modelsService.find({
         category,
-        isDeleted: false,
       });
 
       if (categoryModels.length === 0) {

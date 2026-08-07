@@ -47,7 +47,6 @@ export class StripeAttributionTrackerService {
 
       const user = await this.usersService.findOne({
         id: userId,
-        isDeleted: false,
       });
 
       const metadata = extractAttributionMetadata(

@@ -157,13 +157,11 @@ export class UsersController {
     const organizationId = publicMetadata.organization;
 
     let dbSubscription = await this.subscriptionsService.findOne({
-      isDeleted: false,
       userId: userId,
     });
 
     if (!dbSubscription && organizationId) {
       dbSubscription = await this.subscriptionsService.findOne({
-        isDeleted: false,
         organizationId: organizationId,
       });
     }
@@ -181,7 +179,6 @@ export class UsersController {
 
     let data = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
 
     if (!data) {
@@ -268,7 +265,6 @@ export class UsersController {
       ? await this.usersService.patch(publicMetadata.user, userPatchDto)
       : await this.usersService.findOne({
           id: publicMetadata.user,
-          isDeleted: false,
         });
 
     return data
@@ -316,7 +312,6 @@ export class UsersController {
 
     const dbUser = await this.usersService.findOne({
       id: canonicalUserId,
-      isDeleted: false,
     });
 
     if (!dbUser?.id) {
@@ -336,7 +331,6 @@ export class UsersController {
 
     const completed = await this.usersService.findOne({
       id: dbUserId,
-      isDeleted: false,
     });
 
     return completed
@@ -357,7 +351,6 @@ export class UsersController {
 
     const data = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
 
     if (!data) {
@@ -381,7 +374,6 @@ export class UsersController {
 
     const existingUser = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
 
     if (!existingUser) {
@@ -429,7 +421,6 @@ export class UsersController {
   async findOne(@Req() request: Request, @Param('userId') userId: string) {
     const data = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
     return data
       ? serializeSingle(request, UserSerializer, data)

@@ -1,3 +1,4 @@
+import type { IBrandAgentVoice } from '@genfeedai/interfaces';
 import type { ExecutableNode } from '../../types';
 import {
   BaseExecutor,
@@ -10,6 +11,7 @@ export interface BrandContextResolverOutput {
   label: string;
   slug: string;
   voice: string | null;
+  voiceConfig: IBrandAgentVoice | null;
   colors: {
     primary: string;
     secondary: string;
@@ -84,6 +86,7 @@ export class BrandContextExecutor extends BaseExecutor {
         models: brandContext.models,
         slug: brandContext.slug,
         voice: brandContext.voice,
+        voiceConfig: brandContext.voiceConfig,
       },
       metadata: {
         brandId: brandContext.brandId,

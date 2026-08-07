@@ -136,7 +136,6 @@ export class PromptsOperationsController {
           { userId: publicMetadata.user },
           { organizationId: publicMetadata.organization },
         ],
-        isDeleted: false,
       });
       selectedBrand = brand ?? undefined;
     }
@@ -175,7 +174,6 @@ export class PromptsOperationsController {
       ).creditsConfig?.amount ?? 0;
     const prompt = await this.promptsService.findOne({
       id: promptId,
-      isDeleted: false,
     });
 
     if (!prompt || prompt.userId !== publicMetadata.user) {
@@ -186,7 +184,6 @@ export class PromptsOperationsController {
     const selectedBrand = promptBrandId
       ? ((await this.brandsService.findOne({
           id: promptBrandId,
-          isDeleted: false,
         })) ?? undefined)
       : undefined;
 
@@ -396,7 +393,6 @@ export class PromptsOperationsController {
     const publicMetadata = getPublicMetadata(user);
     const prompt = await this.promptsService.findOne({
       id: promptId,
-      isDeleted: false,
     });
 
     if (!prompt || prompt.userId !== publicMetadata.user) {
@@ -407,7 +403,6 @@ export class PromptsOperationsController {
     const selectedBrand = promptBrandId
       ? ((await this.brandsService.findOne({
           id: promptBrandId,
-          isDeleted: false,
         })) ?? undefined)
       : undefined;
 
@@ -508,7 +503,6 @@ export class PromptsOperationsController {
 
       const updatedPrompt = await this.promptsService.findOne({
         id: promptId,
-        isDeleted: false,
       });
       return serializeSingle(request, PromptSerializer, updatedPrompt);
     } catch (error: unknown) {

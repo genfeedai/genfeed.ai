@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import ora from 'ora';
 import { getBrand, listBrands } from '@/api/brands';
 import { requireAuth } from '@/api/client';
-import { getActiveBrand, getOrganizationId, setActiveBrand } from '@/config/store';
+import { getActiveBrand, getAppUrl, getOrganizationId, setActiveBrand } from '@/config/store';
 import {
   formatHeader,
   formatLabel,
@@ -51,7 +51,7 @@ export const brandsCommand = new Command('brands')
 
       if (brands.length === 0) {
         print(formatWarning('No brands found.'));
-        print(chalk.dim('Create one at https://app.genfeed.ai'));
+        print(chalk.dim(`Create one at ${await getAppUrl()}`));
         return;
       }
 
@@ -96,7 +96,7 @@ brandsCommand
       spinner.stop();
 
       if (brands.length === 0) {
-        throw new GenfeedError('No brands found', 'Create a brand at https://app.genfeed.ai');
+        throw new GenfeedError('No brands found', `Create a brand at ${await getAppUrl()}`);
       }
 
       const activeBrandId = await getActiveBrand();

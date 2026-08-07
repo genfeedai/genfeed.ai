@@ -1,9 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseSubscription = vi.fn();
+const mockGetTopbarBalances = vi.fn();
 
 vi.mock(
   '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
@@ -11,6 +12,31 @@ vi.mock(
     useSubscription: () => mockUseSubscription(),
   }),
 );
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ organizationId: 'org-1' }),
+}));
+
+vi.mock('@genfeedai/config/license', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/config/license')>();
+  return {
+    ...actual,
+    shouldShowCreditsNav: () => true,
+  };
+});
+
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    getTopbarBalances: mockGetTopbarBalances,
+  }),
+}));
+
+vi.mock('@genfeedai/services/billing/credits.service', () => ({
+  CreditsService: {
+    getInstance: vi.fn(),
+  },
+}));
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -45,6 +71,8 @@ describe('LowCreditsBanner', () => {
       },
     });
     mockUseSubscription.mockReset();
+    mockGetTopbarBalances.mockReset();
+    mockGetTopbarBalances.mockResolvedValue({ segments: [] });
   });
 
   afterAll(() => {
@@ -120,6 +148,23 @@ describe('LowCreditsBanner', () => {
     );
   });
 
+  it('shows critical state from the topbar GEN wallet when breakdown is missing', async () => {
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: null,
+    });
+    mockGetTopbarBalances.mockResolvedValue({
+      segments: [{ balance: 0, provider: 'genfeed' }],
+    });
+
+    render(<LowCreditsBanner />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        "You've run out of credits",
+      );
+    });
+  });
+
   it('keeps the billing CTA in EE mode', () => {
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
     mockUseSubscription.mockReturnValue({
@@ -130,6 +175,6 @@ describe('LowCreditsBanner', () => {
 
     expect(
       screen.getByRole('link', { name: 'Top up credits' }),
-    ).toHaveAttribute('href', '/test-org/~/settings/billing');
+    ).toHaveAttribute('href', '/test-org/~/settings/credits');
   });
 });

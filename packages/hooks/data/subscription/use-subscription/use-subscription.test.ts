@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseAuthIdentity = vi.fn();
 const mockUseBrand = vi.fn();
+const mockShouldShowCreditsNav = vi.fn(() => true);
 
 vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
   useAuthIdentity: () => mockUseAuthIdentity(),
@@ -10,6 +11,10 @@ vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mockUseBrand(),
+}));
+
+vi.mock('@genfeedai/config/license', () => ({
+  shouldShowCreditsNav: () => mockShouldShowCreditsNav(),
 }));
 
 // Mock useAuthedService
@@ -87,6 +92,7 @@ import { createQueryWrapper } from '@hooks/tests/query-wrapper';
 describe('useSubscription', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockShouldShowCreditsNav.mockReturnValue(true);
     mockUseAuthIdentity.mockReturnValue({ userId: 'user-123' });
     mockUseBrand.mockReturnValue({ organizationId: 'org-123' });
     mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
@@ -137,7 +143,30 @@ describe('useSubscription', () => {
       expect(result.current.creditsBreakdown).toBeDefined();
     });
 
-    it('does not fetch subscription credit breakdown without an active subscription', async () => {
+    it('still fetches credit breakdown without an active subscription when the credits wallet is shown', async () => {
+      mockOrganizationsService.findOrganizationSubscription.mockResolvedValueOnce(
+        null,
+      );
+
+      const { result } = renderHook(() => useSubscription(), {
+        wrapper: createQueryWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.subscription).toBeNull();
+      expect(result.current.creditsBreakdown).toEqual({
+        available: 100,
+        total: 200,
+        used: 100,
+      });
+      expect(mockSubscriptionsService.getCreditsBreakdown).toHaveBeenCalled();
+    });
+
+    it('does not fetch credit breakdown when neither subscription nor credits nav applies', async () => {
+      mockShouldShowCreditsNav.mockReturnValue(false);
       mockOrganizationsService.findOrganizationSubscription.mockResolvedValueOnce(
         null,
       );

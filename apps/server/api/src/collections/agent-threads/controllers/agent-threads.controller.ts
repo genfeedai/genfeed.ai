@@ -148,7 +148,6 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const message = await this.agentMessagesService.findOne({
         id: messageId,
-        isDeleted: false,
         organizationId: organizationId,
         threadId,
       });
@@ -170,7 +169,6 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       return serializeSingle(req, AgentThreadSerializer, thread);
@@ -376,10 +374,7 @@ export class AgentThreadsController {
       );
     }
 
-    const dbUser = await this.usersService.findOne(
-      { id: userId, isDeleted: false },
-      [],
-    );
+    const dbUser = await this.usersService.findOne({ id: userId }, []);
     const fallbackUserId = dbUser?.id;
     if (!fallbackUserId) {
       throw new UnauthorizedException('User account not found');

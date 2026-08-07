@@ -331,7 +331,6 @@ export class AgentPublishToolHandler {
 
     return (await this.ingredientsService.findOne({
       id: contentId,
-      isDeleted: false,
       organizationId: organizationId,
     })) as unknown as Record<string, unknown> | null;
   }
@@ -670,7 +669,6 @@ export class AgentPublishToolHandler {
     try {
       const post = await this.postsService.findOne({
         id: postId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 

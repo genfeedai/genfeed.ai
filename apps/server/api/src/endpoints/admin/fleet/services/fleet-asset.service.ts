@@ -90,7 +90,6 @@ export class AdminFleetAssetService {
     // Verify ingredient belongs to organization before updating (multi-tenant guard)
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

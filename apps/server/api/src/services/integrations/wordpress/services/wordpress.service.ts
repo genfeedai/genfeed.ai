@@ -107,7 +107,6 @@ export class WordpressService {
       // Verify the credential exists and is valid by making a test API call.
       const credential = await this.credentialsService.findOne({
         brandId: brandId,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.WORDPRESS,
       });

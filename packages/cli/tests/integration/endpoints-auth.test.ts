@@ -48,11 +48,6 @@ describe.skipIf(!hasCredentials)('integration/endpoints-auth', () => {
     expect(result).toBe('ok');
   }, 15_000);
 
-  it('GET /personas accepts API key', async () => {
-    const { result } = await checkEndpoint(client, '/personas');
-    expect(result).toBe('ok');
-  }, 15_000);
-
   // Document the server-side auth bug — these should return 'ok' after the
   // cloud-repo fix removes redundant @UseGuards(BetterAuthGuard, RolesGuard)
 

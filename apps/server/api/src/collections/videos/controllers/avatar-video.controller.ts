@@ -71,7 +71,6 @@ export class AvatarVideoController {
 
       const ingredient = await this.videosService.findOne({
         id: result.ingredientId,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
 

@@ -56,7 +56,6 @@ export class AdminFleetPublishingService {
     // Verify ingredient exists and is approved
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -121,7 +120,6 @@ export class AdminFleetPublishingService {
             // Facebook requires pageId and pageAccessToken
             const fbCredential = await this.credentialsService.findOne({
               brandId: EntityIdUtil.toValidId(brandId)!,
-              isDeleted: false,
               organizationId: EntityIdUtil.toValidId(organizationId)!,
               platform: CredentialPlatform.FACEBOOK,
             });

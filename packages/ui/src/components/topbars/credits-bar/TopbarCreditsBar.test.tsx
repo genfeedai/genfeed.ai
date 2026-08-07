@@ -107,10 +107,9 @@ describe('TopbarCreditsBar', () => {
       expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
     });
 
-    // SaaS (NEXT_PUBLIC_GENFEED_CLOUD) links to Billing, not bare Credits.
     expect(screen.getByTestId('credits-link')).toHaveAttribute(
       'href',
-      '/genfeed/settings/billing',
+      '/genfeed/settings/credits',
     );
     expect(mockLoggerError).not.toHaveBeenCalled();
     expect(mockLoggerWarn).not.toHaveBeenCalled();
@@ -151,7 +150,7 @@ describe('TopbarCreditsBar', () => {
     });
   });
 
-  it('links to billing when EE billing is enabled', async () => {
+  it('links to credits for top-up when EE billing is enabled', async () => {
     process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
 
     render(<TopbarCreditsBar />);
@@ -162,7 +161,7 @@ describe('TopbarCreditsBar', () => {
 
     expect(screen.getByTestId('credits-link')).toHaveAttribute(
       'href',
-      '/genfeed/settings/billing',
+      '/genfeed/settings/credits',
     );
   });
 

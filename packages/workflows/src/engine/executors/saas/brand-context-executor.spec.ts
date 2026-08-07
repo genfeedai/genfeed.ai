@@ -55,7 +55,13 @@ describe('BrandContextExecutor', () => {
       handle: '@t',
       label: 'T',
       models: null,
+      slug: 't',
       voice: 'casual',
+      voiceConfig: {
+        audience: ['founders'],
+        style: 'casual',
+        tone: 'direct',
+      },
     });
     const exec = createBrandContextExecutor(resolver);
     const result = await exec.execute({
@@ -69,7 +75,13 @@ describe('BrandContextExecutor', () => {
         type: 'brandContext',
       },
     });
-    expect((result.data as any).voice).toBe('casual');
+    const data = result.data as Record<string, unknown>;
+    expect(data.voice).toBe('casual');
+    expect(data.voiceConfig).toEqual({
+      audience: ['founders'],
+      style: 'casual',
+      tone: 'direct',
+    });
   });
   it('throws when not found', async () => {
     const resolver = vi.fn().mockResolvedValue(null);

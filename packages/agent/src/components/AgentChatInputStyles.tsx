@@ -36,10 +36,6 @@ export function AgentChatInputStyles(): ReactElement {
           background-color: hsl(var(--primary) / 0.15);
           color: hsl(var(--primary));
         }
-        .mention-content {
-          background-color: hsl(150 60% 45% / 0.15);
-          color: hsl(150 60% 45%);
-        }
       `}</style>
   );
 }

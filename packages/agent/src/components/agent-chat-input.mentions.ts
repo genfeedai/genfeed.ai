@@ -1,12 +1,9 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
 import type { AgentChatReferenceItem } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
+import { createSuggestionPopupRenderer } from '@genfeedai/agent/utils/suggestion-popup.util';
 import type { JSONContent } from '@tiptap/core';
 import { Extension } from '@tiptap/core';
-import type { MentionNodeAttrs } from '@tiptap/extension-mention';
-import { ReactRenderer } from '@tiptap/react';
-import type { SuggestionProps } from '@tiptap/suggestion';
 import type { ComponentType } from 'react';
-import tippy, { type Instance } from 'tippy.js';
 
 export function extractMentions(json: JSONContent): ExtractedMention[] {
   const result: ExtractedMention[] = [];
@@ -63,18 +60,35 @@ export function extractMentions(json: JSONContent): ExtractedMention[] {
 export function mapMentionsToReferences(
   mentions: readonly ExtractedMention[],
 ): AgentChatReferenceItem[] {
-  return mentions.map((mention) => ({
-    id: mention.id,
-    label:
-      mention.type === 'brand'
-        ? `#${mention.brandName}`
-        : mention.type === 'team'
-          ? `@${mention.displayName}`
-          : mention.type === 'credential'
-            ? `!${mention.handle}`
-            : `^${mention.contentTitle}`,
-    type: mention.type,
-  }));
+  // Content library picks are no longer TipTap tokens — only brand/team/
+  // credential mentions still live in the document.
+  const references: AgentChatReferenceItem[] = [];
+  for (const mention of mentions) {
+    if (mention.type === 'brand') {
+      references.push({
+        id: mention.id,
+        label: `#${mention.brandName}`,
+        type: 'brand',
+      });
+      continue;
+    }
+    if (mention.type === 'team') {
+      references.push({
+        id: mention.id,
+        label: `@${mention.displayName}`,
+        type: 'team',
+      });
+      continue;
+    }
+    if (mention.type === 'credential') {
+      references.push({
+        id: mention.id,
+        label: `!${mention.handle}`,
+        type: 'credential',
+      });
+    }
+  }
+  return references;
 }
 
 /** True when mention chip lists are equivalent (order-sensitive). */
@@ -131,14 +145,6 @@ export const SendOnEnter = Extension.create<SendOnEnterOptions>({
   name: 'sendOnEnter',
 });
 
-type MentionSuggestionRenderProps = SuggestionProps<unknown, MentionNodeAttrs>;
-
-export function getMentionClientRect(
-  props: MentionSuggestionRenderProps,
-): () => DOMRect {
-  return () => props.clientRect?.() ?? new DOMRect();
-}
-
 export function buildMentionSuggestion<T>({
   component,
   getItems,
@@ -148,59 +154,6 @@ export function buildMentionSuggestion<T>({
 }) {
   return {
     items: ({ query }: { query: string }) => getItems(query),
-    render: () => {
-      let reactRenderer: ReactRenderer;
-      let popup: Instance[];
-
-      return {
-        onExit: () => {
-          if (popup[0]) {
-            popup[0].destroy();
-          }
-          reactRenderer.destroy();
-        },
-        onKeyDown: (props: { event: KeyboardEvent }) => {
-          if (props.event.key === 'Escape') {
-            if (popup[0]) {
-              popup[0].hide();
-            }
-            return true;
-          }
-          return (
-            (
-              reactRenderer.ref as {
-                onKeyDown: (p: { event: KeyboardEvent }) => boolean;
-              }
-            )?.onKeyDown(props) ?? false
-          );
-        },
-        onStart: (props: MentionSuggestionRenderProps) => {
-          reactRenderer = new ReactRenderer(
-            component as ComponentType<Record<string, unknown>>,
-            {
-              editor: props.editor,
-              props,
-            },
-          );
-          popup = tippy('body', {
-            appendTo: () => document.body,
-            content: reactRenderer.element,
-            getReferenceClientRect: getMentionClientRect(props),
-            interactive: true,
-            placement: 'bottom-start',
-            showOnCreate: true,
-            trigger: 'manual',
-          });
-        },
-        onUpdate: (props: MentionSuggestionRenderProps) => {
-          reactRenderer.updateProps(props);
-          if (popup[0]) {
-            popup[0].setProps({
-              getReferenceClientRect: getMentionClientRect(props),
-            });
-          }
-        },
-      };
-    },
+    render: () => createSuggestionPopupRenderer(component),
   };
 }

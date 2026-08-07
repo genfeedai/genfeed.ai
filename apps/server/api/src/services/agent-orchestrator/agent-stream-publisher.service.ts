@@ -66,7 +66,6 @@ export class AgentStreamPublisherService {
 
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
-        isDeleted: false,
       });
 
       const organizationId = thread?.organizationId;

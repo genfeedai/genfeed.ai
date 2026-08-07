@@ -78,7 +78,6 @@ export class OnboardingPreviewService {
         const brand = await this.brandsService.findOne(
           {
             id: dto.brandId,
-            isDeleted: false,
             organizationId: organizationId,
           },
           'none',

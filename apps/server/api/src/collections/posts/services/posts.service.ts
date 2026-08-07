@@ -1061,7 +1061,6 @@ export class PostsService extends BaseService<
     const childrenUpdateResult = await this.prisma.post.updateMany({
       data: { isDeleted: true },
       where: scopedWhere(post.organizationId, {
-        isDeleted: false,
         parentId: id,
       }),
     });
