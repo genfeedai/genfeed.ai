@@ -342,7 +342,46 @@ describe('deriveTimeline', () => {
     expect(workGroup).toBeDefined();
     if (workGroup?.kind === 'work-group') {
       expect(workGroup.presentation).toBe('archived');
-      expect(workGroup.totalDurationMs).toBe(1000);
+      // Wall clock: started 00:00:02 → answer 00:00:05 = 3000ms (includes
+      // model synthesis). Also at least tool duration 1800ms.
+      expect(workGroup.totalDurationMs).toBe(3000);
+    }
+  });
+
+  it('does not under-report multi-step runs as a single short tool durationMs', () => {
+    const messages = [
+      msg('user', 'u1', '2026-01-01T00:00:00Z'),
+      msg('assistant', 'a1', '2026-01-01T00:00:45Z'),
+    ];
+    const events = [
+      workEvent({
+        createdAt: '2026-01-01T00:00:01Z',
+        durationMs: 483,
+        id: 'w-fast',
+        runId: 'r1',
+        startedAt: '2026-01-01T00:00:01Z',
+        status: AgentWorkEventStatus.COMPLETED,
+        toolName: 'search',
+      }),
+      workEvent({
+        createdAt: '2026-01-01T00:00:20Z',
+        durationMs: 5000,
+        id: 'w-slow',
+        runId: 'r1',
+        startedAt: '2026-01-01T00:00:15Z',
+        status: AgentWorkEventStatus.COMPLETED,
+        toolName: 'generate',
+      }),
+    ];
+
+    const result = deriveTimeline(messages, events, idleStream, null);
+    const workGroup = result.find((entry) => entry.kind === 'work-group');
+
+    expect(workGroup).toBeDefined();
+    if (workGroup?.kind === 'work-group') {
+      // First tool start 00:00:01 → answer 00:00:45 = 44000ms, not 483ms.
+      expect(workGroup.totalDurationMs).toBe(44000);
+      expect(workGroup.totalDurationMs).toBeGreaterThan(483);
     }
   });
 
