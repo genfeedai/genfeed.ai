@@ -60,6 +60,9 @@ function createHandler(options?: {
   };
   const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
   const imagesService = { findOne: vi.fn().mockResolvedValue(null) };
+  const contentGeneratorService = {
+    generateText: vi.fn().mockResolvedValue({ text: 'Generated tweet' }),
+  };
   const internalApi = {
     callInternalApi: vi.fn(),
     callInternalFindOne: vi.fn().mockResolvedValue(null),
@@ -70,7 +73,7 @@ function createHandler(options?: {
     brandsService as never,
     postsService as never,
     creditsUtilsService as never,
-    {} as never,
+    contentGeneratorService as never,
     internalApi as never,
     credentialsService as never,
     imagesService as never,
@@ -82,6 +85,7 @@ function createHandler(options?: {
   return {
     creditsUtilsService,
     handler,
+    internalApi,
     organizationSettingsService,
     postsService,
   };
@@ -325,6 +329,35 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     expect(imageStep?.description).toContain(
       'Add an image provider API key (fal, Replicate, or Leonardo)',
     );
+  });
+
+  it('does not call the image API when only a text provider is configured', async () => {
+    vi.stubEnv('GENFEED_CLOUD', undefined);
+    const { handler, internalApi } = createHandler({
+      byokKeys: {
+        openai: {
+          apiKey: 'encrypted-openai-key',
+          isEnabled: true,
+          provider: 'openai',
+        },
+      },
+      isByokEnabled: true,
+    });
+
+    const result = await handler.generateOnboardingContent(
+      { brandId: 'brand-1', brandName: 'Test brand' },
+      CONTEXT,
+    );
+    const checklist = getChecklist(result);
+    const imageStep = checklist.checklist?.find(
+      (step) => step.id === 'generate_first_image',
+    );
+
+    expect(internalApi.callInternalApi).not.toHaveBeenCalled();
+    expect(imageStep).toMatchObject({
+      ctaHref: '/settings/api-keys',
+      isCompleted: false,
+    });
   });
 
   it('keeps first image pending and points to API keys when no provider is configured', async () => {

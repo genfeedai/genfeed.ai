@@ -782,12 +782,22 @@ export class AgentOnboardingToolHandler {
             userId: ctx.userId,
           }).pipe(Effect.catchAll(() => Effect.void)),
         );
-        imageResults.push(
-          await this.generateOnboardingImage(imagePrompts[i] ?? '', ctx).then(
-            (value) => ({ status: 'fulfilled' as const, value }),
-            (reason: unknown) => ({ reason, status: 'rejected' as const }),
-          ),
+        const imageResult = await this.generateOnboardingImage(
+          imagePrompts[i] ?? '',
+          ctx,
+        ).then(
+          (value) => ({ status: 'fulfilled' as const, value }),
+          (reason: unknown) => ({ reason, status: 'rejected' as const }),
         );
+        if (
+          imageResult.status === 'fulfilled' &&
+          imageResult.value.nextActions?.some(
+            (action) => action.type === 'onboarding_checklist_card',
+          )
+        ) {
+          return imageResult.value;
+        }
+        imageResults.push(imageResult);
       }
 
       const images: string[] = imageResults
@@ -898,6 +908,18 @@ export class AgentOnboardingToolHandler {
     prompt: string,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const settings = this.organizationSettingsService
+      ? await this.organizationSettingsService.findOne({
+          organizationId: ctx.organizationId,
+        })
+      : null;
+    if (
+      isSelfHostedDeployment() &&
+      !this.resolveProviderReadiness(settings).isImageReady
+    ) {
+      return this.checkOnboardingStatus(ctx);
+    }
+
     const dimensions = this.aspectRatioToDimensions('1:1');
     const body: Record<string, unknown> = {
       autoSelectModel: true,
