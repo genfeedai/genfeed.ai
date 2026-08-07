@@ -108,7 +108,6 @@ export class AgentOrchestratorService {
   ): Promise<AgentChatResult> {
     try {
       const userSettings = await this.settingsService.findOne({
-        isDeleted: false,
         userId: context.userId,
       });
 
@@ -315,7 +314,6 @@ export class AgentOrchestratorService {
   }> {
     // Look up user's generation priority setting
     const userSettings = await this.settingsService.findOne({
-      isDeleted: false,
       userId: context.userId,
     });
 

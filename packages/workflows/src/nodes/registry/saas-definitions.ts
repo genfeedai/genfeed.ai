@@ -118,12 +118,13 @@ export const SAAS_NODE_DEFINITIONS: Record<SaaSNodeType, SaaSNodeDefinition> = {
     category: 'saas',
     defaultData: DEFAULT_BRAND_CONTEXT_DATA as Record<string, unknown>,
     description:
-      'Inject brand voice, colors, fonts, and default models into workflow',
+      'Inject brand voice configuration, colors, fonts, and default models into workflow',
     icon: 'Palette',
     inputs: [],
     label: 'Brand Context',
     outputs: [
       { id: 'voice', label: 'Brand Voice', type: 'text' },
+      { id: 'voiceConfig', label: 'Brand Voice Config', type: 'object' },
       { id: 'colors', label: 'Color Palette', type: 'text' },
       { id: 'fonts', label: 'Font Family', type: 'text' },
       { id: 'models', label: 'Default Models', type: 'text' },

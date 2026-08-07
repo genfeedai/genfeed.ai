@@ -113,7 +113,6 @@ export class WorkflowWebhookService {
 
     return this.workflowsService.findOne({
       id: match.id,
-      isDeleted: false,
     });
   }
 

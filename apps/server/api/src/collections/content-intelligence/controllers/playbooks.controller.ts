@@ -121,7 +121,6 @@ export class PlaybooksController {
     const data = await this.playbookBuilderService.findOne(
       {
         id: id,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       },
       ['sourceCreators'],
@@ -168,7 +167,6 @@ export class PlaybooksController {
     const existing = await this.playbookBuilderService.findOne(
       {
         id: id,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       },
       ['sourceCreators'],
@@ -200,7 +198,6 @@ export class PlaybooksController {
     const existing = await this.playbookBuilderService.findOne(
       {
         id: id,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       },
       ['sourceCreators'],
@@ -232,7 +229,6 @@ export class PlaybooksController {
     const existing = await this.playbookBuilderService.findOne(
       {
         id: id,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       },
       ['sourceCreators'],

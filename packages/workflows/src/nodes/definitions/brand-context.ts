@@ -1,3 +1,4 @@
+import type { IBrandAgentVoice } from '@genfeedai/interfaces';
 import type { BaseNodeData } from '../types';
 
 /**
@@ -27,6 +28,7 @@ export interface BrandModels {
  *
  * Outputs:
  * - voice (text): Brand voice/tone description
+ * - voiceConfig (object): Full resolved brand voice configuration
  * - colors (text): JSON color palette
  * - fonts (text): Font family name
  * - models (text): Default model preferences
@@ -37,6 +39,7 @@ export interface BrandContextNodeData extends BaseNodeData {
 
   // Resolved at execution time (populated from Brand + Ingredient collections)
   resolvedVoice: string | null;
+  resolvedVoiceConfig: IBrandAgentVoice | null;
   resolvedColors: BrandColors | null;
   resolvedFonts: string | null;
   resolvedModels: BrandModels | null;
@@ -58,5 +61,6 @@ export const DEFAULT_BRAND_CONTEXT_DATA: Partial<BrandContextNodeData> = {
   resolvedFonts: null,
   resolvedModels: null,
   resolvedVoice: null,
+  resolvedVoiceConfig: null,
   status: 'idle',
 };

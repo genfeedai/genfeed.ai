@@ -31,7 +31,6 @@ export async function buildReferenceImageUrl(params: {
     const imageIngredient = await ingredientsService.findOne({
       id: referenceId,
       category: IngredientCategory.IMAGE,
-      isDeleted: false,
     });
 
     if (imageIngredient?.id) {
@@ -44,7 +43,6 @@ export async function buildReferenceImageUrl(params: {
     const videoIngredient = await ingredientsService.findOne({
       id: referenceId,
       category: IngredientCategory.VIDEO,
-      isDeleted: false,
     });
 
     if (videoIngredient?.id) {
@@ -57,7 +55,6 @@ export async function buildReferenceImageUrl(params: {
     const asset = await assetsService.findOne({
       id: referenceId,
       category: AssetCategory.REFERENCE,
-      isDeleted: false,
     });
 
     if (asset?.id) {

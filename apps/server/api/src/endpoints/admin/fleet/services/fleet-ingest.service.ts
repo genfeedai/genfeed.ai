@@ -140,7 +140,6 @@ export class AdminFleetIngestService {
       const brand = await this.brandsService.findOne(
         {
           id: brandId,
-          isDeleted: false,
           organizationId: organizationId,
         },
         'none',
@@ -218,7 +217,6 @@ export class AdminFleetIngestService {
                 : IngredientCategory.IMAGE,
             cdnUrl: post.mediaUrl,
             generationSource: `fleet-ingest:${source.platform}`,
-            isDeleted: false,
             organizationId: validatedOrganizationId,
             personaId: persona.id,
           });

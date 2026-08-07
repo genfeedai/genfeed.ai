@@ -85,7 +85,7 @@ describe('BatchesService', () => {
     mockPost.mockResolvedValue({
       data: {
         data: {
-          attributes: { status: 'partial' },
+          attributes: { status: 'PARTIAL' },
           id: 'batch-1',
         },
       },
@@ -98,7 +98,7 @@ describe('BatchesService', () => {
       }),
     ).resolves.toEqual({
       id: 'batch-1',
-      status: 'partial',
+      status: 'PARTIAL',
     });
   });
 

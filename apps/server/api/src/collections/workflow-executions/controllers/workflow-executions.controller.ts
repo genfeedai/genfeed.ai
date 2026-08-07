@@ -160,7 +160,6 @@ export class WorkflowExecutionsController {
     const publicMetadata = getPublicMetadata(user);
     const execution = await this.workflowExecutionsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
@@ -195,7 +194,6 @@ export class WorkflowExecutionsController {
     );
     const execution = await this.workflowExecutionsService.findOne({
       id: result.executionId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
     return serializeSingle(req, WorkflowExecutionSerializer, execution);
@@ -217,7 +215,6 @@ export class WorkflowExecutionsController {
     // Verify ownership first
     const execution = await this.workflowExecutionsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

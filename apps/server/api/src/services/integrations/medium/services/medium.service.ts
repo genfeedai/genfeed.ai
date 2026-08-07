@@ -136,7 +136,6 @@ export class MediumService {
       const credential = await this.credentialsService.findOne({
         brandId: brandId,
         isConnected: true,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.MEDIUM,
       });

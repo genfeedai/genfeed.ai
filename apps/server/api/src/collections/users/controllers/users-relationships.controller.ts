@@ -85,7 +85,6 @@ export class UsersRelationshipsController {
     let member: { brands?: string[] } | null = null;
     try {
       member = (await this.membersService.findOne({
-        isDeleted: false,
         organizationId: publicMetadata.organization,
         userId: publicMetadata.user,
       })) as { brands?: string[] } | null;
@@ -131,7 +130,6 @@ export class UsersRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
     const userData = await this.usersService.findOne({
       id: publicMetadata.user,
-      isDeleted: false,
     });
     const settings = await this.findUserSettings(userData);
 
@@ -156,7 +154,6 @@ export class UsersRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
     const userData = await this.usersService.findOne({
       id: publicMetadata.user,
-      isDeleted: false,
     });
     const settings = await this.findUserSettings(userData);
 
@@ -223,7 +220,6 @@ export class UsersRelationshipsController {
     const publicMetadata = getPublicMetadata(user);
     const organization = await this.organizationsService.findOne({
       id: organizationId,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 
@@ -293,7 +289,6 @@ export class UsersRelationshipsController {
   ) {
     const user = await this.usersService.findOne({
       id: userId,
-      isDeleted: false,
     });
     const settings = await this.findUserSettings(user);
 
@@ -340,7 +335,6 @@ export class UsersRelationshipsController {
     }
 
     return this.settingsService.findOne({
-      isDeleted: false,
       userId,
     });
   }

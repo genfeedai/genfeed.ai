@@ -73,7 +73,6 @@ export class TaskCommentsController {
     const { organization } = getPublicMetadata(user);
     const comment = await this.taskCommentsService.findOne({
       id: commentId,
-      isDeleted: false,
       organizationId: organization,
     });
 

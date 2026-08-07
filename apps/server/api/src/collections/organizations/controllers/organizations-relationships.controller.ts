@@ -99,7 +99,6 @@ export class OrganizationsRelationshipsController {
     const [member, isOwner] = await Promise.all([
       this.membersService.findOne({
         isActive: true,
-        isDeleted: false,
         organizationId: organizationId,
         userId: publicMetadata.user,
       }),

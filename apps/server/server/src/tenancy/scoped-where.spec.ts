@@ -1,16 +1,31 @@
 import { brandScope, scopedWhere } from './scoped-where';
 
 describe('scopedWhere', () => {
-  it('forces the tenant and soft-delete scope after caller input', () => {
+  it('forces the tenant scope, overriding caller input', () => {
     expect(
       scopedWhere('org-1', {
         id: 'record-1',
-        isDeleted: true,
         organizationId: 'other-org',
       }),
     ).toEqual({
       id: 'record-1',
       isDeleted: false,
+      organizationId: 'org-1',
+    });
+  });
+
+  it('defaults to live rows when the caller omits isDeleted', () => {
+    expect(scopedWhere('org-1', { id: 'record-1' })).toEqual({
+      id: 'record-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+  });
+
+  it('honors an explicit isDeleted instead of clobbering it', () => {
+    expect(scopedWhere('org-1', { id: 'record-1', isDeleted: true })).toEqual({
+      id: 'record-1',
+      isDeleted: true,
       organizationId: 'org-1',
     });
   });

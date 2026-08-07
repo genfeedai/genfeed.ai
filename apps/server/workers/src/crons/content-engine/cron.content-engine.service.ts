@@ -51,7 +51,6 @@ export class CronContentEngineService {
 
       const brands = await this.brandsService.find({
         isActive: true,
-        isDeleted: false,
       });
 
       const eligibleBrands = brands

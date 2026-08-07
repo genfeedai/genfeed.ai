@@ -116,7 +116,6 @@ export class MusicsOperationsController {
     // Fetch brand for default model
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
     const organizationSettings = await this.organizationSettingsService.findOne(

@@ -246,7 +246,6 @@ export class ClipProjectsController {
 
     const project = await this.clipProjectsService.findOne({
       id: projectId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -280,7 +279,6 @@ export class ClipProjectsController {
     // Verify the project belongs to the user's org
     const project = await this.clipProjectsService.findOne({
       id: projectId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -454,7 +452,6 @@ export class ClipProjectsController {
 
     const existing = await this.clipProjectsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

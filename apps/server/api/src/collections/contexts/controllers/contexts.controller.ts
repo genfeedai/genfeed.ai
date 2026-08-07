@@ -292,7 +292,6 @@ export class ContextsController {
 
   private async getDefaultTextMinimumCredits(): Promise<number> {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(DEFAULT_TEXT_MODEL),
     });
 

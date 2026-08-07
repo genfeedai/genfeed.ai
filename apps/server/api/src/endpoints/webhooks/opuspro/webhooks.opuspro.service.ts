@@ -46,7 +46,6 @@ export class OpusProWebhookService {
 
       const metadata = await this.metadataService.findOne({
         id: callback_id,
-        isDeleted: false,
       });
       if (!metadata) {
         this.loggerService.warn(`${url} metadata not found`, { callback_id });

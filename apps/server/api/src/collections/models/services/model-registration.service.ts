@@ -24,7 +24,6 @@ export class ModelRegistrationService {
     organizationId: string,
   ): Promise<ModelDocument> {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: modelKey,
     });
 

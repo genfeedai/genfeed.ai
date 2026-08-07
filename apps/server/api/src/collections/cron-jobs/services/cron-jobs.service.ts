@@ -486,7 +486,6 @@ export class CronJobsService {
 
         const workflow = await this.workflowsService.findOne({
           id: workflowId,
-          isDeleted: false,
           organizationId: (job as Record<string, unknown>)
             .organizationId as string,
           userId: (job as Record<string, unknown>).userId as string,

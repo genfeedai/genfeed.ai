@@ -219,7 +219,6 @@ export class AdminFleetGenerationService {
   ): Promise<AdminFleetGenerationJob> {
     const ingredient = await this.ingredientsService.findOne({
       id: jobId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

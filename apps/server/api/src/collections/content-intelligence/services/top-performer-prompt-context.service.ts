@@ -1,4 +1,3 @@
-import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { Injectable } from '@nestjs/common';
 import {
@@ -16,7 +15,6 @@ export interface TopPerformerPromptContextParams {
 @Injectable()
 export class TopPerformerPromptContextService {
   constructor(
-    private readonly brandMemoryService: BrandMemoryService,
     private readonly performanceSummaryService: PerformanceSummaryService,
   ) {}
 
@@ -28,18 +26,11 @@ export class TopPerformerPromptContextService {
     }
 
     const limit = params.limit ?? 5;
-    const [summary, memoryInsights] = await Promise.all([
-      this.performanceSummaryService.getWeeklySummary(
-        params.organizationId,
-        params.brandId,
-        { topN: limit, worstN: limit },
-      ),
-      this.brandMemoryService.getInsights(
-        params.organizationId,
-        params.brandId,
-        8,
-      ),
-    ]);
+    const summary = await this.performanceSummaryService.getWeeklySummary(
+      params.organizationId,
+      params.brandId,
+      { topN: limit, worstN: limit },
+    );
 
     const topPerformers = this.filterByPlatform(
       summary.topPerformers,
@@ -81,20 +72,11 @@ export class TopPerformerPromptContextService {
       );
     }
 
-    const memorySignals = memoryInsights
-      .filter((insight) => insight.confidence >= 0.4)
-      .slice(0, 4)
-      .map(
-        (insight) =>
-          `[${SecurityUtil.sanitizePromptInput(insight.category, 40)}] ${SecurityUtil.sanitizePromptInput(insight.insight, 180)}`,
-      );
-
-    if (positiveSignals.length > 0 || memorySignals.length > 0) {
+    if (positiveSignals.length > 0) {
       sections.push(
         [
           '## Historical Performance Context',
           ...positiveSignals.slice(0, 8).map((signal) => `- ${signal}`),
-          ...memorySignals.map((signal) => `- Brand memory: ${signal}`),
         ].join('\n'),
       );
     }

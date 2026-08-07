@@ -353,7 +353,6 @@ export class FileQueueService {
       const credential = await this.credentialsService.findOne({
         id: data.credentialId,
         isConnected: true,
-        isDeleted: false,
       });
 
       if (!credential) {

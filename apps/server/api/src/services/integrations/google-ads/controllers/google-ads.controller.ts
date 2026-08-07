@@ -63,7 +63,6 @@ export class GoogleAdsController {
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -321,7 +320,6 @@ export class GoogleAdsController {
 
     const credential = await this.credentialsService.findOne({
       isConnected: true,
-      isDeleted: false,
       organizationId: organizationId,
       platform: CredentialPlatform.GOOGLE_ADS,
       userId: userId,

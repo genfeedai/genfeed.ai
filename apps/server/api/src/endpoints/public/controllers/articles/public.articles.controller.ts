@@ -154,7 +154,6 @@ export class PublicArticlesController {
 
     const article = await this.articlesService.findOne({
       id: articleId,
-      isDeleted: false,
       publishedAt: { not: null },
       ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
     });

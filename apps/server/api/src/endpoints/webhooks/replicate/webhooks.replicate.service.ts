@@ -61,7 +61,6 @@ export class ReplicateWebhookService {
       // Get metadata for this callback
       const metadata = await this.metadataService.findOne({
         id: metadataId,
-        isDeleted: false,
       });
       if (!metadata) {
         this.loggerService.warn(`${url} metadata not found`, { metadataId });

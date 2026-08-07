@@ -177,7 +177,6 @@ export class TelegramDistributionService {
 
     const distribution = await this.distributionsService.findOne({
       id: distributionId,
-      isDeleted: false,
       organizationId: organizationId,
       platform,
       status: PublishStatus.SCHEDULED,
@@ -256,7 +255,6 @@ export class TelegramDistributionService {
       const credential = await this.credentialsService.findOne({
         brandId: brandId,
         isConnected: true,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });
@@ -269,7 +267,6 @@ export class TelegramDistributionService {
     // Fall back to org-level credential
     const orgCredential = await this.credentialsService.findOne({
       isConnected: true,
-      isDeleted: false,
       organizationId: organizationId,
       platform: CredentialPlatform.TELEGRAM,
     });

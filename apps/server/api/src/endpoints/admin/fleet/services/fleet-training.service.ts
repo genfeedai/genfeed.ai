@@ -467,7 +467,6 @@ export class AdminFleetTrainingService {
     const persona = await this.personasService.findOne({
       ...(organizationId ? { organizationId: organizationId } : {}),
       isFleetCharacter: true,
-      isDeleted: false,
       slug: personaSlug,
     });
 

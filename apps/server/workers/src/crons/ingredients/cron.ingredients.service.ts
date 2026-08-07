@@ -139,7 +139,6 @@ export class CronIngredientsService {
               String(ingredient.id),
             ),
           },
-          isDeleted: false,
           status: IngredientStatus.PROCESSING, // Double-check status hasn't changed
         },
         {
@@ -283,7 +282,6 @@ export class CronIngredientsService {
             String(ingredient.id),
           ),
         },
-        isDeleted: false,
         status: IngredientStatus.PROCESSING,
       },
       {

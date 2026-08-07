@@ -53,7 +53,6 @@ export class PatternAnalyzerService {
   }> {
     const creator = await this.contentIntelligenceService.findOne({
       id: creatorId,
-      isDeleted: false,
     });
 
     if (!creator) {

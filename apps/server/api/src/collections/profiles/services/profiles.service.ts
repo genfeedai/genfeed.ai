@@ -647,7 +647,6 @@ Only include content types that are present in examples.`;
     output: string,
   ): Promise<number> {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(DEFAULT_TEXT_MODEL),
     });
 

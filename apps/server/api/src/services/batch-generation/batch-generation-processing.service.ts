@@ -43,11 +43,11 @@ export class BatchGenerationProcessingService {
     orgId: string,
     options?: BatchProcessOptions,
   ): Promise<IBatchSummary> {
-    // Idempotency guard: atomically transition PENDING → GENERATING.
+    // Idempotency guard: atomically transition PENDING → PROCESSING.
     // If two concurrent calls race, exactly one updateMany will match (count=1);
     // the other gets count=0 and exits early, preventing duplicate processing.
     const claimed = await this.prisma.batch.updateMany({
-      data: { status: toPrismaBatchStatus(BatchStatus.GENERATING) },
+      data: { status: toPrismaBatchStatus(BatchStatus.PROCESSING) },
       where: scopedWhere(orgId, {
         id: batchId,
         status: toPrismaBatchStatus(BatchStatus.PENDING),
@@ -127,7 +127,7 @@ export class BatchGenerationProcessingService {
       },
       where: scopedWhere(orgId, {
         id: batchId,
-        status: toPrismaBatchStatus(BatchStatus.GENERATING),
+        status: toPrismaBatchStatus(BatchStatus.PROCESSING),
       }),
     });
 
@@ -189,7 +189,7 @@ export class BatchGenerationProcessingService {
       }
 
       try {
-        item.status = BatchItemStatus.GENERATING;
+        item.status = BatchItemStatus.PROCESSING;
 
         const topics = batchConfig.topics ?? [];
         const topic =
@@ -320,7 +320,7 @@ export class BatchGenerationProcessingService {
       select: { status: true },
       where: scopedWhere(orgId, { id: batchId }),
     });
-    return fromPrismaBatchStatus(batch?.status) === BatchStatus.GENERATING;
+    return fromPrismaBatchStatus(batch?.status) === BatchStatus.PROCESSING;
   }
 
   private async invokeLifecycleCallback(

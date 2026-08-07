@@ -770,7 +770,6 @@ export class AdsResearchService {
 
     const credential = await this.credentialsService.findOne({
       id: params.credentialId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

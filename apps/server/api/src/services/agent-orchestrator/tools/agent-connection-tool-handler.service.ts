@@ -32,7 +32,6 @@ export class AgentConnectionToolHandler {
     const credential = platform
       ? await this.credentialsService.findOne({
           isConnected: true,
-          isDeleted: false,
           organizationId: ctx.organizationId,
           platform,
         })

@@ -58,7 +58,7 @@ export class BatchGenerationReviewService {
         } else if (decision === 'request_changes') {
           changesRequestedCount++;
         } else if (
-          status === BatchItemStatus.GENERATING ||
+          status === BatchItemStatus.PROCESSING ||
           status === BatchItemStatus.PENDING
         ) {
           pendingCount++;

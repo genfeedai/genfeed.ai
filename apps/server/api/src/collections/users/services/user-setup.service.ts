@@ -156,7 +156,6 @@ export class UserSetupService {
   ): Promise<OrganizationDocument | null> {
     const membership = await this.membersService.findOne({
       isActive: true,
-      isDeleted: false,
       userId: userId,
     });
 
@@ -169,7 +168,6 @@ export class UserSetupService {
 
     return this.organizationsService.findOne({
       id: membership.organizationId,
-      isDeleted: false,
     });
   }
 
@@ -195,7 +193,6 @@ export class UserSetupService {
     // Legacy fallback: organizations created before membership became the
     // source of truth are keyed by the `user` ownership field.
     const existing = await this.organizationsService.findOne({
-      isDeleted: false,
       userId: userId,
     });
 
@@ -338,7 +335,6 @@ export class UserSetupService {
     userId: string,
   ): Promise<SettingDocument> {
     const existing = await this.settingsService.findOne({
-      isDeleted: false,
       userId: userId,
     });
 
@@ -371,7 +367,6 @@ export class UserSetupService {
     userId: string,
   ): Promise<BrandDocument> {
     const existing = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -411,7 +406,6 @@ export class UserSetupService {
     userId: string,
   ): Promise<MemberDocument> {
     const existing = await this.membersService.findOne({
-      isDeleted: false,
       organizationId: organizationId,
       userId: userId,
     });
@@ -439,13 +433,11 @@ export class UserSetupService {
 
     // Look up admin role first, fallback to user role
     let roleToAssign = await this.rolesService.findOne({
-      isDeleted: false,
       key: 'admin',
     });
 
     if (!roleToAssign) {
       roleToAssign = await this.rolesService.findOne({
-        isDeleted: false,
         key: 'user',
       });
     }

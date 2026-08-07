@@ -218,7 +218,6 @@ export class ImageGenerationService {
     const brandId = createImageDto.brandId || publicMetadata.brand;
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -325,7 +324,6 @@ export class ImageGenerationService {
     const submittedPrompt = submittedPromptId
       ? await this.promptsService.findOne({
           id: submittedPromptId,
-          isDeleted: false,
           organizationId: publicMetadata.organization,
           userId: publicMetadata.user,
         })

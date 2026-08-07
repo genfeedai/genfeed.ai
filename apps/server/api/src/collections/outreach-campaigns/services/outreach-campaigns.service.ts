@@ -747,7 +747,7 @@ export class OutreachCampaignsService {
   }
 
   async remove(id: string): Promise<OutreachCampaignDocument | null> {
-    const existing = await this.findOne({ id: id, isDeleted: false });
+    const existing = await this.findOne({ id: id });
 
     if (!existing) {
       return null;
