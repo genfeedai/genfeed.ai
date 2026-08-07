@@ -61,10 +61,12 @@ New casts fail CI. Cleanups must prune the baseline in the same PR.
 
 | Area | Storage | Domain casing | Agent rule |
 | --- | --- | --- | --- |
-| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, ContentDraftStatus, BotStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
+| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, BotStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
 | **`PostStatus`, `TaskStatus`, and similar product statuses** | **String** column | **lowercase product language** | Keep as-is. Do **not** re-harmonize into SCREAMING or invent dual maps. |
 | **`WorkflowStatus`** | **String** column | product lowercase | Keep as-is. Orphan Prisma enum dropped in #2492 — do not reintroduce. |
-| **`CampaignTargetStatus`** | no column yet | richer outreach vocabulary | Domain-only until a Prisma column ships. |
+| **`ContentDraftStatus`, `CampaignTargetStatus`** | **String** column (`content_drafts.status`, `campaign_targets.status`) | SCREAMING domain vocabulary | Domain-only. Orphan Prisma enums dropped in `20260807160000_drop_orphan_enums` — do not reintroduce. Not in the parity ratchet. Columns still carry lowercase defaults + legacy rows from `20260609150437_reconcile_prod_schema`. |
+| **`ReferenceImageCategory`, `AgentAutonomyMode`** | no column | SCREAMING domain vocabulary | Domain-only. Orphan Prisma enums dropped in `20260807160000_drop_orphan_enums` — never had a column. Not in the parity ratchet. |
+| **`AgentQualityTier`, `AgentGoalProfile`, `OutreachCampaignStatus`** | no column, no domain enum | n/a | Fully removed in `20260807160000_drop_orphan_enums`. Nothing in the repo referenced them. |
 | **`Platform` (domain)** | posts / UI / OAuth free text | **lowercase** (`instagram`, `devto`) | Product language. Posts store lowercase `String`. |
 | **`credentials.platform`** | Prisma **`CredentialPlatform`** enum | **SCREAMING** (`INSTAGRAM`, `DEVTO`) | **Mandatory mapper** — see below. |
 | Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`) | n/a | SCREAMING | Map before any Prisma write. |
@@ -113,7 +115,13 @@ Still intentional exceptions (see matrix above):
 - **`WorkflowStatus`** — domain stays product lowercase; `workflows.status` is a
   `String` column (orphan Prisma type dropped in #2492).
 - **`CampaignTargetStatus`** — domain keeps a richer outreach pipeline vocabulary
-  (orphan Prisma type; no column yet).
+  than the dead Postgres type ever had; `campaign_targets.status` is a `String`
+  column (orphan Prisma type dropped in `20260807160000_drop_orphan_enums`).
+- **`ContentDraftStatus`** — domain-only SCREAMING vocabulary;
+  `content_drafts.status` is a `String` column (orphan Prisma type dropped in
+  `20260807160000_drop_orphan_enums`).
+- **`ReferenceImageCategory` / `AgentAutonomyMode`** — domain-only; the
+  same-named Postgres types never had a column and were dropped in `20260807160000_drop_orphan_enums`.
 - **`Platform` / credential `CredentialPlatform`** — intentional split +
   **mandatory** `toPrismaCredentialPlatform` / `fromPrismaCredentialPlatform`.
 - Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`, Stripe-only

@@ -10,7 +10,6 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
-  AgentAutonomyMode,
   AgentRunStatus,
   ApiKeyCategory,
   AppSource,
@@ -21,7 +20,6 @@ import {
   BookmarkIntent,
   BotStatus,
   ByokBillingStatus,
-  ContentDraftStatus,
   ContentRating,
   FleetAssetLabel,
   FleetReviewStatus,
@@ -39,7 +37,6 @@ import {
   PostEntityModel,
   PromptCategory,
   PromptStatus,
-  ReferenceImageCategory,
   SubscriptionStatus,
   TagCategory,
   TrainingStage,
@@ -51,7 +48,6 @@ import {
 
 /** Prisma labels that MUST appear as domain enum values (extras allowed). */
 const PRISMA_REQUIRED: Record<string, readonly string[]> = {
-  AgentAutonomyMode: ['SUPERVISED', 'AUTO_PUBLISH'],
   AgentRunStatus: ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'],
   ApiKeyCategory: ['GENFEEDAI', 'ELEVENLABS', 'HEDRA', 'HEYGEN', 'OPUS_PRO'],
   AppSource: ['GENFEED', 'GETSHAREABLE'],
@@ -69,7 +65,6 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   BookmarkIntent: ['VIDEO', 'IMAGE', 'REPLY', 'REFERENCE', 'INSPIRATION'],
   BotStatus: ['ACTIVE', 'PAUSED', 'STOPPED'],
   ByokBillingStatus: ['ACTIVE', 'PAST_DUE', 'SUSPENDED'],
-  ContentDraftStatus: ['DRAFT', 'READY', 'APPROVED', 'REJECTED', 'PUBLISHED'],
   ContentRating: ['SFW', 'SUGGESTIVE', 'NSFW'],
   FleetAssetLabel: ['HERO', 'FILLER', 'BTS', 'PROMO', 'LIFESTYLE', 'EDITORIAL'],
   FleetReviewStatus: ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_REVISION'],
@@ -141,7 +136,6 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'ARTICLE',
   ],
   PromptStatus: ['DRAFT', 'PROCESSING', 'GENERATED', 'FAILED'],
-  ReferenceImageCategory: ['FACE', 'PRODUCT', 'STYLE', 'LOGO'],
   SubscriptionStatus: [
     'ACTIVE',
     'CANCELLED',
@@ -198,7 +192,6 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
 };
 
 const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
-  AgentAutonomyMode,
   AgentRunStatus,
   ApiKeyCategory,
   AppSource,
@@ -209,7 +202,6 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   BookmarkIntent,
   BotStatus,
   ByokBillingStatus,
-  ContentDraftStatus,
   ContentRating,
   FleetAssetLabel,
   FleetReviewStatus,
@@ -227,7 +219,6 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   PostEntityModel,
   PromptCategory,
   PromptStatus,
-  ReferenceImageCategory,
   SubscriptionStatus,
   TagCategory,
   TrainingStage,

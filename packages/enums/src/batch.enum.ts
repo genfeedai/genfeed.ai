@@ -39,9 +39,10 @@ export enum ContentFormat {
 }
 
 /**
- * Reference image category. Values match Prisma `ReferenceImageCategory`
- * (orphan type today — no column yet).
- * @see packages/prisma/prisma/schema.prisma `enum ReferenceImageCategory`
+ * Reference image category. Domain-only vocabulary — no Prisma column stores
+ * it. The matching orphan Postgres type was dropped in
+ * `20260807160000_drop_orphan_enums`; values stay SCREAMING so a future column
+ * can adopt them without a cast.
  */
 export enum ReferenceImageCategory {
   FACE = 'FACE',
