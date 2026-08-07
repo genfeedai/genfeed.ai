@@ -1,3 +1,5 @@
+import type { WorkflowLifecycle } from '@genfeedai/enums';
+
 /**
  * Lightweight workflow type matching the server's list endpoint projection.
  * The list endpoint strips nodes, edges, metadata, version, and edgeStyle
@@ -7,7 +9,7 @@ export interface WorkflowListItem {
   id: string;
   label: string;
   description?: string;
-  lifecycle: 'draft' | 'published' | 'archived';
+  lifecycle: WorkflowLifecycle;
   brandId?: string | null;
   thumbnail?: string | null;
   thumbnailNodeId?: string | null;

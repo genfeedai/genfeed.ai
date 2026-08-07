@@ -1,6 +1,6 @@
 'use client';
 
-import { WorkflowNodeStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus, WorkflowNodeStatus } from '@genfeedai/enums';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
@@ -14,6 +14,7 @@ import {
   type ExecutionResult,
   type WorkflowApiService,
 } from '@/features/workflows/services/workflow-api';
+import { isTerminalExecutionStatus } from '@/features/workflows/utils/execution-status';
 
 // =============================================================================
 // TYPES
@@ -32,8 +33,6 @@ interface UseNodeExecutionReturn {
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 150; // 5 minutes max
-
-const TERMINAL_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 // =============================================================================
 // HOOK
@@ -109,8 +108,8 @@ export function useNodeExecution(): UseNodeExecutionReturn {
             });
           }
 
-          if (TERMINAL_STATUSES.has(result.status)) {
-            if (result.status === 'failed') {
+          if (isTerminalExecutionStatus(result.status)) {
+            if (result.status === WorkflowExecutionStatus.FAILED) {
               const nodeError = nodeResult?.error || result.error;
               updateNodeData(nodeId, {
                 error: nodeError || 'Execution failed',

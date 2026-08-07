@@ -1,3 +1,4 @@
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@helpers/generation-eta.helper', () => ({
@@ -28,7 +29,9 @@ import { getExecutionEtaDisplayState } from './eta-display';
 
 describe('getExecutionEtaDisplayState', () => {
   it('should return null labels when no eta is provided', () => {
-    const result = getExecutionEtaDisplayState({ status: 'running' });
+    const result = getExecutionEtaDisplayState({
+      status: WorkflowExecutionStatus.RUNNING,
+    });
 
     expect(result.etaLabel).toBeNull();
     expect(result.actualDurationLabel).toBeNull();
@@ -40,7 +43,7 @@ describe('getExecutionEtaDisplayState', () => {
   it('should return actualDurationLabel from eta.actualDurationMs', () => {
     const result = getExecutionEtaDisplayState({
       eta: { actualDurationMs: 30000 },
-      status: 'completed',
+      status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(result.actualDurationLabel).toBe('30s');
@@ -50,7 +53,7 @@ describe('getExecutionEtaDisplayState', () => {
     const result = getExecutionEtaDisplayState({
       durationMs: 45000,
       eta: {},
-      status: 'completed',
+      status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(result.actualDurationLabel).toBe('45s');
@@ -59,7 +62,7 @@ describe('getExecutionEtaDisplayState', () => {
   it('should return null actualDurationLabel when duration is zero', () => {
     const result = getExecutionEtaDisplayState({
       durationMs: 0,
-      status: 'completed',
+      status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(result.actualDurationLabel).toBeNull();
@@ -72,7 +75,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'low',
         remainingDurationMs: 20000,
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.etaLabel).toContain('Usually takes');
@@ -85,7 +88,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'high',
         remainingDurationMs: 15000,
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.etaLabel).toContain('About');
@@ -98,7 +101,7 @@ describe('getExecutionEtaDisplayState', () => {
         estimatedDurationMs: 25000,
         etaConfidence: 'high',
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.etaLabel).toContain('About');
@@ -113,7 +116,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'high',
         remainingDurationMs: 15000,
       },
-      status: 'completed',
+      status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(result.etaLabel).toBeNull();
@@ -126,7 +129,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'high',
         remainingDurationMs: 15000,
       },
-      status: 'failed',
+      status: WorkflowExecutionStatus.FAILED,
     });
 
     expect(result.etaLabel).toBeNull();
@@ -139,7 +142,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'high',
         remainingDurationMs: 1000,
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.etaLabel).toBeNull();
@@ -148,7 +151,7 @@ describe('getExecutionEtaDisplayState', () => {
   it('should return phaseLabel from eta.currentPhase', () => {
     const result = getExecutionEtaDisplayState({
       eta: { currentPhase: 'Generating image' },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.phaseLabel).toBe('Generating image');
@@ -157,7 +160,7 @@ describe('getExecutionEtaDisplayState', () => {
   it('should return null phaseLabel when currentPhase is missing', () => {
     const result = getExecutionEtaDisplayState({
       eta: {},
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.phaseLabel).toBeNull();
@@ -170,7 +173,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'high',
         remainingDurationMs: 90000,
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.reassuranceLabel).toContain('You can keep working');
@@ -183,7 +186,7 @@ describe('getExecutionEtaDisplayState', () => {
         etaConfidence: 'high',
         remainingDurationMs: 20000,
       },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.reassuranceLabel).toBeNull();
@@ -195,7 +198,7 @@ describe('getExecutionEtaDisplayState', () => {
         estimatedDurationMs: 120000,
         remainingDurationMs: 0,
       },
-      status: 'completed',
+      status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(result.reassuranceLabel).toBeNull();
@@ -207,20 +210,20 @@ describe('getExecutionEtaDisplayState', () => {
         estimatedDurationMs: 120000,
         remainingDurationMs: 0,
       },
-      status: 'failed',
+      status: WorkflowExecutionStatus.FAILED,
     });
 
     expect(result.reassuranceLabel).toBeNull();
   });
 
-  it('should handle case-insensitive status comparison', () => {
+  it('should not return etaLabel when the execution is cancelled', () => {
     const result = getExecutionEtaDisplayState({
       eta: {
         estimatedDurationMs: 30000,
         etaConfidence: 'high',
         remainingDurationMs: 15000,
       },
-      status: 'COMPLETED',
+      status: WorkflowExecutionStatus.CANCELLED,
     });
 
     expect(result.etaLabel).toBeNull();
@@ -230,7 +233,7 @@ describe('getExecutionEtaDisplayState', () => {
     const tenSecondsAgo = new Date(Date.now() - 10000).toISOString();
     const result = getExecutionEtaDisplayState({
       eta: { startedAt: tenSecondsAgo },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.elapsedLabel).not.toBeNull();
@@ -239,7 +242,7 @@ describe('getExecutionEtaDisplayState', () => {
   it('should return null elapsedLabel when startedAt is missing', () => {
     const result = getExecutionEtaDisplayState({
       eta: {},
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.elapsedLabel).toBeNull();
@@ -248,7 +251,7 @@ describe('getExecutionEtaDisplayState', () => {
   it('should return null elapsedLabel when startedAt is invalid', () => {
     const result = getExecutionEtaDisplayState({
       eta: { startedAt: 'not-a-date' },
-      status: 'running',
+      status: WorkflowExecutionStatus.RUNNING,
     });
 
     expect(result.elapsedLabel).toBeNull();

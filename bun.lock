@@ -677,6 +677,7 @@
         "@genfeedai/config": "workspace:*",
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/contexts": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",

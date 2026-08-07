@@ -1,52 +1,48 @@
 /**
- * Status helper utilities for workflow execution display
+ * Status helper utilities for workflow execution display.
+ *
+ * `workflow_executions.status` is a Prisma enum, so both the execution status
+ * and every serialized node result status arrive as SCREAMING_SNAKE
+ * `WorkflowExecutionStatus` labels. The engine's lowercase `skipped` outcome is
+ * folded into `COMPLETED` by `mapEngineNodeStatus` before it reaches the wire.
+ *
+ * @see apps/server/api/src/collections/workflows/services/workflow-execution-status.util.ts
+ * @see .agents/memory/rules/enum_source_of_truth.md
  */
 
-export type ExecutionStatus =
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'skipped';
-
-export type LifecycleStatus = 'draft' | 'published' | 'archived';
+import { WorkflowExecutionStatus, WorkflowLifecycle } from '@genfeedai/enums';
 
 /**
  * Returns the appropriate icon for execution status
  */
-export function getStatusIcon(status: ExecutionStatus | string): string {
+export function getStatusIcon(status: WorkflowExecutionStatus): string {
   switch (status) {
-    case 'completed':
-      return '\u2705'; // checkmark
-    case 'failed':
-      return '\u274C'; // X
-    case 'running':
-      return '\u23F3'; // hourglass
-    case 'cancelled':
-      return '\uD83D\uDEAB'; // no entry
-    case 'skipped':
-      return '\u23ED\uFE0F'; // skip
+    case WorkflowExecutionStatus.COMPLETED:
+      return '✅'; // checkmark
+    case WorkflowExecutionStatus.FAILED:
+      return '❌'; // X
+    case WorkflowExecutionStatus.RUNNING:
+      return '⏳'; // hourglass
+    case WorkflowExecutionStatus.CANCELLED:
+      return '🚫'; // no entry
     default:
-      return '\u23F8\uFE0F'; // pause
+      return '⏸️'; // pause
   }
 }
 
 /**
  * Returns Tailwind CSS classes for execution status badge
  */
-export function getStatusColor(status: ExecutionStatus | string): string {
+export function getStatusColor(status: WorkflowExecutionStatus): string {
   switch (status) {
-    case 'completed':
+    case WorkflowExecutionStatus.COMPLETED:
       return 'text-success bg-success/10';
-    case 'failed':
+    case WorkflowExecutionStatus.FAILED:
       return 'text-destructive bg-destructive/10';
-    case 'running':
+    case WorkflowExecutionStatus.RUNNING:
       return 'text-warning bg-warning/10';
-    case 'cancelled':
+    case WorkflowExecutionStatus.CANCELLED:
       return 'text-muted-foreground bg-secondary';
-    case 'skipped':
-      return 'border-border bg-secondary';
     default:
       return 'text-muted-foreground bg-muted';
   }
@@ -55,15 +51,15 @@ export function getStatusColor(status: ExecutionStatus | string): string {
 /**
  * Returns Tailwind CSS classes for execution status border (for cards)
  */
-export function getStatusBorderColor(status: ExecutionStatus | string): string {
+export function getStatusBorderColor(status: WorkflowExecutionStatus): string {
   switch (status) {
-    case 'completed':
+    case WorkflowExecutionStatus.COMPLETED:
       return 'border-success/30 bg-success/10';
-    case 'failed':
+    case WorkflowExecutionStatus.FAILED:
       return 'border-destructive/30 bg-destructive/10';
-    case 'running':
+    case WorkflowExecutionStatus.RUNNING:
       return 'border-warning/30 bg-warning/10';
-    case 'skipped':
+    case WorkflowExecutionStatus.CANCELLED:
       return 'border-border bg-secondary';
     default:
       return 'border-white/[0.08] bg-card';
@@ -71,15 +67,17 @@ export function getStatusBorderColor(status: ExecutionStatus | string): string {
 }
 
 /**
- * Returns Tailwind CSS classes for lifecycle status badge
+ * Returns Tailwind CSS classes for lifecycle status badge.
+ *
+ * `workflows.lifecycle` is a `String` column, so these labels stay lowercase.
  */
 export function getLifecycleBadgeClass(
-  lifecycle: LifecycleStatus | string | undefined,
+  lifecycle: WorkflowLifecycle | undefined,
 ): string {
   switch (lifecycle) {
-    case 'published':
+    case WorkflowLifecycle.PUBLISHED:
       return 'border border-success/20 bg-success/10 text-success';
-    case 'archived':
+    case WorkflowLifecycle.ARCHIVED:
       return 'border border-white/10 bg-white/[0.04] text-white/55';
     default:
       return 'border border-warning/20 bg-warning/10 text-warning';

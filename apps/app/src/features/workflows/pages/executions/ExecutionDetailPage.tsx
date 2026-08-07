@@ -26,7 +26,7 @@ interface ExecutionLogsProps {
 interface NodeResult {
   nodeId: string;
   nodeLabel: string;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  status: WorkflowExecutionStatus;
   error?: string;
   output?: Record<string, unknown>;
   startedAt: string;
@@ -62,8 +62,7 @@ function mapNodeResult(node: ExecutionNodeResult): NodeResult {
     output: node.output,
     retryCount: node.retryCount ?? 0,
     startedAt: node.startedAt || new Date().toISOString(),
-    status:
-      (node.status as NodeResult['status']) || WorkflowExecutionStatus.PENDING,
+    status: node.status || WorkflowExecutionStatus.PENDING,
   };
 }
 
@@ -78,9 +77,7 @@ function mapExecution(result: ExecutionResult): ExecutionDetail {
     nodeResults: (result.nodeResults || []).map(mapNodeResult),
     runId: result.id,
     startedAt: result.startedAt || result.createdAt,
-    status:
-      (result.status as WorkflowExecutionStatus) ||
-      WorkflowExecutionStatus.PENDING,
+    status: result.status || WorkflowExecutionStatus.PENDING,
     totalCreditsUsed: result.creditsUsed ?? 0,
     workflowId: result.workflowId,
     workflowLabel,

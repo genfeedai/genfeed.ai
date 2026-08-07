@@ -1,18 +1,27 @@
 'use client';
 
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { ANALYTICS_EVENTS } from './analytics-events';
 import { captureAnalyticsEvent } from './posthog-client';
 
 interface WorkflowExecutionSnapshot {
   readonly id: string;
-  readonly status: string;
+  readonly status: WorkflowExecutionStatus;
 }
 
-const TERMINAL_WORKFLOW_STATUSES = new Set([
-  'cancelled',
-  'completed',
-  'failed',
-]);
+/**
+ * `workflow_executions.status` is Prisma-backed, so the wire value is
+ * SCREAMING_SNAKE — lowercase literals here would never match and every editor
+ * run would go untracked.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+const TERMINAL_WORKFLOW_STATUSES: ReadonlySet<WorkflowExecutionStatus> =
+  new Set([
+    WorkflowExecutionStatus.CANCELLED,
+    WorkflowExecutionStatus.COMPLETED,
+    WorkflowExecutionStatus.FAILED,
+  ]);
 
 /**
  * Tracks editor-initiated workflows from launch through their actual terminal
@@ -60,7 +69,10 @@ export function createEditorWorkflowRunTracker(
       }
 
       capture(ANALYTICS_EVENTS.WORKFLOW_RUN_COMPLETED, {
-        outcome: execution.status === 'completed' ? 'success' : 'failure',
+        outcome:
+          execution.status === WorkflowExecutionStatus.COMPLETED
+            ? 'success'
+            : 'failure',
         workflowType: 'editor',
       });
       activeExecutionIds.delete(execution.id);

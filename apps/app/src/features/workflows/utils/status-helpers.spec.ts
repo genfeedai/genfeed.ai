@@ -1,3 +1,4 @@
+import { WorkflowExecutionStatus, WorkflowLifecycle } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
   getLifecycleBadgeClass,
@@ -7,48 +8,75 @@ import {
 } from '@/features/workflows/utils/status-helpers';
 
 describe('getStatusIcon', () => {
-  it('completed', () => expect(getStatusIcon('completed')).toBe('✅'));
-  it('failed', () => expect(getStatusIcon('failed')).toBe('❌'));
-  it('running', () => expect(getStatusIcon('running')).toBe('⏳'));
-  it('cancelled', () => expect(getStatusIcon('cancelled')).toBe('🚫'));
-  it('skipped', () => expect(getStatusIcon('skipped')).toBe('⏭️'));
-  it('default', () => expect(getStatusIcon('pending')).toBe('⏸️'));
+  it('completed', () =>
+    expect(getStatusIcon(WorkflowExecutionStatus.COMPLETED)).toBe('✅'));
+  it('failed', () =>
+    expect(getStatusIcon(WorkflowExecutionStatus.FAILED)).toBe('❌'));
+  it('running', () =>
+    expect(getStatusIcon(WorkflowExecutionStatus.RUNNING)).toBe('⏳'));
+  it('cancelled', () =>
+    expect(getStatusIcon(WorkflowExecutionStatus.CANCELLED)).toBe('🚫'));
+  it('default', () =>
+    expect(getStatusIcon(WorkflowExecutionStatus.PENDING)).toBe('⏸️'));
 });
 
 describe('getStatusColor', () => {
   it('completed', () =>
-    expect(getStatusColor('completed')).toContain('text-success'));
+    expect(getStatusColor(WorkflowExecutionStatus.COMPLETED)).toContain(
+      'text-success',
+    ));
   it('failed', () =>
-    expect(getStatusColor('failed')).toContain('text-destructive'));
+    expect(getStatusColor(WorkflowExecutionStatus.FAILED)).toContain(
+      'text-destructive',
+    ));
   it('running', () =>
-    expect(getStatusColor('running')).toContain('text-warning'));
+    expect(getStatusColor(WorkflowExecutionStatus.RUNNING)).toContain(
+      'text-warning',
+    ));
   it('cancelled', () =>
-    expect(getStatusColor('cancelled')).toContain('text-muted-foreground'));
-  it('skipped', () =>
-    expect(getStatusColor('skipped')).toContain('border-border'));
-  it('default', () => expect(getStatusColor('pending')).toContain('muted'));
+    expect(getStatusColor(WorkflowExecutionStatus.CANCELLED)).toContain(
+      'text-muted-foreground',
+    ));
+  it('default', () =>
+    expect(getStatusColor(WorkflowExecutionStatus.PENDING)).toContain('muted'));
 });
 
 describe('getStatusBorderColor', () => {
   it('completed', () =>
-    expect(getStatusBorderColor('completed')).toContain('border-success'));
+    expect(getStatusBorderColor(WorkflowExecutionStatus.COMPLETED)).toContain(
+      'border-success',
+    ));
   it('failed', () =>
-    expect(getStatusBorderColor('failed')).toContain('border-destructive'));
+    expect(getStatusBorderColor(WorkflowExecutionStatus.FAILED)).toContain(
+      'border-destructive',
+    ));
   it('running', () =>
-    expect(getStatusBorderColor('running')).toContain('border-warning'));
-  it('skipped', () =>
-    expect(getStatusBorderColor('skipped')).toContain('border-border'));
+    expect(getStatusBorderColor(WorkflowExecutionStatus.RUNNING)).toContain(
+      'border-warning',
+    ));
+  it('cancelled', () =>
+    expect(getStatusBorderColor(WorkflowExecutionStatus.CANCELLED)).toContain(
+      'border-border',
+    ));
   it('default', () =>
-    expect(getStatusBorderColor('pending')).toContain('border'));
+    expect(getStatusBorderColor(WorkflowExecutionStatus.PENDING)).toContain(
+      'border',
+    ));
 });
 
 describe('getLifecycleBadgeClass', () => {
   it('published', () =>
-    expect(getLifecycleBadgeClass('published')).toContain('success'));
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.PUBLISHED)).toContain(
+      'success',
+    ));
   it('archived', () =>
-    expect(getLifecycleBadgeClass('archived')).toContain('white'));
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.ARCHIVED)).toContain(
+      'white',
+    ));
   it('draft/default', () =>
-    expect(getLifecycleBadgeClass('draft')).toContain('warning'));
+    expect(getLifecycleBadgeClass(WorkflowLifecycle.DRAFT)).toContain(
+      'warning',
+    ));
   it('undefined', () =>
     expect(getLifecycleBadgeClass(undefined)).toContain('warning'));
 });

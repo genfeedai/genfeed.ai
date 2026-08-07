@@ -1,4 +1,5 @@
 import type { AgentRunSummary } from '@genfeedai/agent/models/agent-chat.model';
+import { AgentExecutionStatus, AgentRunStatus } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 import {
   formatRunDuration,
@@ -11,6 +12,7 @@ import {
   isRunCancellable,
   isRunDetailLoadable,
   isRunRetryable,
+  mapRunStatusToClientStatus,
   readRunAgentScopeString,
   replaceRunInPage,
   selectRunId,
@@ -24,7 +26,7 @@ function createRun(
   return {
     id,
     label: `Run ${id}`,
-    status: 'RUNNING',
+    status: AgentExecutionStatus.RUNNING,
     ...overrides,
   };
 }
@@ -40,6 +42,30 @@ describe('agent workspace run helpers', () => {
     expect(isRunCancellable('completed')).toBe(false);
     expect(isRunRetryable('FAILED')).toBe(true);
     expect(isRunRetryable('running')).toBe(false);
+  });
+
+  it('maps SCREAMING_SNAKE wire statuses onto the client run lifecycle', () => {
+    expect(mapRunStatusToClientStatus(AgentExecutionStatus.CANCELLED)).toBe(
+      'cancelled',
+    );
+    expect(mapRunStatusToClientStatus(AgentExecutionStatus.COMPLETED)).toBe(
+      'completed',
+    );
+    expect(mapRunStatusToClientStatus(AgentExecutionStatus.FAILED)).toBe(
+      'failed',
+    );
+    expect(mapRunStatusToClientStatus(AgentRunStatus.BUDGET_EXHAUSTED)).toBe(
+      'failed',
+    );
+    expect(mapRunStatusToClientStatus(AgentExecutionStatus.PENDING)).toBe(
+      'running',
+    );
+    expect(mapRunStatusToClientStatus(AgentExecutionStatus.RUNNING)).toBe(
+      'running',
+    );
+    // Unknown or absent statuses keep the composer live rather than stranding
+    // it in a terminal state.
+    expect(mapRunStatusToClientStatus(undefined)).toBe('running');
   });
 
   it('formats bounded progress, durations, timestamps, and nested scope', () => {
@@ -103,7 +129,9 @@ describe('agent workspace run helpers', () => {
   it('selects and replaces runs without changing unrelated page entries', () => {
     const firstRun = createRun('1');
     const secondRun = createRun('2');
-    const replacement = createRun('2', { status: 'COMPLETED' });
+    const replacement = createRun('2', {
+      status: AgentExecutionStatus.COMPLETED,
+    });
     const page = {
       pagination: { limit: 10, page: 1, pages: 1, total: 2 },
       runs: [firstRun, secondRun],

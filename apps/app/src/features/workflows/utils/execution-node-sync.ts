@@ -1,4 +1,8 @@
-import { ReviewGateStatus, WorkflowNodeStatus } from '@genfeedai/enums';
+import {
+  ReviewGateStatus,
+  WorkflowExecutionStatus,
+  WorkflowNodeStatus,
+} from '@genfeedai/enums';
 import type {
   ExecutionNodeResult,
   ExecutionResult,
@@ -9,16 +13,24 @@ export interface ExecutionNodePatch {
   patch: Record<string, unknown>;
 }
 
-function mapExecutionStatusToNodeStatus(status: string): WorkflowNodeStatus {
+/**
+ * Node results are serialized through `mapEngineNodeStatus`, so they always
+ * arrive as Prisma-backed SCREAMING_SNAKE `WorkflowExecutionStatus` labels — the
+ * engine's lowercase `skipped` is folded into `COMPLETED` server-side.
+ *
+ * @see apps/server/api/src/collections/workflows/services/workflow-execution-status.util.ts
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+function mapExecutionStatusToNodeStatus(
+  status: WorkflowExecutionStatus,
+): WorkflowNodeStatus {
   switch (status) {
-    case 'completed':
+    case WorkflowExecutionStatus.COMPLETED:
       return WorkflowNodeStatus.COMPLETE;
-    case 'failed':
+    case WorkflowExecutionStatus.FAILED:
       return WorkflowNodeStatus.ERROR;
-    case 'running':
+    case WorkflowExecutionStatus.RUNNING:
       return WorkflowNodeStatus.PROCESSING;
-    case 'pending':
-    case 'skipped':
     default:
       return WorkflowNodeStatus.IDLE;
   }

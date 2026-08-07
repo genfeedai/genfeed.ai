@@ -1,11 +1,17 @@
+import type { IngredientStatus } from '@genfeedai/enums';
 import { get, post } from './client';
 import { flattenSingle, type JsonApiSingleResponse } from './json-api';
 
-export type ImageStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
 export interface Image {
   id: string;
-  status: ImageStatus;
+  /**
+   * Images are ingredients, so the wire value is the Prisma-backed
+   * `IngredientStatus` — SCREAMING_SNAKE, and a finished image is `GENERATED`,
+   * not `COMPLETED`.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
+  status: IngredientStatus;
   text?: string;
   model: string;
   width?: number;
