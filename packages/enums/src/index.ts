@@ -73,6 +73,7 @@ export * from './parse-mode.enum';
 export * from './persona.enum';
 export * from './platform.enum';
 export * from './platform.util';
+export * from './platform-prisma.mapper';
 export * from './platform-role.enum';
 export * from './post.enum';
 export * from './priority.enum';
