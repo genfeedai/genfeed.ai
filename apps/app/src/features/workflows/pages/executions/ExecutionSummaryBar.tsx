@@ -47,11 +47,12 @@ export default function ExecutionSummaryBar({
             {etaDisplay.actualDurationLabel ??
               (duration !== null ? `${duration}s` : 'In progress')}
           </div>
-          {etaDisplay.elapsedLabel && status !== 'completed' && (
-            <div className="text-xs text-muted-foreground">
-              Elapsed {etaDisplay.elapsedLabel}
-            </div>
-          )}
+          {etaDisplay.elapsedLabel &&
+            status !== WorkflowExecutionStatus.COMPLETED && (
+              <div className="text-xs text-muted-foreground">
+                Elapsed {etaDisplay.elapsedLabel}
+              </div>
+            )}
         </div>
         <div>
           <div className="text-sm text-muted-foreground">ETA</div>
