@@ -198,7 +198,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(screen.getByText('Response Data')).toBeInTheDocument();
+    expect(screen.getByText('Response')).toBeInTheDocument();
   });
 
   it('should toggle response data expansion', () => {
@@ -216,21 +216,21 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    const expandButton = screen.getByText('Response Data').closest('button');
-    expect(expandButton).toBeInTheDocument();
-    if (!expandButton) {
-      throw new Error('Response Data button not found');
+    const toggleButton = screen.getByText('Response').closest('button');
+    expect(toggleButton).toBeInTheDocument();
+    if (!toggleButton) {
+      throw new Error('Response toggle not found');
     }
 
-    // Initially collapsed
-    expect(screen.queryByText('"error": "Test error"')).not.toBeInTheDocument();
-
-    // Click to expand
-    fireEvent.click(expandButton);
+    // Response is the one section that opens expanded — it is the payload the
+    // user came for. Stack and Context stay collapsed.
     expect(screen.getByText(/"error":/)).toBeInTheDocument();
 
-    // Click to collapse
-    fireEvent.click(expandButton);
+    fireEvent.click(toggleButton);
+    expect(screen.queryByText(/"error":/)).not.toBeInTheDocument();
+
+    fireEvent.click(toggleButton);
+    expect(screen.getByText(/"error":/)).toBeInTheDocument();
   });
 
   it('should display stack trace when available', () => {
@@ -245,7 +245,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(screen.getByText('Stack Trace')).toBeInTheDocument();
+    expect(screen.getByText('Stack')).toBeInTheDocument();
   });
 
   it('should display additional context when available', () => {
@@ -263,7 +263,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(screen.getByText('Additional Context')).toBeInTheDocument();
+    expect(screen.getByText('Context')).toBeInTheDocument();
   });
 
   it('should handle request details', () => {
@@ -362,7 +362,7 @@ describe('ModalErrorDebug', () => {
 
     expect(screen.getByText('Error with empty context')).toBeInTheDocument();
 
-    // Should not show Additional Context section for empty object
-    expect(screen.queryByText('Additional Context')).not.toBeInTheDocument();
+    // Should not show the Context section for an empty object
+    expect(screen.queryByText('Context')).not.toBeInTheDocument();
   });
 });
