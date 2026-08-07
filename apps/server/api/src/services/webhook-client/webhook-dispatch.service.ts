@@ -108,7 +108,7 @@ export class WebhookDispatchService {
       endpoint: settings.webhookEndpoint,
       isTest: options.isTest,
       organizationId,
-      payload: payload as WebhookJobData['payload'],
+      payload: { ...payload },
       secret: settings.webhookSecret,
     };
 

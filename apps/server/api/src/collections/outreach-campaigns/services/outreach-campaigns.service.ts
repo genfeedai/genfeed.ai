@@ -9,7 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PrismaFindAllInput } from '@api/shared/services/base/base.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { CampaignStatus } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
+import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -59,8 +59,8 @@ function normalizeDocs(rows: unknown[]): OutreachCampaignDocument[] {
   return rows.map((r) => normalizeDoc(r as Record<string, unknown>));
 }
 
-function toPrismaCredentialPlatform(platform: string): string {
-  return platform.toUpperCase();
+function toPrismaCredentialPlatform(platform: string): CredentialPlatform {
+  return platform.toUpperCase() as CredentialPlatform;
 }
 
 @Injectable()

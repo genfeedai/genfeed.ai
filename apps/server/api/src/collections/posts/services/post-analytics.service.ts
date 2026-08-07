@@ -78,7 +78,7 @@ export class PostAnalyticsService extends BaseService<
           totalLikes: 0,
           totalShares: 0,
           totalViews: 0,
-        } as Prisma.PostAnalyticsCreateInput,
+        } as Prisma.PostAnalyticsUncheckedCreateInput,
         update: {},
         where: {
           postId_platform_date: { date: today, platform, postId },
@@ -169,7 +169,7 @@ export class PostAnalyticsService extends BaseService<
         userId: owner.userId,
         ...metrics,
         ...increments,
-      } as Prisma.PostAnalyticsCreateInput,
+      } as Prisma.PostAnalyticsUncheckedCreateInput,
       update: {
         engagementRate,
         ...metrics,
@@ -410,7 +410,7 @@ export class PostAnalyticsService extends BaseService<
           totalViews: 0,
           totalViewsIncrement: 0,
           userId,
-        } as Prisma.PostAnalyticsCreateInput);
+        });
 
         await this.updateTodayAnalytics(postId, platform, analytics);
 

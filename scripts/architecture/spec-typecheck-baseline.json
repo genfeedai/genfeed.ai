@@ -1441,14 +1441,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "2687e6c808312b29cade",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<ModelCreateInput, ModelUncheckedCreateInput> & ModelUncheckedCreateInput) | (Without<...> & ModelCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<ModelCreateInput, ModelUncheckedCreateInput> & ModelUncheckedCreateInput) | (Without<...> & ModelCreateInput)) & object'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/musics/controllers/musics-operations.controller.spec.ts",
@@ -1569,14 +1561,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "d681ab6976f9b4d5fa33",
-      "message": "Type '{ brandId?: string | undefined; id: string; isConnected: boolean; platform: string; } & { isDeleted: boolean; organizationId: string; }' is not assignable to type 'CredentialWhereInput | undefined'.   Type '{ brandId?: string | undefined; id: string; isConnected: boolean; platform: string; } & { isDeleted: boolean; organizationId: string; }' is not assignable to type 'CredentialWhereInput'.     Types of property 'platform' are incompatible.       Type 'string' is not assignable to type 'CredentialPlatform | EnumCredentialPlatformFilter<\"Credential\"> | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 8,
       "file": "apps/server/api/src/collections/post-groups/services/post-group-readiness.service.spec.ts",
@@ -1598,38 +1582,6 @@
       "file": "apps/server/api/src/collections/posts/entities/post.entity.spec.ts",
       "fingerprint": "b4de5d1f7e55ff995dc6",
       "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "acf8d3daec5065f65092",
-      "message": "Argument of type 'PostAnalyticsCreateInput' is not assignable to parameter of type 'Partial<CreatePostAnalyticsDto>'.   Types of property 'ingredients' are incompatible.     Type 'IngredientCreateNestedManyWithoutPostAnalyticsIngredientsInput | undefined' is not assignable to type 'string[] | undefined'.       Type 'IngredientCreateNestedManyWithoutPostAnalyticsIngredientsInput' is missing the following properties from type 'string[]': length, pop, push, concat, and 29 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "105000dfb8806c4f1c21",
-      "message": "Conversion of type '{ totalCommentsIncrement: number; totalLikesIncrement: number; totalSavesIncrement: number; totalSharesIncrement: number; totalViewsIncrement: number; totalViews: number; totalLikes: number; ... 9 more ...; userId: string; }' to type 'PostAnalyticsCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ totalCommentsIncrement: number; totalLikesIncrement: number; totalSavesIncrement: number; totalSharesIncrement: number; totalViewsIncrement: number; totalViews: number; totalLikes: number; ... 9 more ...; userId: string; }' is missing the following properties from type 'PostAnalyticsCreateInput': post, user, organization, brand",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "563a31982c9fe9bfd9b8",
-      "message": "Conversion of type '{ platform: CredentialPlatform; postId: string; totalComments: number; totalLikes: number; totalShares: number; totalViews: number; ingredients?: { connect: { id: string; }[]; } | undefined; ... 10 more ...; engagementRate?: number | undefined; }' to type 'PostAnalyticsCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ platform: CredentialPlatform; postId: string; totalComments: number; totalLikes: number; totalShares: number; totalViews: number; ingredients?: { connect: { id: string; }[]; } | undefined; ... 10 more ...; engagementRate?: number | undefined; }' is missing the following properties from type 'PostAnalyticsCreateInput': post, user, organization, brand",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "58f2149d79cdf5718c14",
-      "message": "Conversion of type '{ brandId: string; date: Date; engagementRate: number; organizationId: string; platform: CredentialPlatform; postId: string; totalComments: number; totalCommentsIncrement: number; ... 8 more ...; userId: string; }' to type 'PostAnalyticsCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brandId: string; date: Date; engagementRate: number; organizationId: string; platform: CredentialPlatform; postId: string; totalComments: number; totalCommentsIncrement: number; ... 8 more ...; userId: string; }' is missing the following properties from type 'PostAnalyticsCreateInput': post, user, organization, brand",
       "workspace": "api"
     },
     {
@@ -1817,30 +1769,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "66511b1200da51fce40c",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<SkillCreateInput, SkillUncheckedCreateInput> & SkillUncheckedCreateInput) | (Without<...> & SkillCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<SkillCreateInput, SkillUncheckedCreateInput> & SkillUncheckedCreateInput) | (Without<...> & SkillCreateInput)) & object'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "924d32a9b5a063cb32c0",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<SkillUpdateInput, SkillUncheckedUpdateInput> & SkillUncheckedUpdateInput) | (Without<...> & SkillUpdateInput)) & object'.   Type 'string' is not assignable to type '((Without<SkillUpdateInput, SkillUncheckedUpdateInput> & SkillUncheckedUpdateInput) | (Without<...> & SkillUpdateInput)) & object'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "c8809265d55214689726",
-      "message": "Type 'InputJsonValue' is not assignable to type 'SkillWhereInput | undefined'.   Type 'string' has no properties in common with type 'SkillWhereInput'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/social-sources/services/social-sources.service.spec.ts",
@@ -2022,30 +1950,6 @@
       "file": "apps/server/api/src/collections/trends/services/modules/trend-content-ideas.service.spec.ts",
       "fingerprint": "618fa209826c777959f5",
       "message": "Conversion of type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' to type 'typeof setTimeout' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property '__promisify__' is missing in type '(callback: TimerHandler) => ReturnType<typeof setTimeout>' but required in type 'typeof setTimeout'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "1b808b98b8a347876f28",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<TrendRemixLineageUpdateInput, TrendRemixLineageUncheckedUpdateInput> & TrendRemixLineageUncheckedUpdateInput) | (Without<...> & TrendRemixLineageUpdateInput)) & object'.   Type 'string' is not assignable to type '((Without<TrendRemixLineageUpdateInput, TrendRemixLineageUncheckedUpdateInput> & TrendRemixLineageUncheckedUpdateInput) | (Without<...> & TrendRemixLineageUpdateInput)) & object'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "1e2908cdf94986dec268",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<TrendRemixLineageCreateInput, TrendRemixLineageUncheckedCreateInput> & TrendRemixLineageUncheckedCreateInput) | (Without<...> & TrendRemixLineageCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<TrendRemixLineageCreateInput, TrendRemixLineageUncheckedCreateInput> & TrendRemixLineageUncheckedCreateInput) | (Without<...> & TrendRemixLineageCreateInput)) & object'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "feba972516ed66595d83",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type '{ where?: TrendSourceReferenceWhereInput | undefined; orderBy?: TrendSourceReferenceOrderByWithAggregationInput | TrendSourceReferenceOrderByWithAggregationInput[] | undefined; ... 8 more ...; _max?: TrendSourceReferenceMaxAggregateInputType | undefined; } & { ...; }'.   Type 'string' is not assignable to type '{ where?: TrendSourceReferenceWhereInput | undefined; orderBy?: TrendSourceReferenceOrderByWithAggregationInput | TrendSourceReferenceOrderByWithAggregationInput[] | undefined; ... 8 more ...; _max?: TrendSourceReferenceMaxAggregateInputType | undefined; } & { ...; }'.     Type 'string' is not assignable to type '{ where?: TrendSourceReferenceWhereInput | undefined; orderBy?: TrendSourceReferenceOrderByWithAggregationInput | TrendSourceReferenceOrderByWithAggregationInput[] | undefined; ... 8 more ...; _max?: TrendSourceReferenceMaxAggregateInputType | undefined; }'.",
       "workspace": "api"
     },
     {
@@ -2273,22 +2177,6 @@
       "workspace": "api"
     },
     {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "4c59dfb17ccf2844bb9f",
-      "message": "Property 'creditsUsed' does not exist on type '{ durationMs: number; metadata: { eta: { actualDurationMs: number; currentPhase: string; lastEtaUpdateAt: string; remainingDurationMs: number; }; }; progress: number; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "e6a57e81cf04ab5f559f",
-      "message": "Property 'failedNodeId' does not exist on type '{ durationMs: number; metadata: { eta: { actualDurationMs: number; currentPhase: string; lastEtaUpdateAt: string; remainingDurationMs: number; }; }; progress: number; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 18048,
       "count": 2,
       "file": "apps/server/api/src/collections/workflows/controllers/workflow-batch.controller.spec.ts",
@@ -2454,22 +2342,6 @@
       "file": "apps/server/api/src/collections/workflows/services/batch-workflow-queue.service.spec.ts",
       "fingerprint": "4fd5ba4bc9bad7b98892",
       "message": "Type 'Mock<Procedure | Constructable>' does not satisfy the constraint '(...args: any) => any'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type '(...args: any) => any'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(...args: any): any'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "3c9f4f77b7ad2db6b49f",
-      "message": "Type 'BatchWorkflowJobCreateInput' is not assignable to type 'IngredientWhereInput'.   Types of property 'status' are incompatible.     Type 'BatchStatus | undefined' is not assignable to type 'IngredientStatus | EnumIngredientStatusFilter<\"Ingredient\"> | undefined'.       Type '\"PENDING\"' is not assignable to type 'IngredientStatus | EnumIngredientStatusFilter<\"Ingredient\"> | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "e0806b7e921c4ddf0fa6",
-      "message": "Conversion of type '{ id: { in: string[]; }; } & { isDeleted: boolean; organizationId: string; }' to type 'BatchWorkflowJobCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: { in: string[]; }; } & { isDeleted: boolean; organizationId: string; }' is missing the following properties from type 'BatchWorkflowJobCreateInput': userId, organization, workflow",
       "workspace": "api"
     },
     {
@@ -4969,14 +4841,6 @@
       "workspace": "api"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/webhook-client/webhook-dispatch.service.ts",
-      "fingerprint": "478496cf3fbb24e41024",
-      "message": "Conversion of type 'WebhookDispatchPayload' to type '{ [key: string]: unknown; event: string; timestamp: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Index signature for type 'string' is missing in type 'WebhookDispatchPayload'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 6,
       "file": "apps/server/api/src/services/workflow-executor/processors/sound-overlay.processor.spec.ts",
@@ -6313,134 +6177,6 @@
       "workspace": "workers"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/models/services/models.service.ts",
-      "fingerprint": "2cf8c8f2106ece1624e1",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<ModelCreateInput, ModelUncheckedCreateInput> & ModelUncheckedCreateInput) | (Without<...> & ModelCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<ModelCreateInput, ModelUncheckedCreateInput> & ModelUncheckedCreateInput) | (Without<...> & ModelCreateInput)) & object'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/outreach-campaigns/services/outreach-campaigns.service.ts",
-      "fingerprint": "6f0c5d5fdc44f61eba82",
-      "message": "Type '{ brandId?: string | undefined; id: string; isConnected: boolean; platform: string; } & { isDeleted: boolean; organizationId: string; }' is not assignable to type 'CredentialWhereInput | undefined'.   Type '{ brandId?: string | undefined; id: string; isConnected: boolean; platform: string; } & { isDeleted: boolean; organizationId: string; }' is not assignable to type 'CredentialWhereInput'.     Types of property 'platform' are incompatible.       Type 'string' is not assignable to type 'CredentialPlatform | EnumCredentialPlatformFilter<\"Credential\"> | undefined'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "ccbdaebe26246dac10e5",
-      "message": "Argument of type 'PostAnalyticsCreateInput' is not assignable to parameter of type 'Partial<CreatePostAnalyticsDto>'.   Types of property 'ingredients' are incompatible.     Type 'IngredientCreateNestedManyWithoutPostAnalyticsIngredientsInput | undefined' is not assignable to type 'string[] | undefined'.       Type 'IngredientCreateNestedManyWithoutPostAnalyticsIngredientsInput' is missing the following properties from type 'string[]': length, pop, push, concat, and 29 more.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "434231b18074764ef608",
-      "message": "Conversion of type '{ platform: CredentialPlatform; postId: string; totalComments: number; totalLikes: number; totalShares: number; totalViews: number; ingredients?: { connect: { id: string; }[]; } | undefined; ... 10 more ...; engagementRate?: number | undefined; }' to type 'PostAnalyticsCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ platform: CredentialPlatform; postId: string; totalComments: number; totalLikes: number; totalShares: number; totalViews: number; ingredients?: { connect: { id: string; }[]; } | undefined; ... 10 more ...; engagementRate?: number | undefined; }' is missing the following properties from type 'PostAnalyticsCreateInput': post, user, organization, brand",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "7395a58e5d8f45fd722f",
-      "message": "Conversion of type '{ brandId: string; date: Date; engagementRate: number; organizationId: string; platform: CredentialPlatform; postId: string; totalComments: number; totalCommentsIncrement: number; ... 8 more ...; userId: string; }' to type 'PostAnalyticsCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brandId: string; date: Date; engagementRate: number; organizationId: string; platform: CredentialPlatform; postId: string; totalComments: number; totalCommentsIncrement: number; ... 8 more ...; userId: string; }' is missing the following properties from type 'PostAnalyticsCreateInput': post, user, organization, brand",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-analytics.service.ts",
-      "fingerprint": "e3ffdf267713349d1c72",
-      "message": "Conversion of type '{ totalCommentsIncrement: number; totalLikesIncrement: number; totalSavesIncrement: number; totalSharesIncrement: number; totalViewsIncrement: number; totalViews: number; totalLikes: number; ... 9 more ...; userId: string; }' to type 'PostAnalyticsCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ totalCommentsIncrement: number; totalLikesIncrement: number; totalSavesIncrement: number; totalSharesIncrement: number; totalViewsIncrement: number; totalViews: number; totalLikes: number; ... 9 more ...; userId: string; }' is missing the following properties from type 'PostAnalyticsCreateInput': post, user, organization, brand",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "2697d6cf295c6797721b",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<SkillUpdateInput, SkillUncheckedUpdateInput> & SkillUncheckedUpdateInput) | (Without<...> & SkillUpdateInput)) & object'.   Type 'string' is not assignable to type '((Without<SkillUpdateInput, SkillUncheckedUpdateInput> & SkillUncheckedUpdateInput) | (Without<...> & SkillUpdateInput)) & object'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "4b9b419914d83af1f26d",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<SkillCreateInput, SkillUncheckedCreateInput> & SkillUncheckedCreateInput) | (Without<...> & SkillCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<SkillCreateInput, SkillUncheckedCreateInput> & SkillUncheckedCreateInput) | (Without<...> & SkillCreateInput)) & object'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "d6c541c786edcc25b549",
-      "message": "Type 'InputJsonValue' is not assignable to type 'SkillWhereInput | undefined'.   Type 'string' has no properties in common with type 'SkillWhereInput'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "a291bae6de33d73462b7",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<TrendRemixLineageUpdateInput, TrendRemixLineageUncheckedUpdateInput> & TrendRemixLineageUncheckedUpdateInput) | (Without<...> & TrendRemixLineageUpdateInput)) & object'.   Type 'string' is not assignable to type '((Without<TrendRemixLineageUpdateInput, TrendRemixLineageUncheckedUpdateInput> & TrendRemixLineageUncheckedUpdateInput) | (Without<...> & TrendRemixLineageUpdateInput)) & object'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "d5312cd45f6ab8aea964",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<TrendRemixLineageCreateInput, TrendRemixLineageUncheckedCreateInput> & TrendRemixLineageUncheckedCreateInput) | (Without<...> & TrendRemixLineageCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<TrendRemixLineageCreateInput, TrendRemixLineageUncheckedCreateInput> & TrendRemixLineageUncheckedCreateInput) | (Without<...> & TrendRemixLineageCreateInput)) & object'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "094e879ac14659392771",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type '{ where?: TrendSourceReferenceWhereInput | undefined; orderBy?: TrendSourceReferenceOrderByWithAggregationInput | TrendSourceReferenceOrderByWithAggregationInput[] | undefined; ... 8 more ...; _max?: TrendSourceReferenceMaxAggregateInputType | undefined; } & { ...; }'.   Type 'string' is not assignable to type '{ where?: TrendSourceReferenceWhereInput | undefined; orderBy?: TrendSourceReferenceOrderByWithAggregationInput | TrendSourceReferenceOrderByWithAggregationInput[] | undefined; ... 8 more ...; _max?: TrendSourceReferenceMaxAggregateInputType | undefined; } & { ...; }'.     Type 'string' is not assignable to type '{ where?: TrendSourceReferenceWhereInput | undefined; orderBy?: TrendSourceReferenceOrderByWithAggregationInput | TrendSourceReferenceOrderByWithAggregationInput[] | undefined; ... 8 more ...; _max?: TrendSourceReferenceMaxAggregateInputType | undefined; }'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "455ad9986d65b5ac4d48",
-      "message": "Property 'failedNodeId' does not exist on type '{ durationMs: number; metadata: { eta: { actualDurationMs: number; currentPhase: string; lastEtaUpdateAt: string; remainingDurationMs: number; }; }; progress: number; }'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/workflow-executions/services/workflow-executions.service.ts",
-      "fingerprint": "bd0adcb96d05b9a40f1a",
-      "message": "Property 'creditsUsed' does not exist on type '{ durationMs: number; metadata: { eta: { actualDurationMs: number; currentPhase: string; lastEtaUpdateAt: string; remainingDurationMs: number; }; }; progress: number; }'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "66ff6148fd19e27a5526",
-      "message": "Type 'BatchWorkflowJobCreateInput' is not assignable to type 'IngredientWhereInput'.   Types of property 'status' are incompatible.     Type 'BatchStatus | undefined' is not assignable to type 'IngredientStatus | EnumIngredientStatusFilter<\"Ingredient\"> | undefined'.       Type '\"PENDING\"' is not assignable to type 'IngredientStatus | EnumIngredientStatusFilter<\"Ingredient\"> | undefined'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/batch-workflow.service.ts",
-      "fingerprint": "7261d7c6b28b12dfcc60",
-      "message": "Conversion of type '{ id: { in: string[]; }; } & { isDeleted: boolean; organizationId: string; }' to type 'BatchWorkflowJobCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ id: { in: string[]; }; } & { isDeleted: boolean; organizationId: string; }' is missing the following properties from type 'BatchWorkflowJobCreateInput': userId, organization, workflow",
-      "workspace": "workers"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
@@ -6510,14 +6246,6 @@
       "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
       "fingerprint": "85651246df49a968e731",
       "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/webhook-client/webhook-dispatch.service.ts",
-      "fingerprint": "d525b2c17e5af508f07a",
-      "message": "Conversion of type 'WebhookDispatchPayload' to type '{ [key: string]: unknown; event: string; timestamp: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Index signature for type 'string' is missing in type 'WebhookDispatchPayload'.",
       "workspace": "workers"
     },
     {

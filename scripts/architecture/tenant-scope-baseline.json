@@ -2043,7 +2043,7 @@
     {
       "delegate": "skill",
       "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "985cd65abbdaf62040bb",
+      "fingerprint": "1ea490fbf271ea7723f8",
       "method": "findFirst",
       "model": "Skill",
       "reason": "unresolved-where"
@@ -2079,22 +2079,6 @@
       "method": "findMany",
       "model": "Skill",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "452d57839a8dc9bc7fcd",
-      "method": "update",
-      "model": "Skill",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "0d8eb0b2741cc2564bb5",
-      "method": "update",
-      "model": "Skill",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "socialConversation",
@@ -2519,22 +2503,6 @@
       "method": "findFirst",
       "model": "TrendRemixLineage",
       "reason": "unresolved-where"
-    },
-    {
-      "delegate": "trendRemixLineage",
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "871f3724d056060cceab",
-      "method": "update",
-      "model": "TrendRemixLineage",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "trendRemixLineage",
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "6f1e39ffec10918bb2ad",
-      "method": "update",
-      "model": "TrendRemixLineage",
-      "reason": "missing-organization-id"
     },
     {
       "delegate": "watchlist",
