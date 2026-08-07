@@ -1,6 +1,6 @@
 'use client';
 
-import type { PageScope } from '@genfeedai/enums';
+import type { PageScope, ReviewDecision } from '@genfeedai/enums';
 import { AlertCategory, PostStatus } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
@@ -102,11 +102,8 @@ export default function PostDetail({
         generationId: (post as { generationId?: string }).generationId,
         promptUsed: (post as { promptUsed?: string }).promptUsed,
         reviewBatchId: (post as { reviewBatchId?: string }).reviewBatchId,
-        reviewDecision: (
-          post as {
-            reviewDecision?: 'approved' | 'rejected' | 'request_changes';
-          }
-        ).reviewDecision,
+        reviewDecision: (post as { reviewDecision?: ReviewDecision })
+          .reviewDecision,
         reviewEvents: (
           post as {
             reviewEvents?: Array<{

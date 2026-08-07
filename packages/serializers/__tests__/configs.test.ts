@@ -79,7 +79,7 @@ describe('Serializer Configurations', () => {
         id: 'post-123',
         promptUsed: 'Write a launch post',
         reviewBatchId: 'batch-1',
-        reviewDecision: 'approved',
+        reviewDecision: 'APPROVED',
         reviewItemId: 'item-1',
         sourceActionId: 'action-1',
         sourceWorkflowName: 'Clip Workflow',
@@ -96,7 +96,7 @@ describe('Serializer Configurations', () => {
       );
       expect(result.data.attributes).toHaveProperty(
         'review-decision',
-        'approved',
+        'APPROVED',
       );
       expect(result.data.attributes).toHaveProperty('review-item-id', 'item-1');
       expect(result.data.attributes).toHaveProperty(

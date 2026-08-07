@@ -1,5 +1,10 @@
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  type ReviewDecision,
+} from '@genfeedai/enums';
 
 export interface PostAnalyticsSummary {
   totalViews: number;
@@ -79,7 +84,7 @@ export class PostEntity extends BaseEntity {
   declare readonly publishIntent?: string;
   declare readonly reviewBatchId?: string;
   declare readonly reviewItemId?: string;
-  declare readonly reviewDecision?: 'approved' | 'rejected' | 'request_changes';
+  declare readonly reviewDecision?: ReviewDecision;
   declare readonly reviewFeedback?: string;
   declare readonly reviewVersionPinId?: string;
   declare readonly publishApprovalId?: string;
