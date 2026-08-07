@@ -507,6 +507,12 @@ jobs:
     # Temporarily disabled while extensions are not active delivery surfaces.
     # Re-enable by setting ENABLE_EXTENSION_CI=true and removing `extensions`
     # from TEMPORARILY_DISABLED_TEST_GROUPS in scripts/ci/pr-test-plan.mjs.
+    #
+    # BOTH gates are load-bearing, and neither is a `full-suite` bug (#2486):
+    # the label escalates the other heavy jobs by way of the planner's
+    # --run-heavy flag, but the planner forces a dormant group inapplicable, and
+    # the vars gate below short-circuits this job regardless. Tests Gate reports
+    # the skip as "dormant (paused surface)" so the pause stays visible.
     if: >-
       vars.ENABLE_EXTENSION_CI == 'true'
       && needs.trust.outputs.is-trusted == 'true'

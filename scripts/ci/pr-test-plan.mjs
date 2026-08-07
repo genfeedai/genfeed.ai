@@ -25,7 +25,14 @@ const FORCE_FULL_PATTERNS = [
 // Keep dormant surface definitions in the planner so they can be restored
 // without reconstructing their CI contract. Remove a group from this set when
 // that surface becomes an active delivery target again.
-const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
+//
+// This is the single source of truth for surface dormancy: `tests-gate.mjs`
+// imports it so the gate summary can label a paused surface as dormant instead
+// of reporting it as an ordinary out-of-scope skip (#2486). A dormant group is
+// forced inapplicable here even under `--run-heavy`, so the `full-suite` label
+// escalates every other group but cannot revive this one. Re-enabling a surface
+// also requires its workflow-level `vars.ENABLE_*_CI` gate in ci.yml.
+export const TEMPORARILY_DISABLED_TEST_GROUPS = new Set(['extensions']);
 
 const TURBO_TEST_GROUPS = {
   extensions: [

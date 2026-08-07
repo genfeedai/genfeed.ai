@@ -71,9 +71,85 @@ test('accepts skipped workspace jobs only when the plan marks them inapplicable'
 
   assert.equal(result.passed, true);
   assert.equal(
-    result.rows.find((row) => row.name === 'Extension tests')?.classification,
+    result.rows.find((row) => row.name === 'Server-service tests')
+      ?.classification,
     'not applicable',
   );
+});
+
+test('labels a paused surface as dormant rather than merely out of scope', () => {
+  const result = evaluate({
+    TEST_SCOPE_EXTENSIONS: 'false',
+    TEST_EXTENSIONS_RESULT: 'skipped',
+  });
+
+  assert.equal(result.passed, true);
+  assert.equal(
+    result.rows.find((row) => row.name === 'Extension tests')?.classification,
+    'dormant (paused surface)',
+  );
+});
+
+test('keeps a paused surface dormant on a full-suite run', () => {
+  const result = evaluate({
+    FULL_SUITE: 'true',
+    TEST_SCOPE_EXTENSIONS: 'false',
+    TEST_EXTENSIONS_RESULT: 'skipped',
+    TEST_APP_RESULT: 'success',
+    TEST_APP_CHANGED_RESULT: 'skipped',
+    TEST_API_RESULT: 'success',
+    TEST_API_CHANGED_RESULT: 'skipped',
+  });
+
+  assert.equal(result.passed, true);
+  assert.equal(
+    result.rows.find((row) => row.name === 'Extension tests')?.classification,
+    'dormant (paused surface)',
+  );
+});
+
+test('dormancy never softens a failing paused-surface job', () => {
+  const result = evaluate({
+    TEST_SCOPE_EXTENSIONS: 'false',
+    TEST_EXTENSIONS_RESULT: 'failure',
+  });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, ['Extension tests failure']);
+});
+
+test('dormancy never excuses a paused surface the plan marked applicable', () => {
+  const result = evaluate({
+    TEST_SCOPE_EXTENSIONS: 'true',
+    TEST_EXTENSIONS_RESULT: 'skipped',
+  });
+
+  assert.equal(result.passed, false);
+  assert.deepEqual(result.failures, [
+    'Extension tests was applicable but skipped',
+  ]);
+});
+
+test('names paused surfaces in the summary of an otherwise passing run', () => {
+  const result = runGateCli({
+    TEST_SCOPE_EXTENSIONS: 'false',
+    TEST_EXTENSIONS_RESULT: 'skipped',
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /All applicable test and build jobs passed\./);
+  assert.match(
+    result.stdout,
+    /Not covered by this run — paused surfaces: Extension tests\./,
+  );
+  assert.match(result.stdout, /stay skipped even with the `full-suite` label/);
+});
+
+test('omits the paused-surface note when nothing was skipped as dormant', () => {
+  const result = runGateCli();
+
+  assert.equal(result.status, 0);
+  assert.doesNotMatch(result.stdout, /paused surfaces/);
 });
 
 test('rejects skipped workspace jobs when the plan marks them applicable', () => {
