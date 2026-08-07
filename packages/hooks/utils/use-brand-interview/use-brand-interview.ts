@@ -1,5 +1,6 @@
 'use client';
 
+import { BrandInterviewStatus } from '@genfeedai/enums';
 import type {
   BrandInterviewAnswerValue,
   IBrandInterviewProgress,
@@ -77,7 +78,7 @@ export function useBrandInterview(
           return;
         }
 
-        if (active && active.status === 'in_progress') {
+        if (active && active.status === BrandInterviewStatus.IN_PROGRESS) {
           setInterviewId(active.id);
           setCurrentQuestion(active.currentQuestion);
           setCompletenessScore(active.completenessScore);
@@ -145,7 +146,11 @@ export function useBrandInterview(
       setCompletenessScore(result.completenessScore);
       setSteps(result.steps ?? []);
       setAnsweredFields(result.answeredFields ?? {});
-      setStatus(result.status === 'completed' ? 'complete' : 'in_progress');
+      setStatus(
+        result.status === BrandInterviewStatus.COMPLETED
+          ? 'complete'
+          : 'in_progress',
+      );
 
       logger.info('Started brand interview', {
         id: result.interviewId,

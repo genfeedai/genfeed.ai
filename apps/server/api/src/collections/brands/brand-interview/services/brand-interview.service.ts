@@ -4,7 +4,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource, BrandInterviewStatus } from '@genfeedai/enums';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type {
   BrandInterviewAnswerValue,
@@ -60,7 +60,7 @@ export class BrandInterviewService {
     const existing = await this.prisma.brandInterview.findFirst({
       where: scopedWhere(organizationId, {
         brandId,
-        status: 'in_progress' as const,
+        status: BrandInterviewStatus.IN_PROGRESS,
       }),
     });
 
@@ -115,7 +115,7 @@ export class BrandInterviewService {
           currentFieldKey: firstFieldKey,
           isDeleted: false,
           organizationId,
-          status: 'in_progress',
+          status: BrandInterviewStatus.IN_PROGRESS,
           userId,
         },
       });
@@ -125,7 +125,7 @@ export class BrandInterviewService {
         const race = await this.prisma.brandInterview.findFirst({
           where: scopedWhere(organizationId, {
             brandId,
-            status: 'in_progress' as const,
+            status: BrandInterviewStatus.IN_PROGRESS,
           }),
         });
         if (race) {
@@ -147,7 +147,7 @@ export class BrandInterviewService {
     } catch (error: unknown) {
       // Compensate: soft-delete the session so the unique index is freed
       await this.prisma.brandInterview.update({
-        data: { isDeleted: true, status: 'abandoned' },
+        data: { isDeleted: true, status: BrandInterviewStatus.ABANDONED },
         where: { id: session.id },
       });
       throw error;
@@ -219,7 +219,7 @@ export class BrandInterviewService {
         completenessScore: session.completenessBefore,
         isComplete: false,
         nextFieldKey: session.currentFieldKey,
-        status: 'in_progress',
+        status: BrandInterviewStatus.IN_PROGRESS,
       });
     }
 
@@ -253,7 +253,9 @@ export class BrandInterviewService {
       ) ?? null;
 
     const isComplete = nextFieldKey === null;
-    const newStatus = isComplete ? 'completed' : 'in_progress';
+    const newStatus = isComplete
+      ? BrandInterviewStatus.COMPLETED
+      : BrandInterviewStatus.IN_PROGRESS;
     const completenessAfter = isComplete ? completeness.overallScore : null;
 
     const updated = await this.prisma.brandInterview.update({
@@ -314,7 +316,9 @@ export class BrandInterviewService {
       ) ?? null;
 
     const isComplete = nextFieldKey === null;
-    const newStatus = isComplete ? 'completed' : 'in_progress';
+    const newStatus = isComplete
+      ? BrandInterviewStatus.COMPLETED
+      : BrandInterviewStatus.IN_PROGRESS;
     const completenessAfter = isComplete ? completeness.overallScore : null;
 
     const updated = await this.prisma.brandInterview.update({
@@ -347,14 +351,14 @@ export class BrandInterviewService {
       throw new NotFoundException('BrandInterview', interviewId);
     }
 
-    if (session.status !== 'in_progress') {
+    if (session.status !== BrandInterviewStatus.IN_PROGRESS) {
       throw new BadRequestException(
         'Only in-progress interviews can be abandoned.',
       );
     }
 
     return this.prisma.brandInterview.update({
-      data: { status: 'abandoned' },
+      data: { status: BrandInterviewStatus.ABANDONED },
       where: { id: interviewId },
     });
   }
@@ -381,7 +385,7 @@ export class BrandInterviewService {
     const session = await this.prisma.brandInterview.findFirst({
       where: scopedWhere(organizationId, {
         brandId,
-        status: 'in_progress' as const,
+        status: BrandInterviewStatus.IN_PROGRESS,
       }),
     });
 
@@ -432,7 +436,7 @@ export class BrandInterviewService {
       throw new NotFoundException('BrandInterview', interviewId);
     }
 
-    if (session.status !== 'in_progress') {
+    if (session.status !== BrandInterviewStatus.IN_PROGRESS) {
       throw new BadRequestException(
         `Interview is not in progress (current status: ${session.status}).`,
       );

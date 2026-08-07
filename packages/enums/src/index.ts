@@ -21,6 +21,7 @@ export * from './bookmark.enum';
 export * from './bot.enum';
 export * from './bot-command.enum';
 export * from './bot-response.enum';
+export * from './brand-interview.enum';
 export * from './button.enum';
 export * from './byok-provider.enum';
 export * from './campaign.enum';

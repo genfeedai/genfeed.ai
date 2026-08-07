@@ -69,7 +69,7 @@ export class BrandInterviewController {
 
   /**
    * GET /brands/:brandId/interview/active
-   * Return the active (in_progress) interview for a brand, or 404.
+   * Return the active (IN_PROGRESS) interview for a brand, or 404.
    */
   @Get(':brandId/interview/active')
   async getActiveForBrand(

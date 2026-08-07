@@ -859,9 +859,9 @@ model Brand {
 }
 
 enum BrandInterviewStatus {
-  in_progress
-  completed
-  abandoned
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
 
   @@map("brand_interview_status")
 }
@@ -869,7 +869,7 @@ enum BrandInterviewStatus {
 // Stateful brand-context interview session. Detects in-scope gaps (identity /
 // voice / strategy) via computeBrandCompleteness, asks one question per gap, and
 // writes answers back into the Brand. At most one active session per brand is
-// enforced by a partial unique index (status = 'in_progress', is_deleted = false)
+// enforced by a partial unique index (status = 'IN_PROGRESS', is_deleted = false)
 // added in the migration; the per-run credit charge happens once at session start.
 model BrandInterview {
   id                 String               @id @default(cuid())
@@ -879,7 +879,7 @@ model BrandInterview {
   brand              Brand                @relation(fields: [brandId], references: [id])
   userId             String
   user               User                 @relation(fields: [userId], references: [id])
-  status             BrandInterviewStatus @default(in_progress)
+  status             BrandInterviewStatus @default(IN_PROGRESS)
   answeredFields     Json                 @default("{}")
   askedFieldKeys     String[]             @default([])
   currentFieldKey    String?

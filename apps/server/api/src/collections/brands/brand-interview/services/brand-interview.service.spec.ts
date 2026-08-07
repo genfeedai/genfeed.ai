@@ -17,6 +17,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BrandInterviewStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,7 +44,7 @@ function makeSession(
     brandId: string;
     organizationId: string;
     userId: string;
-    status: string;
+    status: BrandInterviewStatus;
     answeredFields: Record<string, unknown>;
     askedFieldKeys: string[];
     currentFieldKey: string | null;
@@ -58,7 +59,7 @@ function makeSession(
     brandId: 'brand-1',
     organizationId: 'org-1',
     userId: 'user-1',
-    status: 'in_progress',
+    status: BrandInterviewStatus.IN_PROGRESS,
     answeredFields: {},
     askedFieldKeys: [],
     currentFieldKey: 'description',
@@ -221,7 +222,7 @@ describe('BrandInterviewService', () => {
       interviewDelegate.update.mockResolvedValue({
         ...session,
         isDeleted: true,
-        status: 'abandoned',
+        status: BrandInterviewStatus.ABANDONED,
       });
 
       await expect(service.start('brand-1', 'org-1', 'user-1')).rejects.toThrow(
@@ -229,7 +230,7 @@ describe('BrandInterviewService', () => {
       );
 
       expect(interviewDelegate.update).toHaveBeenCalledWith({
-        data: { isDeleted: true, status: 'abandoned' },
+        data: { isDeleted: true, status: BrandInterviewStatus.ABANDONED },
         where: { id: session.id },
       });
     });
@@ -445,7 +446,7 @@ describe('BrandInterviewService', () => {
       );
 
       expect(result.isComplete).toBe(true);
-      expect(result.status).toBe('completed');
+      expect(result.status).toBe(BrandInterviewStatus.COMPLETED);
       expect(result.nextQuestion).toBeNull();
     });
   });
@@ -492,7 +493,7 @@ describe('BrandInterviewService', () => {
       const result = await service.skipField('interview-1', 'org-1');
 
       expect(result.isComplete).toBe(true);
-      expect(result.status).toBe('completed');
+      expect(result.status).toBe(BrandInterviewStatus.COMPLETED);
     });
   });
 
@@ -541,7 +542,7 @@ describe('BrandInterviewService', () => {
 
       expect(result).not.toBeNull();
       expect(result!.id).toBe('interview-1');
-      expect(result!.status).toBe('in_progress');
+      expect(result!.status).toBe(BrandInterviewStatus.IN_PROGRESS);
       // currentFieldKey 'description' must resolve to a question object
       expect(result!.currentQuestion).not.toBeNull();
       expect(result!.currentQuestion?.fieldKey).toBe('description');
@@ -570,20 +571,20 @@ describe('BrandInterviewService', () => {
       interviewDelegate.findFirst.mockResolvedValue(session);
       interviewDelegate.update.mockResolvedValue({
         ...session,
-        status: 'abandoned',
+        status: BrandInterviewStatus.ABANDONED,
       });
 
       await service.abandon('interview-1', 'org-1');
 
       expect(interviewDelegate.update).toHaveBeenCalledWith({
-        data: { status: 'abandoned' },
+        data: { status: BrandInterviewStatus.ABANDONED },
         where: { id: 'interview-1' },
       });
     });
 
     it('throws BadRequestException when session is already completed', async () => {
       interviewDelegate.findFirst.mockResolvedValue(
-        makeSession({ status: 'completed' }),
+        makeSession({ status: BrandInterviewStatus.COMPLETED }),
       );
 
       await expect(

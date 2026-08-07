@@ -2,12 +2,11 @@
  * Brand context interview — shared shapes for the deterministic interview engine
  * and its three driver surfaces (in-app agent, MCP, settings stepper).
  */
+import type { BrandInterviewStatus } from '@genfeedai/enums';
 
 export type BrandInterviewGroup = 'identity' | 'voice' | 'strategy';
 
 export type BrandInterviewAnswerType = 'text' | 'list' | 'enum';
-
-export type BrandInterviewStatus = 'in_progress' | 'completed' | 'abandoned';
 
 export interface IBrandInterviewQuestion {
   fieldKey: string;

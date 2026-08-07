@@ -159,7 +159,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               percentComplete: 0,
               totalFields: 13,
             },
-            status: 'in_progress',
+            status: 'IN_PROGRESS',
             steps: buildSteps('tone', {}),
           }),
         });
@@ -206,7 +206,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               percentComplete: 0,
               totalFields: 13,
             },
-            status: 'in_progress',
+            status: 'IN_PROGRESS',
             steps: buildSteps('tone', {}),
           }),
         });
@@ -240,7 +240,7 @@ test.describe('Brand Context Interview (settings stepper)', () => {
               percentComplete: isComplete ? 100 : 50,
               totalFields: 13,
             },
-            status: isComplete ? 'completed' : 'in_progress',
+            status: isComplete ? 'COMPLETED' : 'IN_PROGRESS',
             steps: isComplete
               ? buildSteps('audience', answered)
               : buildSteps('audience', answered),
