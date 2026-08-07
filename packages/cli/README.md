@@ -106,6 +106,25 @@ Paste a key manually instead of opening a browser:
 genfeed login --interactive
 ```
 
+Self-hosted login — point the browser flow at your own deployment:
+
+```bash
+genfeed login --api-url https://api.yourdomain.com/v1
+```
+
+Both URLs are saved to the active profile, so subsequent commands target the same deployment. The
+web app URL serving `/oauth/cli` is derived from the API URL (`api.` → `app.`, or the API origin
+when the API is path-mounted). Override it when your app lives somewhere else:
+
+```bash
+genfeed login --api-url https://yourdomain.com/api/v1 --app-url https://studio.yourdomain.com
+```
+
+The same values are settable outside login via `genfeed config set api-url <url>` /
+`genfeed config set app-url <url>`, or the `GENFEED_API_URL` / `GENFEED_APP_URL` env vars.
+`genfeed config show` prints the resolved app URL and marks it `(derived)` when it was inferred.
+
+>>>>>>> origin/master
 Check current user:
 
 ```bash
@@ -321,70 +340,6 @@ genfeed credits summary
 genfeed posts list --platform twitter --status published
 ```
 
-### Fleet (Admin)
-
-Check GPU health:
-
-```bash
-gf fleet health
-```
-
-Manage ComfyUI service:
-
-```bash
-gf fleet comfy status
-gf fleet comfy restart
-```
-
-List available LoRA models:
-
-```bash
-gf fleet loras
-```
-
-### Training (Admin)
-
-Start LoRA training:
-
-```bash
-gf train <handle> --steps 2000 --wait
-```
-
-Check training status:
-
-```bash
-gf train status <jobId> --watch
-```
-
-### Datasets (Admin)
-
-View dataset info:
-
-```bash
-gf dataset info <handle>
-```
-
-Upload training images:
-
-```bash
-gf dataset upload <handle> ./images/
-```
-
-Download dataset:
-
-```bash
-gf dataset download <handle> ./output/
-```
-
-### Captioning (Admin)
-
-Run Florence-2 auto-captioning on a dataset:
-
-```bash
-gf caption <handle>
-gf caption <handle> --trigger "custom_trigger"
-```
-
 ## Options
 
 ### Global Options
@@ -532,9 +487,8 @@ Config is stored in `~/.gf/config.json`:
   "profiles": {
     "default": {
       "apiUrl": "https://api.genfeed.ai/v1",
+      "appUrl": "https://app.genfeed.ai",
       "role": "user",
-      "fleetHost": "100.106.229.81",
-      "fleetApiPort": 8189,
       "agent": {
         "model": "claude-3-7-sonnet",
         "lastThreadIdByOrganization": {}
@@ -554,12 +508,11 @@ Config is stored in `~/.gf/config.json`:
 |----------|-------------|
 | `GENFEED_API_KEY` | API key |
 | `GENFEED_API_URL` | API base URL |
+| `GENFEED_APP_URL` | Web app URL serving `/oauth/cli` (derived from `GENFEED_API_URL` when unset) |
 | `GENFEED_TOKEN` | Auth token |
 | `GENFEED_ORGANIZATION_ID` | Organization ID |
 | `GENFEED_USER_ID` | User ID |
 | `GENFEED_AGENT_MODEL` | Default agent model for `chat` / `chat send` |
-| `GF_FLEET_HOST` | Fleet GPU host IP |
-| `GF_FLEET_PORT` | Fleet API port |
 
 ## Contributing
 

@@ -78,9 +78,7 @@ describe('ModalErrorDebug', () => {
   it('should not render when no error info is set', () => {
     render(<ModalErrorDebug />);
     // Modal is not open, so dialog content should not be in the DOM
-    expect(
-      screen.queryByText('Error Debug Information (Beta)'),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Request failed')).not.toBeInTheDocument();
   });
 
   it('should render when error info is set', () => {
@@ -97,9 +95,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(
-      screen.getByText('Error Debug Information (Beta)'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Request failed')).toBeInTheDocument();
     expect(screen.getByText('Test error message')).toBeInTheDocument();
   });
 
@@ -147,25 +143,43 @@ describe('ModalErrorDebug', () => {
     fireEvent.click(closeButton);
   });
 
-  it('should copy debug info to clipboard', () => {
+  it('copies the full agent dump and per-section payloads', () => {
     const errorInfo: IErrorDebugInfo = {
       message: 'Copy test error',
+      method: 'POST',
+      status: 400,
       timestamp: '2024-01-01T00:00:00Z',
       url: 'https://api.example.com/copy',
+      response: { data: { errors: [{ title: 'boom' }] } },
     };
 
     setErrorDebugInfo(errorInfo);
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    const copyButton = screen.getByRole('button', {
-      hidden: true,
-      name: /copy/i,
-    });
-    expect(copyButton).toBeInTheDocument();
-    fireEvent.click(copyButton);
+    fireEvent.click(
+      screen.getByRole('button', { hidden: true, name: /copy for agent/i }),
+    );
+    expect(mockCopyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('## Request failed — agent debug dump'),
+    );
+    expect(mockCopyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('Copy test error'),
+    );
 
-    expect(mockCopyToClipboard).toHaveBeenCalledWith('Copy test error');
+    fireEvent.click(
+      screen.getByRole('button', { hidden: true, name: /copy request/i }),
+    );
+    expect(mockCopyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('url: https://api.example.com/copy'),
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { hidden: true, name: /copy response/i }),
+    );
+    expect(mockCopyToClipboard).toHaveBeenCalledWith(
+      expect.stringContaining('"title": "boom"'),
+    );
   });
 
   it('should display response data when available', () => {

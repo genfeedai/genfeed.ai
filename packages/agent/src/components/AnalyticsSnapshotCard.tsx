@@ -1,13 +1,21 @@
+'use client';
+
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { Button } from '@ui/primitives/button';
+import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   ChartColumn,
+  ChevronDown,
   Eye,
   Heart,
   MessageCircle,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import type { ReactElement } from 'react';
+import { type ReactElement, useMemo, useState } from 'react';
 
 interface AnalyticsSnapshotCardProps {
   action: AgentUiAction;
@@ -28,10 +36,71 @@ interface AnalyticsMetricItem {
   value: number;
 }
 
-export function AnalyticsSnapshotCard({
-  action,
-}: AnalyticsSnapshotCardProps): ReactElement {
-  const data = action.metrics;
+interface PeriodSnapshot {
+  period: string;
+  metrics?: Record<string, unknown>;
+  title?: string;
+}
+
+const PREVIEW_METRIC_COUNT = 2;
+
+function extractPeriod(action: AgentUiAction): string {
+  const dataPeriod = action.data?.period;
+  if (typeof dataPeriod === 'string' && dataPeriod.trim()) {
+    return dataPeriod.trim();
+  }
+  const idMatch = action.id?.match(/analytics-snapshot:[^:]+:(.+)$/);
+  if (idMatch?.[1]) {
+    return idMatch[1];
+  }
+  const titleMatch = action.title?.match(/\(([^)]+)\)\s*$/);
+  if (titleMatch?.[1]) {
+    return titleMatch[1];
+  }
+  return 'summary';
+}
+
+function resolvePeriodSnapshots(action: AgentUiAction): PeriodSnapshot[] {
+  const raw = action.data?.periodSnapshots;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return (
+      raw
+        // The return type is annotated rather than inferred: an inferred
+        // `metrics: Record<string, unknown> | undefined` is a *required* property,
+        // which the optional `metrics?` on PeriodSnapshot does not satisfy, and the
+        // filter predicate below then fails to narrow.
+        .map((entry): PeriodSnapshot | null => {
+          if (!entry || typeof entry !== 'object') {
+            return null;
+          }
+          const record = entry as Record<string, unknown>;
+          const period =
+            typeof record.period === 'string'
+              ? record.period
+              : extractPeriod(action);
+          return {
+            period,
+            metrics:
+              record.metrics && typeof record.metrics === 'object'
+                ? (record.metrics as Record<string, unknown>)
+                : undefined,
+            title: typeof record.title === 'string' ? record.title : undefined,
+          };
+        })
+        .filter((entry): entry is PeriodSnapshot => entry !== null)
+    );
+  }
+
+  return [
+    {
+      metrics: action.metrics,
+      period: extractPeriod(action),
+      title: action.title,
+    },
+  ];
+}
+
+function buildMetrics(data: Record<string, unknown> | undefined): MetricData[] {
   const itemMetrics = Array.isArray(data?.items)
     ? ((data.items as AnalyticsMetricItem[]).map((item) => ({
         change: item.change,
@@ -41,87 +110,218 @@ export function AnalyticsSnapshotCard({
       })) satisfies MetricData[])
     : null;
 
-  const metrics: MetricData[] =
-    itemMetrics && itemMetrics.length > 0
-      ? itemMetrics
-      : [
-          {
-            change: data?.viewsChange as number | undefined,
-            icon: <Eye className="size-4" />,
-            label: 'Views',
-            value: formatNumber((data?.views as number) ?? 0),
-          },
-          {
-            change: data?.likesChange as number | undefined,
-            icon: <Heart className="size-4" />,
-            label: 'Likes',
-            value: formatNumber((data?.likes as number) ?? 0),
-          },
-          {
-            change: data?.commentsChange as number | undefined,
-            icon: <MessageCircle className="size-4" />,
-            label: 'Comments',
-            value: formatNumber((data?.comments as number) ?? 0),
-          },
-          {
-            change: data?.engagementChange as number | undefined,
-            icon: <ChartColumn className="size-4" />,
-            label: 'Engagement',
-            value: `${((data?.engagementRate as number) ?? 0).toFixed(1)}%`,
-          },
-        ];
+  if (itemMetrics && itemMetrics.length > 0) {
+    return itemMetrics;
+  }
+
+  return [
+    {
+      change: data?.viewsChange as number | undefined,
+      icon: <Eye className="size-4" />,
+      label: 'Views',
+      value: formatNumber((data?.views as number) ?? 0),
+    },
+    {
+      change: data?.likesChange as number | undefined,
+      icon: <Heart className="size-4" />,
+      label: 'Likes',
+      value: formatNumber((data?.likes as number) ?? 0),
+    },
+    {
+      change: data?.commentsChange as number | undefined,
+      icon: <MessageCircle className="size-4" />,
+      label: 'Comments',
+      value: formatNumber((data?.comments as number) ?? 0),
+    },
+    {
+      change: data?.engagementChange as number | undefined,
+      icon: <ChartColumn className="size-4" />,
+      label: 'Engagement',
+      value: `${((data?.engagementRate as number) ?? 0).toFixed(1)}%`,
+    },
+  ];
+}
+
+export function AnalyticsSnapshotCard({
+  action,
+}: AnalyticsSnapshotCardProps): ReactElement {
+  const { orgHref } = useOrgUrl();
+  const periodSnapshots = useMemo(
+    () => resolvePeriodSnapshots(action),
+    [action],
+  );
+  const defaultPeriod =
+    periodSnapshots[periodSnapshots.length - 1]?.period ??
+    extractPeriod(action);
+  const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  const activeSnapshot =
+    periodSnapshots.find((snapshot) => snapshot.period === selectedPeriod) ??
+    periodSnapshots[0];
+  const metrics = buildMetrics(activeSnapshot?.metrics ?? action.metrics);
+  const previewMetrics = metrics.slice(0, PREVIEW_METRIC_COUNT);
+  const hasMoreMetrics = metrics.length > PREVIEW_METRIC_COUNT;
+  const analyticsHref = orgHref('/analytics/overview');
 
   return (
-    <div className="border border-border bg-background p-4 my-2">
-      <div className="flex items-center gap-2 mb-3">
-        <ChartColumn className="size-5 text-blue-500" />
-        <h3 className="font-semibold text-sm">
-          {action.title || 'Analytics Snapshot'}
+    <div className="relative isolate my-2 overflow-hidden rounded-xl border border-border bg-background-secondary shadow-sm">
+      <div className="flex items-center gap-2 border-b border-border/60 px-4 py-3">
+        <ChartColumn className="size-5 shrink-0 text-primary" />
+        <h3 className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+          Analytics summary
         </h3>
-      </div>
-      {action.description && (
-        <p className="text-xs text-muted-foreground mb-3">
-          {action.description}
-        </p>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        {metrics.map((metric) => (
-          <div key={metric.label} className="bg-muted p-3">
-            <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-              {metric.icon}
-              <span className="text-xs">{metric.label}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">{metric.value}</span>
-              {metric.change != null && (
-                <span
-                  className={`flex items-center text-xs ${
-                    metric.change >= 0 ? 'text-green-500' : 'text-red-500'
-                  }`}
-                >
-                  {metric.change >= 0 ? (
-                    <TrendingUp className="size-3 mr-0.5" />
-                  ) : (
-                    <TrendingDown className="size-3 mr-0.5" />
+        {periodSnapshots.length > 1 ? (
+          <div
+            className="flex shrink-0 items-center gap-0.5 rounded-lg border border-border bg-background p-0.5"
+            role="tablist"
+            aria-label="Analytics period"
+          >
+            {periodSnapshots.map((snapshot) => {
+              const isActive = snapshot.period === selectedPeriod;
+              return (
+                <Button
+                  key={snapshot.period}
+                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  aria-selected={isActive}
+                  role="tab"
+                  className={cn(
+                    'h-7 rounded-md px-2.5 text-[11px] font-medium',
+                    isActive
+                      ? 'bg-foreground/10 text-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
-                  {Math.abs(metric.change).toFixed(1)}%
-                </span>
-              )}
-            </div>
+                  onClick={() => {
+                    setSelectedPeriod(snapshot.period);
+                    setIsExpanded(true);
+                  }}
+                >
+                  {snapshot.period}
+                </Button>
+              );
+            })}
           </div>
-        ))}
+        ) : (
+          <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+            {selectedPeriod}
+          </span>
+        )}
+        <Button
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          size={ButtonSize.ICON}
+          ariaLabel={isExpanded ? 'Collapse analytics' : 'Expand analytics'}
+          className="size-8 shrink-0 rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+          onClick={() => {
+            setIsExpanded((current) => !current);
+          }}
+        >
+          <ChevronDown
+            className={cn(
+              'size-4 transition-transform',
+              isExpanded ? 'rotate-180' : 'rotate-0',
+            )}
+          />
+        </Button>
       </div>
-      {action.ctas && action.ctas.length > 0 && (
-        <div className="flex gap-2 mt-3">
-          {action.ctas.map((cta) => (
-            <a
-              key={cta.label}
-              href={cta.href}
-              className="text-xs px-3 py-1.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+
+      {!isExpanded ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-xs text-muted-foreground">
+          {previewMetrics.map((metric) => (
+            <span
+              key={metric.label}
+              className="inline-flex items-center gap-1.5"
             >
-              {cta.label}
-            </a>
+              <span className="text-foreground/70">{metric.label}</span>
+              <span className="font-semibold text-foreground">
+                {metric.value}
+              </span>
+            </span>
           ))}
+          {hasMoreMetrics ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              className="text-xs font-medium text-primary hover:underline"
+              onClick={() => {
+                setIsExpanded(true);
+              }}
+            >
+              View more
+            </Button>
+          ) : null}
+        </div>
+      ) : (
+        <div className="space-y-3 p-4">
+          {action.description ? (
+            <p className="text-xs text-muted-foreground">
+              {action.description}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-2 gap-3">
+            {metrics.map((metric) => (
+              <div
+                key={metric.label}
+                className="rounded-lg border border-border/60 bg-background p-3"
+              >
+                <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">
+                  {metric.icon}
+                  <span className="text-xs">{metric.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-foreground">
+                    {metric.value}
+                  </span>
+                  {metric.change != null ? (
+                    <span
+                      className={cn(
+                        'flex items-center text-xs',
+                        metric.change >= 0 ? 'text-green-500' : 'text-red-500',
+                      )}
+                    >
+                      {metric.change >= 0 ? (
+                        <TrendingUp className="mr-0.5 size-3" />
+                      ) : (
+                        <TrendingDown className="mr-0.5 size-3" />
+                      )}
+                      {Math.abs(metric.change).toFixed(1)}%
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={analyticsHref}
+              className={cn(
+                buttonVariants({
+                  size: ButtonSize.SM,
+                  variant: ButtonVariant.SECONDARY,
+                }),
+                'inline-flex w-fit no-underline',
+              )}
+            >
+              Open analytics
+            </a>
+            <Button
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              withWrapper={false}
+              className="text-xs"
+              onClick={() => {
+                setIsExpanded(false);
+              }}
+            >
+              Show less
+            </Button>
+          </div>
         </div>
       )}
     </div>

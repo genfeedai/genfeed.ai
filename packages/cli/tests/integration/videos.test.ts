@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { JsonApiCollectionResponse, JsonApiSingleResponse } from '../../src/api/json-api';
 import { flattenCollection, flattenSingle } from '../../src/api/json-api';
+import type { CreateVideoRequest } from '../../src/api/videos';
 import { createTestClient, hasCredentials, testConfig } from './setup';
 
 interface Ingredient {
@@ -21,8 +22,10 @@ describe.skipIf(!hasCredentials)('integration/videos', () => {
   const orgId = testConfig?.organizationId ?? '';
 
   it('POST /videos request shape is valid (mocked — no credits burned)', async () => {
-    const request = {
-      brand: 'test-brand-id',
+    // Typed as CreateVideoRequest so the key name is checked at compile time:
+    // CreateVideoDto declares `brandId`, and the API strips unknown keys.
+    const request: CreateVideoRequest = {
+      brandId: 'test-brand-id',
       duration: 5,
       model: 'google-veo-3',
       resolution: '1080p',
@@ -30,11 +33,12 @@ describe.skipIf(!hasCredentials)('integration/videos', () => {
     };
 
     expect(request.text).toBeTruthy();
-    expect(request.brand).toBeTruthy();
+    expect(request.brandId).toBeTruthy();
     expect(typeof request.text).toBe('string');
-    expect(typeof request.brand).toBe('string');
+    expect(typeof request.brandId).toBe('string');
     expect(typeof request.duration).toBe('number');
     expect(typeof request.resolution).toBe('string');
+    expect(request).not.toHaveProperty('brand');
   });
 
   it('GET /videos/:id flattens correctly when video exists', async () => {

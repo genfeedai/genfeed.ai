@@ -79,9 +79,9 @@ describe('AddCreditsCard', () => {
     });
 
     locationState = {
-      href: 'http://localhost/settings/billing',
+      href: 'http://localhost/settings/credits',
       origin: 'http://localhost',
-      pathname: '/settings/billing',
+      pathname: '/settings/credits',
     };
     Object.defineProperty(window, 'location', {
       configurable: true,
@@ -156,10 +156,10 @@ describe('AddCreditsCard', () => {
 
     await waitFor(() => {
       expect(createCheckoutSessionMock).toHaveBeenCalledWith({
-        cancelUrl: 'http://localhost/settings/billing',
+        cancelUrl: 'http://localhost/settings/credits',
         quantity: 25_000,
         stripePriceId: 'price_payg_test',
-        successUrl: 'http://localhost/settings/billing?credits=success',
+        successUrl: 'http://localhost/settings/credits?credits=success',
       });
     });
 

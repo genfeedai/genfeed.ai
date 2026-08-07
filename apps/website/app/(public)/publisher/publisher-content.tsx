@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack, VStack } from '@ui/layout/stack';
 import EditorialPoster from '@ui/marketing/EditorialPoster';
 import HeroProofRail from '@ui/marketing/HeroProofRail';
 import PricingStrip from '@ui/marketing/PricingStrip';
@@ -201,13 +200,13 @@ export default function PublisherContent() {
         {/* -------------------------------------------------------- */}
         <section className="gsap-hero max-w-4xl mx-auto pb-16 px-6">
           <div className="p-8 border border-[var(--gen-accent-border)] bg-white/[0.04]">
-            <HStack className="flex-col md:flex-row items-center gap-8">
+            <div className="flex flex-row flex-col md:flex-row items-center gap-8">
               <div className="flex-shrink-0">
                 <div className="size-20 flex items-center justify-center border border-[var(--gen-accent-border)] bg-white/[0.06]">
                   <Rocket className="size-10 text-surface" />
                 </div>
               </div>
-              <VStack className="gap-3">
+              <div className="flex flex-col gap-3">
                 <Heading as="h3" className="text-2xl font-bold">
                   Publish Everywhere, From One Place
                 </Heading>
@@ -216,7 +215,7 @@ export default function PublisherContent() {
                   Genfeed auto-format for each platform, schedule the optimal
                   time, and publish everywhere simultaneously.
                 </Text>
-                <HStack className="flex-wrap gap-2">
+                <div className="flex flex-row items-center flex-wrap gap-2">
                   {['10+ Platforms', 'Smart Scheduling', 'Auto-Format'].map(
                     (tag) => (
                       <span
@@ -227,9 +226,9 @@ export default function PublisherContent() {
                       </span>
                     ),
                   )}
-                </HStack>
-              </VStack>
-            </HStack>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -359,7 +358,7 @@ export default function PublisherContent() {
               in minutes. Free tier available with no credit card required.
             </Text>
             <PricingStrip className="mb-6" />
-            <HStack className="flex-wrap gap-4 justify-center">
+            <div className="flex flex-row items-center flex-wrap gap-4 justify-center">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
@@ -380,7 +379,7 @@ export default function PublisherContent() {
               >
                 <Link href="/demo">Book a Demo</Link>
               </ButtonTracked>
-            </HStack>
+            </div>
           </div>
         </section>
       </PageLayout>

@@ -625,7 +625,7 @@ describe('UniversalWorkspaceShell', () => {
     ).toHaveAttribute('data-active', 'true');
     expect(screen.getByTestId('workspace-composer-slot')).toBeInTheDocument();
     expect(screen.getByTestId('workspace-composer-slot')).toHaveClass(
-      'absolute',
+      'max-w-4xl',
     );
     expect(screen.getByTestId('workspace-canvas-layout')).toHaveClass(
       'overflow-hidden',

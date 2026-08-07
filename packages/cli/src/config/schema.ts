@@ -1,8 +1,8 @@
 import { z } from 'zod';
+import { SAAS_API_URL } from './endpoints';
 
 export const profileSchema = z.object({
   activeBrand: z.string().optional(),
-  activePersona: z.string().optional(),
   agent: z
     .object({
       lastThreadIdByOrganization: z.record(z.string(), z.string()).default({}),
@@ -10,15 +10,15 @@ export const profileSchema = z.object({
     })
     .default({ lastThreadIdByOrganization: {} }),
   apiKey: z.string().optional(),
-  apiUrl: z.string().url().default('https://api.genfeed.ai/v1'),
+  apiUrl: z.string().url().default(SAAS_API_URL),
+  /** Web app origin serving `/oauth/cli`. Derived from `apiUrl` when unset. */
+  appUrl: z.string().url().optional(),
   defaults: z
     .object({
       imageModel: z.string().default('imagen-4'),
       videoModel: z.string().default('google-veo-3'),
     })
     .default({ imageModel: 'imagen-4', videoModel: 'google-veo-3' }),
-  fleetApiPort: z.number().default(8189),
-  fleetHost: z.string().default('100.106.229.81'),
   organizationId: z.string().optional(),
   role: z.enum(['user', 'admin']).default('user'),
   token: z.string().optional(),

@@ -37,6 +37,7 @@ export function buildAgentGenerationRequestBody({
   prioritize = DEFAULT_AGENT_GENERATION_PRIORITY,
   promptId,
   promptText,
+  references,
   waitForCompletion,
 }: {
   aspectRatio: string;
@@ -46,6 +47,8 @@ export function buildAgentGenerationRequestBody({
   prioritize?: RouterPriority;
   promptId: string;
   promptText: string;
+  /** Source ingredient IDs used as image/video references. */
+  references?: string[];
   waitForCompletion?: boolean;
 }): Record<string, unknown> {
   const { width, height } = getDimensionsForAspectRatio(aspectRatio);
@@ -68,6 +71,10 @@ export function buildAgentGenerationRequestBody({
 
   if (waitForCompletion != null) {
     body.waitForCompletion = waitForCompletion;
+  }
+
+  if (references && references.length > 0) {
+    body.references = references;
   }
 
   if (identity?.avatarId) {

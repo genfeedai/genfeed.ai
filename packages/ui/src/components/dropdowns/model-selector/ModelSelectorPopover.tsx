@@ -295,7 +295,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const displayedModels = selectedModels;
 
-  const shouldShowManualCatalog = !isAutoSelected;
+  // Always surface the real catalog when models exist — Auto mode used to hide
+  // it (`!isAutoSelected`), which left a tall empty popover of priority-only
+  // rows and made it impossible to pick a concrete model once Auto was on.
+  const shouldShowManualCatalog = allOptions.length > 0;
 
   const shouldShowAuto = useMemo(() => {
     if (activeBrand === 'favorites') {
@@ -389,12 +392,19 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         side="top"
         align="start"
         sideOffset={8}
+        collisionPadding={16}
+        // Prefer the open side that still fits; empty shell used to fill 500px
+        // and clip the top of the list against the browser chrome.
+        avoidCollisions
         className={cn(
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
           'sm:w-[380px]',
+          // Radix measures free space above/below the trigger for this open.
+          // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
+          'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
-        <div className={cn('flex', 'h-[min(500px,calc(100vh-4rem))]')}>
+        <div className="flex max-h-[inherit] min-h-0 w-full">
           {shouldShowManualCatalog && (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -404,9 +414,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             />
           )}
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="overflow-x-auto border-b border-border px-3 py-2">
+              <div className="shrink-0 overflow-x-auto border-b border-border px-3 py-2">
                 <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-1">
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
@@ -425,7 +435,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               </div>
             )}
 
-            <Command className="bg-transparent" shouldFilter={false}>
+            {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
+            <Command
+              className="flex min-h-0 flex-col bg-transparent"
+              shouldFilter={false}
+            >
               {shouldShowManualCatalog && (
                 <CommandInput
                   placeholder="Search models…"
@@ -436,8 +450,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
               <CommandList
                 className={cn(
-                  'max-h-none flex-1 px-1 py-1',
-                  shouldShowManualCatalog && 'overflow-y-auto',
+                  'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-1 py-1',
+                  // Override command.tsx `max-h-dropdown` (300px) with viewport-aware cap.
+                  // Height stays content-sized below the cap — no empty filler.
+                  'max-h-[min(360px,calc(var(--radix-popover-content-available-height,70vh)-6rem))]',
                 )}
               >
                 {shouldShowAutoCard && (

@@ -3,18 +3,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Track mock production state
-let mockIsProduction = true;
-
-// Mock dependencies
 vi.mock('./notifications.service');
-vi.mock('./environment.service', () => ({
-  EnvironmentService: {
-    get isProduction() {
-      return mockIsProduction;
-    },
-  },
-}));
 vi.mock('./logger.service');
 
 describe('ClipboardService', () => {
@@ -23,7 +12,6 @@ describe('ClipboardService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockIsProduction = true; // Default to production
     clipboardService = ClipboardService.getInstance();
     notificationsService = NotificationsService.getInstance();
   });
@@ -40,18 +28,14 @@ describe('ClipboardService', () => {
     });
   });
 
-  // TODO: These tests need to be fixed - singleton pattern with getInstance()
-  // creates the instance before mocks are properly configured
-  describe.skip('copyToClipboard', () => {
-    it('copies text to clipboard in production', async () => {
+  describe('copyToClipboard', () => {
+    it('writes text via the Clipboard API in every environment', async () => {
       const mockWriteText = vi.fn().mockResolvedValue(undefined);
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
         value: { writeText: mockWriteText },
         writable: true,
       });
-
-      mockIsProduction = true;
 
       await clipboardService.copyToClipboard('test text');
 
@@ -61,24 +45,25 @@ describe('ClipboardService', () => {
       );
     });
 
-    it('shows success notification after copying', async () => {
-      const mockWriteText = vi.fn().mockResolvedValue(undefined);
+    it('falls back to execCommand when Clipboard API rejects', async () => {
+      const mockWriteText = vi.fn().mockRejectedValue(new Error('denied'));
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
         value: { writeText: mockWriteText },
         writable: true,
       });
+      const execSpy = vi.spyOn(document, 'execCommand').mockReturnValue(true);
 
-      mockIsProduction = true;
+      await clipboardService.copyToClipboard('fallback text');
 
-      await clipboardService.copyToClipboard('test text');
-
+      expect(execSpy).toHaveBeenCalledWith('copy');
       expect(notificationsService.success).toHaveBeenCalledWith(
         'Copied to clipboard',
       );
+      expect(notificationsService.error).not.toHaveBeenCalled();
     });
 
-    it('handles clipboard write failure', async () => {
+    it('surfaces failure when no clipboard path works', async () => {
       const mockError = new Error('Clipboard write failed');
       const mockWriteText = vi.fn().mockRejectedValue(mockError);
       Object.defineProperty(navigator, 'clipboard', {
@@ -86,8 +71,7 @@ describe('ClipboardService', () => {
         value: { writeText: mockWriteText },
         writable: true,
       });
-
-      mockIsProduction = true;
+      vi.spyOn(document, 'execCommand').mockReturnValue(false);
 
       await clipboardService.copyToClipboard('test text');
 
@@ -100,46 +84,7 @@ describe('ClipboardService', () => {
       );
     });
 
-    it('sets isCopying flag during copy operation', async () => {
-      const mockWriteText = vi.fn().mockImplementation(() => {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            expect(clipboardService.isCopyingToClipboard).toBe(true);
-            resolve(undefined);
-          }, 10);
-        });
-      });
-
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: { writeText: mockWriteText },
-        writable: true,
-      });
-
-      mockIsProduction = true;
-
-      await clipboardService.copyToClipboard('test text');
-
-      expect(clipboardService.isCopyingToClipboard).toBe(false);
-    });
-
-    it('resets isCopying flag after error', async () => {
-      const mockError = new Error('Clipboard write failed');
-      const mockWriteText = vi.fn().mockRejectedValue(mockError);
-      Object.defineProperty(navigator, 'clipboard', {
-        configurable: true,
-        value: { writeText: mockWriteText },
-        writable: true,
-      });
-
-      mockIsProduction = true;
-
-      await clipboardService.copyToClipboard('test text');
-
-      expect(clipboardService.isCopyingToClipboard).toBe(false);
-    });
-
-    it('skips clipboard write in development', async () => {
+    it('resets isCopying after success', async () => {
       const mockWriteText = vi.fn().mockResolvedValue(undefined);
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
@@ -147,14 +92,9 @@ describe('ClipboardService', () => {
         writable: true,
       });
 
-      mockIsProduction = false;
-
       await clipboardService.copyToClipboard('test text');
 
-      expect(mockWriteText).not.toHaveBeenCalled();
-      expect(notificationsService.success).toHaveBeenCalledWith(
-        'Copied to clipboard',
-      );
+      expect(clipboardService.isCopyingToClipboard).toBe(false);
     });
   });
 

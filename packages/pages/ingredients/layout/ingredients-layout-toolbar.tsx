@@ -1,6 +1,5 @@
 'use client';
 
-import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonVariant, PageScope } from '@genfeedai/enums';
 import type {
   IFilters,
@@ -10,7 +9,7 @@ import { EnvironmentService } from '@services/core/environment.service';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
-import { ExternalLink, LayoutGrid, Upload } from 'lucide-react';
+import { ExternalLink, Upload } from 'lucide-react';
 import Link from 'next/link';
 
 import type { IngredientsLayoutConfig } from './ingredients-layout.config';
@@ -60,18 +59,8 @@ export default function IngredientsLayoutToolbar({
           />
         )}
 
-        {scope === PageScope.BRAND && (
-          <PrimitiveButton
-            asChild
-            tooltip="Mood board"
-            variant={ButtonVariant.SECONDARY}
-          >
-            <Link href={APP_ROUTES.LIBRARY.MOODBOARD}>
-              <LayoutGrid />
-              Mood board
-            </Link>
-          </PrimitiveButton>
-        )}
+        {/* Moodboard lives under Library → Moodboard in the nav — no
+            duplicate toolbar shortcut here. */}
 
         {/* One-off generation is Agent-first — the standalone Studio
             image/video/avatar/music prompt bars are retired. */}

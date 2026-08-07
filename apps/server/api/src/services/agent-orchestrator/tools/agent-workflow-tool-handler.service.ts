@@ -416,17 +416,7 @@ export class AgentWorkflowToolHandler {
       }
     }
 
-    const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-
-    if (currentBrand) {
-      return currentBrand as unknown as Record<string, unknown>;
-    }
-
+    // Prefer run/thread brand (URL → thread.brandId) before brands.isSelected.
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
         id: ctx.brandId,
@@ -437,6 +427,17 @@ export class AgentWorkflowToolHandler {
       if (contextBrand) {
         return contextBrand as unknown as Record<string, unknown>;
       }
+    }
+
+    const currentBrand = await this.brandsService.findOne({
+      isDeleted: false,
+      isSelected: true,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+
+    if (currentBrand) {
+      return currentBrand as unknown as Record<string, unknown>;
     }
 
     const firstOrgBrand = await this.brandsService.findOne({

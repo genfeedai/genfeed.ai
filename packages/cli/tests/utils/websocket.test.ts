@@ -326,7 +326,7 @@ describe('utils/websocket', () => {
       eventHandlers.connect?.({});
 
       // Simulate ingredient-status event
-      eventHandlers['/ingredients/test-ingredient/status']?.({ status: 'generated' });
+      eventHandlers['/ingredients/test-ingredient/status']?.({ status: 'GENERATED' });
 
       const result = await promise;
       expect(result.result).toEqual(mockResult);

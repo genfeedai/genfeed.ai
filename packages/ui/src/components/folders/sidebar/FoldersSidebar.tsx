@@ -22,21 +22,26 @@ function FoldersSidebar({
   if (variant === 'navigation') {
     return (
       <div className="mt-3 border-t border-border pt-2">
-        <div className="mb-1 flex items-center px-1 text-foreground/30">
-          <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
+        <div className="mb-1 flex items-center justify-between gap-1 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-foreground/30">
             Folders
           </span>
           {onCreateFolder ? (
             <Button
               ariaLabel="New folder"
-              className="ml-auto size-6 p-0 text-foreground/42 hover:text-foreground"
-              icon={<Plus className="size-3.5" />}
+              className="size-6 shrink-0 p-0 text-foreground/42 hover:bg-foreground/[0.06] hover:text-foreground"
               onClick={onCreateFolder}
-              size={ButtonSize.SM}
+              size={ButtonSize.ICON}
+              textTransform="none"
+              // Right — sidebar is a left rail; bottom dumps the tooltip onto
+              // the folder list and collides with "All assets".
               tooltip="New folder"
+              tooltipPosition="right"
               variant={ButtonVariant.GHOST}
               withWrapper={false}
-            />
+            >
+              <Plus className="size-3.5" aria-hidden />
+            </Button>
           ) : null}
         </div>
 
@@ -110,16 +115,15 @@ function FoldersSidebar({
 
       {onCreateFolder && (
         <Button
-          label={
-            <>
-              <Plus /> New Folder
-            </>
-          }
           variant={ButtonVariant.SECONDARY}
-          className="flex h-10 w-full items-center justify-center rounded-lg px-3"
+          className="flex h-10 w-full items-center justify-center gap-2 rounded-lg px-3"
           onClick={onCreateFolder}
+          textTransform="none"
           withWrapper={false}
-        />
+        >
+          <Plus className="size-4 shrink-0" aria-hidden />
+          New folder
+        </Button>
       )}
 
       <DropZoneFolder
