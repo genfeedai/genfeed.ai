@@ -1,6 +1,9 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
-import { TrendNotificationFrequency } from '@genfeedai/enums';
+import {
+  GenerationPriority,
+  TrendNotificationFrequency,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -205,16 +208,17 @@ export class CreateSettingDto {
   })
   readonly isAgentAssetsPanelOpen?: boolean;
 
-  @IsEnum(['quality', 'speed', 'cost', 'balanced'])
+  @IsEnum(GenerationPriority)
   @IsOptional()
   @ApiProperty({
-    default: 'quality',
+    default: GenerationPriority.QUALITY,
     description:
-      'Model selection priority for agent-initiated generations (quality, speed, cost, balanced)',
-    enum: ['quality', 'speed', 'cost', 'balanced'],
+      'Model selection priority for agent-initiated generations. Persisted as the Prisma `GenerationPriority` label; the model router receives the mapped lowercase `RouterPriority`.',
+    enum: GenerationPriority,
+    enumName: 'GenerationPriority',
     required: false,
   })
-  readonly generationPriority?: string;
+  readonly generationPriority?: GenerationPriority;
 
   @IsObject()
   @IsOptional()

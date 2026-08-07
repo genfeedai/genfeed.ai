@@ -32,6 +32,7 @@ import {
   ActivitySource,
   ContentFormat,
   formatPlatformLabel,
+  RouterPriority,
   Status,
 } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
@@ -586,7 +587,7 @@ export class AgentMediaGenerationToolHandler {
       body.model = ctx.generationModelOverride;
     } else {
       body.autoSelectModel = true;
-      body.prioritize = ctx.generationPriority || 'quality';
+      body.prioritize = ctx.generationPriority || RouterPriority.QUALITY;
     }
 
     let response: Record<string, unknown>;
@@ -794,11 +795,11 @@ export class AgentMediaGenerationToolHandler {
       }
     } else if (imageUrl) {
       body.autoSelectModel = true;
-      body.prioritize = ctx.generationPriority || 'quality';
+      body.prioritize = ctx.generationPriority || RouterPriority.QUALITY;
       body.references = [imageUrl];
     } else {
       body.autoSelectModel = true;
-      body.prioritize = ctx.generationPriority || 'quality';
+      body.prioritize = ctx.generationPriority || RouterPriority.QUALITY;
     }
 
     const response = await this.internalApi.callInternalApi(

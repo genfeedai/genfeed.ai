@@ -49,7 +49,7 @@ import {
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { AgentMessageRole } from '@genfeedai/enums';
+import { AgentMessageRole, type RouterPriority } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -78,7 +78,7 @@ export class AgentOrchestratorSyncLoopService {
   async executeSynchronousChatLoop(params: {
     context: AgentChatContext;
     threadId: string;
-    generationPriority: string;
+    generationPriority: RouterPriority;
     model: string;
     policy: ResolvedAgentExecutionPolicy;
     request: AgentChatRequest;

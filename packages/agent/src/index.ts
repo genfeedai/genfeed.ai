@@ -13,7 +13,6 @@ export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 export {
-  type AgentGenerationPriority,
   AgentSettings,
   type AgentSettingsValues,
 } from '@genfeedai/agent/components/AgentSettings';

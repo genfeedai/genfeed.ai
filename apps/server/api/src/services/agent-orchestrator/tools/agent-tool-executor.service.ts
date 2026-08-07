@@ -26,6 +26,7 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
+import type { RouterPriority } from '@genfeedai/enums';
 import { ActionOrigin } from '@genfeedai/enums';
 import type {
   AgentToolResult,
@@ -48,7 +49,8 @@ export interface ToolExecutionContext {
   organizationId: string;
   threadId?: string;
   authToken?: string;
-  generationPriority?: string;
+  /** Router request vocabulary — map the persisted setting with `toRouterPriority`. */
+  generationPriority?: RouterPriority;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   thinkingModel?: string;
   generationModelOverride?: string | null;

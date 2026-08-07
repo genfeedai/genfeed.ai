@@ -1,5 +1,6 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { GenerationPriority } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
@@ -60,7 +61,7 @@ describe('AgentConfigurationPage', () => {
   };
   const currentUser = {
     id: 'user-db-id',
-    settings: { generationPriority: 'speed' },
+    settings: { generationPriority: GenerationPriority.SPEED },
   };
 
   beforeEach(() => {
@@ -219,13 +220,15 @@ describe('AgentConfigurationPage', () => {
         persona: 'Stay concise.',
       });
       expect(patchSettings).toHaveBeenCalledWith('user-db-id', {
-        generationPriority: 'cost',
+        generationPriority: GenerationPriority.COST,
       });
     });
     expect(mutateUser).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'user-db-id',
-        settings: expect.objectContaining({ generationPriority: 'cost' }),
+        settings: expect.objectContaining({
+          generationPriority: GenerationPriority.COST,
+        }),
       }),
     );
     expect(refreshBrands).toHaveBeenCalledOnce();

@@ -1,4 +1,5 @@
 import { AgentSettings } from '@genfeedai/agent/components/AgentSettings';
+import { GenerationPriority } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -32,7 +33,7 @@ describe('AgentSettings', () => {
         isModelsLoading={false}
         initialSettings={{
           defaultModel: 'anthropic/claude-sonnet-5',
-          generationPriority: 'speed',
+          generationPriority: GenerationPriority.SPEED,
           persona: 'Write like a pragmatic founder.',
         }}
         onSave={onSave}
@@ -58,7 +59,7 @@ describe('AgentSettings', () => {
         isModelsLoading={false}
         initialSettings={{
           defaultModel: '',
-          generationPriority: 'balanced',
+          generationPriority: GenerationPriority.BALANCED,
           persona: '',
         }}
         isDefaultState
@@ -82,7 +83,7 @@ describe('AgentSettings', () => {
         isModelsLoading={false}
         initialSettings={{
           defaultModel: '',
-          generationPriority: 'balanced',
+          generationPriority: GenerationPriority.BALANCED,
           persona: '',
         }}
         onSave={onSave}
@@ -98,7 +99,7 @@ describe('AgentSettings', () => {
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledWith({
         defaultModel: '',
-        generationPriority: 'cost',
+        generationPriority: GenerationPriority.COST,
         persona: 'Keep every answer crisp.',
       });
     });
@@ -114,7 +115,7 @@ describe('AgentSettings', () => {
         isModelsLoading={false}
         initialSettings={{
           defaultModel: '',
-          generationPriority: 'balanced',
+          generationPriority: GenerationPriority.BALANCED,
           persona: '',
         }}
         onSave={onSave}

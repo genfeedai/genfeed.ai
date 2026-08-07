@@ -10,12 +10,11 @@ import type {
 } from '@api/collections/brands/schemas/brand.schema';
 import type { OrganizationSetting } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import type {
-  AgentGenerationPriority,
   AgentQualityTier,
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
-import { AgentAutonomyMode } from '@genfeedai/enums';
+import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
 
 type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =
@@ -83,14 +82,14 @@ const AGENT_QUALITY_TIERS: AgentQualityTier[] = [
 
 const mapQualityTierToGenerationPriority = (
   qualityTier: AgentQualityTier,
-): AgentGenerationPriority => {
+): RouterPriority => {
   switch (qualityTier) {
     case 'budget':
-      return 'cost';
+      return RouterPriority.COST;
     case 'high_quality':
-      return 'quality';
+      return RouterPriority.QUALITY;
     default:
-      return 'balanced';
+      return RouterPriority.BALANCED;
   }
 };
 

@@ -1,3 +1,4 @@
+import { RouterPriority } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -140,7 +141,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
       allowAdvancedOverrides: true,
       autonomyMode: 'supervised',
       generationModelOverride: 'openai/gpt-5.6-terra',
-      generationPriority: 'quality',
+      generationPriority: RouterPriority.QUALITY,
       qualityTier: 'high_quality',
       reviewModelOverride: 'openai/gpt-5.6-luna',
       thinkingModelOverride: 'anthropic/claude-opus-5',
@@ -169,7 +170,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
     expect(result.policy).toMatchObject({
       autonomyMode: 'auto_publish',
       brandId: strategyBrandId.toString(),
-      generationPriority: 'cost',
+      generationPriority: RouterPriority.COST,
       platform: 'twitter',
       qualityTier: 'budget',
     });
@@ -208,7 +209,7 @@ describe('resolveEffectiveAgentRuntimeConfig', () => {
     expect(result.brand.defaultModel).toBe('openai/gpt-5.6-terra');
     expect(result.execution.policy).toMatchObject({
       brandId: strategyBrandId.toString(),
-      generationPriority: 'cost',
+      generationPriority: RouterPriority.COST,
       platform: 'linkedin',
       qualityTier: 'budget',
     });
