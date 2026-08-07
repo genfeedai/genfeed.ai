@@ -16,6 +16,7 @@ import { keysCommand } from './commands/keys';
 import { libraryCommand } from './commands/library';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
+import { organizationsCommand } from './commands/organizations';
 import { performanceCommand } from './commands/performance';
 import { personasCommand } from './commands/personas';
 import { postsCommand } from './commands/posts';
@@ -46,12 +47,13 @@ const program = new Command();
 program
   .name('gf')
   .description('Unified CLI for Genfeed.ai')
-  .version('0.4.0')
+  .version('0.4.1')
   .addCommand(authCommand)
   .addCommand(loginCommand)
   .addCommand(logoutCommand)
   .addCommand(whoamiCommand)
   .addCommand(keysCommand)
+  .addCommand(organizationsCommand)
   .addCommand(brandsCommand)
   .addCommand(generateCommand)
   .addCommand(statusCommand)
@@ -100,6 +102,7 @@ async function printHelp(): Promise<void> {
   print('  logout         Remove stored credentials');
   print('  whoami         Show current user and organization');
   print('  keys           Manage API keys for headless and MCP access');
+  print('  organizations  List organizations and switch the active one');
   print('  brands         Manage brands');
   print('  generate       Generate AI content (image, video, article)');
   print('  status         Check the status of a generation job');

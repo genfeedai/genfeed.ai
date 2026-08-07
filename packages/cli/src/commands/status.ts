@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
-import { getArticle } from '@/api/articles';
+import { type ArticleStatus, getArticle } from '@/api/articles';
 import { requireAuth } from '@/api/client';
 import { getImage } from '@/api/images';
 import { getVideo } from '@/api/videos';
@@ -9,7 +9,10 @@ import { formatError, formatLabel, print, printJson } from '@/ui/theme';
 import { ApiError, handleError } from '@/utils/errors';
 
 type ContentType = 'article' | 'image' | 'video';
-type Status = 'pending' | 'processing' | 'completed' | 'failed';
+type MediaStatus = 'pending' | 'processing' | 'completed' | 'failed';
+// Articles carry publish-lifecycle statuses (`draft`, `public`, …) rather than
+// the media generation statuses, so both vocabularies are rendered here.
+type Status = MediaStatus | ArticleStatus;
 
 interface StatusResult {
   id: string;
@@ -24,16 +27,22 @@ interface StatusResult {
   duration?: number;
   resolution?: string;
   title?: string;
+  category?: string;
+  slug?: string;
 }
 
 function formatStatus(status: Status): string {
   switch (status) {
     case 'pending':
-      return chalk.yellow('● Pending');
+    case 'draft':
+      return chalk.yellow(`● ${status === 'draft' ? 'Draft' : 'Pending'}`);
     case 'processing':
       return chalk.blue('● Processing');
     case 'completed':
-      return chalk.green('● Completed');
+    case 'public':
+      return chalk.green(`● ${status === 'public' ? 'Public' : 'Completed'}`);
+    case 'archived':
+      return chalk.dim('● Archived');
     case 'failed':
       return chalk.red('● Failed');
   }
@@ -56,13 +65,15 @@ export const statusCommand = new Command('status')
         if (options.type === 'article') {
           const article = await getArticle(id);
           result = {
-            completedAt: article.completedAt,
+            category: article.category,
             createdAt: article.createdAt,
-            error: article.error,
             id: article.id,
-            model: article.model ?? 'n/a',
+            // The article serializer exposes no generation model; the headline
+            // is `label`, not `title`.
+            model: 'n/a',
+            slug: article.slug,
             status: article.status,
-            title: article.title,
+            title: article.label,
             type: 'article',
           };
         } else if (options.type === 'video') {
@@ -131,7 +142,9 @@ export const statusCommand = new Command('status')
       print(formatLabel('ID', result.id));
       print(formatLabel('Type', result.type));
       print(formatLabel('Status', formatStatus(result.status)));
-      print(formatLabel('Model', result.model));
+      if (result.type !== 'article') {
+        print(formatLabel('Model', result.model));
+      }
 
       if (result.status === 'completed' && result.url) {
         print(formatLabel('URL', result.url));
@@ -156,8 +169,16 @@ export const statusCommand = new Command('status')
         }
       }
 
-      if (result.type === 'article' && result.title) {
-        print(formatLabel('Title', result.title));
+      if (result.type === 'article') {
+        if (result.title) {
+          print(formatLabel('Title', result.title));
+        }
+        if (result.category) {
+          print(formatLabel('Category', result.category));
+        }
+        if (result.slug) {
+          print(formatLabel('Slug', result.slug));
+        }
       }
 
       if (result.status === 'failed' && result.error) {

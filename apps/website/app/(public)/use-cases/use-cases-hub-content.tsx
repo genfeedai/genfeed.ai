@@ -19,7 +19,9 @@ export default function UseCasesHubContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 gsap-grid">
             {useCases.map((useCase) => (
               <Card key={useCase.slug} className="flex flex-col gsap-card">
-                <h3 className="text-lg font-semibold">{useCase.subtitle}</h3>
+                {/* PageLayout owns the page H1; card titles are the first
+                    level below it, so they must be H2 and not skip a level. */}
+                <h2 className="text-lg font-semibold">{useCase.subtitle}</h2>
                 <p className="text-sm gen-text-muted mt-1">
                   {useCase.headline}
                 </p>
