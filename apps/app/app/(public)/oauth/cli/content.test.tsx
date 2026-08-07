@@ -184,49 +184,19 @@ describe('CliAuthPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('completes legacy CLI token auth and supports copying the fallback key', async () => {
+  it('rejects a CLI that does not send PKCE parameters', async () => {
     useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
-    globalThis.fetch = vi.fn(async () => {
-      return new Response(JSON.stringify({ key: 'gf_cli_key' }), {
-        headers: { 'content-type': 'application/json' },
-        status: 200,
-      });
-    }) as typeof fetch;
+    globalThis.fetch = vi.fn() as unknown as typeof fetch;
 
     render(<CliAuthPage />);
 
-    await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalledWith(
-        'https://api.genfeed.ai/v1/auth/cli/token',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            Authorization: 'Bearer better-auth-session-token',
-          }),
-          method: 'POST',
-        }),
-      );
-      expect(redirectToCallbackMock).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /^http:\/\/127\.0\.0\.1:4321\/callback\?key=gf_cli_key&state=/,
-        ),
-      );
-    });
-
-    await act(async () => {
-      vi.advanceTimersByTime(2_100);
-    });
-
     expect(
-      await screen.findByText('Authentication complete'),
+      await screen.findByText(
+        'This CLI version is no longer supported. Update it (`bun add -g @genfeedai/cli`) and run `gf login` again.',
+      ),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
-
-    await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gf_cli_key');
-      expect(
-        screen.getByRole('button', { name: 'Copied' }),
-      ).toBeInTheDocument();
-    });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(redirectToCallbackMock).not.toHaveBeenCalled();
   });
 
   it('completes CLI PKCE auth through the desktop authorize endpoint', async () => {
@@ -259,10 +229,30 @@ describe('CliAuthPage', () => {
         'http://127.0.0.1:4321/callback?code=gf_cli_code&state=cli-state',
       );
     });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_100);
+    });
+
+    expect(
+      await screen.findByText('Authentication complete'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('gf_cli_code');
+      expect(
+        screen.getByRole('button', { name: 'Copied' }),
+      ).toBeInTheDocument();
+    });
   });
 
   it('shows formatted server and token errors', async () => {
-    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'port=4321&code_challenge=cli-challenge&code_challenge_method=S256&state=cli-state',
+      ),
+    );
     resolveAuthTokenMock.mockResolvedValueOnce(null);
 
     render(<CliAuthPage />);
@@ -293,7 +283,11 @@ describe('CliAuthPage', () => {
   });
 
   it('handles missing credentials and redirect exceptions', async () => {
-    useSearchParamsMock.mockReturnValue(new URLSearchParams('port=4321'));
+    useSearchParamsMock.mockReturnValue(
+      new URLSearchParams(
+        'port=4321&code_challenge=cli-challenge&code_challenge_method=S256&state=cli-state',
+      ),
+    );
     globalThis.fetch = vi.fn(async () => {
       return new Response(JSON.stringify({}), { status: 200 });
     }) as typeof fetch;
@@ -302,12 +296,12 @@ describe('CliAuthPage', () => {
 
     expect(
       await screen.findByText(
-        'Server did not return an API key. Please try again.',
+        'Server did not return an authorization code. Please try again.',
       ),
     ).toBeInTheDocument();
 
     globalThis.fetch = vi.fn(async () => {
-      return new Response(JSON.stringify({ key: 'gf_cli_key' }), {
+      return new Response(JSON.stringify({ code: 'gf_cli_code' }), {
         headers: { 'content-type': 'application/json' },
         status: 200,
       });
