@@ -24,7 +24,6 @@ export type AgentChatContainerThreadViewProps = {
   activeThreadTitle: string | null;
   activeUiAction: string | null;
   apiService: AgentApiService;
-  conversationColumnMaxWidthClass: string;
   followUpTaskMessage: string | null;
   highlightedMessageId: string | null;
   isBusy: boolean;
@@ -65,6 +64,8 @@ export type AgentChatContainerThreadViewProps = {
     payload?: Record<string, unknown>,
   ) => Promise<void>;
   padBottomForComposer: boolean;
+  /** Extra clearance when follow-up chips sit above the fixed composer. */
+  padBottomForFollowUpChips?: boolean;
   pendingInputRequest: AgentInputRequest | null;
   pendingUiActions: AgentUiAction[];
   scrollContainerRef: RefObject<HTMLDivElement | null>;
@@ -82,7 +83,6 @@ export function AgentChatContainerThreadView({
   activeThreadTitle,
   activeUiAction,
   apiService,
-  conversationColumnMaxWidthClass,
   followUpTaskMessage,
   highlightedMessageId,
   isAtBottom,
@@ -113,6 +113,7 @@ export function AgentChatContainerThreadView({
   onSubmitInputRequest,
   onUiAction,
   padBottomForComposer,
+  padBottomForFollowUpChips = false,
   pendingInputRequest,
   pendingUiActions,
   scrollContainerRef,
@@ -136,14 +137,19 @@ export function AgentChatContainerThreadView({
           variant={onboardingMode ? 'inline' : 'overlay'}
         />
       ) : null}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+      {/* Scroll owns the full pane width so the scrollbar is flush to the
+          window edge (Codex). Content is re-centered with max-w-4xl below. */}
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
         <div
           className={cn(
-            'mx-auto space-y-1 p-4 md:px-6',
-            // Floating/portaled composer overlays the transcript — pad so
-            // the last turns can scroll clear of the frosted bar.
-            padBottomForComposer ? 'pb-56 md:pb-72' : 'pb-6',
-            conversationColumnMaxWidthClass,
+            'mx-auto w-full max-w-4xl space-y-1 pt-4',
+            // Reserve only what the floating stack actually uses (glass bar
+            // ~7rem + optional chip row ~3rem + bottom offset).
+            padBottomForComposer && padBottomForFollowUpChips
+              ? 'pb-44 md:pb-48'
+              : padBottomForComposer
+                ? 'pb-36 md:pb-40'
+                : 'pb-6',
           )}
         >
           {activeThreadTitle ? (
@@ -223,7 +229,13 @@ export function AgentChatContainerThreadView({
 /** Prefer real tool/input work over stuck lifecycle bookends. */
 export function selectActiveWorkEvent(
   workEvents: readonly AgentWorkEvent[],
+  options?: { isStreamActive?: boolean },
 ): AgentWorkEvent | null {
+  // Composer sticky "Tool started · Active" must not outlive the stream.
+  if (options?.isStreamActive === false) {
+    return null;
+  }
+
   const pendingOrRunning = [...workEvents]
     .reverse()
     .filter(

@@ -34,4 +34,11 @@ export interface AppLayoutProps {
   brandSlug?: string;
   /** Enables geometry and landmarks scoped to the conversation workspace. */
   isWorkspaceShell?: boolean;
+  /**
+   * Full-viewport app surfaces (agent conversation): lock the shell to the
+   * viewport so the shell banner and page share one height budget. Without
+   * this, a `min-h-[100vh-…]` page under the credits banner overflows and
+   * creates a document scrollbar on top of the thread scroller.
+   */
+  lockViewportHeight?: boolean;
 }

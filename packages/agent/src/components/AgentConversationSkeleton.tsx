@@ -1,4 +1,3 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import type { ReactElement } from 'react';
@@ -9,25 +8,16 @@ type AgentConversationSkeletonProps = {
 };
 
 export function AgentConversationSkeleton({
-  isWideLayout = false,
   title,
 }: AgentConversationSkeletonProps): ReactElement {
-  const conversationColumnMaxWidthClass = isWideLayout
-    ? 'max-w-[52rem]'
-    : 'max-w-[46rem]';
-
+  // Full-width scroll (window-edge scrollbar); content track is max-w-4xl.
   return (
     <div
-      className="relative flex min-h-full flex-1 flex-col"
+      className="relative flex min-h-full w-full flex-1 flex-col"
       data-testid="conversation-skeleton"
     >
       <div className="flex-1 overflow-y-auto">
-        <div
-          className={cn(
-            'mx-auto flex w-full flex-col px-4 py-5 pb-56 md:px-6 md:pb-72',
-            conversationColumnMaxWidthClass,
-          )}
-        >
+        <div className="mx-auto flex w-full max-w-4xl flex-col py-5 pb-36 md:pb-40">
           <div className="mb-8 px-1">
             {title ? (
               <p className="truncate text-sm font-medium text-foreground/70">
@@ -56,11 +46,11 @@ export function AgentConversationSkeleton({
       </div>
 
       <PromptBarContainer
+        className="bottom-0 w-full"
         layoutMode="surface-fixed"
-        maxWidth="4xl"
-        showTopFade
-        zIndex={10}
-        className="bottom-3 md:bottom-5"
+        maxWidth="full"
+        showTopFade={false}
+        zIndex={40}
       >
         <div className="rounded-md border border-white/[0.08] bg-background/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)] backdrop-blur-xl">
           <Skeleton className="mb-4 h-5 w-28 rounded-full bg-white/[0.04]" />

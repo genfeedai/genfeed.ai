@@ -7,13 +7,11 @@ import {
   SendOnEnter,
 } from '@genfeedai/agent/components/agent-chat-input.mentions';
 import { BrandMentionList } from '@genfeedai/agent/components/BrandMentionList';
-import { ContentMentionList } from '@genfeedai/agent/components/ContentMentionList';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { BrandMention } from '@genfeedai/agent/extensions/brand-mention.extension';
-import { ContentMention } from '@genfeedai/agent/extensions/content-mention.extension';
 import { CredentialMention } from '@genfeedai/agent/extensions/credential-mention.extension';
 import { SlashCommands } from '@genfeedai/agent/extensions/slash-commands.extension';
 import { TeamMention } from '@genfeedai/agent/extensions/team-mention.extension';
@@ -26,15 +24,18 @@ import type {
   ConversationComposerActionName,
   ConversationComposerArtifactReference,
   ConversationComposerSendOptions,
+  PersistedConversationComposerContentReference,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   clearConversationComposerDraft,
   readConversationComposerDraft,
+  writeConversationComposerContentReferences,
   writeConversationComposerDocument,
   writeConversationComposerFocusIntent,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
@@ -43,7 +44,7 @@ import type {
   DragHandlers,
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
-import type { Editor } from '@tiptap/core';
+import type { Editor, JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Fragment, Slice } from '@tiptap/pm/model';
 import { useEditor } from '@tiptap/react';
@@ -59,6 +60,73 @@ import {
   useState,
 } from 'react';
 import type { ExtractedMention } from './AgentChatInput';
+
+function contentReferenceToTrayItem(
+  item: PersistedConversationComposerContentReference,
+): AgentChatReferenceItem {
+  return {
+    contentType: item.contentType,
+    id: item.id,
+    label: item.contentTitle,
+    thumbnailUrl: item.thumbnailUrl,
+    type: 'content',
+  };
+}
+
+function contentReferenceToMention(
+  item: PersistedConversationComposerContentReference,
+): ExtractedMention {
+  return {
+    contentTitle: item.contentTitle,
+    contentType: item.contentType,
+    id: item.id,
+    type: 'content',
+  };
+}
+
+/** Strip legacy inline contentMention nodes from restored drafts. */
+function stripContentMentionNodes(document: JSONContent): JSONContent {
+  function walk(node: JSONContent): JSONContent | null {
+    if (node.type === 'contentMention') {
+      return null;
+    }
+
+    if (!node.content?.length) {
+      return node;
+    }
+
+    const nextContent = node.content
+      .map((child) => walk(child))
+      .filter((child): child is JSONContent => child !== null);
+
+    return { ...node, content: nextContent };
+  }
+
+  return walk(document) ?? { type: 'doc', content: [{ type: 'paragraph' }] };
+}
+
+function migrateLegacyContentMentions(
+  document: JSONContent | null,
+  existing: readonly PersistedConversationComposerContentReference[],
+): PersistedConversationComposerContentReference[] {
+  if (!document) {
+    return [...existing];
+  }
+
+  const byId = new Map(existing.map((item) => [item.id, item] as const));
+  for (const mention of extractMentions(document)) {
+    if (mention.type !== 'content' || byId.has(mention.id)) {
+      continue;
+    }
+    byId.set(mention.id, {
+      contentTitle: mention.contentTitle,
+      contentType: mention.contentType,
+      id: mention.id,
+    });
+  }
+
+  return [...byId.values()];
+}
 
 const EMPTY_SURFACE_ARTIFACT_REFERENCES: readonly (
   | AgentArtifactReference
@@ -143,10 +211,24 @@ export function useAgentChatInput({
   );
   const { mentions: brandMentions } = useBrandMentions();
   const { mentions: teamMentions } = useTeamMentions(apiService ?? null);
-  const { mentions: contentMentions } = useContentMentions(apiService ?? null);
+  const { isLoading: isContentLibraryLoading, mentions: contentLibraryItems } =
+    useContentMentions(apiService ?? null);
+
+  const initialContentReferences = useMemo(
+    () =>
+      migrateLegacyContentMentions(
+        restoredDraft.document,
+        restoredDraft.contentReferences,
+      ),
+    [restoredDraft.contentReferences, restoredDraft.document],
+  );
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
+  const [isContentPickerOpen, setIsContentPickerOpen] = useState(false);
+  const [contentReferences, setContentReferences] = useState<
+    PersistedConversationComposerContentReference[]
+  >(initialContentReferences);
   const [mentionReferences, setMentionReferences] = useState<
     AgentChatReferenceItem[]
   >(() =>
@@ -186,8 +268,15 @@ export function useAgentChatInput({
     onTranscript: handleTranscript,
   });
 
+  const initialEditorContent = useMemo(() => {
+    if (!restoredDraft.document) {
+      return undefined;
+    }
+    return stripContentMentionNodes(restoredDraft.document);
+  }, [restoredDraft.document]);
+
   const editor = useEditor({
-    content: restoredDraft.document ?? undefined,
+    content: initialEditorContent,
     editorProps: {
       attributes: {
         'aria-label': 'Conversation prompt',
@@ -318,24 +407,6 @@ export function useAgentChatInput({
           }),
         },
       }),
-      ContentMention.configure({
-        HTMLAttributes: { class: 'mention mention-content' },
-        renderText({ node }) {
-          return `^${node.attrs.label ?? node.attrs.contentTitle}`;
-        },
-        suggestion: {
-          // Chain toolbar inserts "^" — without this char the picker never opens
-          // and the operator only sees a bare caret in the draft.
-          char: '^',
-          ...buildMentionSuggestion({
-            component: ContentMentionList,
-            getItems: (query) =>
-              contentMentions.filter((item) =>
-                item.contentTitle.toLowerCase().includes(query.toLowerCase()),
-              ),
-          }),
-        },
-      }),
       SlashCommands,
     ],
     immediatelyRender: false,
@@ -388,8 +459,20 @@ export function useAgentChatInput({
     }
 
     const draft = readConversationComposerDraft(draftScopeKey);
-    editor.commands.setContent(draft.document ?? '');
+    const migratedContentReferences = migrateLegacyContentMentions(
+      draft.document,
+      draft.contentReferences,
+    );
+    const cleanedDocument = draft.document
+      ? stripContentMentionNodes(draft.document)
+      : '';
+    editor.commands.setContent(cleanedDocument);
     setIsEmpty(!draft.plainText.trim());
+    setContentReferences(migratedContentReferences);
+    writeConversationComposerContentReferences(
+      draftScopeKey,
+      migratedContentReferences,
+    );
     const nextReferences = draft.document
       ? mapMentionsToReferences(extractMentions(draft.document))
       : [];
@@ -489,7 +572,10 @@ export function useAgentChatInput({
     }
 
     const json = editor.getJSON();
-    const mentionData = extractMentions(json);
+    const mentionData = [
+      ...extractMentions(json).filter((mention) => mention.type !== 'content'),
+      ...contentReferences.map(contentReferenceToMention),
+    ];
     const completed = getCompletedAttachments?.();
     onSend(
       text,
@@ -508,10 +594,12 @@ export function useAgentChatInput({
       },
     );
     editor.commands.clearContent();
+    setContentReferences([]);
     clearAllAttachments?.();
     clearConversationComposerDraft(draftScopeKey);
   }, [
     composerShell,
+    contentReferences,
     draftScopeKey,
     editor,
     disabled,
@@ -547,8 +635,44 @@ export function useAgentChatInput({
   );
 
   const handleInsertReference = useCallback(() => {
-    editor?.chain().focus('end').insertContent('^').run();
-  }, [editor]);
+    setIsContentPickerOpen(true);
+  }, []);
+
+  const handleSelectContentReference = useCallback(
+    (item: ContentMentionItem) => {
+      setContentReferences((current) => {
+        if (current.some((reference) => reference.id === item.id)) {
+          return current;
+        }
+
+        const next: PersistedConversationComposerContentReference[] = [
+          ...current,
+          {
+            contentTitle: item.contentTitle,
+            contentType: item.contentType,
+            id: item.id,
+            ...(item.thumbnailUrl ? { thumbnailUrl: item.thumbnailUrl } : {}),
+          },
+        ];
+        writeConversationComposerContentReferences(draftScopeKey, next);
+        return next;
+      });
+      setIsContentPickerOpen(false);
+      editor?.commands.focus('end');
+    },
+    [draftScopeKey, editor],
+  );
+
+  const handleRemoveContentReference = useCallback(
+    (referenceId: string) => {
+      setContentReferences((current) => {
+        const next = current.filter((item) => item.id !== referenceId);
+        writeConversationComposerContentReferences(draftScopeKey, next);
+        return next;
+      });
+    },
+    [draftScopeKey],
+  );
 
   const handleShellPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -597,6 +721,20 @@ export function useAgentChatInput({
     [removeAttachment],
   );
 
+  const handleRemoveReference = useCallback(
+    (reference: AgentChatReferenceItem) => {
+      if (reference.type === 'content') {
+        handleRemoveContentReference(reference.id);
+      }
+    },
+    [handleRemoveContentReference],
+  );
+
+  const selectedContentIds = useMemo(
+    () => new Set(contentReferences.map((item) => item.id)),
+    [contentReferences],
+  );
+
   const references = useMemo<AgentChatReferenceItem[]>(() => {
     const referencesByKey = new Map<string, AgentChatReferenceItem>();
 
@@ -610,9 +748,15 @@ export function useAgentChatInput({
     for (const reference of mentionReferences) {
       referencesByKey.set(`${reference.type}:${reference.id}`, reference);
     }
+    for (const reference of contentReferences) {
+      referencesByKey.set(
+        `content:${reference.id}`,
+        contentReferenceToTrayItem(reference),
+      );
+    }
 
     return [...referencesByKey.values()];
-  }, [composerShell?.references, mentionReferences]);
+  }, [composerShell?.references, contentReferences, mentionReferences]);
   const displayedReferences = useMemo<AgentChatReferenceItem[]>(() => {
     const referencesById = new Map<string, AgentChatReferenceItem>();
 
@@ -640,6 +784,8 @@ export function useAgentChatInput({
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
+  // Voice is a leading-tool affordance; send stays pinned on the trailing edge
+  // (T3-style: model + send on the right). They are no longer mutually exclusive.
   const shouldShowVoiceInput =
     !showStop &&
     !isListening &&
@@ -647,26 +793,30 @@ export function useAgentChatInput({
     isSupported &&
     isEmpty &&
     !hasAttachments;
-  const shouldShowSendButton =
-    !showStop &&
-    !isTranscribing &&
-    (!isSupported || !isEmpty || hasCompletedAttachments);
+  const shouldShowSendButton = !showStop && !isTranscribing;
 
   return {
     actionFeedback,
     canSendMessage,
+    contentLibraryItems,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
+    handleRemoveReference,
     handleInsertReference,
     handleSelectAction,
+    handleSelectContentReference,
     handleSend,
     handleShellPointerDown,
     hasAttachments,
+    isContentLibraryLoading,
+    isContentPickerOpen,
     isDragActive,
     isListening,
     isTranscribing,
     references: displayedReferences,
+    selectedContentIds,
+    setIsContentPickerOpen,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,

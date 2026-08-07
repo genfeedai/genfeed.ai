@@ -57,10 +57,12 @@ export default function CreditsBarTrigger({
   planUsagePercent,
   onRefresh,
 }: Props) {
-  const href = billingHref || '/settings/billing';
+  const href = billingHref || '/settings/credits';
   const unit = EnvironmentService.CREDITS_LABEL;
   const severity = getBalanceSeverity(balance);
-  const isLow = severity !== 'healthy';
+  const isCritical = severity === 'critical';
+  const isWarning = severity === 'warning';
+  const isLow = isCritical || isWarning;
   const planUsed = planLimit > 0 ? Math.max(0, planLimit - planBalance) : 0;
 
   return (
@@ -80,27 +82,51 @@ export default function CreditsBarTrigger({
           data-testid="topbar-credits-trigger"
           data-severity={severity}
           title={`${fullBalance} ${unit}`}
-          ariaLabel={`Balance ${fullBalance} ${unit}. Open wallet.`}
+          ariaLabel={
+            isCritical
+              ? `Balance empty: 0 ${unit}. Open wallet to buy credits.`
+              : isWarning
+                ? `Balance low: ${fullBalance} ${unit}. Open wallet to buy credits.`
+                : `Balance ${fullBalance} ${unit}. Open wallet.`
+          }
           className={cn(
-            'hidden h-8 items-center gap-1.5 rounded-md border-0 bg-transparent px-2 shadow-none outline-none ring-0 transition-colors sm:inline-flex',
-            'hover:bg-hover focus:outline-none focus:ring-0 focus-visible:bg-hover focus-visible:outline-none focus-visible:ring-0',
-            'data-[state=open]:bg-hover',
+            'hidden h-8 items-center gap-1.5 rounded-md border px-2 shadow-none outline-none ring-0 transition-colors sm:inline-flex',
+            'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0',
+            isCritical &&
+              'animate-pulse border-destructive/45 bg-destructive/15 text-destructive hover:bg-destructive/20 data-[state=open]:animate-none data-[state=open]:bg-destructive/20 motion-reduce:animate-none',
+            isWarning &&
+              'border-amber-500/35 bg-amber-500/10 text-amber-600 hover:bg-amber-500/15 data-[state=open]:bg-amber-500/15 dark:text-amber-400',
+            !isLow &&
+              'border-0 bg-transparent text-foreground hover:bg-hover data-[state=open]:bg-hover',
           )}
         >
           <span
             className={cn(
-              'text-[13px] font-semibold tabular-nums tracking-[-0.02em] text-foreground',
-              isLow && 'text-foreground/90',
+              'text-[13px] font-semibold tabular-nums tracking-[-0.02em]',
+              isCritical && 'text-destructive',
+              isWarning && 'text-amber-600 dark:text-amber-400',
+              !isLow && 'text-foreground',
             )}
           >
             {compactBalance}
           </span>
-          <span className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+          <span
+            className={cn(
+              'text-[11px] font-medium uppercase tracking-[0.06em]',
+              isCritical && 'text-destructive/80',
+              isWarning && 'text-amber-600/80 dark:text-amber-400/80',
+              !isLow && 'text-muted-foreground',
+            )}
+          >
             {unit}
           </span>
           {isLow ? (
             <span
-              className="ml-0.5 size-1.5 shrink-0 rounded-full bg-foreground/45"
+              className={cn(
+                'ml-0.5 size-1.5 shrink-0 rounded-full',
+                isCritical && 'bg-destructive',
+                isWarning && 'bg-amber-500',
+              )}
               aria-hidden
             />
           ) : null}
@@ -115,18 +141,25 @@ export default function CreditsBarTrigger({
       >
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col gap-1">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="text-sm font-medium leading-none text-foreground">
+            <div className="flex items-baseline gap-2">
+              <p
+                className={cn(
+                  'text-sm font-medium leading-none',
+                  isCritical ? 'text-destructive' : 'text-foreground',
+                )}
+              >
                 <span className="tabular-nums">{fullBalance}</span>
-                <span className="ml-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                <span
+                  className={cn(
+                    'ml-1 text-[11px] font-medium uppercase tracking-[0.08em]',
+                    isCritical
+                      ? 'text-destructive/80'
+                      : 'text-muted-foreground',
+                  )}
+                >
                   {unit}
                 </span>
               </p>
-              {isLow ? (
-                <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-                  {severity === 'critical' ? 'Empty' : 'Low'}
-                </span>
-              ) : null}
             </div>
             {planLimit > 0 ? (
               <p className="text-xs leading-none text-muted-foreground">
@@ -138,7 +171,9 @@ export default function CreditsBarTrigger({
               </p>
             ) : (
               <p className="text-xs leading-none text-muted-foreground">
-                Available balance
+                {isCritical
+                  ? 'No credits left — top up to generate'
+                  : 'Available balance'}
               </p>
             )}
           </div>
@@ -148,7 +183,10 @@ export default function CreditsBarTrigger({
           <div className="px-2 pb-2">
             <div className="h-1 overflow-hidden rounded-full bg-foreground/[0.08]">
               <div
-                className="h-full rounded-full bg-foreground/45 transition-all duration-500"
+                className={cn(
+                  'h-full rounded-full transition-all duration-500',
+                  isCritical ? 'bg-destructive' : 'bg-foreground/45',
+                )}
                 style={{ width: `${Math.min(planUsagePercent, 100)}%` }}
               />
             </div>
@@ -184,11 +222,33 @@ export default function CreditsBarTrigger({
 
         <DropdownMenuSeparator />
 
-        <div className="p-2 pt-1.5">
+        <div
+          className={cn(
+            'flex flex-col gap-2 p-2 pt-1.5',
+            isLow && 'rounded-b-md',
+            isCritical && 'bg-destructive/5',
+            isWarning && 'bg-amber-500/5',
+          )}
+        >
+          {isLow ? (
+            <p
+              className={cn(
+                'px-0.5 text-[11px] leading-snug',
+                isCritical && 'font-medium text-destructive',
+                isWarning && 'text-amber-700 dark:text-amber-400',
+              )}
+            >
+              {isCritical
+                ? 'You are out of credits. Buy more to keep generating.'
+                : 'Running low. Top up before generations stall.'}
+            </p>
+          ) : null}
           <Button
             asChild
             withWrapper={false}
-            variant={ButtonVariant.DEFAULT}
+            variant={
+              isCritical ? ButtonVariant.DESTRUCTIVE : ButtonVariant.DEFAULT
+            }
             textTransform="none"
             className="h-9 w-full justify-center gap-1.5"
             data-testid="topbar-credits-buy"

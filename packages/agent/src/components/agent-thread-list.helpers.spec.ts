@@ -1,7 +1,11 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
-import { groupAgentThreads } from './agent-thread-list.helpers';
+import {
+  getThreadStatusDotClass,
+  getThreadStatusMeta,
+  groupAgentThreads,
+} from './agent-thread-list.helpers';
 
 function createThread(
   id: string,
@@ -70,5 +74,45 @@ describe('groupAgentThreads', () => {
 
     expect(groups.needsYou.map(({ id }) => id)).toEqual(['pinned-needs-input']);
     expect(groups.pinned.map(({ id }) => id)).toEqual(['pinned']);
+  });
+});
+
+describe('getThreadStatusMeta', () => {
+  it('marks background attention running without requiring the thread to be active', () => {
+    const thread = createThread('background', {
+      attentionState: 'running',
+      runStatus: 'running',
+    });
+
+    expect(
+      getThreadStatusMeta(thread, {
+        activeRunStatus: 'idle',
+        activeThreadId: 'other',
+      }),
+    ).toEqual({
+      label: 'Running',
+      tone: 'running',
+    });
+  });
+
+  it('ignores bare stale runStatus on non-active threads', () => {
+    const thread = createThread('stale', {
+      runStatus: 'running',
+    });
+
+    expect(
+      getThreadStatusMeta(thread, {
+        activeRunStatus: 'idle',
+        activeThreadId: 'other',
+      }),
+    ).toBeNull();
+  });
+});
+
+describe('getThreadStatusDotClass', () => {
+  it('uses a distinct color for running attention', () => {
+    expect(getThreadStatusDotClass({ attentionState: 'running' })).toBe(
+      'bg-sky-400',
+    );
   });
 });

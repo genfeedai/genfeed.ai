@@ -33,7 +33,7 @@ const baseIngredient = {
   id: 'avatar-source-1',
   ingredientUrl: 'https://cdn.genfeed.ai/mock/avatar-source.jpg',
   metadataLabel: 'Avatar Source',
-  status: 'generated',
+  status: 'GENERATED',
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
 

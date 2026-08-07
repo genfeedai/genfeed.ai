@@ -187,7 +187,7 @@ export const LIFECYCLE_SYSTEM_EMAILS = [
   {
     action: {
       label: 'Open billing',
-      path: APP_ROUTES.SETTINGS.BILLING,
+      path: APP_ROUTES.SETTINGS.SUBSCRIPTION,
       type: 'app-path',
     },
     audience: 'Users with a lapsed Genfeed subscription',

@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on the program.
 - `gf publish` and `gf workflow` send the corrected payload shapes surfaced by the local QA pass
   (#2366).
+- `gf generate image` and `gf generate video` now send `brandId` instead of `brand`. The API DTOs
+  declare `brandId`, and the global ValidationPipe strips unknown properties, so the brand was
+  silently dropped and generations fell back to the organization's default brand
+  (`src/api/images.ts`, `src/api/videos.ts`).
 - `gf performance weekly|top|prompts` no longer returns 400. The CLI now sends the query parameter
   names the API reads (`brandId`, `topN`, `worstN`, `limit`, `startDate`, `endDate` instead of
   `brand`, `top`, `worst`, `start`, `end`), fails fast with `NoBrandError` when no brand is
