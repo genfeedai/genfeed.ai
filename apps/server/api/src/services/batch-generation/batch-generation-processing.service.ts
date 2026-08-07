@@ -15,12 +15,9 @@ import {
 } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { BatchItemStatus, PostStatus } from '@genfeedai/enums';
+import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import {
-  type Prisma,
-  BatchStatus as PrismaBatchStatus,
-} from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -106,17 +103,16 @@ export class BatchGenerationProcessingService {
     }
 
     const totalCount = batchConfig.totalCount ?? batchItems.length;
-    // Map domain partial → COMPLETED until Prisma BatchStatus gains PARTIAL (#2467).
     const finalStatus =
       failedCount === 0 && completedCount === totalCount
-        ? PrismaBatchStatus.COMPLETED
+        ? BatchStatus.COMPLETED
         : completedCount > 0
-          ? PrismaBatchStatus.COMPLETED
-          : PrismaBatchStatus.FAILED;
+          ? BatchStatus.PARTIAL
+          : BatchStatus.FAILED;
     const updatedConfig: BatchConfig = {
       ...batchConfig,
       completedAt:
-        finalStatus === PrismaBatchStatus.COMPLETED
+        finalStatus === BatchStatus.COMPLETED
           ? new Date().toISOString()
           : undefined,
       completedCount,

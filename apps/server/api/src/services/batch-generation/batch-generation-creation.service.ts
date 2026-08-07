@@ -14,7 +14,12 @@ import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/c
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { BatchItemStatus, ContentFormat, PostStatus } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentFormat,
+  PostStatus,
+} from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
