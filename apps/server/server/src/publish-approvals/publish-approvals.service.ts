@@ -3,6 +3,7 @@ import { canTransitionPublishApprovalStatus } from '@genfeedai/api-types/contrac
 import {
   PublishApprovalPolicyId,
   PublishApprovalStatus,
+  ReviewDecision,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type {
@@ -305,7 +306,7 @@ export class PublishApprovalsService {
         await tx.post.update({
           data: {
             publishApprovalId: created.id,
-            reviewDecision: 'APPROVED',
+            reviewDecision: ReviewDecision.APPROVED,
             reviewVersionPinId: versionPin.id,
             reviewedAt: now,
           },
@@ -885,7 +886,7 @@ export class PublishApprovalsService {
     const activated = await client.post.updateMany({
       data: {
         publishApprovalId: approval.id,
-        reviewDecision: 'APPROVED',
+        reviewDecision: ReviewDecision.APPROVED,
         reviewVersionPinId: approval.artifactVersionPinId,
       },
       where: scopedWhere(post.organizationId, {

@@ -12,7 +12,12 @@ import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  PostStatus,
+  ReviewDecision,
+} from '@genfeedai/enums';
 import type { IBatchSummary, IPublishApproval } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
@@ -235,7 +240,7 @@ export class BatchGenerationReviewService {
         selectedPostIds.map((postId) =>
           transaction.post.updateMany({
             data: {
-              reviewDecision: 'APPROVED',
+              reviewDecision: ReviewDecision.APPROVED,
               reviewVersionPinId: versionPinIds.get(postId),
               reviewedAt: new Date(reviewedAt),
             },
@@ -364,7 +369,7 @@ export class BatchGenerationReviewService {
       await this.prisma.post.updateMany({
         data: {
           isDeleted: true,
-          reviewDecision: 'REJECTED',
+          reviewDecision: ReviewDecision.REJECTED,
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
         },
@@ -447,7 +452,7 @@ export class BatchGenerationReviewService {
     if (postIdsToKeepAsDraft.length > 0) {
       await this.prisma.post.updateMany({
         data: {
-          reviewDecision: 'REQUEST_CHANGES',
+          reviewDecision: ReviewDecision.REQUEST_CHANGES,
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
           status: PostStatus.DRAFT,

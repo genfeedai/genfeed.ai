@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus, ReviewDecision } from '@genfeedai/enums';
 import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
@@ -61,7 +61,7 @@ describe('PostDetailSidebar', () => {
           generationId: 'gen-123',
           promptUsed: 'Write a launch clip',
           reviewBatchId: 'batch-1',
-          reviewDecision: 'request_changes',
+          reviewDecision: ReviewDecision.REQUEST_CHANGES,
           reviewEvents: [
             {
               decision: 'request_changes',
