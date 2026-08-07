@@ -61,8 +61,7 @@ New casts fail CI. Cleanups must prune the baseline in the same PR.
 
 | Area | Storage | Domain casing | Agent rule |
 | --- | --- | --- | --- |
-| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, BotStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
-| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, ContentDraftStatus, BotStatus, BrandInterviewStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
+| **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, BotStatus, BrandInterviewStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
 | **`PostStatus`, `TaskStatus`, and similar product statuses** | **String** column | **lowercase product language** | Keep as-is. Do **not** re-harmonize into SCREAMING or invent dual maps. |
 | **`WorkflowStatus`** | **String** column | product lowercase | Keep as-is. Orphan Prisma enum dropped in #2492 — do not reintroduce. |
 | **`ContentDraftStatus`, `CampaignTargetStatus`** | **String** column (`content_drafts.status`, `campaign_targets.status`) | SCREAMING domain vocabulary | Domain-only. Orphan Prisma enums dropped in `20260807160000_drop_orphan_enums` — do not reintroduce. Not in the parity ratchet. Columns still carry lowercase defaults + legacy rows from `20260609150437_reconcile_prod_schema`. |
