@@ -151,4 +151,35 @@ describe('ExecutionHistoryPanel', () => {
       );
     });
   });
+
+  it('shows an error when cancellation is rejected', async () => {
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockReset();
+    fetchMock
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: [
+            {
+              createdAt: '2026-08-07T00:00:00.000Z',
+              id: 'execution-4',
+              nodeResults: [],
+              progress: 10,
+              status: WorkflowExecutionStatus.RUNNING,
+              trigger: 'manual',
+            },
+          ],
+        }),
+        ok: true,
+      } as Response)
+      .mockResolvedValueOnce({ ok: false } as Response);
+
+    render(<ExecutionHistoryPanel {...defaultProps} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /cancel/i }));
+
+    expect(
+      await screen.findByText('Failed to cancel execution'),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

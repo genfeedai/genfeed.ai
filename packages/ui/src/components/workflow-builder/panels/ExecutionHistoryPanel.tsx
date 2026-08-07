@@ -251,16 +251,24 @@ export default function ExecutionHistoryPanel({
       try {
         // The dedicated `/cancel` RPC route was collapsed into the generic
         // execution PATCH by the REST audit (#1354).
-        await fetch(`/v1/core/workflow-executions/${executionId}`, {
-          body: JSON.stringify({
-            status: WorkflowExecutionStatus.CANCELLED,
-          }),
-          headers: { 'Content-Type': 'application/json' },
-          method: 'PATCH',
-        });
+        const response = await fetch(
+          `/v1/core/workflow-executions/${executionId}`,
+          {
+            body: JSON.stringify({
+              status: WorkflowExecutionStatus.CANCELLED,
+            }),
+            headers: { 'Content-Type': 'application/json' },
+            method: 'PATCH',
+          },
+        );
+        if (!response.ok) {
+          throw new Error('Failed to cancel execution');
+        }
         fetchExecutions();
-      } catch (_err) {
-        // Ignore
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to cancel execution',
+        );
       }
     },
     [fetchExecutions],
