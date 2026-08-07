@@ -21,13 +21,16 @@ export enum CampaignStatus {
 /**
  * Outreach target lifecycle.
  *
- * Prisma declares `CampaignTargetStatus` (PENDING/CONTACTED/RESPONDED/
- * CONVERTED/REJECTED) but no model column uses it yet. Domain keeps the
- * richer outreach pipeline vocabulary used by campaign workers; values are
- * SCREAMING for consistency. Map to the Prisma set before any future column
- * write.
+ * `campaign_targets.status` is a `String` column (rule 2 of
+ * `enum_source_of_truth`), not a Prisma enum — the orphan Postgres type of the
+ * same name was dropped in `20260807160000_drop_orphan_enums`. It carried
+ * PENDING/CONTACTED/RESPONDED/CONVERTED/REJECTED and never matched the pipeline
+ * the campaign workers actually run, which is this set. Every write goes through
+ * these members. The column's SQL default is still the lowercase `'pending'`
+ * that `20260609150437_reconcile_prod_schema` left behind, along with rows that
+ * migration lowercased, so the casing is not yet uniform in existing data.
  *
- * @see packages/prisma/prisma/schema.prisma `enum CampaignTargetStatus`
+ * @see packages/prisma/prisma/schema.prisma `model CampaignTarget`
  */
 export enum CampaignTargetStatus {
   PENDING = 'PENDING',

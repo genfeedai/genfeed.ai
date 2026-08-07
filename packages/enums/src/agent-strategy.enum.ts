@@ -41,8 +41,10 @@ export enum AgentType {
 }
 
 /**
- * Agent autonomy mode. Values match Prisma `AgentAutonomyMode`.
- * @see packages/prisma/prisma/schema.prisma `enum AgentAutonomyMode`
+ * Agent autonomy mode. Domain-only vocabulary — no Prisma column stores it.
+ * The matching orphan Postgres type was dropped in
+ * `20260807160000_drop_orphan_enums`; values stay SCREAMING so a future column
+ * can adopt them without a cast.
  */
 export enum AgentAutonomyMode {
   SUPERVISED = 'SUPERVISED',

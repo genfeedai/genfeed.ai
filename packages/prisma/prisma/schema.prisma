@@ -280,18 +280,6 @@ enum IntegrationStatus {
   ERROR
 }
 
-enum ReferenceImageCategory {
-  FACE
-  PRODUCT
-  STYLE
-  LOGO
-}
-
-enum AgentAutonomyMode {
-  SUPERVISED
-  AUTO_PUBLISH
-}
-
 enum AgentReplyStyle {
   CONCISE
   DETAILED
@@ -345,16 +333,6 @@ enum TrendNotificationFrequency {
   HOURLY
   DAILY
   WEEKLY
-}
-
-enum AgentQualityTier {
-  BUDGET
-  BALANCED
-  HIGH_QUALITY
-}
-
-enum AgentGoalProfile {
-  REACH_TRAFFIC
 }
 
 enum TrainingStage {
@@ -414,21 +392,6 @@ enum BotStatus {
   STOPPED
 }
 
-enum OutreachCampaignStatus {
-  DRAFT
-  ACTIVE
-  PAUSED
-  COMPLETED
-}
-
-enum CampaignTargetStatus {
-  PENDING
-  CONTACTED
-  RESPONDED
-  CONVERTED
-  REJECTED
-}
-
 enum SubscriptionStatus {
   ACTIVE
   CANCELLED
@@ -443,14 +406,6 @@ enum LeadStatus {
   QUALIFIED
   CONVERTED
   LOST
-}
-
-enum ContentDraftStatus {
-  DRAFT
-  READY
-  APPROVED
-  REJECTED
-  PUBLISHED
 }
 
 enum BatchStatus {
