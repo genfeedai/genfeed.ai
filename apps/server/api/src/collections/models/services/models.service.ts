@@ -304,7 +304,7 @@ export class ModelsService extends BaseService<
     const created = await this.prisma.model.create({
       data: this.splitModelData(
         createDto as unknown as Record<string, unknown>,
-      ) as Prisma.InputJsonValue,
+      ) as Prisma.ModelUncheckedCreateInput,
     });
     return this.normalizeModelDocument(created);
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import type { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type { ExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import { getStatusIcon } from '@/features/workflows/utils/status-helpers';
@@ -47,11 +47,12 @@ export default function ExecutionSummaryBar({
             {etaDisplay.actualDurationLabel ??
               (duration !== null ? `${duration}s` : 'In progress')}
           </div>
-          {etaDisplay.elapsedLabel && status !== 'completed' && (
-            <div className="text-xs text-muted-foreground">
-              Elapsed {etaDisplay.elapsedLabel}
-            </div>
-          )}
+          {etaDisplay.elapsedLabel &&
+            status !== WorkflowExecutionStatus.COMPLETED && (
+              <div className="text-xs text-muted-foreground">
+                Elapsed {etaDisplay.elapsedLabel}
+              </div>
+            )}
         </div>
         <div>
           <div className="text-sm text-muted-foreground">ETA</div>

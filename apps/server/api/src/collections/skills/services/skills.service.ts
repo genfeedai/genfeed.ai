@@ -178,11 +178,11 @@ export class SkillsService {
         config: {
           ...config,
           baseSkillId: String(baseSkill.id),
-        },
+        } as Prisma.InputJsonValue,
         isDeleted: false,
         label: customName,
         organizationId,
-      } as Prisma.InputJsonValue,
+      },
     });
 
     return this.normalizeSkill(result);
@@ -215,11 +215,11 @@ export class SkillsService {
 
     const updated = await this.prisma.skill.update({
       data: {
-        config: mergedConfig,
+        config: mergedConfig as Prisma.InputJsonValue,
         label: payload.name ?? (existingConfig['name'] as string | undefined),
         organizationId,
-      } as Prisma.InputJsonValue,
-      where: { id: String(skill.id) },
+      },
+      where: scopedWhere(organizationId, { id: String(skill.id) }),
     });
 
     return this.normalizeSkill(updated);
@@ -272,7 +272,7 @@ export class SkillsService {
       where: {
         ...this.buildAccessibleSkillWhere(organizationId),
         OR: [{ id: idOrSlug }],
-      } as Prisma.InputJsonValue,
+      } as Prisma.SkillWhereInput,
     });
 
     if (!result) {

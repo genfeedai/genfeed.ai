@@ -143,7 +143,7 @@ export class BatchWorkflowService {
     const ownedCount = await this.prisma.ingredient.count({
       where: scopedWhere(organizationId, {
         id: { in: ingredientIds },
-      }) as Prisma.BatchWorkflowJobCreateInput,
+      }) as Prisma.IngredientWhereInput,
     });
 
     if (ownedCount !== ingredientIds.length) {

@@ -6,7 +6,7 @@ export enum AgentRunFrequency {
 
 /**
  * Agent run lifecycle. Values match Prisma `AgentRunStatus` (SCREAMING_SNAKE)
- * so DB writes need no `as never` cast.
+ * so DB writes need no cast.
  *
  * `BUDGET_EXHAUSTED` is domain-only (strategy history / orchestration) — not a
  * Postgres AgentRunStatus label. Map it to FAILED before writing the agent_runs

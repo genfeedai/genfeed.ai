@@ -1,4 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
@@ -104,7 +105,7 @@ export class BatchGenerationCreationService {
         brandId: dto.brandId,
         config: config as Prisma.InputJsonValue,
         isDeleted: false,
-        items: items as Prisma.InputJsonValue,
+        items: items as unknown as Prisma.InputJsonValue,
         organizationId: orgId,
         status: toPrismaBatchStatus(BatchStatus.PENDING),
         userId,
@@ -181,7 +182,7 @@ export class BatchGenerationCreationService {
           brandId: dto.brandId,
           config: config as Prisma.InputJsonValue,
           isDeleted: false,
-          items: batchItems as Prisma.InputJsonValue,
+          items: batchItems as unknown as Prisma.InputJsonValue,
           organizationId: orgId,
           status: toPrismaBatchStatus(BatchStatus.COMPLETED),
           userId,
@@ -265,7 +266,7 @@ export class BatchGenerationCreationService {
           status: PostStatus.DRAFT,
           userId: userId,
           variantId: reviewItem.variantId,
-        } as Prisma.PostCreateInput);
+        } as PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
 

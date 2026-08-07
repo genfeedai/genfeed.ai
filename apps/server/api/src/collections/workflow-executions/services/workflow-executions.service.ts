@@ -374,6 +374,11 @@ export class WorkflowExecutionsService extends BaseService<
       metadata: nextMetadata,
       progress: 100,
     };
+    // Runner-written completion fields ride on the untyped result record.
+    const completionOutcome = existingResult as {
+      creditsUsed?: unknown;
+      failedNodeId?: unknown;
+    };
 
     const result = await this.prisma.workflowExecution.update({
       data: {
@@ -394,15 +399,15 @@ export class WorkflowExecutionsService extends BaseService<
     await this.workflowEventWebhookService.emitExecutionOutcome({
       completedAt,
       creditsUsed:
-        typeof updatedResult.creditsUsed === 'number'
-          ? updatedResult.creditsUsed
+        typeof completionOutcome.creditsUsed === 'number'
+          ? completionOutcome.creditsUsed
           : 0,
       durationMs,
       errorMessage: error ?? null,
       executionId,
       failedNodeId:
-        typeof updatedResult.failedNodeId === 'string'
-          ? updatedResult.failedNodeId
+        typeof completionOutcome.failedNodeId === 'string'
+          ? completionOutcome.failedNodeId
           : null,
       occurredAt: completedAt,
       organizationId: execution.organizationId ?? '',

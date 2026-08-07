@@ -5,6 +5,7 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { EnvironmentService } from '@services/core/environment.service';
 import Card from '@ui/card/Card';
+import { Alert, AlertDescription } from '@ui/primitives/alert';
 import { Text } from '@ui/typography/text';
 import { TriangleAlert } from 'lucide-react';
 import AddCreditsCard from '../billing/add-credits-card';
@@ -54,12 +55,12 @@ export default function SettingsCreditsPage() {
         <Card label="Balance" bodyClassName="gap-3 p-4">
           <div className="flex flex-col gap-3">
             {isLowCredits && (
-              <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded">
-                <TriangleAlert className="size-4 text-amber-500 shrink-0 mt-0.5" />
-                <Text size="sm" color="muted">
+              <Alert variant="warning">
+                <TriangleAlert aria-hidden="true" className="size-4" />
+                <AlertDescription>
                   Low credits warning: your organization is below 1,000 credits.
-                </Text>
-              </div>
+                </AlertDescription>
+              </Alert>
             )}
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded">
               <Text size="sm" color="muted">

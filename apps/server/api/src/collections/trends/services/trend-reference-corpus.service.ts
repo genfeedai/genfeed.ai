@@ -159,8 +159,8 @@ export class TrendReferenceCorpusService {
           trends: {
             set: trendIds.map((id) => ({ id })),
           },
-        } as Prisma.InputJsonValue,
-        where: { id: existing.id },
+        },
+        where: scopedWhere(payload.organizationId, { id: existing.id }),
       });
     } else {
       await this.prisma.trendRemixLineage.create({
@@ -179,7 +179,7 @@ export class TrendReferenceCorpusService {
           trends: {
             connect: trendIds.map((id) => ({ id })),
           },
-        } as Prisma.InputJsonValue,
+        },
       });
     }
   }
@@ -445,7 +445,7 @@ export class TrendReferenceCorpusService {
         isDeleted: false,
         platform: options.platform ? options.platform : { not: null },
       },
-    } as Prisma.InputJsonValue);
+    });
 
     const brandRemixCounts = await this.getBrandRemixCountsByAccount(
       organizationId,

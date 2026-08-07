@@ -1490,7 +1490,7 @@
     },
     {
       "code": 2345,
-      "count": 10,
+      "count": 11,
       "file": "apps/server/api/src/collections/organizations/controllers/organizations-settings.controller.spec.ts",
       "fingerprint": "66372c785b5a83980c66",
       "message": "Argument of type 'Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>' is not assignable to parameter of type 'RequestWithContext'.   Types of property 'user' are incompatible.     Type 'User | undefined' is not assignable to type 'AuthenticatedUser | undefined'.       Property 'id' is missing in type 'User' but required in type 'AuthenticatedUser'.",
@@ -2666,6 +2666,30 @@
     },
     {
       "code": 2345,
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/public/controllers/models/public.models.controller.spec.ts",
+      "fingerprint": "9b16d676f7cfd70a652d",
+      "message": "Argument of type '{ docs: { id: string; key: string; label: string; }[]; page: number; totalDocs: number; }' is not assignable to parameter of type 'AggregatePaginateResult<ModelDocument>'.   Type '{ docs: { id: string; key: string; label: string; }[]; page: number; totalDocs: number; }' is missing the following properties from type 'AggregatePaginateResult<ModelDocument>': limit, totalPages, pagingCounter, hasPrevPage, hasNextPage",
+      "workspace": "api"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/public/controllers/models/public.models.controller.spec.ts",
+      "fingerprint": "10afd51be859966bd3ab",
+      "message": "Conversion of type '[input: unknown, options: AggregationOptions]' to type '[{ orderBy: Record<string, number>; }]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Source has 2 element(s) but target allows only 1.",
+      "workspace": "api"
+    },
+    {
+      "code": 2352,
+      "count": 1,
+      "file": "apps/server/api/src/endpoints/public/controllers/models/public.models.controller.spec.ts",
+      "fingerprint": "f5e89f1b1b0cccb7747a",
+      "message": "Conversion of type '[input: unknown, options: AggregationOptions]' to type '[{ where: Record<string, unknown>; }]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Source has 2 element(s) but target allows only 1.",
+      "workspace": "api"
+    },
+    {
+      "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/endpoints/public/controllers/musics/public.musics.controller.spec.ts",
       "fingerprint": "02065626fb2f0fadc3bf",
@@ -3234,7 +3258,7 @@
     },
     {
       "code": 2345,
-      "count": 8,
+      "count": 12,
       "file": "apps/server/api/src/services/ads-gateway/adapters/meta-ads.adapter.spec.ts",
       "fingerprint": "6b78d21f7c3f9390d2c7",
       "message": "Argument of type '{ accessToken: string; adAccountId: string; }' is not assignable to parameter of type 'AdsAdapterContext'.   Type '{ accessToken: string; adAccountId: string; }' is missing the following properties from type 'AdsAdapterContext': organizationId, credentialId",
@@ -4666,14 +4690,6 @@
     },
     {
       "code": 2820,
-      "count": 4,
-      "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
-      "fingerprint": "50a120dd9868f58ce678",
-      "message": "Type 'IngredientStatus.UPLOADED' is not assignable to type 'IngredientStatus | undefined'. Did you mean '\"UPLOADED\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
       "count": 6,
       "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
       "fingerprint": "894776f000cb641d168a",
@@ -4690,6 +4706,14 @@
     },
     {
       "code": 2345,
+      "count": 5,
+      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
+      "fingerprint": "5a7f3f90028327af5f09",
+      "message": "Argument of type '{ id: string; status: IngredientStatus.GENERATED; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; status: IngredientStatus.GENERATED; }' is missing the following properties from type 'IngredientDocument': isDeleted, organizationId, brandId, isFavorite, and 64 more.",
+      "workspace": "api"
+    },
+    {
+      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
       "fingerprint": "608572257efed11cc1c2",
@@ -4697,19 +4721,11 @@
       "workspace": "api"
     },
     {
-      "code": 2820,
+      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "8dc9c248bf28e7cfc3f1",
-      "message": "Type 'IngredientStatus.FAILED' is not assignable to type 'IngredientStatus'. Did you mean '\"FAILED\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 4,
-      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "b96f36f0f51318223c83",
-      "message": "Type 'IngredientStatus.GENERATED' is not assignable to type 'IngredientStatus'. Did you mean '\"GENERATED\"'?",
+      "fingerprint": "90510517251d4f7c1e32",
+      "message": "Argument of type '{ id: string; status: IngredientStatus.FAILED; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; status: IngredientStatus.FAILED; }' is missing the following properties from type 'IngredientDocument': isDeleted, organizationId, brandId, isFavorite, and 64 more.",
       "workspace": "api"
     },
     {
@@ -4762,7 +4778,7 @@
     },
     {
       "code": 2345,
-      "count": 26,
+      "count": 30,
       "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "db292cf282bf029c9659",
       "message": "Argument of type 'ModelFieldMeta' is not assignable to parameter of type 'never'.",
@@ -5770,7 +5786,7 @@
     },
     {
       "code": 2352,
-      "count": 2,
+      "count": 4,
       "file": "apps/server/mcp/src/services/tool-registry.service.spec.ts",
       "fingerprint": "b078bf37d372fa119ada",
       "message": "Conversion of type '{ content: { text: string; type: string; }[]; }' to type '{ isError: boolean; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'isError' is missing in type '{ content: { text: string; type: string; }[]; }' but required in type '{ isError: boolean; }'.",
@@ -6058,6 +6074,14 @@
     },
     {
       "code": 2503,
+      "count": 4,
+      "file": "apps/server/workers/src/crons/fal-model-watcher/cron.fal-model-watcher.service.spec.ts",
+      "fingerprint": "b3907fe8eabc995698d6",
+      "message": "Cannot find namespace 'vi'.",
+      "workspace": "workers"
+    },
+    {
+      "code": 2503,
       "count": 7,
       "file": "apps/server/workers/src/crons/ingredients/cron.ingredients.service.spec.ts",
       "fingerprint": "c7f9d51660ca0e426ece",
@@ -6147,14 +6171,6 @@
     {
       "code": 2339,
       "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/agent-run/agent-run.processor.spec.ts",
-      "fingerprint": "b815a533c285c035f338",
-      "message": "Property 'RUNNING' does not exist on type 'typeof AgentRunStatus'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2339,
-      "count": 1,
       "file": "apps/server/workers/src/processors/api/queues/campaign/campaign.processor.spec.ts",
       "fingerprint": "cb9f95c20a20287bf67e",
       "message": "Property 'REPLY' does not exist on type 'typeof CampaignType'.",
@@ -6212,8 +6228,8 @@
       "code": 2322,
       "count": 1,
       "file": "apps/server/workers/src/services/model-discovery.service.spec.ts",
-      "fingerprint": "eb8f6b7445a1400bc020",
-      "message": "Type '\"replicate\"' is not assignable to type 'ModelProvider.REPLICATE'.",
+      "fingerprint": "755dd0490c5b2ca952db",
+      "message": "Type '\"replicate\"' is not assignable to type 'ModelProvider.REPLICATE | ModelProvider.FAL'.",
       "workspace": "workers"
     },
     {

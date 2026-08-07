@@ -56,9 +56,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
    * Fields the seed owns outright — labels, categories, capability metadata.
    * Rewritten on every boot so a catalogue correction reaches existing rows.
    */
-  private buildSharedFields(
-    entry: ModelCatalogSeedEntry,
-  ): Prisma.ModelUpdateInput {
+  // Plain scalar values only — inferred so the same shape spreads into both
+  // ModelCreateInput and ModelUpdateInput without update-operation unions.
+  private buildSharedFields(entry: ModelCatalogSeedEntry) {
     return {
       category: entry.category,
       description: entry.description,

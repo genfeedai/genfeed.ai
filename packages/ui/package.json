@@ -28,7 +28,7 @@
     "date-fns": "4.4.0",
     "fullcalendar": "7.0.2",
     "html-react-parser": "6.1.5",
-    "lucide-react": "1.28.0",
+    "lucide-react": "1.29.0",
     "react-color": "2.19.3",
     "react-day-picker": "10.0.1",
     "react-dropzone": "20.0.0",

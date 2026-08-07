@@ -26,6 +26,7 @@ import { ContentDraftsService } from '@api/collections/content-drafts/services/c
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
@@ -36,11 +37,11 @@ import {
   ActivitySource,
   ContentDraftStatus,
   ContentFormat,
+  type CredentialPlatform,
   IngredientCategory,
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
-import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -205,7 +206,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     await this.contentDraftsService.patch(getDraftId(input.draft), {
       metadata,
-    } as Prisma.InputJsonValue);
+    });
 
     return metadata;
   }
@@ -262,7 +263,7 @@ export class AgentStrategyAutopilotExecutionService {
         ...input.autopilotMetadata,
         revisionInstructions: input.gate.revisionInstructions,
       },
-    } as Prisma.InputJsonValue);
+    });
 
     const revisedGate = await this.evaluateDraft(
       input.strategy,
@@ -655,7 +656,7 @@ export class AgentStrategyAutopilotExecutionService {
         reviewItemId: reviewItem?.id,
         reviewPostId: reviewItem?.postId,
       },
-    } as Prisma.InputJsonValue);
+    });
 
     if (reviewItem?.postId) {
       await this.createPublishingInboxActivity({
@@ -741,7 +742,7 @@ export class AgentStrategyAutopilotExecutionService {
           sentence: description,
           topic: input.topic,
         }),
-      } as Prisma.InputJsonValue);
+      });
     } catch (error) {
       this.logger.warn('Failed to create publishing inbox activity', {
         batchId: input.batchId,
@@ -780,11 +781,12 @@ export class AgentStrategyAutopilotExecutionService {
         credentialId: documentId(credential),
         description: content,
         organizationId: getStrategyOrganizationId(strategy),
-        platform: credential.platform,
+        platform: credential.platform as CredentialPlatform,
         scheduledDate: new Date(),
         status: PostStatus.PENDING,
         userId: userId,
-      } as Prisma.InputJsonValue);
+        // Pre-existing shape: ingredients/label ride the service defaults.
+      } as PostCreateInput);
 
       createdPostIds.push(documentId(post));
     }
@@ -795,7 +797,7 @@ export class AgentStrategyAutopilotExecutionService {
           publishedPostIds: createdPostIds,
         },
         status: ContentDraftStatus.PUBLISHED,
-      } as Prisma.InputJsonValue);
+      });
       return {
         postIds: createdPostIds,
         published: true,
