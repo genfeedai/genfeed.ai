@@ -79,7 +79,7 @@ type ContentMentionPostRecord = {
   label: string | null;
 };
 
-type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
+export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   agentContextSource?: string;
   agentContextVersion?: number;
   agentRunId?: string;

@@ -257,7 +257,7 @@ export class BatchGenerationReviewService {
       }
 
       const batchUpdate = await transaction.batch.updateMany({
-        data: { items: batchItems as Prisma.InputJsonValue },
+        data: { items: batchItems as unknown as Prisma.InputJsonValue },
         where: scopedWhere(orgId, { id: batchId }),
       });
       if (batchUpdate.count !== 1) {
@@ -383,7 +383,7 @@ export class BatchGenerationReviewService {
     }
 
     const batchUpdate = await this.prisma.batch.updateMany({
-      data: { items: batchItems as Prisma.InputJsonValue },
+      data: { items: batchItems as unknown as Prisma.InputJsonValue },
       where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
@@ -467,7 +467,7 @@ export class BatchGenerationReviewService {
     }
 
     const batchUpdate = await this.prisma.batch.updateMany({
-      data: { items: batchItems as Prisma.InputJsonValue },
+      data: { items: batchItems as unknown as Prisma.InputJsonValue },
       where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
@@ -509,7 +509,7 @@ export class BatchGenerationReviewService {
 
     const batchUpdate = await this.prisma.batch.updateMany({
       data: {
-        items: batchItems as Prisma.InputJsonValue,
+        items: batchItems as unknown as Prisma.InputJsonValue,
         status: toPrismaBatchStatus(BatchStatus.CANCELLED),
       },
       where: scopedWhere(orgId, { id: batchId }),

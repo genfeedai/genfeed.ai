@@ -1,4 +1,5 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import {
@@ -15,7 +16,12 @@ import {
 } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentIntelligencePlatform,
+  PostStatus,
+} from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -122,7 +128,7 @@ export class BatchGenerationProcessingService {
     const finalized = await this.prisma.batch.updateMany({
       data: {
         config: updatedConfig as Prisma.InputJsonValue,
-        items: batchItems as Prisma.InputJsonValue,
+        items: batchItems as unknown as Prisma.InputJsonValue,
         status: toPrismaBatchStatus(finalStatus),
       },
       where: scopedWhere(orgId, {
@@ -219,7 +225,7 @@ export class BatchGenerationProcessingService {
               ? [batchConfig.style]
               : undefined,
             brandId: batchRecord.brandId ?? undefined,
-            platform: item.platform,
+            platform: item.platform as ContentIntelligencePlatform,
             topic,
             variationsCount: 1,
           },
@@ -243,7 +249,7 @@ export class BatchGenerationProcessingService {
             : undefined,
           status: PostStatus.DRAFT,
           userId: batchRecord.userId,
-        } as Prisma.PostCreateInput);
+        } as PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
         item.postId = postId;

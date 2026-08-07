@@ -396,7 +396,6 @@ export class CronWorkflowsService {
     }
 
     await this.notificationsService.sendNotification({
-      action: 'send_message',
       organizationId: workflow.organizationId,
       payload: {
         action: 'send_message',
@@ -419,7 +418,7 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config as GenerateImageConfig;
+    const config = step.config as unknown as GenerateImageConfig;
 
     // Validate config
     const validation = this.generateImageTask.validateConfig(config);
@@ -452,7 +451,7 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config as GenerateVideoConfig;
+    const config = step.config as unknown as GenerateVideoConfig;
 
     // Validate config
     const validation = this.generateVideoTask.validateConfig(config);
@@ -485,7 +484,7 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config as GenerateMusicConfig;
+    const config = step.config as unknown as GenerateMusicConfig;
 
     // Validate config
     const validation = this.generateMusicTask.validateConfig(config);
@@ -518,7 +517,7 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config as GenerateArticleConfig;
+    const config = step.config as unknown as GenerateArticleConfig;
 
     // Validate config
     const validation = this.generateArticleTask.validateConfig(config);

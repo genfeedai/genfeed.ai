@@ -179,7 +179,7 @@ export class ProfilesService {
           dto as unknown as Record<string, unknown>,
         ) as Prisma.InputJsonValue,
         organizationId,
-      } as Prisma.InputJsonValue,
+      },
     });
 
     this.logger.debug('Profile created', { profileId: profile.id });
