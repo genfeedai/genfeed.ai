@@ -149,9 +149,13 @@ describe('VotesController', () => {
   it('removes a vote (soft-delete) via DELETE endpoint', async () => {
     await controller.remove(validEntityId, mockUser as any);
 
-    expect(service.patchAll).toHaveBeenCalledWith(expect.objectContaining({}), {
-      isDeleted: true,
-    });
+    expect(service.patchAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityId: validEntityId,
+        userId: mockUser.publicMetadata.user,
+      }),
+      { isDeleted: true },
+    );
   });
 
   it('throws BadRequestException for invalid entityId on DELETE', async () => {

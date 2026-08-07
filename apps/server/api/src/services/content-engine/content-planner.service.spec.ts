@@ -132,7 +132,10 @@ describe('ContentPlannerService', () => {
     } catch {}
 
     expect(brandsService.findOne).toHaveBeenCalledWith(
-      expect.objectContaining({}),
+      expect.objectContaining({
+        id: mockBrandId,
+        organizationId: mockOrgId,
+      }),
     );
   });
 

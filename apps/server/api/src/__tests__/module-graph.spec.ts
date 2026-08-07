@@ -170,7 +170,7 @@ describe('Module dependency graph', () => {
     // SourceCollector sync chain (6e2a2dd1c) each shipped modules that reach
     // back into their callers. Untangling them is its own refactor, so the
     // ratchet is re-pinned rather than left permanently red.
-    // 2026-08-07: 1082 -> 1085, net of +20/-16 across the merge train. The
+    // 2026-08-07: 1082 -> 1085, a net increase of 3 across the merge train. The
     // webhook event emitters (#2456) pulled WebhookClientModule into six
     // publishers, and brand-scoped integration wiring added BrandsModule edges
     // faster than the quota/uploads/tag-resolution cleanups removed theirs.
