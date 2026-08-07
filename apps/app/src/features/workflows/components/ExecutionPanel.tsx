@@ -1,6 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  WorkflowExecutionStatus,
+} from '@genfeedai/enums';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
@@ -17,6 +21,7 @@ import {
 } from '@/features/workflows/services/workflow-api';
 import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import { buildExecutionNodePatches } from '@/features/workflows/utils/execution-node-sync';
+import { isTerminalExecutionStatus } from '@/features/workflows/utils/execution-status';
 import {
   getStatusColor,
   getStatusIcon,
@@ -37,11 +42,6 @@ interface ExecutionLoadState {
 }
 
 const POLL_INTERVAL_MS = 2500;
-const TERMINAL_STATUSES: ReadonlySet<string> = new Set([
-  'completed',
-  'failed',
-  'cancelled',
-]);
 
 /**
  * ExecutionPanel - Side panel showing real-time execution status and logs
@@ -72,7 +72,7 @@ export function ExecutionPanel({
   const etaDisplay = getExecutionEtaDisplayState({
     durationMs: execution?.durationMs,
     eta: execution?.metadata?.eta,
-    status: execution?.status ?? 'pending',
+    status: execution?.status ?? WorkflowExecutionStatus.PENDING,
   });
 
   const fetchExecution = useCallback(
@@ -95,7 +95,7 @@ export function ExecutionPanel({
 
         setExecution(data);
         if (
-          TERMINAL_STATUSES.has(data.status) &&
+          isTerminalExecutionStatus(data.status) &&
           reportedTerminalExecutionIdRef.current !== data.id
         ) {
           reportedTerminalExecutionIdRef.current = data.id;
@@ -139,7 +139,7 @@ export function ExecutionPanel({
         return;
       }
 
-      if (data && !TERMINAL_STATUSES.has(data.status)) {
+      if (data && !isTerminalExecutionStatus(data.status)) {
         timerId = setTimeout(poll, POLL_INTERVAL_MS);
         pollTimerRef.current = timerId;
       }
@@ -229,12 +229,15 @@ export function ExecutionPanel({
                   <span className="text-sm">{etaDisplay.etaLabel}</span>
                 </div>
               )}
-              {etaDisplay.elapsedLabel && execution.status !== 'completed' && (
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Elapsed</span>
-                  <span className="text-sm">{etaDisplay.elapsedLabel}</span>
-                </div>
-              )}
+              {etaDisplay.elapsedLabel &&
+                execution.status !== WorkflowExecutionStatus.COMPLETED && (
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      Elapsed
+                    </span>
+                    <span className="text-sm">{etaDisplay.elapsedLabel}</span>
+                  </div>
+                )}
               {etaDisplay.actualDurationLabel && (
                 <div className="mt-2 flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
@@ -298,7 +301,7 @@ export function ExecutionPanel({
               </div>
             )}
 
-            {execution.status === 'failed' && (
+            {execution.status === WorkflowExecutionStatus.FAILED && (
               <Button variant={ButtonVariant.DEFAULT} className="w-full">
                 Resume from Failed Node
               </Button>

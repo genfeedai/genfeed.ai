@@ -185,7 +185,6 @@ describe('PublicMusicsController', () => {
         {
           id: musicId,
           category: 'MUSIC',
-          isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
         },
@@ -254,7 +253,6 @@ describe('PublicMusicsController', () => {
       expect(musicsService.findOne).toHaveBeenCalledWith({
         id: musicId,
         category: 'MUSIC',
-        isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       });

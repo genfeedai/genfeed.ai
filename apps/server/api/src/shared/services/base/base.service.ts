@@ -4,8 +4,10 @@ import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  GLOBAL_PAGINATED_QUERY_CACHE_TAG,
   generateQueryCacheKey,
   invalidateCollectionQueryCache,
+  paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import type { PopulateOption } from '@genfeedai/interfaces';
@@ -741,7 +743,7 @@ export abstract class BaseService<
           this.collectionName,
           `collection:${this.collectionName}`,
           `query:${this.collectionName}`,
-          'query:paginated',
+          paginatedQueryCacheTag(this.collectionName),
         ]);
       }
 
@@ -851,7 +853,8 @@ export abstract class BaseService<
           tags: [
             `collection:${this.collectionName}`,
             `query:${this.collectionName}`,
-            'query:paginated',
+            paginatedQueryCacheTag(this.collectionName),
+            GLOBAL_PAGINATED_QUERY_CACHE_TAG,
           ],
           ttl: 300,
         });
@@ -976,7 +979,7 @@ export abstract class BaseService<
             this.collectionName,
             `collection:${this.collectionName}`,
             `query:${this.collectionName}`,
-            'query:paginated',
+            paginatedQueryCacheTag(this.collectionName),
           ]);
         }
       } else {
@@ -1065,7 +1068,7 @@ export abstract class BaseService<
             this.collectionName,
             `collection:${this.collectionName}`,
             `query:${this.collectionName}`,
-            'query:paginated',
+            paginatedQueryCacheTag(this.collectionName),
           ]);
         }
       } else {

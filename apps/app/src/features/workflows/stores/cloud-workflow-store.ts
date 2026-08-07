@@ -1,3 +1,4 @@
+import { WorkflowLifecycle } from '@genfeedai/enums';
 import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
 import { logger } from '@services/core/logger.service';
 import { create } from 'zustand';
@@ -16,8 +17,6 @@ import type {
 // =============================================================================
 // TYPES
 // =============================================================================
-
-type WorkflowLifecycle = 'draft' | 'published' | 'archived';
 
 interface CloudWorkflowState {
   /** Cloud workflow ID (mirrors workflowStore.workflowId) */
@@ -169,7 +168,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
     isBrandsLoading: false,
     isCloudLoading: false,
     isHydrated: false,
-    lifecycle: 'draft',
+    lifecycle: WorkflowLifecycle.DRAFT,
 
     loadBrands: async (service) => {
       const { brands, isBrandsLoading } = get();
@@ -295,7 +294,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         isCloudLoading: false,
         isHydrated: false,
         inputVariables: [],
-        lifecycle: 'draft',
+        lifecycle: WorkflowLifecycle.DRAFT,
         organizationId: null,
         pendingCreateMetadata: null,
         pendingTemplateId: null,

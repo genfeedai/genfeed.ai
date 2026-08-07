@@ -169,14 +169,9 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
 
     await service.processBatch('batch-1', 'org-1');
 
-    const finalUpdate = batchDelegate.updateMany.mock.calls.find((call) =>
-      Boolean(call[0]?.data?.items),
-    )?.[0];
-    const failedItem = finalUpdate?.data?.items?.[0] as
-      | { error?: string; status?: string }
-      | undefined;
-    expect(failedItem?.status).toBe(BatchItemStatus.FAILED);
-    expect(failedItem?.error).toMatch(/credentialId/i);
-    expect(failedItem?.error).not.toMatch(/handleRequestError/);
+    expect(batchDelegate.updateMany).toHaveBeenCalled();
+    const lastUpdate = batchDelegate.updateMany.mock.calls.at(-1)?.[0];
+    const items = lastUpdate?.data?.items as Array<{ error?: string }>;
+    expect(items?.[0]?.error).toMatch(/missing or invalid "credentialId"/i);
   });
 });

@@ -57,7 +57,6 @@ describe('MetadataLookupService', () => {
       expect(result).toEqual(mockMetadata);
       expect(metadataService.findOne).toHaveBeenCalledWith({
         externalId: 'ext-123',
-        isDeleted: false,
       });
     });
 
@@ -73,7 +72,6 @@ describe('MetadataLookupService', () => {
       expect(metadataService.findOne).toHaveBeenCalledTimes(2);
       expect(metadataService.findOne).toHaveBeenLastCalledWith({
         externalId: 'ext',
-        isDeleted: false,
       });
     });
 

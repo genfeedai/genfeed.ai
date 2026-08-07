@@ -6,6 +6,7 @@ import type {
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -208,7 +209,7 @@ export class SeoScorerService {
       name,
       `collection:${name}`,
       `query:${name}`,
-      'query:paginated',
+      paginatedQueryCacheTag(name),
     ]);
   }
 

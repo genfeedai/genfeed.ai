@@ -198,7 +198,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(screen.getByText('Response Data')).toBeInTheDocument();
+    expect(screen.getByText('Response')).toBeInTheDocument();
   });
 
   it('should toggle response data expansion', () => {
@@ -216,21 +216,22 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    const expandButton = screen.getByText('Response Data').closest('button');
+    const expandButton = screen.getByText('Response').closest('button');
     expect(expandButton).toBeInTheDocument();
     if (!expandButton) {
-      throw new Error('Response Data button not found');
+      throw new Error('Response button not found');
     }
 
-    // Initially collapsed
-    expect(screen.queryByText('"error": "Test error"')).not.toBeInTheDocument();
-
-    // Click to expand
-    fireEvent.click(expandButton);
+    // Initially expanded
     expect(screen.getByText(/"error":/)).toBeInTheDocument();
 
     // Click to collapse
     fireEvent.click(expandButton);
+    expect(screen.queryByText(/"error":/)).not.toBeInTheDocument();
+
+    // Click to expand
+    fireEvent.click(expandButton);
+    expect(screen.getByText(/"error":/)).toBeInTheDocument();
   });
 
   it('should display stack trace when available', () => {
@@ -245,7 +246,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(screen.getByText('Stack Trace')).toBeInTheDocument();
+    expect(screen.getByText('Stack')).toBeInTheDocument();
   });
 
   it('should display additional context when available', () => {
@@ -263,7 +264,7 @@ describe('ModalErrorDebug', () => {
     render(<ModalErrorDebug />);
     triggerOpenModal(ModalEnum.ERROR_DEBUG);
 
-    expect(screen.getByText('Additional Context')).toBeInTheDocument();
+    expect(screen.getByText('Context')).toBeInTheDocument();
   });
 
   it('should handle request details', () => {
@@ -308,7 +309,10 @@ describe('ModalErrorDebug', () => {
     expect(screen.queryByText('URL')).not.toBeInTheDocument();
     expect(screen.queryByText('Method')).not.toBeInTheDocument();
     expect(screen.queryByText('Status')).not.toBeInTheDocument();
-    expect(screen.queryByText('Error Code')).not.toBeInTheDocument();
+    // 'Code', not 'Error Code' — #2466 shortened the label. The old string is
+    // one the component can no longer render under any input, so asserting its
+    // absence passed regardless of behaviour.
+    expect(screen.queryByText('Code')).not.toBeInTheDocument();
   });
 
   it('should clear error info on close', () => {
@@ -362,7 +366,7 @@ describe('ModalErrorDebug', () => {
 
     expect(screen.getByText('Error with empty context')).toBeInTheDocument();
 
-    // Should not show Additional Context section for empty object
-    expect(screen.queryByText('Additional Context')).not.toBeInTheDocument();
+    // Should not show Context section for empty object
+    expect(screen.queryByText('Context')).not.toBeInTheDocument();
   });
 });

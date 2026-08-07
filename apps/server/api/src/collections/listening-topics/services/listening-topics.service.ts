@@ -126,11 +126,10 @@ export class ListeningTopicsService {
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 25));
     const search = query.search?.trim();
-    const where = {
+    const where = scopedWhere(context.organizationId, {
       brandId: context.brandId,
       isActive: query.isActive,
       isDeleted: query.isDeleted ?? false,
-      organizationId: context.organizationId,
       ...(query.source && {
         sources: {
           some: {
@@ -146,14 +145,13 @@ export class ListeningTopicsService {
           { keywords: { has: search.toLocaleLowerCase() } },
         ],
       }),
-    };
+    });
     const [docs, total] = await Promise.all([
       this.prisma.listeningTopic.findMany({
         include: topicInclude,
         orderBy: { createdAt: 'desc' },
-        ...(query.pagination === false
-          ? {}
-          : { skip: (page - 1) * limit, take: limit }),
+        skip: (page - 1) * limit,
+        take: limit,
         where,
       }),
       this.prisma.listeningTopic.count({ where }),
@@ -327,11 +325,10 @@ export class ListeningTopicsService {
     await this.findOneScoped(topicId, context);
     const page = Math.max(1, query.page ?? 1);
     const limit = Math.min(100, Math.max(1, query.limit ?? 25));
-    const where = {
+    const where = scopedWhere(context.organizationId, {
       brandId: context.brandId,
       eventType: query.eventType,
       isDeleted: query.isDeleted ?? false,
-      organizationId: context.organizationId,
       topicId,
       topicSource: {
         isDeleted: false,
@@ -339,13 +336,12 @@ export class ListeningTopicsService {
           sourceId: query.source,
         }),
       },
-    };
+    });
     const [docs, total] = await Promise.all([
       this.prisma.listeningEvidence.findMany({
         orderBy: { occurredAt: 'desc' },
-        ...(query.pagination === false
-          ? {}
-          : { skip: (page - 1) * limit, take: limit }),
+        skip: (page - 1) * limit,
+        take: limit,
         where,
       }),
       this.prisma.listeningEvidence.count({ where }),

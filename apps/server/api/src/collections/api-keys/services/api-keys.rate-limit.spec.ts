@@ -17,10 +17,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 type FindUniqueFn = ReturnType<typeof vi.fn>;
 
 type RedisClientMock = {
-  zremrangebyscore: ReturnType<typeof vi.fn>;
-  zcard: ReturnType<typeof vi.fn>;
-  zadd: ReturnType<typeof vi.fn>;
-  expire: ReturnType<typeof vi.fn>;
+  eval: ReturnType<typeof vi.fn>;
 };
 
 type RateLimitHarness = ApiKeysService & {
@@ -37,12 +34,22 @@ function buildApiKey(overrides: Partial<ApiKeyDocument> = {}): ApiKeyDocument {
   } as ApiKeyDocument;
 }
 
-function buildRedisClient(requestCount: number): RedisClientMock {
+/**
+ * Mocks the atomic Lua script's [allowedFlag, count, referenceScoreMs]
+ * response. `requestCount` is the count already in the window BEFORE this
+ * call — if it is at/above `limit` the script blocks and returns that count
+ * unchanged; otherwise it allows and reports `requestCount + 1`.
+ */
+function buildRedisClient(requestCount: number, limit = 60): RedisClientMock {
+  const blocked = requestCount >= limit;
   return {
-    expire: vi.fn().mockResolvedValue(1),
-    zadd: vi.fn().mockResolvedValue(1),
-    zcard: vi.fn().mockResolvedValue(requestCount),
-    zremrangebyscore: vi.fn().mockResolvedValue(0),
+    eval: vi
+      .fn()
+      .mockResolvedValue(
+        blocked
+          ? [0, requestCount, Date.now()]
+          : [1, requestCount + 1, Date.now()],
+      ),
   };
 }
 
@@ -149,7 +156,9 @@ describe('ApiKeysService per-tier rate limiting', () => {
         subscriptionTier: SubscriptionTier.FREE,
       });
 
-      await expect(service.checkRateLimit(buildApiKey())).resolves.toBe(false);
+      await expect(
+        service.checkRateLimit(buildApiKey()),
+      ).resolves.toMatchObject({ allowed: false, limit: 0 });
       expect(service.__getPublisher).not.toHaveBeenCalled();
     });
 
@@ -159,30 +168,62 @@ describe('ApiKeysService per-tier rate limiting', () => {
         subscriptionTier: SubscriptionTier.ENTERPRISE,
       });
 
-      await expect(service.checkRateLimit(buildApiKey())).resolves.toBe(true);
+      await expect(
+        service.checkRateLimit(buildApiKey()),
+      ).resolves.toMatchObject({ allowed: true, limit: null });
       expect(service.__getPublisher).not.toHaveBeenCalled();
     });
 
-    it('allows a paid tier while under its per-minute ceiling', async () => {
+    it('allows a paid tier while under its per-minute ceiling via a single atomic eval call', async () => {
       const client = buildRedisClient(10);
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
         subscriptionTier: SubscriptionTier.PRO,
       });
 
-      await expect(service.checkRateLimit(buildApiKey())).resolves.toBe(true);
-      expect(client.zadd).toHaveBeenCalled();
+      await expect(
+        service.checkRateLimit(buildApiKey()),
+      ).resolves.toMatchObject({ allowed: true, limit: 300 });
+      expect(client.eval).toHaveBeenCalledTimes(1);
+      expect(client.eval).toHaveBeenCalledWith(
+        expect.any(String),
+        1,
+        'rateLimit:key-1',
+        expect.any(String),
+        expect.any(String),
+        '300',
+        expect.any(String),
+        expect.any(String),
+      );
     });
 
-    it('denies a paid tier once its per-minute ceiling is reached', async () => {
+    it('denies a paid tier once its per-minute ceiling is reached and reports Retry-After', async () => {
       const client = buildRedisClient(300);
       const service = createHarness(client);
       service.__findUnique.mockResolvedValue({
         subscriptionTier: SubscriptionTier.PRO,
       });
 
-      await expect(service.checkRateLimit(buildApiKey())).resolves.toBe(false);
-      expect(client.zadd).not.toHaveBeenCalled();
+      const result = await service.checkRateLimit(buildApiKey());
+
+      expect(result.allowed).toBe(false);
+      expect(result.limit).toBe(300);
+      expect(result.retryAfterSeconds).toBeGreaterThan(0);
+      expect(client.eval).toHaveBeenCalledTimes(1);
+    });
+
+    it('fails open when the Lua eval call errors', async () => {
+      const client: RedisClientMock = {
+        eval: vi.fn().mockRejectedValue(new Error('redis down')),
+      };
+      const service = createHarness(client);
+      service.__findUnique.mockResolvedValue({
+        subscriptionTier: SubscriptionTier.PRO,
+      });
+
+      await expect(
+        service.checkRateLimit(buildApiKey()),
+      ).resolves.toMatchObject({ allowed: true, limit: 300 });
     });
   });
 });

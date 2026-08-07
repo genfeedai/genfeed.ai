@@ -261,6 +261,14 @@ export const LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY =
  * `openrouter/auto` is retired on purpose: it let OpenRouter pick any model at
  * any price while we billed the cheapest tier.
  *
+ * **A successor preserves price tier, not brand.** These are not aliases — a
+ * retired key is a dead model, and the successor is whatever currently does its
+ * job at its cost. Brand-matching is how `x-ai/grok-4-fast` ($0.20/$0.50) came
+ * to point at Grok 4.5 ($2/$6): the only xAI row in the catalogue, so it looked
+ * right and silently moved every stale binding onto a 10x model. Cross-brand is
+ * normal here — `openai/gpt-4o-mini` and `openai/o4-mini` both resolve to
+ * Gemini 2.5 Flash Lite for the same reason.
+ *
  * Map *values* must always be {@link AGENT_CHAT_MODEL_KEYS} members.
  * Map *keys* are historical aliases (only place retired strings may appear).
  */
@@ -279,7 +287,8 @@ export const RETIRED_AGENT_CHAT_MODELS: Record<string, AgentChatModelKey> = {
   'openai/o4-mini': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
   'openrouter/auto': DEFAULT_AGENT_CHAT_MODEL_KEY,
   'openrouter/auto-beta': DEFAULT_AGENT_CHAT_MODEL_KEY,
-  'x-ai/grok-4-fast': AGENT_CHAT_MODEL_KEYS.GROK_4_5,
+  'x-ai/grok-4': AGENT_CHAT_MODEL_KEYS.GROK_4_5,
+  'x-ai/grok-4-fast': AGENT_CHAT_MODEL_KEYS.GEMINI_2_5_FLASH_LITE,
 };
 
 /**

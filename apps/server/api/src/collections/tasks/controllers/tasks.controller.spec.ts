@@ -132,7 +132,6 @@ describe('TasksController', () => {
 
       expect(organizationsService.findOne).toHaveBeenCalledWith({
         id: organizationId,
-        isDeleted: false,
       });
       expect(taskCountersService.getNextNumber).toHaveBeenCalledWith(
         organizationId,

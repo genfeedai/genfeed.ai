@@ -29,17 +29,15 @@ export class QueryDefaultsUtil {
 
   /**
    * Get default pagination options from BaseQueryDto
+   *
+   * HTTP-derived queries are ALWAYS paginated: a client-supplied
+   * `pagination=false` is ignored here so no public list endpoint can opt out
+   * of the `limit`/`page` caps and trigger an unbounded findMany. Internal
+   * service callers that legitimately need unpaginated reads pass
+   * `{ pagination: false }` directly to the service layer and never route
+   * through this helper.
    */
   static getPaginationDefaults(query: Partial<BaseQueryDto> = {}) {
-    // Normalize pagination to a boolean value before shaping query options.
-    let paginationValue =
-      query.pagination ?? QueryDefaultsUtil.defaults.pagination;
-
-    // Convert string values to boolean if needed
-    if (typeof paginationValue === 'string') {
-      paginationValue = paginationValue !== 'false';
-    }
-
     return {
       limit: QueryDefaultsUtil.parsePositiveInteger(
         query.limit,
@@ -50,7 +48,7 @@ export class QueryDefaultsUtil {
         query.page,
         QueryDefaultsUtil.defaults.page,
       ),
-      pagination: paginationValue,
+      pagination: true,
     };
   }
 
@@ -72,6 +70,9 @@ export class QueryDefaultsUtil {
 
   /**
    * Apply all defaults to a query object
+   *
+   * Like `getPaginationDefaults`, HTTP-derived queries are always paginated;
+   * a client `pagination=false` is ignored.
    */
   static applyDefaults<T extends Partial<BaseQueryDto>>(
     query: T,
@@ -88,7 +89,7 @@ export class QueryDefaultsUtil {
         query.page,
         QueryDefaultsUtil.defaults.page,
       ),
-      pagination: query.pagination ?? QueryDefaultsUtil.defaults.pagination,
+      pagination: true,
       sort: query.sort ?? QueryDefaultsUtil.defaults.sort,
     } as T & BaseQueryDto;
   }

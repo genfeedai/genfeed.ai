@@ -1,3 +1,4 @@
+import { WorkflowLifecycle } from '@genfeedai/enums';
 import { buildSystemWorkflowMetadata } from '@genfeedai/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,7 +53,7 @@ const makeWorkflow = (
 ): WorkflowSummary => ({
   id: 'wf-1',
   label: 'Test Workflow',
-  lifecycle: 'published',
+  lifecycle: WorkflowLifecycle.PUBLISHED,
   nodeCount: 3,
   createdAt: '2024-01-01T00:00:00Z',
   updatedAt: '2024-01-02T00:00:00Z',

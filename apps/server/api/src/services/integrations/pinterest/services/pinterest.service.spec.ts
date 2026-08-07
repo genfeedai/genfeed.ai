@@ -162,7 +162,6 @@ describe('PinterestService', () => {
 
       expect(credentialsServiceMock.findOne).toHaveBeenCalledWith({
         brandId: 'brand',
-        isDeleted: false,
         organizationId: 'org',
         platform: 'pinterest',
       });

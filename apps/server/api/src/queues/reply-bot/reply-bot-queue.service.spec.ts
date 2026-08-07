@@ -165,7 +165,6 @@ describe('ReplyBotQueueService', () => {
       // exact `in` list proves an organization without an active bot — which
       // contributes no config here — is never queried for credentials.
       expect(credentialsService.find).toHaveBeenCalledWith({
-        isDeleted: false,
         organizationId: {
           in: [ORG_WITH_CREDENTIAL, ORG_WITHOUT_CREDENTIAL],
         },

@@ -57,7 +57,6 @@ describe('CredentialHelper', () => {
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: expect.any(String),
-          isDeleted: false,
           organizationId: expect.any(String),
           platform,
         }),

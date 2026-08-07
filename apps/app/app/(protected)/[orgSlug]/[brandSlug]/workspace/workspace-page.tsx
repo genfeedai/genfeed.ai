@@ -97,7 +97,6 @@ function WorkspacePageContentContent({
     setTaskComposerOpen,
     setWorkspaceTasks,
     shouldShowComposer,
-    shouldShowHistory,
     shouldShowInbox,
     unreadInboxTasks,
     visibleInboxTasks,
@@ -166,12 +165,9 @@ function WorkspacePageContentContent({
 
   // Match Tasks: no header refresh chrome when the page is empty. Refresh only
   // matters when there is something to re-fetch into the table.
+  // Activity is owned by ActivitiesList on /workspace/activity — not this shell.
   const hasHeaderListItems =
-    section === 'activity'
-      ? activityItems.length > 0
-      : section === 'inbox'
-        ? visibleInboxTasks.length > 0
-        : false;
+    section === 'inbox' ? visibleInboxTasks.length > 0 : false;
   const showHeaderRefresh = hasHeaderListItems;
 
   const workspaceHeaderActions = useMemo(() => {
@@ -365,27 +361,6 @@ function WorkspacePageContentContent({
                   {inboxTable}
                 </WorkspaceSurface>
               )}
-            </section>
-          ) : null}
-
-          {shouldShowHistory ? (
-            <section
-              aria-busy={isWorkspaceTasksLoading}
-              data-testid="workspace-activity"
-            >
-              <AppTable<Task>
-                items={activityItems}
-                isLoading={isWorkspaceTasksLoading}
-                emptyLabel="No activity yet"
-                emptyDescription="Activity will appear here once tasks start running."
-                getRowKey={(task) => task.id}
-                getItemId={(task) => task.id}
-                onRowClick={(task) => {
-                  setSelectedTaskId(task.id);
-                  replaceTaskSearchParam(task.id);
-                }}
-                columns={workspaceInboxTableColumns}
-              />
             </section>
           ) : null}
         </div>

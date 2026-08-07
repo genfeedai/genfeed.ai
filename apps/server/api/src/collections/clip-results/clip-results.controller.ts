@@ -31,6 +31,10 @@ import {
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+// Clip results accumulate indefinitely per org/project; the HTTP list is
+// capped while internal reconciliation reads stay unbounded on purpose.
+const CLIP_RESULTS_LIST_LIMIT = 100;
+
 @AutoSwagger()
 @Controller('clip-results')
 @ApiBearerAuth()
@@ -76,6 +80,7 @@ export class ClipResultsController {
       const data = await this.clipResultsService.findByProject(
         resolvedProjectId,
         publicMetadata.organization,
+        CLIP_RESULTS_LIST_LIMIT,
       );
       return serializeCollection(request, ClipResultSerializer, {
         docs: data,
@@ -93,6 +98,7 @@ export class ClipResultsController {
 
     const data = await this.clipResultsService.findAllByOrganization(
       publicMetadata.organization,
+      CLIP_RESULTS_LIST_LIMIT,
     );
 
     return serializeCollection(request, ClipResultSerializer, {

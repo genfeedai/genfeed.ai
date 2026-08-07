@@ -301,6 +301,7 @@ export interface IEnvConfig {
   FFMPEG_PIXEL_FORMAT?: string;
   FFMPEG_TIMEOUT?: string;
   FFMPEG_MAX_PROCESSES?: string;
+  FFMPEG_MAX_CONCURRENCY?: string;
   FFMPEG_TEMP_DIR?: string;
   TEMP_DIR?: string;
   WEBSOCKET_URL?: string;

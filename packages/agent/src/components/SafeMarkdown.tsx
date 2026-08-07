@@ -170,7 +170,7 @@ export function SafeMarkdown({
               <Code
                 display="block"
                 size="sm"
-                className="max-w-full overflow-x-auto break-words bg-muted/70 whitespace-pre-wrap"
+                className="max-w-full min-w-0 overflow-x-auto break-words bg-muted/70 whitespace-pre-wrap"
               >
                 {children}
               </Code>

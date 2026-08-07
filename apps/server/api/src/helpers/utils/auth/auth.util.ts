@@ -2,6 +2,7 @@ import type {
   AuthenticatedUser,
   IAuthPublicMetadata,
 } from '@api/auth/interfaces/authenticated-user.interface';
+import { subscriptionStatusFromStripe } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -41,16 +42,25 @@ export function getIsSuperAdmin(
   return publicMetadata.isSuperAdmin === true;
 }
 
+/**
+ * Returns domain SCREAMING_SNAKE subscription status (or '' when unset).
+ * Normalizes legacy lowercase / Stripe US-spelling values so callers can
+ * compare against `SubscriptionStatus` members after the #2504 harmonization.
+ */
 export function getStripeSubscriptionStatus(
   user: AuthenticatedUser | null | undefined,
   request?: ContextCarrier,
 ): string {
-  if (request?.context?.stripeSubscriptionStatus !== undefined) {
-    return request.context.stripeSubscriptionStatus;
+  const raw =
+    request?.context?.stripeSubscriptionStatus !== undefined
+      ? request.context.stripeSubscriptionStatus
+      : (getPublicMetadata(user).stripeSubscriptionStatus ?? '');
+
+  if (!raw) {
+    return '';
   }
 
-  const publicMetadata = getPublicMetadata(user);
-  return publicMetadata.stripeSubscriptionStatus ?? '';
+  return subscriptionStatusFromStripe(raw);
 }
 
 export function getSubscriptionTier(

@@ -142,19 +142,12 @@ export function AgentChatContainerThreadView({
         />
       ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
-          window edge (Codex). Content re-centers on the shared track below —
-          same class as the floating composer so borders match. */}
-      <div
-        ref={scrollContainerRef}
-        className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]"
-      >
+          window edge (Codex). Content re-centers on AGENT_CONVERSATION_TRACK. */}
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
         <div
           className={cn(
             AGENT_CONVERSATION_TRACK_CLASS,
-            // Force descendants to respect the track width (flex/grid children
-            // default min-width:auto and will expand the column otherwise).
-            // Tighter vertical rhythm — T3/Codex density.
-            'space-y-0.5 pt-3 [&>*]:min-w-0',
+            'space-y-1 pt-4',
             // Reserve only what the floating stack actually uses (glass bar
             // ~6rem + optional chip row ~2.5rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips
@@ -214,6 +207,8 @@ export function AgentChatContainerThreadView({
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onIngredientSelect}
             onUiAction={onUiAction}
+            // Docked composer status owns busy chrome — hide pure Thinking rows.
+            suppressThinkingPlaceholder={padBottomForComposer}
           />
         </div>
       </div>

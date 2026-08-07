@@ -294,29 +294,6 @@ describe('WorkspacePageContent', () => {
     ]);
   });
 
-  it('renders the activity empty state on the dedicated activity page', async () => {
-    mocks.list.mockResolvedValue([]);
-
-    render(<WorkspacePageContent section="activity" />);
-
-    await waitFor(() => {
-      expect(mocks.list).toHaveBeenCalledWith({});
-    });
-
-    expect(screen.getByTestId('workspace-activity')).toBeInTheDocument();
-    expect(screen.getByText('No activity yet')).toBeVisible();
-    expect(
-      screen.getByText('Activity will appear here once tasks start running.'),
-    ).toBeVisible();
-    expect(
-      within(screen.getByTestId('workspace-activity')).queryByRole('heading', {
-        name: 'Activity',
-      }),
-    ).not.toBeInTheDocument();
-    // Empty Activity matches Tasks: no floating refresh chrome with nothing to reload.
-    expect(screen.queryByRole('button', { name: /refresh/i })).toBeNull();
-  });
-
   it('loads inbox tasks, opens the inspector, and executes task actions', async () => {
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 

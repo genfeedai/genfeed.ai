@@ -353,7 +353,6 @@ describe('OrganizationsSettingsController', () => {
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         {
           id: brandId,
-          isDeleted: false,
           organizationId,
         },
         'none',
@@ -391,7 +390,6 @@ describe('OrganizationsSettingsController', () => {
       expect(mockBrandsService.findOne).toHaveBeenCalledWith(
         {
           id: brandId,
-          isDeleted: false,
           organizationId: 'org_current',
         },
         'none',

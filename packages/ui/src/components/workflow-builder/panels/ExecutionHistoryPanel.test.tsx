@@ -1,10 +1,27 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ExecutionHistoryPanel from '@ui/workflow-builder/panels/ExecutionHistoryPanel';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock fetch
 global.fetch = vi.fn();
+
+/**
+ * The API serialises `WorkflowExecution.status` straight off the Prisma enum,
+ * so every fixture here is SCREAMING_SNAKE — matching the wire, not the
+ * engine's internal lowercase spelling.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+function mockExecutionsResponse(
+  executions: Array<Record<string, unknown>>,
+): void {
+  vi.mocked(global.fetch).mockResolvedValue({
+    json: async () => ({ data: executions }),
+    ok: true,
+  } as Response);
+}
 
 describe('ExecutionHistoryPanel', () => {
   const defaultProps = {
@@ -62,5 +79,107 @@ describe('ExecutionHistoryPanel', () => {
       <ExecutionHistoryPanel {...defaultProps} isCollapsed={true} />,
     );
     expect(collapsedContainer.firstChild).toBeInTheDocument();
+  });
+
+  it('treats a RUNNING execution as in-flight', async () => {
+    mockExecutionsResponse([
+      {
+        createdAt: '2026-08-07T00:00:00.000Z',
+        id: 'execution-1',
+        nodeResults: [],
+        progress: 42,
+        status: WorkflowExecutionStatus.RUNNING,
+        trigger: 'manual',
+      },
+    ]);
+
+    render(<ExecutionHistoryPanel {...defaultProps} />);
+
+    // Only a running execution offers a cancel affordance.
+    expect(
+      await screen.findByRole('button', { name: /cancel/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('does not offer cancel for a settled execution', async () => {
+    mockExecutionsResponse([
+      {
+        createdAt: '2026-08-07T00:00:00.000Z',
+        id: 'execution-2',
+        nodeResults: [],
+        progress: 100,
+        status: WorkflowExecutionStatus.COMPLETED,
+        trigger: 'manual',
+      },
+    ]);
+
+    render(<ExecutionHistoryPanel {...defaultProps} />);
+
+    expect(
+      await screen.findByText(WorkflowExecutionStatus.COMPLETED),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /cancel/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('cancels with the SCREAMING_SNAKE wire status', async () => {
+    mockExecutionsResponse([
+      {
+        createdAt: '2026-08-07T00:00:00.000Z',
+        id: 'execution-3',
+        nodeResults: [],
+        progress: 10,
+        status: WorkflowExecutionStatus.RUNNING,
+        trigger: 'manual',
+      },
+    ]);
+
+    render(<ExecutionHistoryPanel {...defaultProps} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/v1/core/workflow-executions/execution-3',
+        expect.objectContaining({
+          body: JSON.stringify({
+            status: WorkflowExecutionStatus.CANCELLED,
+          }),
+          method: 'PATCH',
+        }),
+      );
+    });
+  });
+
+  it('shows an error when cancellation is rejected', async () => {
+    const fetchMock = vi.mocked(global.fetch);
+    fetchMock.mockReset();
+    fetchMock
+      .mockResolvedValueOnce({
+        json: async () => ({
+          data: [
+            {
+              createdAt: '2026-08-07T00:00:00.000Z',
+              id: 'execution-4',
+              nodeResults: [],
+              progress: 10,
+              status: WorkflowExecutionStatus.RUNNING,
+              trigger: 'manual',
+            },
+          ],
+        }),
+        ok: true,
+      } as Response)
+      .mockResolvedValueOnce({ ok: false } as Response);
+
+    render(<ExecutionHistoryPanel {...defaultProps} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /cancel/i }));
+
+    expect(
+      await screen.findByText('Failed to cancel execution'),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

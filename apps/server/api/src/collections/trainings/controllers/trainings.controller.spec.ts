@@ -251,7 +251,6 @@ describe('TrainingsController', () => {
 
       expect(trainingsService.findOne).toHaveBeenCalledWith({
         id: cuid,
-        isDeleted: false,
         organizationId: mockUser.publicMetadata.organization,
       });
       expect(result).toBeDefined();

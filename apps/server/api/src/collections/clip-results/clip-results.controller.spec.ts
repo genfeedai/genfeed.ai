@@ -104,6 +104,7 @@ describe('ClipResultsController', () => {
       expect(service.findByProject).toHaveBeenCalledWith(
         'project-1',
         organizationId,
+        100,
       );
       expect(service.findAllByOrganization).not.toHaveBeenCalled();
     });
@@ -117,6 +118,7 @@ describe('ClipResultsController', () => {
       expect(service.findByProject).toHaveBeenCalledWith(
         'project-2',
         organizationId,
+        100,
       );
     });
 
@@ -128,6 +130,7 @@ describe('ClipResultsController', () => {
 
       expect(service.findAllByOrganization).toHaveBeenCalledWith(
         organizationId,
+        100,
       );
       expect(service.findByProject).not.toHaveBeenCalled();
     });
@@ -143,7 +146,6 @@ describe('ClipResultsController', () => {
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'cr-1',
-          isDeleted: false,
           organizationId,
         }),
       );
@@ -179,7 +181,6 @@ describe('ClipResultsController', () => {
       expect(service.findOne).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'cr-1',
-          isDeleted: false,
           organizationId,
         }),
       );

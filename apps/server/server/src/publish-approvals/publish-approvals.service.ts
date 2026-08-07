@@ -3,6 +3,7 @@ import { canTransitionPublishApprovalStatus } from '@genfeedai/api-types/contrac
 import {
   PublishApprovalPolicyId,
   PublishApprovalStatus,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type {
   ClaimPublishExecutionParams,
@@ -13,10 +14,7 @@ import type {
   IPublishScheduleIntent,
   PublishExecutionClaim,
 } from '@genfeedai/interfaces';
-import {
-  type Prisma,
-  CredentialPlatform as PrismaCredentialPlatform,
-} from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import {
   ConflictException,
   ForbiddenException,
@@ -823,8 +821,12 @@ export class PublishApprovalsService {
       );
     }
 
-    const credentialPlatform = Object.values(PrismaCredentialPlatform).find(
-      (platform) => platform === String(destinations[0]?.platform),
+    // Destination platform may arrive as domain lowercase or Prisma SCREAMING;
+    // credentials.platform is always the Prisma enum — map before the lookup.
+    const credentialPlatform = toPrismaCredentialPlatform(
+      destinations[0]?.platform != null
+        ? String(destinations[0].platform)
+        : undefined,
     );
     const credential = await this.prisma.credential.findFirst({
       select: { id: true },
@@ -832,7 +834,7 @@ export class PublishApprovalsService {
         brandId: post.brandId,
         id: post.credentialId,
         isConnected: true,
-        platform: credentialPlatform,
+        ...(credentialPlatform ? { platform: credentialPlatform } : {}),
       }),
     });
     if (!credential) {

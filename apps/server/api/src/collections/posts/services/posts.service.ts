@@ -23,6 +23,7 @@ import {
 } from '@api/shared/services/base/base.service';
 import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
 import {
   CredentialPlatform,
@@ -546,7 +547,7 @@ export class PostsService extends BaseService<
           this.collectionName,
           `collection:${this.collectionName}`,
           `query:${this.collectionName}`,
-          'query:paginated',
+          paginatedQueryCacheTag(this.collectionName),
         ],
         logger: this.logger,
         normalizeData: (data) =>
@@ -1093,7 +1094,7 @@ export class PostsService extends BaseService<
           collectionName,
           `collection:${collectionName}`,
           `query:${collectionName}`,
-          'query:paginated',
+          paginatedQueryCacheTag(collectionName),
         ]);
       }
     } else {

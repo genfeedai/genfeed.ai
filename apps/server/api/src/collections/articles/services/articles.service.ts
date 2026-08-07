@@ -43,6 +43,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import {
   invalidateAllPaginatedQueryCaches,
   invalidateCollectionQueryCache,
+  paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
 import {
   ArticleScope,
@@ -173,7 +174,7 @@ export class ArticlesService extends BaseService<
       collectionName,
       `collection:${collectionName}`,
       `query:${collectionName}`,
-      'query:paginated',
+      paginatedQueryCacheTag(collectionName),
     ];
 
     if (includePublic) {
@@ -647,7 +648,14 @@ export class ArticlesService extends BaseService<
       }
     }
 
-    // Invalidate cache after generating articles (invalidate ALL cache tags for articles)
+    // Invalidate cache after generating articles (invalidate ALL cache tags for articles).
+    // This deliberately also flushes the global paginated-query cache tag via
+    // invalidateAllPaginatedQueryCaches — batch article generation can affect
+    // cross-collection surfaces (e.g. feeds/dashboards) that read articles
+    // alongside other collections, so this is the one intentional system-wide
+    // eviction path. Every other write path scopes to its own collection via
+    // paginatedQueryCacheTag() — see apps/server/api/CLAUDE.md → Cache
+    // Invalidation Pattern.
     if (this.cacheService) {
       const collectionName = this.collectionName;
       // Invalidate all possible cache tags
@@ -657,7 +665,7 @@ export class ArticlesService extends BaseService<
         'articles',
         `collection:${collectionName}`,
         `query:${collectionName}`,
-        'query:paginated',
+        paginatedQueryCacheTag(collectionName),
       ]);
     }
 

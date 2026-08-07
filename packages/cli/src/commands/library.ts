@@ -1,3 +1,4 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
@@ -10,7 +11,13 @@ import { GenfeedError, handleError } from '@/utils/errors';
 interface Ingredient {
   id: string;
   category: string;
-  status: string;
+  /**
+   * Prisma-backed, so the wire value is SCREAMING_SNAKE and a finished
+   * ingredient is `GENERATED`.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
+  status: IngredientStatus;
   text?: string;
   model?: string;
 }
@@ -60,7 +67,9 @@ export const libraryCommand = new Command('library')
         for (const item of items) {
           const category = chalk.blue(`[${item.category}]`);
           const status =
-            item.status === 'generated' ? chalk.green(item.status) : chalk.dim(item.status);
+            item.status === IngredientStatus.GENERATED
+              ? chalk.green(item.status)
+              : chalk.dim(item.status);
           const id = chalk.dim(`(${item.id})`);
 
           print(`  ${category} ${status} ${id}`);

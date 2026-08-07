@@ -22,7 +22,7 @@ import { PostAnalyticsProjection } from '@api/collections/posts/services/post-an
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AnalyticsMetric, parsePlatform } from '@genfeedai/enums';
+import { AnalyticsMetric, toPrismaCredentialPlatform } from '@genfeedai/enums';
 import {
   Prisma,
   CredentialPlatform as PrismaCredentialPlatform,
@@ -74,11 +74,7 @@ export class AnalyticsAggregationService {
   }
 
   private parseAnalyticsPlatform(platform: string): PrismaCredentialPlatform {
-    const normalized = parsePlatform(platform);
-    const key = normalized?.toUpperCase() as
-      | keyof typeof PrismaCredentialPlatform
-      | undefined;
-    const prismaPlatform = key ? PrismaCredentialPlatform[key] : undefined;
+    const prismaPlatform = toPrismaCredentialPlatform(platform);
 
     if (!prismaPlatform) {
       throw new BadRequestException(
@@ -86,7 +82,8 @@ export class AnalyticsAggregationService {
       );
     }
 
-    return prismaPlatform;
+    // Prisma client enum values match the shared SCREAMING inventory 1:1.
+    return prismaPlatform as PrismaCredentialPlatform;
   }
 
   /**

@@ -1570,11 +1570,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0].ctas).toEqual([
       expect.objectContaining({
         href: '/genfeed-ai/my-brand/analytics/overview',
-        label: 'Open analytics dashboard',
-      }),
-      expect.objectContaining({
-        href: '/genfeed-ai/my-brand/automation/analytics',
-        label: 'Open automation analytics',
+        label: 'Open analytics',
       }),
     ]);
   });
@@ -1666,7 +1662,6 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
       isSelected: true,
       organizationId: 'c7a123456789012345678901',
       userId: 'c7a123456789012345678902',
@@ -1719,7 +1714,6 @@ describe('AgentToolExecutorService', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: 'c7a123456789012345678999',
-      isDeleted: false,
       organizationId: 'c7a123456789012345678901',
     });
     expect(result.success).toBe(false);
@@ -1755,7 +1749,6 @@ describe('AgentToolExecutorService', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: 'c7a123456789012345678903',
-      isDeleted: false,
       organizationId: 'c7a123456789012345678901',
     });
     expect(
@@ -2626,7 +2619,6 @@ describe('AgentToolExecutorService', () => {
 
     expect(result.success).toBe(true);
     expect(brandsService.findOne).toHaveBeenCalledWith({
-      isDeleted: false,
       organizationId: 'c7a123456789012345678901',
       slug: 'fitcreator',
     });
@@ -2673,7 +2665,6 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0].type).toBe('onboarding_checklist_card');
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
-        isDeleted: false,
         organizationId: 'c7a123456789012345678901',
         status: PostStatus.PUBLIC,
       },

@@ -6,6 +6,7 @@ import {
   SubscriptionStatus,
   SubscriptionTier,
   subscriptionStatusFromStripe,
+  toPrismaSubscriptionStatus,
 } from '../src/subscription.enum';
 
 describe('subscription.enum', () => {
@@ -94,6 +95,27 @@ describe('subscription.enum', () => {
         SubscriptionStatus.CANCELLED,
       );
       expect(subscriptionStatusFromStripe('active')).toBe(
+        SubscriptionStatus.ACTIVE,
+      );
+      expect(subscriptionStatusFromStripe('past-due')).toBe(
+        SubscriptionStatus.PAST_DUE,
+      );
+      expect(subscriptionStatusFromStripe('past_due')).toBe(
+        SubscriptionStatus.PAST_DUE,
+      );
+    });
+
+    it('collapses Stripe-only states onto Prisma labels for writes', () => {
+      expect(toPrismaSubscriptionStatus('unpaid')).toBe(
+        SubscriptionStatus.PAST_DUE,
+      );
+      expect(toPrismaSubscriptionStatus('paused')).toBe(
+        SubscriptionStatus.CANCELLED,
+      );
+      expect(toPrismaSubscriptionStatus('incomplete_expired')).toBe(
+        SubscriptionStatus.INCOMPLETE,
+      );
+      expect(toPrismaSubscriptionStatus('active')).toBe(
         SubscriptionStatus.ACTIVE,
       );
     });

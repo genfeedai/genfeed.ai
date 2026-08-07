@@ -799,16 +799,16 @@ describe('AgentFullPage', () => {
     expect(storeState.setLatestProposedPlan).not.toHaveBeenCalled();
   });
 
-  it('renders the setup panel in the right pane when setup is incomplete and there are no outputs', () => {
+  it('keeps product agent routes single-column even when setup is incomplete', () => {
     setupStatusState.showSetupPanel = true;
     storeState.messages = [];
 
     render(<AgentFullPage apiService={createApiService() as never} />);
 
-    expect(screen.getAllByText('agent-setup-panel').length).toBeGreaterThan(0);
-    expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
-    // The chat container drops out of wide layout to make room for the panel.
-    expect(screen.getByText('standard-layout')).toBeInTheDocument();
+    // T3 density: non-onboarding standalone does not paint a dual-column rail.
+    // Mobile drawers still expose setup; inspector shell portals when present.
+    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
+    expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
   it('does not render the setup panel once setup is complete', () => {
@@ -821,7 +821,20 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
-  it('prioritizes thread outputs over the setup panel when both apply', () => {
+  it('keeps onboarding dual-column setup chrome when setup is incomplete', () => {
+    setupStatusState.showSetupPanel = true;
+    storeState.messages = [];
+
+    render(
+      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
+    );
+
+    expect(screen.getAllByText('agent-setup-panel').length).toBeGreaterThan(0);
+    expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
+    expect(screen.getByText('standard-layout')).toBeInTheDocument();
+  });
+
+  it('prioritizes thread outputs over the setup panel in onboarding when both apply', () => {
     setupStatusState.showSetupPanel = true;
     storeState.messages = [
       {
@@ -834,7 +847,9 @@ describe('AgentFullPage', () => {
       },
     ];
 
-    render(<AgentFullPage apiService={createApiService() as never} />);
+    render(
+      <AgentFullPage apiService={createApiService() as never} onboardingMode />,
+    );
 
     expect(screen.getAllByText('agent-outputs-panel').length).toBeGreaterThan(
       0,

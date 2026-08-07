@@ -130,9 +130,12 @@ export class ImagesController {
         orderBy: { createdAt: -1 },
       };
 
+      // pagination:false used to discard the limit entirely in BaseService
+      // (findMany without take); paginate so the 50-row cap actually applies.
       const latestData = await this.imagesService.findAll(latestAggregate, {
         limit: Math.min(Number(query.limit) || 10, 50),
-        pagination: false,
+        page: 1,
+        pagination: true,
       });
 
       return serializeCollection(request, IngredientSerializer, latestData);

@@ -1,12 +1,13 @@
 export { Scope as ArticleScope } from './scope.enum';
 
 /**
- * Article lifecycle. Core members match Prisma `ArticleStatus`.
+ * App-level article vocabulary: query params, generation-pipeline states, and
+ * inbound write values. `PROCESSING` and `FAILED` are pipeline-only and never
+ * persist; the rest are translated on write by `ArticleFilterUtil`.
  *
- * `PROCESSING` and `FAILED` are domain-only (pipeline UI) — not Prisma labels.
- * Map to DRAFT/ARCHIVED (or omit) before writing articles.status.
- *
- * @see packages/prisma/prisma/schema.prisma `enum ArticleStatus`
+ * This is **not** the wire value of a serialized article — `articles.status` is
+ * a Prisma enum, so reads come back as `PersistedArticleStatus`. Comparing a
+ * serialized article against a member of this enum never matches.
  */
 export enum ArticleStatus {
   DRAFT = 'DRAFT',
@@ -16,6 +17,19 @@ export enum ArticleStatus {
   PROCESSING = 'PROCESSING',
   /** Domain-only pipeline state — not a Prisma ArticleStatus label. */
   FAILED = 'FAILED',
+}
+
+/**
+ * The persisted article vocabulary — mirrors the Prisma enum exactly, so it is
+ * what every serialized article carries on the wire.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum ArticleStatus`
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+export enum PersistedArticleStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export enum ArticleCategory {

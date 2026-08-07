@@ -5,6 +5,7 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
+  WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import Badge from '@ui/display/badge/Badge';
@@ -26,7 +27,14 @@ import { useCallback, useEffect, useState } from 'react';
 interface ExecutionNodeResult {
   nodeId: string;
   nodeType: string;
-  status: string;
+  /**
+   * Node statuses are normalised to the Prisma enum before they reach the wire
+   * (`mapEngineNodeStatus`), so they are SCREAMING_SNAKE — never the engine's
+   * internal lowercase spelling.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
+  status: WorkflowExecutionStatus;
   error?: string;
   startedAt?: string;
   completedAt?: string;
@@ -34,7 +42,7 @@ interface ExecutionNodeResult {
 
 interface WorkflowExecution {
   id: string;
-  status: string;
+  status: WorkflowExecutionStatus;
   trigger: string;
   progress: number;
   startedAt?: string;
@@ -51,22 +59,32 @@ interface ExecutionHistoryPanelProps {
   onToggleCollapse?: () => void;
 }
 
-const STATUS_ICONS: Record<string, React.ReactNode> = {
-  cancelled: <X className="size-4 text-muted-foreground" />,
-  completed: <Check className="size-4 text-success" />,
-  failed: <X className="size-4 text-destructive" />,
-  pending: <Clock className="size-4 text-muted-foreground" />,
-  running: <RefreshCw className="size-4 text-info animate-spin" />,
+const STATUS_ICONS: Record<WorkflowExecutionStatus, React.ReactNode> = {
+  [WorkflowExecutionStatus.CANCELLED]: (
+    <X className="size-4 text-muted-foreground" />
+  ),
+  [WorkflowExecutionStatus.COMPLETED]: (
+    <Check className="size-4 text-success" />
+  ),
+  [WorkflowExecutionStatus.FAILED]: <X className="size-4 text-destructive" />,
+  [WorkflowExecutionStatus.PENDING]: (
+    <Clock className="size-4 text-muted-foreground" />
+  ),
+  [WorkflowExecutionStatus.RUNNING]: (
+    <RefreshCw className="size-4 text-info animate-spin" />
+  ),
 };
 
-const STATUS_VARIANTS: Record<string, 'ghost' | 'success' | 'error' | 'info'> =
-  {
-    cancelled: 'ghost',
-    completed: 'success',
-    failed: 'error',
-    pending: 'ghost',
-    running: 'info',
-  };
+const STATUS_VARIANTS: Record<
+  WorkflowExecutionStatus,
+  'ghost' | 'success' | 'error' | 'info'
+> = {
+  [WorkflowExecutionStatus.CANCELLED]: 'ghost',
+  [WorkflowExecutionStatus.COMPLETED]: 'success',
+  [WorkflowExecutionStatus.FAILED]: 'error',
+  [WorkflowExecutionStatus.PENDING]: 'ghost',
+  [WorkflowExecutionStatus.RUNNING]: 'info',
+};
 
 function formatDuration(ms: number): string {
   if (ms < 1000) {
@@ -128,7 +146,7 @@ function ExecutionItem({
             <ChevronDown className="size-4" />
           )}
         </Button>
-        {execution.status === 'running' && (
+        {execution.status === WorkflowExecutionStatus.RUNNING && (
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
@@ -143,7 +161,7 @@ function ExecutionItem({
       {isExpanded && (
         <div className="border-t border-white/[0.08] p-3">
           {/* Progress */}
-          {execution.status === 'running' && (
+          {execution.status === WorkflowExecutionStatus.RUNNING && (
             <div className="mb-3">
               <div className="flex justify-between text-xs mb-1">
                 <span>Progress</span>
@@ -233,14 +251,24 @@ export default function ExecutionHistoryPanel({
       try {
         // The dedicated `/cancel` RPC route was collapsed into the generic
         // execution PATCH by the REST audit (#1354).
-        await fetch(`/v1/core/workflow-executions/${executionId}`, {
-          body: JSON.stringify({ status: 'cancelled' }),
-          headers: { 'Content-Type': 'application/json' },
-          method: 'PATCH',
-        });
+        const response = await fetch(
+          `/v1/core/workflow-executions/${executionId}`,
+          {
+            body: JSON.stringify({
+              status: WorkflowExecutionStatus.CANCELLED,
+            }),
+            headers: { 'Content-Type': 'application/json' },
+            method: 'PATCH',
+          },
+        );
+        if (!response.ok) {
+          throw new Error('Failed to cancel execution');
+        }
         fetchExecutions();
-      } catch (_err) {
-        // Ignore
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : 'Failed to cancel execution',
+        );
       }
     },
     [fetchExecutions],

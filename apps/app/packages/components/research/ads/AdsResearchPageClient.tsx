@@ -117,7 +117,7 @@ export default function AdsResearchPageClient({
   // Brand Social is where Facebook + Google Ads OAuth connect live
   // (`BrandDetailSocialMediaCard`). `/settings/organization/credentials` never shipped.
   const credentialsHref = href(APP_ROUTES.SETTINGS.SOCIAL);
-  /** Not set up at all — no Meta/Google connection and no public winners loaded. */
+  /** Not set up at all — no ad platform connected and no public winners loaded. */
   const isSetupEmpty = !isLoading && !hasCredentials && !hasAds;
   /**
    * Public research can still fill the list without a connected ad account.
@@ -316,8 +316,8 @@ export default function AdsResearchPageClient({
                     Connect accounts for your campaigns
                   </div>
                   <div className="text-xs text-foreground/70">
-                    Showing public winners only. Connect Meta or Google Ads to
-                    pull in your own campaigns.
+                    Showing public winners only. Connect Meta, Google/YouTube,
+                    or TikTok Ads to pull in your own campaigns.
                   </div>
                 </div>
                 <Button

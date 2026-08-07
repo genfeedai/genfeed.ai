@@ -1,3 +1,4 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import type { JsonApiCollectionResponse } from '../../src/api/json-api';
 import { flattenCollection } from '../../src/api/json-api';
@@ -6,7 +7,7 @@ import { createTestClient, hasCredentials, testConfig } from './setup';
 interface Ingredient {
   id: string;
   category: string;
-  status: string;
+  status: IngredientStatus;
   text?: string;
   model?: string;
 }
@@ -39,8 +40,7 @@ describe.skipIf(!hasCredentials)('integration/library', () => {
       expect(typeof item.id).toBe('string');
       expect(item.category).toBeTruthy();
       expect(typeof item.category).toBe('string');
-      expect(item.status).toBeTruthy();
-      expect(typeof item.status).toBe('string');
+      expect(Object.values(IngredientStatus)).toContain(item.status);
     }
   }, 15_000);
 
@@ -52,8 +52,10 @@ describe.skipIf(!hasCredentials)('integration/library', () => {
 
     const items = flattenCollection<Ingredient>(response);
 
+    // `?category=image` is uppercased server-side, but the column is a Prisma
+    // enum, so what comes back is the SCREAMING_SNAKE label.
     for (const item of items) {
-      expect(item.category).toBe('image');
+      expect(item.category).toBe('IMAGE');
     }
   }, 15_000);
 

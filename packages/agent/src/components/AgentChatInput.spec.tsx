@@ -272,8 +272,12 @@ describe('AgentChatInput', () => {
       </ConversationComposerShellProvider>,
     );
 
-    fireEvent.click(screen.getByLabelText('Open composer actions'));
-    fireEvent.click(screen.getByRole('button', { name: /\/publish/i }));
+    // Actions are a Radix dropdown: the trigger opens on pointerdown and the
+    // entries are menuitems, not buttons.
+    fireEvent.pointerDown(screen.getByLabelText('Open composer actions'));
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: /\/publish/i }),
+    );
     fireEvent.click(await screen.findByLabelText('Send message'));
 
     await waitFor(() => {

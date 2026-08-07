@@ -192,7 +192,7 @@ describe('AdminFleetTrainingService', () => {
       );
     });
 
-    it('should set completedAt and COMPLETED status for COMPLETED stage', async () => {
+    it('should set completedAt and COMPLETED status for READY stage', async () => {
       await service.updateStage('training-1', TrainingStage.READY, 100);
 
       expect(trainingsService.patch).toHaveBeenCalledWith(
@@ -293,7 +293,6 @@ describe('AdminFleetTrainingService', () => {
 
       expect(personasService.findOne).toHaveBeenCalledWith({
         isFleetCharacter: true,
-        isDeleted: false,
         organizationId: 'org-123',
         slug: 'alice',
       });
@@ -334,7 +333,6 @@ describe('AdminFleetTrainingService', () => {
 
       expect(personasService.findOne).toHaveBeenCalledWith({
         isFleetCharacter: true,
-        isDeleted: false,
         slug: 'alice',
       });
     });

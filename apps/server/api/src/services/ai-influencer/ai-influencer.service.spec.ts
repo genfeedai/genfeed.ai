@@ -177,7 +177,6 @@ describe('AiInfluencerService', () => {
 
       expect(personasService.findOne).toHaveBeenCalledWith({
         isFleetCharacter: true,
-        isDeleted: false,
         slug: 'non-existent',
       });
     });
@@ -200,7 +199,6 @@ describe('AiInfluencerService', () => {
       expect(result.personaSlug).toBe('luna-ai');
       expect(personasService.findOne).toHaveBeenCalledWith({
         isFleetCharacter: true,
-        isDeleted: false,
         slug: 'luna-ai',
       });
     });

@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@genfeedai/constants": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/errors": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/serializers": "workspace:*",

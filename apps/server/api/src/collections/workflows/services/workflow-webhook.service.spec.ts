@@ -123,7 +123,6 @@ describe('WorkflowWebhookService', () => {
       expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
       expect(workflowsService.findOne).toHaveBeenCalledWith({
         id: 'workflow-1',
-        isDeleted: false,
       });
     });
 

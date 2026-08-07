@@ -556,7 +556,7 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Published recap')).toBeInTheDocument();
   });
 
-  it('opens the inspector sheet for inbox and activity items', async () => {
+  it('opens the inspector sheet for inbox items', async () => {
     listMock.mockResolvedValue([
       buildTask({
         id: 'task-activity-1',

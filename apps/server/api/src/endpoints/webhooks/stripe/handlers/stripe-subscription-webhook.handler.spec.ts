@@ -5,7 +5,11 @@ import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
-import { SubscriptionPlan, SubscriptionTier } from '@genfeedai/enums';
+import {
+  SubscriptionPlan,
+  SubscriptionStatus,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import {
   type ISubscriptionOssReadModel,
   SUBSCRIPTIONS_SERVICE,
@@ -107,7 +111,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       expect(subscriptionsService.patch).toHaveBeenCalledWith(
         'sub_db_1',
         expect.objectContaining({
-          status: 'active',
+          status: SubscriptionStatus.ACTIVE,
           stripePriceId: 'price_1',
           stripeSubscriptionId: 'sub_stripe_1',
           plan: SubscriptionPlan.MONTHLY,
@@ -196,11 +200,10 @@ describe('StripeSubscriptionWebhookHandler', () => {
 
       expect(subscriptionsService.patch).toHaveBeenCalledWith(
         'sub_db_1',
-        expect.objectContaining({ status: 'active' }),
+        expect.objectContaining({ status: SubscriptionStatus.ACTIVE }),
       );
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(
         supportService.updateOrganizationTierAndModels,
@@ -243,7 +246,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       expect(subscriptionsService.patch).toHaveBeenCalledWith('sub_db_1', {
         cancelAtPeriodEnd: false,
         isDeleted: true,
-        status: 'canceled',
+        status: SubscriptionStatus.CANCELLED,
       });
       expect(
         creditsUtilsService.removeAllOrganizationCredits,
@@ -257,7 +260,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
       ).toHaveBeenCalledWith('org_1', SubscriptionTier.BYOK, 'test');
       expect(usersService.findOne).toHaveBeenCalledWith({
         id: 'user_1',
-        isDeleted: false,
       });
       expect(supportService.invalidateUserCaches).toHaveBeenCalledWith(
         'user_1',

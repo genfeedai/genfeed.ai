@@ -366,13 +366,6 @@ enum TrainingStage {
   CANCELLED
 }
 
-enum WorkflowStatus {
-  DRAFT
-  ACTIVE
-  PAUSED
-  ARCHIVED
-}
-
 enum WorkflowExecutionStatus {
   PENDING
   RUNNING
@@ -1006,6 +999,7 @@ model Member {
 
   @@index([organizationId, userId, isDeleted], map: "members_org_user_deleted_idx")
   @@index([organizationId, roleKey, isDeleted], map: "members_organizationId_roleKey_isDeleted_idx")
+  @@index([userId, isActive, isDeleted], map: "members_user_active_deleted_idx")
   @@map("members")
 }
 
@@ -1932,6 +1926,7 @@ model LinkClick {
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
+  @@index([linkId, timestamp(sort: Desc)], map: "link_clicks_link_id_timestamp_idx")
   @@map("link_clicks")
 }
 
@@ -2441,6 +2436,7 @@ model CreditTransaction {
 
   @@index([source, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_created_at_idx")
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
+  @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
   @@map("credit_transactions")
 }
 

@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsCreditsPage from './content';
@@ -36,6 +37,18 @@ vi.mock('./managed-credits-checkout-card', () => ({
   default: () => <div data-testid="managed-credits-card">Managed credits</div>,
 }));
 
+function renderCreditsPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SettingsCreditsPage />
+    </QueryClientProvider>,
+  );
+}
+
 describe('SettingsCreditsPage', () => {
   beforeEach(() => {
     isSelfHostedMock.mockReset();
@@ -47,7 +60,7 @@ describe('SettingsCreditsPage', () => {
   });
 
   it('renders managed credits for self-hosted installs', () => {
-    render(<SettingsCreditsPage />);
+    renderCreditsPage();
 
     expect(screen.getByRole('heading', { name: 'Credits' })).toHaveClass(
       'sr-only',
@@ -59,7 +72,7 @@ describe('SettingsCreditsPage', () => {
   it('renders hosted credit top-ups for hosted installs', () => {
     isSelfHostedMock.mockReturnValue(false);
 
-    render(<SettingsCreditsPage />);
+    renderCreditsPage();
 
     expect(screen.getByTestId('hosted-credits-card')).toBeInTheDocument();
     expect(

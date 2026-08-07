@@ -71,6 +71,7 @@ vi.mock('lucide-react', () => ({
   Plus: () => <span data-testid="hi-plus" />,
   RefreshCw: () => <span data-testid="hi-arrow-path" />,
   Trash2: () => <span data-testid="hi-trash" />,
+  X: () => <span data-testid="hi-x-mark" />,
 }));
 
 vi.mock('@ui/card/Card', () => ({

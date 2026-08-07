@@ -228,7 +228,7 @@ export class AdminFleetTrainingService {
     });
 
     try {
-      // Stage: PREPROCESSING — verify dataset on GPU via HTTP
+      // Stage: PENDING — verify dataset on GPU via HTTP (queued/preprocess)
       await this.updateStage(params.trainingId, TrainingStage.PENDING, 10);
 
       const dataset = await this.requestImagesApi<ImagesDatasetResponse>(
@@ -320,11 +320,13 @@ export class AdminFleetTrainingService {
         { timeoutMs: 15_000 },
       );
 
-      // Map GPU job stage to TrainingStage enum
+      // Map GPU job stages into the Prisma TrainingStage set.
       const stageMap: Record<string, TrainingStage> = {
         completed: TrainingStage.READY,
         failed: TrainingStage.FAILED,
         postprocessing: TrainingStage.UPLOADING,
+        preprocessing: TrainingStage.PENDING,
+        queued: TrainingStage.PENDING,
         training: TrainingStage.TRAINING,
         uploading: TrainingStage.UPLOADING,
       };

@@ -21,6 +21,7 @@ import {
   BatchStatus,
   ContentIntelligencePlatform,
   PostStatus,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import {
@@ -37,22 +38,9 @@ type BatchProcessingCounts = {
   failedCount: number;
 };
 
-const PRISMA_CREDENTIAL_PLATFORMS = new Set<string>(
-  Object.values(PrismaCredentialPlatform),
-);
-
+/** Posts store lowercase platform strings (String column, not Prisma enum). */
 function toPostPlatform(platform: string): string {
   return platform.trim().toLowerCase().replace(/-/g, '_');
-}
-
-function toPrismaCredentialPlatform(
-  platform: string,
-): PrismaCredentialPlatform | undefined {
-  const candidate = platform.trim().toUpperCase().replace(/-/g, '_');
-  if (!PRISMA_CREDENTIAL_PLATFORMS.has(candidate)) {
-    return undefined;
-  }
-  return candidate as PrismaCredentialPlatform;
 }
 
 function toBatchItemFailureMessage(error: unknown): string {
@@ -73,7 +61,6 @@ function toBatchItemFailureMessage(error: unknown): string {
       : 'Draft post create failed due to a database constraint. Connect a brand social account for this platform, or leave the draft untargeted.';
   }
 
-  // Surface the first meaningful line — Prisma dumps are multi-line walls.
   const firstLine = message
     .split('\n')
     .map((line) => line.trim())
@@ -295,7 +282,7 @@ export class BatchGenerationProcessingService {
           'Draft post';
 
         // Posts store lowercase platform strings; credentials use Prisma
-        // CredentialPlatform SCREAMING_SNAKE enums — keep both shapes.
+        // CredentialPlatform SCREAMING_SNAKE — always map via the shared helper.
         const platformRaw =
           typeof item.platform === 'string' && item.platform.trim().length > 0
             ? item.platform.trim()

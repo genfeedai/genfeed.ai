@@ -111,7 +111,6 @@ describe('BotActivitiesController', () => {
       expect(botActivitiesService.findOne).toHaveBeenCalledWith({
         brandId: 'brand-123',
         id: 'act-1',
-        isDeleted: false,
         organizationId: 'org-123',
       });
       expect(result).toEqual(mockActivity);

@@ -2,21 +2,36 @@
 
 import { pathToFileURL } from 'node:url';
 
+import { TEMPORARILY_DISABLED_TEST_GROUPS } from './pr-test-plan.mjs';
+
 const VALID_RESULTS = new Set(['success', 'failure', 'cancelled', 'skipped']);
 
+const DORMANT_CLASSIFICATION = 'dormant (paused surface)';
+
+// Each entry carries the planner group key so the summary can tell a paused
+// surface apart from a genuinely out-of-scope one. Without it every skip reads
+// as "not applicable", and a `full-suite` run looks like it covered everything
+// when a dormant workspace was never exercised (#2486).
 const SCOPED_WORKSPACE_JOBS = [
-  ['Package tests', 'TEST_PACKAGES_RESULT', 'TEST_SCOPE_PACKAGES'],
+  ['Package tests', 'TEST_PACKAGES_RESULT', 'TEST_SCOPE_PACKAGES', 'packages'],
   [
     'Server-service tests',
     'TEST_SERVER_SERVICES_RESULT',
     'TEST_SCOPE_SERVER_SERVICES',
+    'server',
   ],
   [
     'Web and mobile tests',
     'TEST_WEB_DESKTOP_MOBILE_RESULT',
     'TEST_SCOPE_WEB_DESKTOP_MOBILE',
+    'web',
   ],
-  ['Extension tests', 'TEST_EXTENSIONS_RESULT', 'TEST_SCOPE_EXTENSIONS'],
+  [
+    'Extension tests',
+    'TEST_EXTENSIONS_RESULT',
+    'TEST_SCOPE_EXTENSIONS',
+    'extensions',
+  ],
 ];
 
 function parseBoolean(value, name, allowEmpty = false) {
@@ -66,10 +81,11 @@ export function createTestsGateJobs(env) {
       result: testScopeResult,
       applicable: true,
     },
-    ...SCOPED_WORKSPACE_JOBS.map(([name, resultKey, scopeKey]) => ({
+    ...SCOPED_WORKSPACE_JOBS.map(([name, resultKey, scopeKey, groupKey]) => ({
       name,
       result: readResult(env, resultKey),
       applicable: parseBoolean(env[scopeKey], scopeKey, allowEmptyScope),
+      dormant: TEMPORARILY_DISABLED_TEST_GROUPS.has(groupKey),
     })),
     {
       name: 'Build',
@@ -129,10 +145,14 @@ export function evaluateTestsGate(jobs) {
       continue;
     }
 
-    rows.push({
-      ...job,
-      classification: result === 'skipped' ? 'not applicable' : 'passed',
-    });
+    // Dormancy relabels an accepted skip; it never softens a failure or an
+    // applicable-but-missing job, both of which are handled above.
+    let classification = 'passed';
+    if (result === 'skipped') {
+      classification = job.dormant ? DORMANT_CLASSIFICATION : 'not applicable';
+    }
+
+    rows.push({ ...job, classification });
   }
 
   return {
@@ -162,6 +182,25 @@ export function formatTestsGateSummary(evaluation) {
       ? 'All applicable test and build jobs passed.'
       : `Gate failures: ${evaluation.failures.join('; ')}.`,
   );
+
+  // Name the paused surfaces explicitly. A dormant workspace is skipped even on
+  // a `full-suite` run, so "all applicable jobs passed" must not be read as
+  // "every workspace was exercised" (#2486).
+  const dormant = evaluation.rows.filter(
+    (row) => row.classification === DORMANT_CLASSIFICATION,
+  );
+
+  if (dormant.length > 0) {
+    lines.push(
+      '',
+      `Not covered by this run — paused surfaces: ${dormant
+        .map((row) => row.name)
+        .join(', ')}. These stay skipped even with the \`full-suite\` label. ` +
+        'Re-enable one by removing its group from `TEMPORARILY_DISABLED_TEST_GROUPS` ' +
+        'in `scripts/ci/pr-test-plan.mjs` and setting its `vars.ENABLE_*_CI` ' +
+        'repository variable.',
+    );
+  }
 
   return `${lines.join('\n')}\n`;
 }

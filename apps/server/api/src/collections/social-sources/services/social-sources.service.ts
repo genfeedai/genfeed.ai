@@ -12,9 +12,12 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { SourceCollectorService } from '@api/services/source-collector/source-collector.service';
 import type { CollectedSourcePost } from '@api/services/source-collector/source-collector.types';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SocialSourcePlatform, SocialSourceType } from '@genfeedai/enums';
+import {
+  SocialSourcePlatform,
+  SocialSourceType,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 import type { SocialSourceValidationResult } from '@genfeedai/interfaces';
-import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -417,11 +420,18 @@ export class SocialSourcesService {
       return;
     }
 
+    const credentialPlatform = toPrismaCredentialPlatform(platform);
+    if (!credentialPlatform) {
+      throw new BadRequestException(
+        `Unsupported credential platform: ${platform}`,
+      );
+    }
+
     const credential = await this.prisma.credential.findFirst({
       where: scopedWhere(context.organizationId, {
         brandId: context.brandId,
         id: credentialId,
-        platform: toCredentialPlatform(platform),
+        platform: credentialPlatform,
       }),
     });
     if (!credential) {
@@ -528,19 +538,6 @@ function buildProfileUrl(platform: string, handle: string): string {
       return `https://www.tiktok.com/@${cleanHandle}`;
     default:
       return `https://x.com/${cleanHandle}`;
-  }
-}
-
-function toCredentialPlatform(
-  platform: SocialSourcePlatform,
-): PrismaCredentialPlatform {
-  switch (platform) {
-    case SocialSourcePlatform.INSTAGRAM:
-      return PrismaCredentialPlatform.INSTAGRAM;
-    case SocialSourcePlatform.TIKTOK:
-      return PrismaCredentialPlatform.TIKTOK;
-    case SocialSourcePlatform.TWITTER:
-      return PrismaCredentialPlatform.TWITTER;
   }
 }
 

@@ -1,3 +1,4 @@
+import { type BatchItemStatus, BatchStatus } from '@genfeedai/enums';
 import { get, patch, post } from './client';
 import {
   flattenCollection,
@@ -5,15 +6,6 @@ import {
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
 } from './json-api';
-
-/** Matches @genfeedai/enums BatchStatus / Prisma BatchStatus wire values. */
-export type BatchStatus =
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'COMPLETED'
-  | 'PARTIAL'
-  | 'FAILED'
-  | 'CANCELLED';
 
 export interface Batch {
   id: string;
@@ -32,7 +24,13 @@ export interface Batch {
 
 export interface BatchItem {
   id: string;
-  status: string;
+  /**
+   * Per-item status inside the batch `items` JSON payload — SCREAMING_SNAKE,
+   * same as the batch itself.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
+  status: BatchItemStatus;
   platform?: string;
   contentType?: string;
   title?: string;
@@ -66,7 +64,10 @@ export async function createBatch(request: CreateBatchRequest): Promise<Batch> {
   return flattenSingle<Batch>(response);
 }
 
-export async function listBatches(params?: { status?: string; limit?: number }): Promise<Batch[]> {
+export async function listBatches(params?: {
+  status?: BatchStatus;
+  limit?: number;
+}): Promise<Batch[]> {
   const query = new URLSearchParams();
   if (params?.status) query.set('status', params.status);
   if (params?.limit) query.set('limit', String(params.limit));
@@ -90,6 +91,6 @@ export async function batchItemAction(batchId: string, request: BatchActionReque
 
 export async function cancelBatch(batchId: string): Promise<void> {
   await patch<JsonApiSingleResponse>(`/batches/${batchId}`, {
-    status: 'CANCELLED',
+    status: BatchStatus.CANCELLED,
   });
 }

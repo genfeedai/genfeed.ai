@@ -115,7 +115,10 @@ export class ClipResultsService extends BaseService<
   async findByProject(
     projectId: string,
     organizationId?: string,
+    limit?: number,
   ): Promise<ClipResultDocument[]> {
+    // `limit` is set by the HTTP controller only; internal reconciliation
+    // callers need the full result set and omit it.
     const docs = await this.delegate.findMany({
       where: {
         isDeleted: false,
@@ -123,6 +126,7 @@ export class ClipResultsService extends BaseService<
         projectId,
       },
       orderBy: { viralityScore: 'desc' },
+      ...(limit ? { take: limit } : {}),
     });
 
     return this.normalizeDocuments(docs);
@@ -143,10 +147,12 @@ export class ClipResultsService extends BaseService<
 
   async findAllByOrganization(
     organizationId: string,
+    limit?: number,
   ): Promise<ClipResultDocument[]> {
     const results = await this.delegate.findMany({
       orderBy: { createdAt: 'desc' },
       where: { isDeleted: false, organizationId },
+      ...(limit ? { take: limit } : {}),
     });
 
     return this.normalizeDocuments(results);

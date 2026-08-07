@@ -217,7 +217,6 @@ describe('DevtoService', () => {
       expect(credentialsFindOneMock).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId: 'brand-1',
-          isDeleted: false,
           organizationId: 'org-1',
           platform: CredentialPlatform.DEV_TO,
         }),

@@ -5,7 +5,10 @@ import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { shouldRenderCompletionSummary } from '@genfeedai/agent/utils/should-render-completion-summary';
+import {
+  hasProductResultCard,
+  shouldRenderCompletionSummary,
+} from '@genfeedai/agent/utils/should-render-completion-summary';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -137,6 +140,10 @@ export function AgentChatMessage({
   const supplementalUiActions = normalizedUiActions.filter(
     (action) => action.type !== 'completion_summary_card',
   );
+  const turnHasProductResultCard = useMemo(
+    () => hasProductResultCard(normalizedUiActions),
+    [normalizedUiActions],
+  );
   const userAttachments = message.metadata?.attachments;
   const isFallbackContent = message.metadata?.isFallbackContent === true;
   const isToolOnlyFallbackMessage =
@@ -148,11 +155,6 @@ export function AgentChatMessage({
     !isUser && hasUiActions && isToolOnlyFallbackMessage;
   const shouldRenderMessageContent =
     Boolean(message.content) && !shouldSuppressFallbackMessage;
-  const shouldShowAssistantActions =
-    !isUser &&
-    (onCopy || onRetry || onRemember) &&
-    !isToolOnlyFallbackMessage &&
-    !completionSummaryAction;
   const copyContent =
     message.content.trim().length > 0
       ? message.content
@@ -193,6 +195,15 @@ export function AgentChatMessage({
       'videos',
     ].includes(normalizedType);
   }, [generatedContent, generatedContentType]);
+  // Product result cards own CTAs for the turn — suppress copy/retry footers
+  // that stack next to generation/review surfaces (T3 density).
+  const shouldShowAssistantActions =
+    !isUser &&
+    (onCopy || onRetry || onRemember) &&
+    !isToolOnlyFallbackMessage &&
+    !completionSummaryAction &&
+    !turnHasProductResultCard &&
+    !shouldRenderGeneratedTextCard;
   const metaItems = useMemo(() => {
     return [formatTime(message.createdAt)];
   }, [message.createdAt]);

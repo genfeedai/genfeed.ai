@@ -118,7 +118,6 @@ describe('TriggerEvaluatorService', () => {
 
     expect(brandsService.findOne).toHaveBeenCalledWith({
       id: scalarBrandId,
-      isDeleted: false,
       organizationId,
     });
     expect(analyticsService.getOverview).toHaveBeenCalledWith(

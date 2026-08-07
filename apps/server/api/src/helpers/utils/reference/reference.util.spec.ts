@@ -75,7 +75,6 @@ describe('buildReferenceImageUrl', () => {
       .calls[0][0];
     expect(ingredientQuery.id).toBe(referenceId);
     expect(ingredientQuery.category).toBe('image');
-    expect(ingredientQuery.isDeleted).toBe(false);
     expect(assetsService.findOne).not.toHaveBeenCalled();
   });
 
@@ -100,7 +99,6 @@ describe('buildReferenceImageUrl', () => {
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
     const videoQuery = (ingredientsService.findOne as vi.Mock).mock.calls[1][0];
     expect(videoQuery.category).toBe('video');
-    expect(videoQuery.isDeleted).toBe(false);
     expect(assetsService.findOne).not.toHaveBeenCalled();
   });
 
@@ -127,7 +125,6 @@ describe('buildReferenceImageUrl', () => {
     expect(assetsService.findOne).toHaveBeenCalledTimes(1);
     const assetQuery = (assetsService.findOne as vi.Mock).mock.calls[0][0];
     expect(assetQuery.id).toBe(referenceId);
-    expect(assetQuery.isDeleted).toBe(false);
   });
 
   it('logs a warning and returns null when reference is not found', async () => {

@@ -1,3 +1,4 @@
+import type { PersistedArticleStatus } from '@genfeedai/enums';
 import { get, post } from './client';
 import {
   flattenCollection,
@@ -5,9 +6,6 @@ import {
   type JsonApiCollectionResponse,
   type JsonApiSingleResponse,
 } from './json-api';
-
-/** Mirrors `ArticleStatus` in `@genfeedai/enums`. */
-export type ArticleStatus = 'draft' | 'processing' | 'public' | 'archived' | 'failed';
 
 /** Mirrors `ArticleGenerationType` in the API's `GenerateArticlesDto`. */
 export type ArticleGenerationType = 'standard' | 'x-article';
@@ -26,7 +24,14 @@ export interface XArticleMetadata {
 
 export interface Article {
   id: string;
-  status: ArticleStatus;
+  /**
+   * `articles.status` is a Prisma enum, so a serialized article carries the
+   * persisted vocabulary. The app-level `ArticleStatus` in `@genfeedai/enums`
+   * is the lowercase query/write vocabulary and never appears on a read.
+   *
+   * @see .agents/memory/rules/enum_source_of_truth.md
+   */
+  status: PersistedArticleStatus;
   label?: string;
   slug?: string;
   summary?: string;
