@@ -100,7 +100,6 @@ export class UserStripeController {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
         id: user.id,
-        isDeleted: false,
       });
       if (!dbUser) {
         return returnNotFound('User', user.id);
@@ -199,7 +198,6 @@ export class UserStripeController {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
         id: user.id,
-        isDeleted: false,
       });
       if (!dbUser) {
         return returnNotFound('User', user.id);
@@ -241,7 +239,6 @@ export class UserStripeController {
       // Load the current user's DB record by id (Better Auth: user.id is the Genfeed User.id).
       const dbUser = await this.usersService.findOne({
         id: user.id,
-        isDeleted: false,
       });
       if (!dbUser) {
         return returnNotFound('User', user.id);
@@ -256,7 +253,6 @@ export class UserStripeController {
       let balance = 0;
       const creatorOrg = await this.organizationsService.findOne({
         category: OrganizationCategory.CREATOR,
-        isDeleted: false,
         members: dbUser.id,
       });
 

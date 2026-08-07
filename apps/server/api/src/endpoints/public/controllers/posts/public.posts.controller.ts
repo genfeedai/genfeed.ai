@@ -186,7 +186,6 @@ export class PublicPostsController {
     const post = await this.postsService.findOne(
       {
         id: postId,
-        isDeleted: false,
         status: PostStatus.PUBLIC,
       },
       [],

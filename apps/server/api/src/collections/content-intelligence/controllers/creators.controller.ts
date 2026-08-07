@@ -158,7 +158,6 @@ export class CreatorsController {
     const publicMetadata = getPublicMetadata(user);
     const data = await this.contentIntelligenceService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -257,7 +256,6 @@ export class CreatorsController {
     const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -271,7 +269,6 @@ export class CreatorsController {
     // Return updated creator
     const updated = await this.contentIntelligenceService.findOne({
       id: id,
-      isDeleted: false,
     });
 
     return serializeSingle(request, CreatorAnalysisSerializer, updated);
@@ -299,7 +296,6 @@ export class CreatorsController {
     const publicMetadata = getPublicMetadata(user);
     const creator = await this.contentIntelligenceService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

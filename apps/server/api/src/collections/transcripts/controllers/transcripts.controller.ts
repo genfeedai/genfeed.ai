@@ -89,7 +89,6 @@ export class TranscriptsController {
 
     const transcript = await this.transcriptsService.findOne({
       id: transcriptId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

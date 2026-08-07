@@ -99,7 +99,6 @@ export class WebhooksService {
     const categoryValue = normalizeCategory(category);
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
-      isDeleted: false,
     });
 
     if (!ingredient) {
@@ -154,7 +153,6 @@ export class WebhooksService {
     });
     const metadata = await this.metadataService.findOne({
       id: input.metadataId,
-      isDeleted: false,
     });
 
     if (!ingredient) {
@@ -261,7 +259,6 @@ export class WebhooksService {
     try {
       const metadata = await this.metadataService.findOne({
         externalId,
-        isDeleted: false,
       });
 
       if (!metadata) {

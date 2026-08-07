@@ -108,7 +108,6 @@ export class VideosCaptionsController {
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
       ],
-      isDeleted: false,
     });
 
     if (!video) {

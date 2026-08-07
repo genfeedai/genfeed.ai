@@ -383,7 +383,6 @@ export class BrandsController extends BaseCRUDController<
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
       ],
-      isDeleted: false,
     });
 
     if (!brand) {

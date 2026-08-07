@@ -127,7 +127,6 @@ export class BotGenerationService {
       // Get brand for default model
       const brand = await this.brandsService.findOne({
         id: resolvedUser.brandId,
-        isDeleted: false,
       });
 
       if (!brand) {

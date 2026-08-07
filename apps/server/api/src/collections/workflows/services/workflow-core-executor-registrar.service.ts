@@ -138,7 +138,6 @@ export class WorkflowCoreExecutorRegistrarService {
     const executor = createBrandExecutor(async (brandId, organizationId) => {
       const brand = await brandsService.findOne({
         id: brandId,
-        isDeleted: false,
         organizationId,
       });
       if (!brand) return null;
@@ -267,7 +266,6 @@ export class WorkflowCoreExecutorRegistrarService {
       async (brandId, organizationId) => {
         const brand = await brandsService.findOne({
           id: brandId,
-          isDeleted: false,
           organizationId,
         });
         if (!brand) return null;

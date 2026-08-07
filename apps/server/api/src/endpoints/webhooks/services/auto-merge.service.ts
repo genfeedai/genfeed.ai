@@ -170,7 +170,6 @@ export class AutoMergeService {
         IngredientCategory.VIDEO,
       ),
       groupId,
-      isDeleted: false,
       transformations: { in: [TransformationCategory.MERGED] },
     });
 

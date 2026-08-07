@@ -68,7 +68,6 @@ export class SnapchatPublisherService extends BasePublisherService {
     try {
       const snapchatCredential = await this.credentialsService.findOne({
         brandId: brandId,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.SNAPCHAT,
       });

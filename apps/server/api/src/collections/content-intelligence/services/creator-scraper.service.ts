@@ -142,7 +142,6 @@ export class CreatorScraperService {
   async scrapeCreator(creatorId: string): Promise<ScrapeResult | null> {
     const creator = await this.contentIntelligenceService.findOne({
       id: creatorId,
-      isDeleted: false,
     });
 
     if (!creator) {

@@ -147,7 +147,6 @@ export class PromptsController {
     if (isEntityId(createPromptDto.brandId)) {
       const brand = await this.brandsService.findOne({
         id: createPromptDto.brandId,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
       selectedBrand = brand ?? undefined;
@@ -318,7 +317,6 @@ export class PromptsController {
     const data = (await this.promptsService.findOne(
       {
         id: promptId,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       },
       [{ path: 'ingredients' }],
@@ -329,7 +327,6 @@ export class PromptsController {
     // If prompt exists but has no ingredient, check if any ingredient references this prompt
     if (data && !data.ingredients?.length) {
       const ingredient = await this.ingredientsService.findOne({
-        isDeleted: false,
         organizationId: publicMetadata.organization,
         promptId: promptId,
       });
@@ -361,7 +358,6 @@ export class PromptsController {
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
       ],
-      isDeleted: false,
     });
 
     if (!prompt) {
@@ -390,7 +386,6 @@ export class PromptsController {
 
     const prompt = await this.promptsService.findOne({
       id: promptId,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 

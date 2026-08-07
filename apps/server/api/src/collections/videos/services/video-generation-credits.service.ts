@@ -32,7 +32,6 @@ export class VideoGenerationCreditsService {
     }
 
     const resolvedModelDoc = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(model),
     });
     let requiredCredits = resolvedModelDoc

@@ -148,10 +148,9 @@ export function createUserScopedService<TEntity, TCreateDto, TUpdateDto>(
         // Prisma OR: either userId OR organizationId
         delete matchConditions.userId;
         return this.delegate.findMany({
-          where: {
+          where: this.withSoftDeleteFilter({
             OR: [{ userId }, { organizationId }],
-            isDeleted: false,
-          },
+          }),
         });
       }
 
@@ -172,11 +171,13 @@ export function createUserScopedService<TEntity, TCreateDto, TUpdateDto>(
         orConditions.push({ organizationId });
       }
 
+      // A tombstoned row must not grant access — this check had no
+      // soft-delete filter at all.
       const entity = await this.delegate.findFirst({
-        where: {
+        where: this.withSoftDeleteFilter({
           id: entityId,
           OR: orConditions,
-        },
+        }),
         select: { id: true },
       });
 

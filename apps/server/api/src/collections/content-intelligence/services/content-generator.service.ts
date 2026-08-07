@@ -126,7 +126,6 @@ export class ContentGeneratorService {
     if (dto.playbookId) {
       const playbook = await this.playbookBuilderService.findOne({
         id: dto.playbookId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       if (playbook) {
@@ -175,7 +174,6 @@ export class ContentGeneratorService {
     if (dto.patternId) {
       const pattern = await this.patternStoreService.findOne({
         id: dto.patternId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       return pattern ? [pattern] : [];
@@ -206,7 +204,6 @@ export class ContentGeneratorService {
       const brand = await this.brandsService.findOne(
         {
           id: dto.brandId,
-          isDeleted: false,
           organizationId: organizationId,
         },
         'none',
@@ -218,7 +215,6 @@ export class ContentGeneratorService {
 
       const persona = await this.personasService.findOne({
         brandId: dto.brandId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       const profileContribution =

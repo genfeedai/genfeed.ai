@@ -202,7 +202,6 @@ export class BotsController extends BaseCRUDController<
     const bot = await this.botsService.findOne(
       {
         id: id,
-        isDeleted: false,
       },
       this.getPopulateFields(),
     );

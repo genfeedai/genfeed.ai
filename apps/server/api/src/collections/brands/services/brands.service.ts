@@ -639,7 +639,6 @@ export class BrandsService extends BaseService<
 
     const targetBrand = await this.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

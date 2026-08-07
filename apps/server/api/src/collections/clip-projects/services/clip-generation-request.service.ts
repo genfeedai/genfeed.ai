@@ -53,7 +53,6 @@ export class ClipGenerationRequestService {
 
     const project = await this.clipProjectsService.findOne({
       id: projectId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

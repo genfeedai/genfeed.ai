@@ -113,7 +113,6 @@ export class ReplyBotPollingProcessor extends WorkerHost {
       // Fetch credential
       const credential: unknown = await this.credentialsService.findOne({
         id: credentialId,
-        isDeleted: false,
         organizationId: organizationId,
       });
 

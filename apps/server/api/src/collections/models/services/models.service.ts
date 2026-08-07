@@ -456,7 +456,7 @@ export class ModelsService extends BaseService<
     updateDto: Partial<UpdateModelDto> = {},
     reviewedBy?: string,
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -482,7 +482,7 @@ export class ModelsService extends BaseService<
     modelId: string,
     params: { reason?: string; reviewedBy?: string } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }
@@ -504,7 +504,7 @@ export class ModelsService extends BaseService<
       succeededBy?: string;
     } = {},
   ): Promise<ModelDocument | null> {
-    const existing = await this.findOne({ id: modelId, isDeleted: false });
+    const existing = await this.findOne({ id: modelId });
     if (!existing) {
       return null;
     }

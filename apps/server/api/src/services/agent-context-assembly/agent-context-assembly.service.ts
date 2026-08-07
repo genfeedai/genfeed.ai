@@ -768,7 +768,6 @@ export class AgentContextAssemblyService {
     try {
       const credential = await this.credentialsService.findOne({
         id: credentialId,
-        isDeleted: false,
         organizationId: organizationId,
       });
 

@@ -355,7 +355,6 @@ export class TriggerEvaluatorService {
 
     const brand = await this.brandsService.findOne({
       id: scope.brandId,
-      isDeleted: false,
       organizationId: scope.organizationId,
     });
 

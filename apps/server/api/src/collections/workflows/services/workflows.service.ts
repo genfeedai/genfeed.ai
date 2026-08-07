@@ -303,7 +303,6 @@ export class WorkflowsService extends BaseService<
   override async remove(id: string): Promise<WorkflowDocument | null> {
     const workflow = await this.findOne({
       id: id,
-      isDeleted: false,
     });
     if (workflow) {
       this.assertWorkflowMutable(workflow);
@@ -517,7 +516,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<{ executionId?: string; mode: 'node' | 'step' }> {
     const workflowDoc = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
       userId: userId,
     });
@@ -648,7 +646,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
       userId: userId,
     });
@@ -697,7 +694,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -723,7 +719,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -824,7 +819,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -854,7 +848,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowEntity> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -885,7 +878,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowDocument> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: scope.organizationId,
       ...(scope.userId ? { userId: scope.userId } : {}),
     });
@@ -908,7 +900,6 @@ export class WorkflowsService extends BaseService<
   ): Promise<WorkflowDocument> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: scope.organizationId,
       OR: [
         { userId: scope.userId },

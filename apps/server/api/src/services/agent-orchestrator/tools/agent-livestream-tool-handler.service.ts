@@ -652,7 +652,6 @@ export class AgentLivestreamToolHandler {
 
     const bot = await this.botsService.findOne({
       id: botId,
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 
@@ -683,7 +682,6 @@ export class AgentLivestreamToolHandler {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
         id: params.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -693,7 +691,6 @@ export class AgentLivestreamToolHandler {
     }
 
     const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
       isSelected: true,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
@@ -706,7 +703,6 @@ export class AgentLivestreamToolHandler {
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
         id: ctx.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -716,7 +712,6 @@ export class AgentLivestreamToolHandler {
     }
 
     const firstOrgBrand = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 

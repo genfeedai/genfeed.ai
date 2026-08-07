@@ -116,7 +116,6 @@ export class CronReplyBotService {
   private async findActiveTargets(): Promise<ReplyBotCronTarget[]> {
     const configs = await this.replyBotConfigsService.find({
       isActive: true,
-      isDeleted: false,
     });
 
     const targets = new Map<string, ReplyBotCronTarget>();
@@ -151,7 +150,6 @@ export class CronReplyBotService {
   ): Promise<IReplyBotCredentialData | null> {
     const credential = await this.credentialsService.findOne({
       id: target.credentialId,
-      isDeleted: false,
       organizationId: target.organizationId,
     });
 

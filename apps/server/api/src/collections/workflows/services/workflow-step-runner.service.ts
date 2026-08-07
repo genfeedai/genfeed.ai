@@ -65,7 +65,6 @@ export class WorkflowStepRunnerService extends BaseService<
   async executeWorkflow(workflowId: string): Promise<void> {
     const workflowDoc = await this.findOne({
       id: workflowId,
-      isDeleted: false,
     });
     if (!workflowDoc) {
       throw new NotFoundException('Workflow');
@@ -568,7 +567,6 @@ export class WorkflowStepRunnerService extends BaseService<
   ): Promise<void> {
     const workflow = await this.findOne({
       id: workflowId,
-      isDeleted: false,
     });
     if (!workflow) {
       return;

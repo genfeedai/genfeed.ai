@@ -59,7 +59,6 @@ export class WorkflowRunControlService {
   > {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -137,7 +136,6 @@ export class WorkflowRunControlService {
     try {
       const workflow = await this.workflowsService.findOne({
         id: workflowId,
-        isDeleted: false,
       });
       if (!workflow) {
         return;
@@ -283,7 +281,6 @@ export class WorkflowRunControlService {
   ): Promise<{ runId: string; status: string; message: string }> {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -294,7 +291,6 @@ export class WorkflowRunControlService {
     // Find the failed execution from the workflow-executions collection
     const failedRun = await this.workflowExecutionsService?.findOne({
       id: runId,
-      isDeleted: false,
       organizationId: organizationId,
       workflowId: workflowId,
     });
@@ -344,7 +340,6 @@ export class WorkflowRunControlService {
   ): Promise<CreditEstimate> {
     const workflow = await this.workflowsService.findOne({
       id: workflowId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
@@ -392,7 +387,6 @@ export class WorkflowRunControlService {
   ): Promise<Record<string, unknown>> {
     const execution = await this.workflowExecutionsService?.findOne({
       id: runId,
-      isDeleted: false,
       organizationId: organizationId,
       workflowId: workflowId,
     });

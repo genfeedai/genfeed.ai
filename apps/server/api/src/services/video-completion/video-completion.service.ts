@@ -420,7 +420,6 @@ export class VideoCompletionService implements OnModuleInit {
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
-      isDeleted: false,
       organizationId,
     });
 

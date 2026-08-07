@@ -116,7 +116,6 @@ export class MonitoredAccountsController extends BaseCRUDController<
     const data = await this.monitoredAccountsService.findOne({
       ...(publicMetadata.brand ? { brandId: publicMetadata.brand } : {}),
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

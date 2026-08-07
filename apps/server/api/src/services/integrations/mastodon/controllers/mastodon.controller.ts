@@ -46,7 +46,6 @@ export class MastodonController {
     const { organization, user: userId } = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      isDeleted: false,
       organizationId: organization,
     });
 

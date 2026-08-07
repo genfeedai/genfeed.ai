@@ -114,7 +114,6 @@ export class PublicMusicsController {
         category: CategoryPrismaUtil.toIngredientCategory(
           IngredientCategory.MUSIC,
         ),
-        isDeleted: false,
         scope: AssetScope.PUBLIC,
         status: IngredientStatus.GENERATED,
       },
@@ -138,7 +137,6 @@ export class PublicMusicsController {
       category: CategoryPrismaUtil.toIngredientCategory(
         IngredientCategory.MUSIC,
       ),
-      isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
     });

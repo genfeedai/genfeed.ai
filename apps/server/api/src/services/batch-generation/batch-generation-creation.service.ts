@@ -59,7 +59,6 @@ export class BatchGenerationCreationService {
     // Verify brand exists and belongs to org
     const brand = await this.brandsService.findOne({
       id: dto.brandId,
-      isDeleted: false,
       organizationId: orgId,
     });
 
@@ -142,7 +141,6 @@ export class BatchGenerationCreationService {
   ): Promise<IBatchSummary> {
     const brand = await this.brandsService.findOne({
       id: dto.brandId,
-      isDeleted: false,
       organizationId: orgId,
     });
 

@@ -206,7 +206,6 @@ export class OrganizationsSettingsController {
     const brandSettings = await this.brandsService.findOne(
       {
         id: brandId,
-        isDeleted: false,
         organizationId: resolvedOrganizationId,
       },
       'none',

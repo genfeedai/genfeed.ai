@@ -328,7 +328,6 @@ DM text:`;
 
   private async getDefaultTextModel() {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(DEFAULT_TEXT_MODEL),
     });
 
