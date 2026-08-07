@@ -18,7 +18,7 @@ export function OnboardingChecklistCard({
     (totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0);
   // This card is rendered inline from a tool result and receives no deployment
   // context, so it resolves the cloud-only credit economy itself.
-  const showCreditRewards = isCloudDeployment();
+  const isCreditRewardsVisible = isCloudDeployment();
   const signupGiftCredits = action.signupGiftCredits ?? 0;
   const journeyEarnedCredits =
     action.journeyEarnedCredits ?? action.earnedCredits ?? 0;
@@ -41,7 +41,7 @@ export function OnboardingChecklistCard({
         </p>
       )}
 
-      {showCreditRewards && (
+      {isCreditRewardsVisible && (
         <div className="mb-3 border border-border bg-muted/40 p-2.5">
           <div className="space-y-2 text-xs text-muted-foreground">
             <div className="flex items-center justify-between">
@@ -108,7 +108,7 @@ export function OnboardingChecklistCard({
               >
                 {item.label}
               </span>
-              {showCreditRewards && (
+              {isCreditRewardsVisible && (
                 <span className="text-[10px] font-medium text-amber-300">
                   +{item.rewardCredits ?? 0}
                 </span>

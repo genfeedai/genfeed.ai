@@ -38,7 +38,7 @@ export function AgentFullPageOnboardingChrome({
   // Managed credits are cloud-only, so a self-hosted operator earns nothing
   // from the journey and must not be shown a reward economy. Resolved once
   // here so both the sidebar and the mobile drawer stay consistent.
-  const showCreditRewards = isCloudDeployment();
+  const isCreditRewardsVisible = isCloudDeployment();
 
   return (
     <>
@@ -48,7 +48,7 @@ export function AgentFullPageOnboardingChrome({
           completionPercent={completionPercent}
           currentStepId={currentStepId}
           earnedCredits={earnedCredits}
-          showCreditRewards={showCreditRewards}
+          isCreditRewardsVisible={isCreditRewardsVisible}
           signupGiftCredits={signupGiftCredits}
           steps={steps}
           totalOnboardingCreditsVisible={totalOnboardingCreditsVisible}
@@ -69,7 +69,7 @@ export function AgentFullPageOnboardingChrome({
             Activation Journey
           </span>
         </div>
-        {showCreditRewards ? (
+        {isCreditRewardsVisible ? (
           <span className="text-xs text-muted-foreground">
             {earnedCredits}/{totalJourneyCredits} credits
           </span>
@@ -94,7 +94,7 @@ export function AgentFullPageOnboardingChrome({
               completionPercent={completionPercent}
               currentStepId={currentStepId}
               earnedCredits={earnedCredits}
-              showCreditRewards={showCreditRewards}
+              isCreditRewardsVisible={isCreditRewardsVisible}
               signupGiftCredits={signupGiftCredits}
               steps={steps}
               totalOnboardingCreditsVisible={totalOnboardingCreditsVisible}

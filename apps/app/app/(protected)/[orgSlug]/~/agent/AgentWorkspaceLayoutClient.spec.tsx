@@ -327,10 +327,68 @@ describe('AgentWorkspaceLayoutClient', () => {
       );
     });
     expect(getThreadsEffect).toHaveBeenCalledWith(
-      { limit: 20, status: 'active' },
+      { source: 'onboarding', status: 'active' },
       expect.any(AbortSignal),
     );
     expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('resumes the newest onboarding thread even when 20 newer standard threads exist', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    // The API filters by source, so a caller that respected an unfiltered
+    // 20-thread lookback would have dropped this thread entirely.
+    const newerStandardThreads = Array.from({ length: 20 }, (_, index) => ({
+      id: `thread-standard-${index}`,
+      source: 'agent',
+      updatedAt: `2026-08-${String(index + 10).padStart(2, '0')}T12:00:00.000Z`,
+    }));
+    runAgentApiEffect.mockResolvedValue([
+      ...newerStandardThreads,
+      {
+        id: 'thread-onboarding-latest',
+        source: 'onboarding',
+        updatedAt: '2026-08-04T18:00:00.000Z',
+      },
+      {
+        id: 'thread-onboarding-old',
+        source: 'onboarding',
+        updatedAt: '2026-08-01T09:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/agent/onboarding/thread-onboarding-latest',
+      );
+    });
+    expect(getThreadsEffect).toHaveBeenCalledWith(
+      { source: 'onboarding', status: 'active' },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('does not cap the onboarding resume lookup to a page of threads', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(getThreadsEffect).toHaveBeenCalled();
+    });
+
+    expect(getThreadsEffect.mock.calls[0]?.[0]).not.toHaveProperty('limit');
   });
 
   it('leaves a first-time operator on the onboarding entry route when no thread exists', async () => {

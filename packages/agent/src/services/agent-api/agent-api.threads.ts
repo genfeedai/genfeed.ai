@@ -93,6 +93,11 @@ export function getThreadsEffect(
     status?: AgentThreadStatus;
     /** When set, list is single-brand only. Omit for full org. */
     brandId?: string | null;
+    /**
+     * When set, list is narrowed server-side to threads opened from that entry
+     * point (`onboarding`, `agent`, `proactive`).
+     */
+    source?: string | null;
   },
   signal?: AbortSignal,
 ): Effect.Effect<AgentThread[], AgentApiError> {
@@ -108,6 +113,9 @@ export function getThreadsEffect(
   }
   if (params?.brandId) {
     qs.set('brand', params.brandId);
+  }
+  if (params?.source) {
+    qs.set('source', params.source);
   }
   const queryString = qs.toString();
   return api.fetchCollectionEffect<AgentThread>(

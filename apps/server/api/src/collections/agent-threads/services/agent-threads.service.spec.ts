@@ -9,10 +9,17 @@ import type { AgentMessagesService } from '@api/collections/agent-messages/servi
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AgentThreadStatus } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 type AgentThreadDelegate = {
+  findMany: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
+};
+
+type FindManyArgs = {
+  orderBy?: Record<string, unknown>;
+  where?: Record<string, unknown>;
 };
 
 describe('AgentThreadsService Prisma row contract', () => {
@@ -21,6 +28,7 @@ describe('AgentThreadsService Prisma row contract', () => {
 
   beforeEach(() => {
     delegate = {
+      findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     };
 
@@ -45,6 +53,39 @@ describe('AgentThreadsService Prisma row contract', () => {
       organizationId: string;
       userId: string;
     }>();
+  });
+
+  it('narrows the thread query to a single entry point when source is set', async () => {
+    await service.getUserThreads(
+      'user-1',
+      'org-1',
+      AgentThreadStatus.ACTIVE,
+      undefined,
+      'onboarding',
+    );
+
+    const call = delegate.findMany.mock.calls[0]?.[0] as FindManyArgs;
+    expect(call.where).toEqual(
+      expect.objectContaining({
+        isDeleted: false,
+        organizationId: 'org-1',
+        source: 'onboarding',
+        status: AgentThreadStatus.ACTIVE,
+        userId: 'user-1',
+      }),
+    );
+    expect(call.orderBy).toEqual({ updatedAt: 'desc' });
+    // No page cap: an onboarding thread must be findable regardless of how
+    // many newer standard threads sit in front of it.
+    expect(call).not.toHaveProperty('take');
+    expect(call).not.toHaveProperty('skip');
+  });
+
+  it('leaves the thread query unfiltered by source when source is omitted', async () => {
+    await service.getUserThreads('user-1', 'org-1', AgentThreadStatus.ACTIVE);
+
+    const call = delegate.findMany.mock.calls[0]?.[0] as FindManyArgs;
+    expect(call.where).not.toHaveProperty('source');
   });
 
   it('returns the canonical delegate update row unchanged', async () => {

@@ -26,5 +26,5 @@ export interface AgentOnboardingChecklistProps {
    * economy to show. The numeric fields keep their defaults; this flag decides
    * whether the credit chrome renders at all.
    */
-  showCreditRewards?: boolean;
+  isCreditRewardsVisible?: boolean;
 }
