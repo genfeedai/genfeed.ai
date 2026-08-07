@@ -527,7 +527,7 @@ describe('PostsService batchSchedule', () => {
       'post',
       'collection:post',
       'query:post',
-      'query:paginated',
+      'query:paginated:post',
     ]);
   });
 
