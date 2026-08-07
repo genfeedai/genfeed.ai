@@ -4,6 +4,8 @@ import {
   batchItemCredits,
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
+  reconcileBatchGenerationCredits,
+  resolveBatchPricingOptions,
 } from './batch-generation-pricing.constant';
 
 describe('batch-generation-pricing', () => {
@@ -70,5 +72,93 @@ describe('batch-generation-pricing', () => {
           { includeMedia: false, qualityTier: 'budget' },
         ),
     );
+  });
+
+  it('charges media rates for items that came back with media', () => {
+    const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
+    const captionOnly = chargeBatchGenerationCredits(
+      [{ format: ContentFormat.REEL, hasMedia: false }],
+      options,
+    );
+    const withMedia = chargeBatchGenerationCredits(
+      [{ format: ContentFormat.REEL, hasMedia: true }],
+      options,
+    );
+
+    expect(withMedia).toBeGreaterThan(captionOnly);
+  });
+
+  it('resolves the same options for the estimate UI and the server charge', () => {
+    const uiOptions = resolveBatchPricingOptions({ hasMediaGeneration: false });
+    const serverOptions = resolveBatchPricingOptions({
+      hasMediaGeneration: false,
+      qualityTier: undefined,
+    });
+
+    expect(uiOptions).toEqual(serverOptions);
+    expect(uiOptions.includeMedia).toBe(false);
+    expect(uiOptions.qualityTier).toBe('balanced');
+  });
+
+  it('promotes batch-level media intent to media rates', () => {
+    const captionOnly = resolveBatchPricingOptions({
+      hasMediaGeneration: false,
+    });
+    const mediaRun = resolveBatchPricingOptions({ hasMediaGeneration: true });
+
+    expect(
+      batchItemCredits({ format: ContentFormat.VIDEO }, mediaRun),
+    ).toBeGreaterThan(
+      batchItemCredits({ format: ContentFormat.VIDEO }, captionOnly),
+    );
+  });
+
+  it('bills the shortfall when an async batch produced media', () => {
+    const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
+    const items = [
+      { format: ContentFormat.IMAGE, hasMedia: true },
+      { format: ContentFormat.IMAGE, hasMedia: true },
+    ];
+    const estimate = chargeBatchGenerationCredits(
+      items.map((item) => ({ ...item, hasMedia: false })),
+      options,
+    );
+
+    const settlement = reconcileBatchGenerationCredits(
+      estimate,
+      items,
+      options,
+    );
+
+    expect(settlement.settledCredits).toBeGreaterThan(estimate);
+    expect(settlement.additionalCredits).toBe(
+      settlement.settledCredits - estimate,
+    );
+    expect(settlement.refundCredits).toBe(0);
+  });
+
+  it('refunds the estimate when an async batch landed nothing', () => {
+    const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
+
+    const settlement = reconcileBatchGenerationCredits(25, [], options);
+
+    expect(settlement.settledCredits).toBe(0);
+    expect(settlement.refundCredits).toBe(25);
+    expect(settlement.additionalCredits).toBe(0);
+  });
+
+  it('settles to zero when the estimate already matched the outcome', () => {
+    const options = resolveBatchPricingOptions({ hasMediaGeneration: false });
+    const items = [{ format: ContentFormat.IMAGE, hasMedia: false }];
+    const estimate = chargeBatchGenerationCredits(items, options);
+
+    const settlement = reconcileBatchGenerationCredits(
+      estimate,
+      items,
+      options,
+    );
+
+    expect(settlement.additionalCredits).toBe(0);
+    expect(settlement.refundCredits).toBe(0);
   });
 });

@@ -1,5 +1,8 @@
 import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
-import { estimateBatchGenerationCredits } from '@genfeedai/constants';
+import {
+  estimateBatchGenerationCredits,
+  resolveBatchPricingOptions,
+} from '@genfeedai/constants';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -18,9 +21,11 @@ describe('BatchGenerationCard', () => {
       />,
     );
 
+    // Priced through the shared resolver — the same flags the server charge
+    // uses, so a drift between quote and bill fails here.
     const expected = estimateBatchGenerationCredits(
       { count: 20, platforms: ['twitter'] },
-      { includeMedia: false, qualityTier: 'balanced' },
+      resolveBatchPricingOptions({ hasMediaGeneration: false }),
     );
 
     expect(
