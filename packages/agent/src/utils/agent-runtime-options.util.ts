@@ -1,4 +1,3 @@
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   AgentRuntimeCatalog,
@@ -23,7 +22,7 @@ const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
     key: 'hosted/genfeed',
     label: 'Genfeed',
     provider: 'genfeed',
-    requestedModel: DEFAULT_RUNTIME_AGENT_MODEL,
+    requestedModel: '',
   },
   {
     // Same model as the Genfeed runtime on purpose — these two options differ
@@ -35,7 +34,7 @@ const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
     key: 'hosted/openrouter',
     label: 'OpenRouter',
     provider: 'openrouter',
-    requestedModel: DEFAULT_RUNTIME_AGENT_MODEL,
+    requestedModel: '',
   },
   {
     category: 'hosted',

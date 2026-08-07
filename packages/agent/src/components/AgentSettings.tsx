@@ -1,4 +1,4 @@
-import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { COST_TIER_DISPLAY } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -23,6 +23,9 @@ export interface AgentSettingsValues {
 interface AgentSettingsProps {
   initialSettings: AgentSettingsValues;
   isDefaultState?: boolean;
+  /** Registry models for the default-model picker (required). */
+  models: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   onSave: (settings: AgentSettingsValues) => Promise<void>;
 }
 
@@ -63,6 +66,8 @@ const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
 export function AgentSettings({
   initialSettings,
   isDefaultState = false,
+  models,
+  isModelsLoading = false,
   onSave,
 }: AgentSettingsProps): ReactElement {
   const [selectedModel, setSelectedModel] = useState(
@@ -185,11 +190,18 @@ export function AgentSettings({
           Default Model Override
         </h3>
         <p className="mb-4 text-xs text-muted-foreground">
-          Leave this on Auto to use brand defaults and OpenRouter auto-routing
-          for new threads.
+          Leave unset to use the platform default model for new threads.
         </p>
         <div className="grid gap-2">
-          {AGENT_MODELS.map((model) => (
+          {isModelsLoading ? (
+            <p className="text-xs text-muted-foreground">Loading models…</p>
+          ) : null}
+          {!isModelsLoading && models.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No agent models in the registry. Seed the model catalog.
+            </p>
+          ) : null}
+          {models.map((model) => (
             <Button
               key={model.key}
               aria-pressed={selectedModel === model.key}

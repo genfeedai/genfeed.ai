@@ -8,10 +8,9 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { getAgentTurnCreditEstimate } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
-import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type {
   AgentChatContext,
   AgentChatRequest,
@@ -37,7 +36,6 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
@@ -90,6 +88,7 @@ export type AgentOrchestratorUiActionHost = {
 @Injectable()
 export class AgentOrchestratorUiActionService {
   constructor(
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
@@ -288,7 +287,7 @@ export class AgentOrchestratorUiActionService {
     // UI actions price and call the bound model directly, bypassing the
     // orchestrator's resolution chokepoint — a binding stored against a retired
     // key maps forward here or it bills at the fallback rate.
-    return resolveAgentChatModelKey(binding?.model ?? DEFAULT_AGENT_CHAT_MODEL);
+    return this.agentChatModelRegistry.resolveModelKey(binding?.model);
   }
 
   private describeThreadUiAction(
@@ -812,7 +811,7 @@ export class AgentOrchestratorUiActionService {
       seedTitle: '',
       systemPromptOverride: undefined,
       threadId: params.threadId,
-      turnCost: getAgentTurnCreditEstimate(params.model),
+      turnCost: await this.agentChatModelRegistry.getRoundCredits(params.model),
     });
   }
 
@@ -866,7 +865,7 @@ export class AgentOrchestratorUiActionService {
       seedTitle: '',
       systemPromptOverride: request.systemPromptOverride,
       threadId: params.threadId,
-      turnCost: getAgentTurnCreditEstimate(params.model),
+      turnCost: await this.agentChatModelRegistry.getRoundCredits(params.model),
     });
   }
 

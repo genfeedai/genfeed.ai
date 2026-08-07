@@ -14,10 +14,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
-import {
-  DEFAULT_AGENT_CHAT_MODEL,
-  LOCAL_DEFAULT_AGENT_CHAT_MODEL,
-} from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AGENT_ORCHESTRATOR_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/agent-orchestrator-system-prompt.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { BRAND_INTERVIEW_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/brand-interview-system-prompt.constant';
@@ -38,7 +35,6 @@ import { ThreadContextCompressorService } from '@api/services/agent-threading/se
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
-import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import {
   AgentMessageRole,
   AgentType,
@@ -63,6 +59,7 @@ export class AgentOrchestratorContextService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly loggerService: LoggerService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
@@ -157,7 +154,7 @@ export class AgentOrchestratorContextService {
       !strategyModel &&
       !policy.thinkingModelOverride &&
       PAID_SUBSCRIPTION_TIERS.has(orgSettings?.subscriptionTier ?? '')
-        ? LOCAL_DEFAULT_AGENT_CHAT_MODEL
+        ? await this.agentChatModelRegistry.getLocalDefaultModelKey()
         : undefined;
     const shouldLoadBrandContext =
       Boolean(policy.brandId) ||
@@ -178,15 +175,14 @@ export class AgentOrchestratorContextService {
     // brand default, a strategy pin. Retired keys map forward to their catalogue
     // successor so the model we call is always one the picker offers and the
     // biller has a real price for.
-    const resolveModel = (brandDefaultModel?: string): string =>
-      resolveAgentChatModelKey(
+    const resolveModel = async (brandDefaultModel?: string): Promise<string> =>
+      this.agentChatModelRegistry.resolveModelKey(
         request.model ||
           strategyModel ||
           policy.thinkingModelOverride ||
           subscriptionDefaultModel ||
           brandDefaultModel ||
-          agentTypeConfig?.defaultModel ||
-          DEFAULT_AGENT_CHAT_MODEL,
+          agentTypeConfig?.defaultModel,
       );
 
     const resolvedSkills =
@@ -204,7 +200,7 @@ export class AgentOrchestratorContextService {
     if (shouldUseOnboardingPrompt) {
       return {
         memories,
-        model: resolveModel(),
+        model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
@@ -217,7 +213,7 @@ export class AgentOrchestratorContextService {
     if (request.agentType === AgentType.BRAND_INTERVIEW) {
       return {
         memories,
-        model: resolveModel(),
+        model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
@@ -236,7 +232,7 @@ export class AgentOrchestratorContextService {
         .join('\n\n');
       return {
         memories,
-        model: resolveModel(brandContext?.defaultModel),
+        model: await resolveModel(brandContext?.defaultModel),
         policy,
         preparedScope,
         resolvedSkills,
@@ -254,7 +250,7 @@ export class AgentOrchestratorContextService {
         .join('\n\n');
       return {
         memories,
-        model: resolveModel(brandContext?.defaultModel),
+        model: await resolveModel(brandContext?.defaultModel),
         policy,
         preparedScope,
         resolvedSkills,
@@ -276,7 +272,7 @@ export class AgentOrchestratorContextService {
       );
       return {
         memories,
-        model: resolveModel(brandContext.defaultModel),
+        model: await resolveModel(brandContext.defaultModel),
         policy,
         preparedScope,
         resolvedSkills,
@@ -287,7 +283,7 @@ export class AgentOrchestratorContextService {
     if (replyStyle || agentTypeConfig?.systemPromptSuffix) {
       return {
         memories,
-        model: resolveModel(),
+        model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
@@ -297,7 +293,7 @@ export class AgentOrchestratorContextService {
 
     return {
       memories,
-      model: resolveModel(),
+      model: await resolveModel(),
       policy,
       preparedScope,
       resolvedSkills,

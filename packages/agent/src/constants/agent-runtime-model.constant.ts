@@ -1,7 +1,6 @@
-import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
-
 /**
- * Default agent chat model for the client runtime. Mirrors the API default so a
- * request that omits the model bills exactly what the picker priced.
+ * Client no longer hard-codes a default model key. The selected model is set
+ * from the registry default (`useAgentRegistryModels.defaultModelKey`) once
+ * the list loads. An empty string means "not resolved yet".
  */
-export const DEFAULT_RUNTIME_AGENT_MODEL = DEFAULT_AGENT_CHAT_MODEL_KEY;
+export const UNRESOLVED_RUNTIME_AGENT_MODEL = '';

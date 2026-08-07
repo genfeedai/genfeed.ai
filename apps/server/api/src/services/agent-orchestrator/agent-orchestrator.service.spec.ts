@@ -9,6 +9,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
@@ -117,6 +118,32 @@ describe('AgentOrchestratorService', () => {
     const configServiceMock = {
       get: vi.fn().mockReturnValue(''),
     };
+    const agentChatModelRegistryMock = {
+      getCheapestSelectableKey: vi
+        .fn()
+        .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
+      getDefaultModelKey: vi
+        .fn()
+        .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
+      getLocalDefaultModelKey: vi
+        .fn()
+        .mockResolvedValue(DEFAULT_AGENT_CHAT_MODEL_KEY),
+      getRoundCostsMap: vi.fn().mockResolvedValue({}),
+      getRoundCredits: vi
+        .fn()
+        .mockImplementation(async (key?: string | null) =>
+          getAgentChatModelRoundCredits(key),
+        ),
+      isTrustedSelectableKey: vi.fn().mockResolvedValue(true),
+      listSelectable: vi.fn().mockResolvedValue([]),
+      refresh: vi.fn().mockResolvedValue(undefined),
+      resolveModelKey: vi
+        .fn()
+        .mockImplementation(async (key?: string | null) =>
+          key?.trim() ? key.trim() : DEFAULT_AGENT_CHAT_MODEL_KEY,
+        ),
+    };
+
     const agentMessagesServiceMock = {
       addMessage: vi.fn().mockResolvedValue({ id: 'msg-1' }),
       create: vi.fn().mockResolvedValue({ id: 'msg-1' }),
@@ -377,8 +404,13 @@ describe('AgentOrchestratorService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         {
+          provide: AgentChatModelRegistryService,
+          useValue: agentChatModelRegistryMock,
+        },
+        {
           inject: [
             LoggerService,
+            AgentChatModelRegistryService,
             AgentThreadsService,
             AgentScopeContextService,
             AgentMessagesService,
@@ -400,6 +432,7 @@ describe('AgentOrchestratorService', () => {
           provide: AgentOrchestratorService,
           useFactory: (
             loggerService: LoggerService,
+            agentChatModelRegistry: AgentChatModelRegistryService,
             agentConversationsSvc: AgentThreadsService,
             agentScopeContextSvc: AgentScopeContextService,
             agentMessagesSvc: AgentMessagesService,
@@ -420,6 +453,7 @@ describe('AgentOrchestratorService', () => {
           ) =>
             new AgentOrchestratorService(
               loggerService,
+              agentChatModelRegistry,
               agentConversationsSvc,
               agentScopeContextSvc,
               agentMessagesSvc,
@@ -442,6 +476,7 @@ describe('AgentOrchestratorService', () => {
         {
           inject: [
             LoggerService,
+            AgentChatModelRegistryService,
             LlmDispatcherService,
             AgentThreadsService,
             AgentMessagesService,
@@ -457,6 +492,7 @@ describe('AgentOrchestratorService', () => {
           provide: AgentOrchestratorStreamLoopService,
           useFactory: (
             loggerService: LoggerService,
+            agentChatModelRegistry: AgentChatModelRegistryService,
             llmDispatcherService: LlmDispatcherService,
             agentThreadsSvc: AgentThreadsService,
             agentMessagesSvc: AgentMessagesService,
@@ -471,6 +507,7 @@ describe('AgentOrchestratorService', () => {
           ) =>
             new AgentOrchestratorStreamLoopService(
               loggerService,
+              agentChatModelRegistry,
               llmDispatcherService,
               agentThreadsSvc,
               agentMessagesSvc,
@@ -488,6 +525,7 @@ describe('AgentOrchestratorService', () => {
         {
           inject: [
             LlmDispatcherService,
+            AgentChatModelRegistryService,
             AgentThreadsService,
             AgentMessagesService,
             CreditsUtilsService,
@@ -501,6 +539,7 @@ describe('AgentOrchestratorService', () => {
           provide: AgentOrchestratorSyncLoopService,
           useFactory: (
             llmDispatcherService: LlmDispatcherService,
+            agentChatModelRegistry: AgentChatModelRegistryService,
             agentThreadsSvc: AgentThreadsService,
             agentMessagesSvc: AgentMessagesService,
             creditsUtilsSvc: CreditsUtilsService,
@@ -513,6 +552,7 @@ describe('AgentOrchestratorService', () => {
           ) =>
             new AgentOrchestratorSyncLoopService(
               llmDispatcherService,
+              agentChatModelRegistry,
               agentThreadsSvc,
               agentMessagesSvc,
               creditsUtilsSvc,
@@ -555,6 +595,7 @@ describe('AgentOrchestratorService', () => {
         },
         {
           inject: [
+            AgentChatModelRegistryService,
             AgentThreadsService,
             AgentScopeContextService,
             AgentMessagesService,
@@ -570,6 +611,7 @@ describe('AgentOrchestratorService', () => {
           ],
           provide: AgentOrchestratorUiActionService,
           useFactory: (
+            agentChatModelRegistry: AgentChatModelRegistryService,
             agentThreadsSvc: AgentThreadsService,
             agentScopeContextSvc: AgentScopeContextService,
             agentMessagesSvc: AgentMessagesService,
@@ -584,6 +626,7 @@ describe('AgentOrchestratorService', () => {
             threadEngineSvc: AgentThreadEngineService,
           ) =>
             new AgentOrchestratorUiActionService(
+              agentChatModelRegistry,
               agentThreadsSvc,
               agentScopeContextSvc,
               agentMessagesSvc,
@@ -600,6 +643,7 @@ describe('AgentOrchestratorService', () => {
         },
         {
           inject: [
+            AgentChatModelRegistryService,
             AgentThreadsService,
             AgentMessagesService,
             CreditsUtilsService,
@@ -614,6 +658,7 @@ describe('AgentOrchestratorService', () => {
           ],
           provide: AgentOrchestratorRecurringTaskService,
           useFactory: (
+            agentChatModelRegistry: AgentChatModelRegistryService,
             agentThreadsSvc: AgentThreadsService,
             agentMessagesSvc: AgentMessagesService,
             creditsUtilsSvc: CreditsUtilsService,
@@ -627,6 +672,7 @@ describe('AgentOrchestratorService', () => {
             runtimeSessionSvc: AgentRuntimeSessionService,
           ) =>
             new AgentOrchestratorRecurringTaskService(
+              agentChatModelRegistry,
               agentThreadsSvc,
               agentMessagesSvc,
               creditsUtilsSvc,
@@ -642,6 +688,7 @@ describe('AgentOrchestratorService', () => {
         },
         {
           inject: [
+            AgentChatModelRegistryService,
             LoggerService,
             AgentThreadsService,
             AgentScopeContextService,
@@ -653,6 +700,7 @@ describe('AgentOrchestratorService', () => {
           ],
           provide: AgentOrchestratorContextService,
           useFactory: (
+            agentChatModelRegistry: AgentChatModelRegistryService,
             loggerService: LoggerService,
             agentThreadsSvc: AgentThreadsService,
             agentScopeContextSvc: AgentScopeContextService,
@@ -663,6 +711,7 @@ describe('AgentOrchestratorService', () => {
             agentStrategiesSvc: AgentStrategiesService,
           ) =>
             new AgentOrchestratorContextService(
+              agentChatModelRegistry,
               loggerService,
               agentThreadsSvc,
               agentScopeContextSvc,
@@ -682,6 +731,7 @@ describe('AgentOrchestratorService', () => {
             AgentThreadEventRecorderService,
             AgentStreamEffectsService,
             AgentOrchestratorContextService,
+            AgentChatModelRegistryService,
           ],
           provide: AgentOrchestratorPlanModeService,
           useFactory: (
@@ -692,6 +742,7 @@ describe('AgentOrchestratorService', () => {
             threadEventRecorderSvc: AgentThreadEventRecorderService,
             streamEffectsSvc: AgentStreamEffectsService,
             contextSvc: AgentOrchestratorContextService,
+            agentChatModelRegistry: AgentChatModelRegistryService,
           ) =>
             new AgentOrchestratorPlanModeService(
               agentThreadsSvc,
@@ -701,6 +752,7 @@ describe('AgentOrchestratorService', () => {
               threadEventRecorderSvc,
               streamEffectsSvc,
               contextSvc,
+              agentChatModelRegistry,
             ),
         },
         {

@@ -4,11 +4,11 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type {
   AgentChatContext,
   AgentChatResult,
@@ -32,7 +32,6 @@ import {
   getRuntimeBindingEffect,
   upsertRuntimeBindingEffect,
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import { resolveAgentChatModelKey } from '@genfeedai/constants';
 import { AgentMessageRole } from '@genfeedai/enums';
 import { AgentToolName, type ValidatedAgentScope } from '@genfeedai/interfaces';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
@@ -70,6 +69,7 @@ interface RecurringTaskResumeCursor extends Record<string, unknown> {
 @Injectable()
 export class AgentOrchestratorRecurringTaskService {
   constructor(
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -132,9 +132,7 @@ export class AgentOrchestratorRecurringTaskService {
       // Runtime bindings outlive the catalogue — a binding pinned to a retired
       // key has to map forward here, since this path calls the model directly
       // instead of going through the orchestrator's resolution chokepoint.
-      model: resolveAgentChatModelKey(
-        binding?.model ?? DEFAULT_AGENT_CHAT_MODEL,
-      ),
+      model: await this.agentChatModelRegistry.resolveModelKey(binding?.model),
       threadId: params.threadId,
     });
 

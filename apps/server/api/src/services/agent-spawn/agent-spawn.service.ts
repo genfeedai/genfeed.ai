@@ -1,6 +1,6 @@
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { SYSTEM_PROMPT_MANAGER } from '@api/services/agent-spawn/constants/spawn-system-prompt.constant';
@@ -25,6 +25,7 @@ export class AgentSpawnService implements OnModuleInit {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly contextAssemblyService: AgentContextAssemblyService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly moduleRef: ModuleRef,
   ) {}
 
@@ -66,7 +67,9 @@ export class AgentSpawnService implements OnModuleInit {
       {
         agentType,
         content: task,
-        model: brandContext?.defaultModel || DEFAULT_AGENT_CHAT_MODEL,
+        model:
+          brandContext?.defaultModel ||
+          (await this.agentChatModelRegistry.getDefaultModelKey()),
         source: 'agent',
         systemPromptOverride,
       },

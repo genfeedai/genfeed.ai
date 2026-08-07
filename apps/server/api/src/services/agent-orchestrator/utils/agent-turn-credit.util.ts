@@ -1,6 +1,5 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ToolCallSummary } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { getAgentChatModelRoundCredits } from '@genfeedai/constants';
 import { ActivitySource } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 
@@ -10,16 +9,19 @@ import { AgentToolName } from '@genfeedai/interfaces';
  * a different — usually pricier — model than we asked for, so pricing the
  * request instead of the response is how we ended up eating the difference.
  *
+ * Round cost is resolved from the model registry (DB) by the caller — this
+ * helper only applies the turn-cost waiver.
+ *
  * A `turnCost` of zero marks a turn waived upfront (brand interview, billed
  * once by `BrandInterviewService.start`); every round inside it stays free.
  */
 export function resolveAgentRoundCreditCost(params: {
   actualModel: string;
+  /** Registry-priced credits for `actualModel` (one LLM round). */
+  roundCreditsForModel: number;
   turnCost: number;
 }): number {
-  return params.turnCost > 0
-    ? getAgentChatModelRoundCredits(params.actualModel)
-    : 0;
+  return params.turnCost > 0 ? Math.max(0, params.roundCreditsForModel) : 0;
 }
 
 /**

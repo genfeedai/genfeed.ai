@@ -1,8 +1,29 @@
-import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
+import { CostTier } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { AgentModelSelector } from './AgentModelSelector';
+
+const FIXTURE_MODELS: AgentModelOption[] = [
+  {
+    brandSlug: 'openai',
+    costTier: CostTier.MEDIUM,
+    creditCost: 4,
+    description: 'Balanced',
+    key: 'openai/gpt-5.6-terra',
+    label: 'GPT-5.6 Terra',
+  },
+  {
+    brandSlug: 'anthropic',
+    costTier: CostTier.HIGH,
+    creditCost: 12,
+    description: 'Most capable',
+    isReasoning: true,
+    key: 'anthropic/claude-opus-5',
+    label: 'Claude Opus 5',
+  },
+];
 
 describe('AgentModelSelector', () => {
   it('opens with search, caps list height, and shows $ cost tiers', async () => {
@@ -11,7 +32,8 @@ describe('AgentModelSelector', () => {
 
     render(
       <AgentModelSelector
-        selectedModel={AGENT_MODELS[0]?.key ?? 'openai/gpt-5.6-terra'}
+        models={FIXTURE_MODELS}
+        selectedModel={FIXTURE_MODELS[0]?.key ?? 'openai/gpt-5.6-terra'}
         onModelChange={onModelChange}
         creditsAvailable={100}
       />,
@@ -38,7 +60,8 @@ describe('AgentModelSelector', () => {
     // Force locked models so Buy Credits is visible.
     render(
       <AgentModelSelector
-        selectedModel={AGENT_MODELS[0]?.key ?? 'openai/gpt-5.6-terra'}
+        models={FIXTURE_MODELS}
+        selectedModel={FIXTURE_MODELS[0]?.key ?? 'openai/gpt-5.6-terra'}
         onModelChange={vi.fn()}
         creditsAvailable={0}
         onBuyCredits={onBuyCredits}
@@ -59,10 +82,11 @@ describe('AgentModelSelector', () => {
   it('disables the trigger when isDisabled is set', () => {
     render(
       <AgentModelSelector
+        models={FIXTURE_MODELS}
         creditsAvailable={null}
         isDisabled
         onModelChange={vi.fn()}
-        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+        selectedModel={FIXTURE_MODELS[0]?.key ?? 'auto'}
       />,
     );
 
@@ -73,9 +97,10 @@ describe('AgentModelSelector', () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <AgentModelSelector
+        models={FIXTURE_MODELS}
         creditsAvailable={null}
         onModelChange={vi.fn()}
-        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+        selectedModel={FIXTURE_MODELS[0]?.key ?? 'auto'}
       />,
     );
 
@@ -84,10 +109,11 @@ describe('AgentModelSelector', () => {
 
     rerender(
       <AgentModelSelector
+        models={FIXTURE_MODELS}
         creditsAvailable={null}
         isDisabled
         onModelChange={vi.fn()}
-        selectedModel={AGENT_MODELS[0]?.key ?? 'auto'}
+        selectedModel={FIXTURE_MODELS[0]?.key ?? 'auto'}
       />,
     );
 

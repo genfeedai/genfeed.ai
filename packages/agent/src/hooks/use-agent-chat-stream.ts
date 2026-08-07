@@ -1,6 +1,5 @@
 'use client';
 
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { resolveStreamFromMessages as resolveStreamFromMessagesFn } from '@genfeedai/agent/hooks/agent-chat-stream.completion';
 import {
   collectAssistantMessageIds,
@@ -292,7 +291,7 @@ export function useAgentChatStream(
       setIsGenerating(true);
 
       try {
-        const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
+        const resolvedModel = model?.trim() || undefined;
         const requestPageContext = toAgentRequestPageContext(pageContext);
         const currentThread = useAgentChatStore
           .getState()
@@ -581,7 +580,7 @@ export function useAgentChatStream(
           }),
         );
 
-        const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
+        const resolvedModel = model?.trim() || undefined;
         const requestPageContext = toAgentRequestPageContext(pageContext);
         const currentThread = useAgentChatStore
           .getState()

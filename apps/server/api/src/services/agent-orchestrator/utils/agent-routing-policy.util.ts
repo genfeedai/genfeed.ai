@@ -1,4 +1,3 @@
-import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { OpenRouterPlugin } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type {
@@ -34,12 +33,14 @@ const LIVE_DATA_TOPIC_KEYWORDS = [
 ] as const;
 
 export function resolveAgentRoutingPolicy(params: {
+  /** Platform default model key (from registry `isDefault`). */
+  defaultModelKey: string;
   model: string;
   prompt: string;
   source?: AgentChatRequest['source'];
 }): AgentRoutingPolicy {
   if (
-    params.model !== DEFAULT_AGENT_CHAT_MODEL ||
+    params.model !== params.defaultModelKey ||
     params.source === 'onboarding'
   ) {
     return { reason: 'default' };
@@ -69,6 +70,7 @@ export function resolveAgentRoutingPlugins(
 }
 
 export function buildAgentRoutingMetadata(params: {
+  defaultModelKey: string;
   model: string;
   prompt: string;
   source?: AgentChatRequest['source'];

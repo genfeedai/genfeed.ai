@@ -8,7 +8,7 @@ import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSu
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
+import { UNRESOLVED_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -59,7 +59,7 @@ export function AgentChatContainer({
     models: registryModels,
   } = useAgentRegistryModels(apiService);
   const [selectedModel, setSelectedModel] = useState(
-    () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
+    () => model?.trim() || UNRESOLVED_RUNTIME_AGENT_MODEL,
   );
 
   useEffect(() => {
@@ -67,14 +67,15 @@ export function AgentChatContainer({
       return;
     }
     const keys = new Set(registryModels.map((entry) => entry.key));
-    if (keys.has(selectedModel)) {
+    if (selectedModel && keys.has(selectedModel)) {
       return;
     }
     const next =
       (model?.trim() && keys.has(model.trim()) ? model.trim() : null) ||
       defaultModelKey ||
-      registryModels[0]?.key;
-    if (next && next !== selectedModel) {
+      registryModels[0]?.key ||
+      UNRESOLVED_RUNTIME_AGENT_MODEL;
+    if (next !== selectedModel) {
       setSelectedModel(next);
     }
   }, [

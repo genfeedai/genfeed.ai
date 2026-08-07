@@ -57,7 +57,6 @@ export { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailP
 export { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
 export type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 // Constants
-export { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 export { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
 export type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 export { AGENT_SLASH_COMMANDS } from '@genfeedai/agent/constants/agent-slash-commands.constant';
@@ -91,6 +90,7 @@ export {
   useAgentDraftContext,
 } from '@genfeedai/agent/hooks/use-agent-draft-context';
 export { useAgentPageContext } from '@genfeedai/agent/hooks/use-agent-page-context';
+export { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 export type {
   AgentChatMessage as AgentChatMessageModel,
   AgentChatMessageMetadata,

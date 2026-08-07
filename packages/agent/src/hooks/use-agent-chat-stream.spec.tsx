@@ -1,6 +1,5 @@
 'use client';
 
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -252,7 +251,7 @@ describe('useAgentChatStream', () => {
     expect(apiService.chat).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Show me the analytics',
-        model: DEFAULT_RUNTIME_AGENT_MODEL,
+        model: 'openai/gpt-5.6-terra',
       }),
       undefined,
     );
@@ -291,7 +290,7 @@ describe('useAgentChatStream', () => {
     expect(apiService.chatStream).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Start with Kimi',
-        model: DEFAULT_RUNTIME_AGENT_MODEL,
+        model: 'openai/gpt-5.6-terra',
       }),
       expect.any(AbortSignal),
     );

@@ -3,6 +3,21 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const SETTINGS_MODELS = [
+  {
+    brandSlug: 'anthropic',
+    description: 'Balanced intelligence',
+    key: 'anthropic/claude-sonnet-5',
+    label: 'Claude Sonnet 5',
+  },
+  {
+    brandSlug: 'openai',
+    description: 'Balanced',
+    key: 'openai/gpt-5.6-terra',
+    label: 'GPT-5.6 Terra',
+  },
+] as const;
+
 describe('AgentSettings', () => {
   const onSave = vi.fn().mockResolvedValue(undefined);
 
@@ -13,6 +28,8 @@ describe('AgentSettings', () => {
   it('hydrates controls from authoritative settings', () => {
     render(
       <AgentSettings
+        models={SETTINGS_MODELS}
+        isModelsLoading={false}
         initialSettings={{
           defaultModel: 'anthropic/claude-sonnet-5',
           generationPriority: 'speed',
@@ -37,6 +54,8 @@ describe('AgentSettings', () => {
   it('labels authoritative empty settings as defaults', () => {
     render(
       <AgentSettings
+        models={SETTINGS_MODELS}
+        isModelsLoading={false}
         initialSettings={{
           defaultModel: '',
           generationPriority: 'balanced',
@@ -59,6 +78,8 @@ describe('AgentSettings', () => {
   it('saves the edited values through the provided boundary', async () => {
     render(
       <AgentSettings
+        models={SETTINGS_MODELS}
+        isModelsLoading={false}
         initialSettings={{
           defaultModel: '',
           generationPriority: 'balanced',
@@ -89,6 +110,8 @@ describe('AgentSettings', () => {
 
     render(
       <AgentSettings
+        models={SETTINGS_MODELS}
+        isModelsLoading={false}
         initialSettings={{
           defaultModel: '',
           generationPriority: 'balanced',

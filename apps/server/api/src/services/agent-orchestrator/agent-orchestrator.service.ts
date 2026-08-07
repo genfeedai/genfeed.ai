@@ -8,6 +8,7 @@ import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentOrchestratorPlanModeService } from '@api/services/agent-orchestrator/agent-orchestrator-plan-mode.service';
@@ -17,8 +18,6 @@ import { AgentOrchestratorSyncLoopService } from '@api/services/agent-orchestrat
 import { AgentOrchestratorUiActionService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
-import { getAgentTurnCreditEstimate } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
-import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import type {
   AgentChatContext,
   AgentChatRequest,
@@ -75,6 +74,7 @@ export class AgentOrchestratorService {
 
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly agentMessagesService: AgentMessagesService,
@@ -124,12 +124,14 @@ export class AgentOrchestratorService {
       if (resolved.model !== request.model) {
         request = { ...request, model: resolved.model };
       }
-      const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
+      const model =
+        request.model ||
+        (await this.agentChatModelRegistry.getDefaultModelKey());
 
       const turnCost =
         request.agentType === AgentType.BRAND_INTERVIEW
           ? 0
-          : getAgentTurnCreditEstimate(model);
+          : await this.agentChatModelRegistry.getRoundCredits(model);
       const hasCredits =
         await this.creditsUtilsService.checkOrganizationCreditsAvailable(
           context.organizationId,
@@ -331,14 +333,15 @@ export class AgentOrchestratorService {
       request = { ...request, model: resolved.model };
     }
 
-    const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
+    const model =
+      request.model || (await this.agentChatModelRegistry.getDefaultModelKey());
 
     // Brand interview turns are free — the engine charges 10 credits once via
     // BrandInterviewService.start(). Never double-bill the per-turn cost.
     const turnCost =
       request.agentType === AgentType.BRAND_INTERVIEW
         ? 0
-        : getAgentTurnCreditEstimate(model);
+        : await this.agentChatModelRegistry.getRoundCredits(model);
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         context.organizationId,
@@ -387,6 +390,8 @@ export class AgentOrchestratorService {
         model,
         requestedModel: model,
         ...buildAgentRoutingMetadata({
+          defaultModelKey:
+            await this.agentChatModelRegistry.getDefaultModelKey(),
           model,
           prompt: request.content,
           source: request.source,

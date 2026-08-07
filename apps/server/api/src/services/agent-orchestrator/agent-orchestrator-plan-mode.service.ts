@@ -3,6 +3,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
@@ -54,6 +55,7 @@ export class AgentOrchestratorPlanModeService {
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
     private readonly streamEffects: AgentStreamEffectsService,
     private readonly contextService: AgentOrchestratorContextService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
   ) {}
 
   async tryHandlePlanModeTurn(
@@ -177,7 +179,7 @@ export class AgentOrchestratorPlanModeService {
     );
 
     const response = await this.llmDispatcher.chatCompletion(
-      this.buildPlanningChatCompletionParams({
+      await this.buildPlanningChatCompletionParams({
         messages: history,
         model: params.model,
         prompt: params.request.content,
@@ -236,6 +238,7 @@ export class AgentOrchestratorPlanModeService {
     const assistantMetadata = {
       ...buildAgentScopeMetadata(params.context),
       ...buildAgentRoutingMetadata({
+        defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
         model: params.model,
         prompt: params.request.content,
         source: params.request.source,
@@ -301,20 +304,21 @@ export class AgentOrchestratorPlanModeService {
     return Boolean(thread?.planModeEnabled);
   }
 
-  private buildPlanningChatCompletionParams(params: {
+  private async buildPlanningChatCompletionParams(params: {
     messages: OpenRouterMessage[];
     model: string;
     prompt: string;
     seedTitle?: string;
     source?: AgentChatRequest['source'];
-  }): {
+  }): Promise<{
     max_tokens: number;
     messages: OpenRouterMessage[];
     model: string;
     plugins?: OpenRouterPlugin[];
     temperature: number;
-  } {
+  }> {
     const routingPolicy = resolveAgentRoutingPolicy({
+      defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
       model: params.model,
       prompt: params.prompt,
       source: params.source,

@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  AGENT_MODELS,
-  type AgentModelOption,
-} from '@genfeedai/agent/constants/agent-models.constant';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { COST_TIER_DISPLAY } from '@genfeedai/constants';
 import { ButtonVariant, type CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -33,10 +30,10 @@ type AgentModelSelectorProps = {
   /** When true, block model switching (read-only / busy / blocked composer). */
   isDisabled?: boolean;
   /**
-   * Optional override list. When set (e.g. image/video/voice gen models),
-   * replaces the default AGENT_MODELS LLM catalog.
+   * Models to offer. Required — agent chat passes registry rows; media gen
+   * passes its own catalog. Never falls back to seed constants.
    */
-  models?: readonly AgentModelOption[];
+  models: readonly AgentModelOption[];
   isLoading?: boolean;
   ariaLabel?: string;
 };
@@ -75,16 +72,13 @@ export function AgentModelSelector({
   onBuyCredits,
   density = 'default',
   isDisabled = false,
-  models: modelsOverride,
+  models,
   isLoading = false,
   ariaLabel = 'Select model',
 }: AgentModelSelectorProps): ReactElement {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
-  // Phase D: when parent passes registry models (including empty), do not
-  // silently re-expand the hard-coded AGENT_MODELS dual catalogue.
-  const models = modelsOverride !== undefined ? modelsOverride : AGENT_MODELS;
   const modelsIdentity = models.map((model) => model.key).join('\0');
   const [catalogKey, setCatalogKey] = useState(modelsIdentity);
 

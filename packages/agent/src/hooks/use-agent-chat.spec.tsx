@@ -1,4 +1,3 @@
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -57,7 +56,7 @@ describe('useAgentChat', () => {
     expect(chat).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Use the default runtime model',
-        model: DEFAULT_RUNTIME_AGENT_MODEL,
+        model: 'openai/gpt-5.6-terra',
       }),
       expect.any(AbortSignal),
     );

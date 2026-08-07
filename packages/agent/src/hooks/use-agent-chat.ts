@@ -1,4 +1,3 @@
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
@@ -82,7 +81,7 @@ export function useAgentChat(options: UseAgentChatOptions): UseAgentChatReturn {
       const signal = sendOptions?.signal || internalSignal;
 
       try {
-        const resolvedModel = model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL;
+        const resolvedModel = model?.trim() || undefined;
         const requestPageContext = toAgentRequestPageContext(pageContext);
         const currentThread = useAgentChatStore
           .getState()
