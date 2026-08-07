@@ -9,6 +9,7 @@ describe('BetterAuthMailerService', () => {
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
     };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
@@ -45,6 +46,7 @@ describe('BetterAuthMailerService', () => {
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
     };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
@@ -79,6 +81,7 @@ describe('BetterAuthMailerService', () => {
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
     };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(
@@ -114,6 +117,7 @@ describe('BetterAuthMailerService', () => {
     };
     const configService = {
       get: vi.fn().mockReturnValue('https://app.genfeed.ai'),
+      isDevelopment: false,
     };
     const logger = { log: vi.fn() };
     const service = new BetterAuthMailerService(

@@ -77,6 +77,16 @@ export class BetterAuthMailerService {
       ...this.context,
       emailDomain: email.split('@')[1] ?? 'unknown',
     });
+
+    // Local QA: tokens are stored hashed, so the plaintext URL is only
+    // available at send time. Surface it in non-production logs so agents
+    // and developers can complete magic-link login without the inbox.
+    if (this.configService.isDevelopment) {
+      this.logger.log('Magic-link URL (local only)', {
+        ...this.context,
+        url: actionUrl,
+      });
+    }
   }
 
   async sendVerificationEmail({
@@ -99,7 +109,8 @@ export class BetterAuthMailerService {
     user,
   }: IBetterAuthResetPasswordParams): Promise<void> {
     const subject = 'Reset your Genfeed.ai password';
-    const html = this.buildResetPasswordHtml(this.resolveActionUrl(url));
+    const actionUrl = this.resolveActionUrl(url);
+    const html = this.buildResetPasswordHtml(actionUrl);
 
     await this.notificationsService.sendEmail(user.email, subject, html);
 
@@ -107,6 +118,13 @@ export class BetterAuthMailerService {
       ...this.context,
       emailDomain: user.email.split('@')[1] ?? 'unknown',
     });
+
+    if (this.configService.isDevelopment) {
+      this.logger.log('Password-reset URL (local only)', {
+        ...this.context,
+        url: actionUrl,
+      });
+    }
   }
 
   private resolveActionUrl(url: string): string {
