@@ -108,24 +108,8 @@
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "56f8356eed984175198c",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type 'PostCreateInput'.   Type 'string' is not assignable to type 'PostCreateInput'.     Type 'string' is not assignable to type 'Omit<CreatePostDto, \"credentialId\">'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "6d635ae4564ecb56a218",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type 'CreateActivityDto | ActivityEntity | ActivityMutationInput'.   Type 'string' is not assignable to type 'CreateActivityDto | ActivityEntity | ActivityMutationInput'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "b878375e3474744850c7",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type 'PrismaUpdate | Partial<UpdateContentDraftDto>'.   Type 'string' is not assignable to type 'PrismaUpdate | Partial<UpdateContentDraftDto>'.",
+      "fingerprint": "12c62729ac1e001ac822",
+      "message": "Argument of type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: CredentialPlatform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is not assignable to parameter of type 'PostCreateInput'.   Type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: Platform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is missing the following properties from type 'Omit<CreatePostDto, \"credentialId\">': label, ingredients",
       "workspace": "api"
     },
     {
@@ -1694,14 +1678,6 @@
       "file": "apps/server/api/src/collections/profiles/controllers/profiles.controller.spec.ts",
       "fingerprint": "c717f41849c4ba8f7644",
       "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/profiles/services/profiles.service.ts",
-      "fingerprint": "ef604097b5c72abb017c",
-      "message": "Type 'InputJsonValue' is not assignable to type '((Without<ProfileCreateInput, ProfileUncheckedCreateInput> & ProfileUncheckedCreateInput) | (Without<...> & ProfileCreateInput)) & object'.   Type 'string' is not assignable to type '((Without<ProfileCreateInput, ProfileUncheckedCreateInput> & ProfileUncheckedCreateInput) | (Without<...> & ProfileCreateInput)) & object'.",
       "workspace": "api"
     },
     {
@@ -3289,14 +3265,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/seeds/model-catalog-seed.service.ts",
-      "fingerprint": "59f9c74cfecc5487dfb4",
-      "message": "Type '{ category: ModelCategory; cost: number; description: string; isActive: boolean; isDefault: boolean; isDiscovered: false; isHighlighted: boolean; isPublic: boolean; key: string; ... 55 more ...; childModels?: Prisma.ModelUpdateManyWithoutParentModelNestedInput; }' is not assignable to type 'ModelCreateInput'.   Types of property 'id' are incompatible.     Type 'string | StringFieldUpdateOperationsInput | undefined' is not assignable to type 'string | undefined'.       Type 'StringFieldUpdateOperationsInput' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 12,
       "file": "apps/server/api/src/services/ads-gateway/adapters/meta-ads.adapter.spec.ts",
@@ -3518,78 +3486,6 @@
       "file": "apps/server/api/src/services/avatar-video/providers/musetalk-avatar.provider.spec.ts",
       "fingerprint": "d9c495df97b4a8ccb340",
       "message": "Property 'callbackId' is missing in type '{ avatarId: string; organizationId: string; script: string; userId: string; voiceId: string; }' but required in type 'AvatarVideoJobInput'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
-      "fingerprint": "1253952927f5b053bedc",
-      "message": "Argument of type 'import(\"<root>/packages/prisma/generated/prisma/client/models/Post\").PostCreateInput' is not assignable to parameter of type 'PostCreateInput'.   Type 'PostCreateInput' is not assignable to type 'Omit<CreatePostDto, \"credentialId\">'.     Types of property 'status' are incompatible.       Type 'string | undefined' is not assignable to type 'PostStatus'.         Type 'undefined' is not assignable to type 'PostStatus'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
-      "fingerprint": "affd37db4dabab39e05b",
-      "message": "Conversion of type '{ brandId: string; contentRunId: string | undefined; creativeVersion: string | undefined; description: string; hookVersion: string | undefined; ingredients: string[]; label: string; organizationId: string; ... 9 more ...; variantId: string | undefined; }' to type 'PostCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brandId: string; contentRunId: string | undefined; creativeVersion: string | undefined; description: string; hookVersion: string | undefined; ingredients: string[]; label: string; organizationId: string; ... 9 more ...; variantId: string | undefined; }' is missing the following properties from type 'PostCreateInput': user, organization, brand",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
-      "fingerprint": "b290a6650c95d456172a",
-      "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "fb861abe97e45ec43bf2",
-      "message": "Type 'string | undefined' is not assignable to type 'ContentIntelligencePlatform'.   Type 'undefined' is not assignable to type 'ContentIntelligencePlatform'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "f44075571587d2e17fa0",
-      "message": "Argument of type 'import(\"<root>/packages/prisma/generated/prisma/client/models/Post\").PostCreateInput' is not assignable to parameter of type 'PostCreateInput'.   Type 'PostCreateInput' is not assignable to type 'Omit<CreatePostDto, \"credentialId\">'.     Types of property 'status' are incompatible.       Type 'string | undefined' is not assignable to type 'PostStatus'.         Type 'undefined' is not assignable to type 'PostStatus'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "0ce3dbf7bfd17997b0b7",
-      "message": "Conversion of type '{ brandId: string | null; credentialId: undefined; description: string; ingredients: never[]; label: string; organizationId: string; platform: string | undefined; scheduledDate: Date | undefined; status: PostStatus; userId: string; }' to type 'PostCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brandId: string | null; credentialId: undefined; description: string; ingredients: never[]; label: string; organizationId: string; platform: string | undefined; scheduledDate: Date | undefined; status: PostStatus; userId: string; }' is missing the following properties from type 'PostCreateInput': user, organization, brand",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "e1b4038efd7b3b74be34",
-      "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 3,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "4f6c3d3e349ab888181a",
-      "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "e43d9137ee46ba5e1b57",
-      "message": "Conversion of type '{ status: BatchItemStatus.PROCESSING | BatchItemStatus.COMPLETED | BatchItemStatus.FAILED | BatchItemStatus.SKIPPED; id: string; caption?: string | undefined; ... 26 more ...; scheduledDate?: string | undefined; }[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ status: BatchItemStatus.PROCESSING | BatchItemStatus.COMPLETED | BatchItemStatus.FAILED | BatchItemStatus.SKIPPED; id: string; caption?: string | undefined; ... 26 more ...; scheduledDate?: string | undefined; }[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type '{ status: BatchItemStatus.PROCESSING | BatchItemStatus.COMPLETED | BatchItemStatus.FAILED | BatchItemStatus.SKIPPED; id: string; caption?: string | undefined; ... 26 more ...; scheduledDate?: string | undefined; }[]'.",
       "workspace": "api"
     },
     {
@@ -6154,98 +6050,10 @@
     },
     {
       "code": 2345,
-      "count": 4,
-      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "167e03d42547e2381cdf",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type 'PrismaUpdate | Partial<UpdateContentDraftDto>'.   Type 'string' is not assignable to type 'PrismaUpdate | Partial<UpdateContentDraftDto>'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "27a1405af19d2c35cc8f",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type 'CreateActivityDto | ActivityEntity | ActivityMutationInput'.   Type 'string' is not assignable to type 'CreateActivityDto | ActivityEntity | ActivityMutationInput'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "36f111fa4e150b334668",
-      "message": "Argument of type 'InputJsonValue' is not assignable to parameter of type 'PostCreateInput'.   Type 'string' is not assignable to type 'PostCreateInput'.     Type 'string' is not assignable to type 'Omit<CreatePostDto, \"credentialId\">'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
-      "fingerprint": "6d037a05cc16d4012d9c",
-      "message": "Argument of type 'import(\"<root>/packages/prisma/generated/prisma/client/models/Post\").PostCreateInput' is not assignable to parameter of type 'PostCreateInput'.   Type 'PostCreateInput' is not assignable to type 'Omit<CreatePostDto, \"credentialId\">'.     Types of property 'source' are incompatible.       Type 'string | null | undefined' is not assignable to type 'string | undefined'.         Type 'null' is not assignable to type 'string | undefined'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
-      "fingerprint": "293c91ee83b98c3b0beb",
-      "message": "Conversion of type '{ brandId: string; contentRunId: string | undefined; creativeVersion: string | undefined; description: string; hookVersion: string | undefined; ingredients: string[]; label: string; organizationId: string; ... 9 more ...; variantId: string | undefined; }' to type 'PostCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brandId: string; contentRunId: string | undefined; creativeVersion: string | undefined; description: string; hookVersion: string | undefined; ingredients: string[]; label: string; organizationId: string; ... 9 more ...; variantId: string | undefined; }' is missing the following properties from type 'PostCreateInput': user, organization, brand",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-creation.service.ts",
-      "fingerprint": "4e98ba3f15235cb543ef",
-      "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "536132d8d8f79c40004f",
-      "message": "Type 'string | undefined' is not assignable to type 'ContentIntelligencePlatform'.   Type 'undefined' is not assignable to type 'ContentIntelligencePlatform'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "d02f23290bedc22af188",
-      "message": "Argument of type 'import(\"<root>/packages/prisma/generated/prisma/client/models/Post\").PostCreateInput' is not assignable to parameter of type 'PostCreateInput'.   Type 'PostCreateInput' is not assignable to type 'Omit<CreatePostDto, \"credentialId\">'.     Types of property 'source' are incompatible.       Type 'string | null | undefined' is not assignable to type 'string | undefined'.         Type 'null' is not assignable to type 'string | undefined'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "3366e543b76fda75037d",
-      "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-processing.service.ts",
-      "fingerprint": "9af6bdaed62e8482405b",
-      "message": "Conversion of type '{ brandId: string | null; credentialId: undefined; description: string; ingredients: never[]; label: string; organizationId: string; platform: string | undefined; scheduledDate: Date | undefined; status: PostStatus; userId: string; }' to type 'PostCreateInput' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ brandId: string | null; credentialId: undefined; description: string; ingredients: never[]; label: string; organizationId: string; platform: string | undefined; scheduledDate: Date | undefined; status: PostStatus; userId: string; }' is missing the following properties from type 'PostCreateInput': user, organization, brand",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "0b97db95205ea00948c1",
-      "message": "Conversion of type '{ status: BatchItemStatus.PROCESSING | BatchItemStatus.COMPLETED | BatchItemStatus.FAILED | BatchItemStatus.SKIPPED; id: string; caption?: string | undefined; ... 26 more ...; scheduledDate?: string | undefined; }[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ status: BatchItemStatus.PROCESSING | BatchItemStatus.COMPLETED | BatchItemStatus.FAILED | BatchItemStatus.SKIPPED; id: string; caption?: string | undefined; ... 26 more ...; scheduledDate?: string | undefined; }[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type '{ status: BatchItemStatus.PROCESSING | BatchItemStatus.COMPLETED | BatchItemStatus.FAILED | BatchItemStatus.SKIPPED; id: string; caption?: string | undefined; ... 26 more ...; scheduledDate?: string | undefined; }[]'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 3,
-      "file": "apps/server/api/src/services/batch-generation/batch-generation-review.service.ts",
-      "fingerprint": "85651246df49a968e731",
-      "message": "Conversion of type 'BatchItemFull[]' to type 'InputJsonValue' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'BatchItemFull[]' is not comparable to type 'InputJsonObject'.     Index signature for type 'string' is missing in type 'BatchItemFull[]'.",
+      "fingerprint": "548111b214acd4cec434",
+      "message": "Argument of type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: CredentialPlatform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is not assignable to parameter of type 'PostCreateInput'.   Type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: Platform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is missing the following properties from type 'Omit<CreatePostDto, \"credentialId\">': label, ingredients",
       "workspace": "workers"
     },
     {
@@ -6339,46 +6147,6 @@
     {
       "code": 2352,
       "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.ts",
-      "fingerprint": "9a66fce33b00c9b2e08b",
-      "message": "Conversion of type 'Record<string, unknown>' to type 'GenerateVideoConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'Record<string, unknown>' is missing the following properties from type 'GenerateVideoConfig': model, prompt",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.ts",
-      "fingerprint": "d64e9536a47355251238",
-      "message": "Conversion of type 'Record<string, unknown>' to type 'GenerateMusicConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'Record<string, unknown>' is missing the following properties from type 'GenerateMusicConfig': model, prompt",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.ts",
-      "fingerprint": "e1cc385d41e79d81cb79",
-      "message": "Conversion of type 'Record<string, unknown>' to type 'GenerateImageConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'Record<string, unknown>' is missing the following properties from type 'GenerateImageConfig': model, prompt",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.ts",
-      "fingerprint": "ee50800514ee6f2fd958",
-      "message": "Conversion of type 'Record<string, unknown>' to type 'GenerateArticleConfig' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'Record<string, unknown>' is missing the following properties from type 'GenerateArticleConfig': model, topic",
-      "workspace": "workers"
-    },
-    {
-      "code": 2353,
-      "count": 1,
-      "file": "apps/server/workers/src/crons/workflows/cron.workflows.service.ts",
-      "fingerprint": "c3681d0992677fb767e9",
-      "message": "Object literal may only specify known properties, and 'action' does not exist in type 'INotificationPayloadTypes'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2352,
-      "count": 1,
       "file": "apps/server/workers/src/processors/api/queues/ad-sync-meta/ad-sync-meta.processor.spec.ts",
       "fingerprint": "4ba93b1c0def76c62a14",
       "message": "Conversion of type '{ error: Mock<Procedure>; log: Mock<Procedure>; warn: Mock<Procedure>; }' to type 'LoggerService' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ error: Mock<Procedure>; log: Mock<Procedure>; warn: Mock<Procedure>; }' is missing the following properties from type 'LoggerService': constructorName, winston, debug, normalizeContext, and 27 more.",
@@ -6414,14 +6182,6 @@
       "file": "apps/server/workers/src/processors/api/queues/ad-sync-tiktok/ad-sync-tiktok.processor.spec.ts",
       "fingerprint": "17395e246ff23a451ee8",
       "message": "Cannot find namespace 'vi'.",
-      "workspace": "workers"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/workers/src/processors/api/queues/agent-run/agent-run.processor.ts",
-      "fingerprint": "a20dff8a880dcdb52a88",
-      "message": "Type 'AgentExecutionStatus.COMPLETED' is not assignable to type 'AgentRunStatus'.",
       "workspace": "workers"
     },
     {
