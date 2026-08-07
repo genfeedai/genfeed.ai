@@ -23,7 +23,6 @@ import {
   applyRateLimitHeaders,
   RateLimitService,
 } from '@mcp/services/rate-limit.service';
-import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -66,7 +65,6 @@ async function main(): Promise<void> {
 
   const configService = app.get(ConfigService);
   const logger = app.get(LoggerService);
-  const serverService = app.get(ServerService);
   const authService = app.get(AuthService);
   const rateLimitService = app.get(RateLimitService);
   const streamableHttpService = app.get(StreamableHttpService);
@@ -192,6 +190,11 @@ async function main(): Promise<void> {
     },
   );
 
+  // The `/mcp` routes above are the only transport that serves MCP traffic;
+  // record that they are live so health and manifest endpoints report the real
+  // thing rather than a separate, unused server instance.
+  streamableHttpService.markTransportMounted();
+
   app.use('/', (req: Request, res: Response, next: NextFunction) => {
     if (req.path === '/' || req.path === '/docs') {
       const preferred = req.accepts(['html', 'json']);
@@ -221,8 +224,9 @@ async function main(): Promise<void> {
   await app.listen(port);
 
   logger.debug(`MCP service is running on port ${port}`);
-  logger.debug(`MCP Server initialized: ${serverService.isServerRunning()}`);
-  logger.debug('Streamable HTTP transport available at /mcp');
+  logger.debug(
+    `Streamable HTTP transport available at /mcp: ${streamableHttpService.isTransportReady()}`,
+  );
 }
 
 void main().catch((error: unknown) => {
