@@ -9,6 +9,7 @@ import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConv
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { UNRESOLVED_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
+import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -116,10 +117,9 @@ export function AgentChatContainer({
   }, [container.handleRetry, container.timeline]);
 
   // Full-width pane so the transcript scrollbar sits on the window edge
-  // (Codex-style). Content cards re-center themselves with max-w-4xl inside
-  // the scroll body; the composer portal is also max-w-4xl centered.
+  // (Codex-style). Content + composer share AGENT_CONVERSATION_TRACK_CLASS.
   const conversationColumnClass =
-    'relative flex min-h-0 w-full flex-1 flex-col';
+    'relative flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden';
   const activeWorkEvent = useMemo(
     () =>
       selectActiveWorkEvent(container.workEvents, {
@@ -185,7 +185,7 @@ export function AgentChatContainer({
         data-testid="agent-conversation-column"
       >
         {formattedError && shouldRenderInlineComposerFeedback ? (
-          <div className="mx-auto w-full max-w-4xl px-0">
+          <div className={AGENT_CONVERSATION_TRACK_CLASS}>
             <Alert
               className="mt-3 w-full"
               onClose={() => container.setError(null)}
@@ -201,7 +201,7 @@ export function AgentChatContainer({
         ) : null}
 
         {archivedNotice ? (
-          <div className="mx-auto w-full max-w-4xl">
+          <div className={AGENT_CONVERSATION_TRACK_CLASS}>
             <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
               {archivedNotice}
             </Alert>

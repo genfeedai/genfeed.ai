@@ -1,3 +1,4 @@
+import { AGENT_CONVERSATION_SURFACE_RADIUS_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import {
   DEFAULT_BATCH_CONTENT_MIX,
@@ -5,6 +6,7 @@ import {
   formatBatchPricingHint,
 } from '@genfeedai/constants';
 import { ButtonVariant, ContentFormat } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Check, DollarSign, Layers } from 'lucide-react';
@@ -94,10 +96,15 @@ export function BatchGenerationCard({
   }
 
   return (
-    <div className="my-2 border border-border bg-background p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Layers className="size-5 text-cyan-500" />
-        <h3 className="text-sm font-semibold">
+    <div
+      className={cn(
+        'my-2 w-full min-w-0 max-w-full overflow-hidden border border-border/70 bg-card/70 p-4 shadow-sm',
+        AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+      )}
+    >
+      <div className="mb-3 flex min-w-0 items-center gap-2">
+        <Layers className="size-5 shrink-0 text-cyan-500" />
+        <h3 className="truncate text-sm font-semibold">
           {action.title || 'Batch Generation'}
         </h3>
       </div>
@@ -108,7 +115,7 @@ export function BatchGenerationCard({
         </p>
       )}
 
-      <div className="mb-3">
+      <div className="mb-3 min-w-0">
         <label
           htmlFor="batch-count"
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
@@ -122,6 +129,7 @@ export function BatchGenerationCard({
           max={50}
           value={count}
           onChange={(e) => setCount(Number(e.target.value))}
+          className="w-full min-w-0 max-w-full"
         />
       </div>
 

@@ -1,8 +1,10 @@
+import { AGENT_CONVERSATION_SURFACE_RADIUS_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { isTwitterPlatform } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
 import {
   Calendar,
@@ -72,12 +74,19 @@ export function BatchGenerationResultCard({
   const reviewHref = resolveReviewHref(action);
 
   return (
-    <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <Layers className="size-4.5 text-cyan-400" />
-            <span>{action.title || 'Batch generation'}</span>
+    <div
+      className={cn(
+        'mt-3 w-full min-w-0 max-w-full overflow-hidden border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm',
+        AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+      )}
+    >
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+            <Layers className="size-4.5 shrink-0 text-cyan-400" />
+            <span className="truncate">
+              {action.title || 'Batch generation'}
+            </span>
           </div>
           {action.description ? (
             <p className="text-sm leading-6 text-foreground/85">

@@ -1166,14 +1166,13 @@ function UniversalWorkspaceShellContent({
               </section>
 
               {/* Conversation composer floats over the canvas (Codex-style):
-                same max-w-4xl track as the agent transcript column so the
-                prompt bar is not full-bleed. Outer centers; inner owns width.
-                Empty sessions leave the slot empty (`empty:hidden`). Product
-                routes never render this slot. */}
+                same track as packages/agent conversation-layout
+                (max-w-4xl + px-3/sm:px-4) so prompt borders match cards.
+                Empty sessions leave the slot empty (`empty:hidden`). */}
               {isCanvasComposerVisible ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center pb-3 md:pb-5">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center overflow-x-hidden pb-3 md:pb-5">
                   <div
-                    className="w-full max-w-4xl empty:hidden"
+                    className="mx-auto w-full min-w-0 max-w-4xl px-3 empty:hidden sm:px-4"
                     data-testid="workspace-composer-slot"
                     ref={setComposerPortalTarget}
                   />

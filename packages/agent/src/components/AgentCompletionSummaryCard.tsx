@@ -1,3 +1,4 @@
+import { AGENT_CONVERSATION_SURFACE_RADIUS_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
   AgentUiActionCta,
@@ -162,9 +163,14 @@ export function AgentCompletionSummaryCard({
     '';
 
   return (
-    <div className="mt-2 border border-border/70 bg-card/70 text-left shadow-sm backdrop-blur-sm">
+    <div
+      className={cn(
+        'mt-2 w-full min-w-0 max-w-full overflow-hidden border border-border/70 bg-card/70 text-left shadow-sm backdrop-blur-sm',
+        AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+      )}
+    >
       {/* Always-visible compact header */}
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2 px-3 py-2">
         <CircleCheck className="size-4 shrink-0 text-emerald-500" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">

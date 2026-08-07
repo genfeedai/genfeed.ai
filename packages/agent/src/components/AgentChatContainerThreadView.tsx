@@ -5,6 +5,7 @@ import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInput
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { WorkflowPhaseProgressBar } from '@genfeedai/agent/components/WorkflowPhaseProgressBar';
+import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentInputRequest,
@@ -138,11 +139,16 @@ export function AgentChatContainerThreadView({
         />
       ) : null}
       {/* Scroll owns the full pane width so the scrollbar is flush to the
-          window edge (Codex). Content is re-centered with max-w-4xl below. */}
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-y-auto">
+          window edge (Codex). Content re-centers on the shared track below —
+          same class as the floating composer so borders match. */}
+      <div
+        ref={scrollContainerRef}
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
+      >
         <div
           className={cn(
-            'mx-auto w-full max-w-4xl space-y-1 pt-4',
+            AGENT_CONVERSATION_TRACK_CLASS,
+            'space-y-1 pt-4',
             // Reserve only what the floating stack actually uses (glass bar
             // ~7rem + optional chip row ~3rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips

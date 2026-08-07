@@ -35,8 +35,9 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
   return (
     <div
       className={cn(
+        'w-full min-w-0 max-w-full',
         isCards
-          ? 'grid w-full grid-cols-1 gap-2 sm:grid-cols-3'
+          ? 'grid grid-cols-1 gap-2 sm:grid-cols-3'
           : 'flex flex-wrap items-center justify-center gap-2',
         className,
       )}
