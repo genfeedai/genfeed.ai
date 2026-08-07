@@ -38,13 +38,13 @@ function createContext(): ExecutionContext {
 describe('MemberCreditsGuard', () => {
   let guard: MemberCreditsGuard;
   let organizationSettingsService: { findOne: ReturnType<typeof vi.fn> };
-  let membersService: { findAll: ReturnType<typeof vi.fn> };
+  let membersService: { count: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     vi.stubEnv('GENFEED_CLOUD', '1');
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
     organizationSettingsService = { findOne: vi.fn() };
-    membersService = { findAll: vi.fn() };
+    membersService = { count: vi.fn() };
 
     guard = new MemberCreditsGuard(
       organizationSettingsService as unknown as OrganizationSettingsService,
@@ -65,7 +65,7 @@ describe('MemberCreditsGuard', () => {
       seatsLimit: FREE_SEAT_LIMIT,
       subscriptionTier: SubscriptionTier.FREE,
     });
-    membersService.findAll.mockResolvedValue({ docs: [] });
+    membersService.count.mockResolvedValue(0);
 
     await expect(guard.canActivate(createContext())).resolves.toBe(true);
   });
@@ -75,9 +75,7 @@ describe('MemberCreditsGuard', () => {
       seatsLimit: FREE_SEAT_LIMIT,
       subscriptionTier: SubscriptionTier.FREE,
     });
-    membersService.findAll.mockResolvedValue({
-      docs: new Array(FREE_SEAT_LIMIT).fill({}),
-    });
+    membersService.count.mockResolvedValue(FREE_SEAT_LIMIT);
 
     await expect(guard.canActivate(createContext())).rejects.toMatchObject({
       response: {
@@ -104,9 +102,7 @@ describe('MemberCreditsGuard', () => {
         seatsLimit: 1,
         subscriptionTier,
       });
-      membersService.findAll.mockResolvedValue({
-        docs: new Array(50).fill({}),
-      });
+      membersService.count.mockResolvedValue(50);
 
       await expect(guard.canActivate(createContext())).resolves.toBe(true);
     },
@@ -117,9 +113,7 @@ describe('MemberCreditsGuard', () => {
       seatsLimit: 1,
       subscriptionTier: SubscriptionTier.SCALE,
     });
-    membersService.findAll.mockResolvedValue({
-      docs: new Array(UNLIMITED_SEATS_FAIR_USE_CEILING).fill({}),
-    });
+    membersService.count.mockResolvedValue(UNLIMITED_SEATS_FAIR_USE_CEILING);
 
     await expect(guard.canActivate(createContext())).rejects.toBeInstanceOf(
       ForbiddenException,
@@ -128,9 +122,7 @@ describe('MemberCreditsGuard', () => {
 
   it('uses PAYG/free limits when settings are missing', async () => {
     organizationSettingsService.findOne.mockResolvedValue(null);
-    membersService.findAll.mockResolvedValue({
-      docs: new Array(FREE_SEAT_LIMIT).fill({}),
-    });
+    membersService.count.mockResolvedValue(FREE_SEAT_LIMIT);
 
     await expect(guard.canActivate(createContext())).rejects.toMatchObject({
       response: expect.objectContaining({
@@ -151,7 +143,7 @@ describe('MemberCreditsGuard', () => {
 
     await expect(guard.canActivate(createContext())).resolves.toBe(true);
     expect(organizationSettingsService.findOne).not.toHaveBeenCalled();
-    expect(membersService.findAll).not.toHaveBeenCalled();
+    expect(membersService.count).not.toHaveBeenCalled();
   });
 
   it('counts non-deleted organization members before allowing an invite', async () => {
@@ -159,19 +151,13 @@ describe('MemberCreditsGuard', () => {
       seatsLimit: FREE_SEAT_LIMIT,
       subscriptionTier: SubscriptionTier.FREE,
     });
-    membersService.findAll.mockResolvedValue({ docs: [] });
+    membersService.count.mockResolvedValue(0);
 
     await guard.canActivate(createContext());
 
-    expect(membersService.findAll).toHaveBeenCalledWith(
-      {
-        where: {
-          isDeleted: false,
-          organizationId: orgId,
-        },
-      },
-      { pagination: false },
-      false,
-    );
+    expect(membersService.count).toHaveBeenCalledWith({
+      isDeleted: false,
+      organizationId: orgId,
+    });
   });
 });

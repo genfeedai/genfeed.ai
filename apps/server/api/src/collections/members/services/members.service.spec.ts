@@ -10,6 +10,7 @@ vi.mock('@genfeedai/prisma', async () => {
 describe('MembersService', () => {
   const prisma = {
     member: {
+      count: vi.fn(),
       create: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
@@ -25,6 +26,7 @@ describe('MembersService', () => {
   let service: MembersService;
 
   beforeEach(() => {
+    prisma.member.count.mockReset();
     prisma.member.create.mockReset();
     prisma.member.findMany.mockReset();
     prisma.member.update.mockReset();
@@ -158,5 +160,19 @@ describe('MembersService', () => {
 
     expect(result).toEqual([]);
     expect(prisma.member.findMany).not.toHaveBeenCalled();
+  });
+
+  it('counts members via a database count instead of loading every row', async () => {
+    prisma.member.count.mockResolvedValue(3);
+
+    const result = await service.count({
+      isDeleted: false,
+      organizationId: 'org-1',
+    });
+
+    expect(result).toBe(3);
+    expect(prisma.member.count).toHaveBeenCalledWith({
+      where: { isDeleted: false, organizationId: 'org-1' },
+    });
   });
 });

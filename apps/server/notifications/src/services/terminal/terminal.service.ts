@@ -29,6 +29,14 @@ import type {
 /** Maximum bytes retained in the per-session scrollback ring buffer. */
 const MAX_BUFFER_BYTES = 256 * 1024;
 
+/**
+ * Evicted-but-unspliced chunk count above which the scrollback ring array is
+ * compacted. Eviction advances a head index instead of shifting the array on
+ * every write; this bound keeps the backing array from growing unbounded
+ * across a long-lived session.
+ */
+const SCROLLBACK_COMPACTION_THRESHOLD = 64;
+
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const MAX_COLS = 240;
@@ -53,7 +61,9 @@ const COMMAND_LABELS: Record<TerminalSessionKind, string> = {
 interface ScrollbackBuffer {
   /** Ordered chunks of raw pty output. */
   chunks: Buffer[];
-  /** Current total byte count across all chunks. */
+  /** Index of the oldest live chunk; chunks before it are evicted but not yet spliced out. */
+  head: number;
+  /** Current total byte count across all live chunks. */
   totalBytes: number;
 }
 
@@ -130,7 +140,7 @@ export class TerminalService {
       throw new Error(this.formatSpawnError(kind, command, error));
     }
 
-    const scrollback: ScrollbackBuffer = { chunks: [], totalBytes: 0 };
+    const scrollback: ScrollbackBuffer = { chunks: [], head: 0, totalBytes: 0 };
     const createdAt = new Date().toISOString();
 
     const dataSubscription = pty.onData((data) => {
@@ -482,22 +492,34 @@ export class TerminalService {
     buffer.chunks.push(chunk);
     buffer.totalBytes += chunk.byteLength;
 
-    // Evict oldest chunks until we're within the budget.
-    while (buffer.totalBytes > MAX_BUFFER_BYTES && buffer.chunks.length > 0) {
-      const evicted = buffer.chunks.shift();
+    // Evict oldest chunks until we're within the budget by advancing a head
+    // index — shifting the array on every write would be O(n) per call.
+    while (
+      buffer.totalBytes > MAX_BUFFER_BYTES &&
+      buffer.head < buffer.chunks.length
+    ) {
+      const evicted = buffer.chunks[buffer.head];
+      buffer.head += 1;
       if (evicted) {
         buffer.totalBytes -= evicted.byteLength;
       }
     }
+
+    // Periodically drop the already-evicted prefix so the backing array
+    // doesn't grow unbounded across a long-lived session.
+    if (buffer.head >= SCROLLBACK_COMPACTION_THRESHOLD) {
+      buffer.chunks.splice(0, buffer.head);
+      buffer.head = 0;
+    }
   }
 
-  /** Concatenates all scrollback chunks into a single UTF-8 string. */
+  /** Concatenates all live scrollback chunks into a single UTF-8 string. */
   private drainScrollback(buffer: ScrollbackBuffer): string {
-    if (buffer.chunks.length === 0) {
+    if (buffer.head >= buffer.chunks.length) {
       return '';
     }
 
-    return Buffer.concat(buffer.chunks).toString('utf8');
+    return Buffer.concat(buffer.chunks.slice(buffer.head)).toString('utf8');
   }
 
   private toDto(

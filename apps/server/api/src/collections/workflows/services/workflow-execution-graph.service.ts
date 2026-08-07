@@ -54,8 +54,10 @@ export class WorkflowExecutionGraphService {
     }
 
     const result: string[] = [];
-    while (queue.length > 0) {
-      const current = queue.shift();
+    let queueHead = 0;
+    while (queueHead < queue.length) {
+      const current = queue[queueHead];
+      queueHead += 1;
       if (!current) continue;
       result.push(current);
 

@@ -14,6 +14,7 @@ import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import Image from 'next/image';
+import { useMemo } from 'react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   BatchItemStatus,
@@ -117,6 +118,13 @@ export default function BatchDetail({
 }: Props) {
   const completedOutputs = availableOutputs.length;
   const hasSelectedOutputs = selectedOutputs.length > 0;
+  const outputsByItemId = useMemo(
+    () =>
+      new Map(
+        availableOutputs.map((output) => [output.item.id, output.ingredient]),
+      ),
+    [availableOutputs],
+  );
 
   return (
     <div className="space-y-6">
@@ -269,9 +277,7 @@ export default function BatchDetail({
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {activeBatchStatus.items.map((item) => {
-            const ingredient =
-              availableOutputs.find((o) => o.item.id === item.id)?.ingredient ??
-              null;
+            const ingredient = outputsByItemId.get(item.id) ?? null;
             const libraryPath = getLibraryPathForCategory(
               item.outputCategory ?? item.outputSummary?.category,
             );

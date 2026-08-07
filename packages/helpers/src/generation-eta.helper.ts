@@ -508,9 +508,11 @@ export function estimateWorkflowCriticalPath(
     }
   }
   const visited: string[] = [];
+  let queueHead = 0;
 
-  while (queue.length > 0) {
-    const currentNodeId = queue.shift();
+  while (queueHead < queue.length) {
+    const currentNodeId = queue[queueHead];
+    queueHead += 1;
     if (!currentNodeId) {
       continue;
     }
@@ -563,9 +565,10 @@ export function estimateWorkflowCriticalPath(
   const criticalPathNodeIds: string[] = [];
   let cursor: string | null = terminalNodeId;
   while (cursor) {
-    criticalPathNodeIds.unshift(cursor);
+    criticalPathNodeIds.push(cursor);
     cursor = predecessor.get(cursor) ?? null;
   }
+  criticalPathNodeIds.reverse();
 
   for (const nodeId of criticalPathNodeIds) {
     const node = nodeMap.get(nodeId);

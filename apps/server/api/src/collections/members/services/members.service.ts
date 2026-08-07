@@ -4,6 +4,7 @@ import type { MemberDocument } from '@api/collections/members/schemas/member.sch
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AgentTeamMentionItem } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -75,6 +76,10 @@ export class MembersService extends BaseService<
     });
 
     return members as unknown as MemberDocument[];
+  }
+
+  count(filter: Prisma.MemberWhereInput): Promise<number> {
+    return this.delegate.count({ where: filter });
   }
 
   async listTeamMentions(

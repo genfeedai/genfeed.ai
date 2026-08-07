@@ -490,17 +490,21 @@ export class CreditTransactionsService extends BaseService<
         await this.creditBalanceService.getOrCreateBalance(organizationId);
       const currentBalance = this.readBalanceValue(balance);
 
-      const latestAdd = this.normalizeDocuments(
-        (await this.delegate.findMany({
-          orderBy: { createdAt: 'desc' },
-          where: {
-            isDeleted: { not: true },
-            organizationId,
-          },
-        })) as unknown[],
-      ).find(
-        (transaction) => transaction.category === CreditTransactionCategory.ADD,
-      );
+      const latestAddDoc = await this.delegate.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: {
+          amount: true,
+          createdAt: true,
+        },
+        where: {
+          category: CreditTransactionCategory.ADD,
+          isDeleted: { not: true },
+          organizationId,
+        },
+      });
+      const latestAdd = latestAddDoc
+        ? this.normalizeDocument(latestAddDoc)
+        : null;
 
       if (!latestAdd) {
         return {

@@ -1,8 +1,9 @@
 import { Timeframe } from '@genfeedai/enums';
-import { IsArray, IsEnum, IsString } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsEnum, IsString } from 'class-validator';
 
 export class GetForecastDto {
   @IsArray()
+  @ArrayMaxSize(20)
   @IsString({ each: true })
   metrics!: string[]; // ['engagement', 'followers', 'clicks']
 

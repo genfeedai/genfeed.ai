@@ -115,6 +115,29 @@ describe('PerformanceSummaryController', () => {
         },
       );
     });
+
+    it('clamps topN and worstN to the maximum summary limit', async () => {
+      await controller.getWeeklySummary(
+        mockReq,
+        mockBrandId,
+        '5000',
+        '9999',
+        undefined as any,
+        undefined as any,
+        mockUser as any,
+      );
+
+      expect(mockService.getWeeklySummary).toHaveBeenCalledWith(
+        mockOrgId,
+        mockBrandId,
+        {
+          endDate: undefined,
+          startDate: undefined,
+          topN: 50,
+          worstN: 50,
+        },
+      );
+    });
   });
 
   describe('getTopPerformers', () => {
@@ -148,6 +171,23 @@ describe('PerformanceSummaryController', () => {
         mockOrgId,
         mockBrandId,
         10,
+        { endDate: undefined, startDate: undefined },
+      );
+    });
+
+    it('clamps a client-supplied limit to the maximum summary limit', async () => {
+      await controller.getTopPerformers(
+        mockBrandId,
+        '10000',
+        undefined as any,
+        undefined as any,
+        mockUser as any,
+      );
+
+      expect(mockService.getTopPerformers).toHaveBeenCalledWith(
+        mockOrgId,
+        mockBrandId,
+        50,
         { endDate: undefined, startDate: undefined },
       );
     });

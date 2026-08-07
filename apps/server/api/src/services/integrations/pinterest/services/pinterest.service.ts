@@ -293,9 +293,11 @@ export class PinterestService {
       aliases.map((alias) => this.normalizeMetricName(alias)),
     );
     const queue: unknown[] = [source];
+    let head = 0;
 
-    while (queue.length > 0) {
-      const current = queue.shift();
+    while (head < queue.length) {
+      const current = queue[head];
+      head += 1;
       if (!current || typeof current !== 'object') {
         continue;
       }
