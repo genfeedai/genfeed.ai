@@ -93,7 +93,11 @@ describe('docs SEO metadata', () => {
       return description;
     });
 
-    expect(descriptions).toHaveLength(53);
+    // Bump this with every added or removed page. Three docs PRs landing the
+    // same day each incremented it against their own base, so the merge train
+    // lost a page — the count is deliberately exact so that shows up here
+    // rather than as a route quietly dropping out of `findMdxFiles`.
+    expect(descriptions).toHaveLength(54);
     expect(new Set(descriptions).size).toBe(descriptions.length);
   });
 });
