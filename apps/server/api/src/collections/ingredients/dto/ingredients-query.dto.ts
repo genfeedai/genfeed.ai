@@ -1,6 +1,10 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsEnum, IsOptional, IsString } from 'class-validator';
@@ -26,24 +30,27 @@ export class IngredientsQueryDto extends BaseQueryDto {
 
   @ApiProperty({
     description:
-      'Filter by status using repeated query keys (e.g., ?status=generated&status=validated).',
-    example: ['generated', 'validated'],
+      'Filter by status using repeated query keys (e.g., ?status=GENERATED&status=VALIDATED).',
+    enum: IngredientStatus,
+    enumName: 'IngredientStatus',
+    example: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+    isArray: true,
     required: false,
-    type: [String],
   })
   @Transform(({ value }) => {
     if (!value) {
       return undefined;
     }
-    if (Array.isArray(value)) {
-      return value;
-    }
-    return [value];
+    const values = Array.isArray(value) ? value : [value];
+    // Accept legacy lowercase query params from older clients.
+    return values.map((entry) =>
+      typeof entry === 'string' ? entry.toUpperCase() : entry,
+    );
   })
   @IsOptional()
   @IsArray()
-  @IsString({ each: true })
-  status?: string[];
+  @IsEnum(IngredientStatus, { each: true })
+  status?: IngredientStatus[];
 
   @ApiProperty({
     description: 'Filter ingredients by category',

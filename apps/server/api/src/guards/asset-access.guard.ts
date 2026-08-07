@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { AssetScope } from '@genfeedai/enums';
@@ -20,15 +21,9 @@ import {
  *
  * Expects 'ingredientId' parameter in the route.
  *
- * @example
- * ```typescript
- * @Get(':ingredientId')
- * @UseGuards(AssetAccessGuard)
- * async findOne(@Param('ingredientId') ingredientId: string) {
- *   // Guard has already checked access
- *   return this.service.findOne({ id: ingredientId });
- * }
- * ```
+ * Prisma persists AssetScope as UPPER_SNAKE (`USER`); app enums are lowercase
+ * (`user`). Always normalize before comparing or every USER/BRAND/ORG asset
+ * falls through to "Invalid asset scope" → 403.
  */
 @Injectable()
 export class AssetAccessGuard implements CanActivate {
@@ -36,7 +31,7 @@ export class AssetAccessGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const user = request.user; // From @CurrentUser decorator
+    const user = request.user as AuthenticatedUser | undefined;
     const assetId = request.params.ingredientId || request.params.id;
 
     if (!assetId) {
@@ -52,7 +47,7 @@ export class AssetAccessGuard implements CanActivate {
       throw new NotFoundException('Asset');
     }
 
-    const assetScope = asset.scope ?? AssetScope.USER;
+    const assetScope = normalizeAssetScope(asset.scope);
 
     // PUBLIC scope → Everyone can access
     if (assetScope === AssetScope.PUBLIC) {
@@ -67,12 +62,7 @@ export class AssetAccessGuard implements CanActivate {
     // Check permissions based on scope
     switch (assetScope) {
       case AssetScope.ORGANIZATION: {
-        const assetUserId = asset.userId;
-
-        if (
-          assetUserId === user.id ||
-          assetUserId === user.publicMetadata?.user
-        ) {
+        if (isAssetOwner(asset.userId, user)) {
           return true;
         }
 
@@ -89,12 +79,7 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.BRAND: {
-        const brandAssetUserId = asset.userId;
-
-        if (
-          brandAssetUserId === user.id ||
-          brandAssetUserId === user.publicMetadata?.user
-        ) {
+        if (isAssetOwner(asset.userId, user)) {
           return true;
         }
 
@@ -111,12 +96,7 @@ export class AssetAccessGuard implements CanActivate {
       }
 
       case AssetScope.USER: {
-        const userAssetUserId = asset.userId;
-
-        if (
-          userAssetUserId === user.id ||
-          userAssetUserId === user.publicMetadata?.user
-        ) {
+        if (isAssetOwner(asset.userId, user)) {
           return true;
         }
 
@@ -127,4 +107,42 @@ export class AssetAccessGuard implements CanActivate {
         throw new ForbiddenException('Invalid asset scope');
     }
   }
+}
+
+/**
+ * Map Prisma (`USER`) and app (`user`) scope values onto the app enum.
+ */
+export function normalizeAssetScope(scope: unknown): AssetScope {
+  if (typeof scope !== 'string' || scope.trim().length === 0) {
+    return AssetScope.USER;
+  }
+
+  const normalized = scope.trim().toLowerCase();
+  switch (normalized) {
+    case AssetScope.PUBLIC:
+      return AssetScope.PUBLIC;
+    case AssetScope.ORGANIZATION:
+      return AssetScope.ORGANIZATION;
+    case AssetScope.BRAND:
+      return AssetScope.BRAND;
+    case AssetScope.USER:
+      return AssetScope.USER;
+    default:
+      return AssetScope.USER;
+  }
+}
+
+/**
+ * Prefer canonical `publicMetadata.user` (Prisma users.id). JWT `user.id` is
+ * claims.sub and may match, but metadata is the durable identity.
+ */
+function isAssetOwner(
+  assetUserId: string | null | undefined,
+  user: AuthenticatedUser,
+): boolean {
+  if (!assetUserId) {
+    return false;
+  }
+
+  return assetUserId === user.publicMetadata?.user || assetUserId === user.id;
 }

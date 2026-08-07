@@ -43,6 +43,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  ModelCategory,
 } from '@genfeedai/enums';
 import { ArticleSerializer } from '@genfeedai/serializers';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
@@ -118,9 +119,12 @@ export class ArticlesOperationsController {
       );
     }
 
+    await this.assertGenerationModelOverrideSupported(dto.model);
+
     const modelConfig =
       await this.articlesService.resolveArticleCycleModelConfig(
         publicMetadata.organization,
+        dto.model,
       );
     const minimumRequiredCredits = (
       await Promise.all([
@@ -342,6 +346,42 @@ export class ArticlesOperationsController {
         title: 'Insufficient credits',
       },
       HttpStatus.PAYMENT_REQUIRED,
+    );
+  }
+
+  /**
+   * Gates the per-request generation model (`GenerateArticlesDto.model`) before
+   * anything is generated.
+   *
+   * The text pricing lookup in `ArticleTextGenerationService` resolves the key
+   * against the models catalogue *after* the provider call, so an unknown or
+   * non-text key would only surface once the tokens were already spent —
+   * failing the request with nothing to bill and nothing to show. Reject it up
+   * front instead. No override means the org/system default applies and there
+   * is nothing to check.
+   */
+  private async assertGenerationModelOverrideSupported(
+    modelKey?: string,
+  ): Promise<void> {
+    if (!modelKey) {
+      return;
+    }
+
+    const model = await this.modelsService.findOne({
+      isDeleted: false,
+      key: baseModelKey(modelKey),
+    });
+
+    if (model?.category === ModelCategory.TEXT) {
+      return;
+    }
+
+    throw new HttpException(
+      {
+        detail: `Unknown text model for article generation: ${modelKey}`,
+        title: 'Validation failed',
+      },
+      HttpStatus.BAD_REQUEST,
     );
   }
 

@@ -11,6 +11,7 @@ import {
   getUpgradeTierForLimit,
   HIGHER_API_RATE_LIMIT,
   hasApiAccess,
+  hasTrainingAccess,
   PLAN_LIMIT_UNLIMITED,
   SCALE_API_RATE_LIMIT,
   SINGLE_ORGANIZATION_LIMIT,
@@ -42,6 +43,14 @@ describe('tier API entitlements', () => {
     });
     expect(hasApiAccess(SubscriptionTier.FREE)).toBe(false);
     expect(hasApiAccess(SubscriptionTier.BYOK)).toBe(false);
+  });
+
+  it('denies training access to free tiers and grants Pro+', () => {
+    expect(hasTrainingAccess(SubscriptionTier.FREE)).toBe(false);
+    expect(hasTrainingAccess(SubscriptionTier.BYOK)).toBe(false);
+    expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(true);
+    expect(hasTrainingAccess(SubscriptionTier.SCALE)).toBe(true);
+    expect(hasTrainingAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 
   it('grants API access with escalating limits to paid tiers', () => {

@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { type LoginEndpoints, resolveLoginEndpoints } from './endpoints';
 import { type Config, configSchema, defaultConfig, defaultProfile, type Profile } from './schema';
 
 const CONFIG_DIR = path.join(os.homedir(), '.gf');
@@ -73,6 +74,7 @@ export function mergeProfileWithRuntime(
     agent: mergeAgentConfig(profile.agent, runtime.agent),
     apiKey: runtime.apiKey ?? profile.apiKey,
     apiUrl: runtime.apiUrl ?? profile.apiUrl,
+    appUrl: runtime.appUrl ?? profile.appUrl,
     fleetApiPort: runtime.fleetApiPort ?? profile.fleetApiPort,
     fleetHost: runtime.fleetHost ?? profile.fleetHost,
     organizationId: runtime.organizationId ?? profile.organizationId,
@@ -87,6 +89,7 @@ export function readRuntimeOverrides(): RuntimeProfileOverrides {
 
   if (process.env.GENFEED_API_KEY) overrides.apiKey = process.env.GENFEED_API_KEY;
   if (process.env.GENFEED_API_URL) overrides.apiUrl = process.env.GENFEED_API_URL;
+  if (process.env.GENFEED_APP_URL) overrides.appUrl = process.env.GENFEED_APP_URL;
   if (process.env.GENFEED_TOKEN) overrides.token = process.env.GENFEED_TOKEN;
   if (process.env.GENFEED_ORGANIZATION_ID)
     overrides.organizationId = process.env.GENFEED_ORGANIZATION_ID;
@@ -121,6 +124,21 @@ export async function getApiKey(): Promise<string | undefined> {
 export async function getApiUrl(): Promise<string> {
   const { profile } = await getActiveProfile();
   return profile.apiUrl;
+}
+
+/**
+ * Web app origin serving `/oauth/cli`, derived from `apiUrl` unless the profile
+ * (or `GENFEED_APP_URL`) sets one explicitly.
+ */
+export async function getAppUrl(): Promise<string> {
+  const { profile } = await getActiveProfile();
+  return resolveLoginEndpoints(profile.apiUrl, profile.appUrl).appUrl;
+}
+
+/** Every URL the browser login flow needs, resolved from the active profile. */
+export async function getLoginEndpoints(): Promise<LoginEndpoints> {
+  const { profile } = await getActiveProfile();
+  return resolveLoginEndpoints(profile.apiUrl, profile.appUrl);
 }
 
 export async function getActiveBrand(): Promise<string | undefined> {

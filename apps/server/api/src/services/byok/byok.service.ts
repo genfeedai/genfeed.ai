@@ -10,10 +10,15 @@ import { ConflictException, Injectable } from '@nestjs/common';
 import { encodeJwtToken } from '@server/helpers/utils/jwt/jwt.util';
 import { firstValueFrom } from 'rxjs';
 
+/**
+ * Provider chrome only — no model catalogs. Model lists go stale and must not
+ * live in this map; the UI shows name + logo + connection status.
+ */
 const BYOK_PROVIDER_LABELS: Record<
   ByokProvider,
   {
     label: string;
+    /** Kept empty on purpose — do not list models here. */
     description: string;
     docsUrl: string;
     requiresSecret?: boolean;
@@ -21,65 +26,65 @@ const BYOK_PROVIDER_LABELS: Record<
   }
 > = {
   [ByokProvider.ANTHROPIC]: {
-    description: 'Claude models — Opus 4.6, Sonnet 4.5',
+    description: '',
     docsUrl: 'https://console.anthropic.com/settings/keys',
     label: 'Anthropic',
   },
   [ByokProvider.OPENAI]: {
-    description: 'GPT-4o, o3, o4-mini — API key or ChatGPT subscription',
+    description: '',
     docsUrl: 'https://platform.openai.com/api-keys',
     label: 'OpenAI',
     supportsOAuth: true,
   },
   [ByokProvider.OPENROUTER]: {
-    description: 'LLM text generation (GPT-4, Claude, etc.)',
+    description: '',
     docsUrl: 'https://openrouter.ai/keys',
     label: 'OpenRouter',
   },
   [ByokProvider.ELEVENLABS]: {
-    description: 'Text-to-speech & voice cloning',
+    description: '',
     docsUrl: 'https://elevenlabs.io/app/settings/api-keys',
     label: 'ElevenLabs',
   },
   [ByokProvider.REPLICATE]: {
-    description: 'Image & video generation models',
+    description: '',
     docsUrl: 'https://replicate.com/account/api-tokens',
     label: 'Replicate',
   },
   [ByokProvider.FAL]: {
-    description: 'Fast image generation (FLUX, etc.)',
+    description: '',
     docsUrl: 'https://fal.ai/dashboard/keys',
     label: 'fal.ai',
   },
   [ByokProvider.HEYGEN]: {
-    description: 'AI avatar video generation',
+    description: '',
     docsUrl: 'https://app.heygen.com/settings',
     label: 'HeyGen',
   },
   [ByokProvider.HEDRA]: {
-    description: 'AI character video generation',
+    description: '',
     docsUrl: 'https://www.hedra.com/settings',
     label: 'Hedra',
   },
   [ByokProvider.KLINGAI]: {
-    description: 'Video generation',
+    description: '',
     docsUrl: 'https://klingai.com',
     label: 'Kling AI',
     requiresSecret: true,
   },
   [ByokProvider.LEONARDOAI]: {
-    description: 'Image generation',
+    description: '',
     docsUrl: 'https://app.leonardo.ai/api-access',
     label: 'Leonardo.AI',
   },
   [ByokProvider.HIGGSFIELD]: {
-    description: 'Multi-model video generation (Kling 3.0, Seedance, Sora 2)',
+    description: '',
     docsUrl: 'https://docs.higgsfield.ai',
     label: 'Higgsfield',
     requiresSecret: true,
   },
   [ByokProvider.APIFY]: {
-    description: 'Social trends & web scraping',
+    description: '',
     docsUrl: 'https://console.apify.com/account/integrations',
     label: 'Apify',
   },

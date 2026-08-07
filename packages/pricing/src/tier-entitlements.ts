@@ -45,6 +45,11 @@ export type TierPlanEntitlement = ApiTierEntitlement & {
   organizationLimit: TierLimit;
   /** Organization seats. `null` means unlimited team seats. */
   seatLimit: TierLimit;
+  /**
+   * Whether the tier may create custom model trainings (LoRA / brand models).
+   * GPU-backed; paid cloud only. Self-hosted is not gated by this flag.
+   */
+  trainingAccess: boolean;
 };
 
 export type LimitedPlanResource =
@@ -83,6 +88,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     channelLimit: PLAN_LIMIT_UNLIMITED,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
+    trainingAccess: false,
   },
   [SubscriptionTier.BYOK]: {
     apiAccess: false,
@@ -91,6 +97,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     channelLimit: PLAN_LIMIT_UNLIMITED,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
+    trainingAccess: false,
   },
   [SubscriptionTier.PRO]: {
     apiAccess: true,
@@ -99,6 +106,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     channelLimit: PLAN_LIMIT_UNLIMITED,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: PLAN_LIMIT_UNLIMITED,
+    trainingAccess: true,
   },
   [SubscriptionTier.SCALE]: {
     apiAccess: true,
@@ -107,6 +115,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     channelLimit: PLAN_LIMIT_UNLIMITED,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
+    trainingAccess: true,
   },
   [SubscriptionTier.ENTERPRISE]: {
     apiAccess: true,
@@ -115,6 +124,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     channelLimit: PLAN_LIMIT_UNLIMITED,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
+    trainingAccess: true,
   },
 };
 
@@ -173,6 +183,11 @@ export function getApiEntitlementForTier(
 /** Whether a tier may create and use API keys. */
 export function hasApiAccess(tier: string | null | undefined): boolean {
   return getApiEntitlementForTier(tier).apiAccess;
+}
+
+/** Whether a tier may create custom model trainings (LoRA). Pro and above. */
+export function hasTrainingAccess(tier: string | null | undefined): boolean {
+  return getPlanEntitlementForTier(tier).trainingAccess;
 }
 
 /**

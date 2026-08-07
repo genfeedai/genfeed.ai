@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -48,6 +49,7 @@ export class StripeController {
     private readonly loggerService: LoggerService,
     private readonly organizationsService: OrganizationsService,
     private readonly lifecycleEmailService: LifecycleEmailService,
+    private readonly customersService: CustomersService,
   ) {}
 
   @Post('checkout')
@@ -119,7 +121,55 @@ export class StripeController {
               success: createCheckoutSessionDto.successUrl,
             }
           : undefined;
-      if (!subscription.stripeCustomerId) {
+
+      // Stale stripeCustomerId from another Stripe account (e.g. Vitae / old
+      // local key) must be recreated on the active Genfeed account.
+      let stripeCustomerId = subscription.stripeCustomerId ?? null;
+      const liveCustomer = stripeCustomerId
+        ? await this.stripeService.retrieveCustomer(stripeCustomerId)
+        : null;
+      if (!liveCustomer) {
+        const organization = await this.organizationsService.findOne({
+          id: publicMetadata.organization,
+          isDeleted: false,
+        });
+        if (!organization) {
+          return returnNotFound('Organization', publicMetadata.organization);
+        }
+
+        const recreated = await this.stripeService.createOrganizationCustomer(
+          organization.label,
+          email,
+          organization.id.toString(),
+          dbUser.id.toString(),
+        );
+        stripeCustomerId = recreated.id;
+
+        if (subscription.customerId) {
+          await this.customersService.patch(subscription.customerId, {
+            stripeCustomerId,
+          });
+        } else {
+          const customer = await this.customersService.create({
+            organizationId: organization.id.toString(),
+            stripeCustomerId,
+          });
+          await this.subscriptionsService.patch(subscription.id, {
+            customerId: customer.id.toString(),
+          });
+        }
+
+        this.loggerService.warn(
+          `${url} recreated missing Stripe customer for org checkout`,
+          {
+            organizationId: publicMetadata.organization,
+            previousStripeCustomerId: subscription.stripeCustomerId,
+            stripeCustomerId,
+          },
+        );
+      }
+
+      if (!stripeCustomerId) {
         return returnBadRequest({
           message: 'Subscription is missing stripeCustomerId',
           success: false,
@@ -127,7 +177,7 @@ export class StripeController {
       }
 
       const result = await this.stripeService.createPaymentSession(
-        subscription.stripeCustomerId,
+        stripeCustomerId,
         stripePriceId,
         origin,
         quantity,

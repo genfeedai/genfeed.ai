@@ -49,6 +49,7 @@ export const DISCOVER_MENU_ITEMS: MenuItemConfig[] = [
       APP_ROUTES.DISCOVER.ADS,
       APP_ROUTES.DISCOVER.ADS_GOOGLE,
       APP_ROUTES.DISCOVER.ADS_META,
+      APP_ROUTES.DISCOVER.ADS_TIKTOK,
     ],
     outline: Megaphone,
     solid: Megaphone,

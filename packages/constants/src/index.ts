@@ -13,6 +13,7 @@ export * from './media.constant';
 export * from './model-aspect-ratios.constant';
 export * from './model-brands.constant';
 export * from './model-capabilities.constant';
+export * from './model-catalog.constant';
 export * from './model-helpers.constant';
 export * from './model-keys.constant';
 export * from './onboarding.constant';

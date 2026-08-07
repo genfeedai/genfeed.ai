@@ -1,10 +1,7 @@
 'use client';
 
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import {
-  hasOrganizationBillingHint,
-  shouldShowCreditsNav,
-} from '@genfeedai/config/license';
+import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -205,11 +202,7 @@ function TopbarCreditsBarContent() {
   );
   const visibleProviderSegments = providerSegments.slice(0, 2);
 
-  const billingHref = orgHref(
-    hasOrganizationBillingHint()
-      ? APP_ROUTES.SETTINGS.BILLING
-      : APP_ROUTES.SETTINGS.CREDITS,
-  );
+  const billingHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
 
   return (
     <CreditsBarTrigger

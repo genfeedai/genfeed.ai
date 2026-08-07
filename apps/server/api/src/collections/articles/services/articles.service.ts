@@ -34,6 +34,7 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
+import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -597,8 +598,10 @@ export class ArticlesService extends BaseService<
       throw new Error('ArticlesContentService not available');
     }
 
-    const modelConfig =
-      await this.resolveArticleCycleModelConfig(organizationId);
+    const modelConfig = await this.resolveArticleCycleModelConfig(
+      organizationId,
+      generateDto.model,
+    );
     const generationType = generateDto.type || ArticleGenerationType.STANDARD;
 
     const articles =
@@ -692,12 +695,25 @@ export class ArticlesService extends BaseService<
     );
   }
 
+  /**
+   * Resolves the three text models an article cycle runs on.
+   *
+   * `generationModelOverride` is the per-request model (`GenerateArticlesDto.model`,
+   * which the agent orchestrator fills from `agentPolicy.generationModelOverride`)
+   * and follows the same explicit > org default > system default precedence the
+   * image/video paths use. Only the generation step is overridden — review and
+   * update keep their configured models.
+   */
   async resolveArticleCycleModelConfig(
     organizationId: string,
+    generationModelOverride?: string,
   ): Promise<ArticleCycleModelConfig> {
     if (!this.organizationSettingsService) {
       return {
-        generationModel: DEFAULT_TEXT_MODEL,
+        generationModel: resolveGenerationDefaultModel<string>({
+          explicit: generationModelOverride,
+          systemDefault: DEFAULT_TEXT_MODEL,
+        }),
         reviewModel: DEFAULT_MINI_TEXT_MODEL,
         updateModel: DEFAULT_MINI_TEXT_MODEL,
       };
@@ -708,7 +724,11 @@ export class ArticlesService extends BaseService<
     );
 
     return {
-      generationModel: settings?.defaultModel || DEFAULT_TEXT_MODEL,
+      generationModel: resolveGenerationDefaultModel<string>({
+        explicit: generationModelOverride,
+        organizationDefault: settings?.defaultModel,
+        systemDefault: DEFAULT_TEXT_MODEL,
+      }),
       reviewModel: settings?.defaultModelReview || DEFAULT_MINI_TEXT_MODEL,
       updateModel: settings?.defaultModelUpdate || DEFAULT_MINI_TEXT_MODEL,
     };

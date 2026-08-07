@@ -142,6 +142,37 @@ export function formatRelativeTime(timestamp?: string): string | null {
   return `${Math.floor(diffHours / 24)}d`;
 }
 
+function isThreadActivelyRunning(
+  thread: AgentThread,
+  options?: {
+    activeRunStatus?:
+      | 'idle'
+      | 'running'
+      | 'cancelling'
+      | 'completed'
+      | 'failed'
+      | 'cancelled';
+    activeThreadId?: string | null;
+  },
+): boolean {
+  // Prefer explicit attention from stream/API over bare runStatus — the latter
+  // can linger as stale local state after a run ends.
+  if (thread.attentionState === 'running') {
+    return true;
+  }
+
+  if (options?.activeThreadId !== thread.id) {
+    return false;
+  }
+
+  return (
+    thread.runStatus === 'queued' ||
+    thread.runStatus === 'running' ||
+    options.activeRunStatus === 'running' ||
+    options.activeRunStatus === 'cancelling'
+  );
+}
+
 export function getThreadStatusMeta(
   thread: AgentThread,
   options?: {
@@ -158,22 +189,20 @@ export function getThreadStatusMeta(
   label: string;
   tone: 'neutral' | 'running' | 'warning';
 } | null {
-  if (thread.pendingInputCount && thread.pendingInputCount > 0) {
+  if (
+    thread.attentionState === 'needs-input' ||
+    (thread.pendingInputCount ?? 0) > 0 ||
+    thread.runStatus === 'waiting_input'
+  ) {
     return {
       label: 'Needs input',
       tone: 'warning',
     };
   }
 
-  if (
-    options?.activeThreadId === thread.id &&
-    (thread.runStatus === 'queued' ||
-      thread.runStatus === 'running' ||
-      options.activeRunStatus === 'running' ||
-      options.activeRunStatus === 'cancelling')
-  ) {
+  if (isThreadActivelyRunning(thread, options)) {
     return {
-      label: 'Awaiting response',
+      label: 'Running',
       tone: 'running',
     };
   }
@@ -197,6 +226,10 @@ export function getThreadStatusDotClass(options: {
     (options.pendingInputCount ?? 0) > 0
   ) {
     return 'bg-amber-300';
+  }
+
+  if (options.attentionState === 'running') {
+    return 'bg-sky-400';
   }
 
   if (options.attentionState === 'updated') {

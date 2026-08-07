@@ -701,17 +701,37 @@ export class AdsResearchService {
   }
 
   private normalizePlatform(platform: string): AdsResearchPlatform {
-    return platform === 'google_ads'
-      ? 'google'
-      : (platform as AdsResearchPlatform);
+    const value = platform.trim().toLowerCase();
+    if (value === 'google_ads' || value === 'google') {
+      return 'google';
+    }
+    if (value === 'meta_ads' || value === 'facebook' || value === 'meta') {
+      return 'meta';
+    }
+    if (value === 'tiktok_ads' || value === 'tiktok') {
+      return 'tiktok';
+    }
+    return platform as AdsResearchPlatform;
   }
 
   private toPatternPlatform(platform: AdsResearchPlatform): string {
-    return platform === 'meta' ? 'facebook' : 'google_ads';
+    if (platform === 'meta') {
+      return 'facebook';
+    }
+    if (platform === 'tiktok') {
+      return 'tiktok';
+    }
+    return 'google_ads';
   }
 
   private toPlatformLabel(platform: AdsResearchPlatform | AdsPlatform): string {
-    return platform === 'meta' ? 'Meta Ads' : 'Google Ads';
+    if (platform === 'meta') {
+      return 'Meta Ads';
+    }
+    if (platform === 'tiktok') {
+      return 'TikTok Ads';
+    }
+    return 'Google Ads';
   }
 
   private mapMetric(metric?: AdsResearchMetric): string {

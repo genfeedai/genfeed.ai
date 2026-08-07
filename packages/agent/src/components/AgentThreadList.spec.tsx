@@ -346,15 +346,21 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Recent thread')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Show archived threads' }),
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Show archived threads' }),
     );
 
     await waitFor(() => {
       expect(screen.getByText('Archived thread')).toBeInTheDocument();
     });
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
     expect(
-      screen.getByRole('button', { name: 'Show recent threads' }),
+      await screen.findByRole('menuitem', { name: 'Show recent threads' }),
     ).toBeInTheDocument();
     expect(apiService.getThreads).toHaveBeenNthCalledWith(
       2,
@@ -476,7 +482,10 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('No threads')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Show archived threads' }),
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Show archived threads' }),
     );
 
     expect(await screen.findByText('Restore me')).toBeInTheDocument();
@@ -576,7 +585,7 @@ describe('AgentThreadList', () => {
     expect(
       screen.getByText('This preview should not render anymore.'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Awaiting response')).toBeNull();
+    expect(screen.queryByText('Running')).toBeNull();
   });
 
   it('uses a warning status dot for threads that need input', async () => {
@@ -627,8 +636,11 @@ describe('AgentThreadList', () => {
     });
 
     expect(storeState.threads[0]?.id).toBe('conv-2');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
     expect(
-      screen.getByRole('button', { name: 'Archive all threads' }),
+      await screen.findByRole('menuitem', { name: 'Archive all threads' }),
     ).toBeInTheDocument();
   });
 
@@ -726,7 +738,10 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Thread one')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Archive all threads' }),
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Archive all threads' }),
     );
 
     await waitFor(() => {
@@ -780,17 +795,35 @@ describe('AgentThreadList', () => {
       await screen.findByText('Assess desktop app readiness'),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(
-        'Awaiting response status for Assess desktop app readiness',
-      ),
+      screen.getByLabelText('Running status for Assess desktop app readiness'),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(
-        'Awaiting response status for Assess desktop app readiness',
-      ),
+      screen.getByLabelText('Running status for Assess desktop app readiness'),
     ).toHaveClass('animate-spin');
-    expect(screen.getByText('Awaiting response')).toBeInTheDocument();
-    expect(screen.getByTitle('Awaiting response')).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByTitle('Running')).toBeInTheDocument();
+  });
+
+  it('shows a spinner for a non-active thread that is still running', async () => {
+    const thread = createThread('conv-1', 'Background run', {
+      attentionState: 'running',
+      runStatus: 'running',
+    } as Partial<AgentThread>);
+    storeState.activeThreadId = 'conv-2';
+    storeState.activeRunStatus = 'idle';
+
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Background run')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Running status for Background run'),
+    ).toHaveClass('animate-spin');
+    expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
   it('does not show a spinner for a non-active thread with stale running status', async () => {
@@ -809,7 +842,7 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Old stuck thread')).toBeInTheDocument();
     expect(
-      screen.queryByLabelText('Awaiting response status for Old stuck thread'),
+      screen.queryByLabelText('Running status for Old stuck thread'),
     ).toBeNull();
     expect(
       screen.getByLabelText('Conversation status for Old stuck thread'),

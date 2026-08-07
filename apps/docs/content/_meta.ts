@@ -20,6 +20,7 @@ export default {
   'getting-started': 'Getting Started',
   guides: 'Guides & Tutorials',
   models: 'AI Models',
+  skills: 'Agent Skills',
   faq: 'FAQ',
 
   // -- Reference --

@@ -5,7 +5,6 @@ import { getProPlan } from '@helpers/business/pricing/pricing.helper';
 import type { AudienceBenefit } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { ArrowRight, Building2, Check, User } from 'lucide-react';
@@ -40,7 +39,7 @@ export default function HomeAudiences(): React.ReactElement {
       className="gen-section-spacing-lg border-b border-edge/5"
     >
       <div className="container mx-auto px-6">
-        <VStack className="mb-12 max-w-3xl gap-4">
+        <div className="flex flex-col mb-12 max-w-3xl gap-4">
           <Text className={EYEBROW_CLASS}>Who it&apos;s for</Text>
           <Heading
             as="h2"
@@ -52,16 +51,16 @@ export default function HomeAudiences(): React.ReactElement {
             Run your own content self-serve, or bring your whole client roster
             and manage every brand from one supervised workspace.
           </Text>
-        </VStack>
+        </div>
 
         <div className="grid grid-cols-1 gap-px bg-edge/5 lg:grid-cols-2">
           <div className="flex flex-col gap-5 bg-background p-8">
-            <HStack className="items-center gap-2 text-surface/72">
+            <div className="flex flex-row items-center gap-2 text-surface/72">
               <User className="size-4" />
               <Text className={EYEBROW_CLASS}>
                 Creators &amp; solo marketers
               </Text>
-            </HStack>
+            </div>
             <Heading as="h3" className="text-2xl font-semibold text-surface">
               Everything you publish, in one studio.
             </Heading>
@@ -78,7 +77,7 @@ export default function HomeAudiences(): React.ReactElement {
             <Text className="text-xs leading-5 text-surface/60">
               {proPlanCopy}
             </Text>
-            <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-row mt-auto flex-wrap items-center gap-4 pt-2">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
@@ -96,23 +95,23 @@ export default function HomeAudiences(): React.ReactElement {
               >
                 See how it works →
               </Link>
-            </HStack>
+            </div>
           </div>
 
           <div className="flex flex-col gap-5 bg-background p-8">
-            <HStack className="items-center justify-between">
-              <HStack className="items-center gap-2 text-surface/72">
+            <div className="flex flex-row gap-4 items-center justify-between">
+              <div className="flex flex-row items-center gap-2 text-surface/72">
                 <Building2 className="size-4" />
                 <Text className={EYEBROW_CLASS}>
                   Agencies &amp; paid social
                 </Text>
-              </HStack>
-              <HStack className="items-center gap-1.5 rounded-full bg-surface/10 px-2.5 py-1">
+              </div>
+              <div className="flex flex-row items-center gap-1.5 rounded-full bg-surface/10 px-2.5 py-1">
                 <Text className="text-[11px] font-semibold uppercase tracking-wider text-surface/70">
                   Talk to us
                 </Text>
-              </HStack>
-            </HStack>
+              </div>
+            </div>
             <Heading as="h3" className="text-2xl font-semibold text-surface">
               Run every client&apos;s creative from one place.
             </Heading>
@@ -129,7 +128,7 @@ export default function HomeAudiences(): React.ReactElement {
             <Text className="text-xs leading-5 text-surface/60">
               Scale: multi-client workspaces, approvals, managed billing
             </Text>
-            <HStack className="mt-auto flex-wrap items-center gap-4 pt-2">
+            <div className="flex flex-row mt-auto flex-wrap items-center gap-4 pt-2">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
@@ -151,7 +150,7 @@ export default function HomeAudiences(): React.ReactElement {
               >
                 Genfeed for agencies →
               </Link>
-            </HStack>
+            </div>
           </div>
         </div>
       </div>
