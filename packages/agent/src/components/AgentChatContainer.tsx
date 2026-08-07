@@ -15,7 +15,6 @@ import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { AlertCategory } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import Alert from '@ui/feedback/alert/Alert';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 

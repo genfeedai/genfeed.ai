@@ -31,8 +31,12 @@ export interface AgentChatInputToolbarProps {
   disabled: boolean | undefined;
   hasEditor: boolean;
   isListening: boolean;
+  /** Registry catalogue is still loading — selector shows its skeleton. */
+  isModelsLoading?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
+  models?: readonly AgentModelOption[];
   onAddFiles?: (files: File[]) => void;
   onBuyCredits?: () => void;
   onInsertReference: () => void;
@@ -43,8 +47,6 @@ export interface AgentChatInputToolbarProps {
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
   selectedModel?: string;
-  models?: readonly AgentModelOption[];
-  isModelsLoading?: boolean;
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
@@ -57,8 +59,10 @@ function AgentChatInputToolbarInner({
   disabled,
   hasEditor,
   isListening,
+  isModelsLoading = false,
   isTranscribing,
   isUploading,
+  models,
   onAddFiles,
   onBuyCredits,
   onInsertReference,
@@ -69,8 +73,6 @@ function AgentChatInputToolbarInner({
   onStop,
   onStopListening,
   selectedModel,
-  models,
-  isModelsLoading = false,
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,

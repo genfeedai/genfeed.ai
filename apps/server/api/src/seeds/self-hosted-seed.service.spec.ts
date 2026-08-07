@@ -2,7 +2,6 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ModuleRef } from '@nestjs/core';
 
-import type { ModelCatalogSeedService } from './model-catalog-seed.service';
 import { SelfHostedSeedService } from './self-hosted-seed.service';
 
 vi.mock('@genfeedai/config', async (importOriginal) => {
@@ -26,7 +25,6 @@ describe('SelfHostedSeedService', () => {
     };
     role: { upsert: ReturnType<typeof vi.fn> };
   };
-  let modelCatalogSeed: { reconcileCatalog: ReturnType<typeof vi.fn> };
   let service: SelfHostedSeedService;
 
   beforeEach(() => {
@@ -49,9 +47,6 @@ describe('SelfHostedSeedService', () => {
         }),
       },
     };
-    modelCatalogSeed = {
-      reconcileCatalog: vi.fn().mockResolvedValue(10),
-    };
     const logger = {
       error: vi.fn(),
       log: vi.fn(),
@@ -62,7 +57,6 @@ describe('SelfHostedSeedService', () => {
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
       {} as ModuleRef,
-      modelCatalogSeed as unknown as ModelCatalogSeedService,
     );
   });
 
@@ -88,7 +82,6 @@ describe('SelfHostedSeedService', () => {
         userId,
       },
     });
-    expect(modelCatalogSeed.reconcileCatalog).toHaveBeenCalledTimes(1);
   });
 
   it('does not duplicate an existing default workspace member', async () => {

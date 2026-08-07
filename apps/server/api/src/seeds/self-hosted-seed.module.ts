@@ -1,5 +1,10 @@
 /**
- * Seed module: default self-hosted workspace + unified model catalog.
+ * Boot seed module.
+ *
+ * - SelfHostedSeedService creates the default workspace on first boot when
+ *   running in self-hosted mode (no legacy auth provider).
+ * - ModelCatalogSeedService reconciles the unified model registry on every
+ *   boot, in every deployment mode.
  */
 
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';

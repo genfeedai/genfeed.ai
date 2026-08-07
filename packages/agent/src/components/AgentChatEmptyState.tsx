@@ -44,9 +44,10 @@ type AgentChatEmptyStateProps = {
   promptBarSuggestions: ReactNode;
   removeAttachment: (id: string) => void;
   selectedModel?: string;
-  onModelChange?: (model: string) => void;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
+  onModelChange?: (model: string) => void;
 };
 
 export function AgentChatEmptyState({
@@ -72,9 +73,9 @@ export function AgentChatEmptyState({
   promptBarSuggestions,
   removeAttachment,
   selectedModel,
-  onModelChange,
   models,
   isModelsLoading = false,
+  onModelChange,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
 
@@ -137,7 +138,9 @@ export function AgentChatEmptyState({
                 dragHandlers={dragHandlers}
                 dragState={dragState}
                 getCompletedAttachments={getCompletedAttachments}
+                isModelsLoading={isModelsLoading}
                 isUploading={isAttachmentUploading}
+                models={models}
                 onSend={onSend}
                 onStop={onStop}
                 placeholder={placeholder}
@@ -145,8 +148,6 @@ export function AgentChatEmptyState({
                 showStop={isRunActive}
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
-                models={models}
-                isModelsLoading={isModelsLoading}
               />
             </PromptBarContainer>
           ) : null}
