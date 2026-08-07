@@ -1458,6 +1458,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'contextBaseId',
       'createdAt',
       'data',
+      'embedding',
       'id',
       'isDeleted',
       'organization',

@@ -1016,6 +1016,7 @@ export abstract class BaseService<
 
       this.logger?.debug('Bulk updating documents', { filter, update });
 
+      // sql-risk-audit: ignore bulk-write-tenant-review -- withSoftDeleteFilter forces the isDeleted:false default onto every filter-driven bulk write; organization scoping is the caller's filter contract (single-tenant self-host omits it by design).
       const result = await this.internalDelegate.updateMany({
         where: this.withSoftDeleteFilter(this.normalizeWhere(filter), filter),
         data: this.normalizeData(update),

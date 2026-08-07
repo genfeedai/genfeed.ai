@@ -272,7 +272,7 @@ export class WorkflowTemplateSeederService {
       if (metadataPatch) {
         await this.prisma.workflow.update({
           data: { metadata: metadataPatch as Prisma.InputJsonValue },
-          where: { id: preCheck.id },
+          where: scopedWhere(input.organizationId, { id: preCheck.id }),
         });
       }
       await this.reconcileDesiredSystemWorkflowDuplicates(
@@ -299,7 +299,7 @@ export class WorkflowTemplateSeederService {
             if (metadataPatch) {
               await tx.workflow.update({
                 data: { metadata: metadataPatch as Prisma.InputJsonValue },
-                where: { id: existing.id },
+                where: scopedWhere(input.organizationId, { id: existing.id }),
               });
             }
             return;
@@ -438,7 +438,7 @@ export class WorkflowTemplateSeederService {
               : {}),
             ...(!preCheck.isScheduleEnabled ? { isScheduleEnabled: true } : {}),
           },
-          where: { id: preCheck.id },
+          where: scopedWhere(organizationId, { id: preCheck.id }),
         });
       }
       await this.reconcileDesiredSystemWorkflowDuplicates(
@@ -471,7 +471,7 @@ export class WorkflowTemplateSeederService {
                     ? { isScheduleEnabled: true }
                     : {}),
                 },
-                where: { id: existing.id },
+                where: scopedWhere(organizationId, { id: existing.id }),
               });
             }
             return;
@@ -848,14 +848,14 @@ export class WorkflowTemplateSeederService {
           if (concurrent) {
             await tx.workflow.update({
               data: data as Prisma.WorkflowUpdateInput,
-              where: { id: concurrent.id },
+              where: scopedWhere(organizationId, { id: concurrent.id }),
             });
             return;
           }
 
           await tx.workflow.create({
             data: {
-              ...data,
+              ...(data as Prisma.WorkflowUncheckedCreateInput),
               executionCount: 0,
               inputVariables: [] as Prisma.InputJsonValue,
               isDeleted: false,
@@ -863,7 +863,7 @@ export class WorkflowTemplateSeederService {
               progress: 0,
               steps: [] as Prisma.InputJsonValue,
               userId,
-            } as Prisma.WorkflowCreateInput,
+            },
           });
         },
         { isolationLevel: 'Serializable' },

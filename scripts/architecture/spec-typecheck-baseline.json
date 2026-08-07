@@ -4666,14 +4666,6 @@
     },
     {
       "code": 2820,
-      "count": 4,
-      "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
-      "fingerprint": "50a120dd9868f58ce678",
-      "message": "Type 'IngredientStatus.UPLOADED' is not assignable to type 'IngredientStatus | undefined'. Did you mean '\"UPLOADED\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
       "count": 6,
       "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
       "fingerprint": "894776f000cb641d168a",
@@ -4694,22 +4686,6 @@
       "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
       "fingerprint": "608572257efed11cc1c2",
       "message": "Argument of type '{ id: string; }' is not assignable to parameter of type 'IngredientDocument'.   Type '{ id: string; }' is missing the following properties from type 'IngredientDocument': isDeleted, organizationId, brandId, isFavorite, and 65 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "8dc9c248bf28e7cfc3f1",
-      "message": "Type 'IngredientStatus.FAILED' is not assignable to type 'IngredientStatus'. Did you mean '\"FAILED\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 4,
-      "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
-      "fingerprint": "b96f36f0f51318223c83",
-      "message": "Type 'IngredientStatus.GENERATED' is not assignable to type 'IngredientStatus'. Did you mean '\"GENERATED\"'?",
       "workspace": "api"
     },
     {
