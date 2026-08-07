@@ -11,6 +11,7 @@ export * from './feature-flags.constant';
 export * from './gallery.constant';
 export * from './library.constant';
 export * from './lifecycle-emails.constant';
+export * from './locale.constant';
 export * from './media.constant';
 export * from './model-aspect-ratios.constant';
 export * from './model-brands.constant';

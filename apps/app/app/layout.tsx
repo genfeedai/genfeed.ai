@@ -5,12 +5,14 @@ import { isDesktopClient } from '@genfeedai/config/deployment';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
+import { resolveRequestLocale } from '@helpers/ui/locale/locale.helper';
 import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
 import RuntimeConfigScript from '@/components/runtime/RuntimeConfigScript';
@@ -49,7 +51,10 @@ function createRuntimeConfigScript(): string {
 }
 
 export default async function RootLayout({ children }: LayoutProps) {
-  const initialTheme = await resolveRequestTheme();
+  const [initialTheme, locale] = await Promise.all([
+    resolveRequestTheme(),
+    resolveRequestLocale(),
+  ]);
   const isDesktopShell = isDesktopClient();
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
@@ -60,21 +65,30 @@ export default async function RootLayout({ children }: LayoutProps) {
       initialTheme={initialTheme}
       fontVariables={fontVariables}
       bodyClassName={bodyClassName}
+      lang={locale}
     >
       <RuntimeConfigScript source={createRuntimeConfigScript()} />
-      <AppProviders initialTheme={initialTheme} storageKey={THEME_STORAGE_KEY}>
-        <DesktopDragStrip />
-        {/* Desktop ships as a bundled app with its own update path and offline
-            story; the deploy skew watcher and the service worker both only
-            apply to the Vercel-hosted studio. */}
-        {!isDesktopShell ? (
-          <>
-            <DeploymentVersionWatcher />
-            <ServiceWorkerRegistrar />
-          </>
-        ) : null}
-        {children}
-      </AppProviders>
+      {/* Locale and messages are inherited from i18n/request.ts rather than
+          passed here, so server components keep resolving copy on the server
+          and only what client components actually read crosses the boundary. */}
+      <NextIntlClientProvider>
+        <AppProviders
+          initialTheme={initialTheme}
+          storageKey={THEME_STORAGE_KEY}
+        >
+          <DesktopDragStrip />
+          {/* Desktop ships as a bundled app with its own update path and offline
+              story; the deploy skew watcher and the service worker both only
+              apply to the Vercel-hosted studio. */}
+          {!isDesktopShell ? (
+            <>
+              <DeploymentVersionWatcher />
+              <ServiceWorkerRegistrar />
+            </>
+          ) : null}
+          {children}
+        </AppProviders>
+      </NextIntlClientProvider>
     </AppHtmlDocument>
   );
 }

@@ -5,6 +5,14 @@
  * causes React hydration mismatches. Existing intentional call sites are a
  * shrinking ratchet: new calls fail, and removed calls require pruning the
  * documented allowance.
+ *
+ * "Explicit" means the call site decides the locale, not that the locale is a
+ * literal. Under epic #2497 the preferred fix is next-intl's formatter
+ * (`useFormatter` / `getFormatter`), which resolves against the request locale
+ * from `apps/app/i18n/request.ts` on both the server and the client — that is
+ * hydration-stable and translated. A hardcoded `'en-US'` also satisfies this
+ * guard, but it pins the surface to English; prefer the formatter when
+ * migrating an allowance away.
  */
 
 import { readFileSync } from 'node:fs';
