@@ -266,7 +266,21 @@ function parseEventTime(value?: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function getGroupDurationMs(events: EnrichedWorkEvent[]): number | null {
+/**
+ * Wall-clock span for a work group ("Worked for …").
+ *
+ * Prefer real timeline bounds over a single tool's `durationMs`:
+ * - start = earliest startedAt/createdAt
+ * - end = latest of createdAt, startedAt+durationMs, and optional answer boundary
+ *   (assistant message time so model synthesis after tools counts)
+ *
+ * Falling back to max(durationMs) alone under-reports multi-step runs where
+ * tools finish in ms but the turn runs for seconds/minutes.
+ */
+function getGroupDurationMs(
+  events: EnrichedWorkEvent[],
+  answerBoundaryIso?: string | null,
+): number | null {
   let earliestMs: number | null = null;
   let latestMs: number | null = null;
   let maxExplicitDurationMs: number | null = null;
@@ -274,18 +288,28 @@ function getGroupDurationMs(events: EnrichedWorkEvent[]): number | null {
   for (const event of events) {
     const startMs =
       parseEventTime(event.startedAt) ?? parseEventTime(event.createdAt);
-    const endMs =
-      parseEventTime(event.createdAt) ?? parseEventTime(event.startedAt);
+    const createdMs = parseEventTime(event.createdAt);
+    const endFromDuration =
+      startMs != null &&
+      event.durationMs != null &&
+      Number.isFinite(event.durationMs) &&
+      event.durationMs >= 0
+        ? startMs + event.durationMs
+        : null;
 
     if (startMs != null) {
       earliestMs = earliestMs == null ? startMs : Math.min(earliestMs, startMs);
     }
 
-    if (endMs != null) {
-      latestMs = latestMs == null ? endMs : Math.max(latestMs, endMs);
+    const eventEndCandidates = [createdMs, endFromDuration, startMs].filter(
+      (value): value is number => value != null,
+    );
+    if (eventEndCandidates.length > 0) {
+      const eventEndMs = Math.max(...eventEndCandidates);
+      latestMs = latestMs == null ? eventEndMs : Math.max(latestMs, eventEndMs);
     }
 
-    if (event.durationMs != null) {
+    if (event.durationMs != null && Number.isFinite(event.durationMs)) {
       maxExplicitDurationMs =
         maxExplicitDurationMs == null
           ? event.durationMs
@@ -293,11 +317,63 @@ function getGroupDurationMs(events: EnrichedWorkEvent[]): number | null {
     }
   }
 
-  if (earliestMs != null && latestMs != null && latestMs > earliestMs) {
-    return latestMs - earliestMs;
+  const answerBoundaryMs = parseEventTime(answerBoundaryIso ?? undefined);
+  if (answerBoundaryMs != null) {
+    latestMs =
+      latestMs == null
+        ? answerBoundaryMs
+        : Math.max(latestMs, answerBoundaryMs);
+    // If tools lack timestamps, still anchor the end to the answer.
+    if (earliestMs == null && answerBoundaryMs != null) {
+      // no-op — still need a start
+    }
+  }
+
+  if (earliestMs != null && latestMs != null && latestMs >= earliestMs) {
+    const wallClockMs = latestMs - earliestMs;
+    // Prefer wall clock; never drop below the longest explicit tool duration
+    // when both exist (bad clocks should not shrink under the measured tool).
+    if (maxExplicitDurationMs != null) {
+      return Math.max(wallClockMs, maxExplicitDurationMs);
+    }
+    return wallClockMs;
   }
 
   return maxExplicitDurationMs;
+}
+
+function findAnswerBoundaryIso(
+  group: EnrichedWorkEvent[],
+  assistantMessages: AgentChatMessage[],
+): string | null {
+  if (assistantMessages.length === 0 || group.length === 0) {
+    return null;
+  }
+
+  let latestEventMs: number | null = null;
+  for (const event of group) {
+    const candidate =
+      parseEventTime(event.createdAt) ?? parseEventTime(event.startedAt);
+    if (candidate != null) {
+      latestEventMs =
+        latestEventMs == null ? candidate : Math.max(latestEventMs, candidate);
+    }
+  }
+
+  if (latestEventMs == null) {
+    return null;
+  }
+
+  // First assistant reply at or after the last work event — includes model
+  // time after tools finished.
+  for (const message of assistantMessages) {
+    const messageMs = parseEventTime(message.createdAt);
+    if (messageMs != null && messageMs >= latestEventMs) {
+      return message.createdAt;
+    }
+  }
+
+  return null;
 }
 
 function shouldArchiveWorkGroup(
@@ -655,6 +731,10 @@ export function deriveTimeline(
     const normalizedGroup = normalizeWorkGroupEvents(
       collapseWorkGroupEvents(group),
     );
+    const answerBoundaryIso = findAnswerBoundaryIso(
+      normalizedGroup,
+      assistantMessages,
+    );
     entries.push({
       createdAt: normalizedGroup[0].createdAt,
       events: normalizedGroup,
@@ -663,7 +743,7 @@ export function deriveTimeline(
       presentation: shouldArchiveWorkGroup(normalizedGroup, assistantMessages)
         ? 'archived'
         : 'live',
-      totalDurationMs: getGroupDurationMs(normalizedGroup),
+      totalDurationMs: getGroupDurationMs(normalizedGroup, answerBoundaryIso),
     });
   }
 

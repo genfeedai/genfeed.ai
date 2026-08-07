@@ -147,7 +147,8 @@ export function AgentChatPromptBar({
   const promptBar = (
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
-      maxWidth="full"
+      // Portal already owns max-w-4xl + matching px; fill it without re-padding.
+      maxWidth={isPortaled ? 'full' : '4xl'}
       showTopFade={false}
       topContent={topContent}
       zIndex={40}

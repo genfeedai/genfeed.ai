@@ -18,7 +18,7 @@ describe('RssService', () => {
       publishedAt: new Date('2024-01-01'),
       scope: ArticleScope.PUBLIC,
       slug: 'test-article-1',
-      status: ArticleStatus.PUBLIC,
+      status: ArticleStatus.PUBLISHED,
       summary: 'Test summary 1',
     },
     {
@@ -30,7 +30,7 @@ describe('RssService', () => {
       publishedAt: new Date('2024-01-02'),
       scope: ArticleScope.PUBLIC,
       slug: 'test-article-2',
-      status: ArticleStatus.PUBLIC,
+      status: ArticleStatus.PUBLISHED,
       summary: 'Test summary 2',
     },
   ];

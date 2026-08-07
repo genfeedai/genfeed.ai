@@ -1,5 +1,6 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import {
   type AiActionResult,
   AiActionsService,
@@ -14,9 +15,17 @@ import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/too
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  BATCH_POST_PREVIEW_LIMIT,
+  takeBatchPostPreviews,
+} from '@api/services/agent-orchestrator/tools/batch-post-preview.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
-import { formatPlatformLabel, Status } from '@genfeedai/enums';
+import {
+  chargeBatchGenerationCredits,
+  estimateBatchGenerationCredits,
+} from '@genfeedai/constants';
+import { ActivitySource, formatPlatformLabel, Status } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -69,7 +78,39 @@ export class AgentMediaGenerationToolHandler {
     private readonly streamPublisher?: AgentStreamPublisherService,
     @Optional()
     private readonly contentQualityScorerService?: ContentQualityScorerService,
+    @Optional()
+    private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
+
+  private resolveBatchPricingOptions(ctx: ToolExecutionContext): {
+    includeMedia: boolean;
+    qualityTier?: string | null;
+  } {
+    // Caption-first pipeline: no media assets yet → packaging rates, not full
+    // media gen. When items gain mediaUrl, charge uses hasMedia: true instead.
+    return {
+      includeMedia: false,
+      qualityTier: ctx.qualityTier,
+    };
+  }
+
+  private async chargeBatchCredits(params: {
+    amount: number;
+    batchId: string;
+    organizationId: string;
+    userId: string;
+  }): Promise<void> {
+    if (!this.creditsUtilsService || params.amount <= 0) {
+      return;
+    }
+    await this.creditsUtilsService.deductCreditsFromOrganization(
+      params.organizationId,
+      params.userId,
+      params.amount,
+      `Batch generation ${params.batchId}`,
+      ActivitySource.SCRIPT,
+    );
+  }
 
   private publishTokenEffect(data: {
     runId?: string;
@@ -860,6 +901,32 @@ export class AgentMediaGenerationToolHandler {
       };
     }
 
+    const count = (params.count as number) || 10;
+    const platforms = (params.platforms as string[]) || ['instagram'];
+    const pricingOptions = this.resolveBatchPricingOptions(ctx);
+    const estimatedCredits = estimateBatchGenerationCredits(
+      {
+        contentMix: params.contentMix as never,
+        count,
+        platforms,
+      },
+      pricingOptions,
+    );
+
+    if (this.creditsUtilsService) {
+      const balance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          ctx.organizationId,
+        );
+      if (balance < estimatedCredits) {
+        return {
+          creditsUsed: 0,
+          error: `Insufficient credits. This batch needs about ${estimatedCredits} credits (format + caption model tier); balance is ${balance}.`,
+          success: false,
+        };
+      }
+    }
+
     const dateRange = (params.dateRange as Record<string, string>) || {
       end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       start: new Date().toISOString(),
@@ -869,12 +936,12 @@ export class AgentMediaGenerationToolHandler {
       {
         brandId,
         contentMix: params.contentMix as never,
-        count: (params.count as number) || 10,
+        count,
         dateRange: {
           end: dateRange.end,
           start: dateRange.start,
         },
-        platforms: (params.platforms as string[]) || ['instagram'],
+        platforms,
         style: params.style as string | undefined,
         topics: params.topics as string[] | undefined,
       },
@@ -884,10 +951,11 @@ export class AgentMediaGenerationToolHandler {
 
     const batchId = String(batch.id);
     const totalCount = batch.totalCount;
-    const platforms = (params.platforms as string[]) || ['instagram'];
     const platformLabel = this.formatBatchPlatformsLabel(platforms);
     const streamedItems: Array<{
       error?: string;
+      format?: string;
+      hasMedia?: boolean;
       index: number;
       platform?: string;
       postId?: string;
@@ -943,6 +1011,8 @@ export class AgentMediaGenerationToolHandler {
               `\n${(previewText || topic).trim()}`;
             streamedTranscript += block;
             streamedItems.push({
+              format: item.format,
+              hasMedia: Boolean(item.mediaUrl),
               index,
               platform: item.platform,
               postId,
@@ -996,6 +1066,8 @@ export class AgentMediaGenerationToolHandler {
             streamedTranscript += block;
             streamedItems.push({
               error,
+              format: item.format,
+              hasMedia: Boolean(item.mediaUrl),
               index,
               platform: item.platform,
               status: 'failed',
@@ -1082,32 +1154,80 @@ export class AgentMediaGenerationToolHandler {
         }),
       );
 
+      const { previews, remainingCount } = takeBatchPostPreviews(
+        streamedItems,
+        { limit: BATCH_POST_PREVIEW_LIMIT },
+      );
+      const reviewHref = `/publish/review?batch=${batchId}&filter=ready`;
+      const readyCount = summary.completedCount;
+      const viewAllLabel =
+        readyCount > BATCH_POST_PREVIEW_LIMIT
+          ? `View all ${readyCount} posts`
+          : readyCount > 0
+            ? 'Open review queue'
+            : 'Open Review Queue';
+
+      // Bill completed drafts only (format packaging + caption model tier).
+      const billableItems = streamedItems
+        .filter((entry) => entry.status === 'completed' && entry.postId)
+        .map((entry) => ({
+          format: entry.format ?? 'image',
+          hasMedia: Boolean(entry.hasMedia),
+        }));
+      const creditsUsed = chargeBatchGenerationCredits(
+        billableItems,
+        pricingOptions,
+      );
+      await this.chargeBatchCredits({
+        amount: creditsUsed,
+        batchId,
+        organizationId: ctx.organizationId,
+        userId: ctx.userId,
+      });
+
       return {
-        creditsUsed: 5,
+        creditsUsed,
         data: {
           batchId,
           completedCount: summary.completedCount,
+          creditsUsed,
+          estimatedCredits,
           failedCount: summary.failedCount,
           message:
             summary.failedCount > 0
               ? `Batch finished with ${summary.completedCount} ready and ${summary.failedCount} failed.`
               : `Batch finished with ${summary.completedCount} generated post${summary.completedCount === 1 ? '' : 's'}.`,
+          previewLimit: BATCH_POST_PREVIEW_LIMIT,
+          remainingCount,
           status: summary.status,
           streamedItems,
           streamedTranscript,
           totalCount: summary.totalCount,
         },
+        isBillingDelegated: true,
         nextActions: [
           {
             batchCount: totalCount,
+            completedCount: summary.completedCount,
+            creditEstimate: creditsUsed,
+            creditsUsed,
             ctas: [
-              { href: '/review', label: 'Open Review Queue' },
+              { href: reviewHref, label: viewAllLabel },
               { href: '/calendar/posts', label: 'Open Calendar' },
             ],
-            description: `Generated ${totalCount} ${platformLabel} draft${totalCount === 1 ? '' : 's'}.`,
+            description:
+              summary.completedCount > 0
+                ? `Generated ${summary.completedCount} ${platformLabel} draft${summary.completedCount === 1 ? '' : 's'}${summary.failedCount > 0 ? ` (${summary.failedCount} failed)` : ''} · ${creditsUsed} credits.`
+                : `Batch finished with 0 ready drafts${summary.failedCount > 0 ? `; ${summary.failedCount} failed` : ''}.`,
+            failedCount: summary.failedCount,
             id: `batch-generation-${batchId}`,
+            // Already limited server-side via takeBatchPostPreviews({ limit }).
+            items: previews,
+            platforms,
+            remainingCount,
             title: 'Batch generation complete',
-            type: 'batch_generation_card',
+            // Result card (previews + review link), not the configure/generate form.
+            type: 'batch_generation_result_card',
           },
         ],
         success: true,
@@ -1235,14 +1355,26 @@ export class AgentMediaGenerationToolHandler {
         );
       });
 
+    // Async path: reserve/estimate was checked above; settle when processing
+    // finishes is not yet streamed back into this result. Charge the estimate
+    // up front so we do not give free async batches; reconcile later if needed.
+    await this.chargeBatchCredits({
+      amount: estimatedCredits,
+      batchId,
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+    });
+
     return {
-      creditsUsed: 5,
+      creditsUsed: estimatedCredits,
       data: {
         batchId,
+        estimatedCredits,
         message: `Batch created with ${batch.totalCount} items. Processing started.`,
         status: batch.status,
         totalCount: batch.totalCount,
       },
+      isBillingDelegated: true,
       success: true,
     };
   }

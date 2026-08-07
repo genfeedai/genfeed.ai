@@ -1,13 +1,10 @@
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   type ContentDraft,
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
-import {
-  DEFAULT_AGENT_CHAT_MODEL_KEY,
-  SELECTABLE_AGENT_CHAT_MODELS,
-} from '@genfeedai/constants';
 import {
   buildArticleJsonLd,
   buildFaqJsonLd,
@@ -25,14 +22,6 @@ const GEO_SKILL_SLUG = 'content-geo-optimizer';
  * drifted onto models we no longer run. Scoring is a mechanical pass, so the
  * fallback is the cheapest catalogued model, not the chat default.
  */
-const TRUSTED_GEO_MODELS = new Set(
-  SELECTABLE_AGENT_CHAT_MODELS.map((model) => model.key),
-);
-const DEFAULT_MODEL =
-  [...SELECTABLE_AGENT_CHAT_MODELS].sort(
-    (left, right) => left.creditCostPerRound - right.creditCostPerRound,
-  )[0]?.key ?? DEFAULT_AGENT_CHAT_MODEL_KEY;
-
 interface GeoDimensionScore {
   finding: string;
   id: string;
@@ -70,6 +59,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
   constructor(
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly loggerService: LoggerService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
   ) {}
 
   async execute(
@@ -157,7 +147,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
               role: 'user',
             },
           ],
-          model: this.resolveModel(params.model),
+          model: await this.resolveModel(params.model),
           temperature: 0.3,
         },
         context.organizationId,
@@ -439,12 +429,15 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
     );
   }
 
-  private resolveModel(value: unknown): string {
-    if (typeof value === 'string' && TRUSTED_GEO_MODELS.has(value.trim())) {
-      return value.trim();
+  private async resolveModel(value: unknown): Promise<string> {
+    if (typeof value === 'string' && value.trim()) {
+      const key = value.trim();
+      if (await this.agentChatModelRegistry.isTrustedSelectableKey(key)) {
+        return key;
+      }
     }
 
-    return DEFAULT_MODEL;
+    return this.agentChatModelRegistry.getCheapestSelectableKey();
   }
 
   private getFaqParams(value: unknown): FaqParam[] {

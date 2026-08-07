@@ -12,12 +12,12 @@ describe('article.enum', () => {
       expect(Object.values(ArticleStatus)).toHaveLength(5);
     });
 
-    it('should have correct values', () => {
-      expect(ArticleStatus.DRAFT).toBe('draft');
-      expect(ArticleStatus.PROCESSING).toBe('processing');
-      expect(ArticleStatus.PUBLIC).toBe('public');
-      expect(ArticleStatus.ARCHIVED).toBe('archived');
-      expect(ArticleStatus.FAILED).toBe('failed');
+    it('should match Prisma SCREAMING_SNAKE for persisted members', () => {
+      expect(ArticleStatus.DRAFT).toBe('DRAFT');
+      expect(ArticleStatus.PUBLISHED).toBe('PUBLISHED');
+      expect(ArticleStatus.ARCHIVED).toBe('ARCHIVED');
+      expect(ArticleStatus.PROCESSING).toBe('PROCESSING');
+      expect(ArticleStatus.FAILED).toBe('FAILED');
     });
   });
 

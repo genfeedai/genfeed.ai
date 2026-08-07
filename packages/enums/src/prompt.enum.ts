@@ -1,30 +1,38 @@
+/**
+ * Prompt category. Values match Prisma `PromptCategory`.
+ * @see packages/prisma/prisma/schema.prisma `enum PromptCategory`
+ */
 export enum PromptCategory {
-  BRAND_DESCRIPTION = 'brand-description',
-  STORYBOARD_SCRIPT_DESCRIPTION = 'storyboard-script-description',
-  PRESET_DESCRIPTION_TEXT = 'presets-description-text',
-  PRESET_DESCRIPTION_IMAGE = 'presets-description-image',
-  PRESET_DESCRIPTION_VIDEO = 'presets-description-video',
-  PRESET_DESCRIPTION_MUSIC = 'presets-description-music',
-  POST_CONTENT_TWITTER = 'post-content-twitter',
-  POST_CONTENT_YOUTUBE = 'post-content-youtube',
-  POST_CONTENT_TIKTOK = 'post-content-tiktok',
-  POST_CONTENT_INSTAGRAM = 'post-content-instagram',
-  POST_TITLE_TWITTER = 'post-title-twitter',
-  POST_TITLE_YOUTUBE = 'post-title-youtube',
-  POST_TITLE_TIKTOK = 'post-title-tiktok',
-  POST_TITLE_INSTAGRAM = 'post-title-instagram',
-  MODELS_PROMPT_IMAGE = 'models-prompt-image',
-  MODELS_PROMPT_VIDEO = 'models-prompt-video',
-  MODELS_PROMPT_MUSIC = 'models-prompt-music',
-  MODELS_PROMPT_TRAINING = 'models-prompt-genfeedai',
-  ARTICLE = 'article',
+  BRAND_DESCRIPTION = 'BRAND_DESCRIPTION',
+  STORYBOARD_SCRIPT_DESCRIPTION = 'STORYBOARD_SCRIPT_DESCRIPTION',
+  PRESET_DESCRIPTION_TEXT = 'PRESET_DESCRIPTION_TEXT',
+  PRESET_DESCRIPTION_IMAGE = 'PRESET_DESCRIPTION_IMAGE',
+  PRESET_DESCRIPTION_VIDEO = 'PRESET_DESCRIPTION_VIDEO',
+  PRESET_DESCRIPTION_MUSIC = 'PRESET_DESCRIPTION_MUSIC',
+  POST_CONTENT_TWITTER = 'POST_CONTENT_TWITTER',
+  POST_CONTENT_YOUTUBE = 'POST_CONTENT_YOUTUBE',
+  POST_CONTENT_TIKTOK = 'POST_CONTENT_TIKTOK',
+  POST_CONTENT_INSTAGRAM = 'POST_CONTENT_INSTAGRAM',
+  POST_TITLE_TWITTER = 'POST_TITLE_TWITTER',
+  POST_TITLE_YOUTUBE = 'POST_TITLE_YOUTUBE',
+  POST_TITLE_TIKTOK = 'POST_TITLE_TIKTOK',
+  POST_TITLE_INSTAGRAM = 'POST_TITLE_INSTAGRAM',
+  MODELS_PROMPT_IMAGE = 'MODELS_PROMPT_IMAGE',
+  MODELS_PROMPT_VIDEO = 'MODELS_PROMPT_VIDEO',
+  MODELS_PROMPT_MUSIC = 'MODELS_PROMPT_MUSIC',
+  MODELS_PROMPT_TRAINING = 'MODELS_PROMPT_TRAINING',
+  ARTICLE = 'ARTICLE',
 }
 
+/**
+ * Prompt lifecycle. Values match Prisma `PromptStatus`.
+ * @see packages/prisma/prisma/schema.prisma `enum PromptStatus`
+ */
 export enum PromptStatus {
-  DRAFT = 'draft',
-  PROCESSING = 'processing',
-  GENERATED = 'generated',
-  FAILED = 'failed',
+  DRAFT = 'DRAFT',
+  PROCESSING = 'PROCESSING',
+  GENERATED = 'GENERATED',
+  FAILED = 'FAILED',
 }
 
 export enum PromptTemplateCategory {

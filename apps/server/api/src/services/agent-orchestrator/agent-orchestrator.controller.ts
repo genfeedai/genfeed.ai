@@ -8,8 +8,8 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
-import { AGENT_MODEL_ROUND_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
@@ -37,6 +37,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 export class AgentOrchestratorController {
   constructor(
     private readonly orchestratorService: AgentOrchestratorService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly agentGoalsService: AgentGoalsService,
     private readonly usersService: UsersService,
@@ -266,7 +267,7 @@ export class AgentOrchestratorController {
 
       return {
         balance,
-        modelCosts: AGENT_MODEL_ROUND_COSTS,
+        modelCosts: await this.agentChatModelRegistry.getRoundCostsMap(),
       };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'agentGetCredits');

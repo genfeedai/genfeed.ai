@@ -26,10 +26,14 @@ export const BotPlatform = {
 
 export type BotPlatform = (typeof BotPlatform)[keyof typeof BotPlatform];
 
+/**
+ * Bot lifecycle. Values match Prisma `BotStatus` (SCREAMING_SNAKE).
+ * @see packages/prisma/prisma/schema.prisma `enum BotStatus`
+ */
 export enum BotStatus {
-  ACTIVE = 'active',
-  PAUSED = 'paused',
-  INACTIVE = 'inactive',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  STOPPED = 'STOPPED',
 }
 
 export enum BotLivestreamMessageType {

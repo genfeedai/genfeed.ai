@@ -1,6 +1,12 @@
-import { SELECTABLE_AGENT_CHAT_MODELS } from '@genfeedai/constants';
 import type { CostTier } from '@genfeedai/enums';
 
+/**
+ * Picker row shape for agent chat / media model selectors.
+ *
+ * Runtime lists come from the Model registry (`useAgentRegistryModels`).
+ * Do not reintroduce a hard-coded AGENT_MODELS array here — that dual-sourced
+ * the picker against seed constants.
+ */
 export interface AgentModelOption {
   key: string;
   label: string;
@@ -9,34 +15,4 @@ export interface AgentModelOption {
   costTier?: CostTier;
   brandSlug: string;
   isReasoning?: boolean;
-}
-
-/**
- * Models offered in the agent picker.
- *
- * Derived from the canonical catalogue in `@genfeedai/constants` so labels,
- * credit costs and cost tiers can never drift from what the API bills. The
- * "Auto" entry is gone on purpose: OpenRouter picked any model at any price
- * while we charged the cheapest tier for it.
- */
-export const AGENT_MODELS: AgentModelOption[] =
-  SELECTABLE_AGENT_CHAT_MODELS.map((model) => ({
-    brandSlug: model.brandSlug,
-    costTier: model.costTier,
-    creditCost: model.creditCostPerRound,
-    description: model.description,
-    ...(model.isReasoning ? { isReasoning: true } : {}),
-    key: model.key,
-    label: model.label,
-  })).toSorted((left, right) => {
-    const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
-    const rightCost = right.creditCost ?? Number.POSITIVE_INFINITY;
-    if (leftCost !== rightCost) {
-      return leftCost - rightCost;
-    }
-    return left.label.localeCompare(right.label);
-  });
-
-export function getAgentModelByKey(key: string): AgentModelOption | undefined {
-  return AGENT_MODELS.find((m) => m.key === key);
 }

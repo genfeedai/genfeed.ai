@@ -263,6 +263,31 @@ const config = createAppNextConfig({
         APP_ROUTES.WORKSPACE.INBOX,
       ),
     },
+    // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
+    // it to `/:org/:brand/review`) — that page never existed. Send both dead
+    // shapes to Publish Review so stored thread links stop 404ing.
+    {
+      destination: APP_ROUTES.PUBLISH.REVIEW,
+      permanent: true,
+      source: '/review',
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.PUBLISH.REVIEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', '/review'),
+    },
+    {
+      destination: createOrganizationAppRoute(
+        ':orgSlug',
+        APP_ROUTES.PUBLISH.REVIEW,
+      ),
+      permanent: true,
+      source: createOrganizationAppRoute(':orgSlug', '/review'),
+    },
     {
       destination: APP_ROUTES.DISCOVER.OVERVIEW,
       permanent: false,
@@ -343,12 +368,13 @@ const config = createAppNextConfig({
     },
     ...retiredStudioTabRedirects(),
     // Complete-path homes: bare `/[app]` → `/[app]/overview` (Workspace,
-    // Analytics, Automate, Library). Discover/Studio already redirect ROOT to
-    // a named child (discovery / storyboard).
+    // Analytics, Automate, Library, Publish). Discover/Studio already redirect
+    // ROOT to a named child (discovery / storyboard).
     ...appHomeToOverviewRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.AUTOMATE.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.PUBLISH.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
     ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.PUBLISH.CAMPAIGNS),
     ...legacyPathRedirects(

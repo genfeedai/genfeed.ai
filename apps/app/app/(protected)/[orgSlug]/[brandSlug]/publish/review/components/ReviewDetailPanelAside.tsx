@@ -197,7 +197,7 @@ export default function ReviewDetailPanelAside({
                 {item.gateReasons?.map((reason) => (
                   <li
                     key={`${item.id}-${reason}`}
-                    className="rounded-2xl border border-white/[0.08] bg-muted/30 px-3 py-2"
+                    className="rounded-card border border-border bg-muted/30 px-3 py-2"
                   >
                     {reason}
                   </li>
@@ -230,7 +230,7 @@ export default function ReviewDetailPanelAside({
       )}
 
       {item.status === BatchItemStatus.FAILED && item.error && (
-        <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-5">
+        <div className="rounded-card border border-destructive/20 bg-destructive/10 p-4">
           <h3 className="text-sm font-medium text-rose-200">Failure reason</h3>
           <p className="mt-2 text-sm leading-6 text-rose-100/85">
             {item.error}

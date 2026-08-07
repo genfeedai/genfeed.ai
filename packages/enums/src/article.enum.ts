@@ -10,11 +10,13 @@ export { Scope as ArticleScope } from './scope.enum';
  * serialized article against a member of this enum never matches.
  */
 export enum ArticleStatus {
-  DRAFT = 'draft',
-  PROCESSING = 'processing',
-  PUBLIC = 'public',
-  ARCHIVED = 'archived',
-  FAILED = 'failed',
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ARCHIVED = 'ARCHIVED',
+  /** Domain-only pipeline state — not a Prisma ArticleStatus label. */
+  PROCESSING = 'PROCESSING',
+  /** Domain-only pipeline state — not a Prisma ArticleStatus label. */
+  FAILED = 'FAILED',
 }
 
 /**

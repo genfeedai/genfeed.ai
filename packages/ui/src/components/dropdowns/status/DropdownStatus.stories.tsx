@@ -136,7 +136,7 @@ export const ArticlePublished: Story = {
       id: '7',
       readingTime: 5,
       slug: 'test-article',
-      status: ArticleStatus.PUBLIC,
+      status: ArticleStatus.PUBLISHED,
     },
     onStatusChange: async () => {
       // Status changed

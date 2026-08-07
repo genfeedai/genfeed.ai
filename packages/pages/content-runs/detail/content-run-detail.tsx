@@ -486,7 +486,7 @@ function NavigationPanel({
       label: 'All Content Runs',
       icon: CirclePlay,
     },
-    { href: href(APP_ROUTES.PUBLISH.ROOT), label: 'Publish', icon: Send },
+    { href: href(APP_ROUTES.PUBLISH.OVERVIEW), label: 'Publish', icon: Send },
     { href: href('/analytics/posts'), label: 'Analytics', icon: ChartColumn },
   ];
 

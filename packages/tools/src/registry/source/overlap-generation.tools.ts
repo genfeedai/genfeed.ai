@@ -7,9 +7,11 @@ import type { SourceTool } from '../../interfaces/source-tool.interface.js';
  */
 export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
-    creditCost: 5,
+    // Floor for preflight only. Real amount is format+model-aware and billed
+    // dynamically in the handler (isBillingDelegated).
+    creditCost: 1,
     description:
-      'Generate a batch of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Returns a batch ID for tracking.',
+      'Generate a batch of content (images, videos, carousels) for a brand. Specify count, platforms, and date range. Use handle param to resolve @username to a credential. Returns a batch ID for tracking. Credits scale by item format and caption model tier — not a flat fee.',
     name: 'generate_content_batch',
     parameters: {
       properties: {

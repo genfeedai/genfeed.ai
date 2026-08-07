@@ -11,19 +11,19 @@ import {
   ButtonVariant,
   PageScope,
 } from '@genfeedai/enums';
-import type { IAgentRun, ICredential } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import type { IActivity, IAgentRun, ICredential } from '@genfeedai/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
-import MetricCard from '@ui/cards/metric-card/MetricCard';
-import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
+import AppTable from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -42,13 +42,13 @@ type ReviewInboxItem =
 
 const RUN_STATUS_VARIANTS: Record<
   AgentExecutionStatus,
-  'destructive' | 'outline' | 'success' | 'warning'
+  'destructive' | 'info' | 'secondary' | 'success' | 'warning'
 > = {
-  [AgentExecutionStatus.CANCELLED]: 'outline',
+  [AgentExecutionStatus.CANCELLED]: 'secondary',
   [AgentExecutionStatus.COMPLETED]: 'success',
   [AgentExecutionStatus.FAILED]: 'destructive',
   [AgentExecutionStatus.PENDING]: 'warning',
-  [AgentExecutionStatus.RUNNING]: 'warning',
+  [AgentExecutionStatus.RUNNING]: 'info',
 };
 
 function LoadingPanel({ label }: { label: string }) {
@@ -182,18 +182,15 @@ function ApprovalsSurface({
         />
       ) : (
         <>
-          <MetricCardGrid>
-            <MetricCard
-              label="Ready to review"
-              size="sm"
-              value={String(reviewInbox.readyCount)}
-            />
-            <MetricCard
-              label="Still generating"
-              size="sm"
-              value={String(reviewInbox.pendingCount)}
-            />
-          </MetricCardGrid>
+          <MetricSummary
+            items={[
+              { label: 'ready', value: String(reviewInbox.readyCount) },
+              {
+                label: 'generating',
+                value: String(reviewInbox.pendingCount),
+              },
+            ]}
+          />
 
           <div className="space-y-2">
             {reviewInbox.recentItems.length === 0 ? (
@@ -264,7 +261,7 @@ function PublishingSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const postsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.ROOT)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.OVERVIEW)
     : brandSetupHref;
   const recentRuns = [...activeRuns, ...runs]
     .filter(
@@ -309,23 +306,16 @@ function PublishingSurface({
         />
       ) : (
         <>
-          <MetricCardGrid columns={3}>
-            <MetricCard
-              label="Active runs"
-              size="sm"
-              value={String(activeRuns.length)}
-            />
-            <MetricCard
-              label="Pending posts"
-              size="sm"
-              value={String(analyticsPendingPosts)}
-            />
-            <MetricCard
-              label="Failed runs today"
-              size="sm"
-              value={String(failedToday)}
-            />
-          </MetricCardGrid>
+          <MetricSummary
+            items={[
+              { label: 'active', value: String(activeRuns.length) },
+              {
+                label: 'pending posts',
+                value: String(analyticsPendingPosts),
+              },
+              { label: 'failed today', value: String(failedToday) },
+            ]}
+          />
 
           <div className="space-y-2">
             {recentRuns.length === 0 ? (
@@ -350,8 +340,14 @@ function PublishingSurface({
                       value={getRunTimestamp(run)}
                     />
                   </div>
-                  <Badge variant={RUN_STATUS_VARIANTS[run.status]}>
-                    {run.status.toLowerCase()}
+                  <Badge
+                    variant={
+                      RUN_STATUS_VARIANTS[
+                        String(run.status).toUpperCase() as AgentExecutionStatus
+                      ] ?? 'info'
+                    }
+                  >
+                    {String(run.status).toLowerCase()}
                   </Badge>
                 </div>
               ))
@@ -433,28 +429,25 @@ function CredentialHealthSurface({
         />
       ) : (
         <>
-          <MetricCardGrid columns={4}>
-            <MetricCard
-              label="Total accounts"
-              size="sm"
-              value={String(summary.total)}
-            />
-            <MetricCard
-              label="Needs attention"
-              size="sm"
-              value={String(summary.attention)}
-            />
-            <MetricCard
-              label="Healthy"
-              size="sm"
-              value={String(summary.healthy)}
-            />
-            <MetricCard
-              label="Unknown health"
-              size="sm"
-              value={String(summary.unknown)}
-            />
-          </MetricCardGrid>
+          <MetricSummary
+            data-testid="credential-health-summary"
+            items={[
+              { label: 'accounts', value: String(summary.total) },
+              {
+                label: 'need attention',
+                value: String(summary.attention),
+              },
+              { label: 'healthy', value: String(summary.healthy) },
+              ...(summary.unknown > 0
+                ? [
+                    {
+                      label: 'unknown',
+                      value: String(summary.unknown),
+                    },
+                  ]
+                : []),
+            ]}
+          />
 
           <div className="space-y-2">
             {credentials.length === 0 ? (
@@ -500,6 +493,38 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
     scope: PageScope.ORGANIZATION,
   });
 
+  const columns = useMemo(
+    () => [
+      {
+        header: 'Activity',
+        key: 'description',
+        render: (activity: IActivity) => (
+          <div className="min-w-0">
+            <p className="line-clamp-1 text-sm font-medium text-foreground">
+              {getActivityDescription(activity)}
+            </p>
+            <ClientFormattedDate
+              className="mt-1 block text-xs text-foreground/45"
+              fallback="Time unavailable"
+              format="relative"
+              value={activity.createdAt}
+            />
+          </div>
+        ),
+      },
+      {
+        className: 'w-28 text-right',
+        header: 'Status',
+        key: 'status',
+        render: (activity: IActivity) => {
+          const badge = getActivityBadge(activity);
+          return <Badge variant={badge.variant}>{badge.label}</Badge>;
+        },
+      },
+    ],
+    [],
+  );
+
   return (
     <WorkspaceSurface
       actions={
@@ -530,34 +555,16 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
           description="No activity has been recorded for this organization yet."
         />
       ) : (
-        <div className="space-y-2">
-          {filteredActivities.slice(0, 5).map((activity) => {
-            const badge = getActivityBadge(activity);
-
-            return (
-              <div
-                className={cn(
-                  'flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border',
-                  activity.isRead && 'opacity-70',
-                )}
-                key={activity.id}
-              >
-                <div className="min-w-0">
-                  <p className="line-clamp-1 text-sm font-medium text-foreground">
-                    {getActivityDescription(activity)}
-                  </p>
-                  <ClientFormattedDate
-                    className="mt-1 block text-xs text-foreground/45"
-                    fallback="Time unavailable"
-                    format="relative"
-                    value={activity.createdAt}
-                  />
-                </div>
-                <Badge variant={badge.variant}>{badge.label}</Badge>
-              </div>
-            );
-          })}
-        </div>
+        <AppTable<IActivity>
+          columns={columns}
+          emptyLabel="No activity yet"
+          getItemId={(activity) => activity.id}
+          getRowClassName={(activity) =>
+            activity.isRead ? 'opacity-70' : undefined
+          }
+          getRowKey={(activity) => activity.id}
+          items={filteredActivities.slice(0, 5)}
+        />
       )}
     </WorkspaceSurface>
   );
@@ -583,8 +590,10 @@ export default function OperationalHomeSections({
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
   );
+  // Workspace Activity is the operator surface for this feed (same list as
+  // /overview/activities, registered under the workspace switcher).
   const activityHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.OVERVIEW.ACTIVITIES)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.ACTIVITY)
     : brandSetupHref;
 
   return (

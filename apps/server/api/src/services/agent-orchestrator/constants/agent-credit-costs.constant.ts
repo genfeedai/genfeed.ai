@@ -1,7 +1,3 @@
-import {
-  AGENT_CHAT_MODELS,
-  getAgentChatModelRoundCredits,
-} from '@genfeedai/constants';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface } from '@genfeedai/tools';
 
@@ -30,27 +26,7 @@ export const AGENT_CREDIT_COSTS: Record<string, number> = {
 export const AGENT_MAX_TOOL_ROUNDS = 5;
 
 /**
- * Credits burned by one LLM round, per model. Derived from the canonical
- * catalogue in `@genfeedai/constants` — a hand-maintained copy here drifted
- * from real provider pricing and billed frontier models at bargain rates.
- *
- * Served to the client by `GET /agent/credits` so the picker can price a turn
- * before it runs.
+ * Per-model LLM round costs and turn estimates live on
+ * `AgentChatModelRegistryService` (DB registry). Do not reintroduce a static
+ * map here — it dual-sources pricing against seed constants.
  */
-export const AGENT_MODEL_ROUND_COSTS: Record<string, number> =
-  Object.fromEntries(
-    AGENT_CHAT_MODELS.map((model) => [model.key, model.creditCostPerRound]),
-  );
-
-/**
- * Credits to hold before a turn starts.
- *
- * Billing is per round against the model that actually answered, and a turn
- * runs 1..AGENT_MAX_TOOL_ROUNDS of them — so this is only the affordability
- * gate for the first round. Reserving the worst case upfront would lock out
- * organizations that can comfortably afford the single-round turns they
- * actually run; the loop stops as soon as the balance runs dry.
- */
-export function getAgentTurnCreditEstimate(model: string): number {
-  return getAgentChatModelRoundCredits(model);
-}

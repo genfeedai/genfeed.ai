@@ -134,7 +134,7 @@ export default function ArticleDetail({
   } = useXArticleCompose(article);
 
   const isNew = !articleId && !article;
-  const isPublished = form.status === ArticleStatus.PUBLIC;
+  const isPublished = form.status === ArticleStatus.PUBLISHED;
   const canPublish =
     !!article && !isXArticle && !isPublished && form.label.trim().length > 0;
   const canArchive = !!article && isPublished;

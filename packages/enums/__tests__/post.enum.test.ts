@@ -44,13 +44,13 @@ describe('post.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(PostCategory.ARTICLE).toBe('article');
-      expect(PostCategory.VIDEO).toBe('video');
-      expect(PostCategory.POST).toBe('post');
-      expect(PostCategory.REEL).toBe('reel');
-      expect(PostCategory.STORY).toBe('story');
-      expect(PostCategory.IMAGE).toBe('image');
-      expect(PostCategory.TEXT).toBe('text');
+      expect(PostCategory.ARTICLE).toBe('ARTICLE');
+      expect(PostCategory.VIDEO).toBe('VIDEO');
+      expect(PostCategory.POST).toBe('POST');
+      expect(PostCategory.REEL).toBe('REEL');
+      expect(PostCategory.STORY).toBe('STORY');
+      expect(PostCategory.IMAGE).toBe('IMAGE');
+      expect(PostCategory.TEXT).toBe('TEXT');
     });
   });
 
@@ -60,8 +60,8 @@ describe('post.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(PostEntityModel.INGREDIENT).toBe('Ingredient');
-      expect(PostEntityModel.ARTICLE).toBe('Article');
+      expect(PostEntityModel.INGREDIENT).toBe('INGREDIENT');
+      expect(PostEntityModel.ARTICLE).toBe('ARTICLE');
     });
   });
 });

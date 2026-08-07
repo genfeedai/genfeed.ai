@@ -70,14 +70,49 @@ export class AgentCompletionCardBuilderService {
     label: string,
     cta?: AgentUiActionCta,
   ): AgentUiActionCta | undefined {
-    if (!cta) {
+    if (cta) {
+      return {
+        ...cta,
+        href: this.normalizeAppHref(cta.href) ?? cta.href,
+        label,
+      };
+    }
+
+    // Content completions always need a review destination.
+    if (label === 'Review Draft') {
+      return { href: APP_ROUTES.PUBLISH.REVIEW, label };
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Dead paths that brand-scoping turns into 404s
+   * (e.g. `/review` → `/:org/:brand/review`). Map to real product routes.
+   */
+  private normalizeAppHref(href: string | undefined): string | undefined {
+    if (!href?.trim()) {
       return undefined;
     }
 
-    return {
-      ...cta,
-      label,
-    };
+    const trimmed = href.trim();
+    const queryIndex = trimmed.search(/[?#]/);
+    const path = queryIndex === -1 ? trimmed : trimmed.slice(0, queryIndex);
+    const suffix = queryIndex === -1 ? '' : trimmed.slice(queryIndex);
+
+    if (path === '/review') {
+      return `${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+    }
+
+    if (path === '/calendar' || path === '/calendar/posts') {
+      return `${APP_ROUTES.PUBLISH.CALENDAR}${suffix}`;
+    }
+
+    if (path === '/publish/drafts' || path === '/drafts') {
+      return `${APP_ROUTES.PUBLISH.REVIEW}${suffix}`;
+    }
+
+    return trimmed;
   }
 
   private buildContentCompletionOutputVariants(

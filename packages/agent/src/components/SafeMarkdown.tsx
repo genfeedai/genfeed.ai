@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Code } from '@genfeedai/ui';
 import type { ReactElement, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -86,7 +87,12 @@ export function SafeMarkdown({
     : content;
 
   return (
-    <div className={className}>
+    <div
+      className={cn(
+        'min-w-0 max-w-full break-words [overflow-wrap:anywhere]',
+        className,
+      )}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         skipHtml
@@ -170,6 +176,11 @@ export function SafeMarkdown({
               </Code>
             );
           },
+          pre: ({ children }): ReactElement => (
+            <pre className="my-3 max-w-full overflow-x-auto rounded-lg">
+              {children}
+            </pre>
+          ),
         }}
       >
         {renderedContent}

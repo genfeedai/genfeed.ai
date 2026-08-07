@@ -8,15 +8,14 @@ import {
 
 describe('persona.enum', () => {
   describe('PersonaStatus', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(PersonaStatus)).toHaveLength(4);
+    it('should have 3 members matching Prisma', () => {
+      expect(Object.values(PersonaStatus)).toHaveLength(3);
     });
 
-    it('should have correct values', () => {
-      expect(PersonaStatus.DRAFT).toBe('draft');
-      expect(PersonaStatus.ACTIVE).toBe('active');
-      expect(PersonaStatus.PAUSED).toBe('paused');
-      expect(PersonaStatus.ARCHIVED).toBe('archived');
+    it('should match Prisma SCREAMING_SNAKE', () => {
+      expect(PersonaStatus.ACTIVE).toBe('ACTIVE');
+      expect(PersonaStatus.INACTIVE).toBe('INACTIVE');
+      expect(PersonaStatus.ARCHIVED).toBe('ARCHIVED');
     });
   });
 

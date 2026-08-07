@@ -56,6 +56,20 @@ describe('app next.config', () => {
     );
   });
 
+  it('redirects dead bare /review CTAs to publish/review', async () => {
+    const redirects = await config.redirects?.();
+    expect(redirects).toContainEqual({
+      destination: '/publish/review',
+      permanent: true,
+      source: '/review',
+    });
+    expect(redirects).toContainEqual({
+      destination: '/:orgSlug/:brandSlug/publish/review',
+      permanent: true,
+      source: '/:orgSlug/:brandSlug/review',
+    });
+  });
+
   it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
     const redirects = await config.redirects?.();
     const inboxRedirect = redirects?.find(
@@ -124,6 +138,7 @@ describe('app next.config', () => {
     APP_ROUTES.AUTOMATE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
+    APP_ROUTES.PUBLISH.ROOT,
   ] as const)(
     'permanently redirects bare %s to complete-path overview home',
     async (appRoot) => {

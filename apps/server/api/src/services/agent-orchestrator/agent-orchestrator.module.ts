@@ -37,6 +37,7 @@ import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
+import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
@@ -140,6 +141,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => AgentSpawnModule),
+    AgentChatModelRegistryModule,
     SeoModule,
     forwardRef(() => SkillRuntimeModule),
   ],

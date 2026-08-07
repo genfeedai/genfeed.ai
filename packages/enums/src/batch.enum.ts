@@ -38,9 +38,14 @@ export enum ContentFormat {
   STORY = 'story',
 }
 
+/**
+ * Reference image category. Values match Prisma `ReferenceImageCategory`
+ * (orphan type today — no column yet).
+ * @see packages/prisma/prisma/schema.prisma `enum ReferenceImageCategory`
+ */
 export enum ReferenceImageCategory {
-  FACE = 'face',
-  PRODUCT = 'product',
-  STYLE = 'style',
-  LOGO = 'logo',
+  FACE = 'FACE',
+  PRODUCT = 'PRODUCT',
+  STYLE = 'STYLE',
+  LOGO = 'LOGO',
 }

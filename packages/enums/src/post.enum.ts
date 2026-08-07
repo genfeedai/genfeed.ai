@@ -17,17 +17,25 @@ export enum PostFrequency {
   NEVER = 'never',
 }
 
+/**
+ * Post category. Values match Prisma `PostCategory`.
+ * @see packages/prisma/prisma/schema.prisma `enum PostCategory`
+ */
 export enum PostCategory {
-  ARTICLE = 'article',
-  VIDEO = 'video',
-  POST = 'post',
-  REEL = 'reel',
-  STORY = 'story',
-  IMAGE = 'image',
-  TEXT = 'text',
+  ARTICLE = 'ARTICLE',
+  VIDEO = 'VIDEO',
+  POST = 'POST',
+  REEL = 'REEL',
+  STORY = 'STORY',
+  IMAGE = 'IMAGE',
+  TEXT = 'TEXT',
 }
 
+/**
+ * Post entity model. Values match Prisma `PostEntityModel`.
+ * @see packages/prisma/prisma/schema.prisma `enum PostEntityModel`
+ */
 export enum PostEntityModel {
-  INGREDIENT = 'Ingredient',
-  ARTICLE = 'Article',
+  INGREDIENT = 'INGREDIENT',
+  ARTICLE = 'ARTICLE',
 }

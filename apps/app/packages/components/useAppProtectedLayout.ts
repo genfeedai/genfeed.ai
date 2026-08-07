@@ -101,7 +101,9 @@ export function useAppProtectedLayout(
   const isStudioPromptBarRoute =
     /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
-  const isPublishPromptBarRoute = pathname === APP_ROUTES.PUBLISH.ROOT;
+  const isPublishPromptBarRoute =
+    pathname === APP_ROUTES.PUBLISH.OVERVIEW ||
+    pathname === APP_ROUTES.PUBLISH.ROOT;
   const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
   const isMissionControlPromptBarRoute =
     pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||

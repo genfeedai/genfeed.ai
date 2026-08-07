@@ -63,7 +63,7 @@ const DEFAULT_COLOR = '#8b5cf6';
 const ARTICLE_STATUS_COLORS: Record<string, string> = {
   [ArticleStatus.ARCHIVED]: '#ef4444',
   [ArticleStatus.DRAFT]: '#6b7280',
-  [ArticleStatus.PUBLIC]: '#10b981',
+  [ArticleStatus.PUBLISHED]: '#10b981',
 };
 
 interface ArticleContentCalendarItem extends CalendarItem {

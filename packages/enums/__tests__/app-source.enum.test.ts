@@ -8,8 +8,8 @@ describe('app-source.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(AppSource.GENFEED).toBe('genfeed');
-      expect(AppSource.GETSHAREABLE).toBe('getshareable');
+      expect(AppSource.GENFEED).toBe('GENFEED');
+      expect(AppSource.GETSHAREABLE).toBe('GETSHAREABLE');
     });
   });
 });

@@ -40,7 +40,11 @@ export enum AgentType {
   BRAND_INTERVIEW = 'brand_interview',
 }
 
+/**
+ * Agent autonomy mode. Values match Prisma `AgentAutonomyMode`.
+ * @see packages/prisma/prisma/schema.prisma `enum AgentAutonomyMode`
+ */
 export enum AgentAutonomyMode {
-  SUPERVISED = 'supervised',
-  AUTO_PUBLISH = 'auto_publish',
+  SUPERVISED = 'SUPERVISED',
+  AUTO_PUBLISH = 'AUTO_PUBLISH',
 }

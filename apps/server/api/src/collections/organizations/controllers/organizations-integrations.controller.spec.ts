@@ -199,13 +199,13 @@ describe('OrganizationsIntegrationsController', () => {
 
   describe('update', () => {
     const updateDto: UpdateIntegrationDto = {
-      status: IntegrationStatus.INACTIVE,
+      status: IntegrationStatus.PAUSED,
     };
 
     it('should update an integration and return serialized result', async () => {
       const updated = {
         ...mockIntegration,
-        status: IntegrationStatus.INACTIVE,
+        status: IntegrationStatus.PAUSED,
       };
       mockIntegrationsService.update.mockResolvedValue(updated);
 

@@ -381,7 +381,7 @@ describe('ContentExecutionService', () => {
           generatedBy: 'content-engine:seo-blog',
           platforms: ['twitter'],
           skillSlug: 'seo-blog',
-          status: ContentDraftStatus.PENDING,
+          status: ContentDraftStatus.READY,
         }),
       );
     });
@@ -487,7 +487,7 @@ describe('ContentExecutionService', () => {
           generatedBy: 'content-engine:media-pipeline',
           mediaUrls: ['https://cdn.example.com/video.mp4'],
           skillSlug: 'media-pipeline',
-          status: ContentDraftStatus.PENDING,
+          status: ContentDraftStatus.READY,
         }),
       );
     });

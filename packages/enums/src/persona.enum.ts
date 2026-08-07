@@ -1,8 +1,11 @@
+/**
+ * Persona lifecycle. Values match Prisma `PersonaStatus` (SCREAMING_SNAKE).
+ * @see packages/prisma/prisma/schema.prisma `enum PersonaStatus`
+ */
 export enum PersonaStatus {
-  DRAFT = 'draft',
-  ACTIVE = 'active',
-  PAUSED = 'paused',
-  ARCHIVED = 'archived',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export enum AvatarProvider {

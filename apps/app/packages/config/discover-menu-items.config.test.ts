@@ -9,13 +9,43 @@ describe('DISCOVER_MENU_ITEMS', () => {
     expect(DISCOVER_LOGO_HREF).toBe('/discover/overview');
   });
 
-  it('renders the Discover entrypoints only', () => {
+  it('renders Discover peers and platform feeds as menu items', () => {
     expect(DISCOVER_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
       'Socials',
+      'X',
+      'Instagram',
+      'YouTube',
+      'TikTok',
+      'LinkedIn',
+      'Reddit',
+      'Pinterest',
       'Following',
       'Ads',
     ]);
+  });
+
+  it('groups platform feeds under Platforms (not Socials matchPaths)', () => {
+    const socials = DISCOVER_MENU_ITEMS.find(
+      (item) => item.label === 'Socials',
+    );
+    const platforms = DISCOVER_MENU_ITEMS.filter(
+      (item) => item.group === 'Platforms',
+    );
+
+    expect(socials?.href).toBe('/discover/socials');
+    expect(socials?.isExactMatch).toBe(true);
+    expect(socials?.matchPaths ?? []).toEqual(['/discover/socials']);
+    expect(platforms.map((item) => item.href)).toEqual([
+      '/discover/twitter',
+      '/discover/instagram',
+      '/discover/youtube',
+      '/discover/tiktok',
+      '/discover/linkedin',
+      '/discover/reddit',
+      '/discover/pinterest',
+    ]);
+    expect(platforms[0]?.isCollapsible).toBe(true);
   });
 
   it('keeps Following as a peer of Socials, not a Socials matchPath', () => {

@@ -172,33 +172,19 @@ vi.mock('./components/review-state', () => ({
   isReadyToReview: (item: { status?: string }) => item.status === 'COMPLETED',
 }));
 
-vi.mock('./components/ReviewStatsHeader', () => ({
-  default: () => <div>Review Stats Header</div>,
-}));
-
 vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div>Loading…</div>,
 }));
 
-vi.mock('@ui/layout/container/Container', () => ({
-  default: ({
-    children,
-    description,
-    label,
-    right,
-  }: {
-    children: ReactNode;
-    description: string;
-    label: string;
-    right?: ReactNode;
-  }) => (
-    <section>
-      <h1>{label}</h1>
-      <p>{description}</p>
-      {right}
-      {children}
-    </section>
-  ),
+vi.mock('@contexts/posts/posts-layout-context', () => ({
+  usePostsLayout: () => ({
+    setExportNode: vi.fn(),
+    setFiltersNode: vi.fn(),
+    setIsRefreshing: vi.fn(),
+    setRefresh: vi.fn(),
+    setScheduleActionsNode: vi.fn(),
+    setViewToggleNode: vi.fn(),
+  }),
 }));
 
 vi.mock('@ui/primitives/select', () => ({
@@ -313,13 +299,16 @@ describe('ReviewQueueContent', () => {
         return {
           data: batchList,
           error: batchesError,
+          isFetching: isBatchesLoading,
           isLoading: isBatchesLoading,
+          refetch: refetch,
         };
       }
 
       return {
         data: activeBatch,
         error: activeBatchError,
+        isFetching: isBatchLoading,
         isLoading: isBatchLoading,
         refetch,
       };
@@ -337,13 +326,16 @@ describe('ReviewQueueContent', () => {
         return {
           data: { items: [] },
           error: null,
+          isFetching: false,
           isLoading: false,
+          refetch: vi.fn(),
         };
       }
 
       return {
         data: null,
         error: null,
+        isFetching: false,
         isLoading: false,
         refetch: vi.fn(),
       };
@@ -429,8 +421,8 @@ describe('ReviewQueueContent', () => {
     render(<ReviewQueueContent />);
 
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();
-    expect(screen.getByText('Review Stats Header')).toBeInTheDocument();
-    expect(screen.getByText('Selected batch: batch-1')).toBeInTheDocument();
+    // Batch picker lives in publish layout action rail (filtersNode), not body.
+    expect(screen.queryByText('Review Stats Header')).not.toBeInTheDocument();
     expect(screen.getByText('Ready count: 2')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -449,12 +441,6 @@ describe('ReviewQueueContent', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
     expect(mocks.replace).toHaveBeenCalledWith(
       '/publish/review?batch=batch-1&filter=all&item=item-1',
-      { scroll: false },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: 'Select batch-2' }));
-    expect(mocks.replace).toHaveBeenCalledWith(
-      '/publish/review?batch=batch-2&filter=ready',
       { scroll: false },
     );
   });

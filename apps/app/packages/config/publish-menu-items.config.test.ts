@@ -9,8 +9,16 @@ describe('PUBLISH_MENU_ITEMS', () => {
     expect(PUBLISH_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('has a logo href set', () => {
-    expect(PUBLISH_LOGO_HREF).toBe('/publish');
+  it('has a logo href set to complete-path overview home', () => {
+    expect(PUBLISH_LOGO_HREF).toBe('/publish/overview');
+  });
+
+  it('leads with Overview, not bare module root', () => {
+    expect(PUBLISH_MENU_ITEMS[0]?.label).toBe('Overview');
+    expect(PUBLISH_MENU_ITEMS[0]?.href).toBe('/publish/overview');
+    expect(PUBLISH_MENU_ITEMS.map((item) => item.href)).not.toContain(
+      '/publish',
+    );
   });
 
   it('has no duplicate hrefs', () => {

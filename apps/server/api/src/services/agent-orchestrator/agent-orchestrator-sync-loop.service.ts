@@ -5,6 +5,7 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -56,6 +57,7 @@ import { Injectable, Optional } from '@nestjs/common';
 export class AgentOrchestratorSyncLoopService {
   constructor(
     private readonly llmDispatcher: LlmDispatcherService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -215,6 +217,8 @@ export class AgentOrchestratorSyncLoopService {
 
         const response = await this.llmDispatcher.chatCompletion(
           buildAgentChatCompletionParams({
+            defaultModelKey:
+              await this.agentChatModelRegistry.getDefaultModelKey(),
             messages,
             model,
             prompt: request.content,
@@ -236,7 +240,12 @@ export class AgentOrchestratorSyncLoopService {
           },
         );
         actualModels.add(actualModel);
-        roundCredits += resolveAgentRoundCreditCost({ actualModel, turnCost });
+        roundCredits += resolveAgentRoundCreditCost({
+          actualModel,
+          roundCreditsForModel:
+            await this.agentChatModelRegistry.getRoundCredits(actualModel),
+          turnCost,
+        });
 
         const choice = response.choices[0];
         if (!choice) {
@@ -293,6 +302,8 @@ export class AgentOrchestratorSyncLoopService {
             ...artifactMetadata,
             ...buildAgentScopeMetadata(context),
             ...buildAgentRoutingMetadata({
+              defaultModelKey:
+                await this.agentChatModelRegistry.getDefaultModelKey(),
               model,
               prompt: request.content,
               source: request.source,

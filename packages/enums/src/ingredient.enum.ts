@@ -1,18 +1,22 @@
 export { Scope as AssetScope } from './scope.enum';
 
+/**
+ * Ingredient media category. Values match Prisma `IngredientCategory`.
+ * @see packages/prisma/prisma/schema.prisma `enum IngredientCategory`
+ */
 export enum IngredientCategory {
-  IMAGE = 'image',
-  VIDEO = 'video',
-  MUSIC = 'music',
-  GIF = 'gif',
-  AVATAR = 'avatar',
-  AUDIO = 'audio',
-  IMAGE_EDIT = 'image-edit',
-  VIDEO_EDIT = 'video-edit',
-  VOICE = 'voice',
-  INGREDIENT = 'ingredient',
-  TEXT = 'text',
-  SOURCE = 'source',
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  MUSIC = 'MUSIC',
+  GIF = 'GIF',
+  AVATAR = 'AVATAR',
+  AUDIO = 'AUDIO',
+  IMAGE_EDIT = 'IMAGE_EDIT',
+  VIDEO_EDIT = 'VIDEO_EDIT',
+  VOICE = 'VOICE',
+  INGREDIENT = 'INGREDIENT',
+  TEXT = 'TEXT',
+  SOURCE = 'SOURCE',
 }
 
 /**
@@ -30,27 +34,33 @@ export enum IngredientStatus {
   REJECTED = 'REJECTED',
 }
 
+/**
+ * Transformation category. Values match Prisma `TransformationCategory`
+ * (orphan type today — no column yet). Keep SCREAMING so a future column
+ * write needs no cast.
+ * @see packages/prisma/prisma/schema.prisma `enum TransformationCategory`
+ */
 export enum TransformationCategory {
-  UPSCALED = 'upscaled',
-  RESIZED = 'resized',
-  ENHANCED = 'enhanced',
-  EXTENDED = 'extended',
-  INTERPOLATED = 'interpolated',
-  STABILIZED = 'stabilized',
-  BACKGROUND_REMOVED = 'background-removed',
-  STYLE_TRANSFERRED = 'style-transferred',
-  FACE_SWAPPED = 'face-swapped',
-  LIP_SYNCED = 'lip-synced',
-  ANIMATED = 'animated',
-  IMAGE_TO_VIDEO = 'image-to-video',
-  CLIPPED = 'clipped',
-  MERGED = 'merged',
-  EDITED = 'edited',
-  REVERSED = 'reversed',
-  MIRRORED = 'mirrored',
-  CAPTIONED = 'captioned',
-  VALIDATED = 'validated',
-  REFRAMED = 'reframed',
+  UPSCALED = 'UPSCALED',
+  RESIZED = 'RESIZED',
+  ENHANCED = 'ENHANCED',
+  EXTENDED = 'EXTENDED',
+  INTERPOLATED = 'INTERPOLATED',
+  STABILIZED = 'STABILIZED',
+  BACKGROUND_REMOVED = 'BACKGROUND_REMOVED',
+  STYLE_TRANSFERRED = 'STYLE_TRANSFERRED',
+  FACE_SWAPPED = 'FACE_SWAPPED',
+  LIP_SYNCED = 'LIP_SYNCED',
+  ANIMATED = 'ANIMATED',
+  IMAGE_TO_VIDEO = 'IMAGE_TO_VIDEO',
+  CLIPPED = 'CLIPPED',
+  MERGED = 'MERGED',
+  EDITED = 'EDITED',
+  REVERSED = 'REVERSED',
+  MIRRORED = 'MIRRORED',
+  CAPTIONED = 'CAPTIONED',
+  VALIDATED = 'VALIDATED',
+  REFRAMED = 'REFRAMED',
 }
 
 export enum IngredientExtension {
@@ -72,24 +82,36 @@ export enum IngredientAvatarCategory {
   AVATAR_VIDEO = 'avatar-video',
 }
 
+/**
+ * Fleet review lifecycle. Values match Prisma `FleetReviewStatus`.
+ * @see packages/prisma/prisma/schema.prisma `enum FleetReviewStatus`
+ */
 export enum FleetReviewStatus {
-  PENDING = 'pending',
-  APPROVED = 'approved',
-  REJECTED = 'rejected',
-  NEEDS_REVISION = 'needs-revision',
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  NEEDS_REVISION = 'NEEDS_REVISION',
 }
 
+/**
+ * Fleet asset label. Values match Prisma `FleetAssetLabel`.
+ * @see packages/prisma/prisma/schema.prisma `enum FleetAssetLabel`
+ */
 export enum FleetAssetLabel {
-  HERO = 'hero',
-  FILLER = 'filler',
-  BTS = 'bts',
-  PROMO = 'promo',
-  LIFESTYLE = 'lifestyle',
-  EDITORIAL = 'editorial',
+  HERO = 'HERO',
+  FILLER = 'FILLER',
+  BTS = 'BTS',
+  PROMO = 'PROMO',
+  LIFESTYLE = 'LIFESTYLE',
+  EDITORIAL = 'EDITORIAL',
 }
 
+/**
+ * Content rating. Values match Prisma `ContentRating`.
+ * @see packages/prisma/prisma/schema.prisma `enum ContentRating`
+ */
 export enum ContentRating {
-  SFW = 'sfw',
-  SUGGESTIVE = 'suggestive',
-  NSFW = 'nsfw',
+  SFW = 'SFW',
+  SUGGESTIVE = 'SUGGESTIVE',
+  NSFW = 'NSFW',
 }

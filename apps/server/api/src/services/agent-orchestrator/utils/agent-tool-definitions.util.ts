@@ -87,6 +87,7 @@ export const BATCH_SCOPED_ALLOWED_TOOLS: AgentToolName[] = [
 ];
 
 export function buildAgentChatCompletionParams(params: {
+  defaultModelKey: string;
   messages: OpenRouterMessage[];
   model: string;
   prompt: string;
@@ -103,6 +104,7 @@ export function buildAgentChatCompletionParams(params: {
   tools: OpenRouterTool[];
 } {
   const routingPolicy = resolveAgentRoutingPolicy({
+    defaultModelKey: params.defaultModelKey,
     model: params.model,
     prompt: params.prompt,
     source: params.source,

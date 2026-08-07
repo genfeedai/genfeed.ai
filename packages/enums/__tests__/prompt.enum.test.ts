@@ -12,7 +12,7 @@ describe('prompt.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(PromptCategory.BRAND_DESCRIPTION).toBe('brand-description');
+      expect(PromptCategory.BRAND_DESCRIPTION).toBe('BRAND_DESCRIPTION');
       expect(PromptCategory.STORYBOARD_SCRIPT_DESCRIPTION).toBe(
         'storyboard-script-description',
       );
@@ -28,23 +28,23 @@ describe('prompt.enum', () => {
       expect(PromptCategory.PRESET_DESCRIPTION_MUSIC).toBe(
         'presets-description-music',
       );
-      expect(PromptCategory.POST_CONTENT_TWITTER).toBe('post-content-twitter');
-      expect(PromptCategory.POST_CONTENT_YOUTUBE).toBe('post-content-youtube');
-      expect(PromptCategory.POST_CONTENT_TIKTOK).toBe('post-content-tiktok');
+      expect(PromptCategory.POST_CONTENT_TWITTER).toBe('POST_CONTENT_TWITTER');
+      expect(PromptCategory.POST_CONTENT_YOUTUBE).toBe('POST_CONTENT_YOUTUBE');
+      expect(PromptCategory.POST_CONTENT_TIKTOK).toBe('POST_CONTENT_TIKTOK');
       expect(PromptCategory.POST_CONTENT_INSTAGRAM).toBe(
         'post-content-instagram',
       );
-      expect(PromptCategory.POST_TITLE_TWITTER).toBe('post-title-twitter');
-      expect(PromptCategory.POST_TITLE_YOUTUBE).toBe('post-title-youtube');
-      expect(PromptCategory.POST_TITLE_TIKTOK).toBe('post-title-tiktok');
-      expect(PromptCategory.POST_TITLE_INSTAGRAM).toBe('post-title-instagram');
-      expect(PromptCategory.MODELS_PROMPT_IMAGE).toBe('models-prompt-image');
-      expect(PromptCategory.MODELS_PROMPT_VIDEO).toBe('models-prompt-video');
-      expect(PromptCategory.MODELS_PROMPT_MUSIC).toBe('models-prompt-music');
+      expect(PromptCategory.POST_TITLE_TWITTER).toBe('POST_TITLE_TWITTER');
+      expect(PromptCategory.POST_TITLE_YOUTUBE).toBe('POST_TITLE_YOUTUBE');
+      expect(PromptCategory.POST_TITLE_TIKTOK).toBe('POST_TITLE_TIKTOK');
+      expect(PromptCategory.POST_TITLE_INSTAGRAM).toBe('POST_TITLE_INSTAGRAM');
+      expect(PromptCategory.MODELS_PROMPT_IMAGE).toBe('MODELS_PROMPT_IMAGE');
+      expect(PromptCategory.MODELS_PROMPT_VIDEO).toBe('MODELS_PROMPT_VIDEO');
+      expect(PromptCategory.MODELS_PROMPT_MUSIC).toBe('MODELS_PROMPT_MUSIC');
       expect(PromptCategory.MODELS_PROMPT_TRAINING).toBe(
         'models-prompt-genfeedai',
       );
-      expect(PromptCategory.ARTICLE).toBe('article');
+      expect(PromptCategory.ARTICLE).toBe('ARTICLE');
     });
   });
 
@@ -54,10 +54,10 @@ describe('prompt.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(PromptStatus.DRAFT).toBe('draft');
-      expect(PromptStatus.PROCESSING).toBe('processing');
-      expect(PromptStatus.GENERATED).toBe('generated');
-      expect(PromptStatus.FAILED).toBe('failed');
+      expect(PromptStatus.DRAFT).toBe('DRAFT');
+      expect(PromptStatus.PROCESSING).toBe('PROCESSING');
+      expect(PromptStatus.GENERATED).toBe('GENERATED');
+      expect(PromptStatus.FAILED).toBe('FAILED');
     });
   });
 

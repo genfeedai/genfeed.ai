@@ -80,10 +80,10 @@ describe('status.constant', () => {
       });
 
       it('should have metadata for PUBLIC status', () => {
-        const meta = STATUS_METADATA.get(ArticleStatus.PUBLIC);
+        const meta = STATUS_METADATA.get(ArticleStatus.PUBLISHED);
 
         expect(meta).toBeDefined();
-        // Note: ArticleStatus.PUBLIC and PostStatus.PUBLIC share the same enum value,
+        // Note: ArticleStatus.PUBLISHED and PostStatus.PUBLIC share the same enum value,
         // so the Map stores the later entry (PostStatus with label 'Public')
         expect(meta?.label).toBe('Public');
         expect(meta?.variant).toBe('success');
@@ -190,7 +190,7 @@ describe('status.constant', () => {
 
     describe('Article statuses', () => {
       it('should return correct meta for PUBLIC', () => {
-        const meta = getStatusMeta(ArticleStatus.PUBLIC);
+        const meta = getStatusMeta(ArticleStatus.PUBLISHED);
 
         expect(meta.label).toBe('Public');
         expect(meta.variant).toBe('success');
@@ -241,7 +241,7 @@ describe('status.constant', () => {
       const validatedIngredient = STATUS_METADATA.get(
         IngredientStatus.VALIDATED,
       );
-      const publicArticle = STATUS_METADATA.get(ArticleStatus.PUBLIC);
+      const publicArticle = STATUS_METADATA.get(ArticleStatus.PUBLISHED);
       const publicPost = STATUS_METADATA.get(PostStatus.PUBLIC);
 
       expect(generatedIngredient?.variant).toBe('success');
@@ -308,7 +308,7 @@ describe('status.constant', () => {
     it('should have entries for all article statuses', () => {
       const articleStatuses = [
         ArticleStatus.DRAFT,
-        ArticleStatus.PUBLIC,
+        ArticleStatus.PUBLISHED,
         ArticleStatus.ARCHIVED,
       ];
 

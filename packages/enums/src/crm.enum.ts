@@ -1,11 +1,13 @@
+/**
+ * CRM lead lifecycle. Values match Prisma `LeadStatus` (SCREAMING_SNAKE).
+ * @see packages/prisma/prisma/schema.prisma `enum LeadStatus`
+ */
 export enum LeadStatus {
-  NEW = 'new',
-  CONTACTED = 'contacted',
-  QUALIFIED = 'qualified',
-  PROPOSAL = 'proposal',
-  NEGOTIATION = 'negotiation',
-  WON = 'won',
-  LOST = 'lost',
+  NEW = 'NEW',
+  CONTACTED = 'CONTACTED',
+  QUALIFIED = 'QUALIFIED',
+  CONVERTED = 'CONVERTED',
+  LOST = 'LOST',
 }
 
 export enum LeadSource {

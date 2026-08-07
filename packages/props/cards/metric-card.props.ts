@@ -2,7 +2,19 @@ import type { ComponentType, ReactNode } from 'react';
 
 export type MetricCardSize = 'sm' | 'md' | 'lg';
 
+/**
+ * How the metric paints:
+ * - `tile` — framed Card (label → value → description). Default for grids.
+ * - `inline` — frameless label/value pair for {@link MetricSummary} strips.
+ */
+export type MetricCardAppearance = 'tile' | 'inline';
+
 export type MetricCardProps = {
+  /**
+   * Visual state. Prefer this over inventing a second metric component.
+   * @default 'tile'
+   */
+  appearance?: MetricCardAppearance;
   /** Optional class on the outer frame */
   className?: string;
   /** Secondary line under the value (not a trend) */
@@ -29,4 +41,17 @@ export type MetricCardProps = {
   /** Primary metric value */
   value: ReactNode;
   valueClassName?: string;
+};
+
+/** One entry in a dense multi-metric strip ({@link MetricSummary}). */
+export type MetricSummaryItem = {
+  label: string;
+  value: ReactNode;
+};
+
+export type MetricSummaryProps = {
+  className?: string;
+  items: readonly MetricSummaryItem[];
+  /** Optional test id (defaults to metric-summary). */
+  'data-testid'?: string;
 };

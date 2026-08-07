@@ -25,11 +25,10 @@ interface AgentComposerStatusStackProps {
   socketConnectionState: AgentSocketConnectionState;
 }
 
-// Neutral notices stay on the opaque secondary surface so they stay readable
-// over the conversation. Tonal cards (connection warning, composer error) use
-// the same pattern as AgentRunFailureCard: tinted fill + matching border/text.
+// Composer-owned status (Claude/T3): sits above the glass bar, not in the
+// timeline. Compact surfaces so the stack never steals half the viewport.
 const STATUS_SURFACE_CLASS =
-  'rounded-lg border bg-background-secondary px-3 py-2 shadow-sm';
+  'rounded-lg border bg-background-secondary/95 px-2.5 py-1.5 shadow-sm backdrop-blur-sm';
 
 function splitComposerError(error: string): {
   detail: string | null;

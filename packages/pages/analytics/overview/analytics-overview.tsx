@@ -191,7 +191,7 @@ export default function AnalyticsOverview({
             description="After connected accounts publish content and analytics sync back, this chart will show which platforms are growing, flat, or underperforming."
             icon={ChartColumn}
             primaryAction={{
-              href: APP_ROUTES.PUBLISH.ROOT,
+              href: APP_ROUTES.PUBLISH.OVERVIEW,
               label: 'Create a post',
               variant: ButtonVariant.DEFAULT,
             }}

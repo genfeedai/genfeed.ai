@@ -98,51 +98,61 @@ export default function ReviewDetailPanel({
   const reviewEvents = (item.reviewEvents ?? []).toSorted((left, right) =>
     right.reviewedAt.localeCompare(left.reviewedAt),
   );
+  const caption =
+    item.caption?.trim() ||
+    item.prompt?.trim() ||
+    'No caption generated for this item yet.';
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-card">
+    <section className="rounded-card bg-card shadow-border">
       <ReviewDetailPanelHeader item={item} statusLabel={statusLabel} />
 
-      <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1.5fr),minmax(320px,1fr)]">
-        <div className="space-y-5">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/10 bg-neutral-950">
-            {item.mediaUrl ? (
+      <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+        <div className="min-w-0 space-y-3">
+          {/* Post-first: caption is primary. Media only when present. */}
+          <InsetSurface className="p-4" tone="contrast">
+            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Sparkles className="size-4 text-muted-foreground" />
+              Caption
+            </div>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+              {caption}
+            </p>
+            {item.status === BatchItemStatus.FAILED && item.error ? (
+              <p className="mt-3 rounded-card border border-destructive/20 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
+                {item.error}
+              </p>
+            ) : null}
+          </InsetSurface>
+
+          {item.mediaUrl ? (
+            <div className="relative aspect-[16/10] max-h-72 overflow-hidden rounded-card bg-background shadow-border">
               <Image
                 src={item.mediaUrl}
                 alt={item.caption ?? 'Review item preview'}
                 fill
                 className="object-cover"
-                sizes="(max-width: 1280px) 100vw, 60vw"
+                sizes="(max-width: 1280px) 100vw, 50vw"
               />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-3 text-foreground/45">
-                <div className="rounded-full border border-white/10 bg-card p-4">
-                  <ImageIcon className="size-8" />
-                </div>
-                <p className="text-sm">No media preview generated yet</p>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-card bg-background px-3 py-2.5 text-xs text-muted-foreground shadow-border">
+              <ImageIcon className="size-4 shrink-0" />
+              No media on this draft yet
+            </div>
+          )}
+
+          {item.prompt?.trim() && item.prompt.trim() !== caption ? (
+            <InsetSurface className="p-4" tone="contrast">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Clock className="size-4 text-muted-foreground" />
+                Prompt
               </div>
-            )}
-          </div>
-
-          <InsetSurface className="p-5" tone="contrast">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Sparkles className="size-4 text-foreground/55" />
-              Caption
-            </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/85">
-              {item.caption ?? 'No caption generated for this item yet.'}
-            </p>
-          </InsetSurface>
-
-          <InsetSurface className="p-5" tone="contrast">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Clock className="size-4 text-foreground/55" />
-              Prompt
-            </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/70">
-              {item.prompt ?? 'No generation prompt saved for this item.'}
-            </p>
-          </InsetSurface>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                {item.prompt}
+              </p>
+            </InsetSurface>
+          ) : null}
         </div>
 
         <ReviewDetailPanelAside

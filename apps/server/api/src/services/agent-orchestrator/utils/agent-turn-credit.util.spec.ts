@@ -5,7 +5,6 @@ import {
   resolveAgentTurnCreditCost,
   settleAgentTurnCredits,
 } from '@api/services/agent-orchestrator/utils/agent-turn-credit.util';
-import { getAgentChatModelRoundCredits } from '@genfeedai/constants';
 import { AgentToolName } from '@genfeedai/interfaces';
 
 const CHEAP_MODEL = 'deepseek/deepseek-v4-flash-0731';
@@ -16,37 +15,32 @@ describe('resolveAgentRoundCreditCost', () => {
     expect(
       resolveAgentRoundCreditCost({
         actualModel: EXPENSIVE_MODEL,
+        roundCreditsForModel: 12,
         turnCost: 1,
       }),
-    ).toBe(getAgentChatModelRoundCredits(EXPENSIVE_MODEL));
+    ).toBe(12);
   });
 
   it('charges more when the router substitutes a pricier model', () => {
     const cheap = resolveAgentRoundCreditCost({
       actualModel: CHEAP_MODEL,
+      roundCreditsForModel: 2,
       turnCost: 1,
     });
     const substituted = resolveAgentRoundCreditCost({
       actualModel: EXPENSIVE_MODEL,
+      roundCreditsForModel: 12,
       turnCost: 1,
     });
 
     expect(substituted).toBeGreaterThan(cheap);
   });
 
-  it('prices a retired key at its catalogue successor', () => {
-    expect(
-      resolveAgentRoundCreditCost({
-        actualModel: 'anthropic/claude-opus-5',
-        turnCost: 1,
-      }),
-    ).toBe(getAgentChatModelRoundCredits(EXPENSIVE_MODEL));
-  });
-
   it('keeps every round free inside a waived turn', () => {
     expect(
       resolveAgentRoundCreditCost({
         actualModel: EXPENSIVE_MODEL,
+        roundCreditsForModel: 12,
         turnCost: 0,
       }),
     ).toBe(0);

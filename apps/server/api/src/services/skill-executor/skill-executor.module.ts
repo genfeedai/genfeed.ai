@@ -3,6 +3,7 @@ import { ContentRunsModule } from '@api/collections/content-runs/content-runs.mo
 import { SkillsModule } from '@api/collections/skills/skills.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { ManagedInferenceModule } from '@api/endpoints/v1/managed-inference/managed-inference.module';
+import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { LeonardoAIModule } from '@api/services/integrations/leonardoai/leonardoai.module';
@@ -19,6 +20,7 @@ import { forwardRef, Module } from '@nestjs/common';
 @Module({
   exports: [SkillExecutorService],
   imports: [
+    AgentChatModelRegistryModule,
     forwardRef(() => ByokModule),
     forwardRef(() => ContentIntelligenceModule),
     forwardRef(() => ContentRunsModule),

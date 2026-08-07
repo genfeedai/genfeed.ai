@@ -79,7 +79,10 @@ describe('ActivitiesService action origin', () => {
     activity.findFirst.mockResolvedValue({
       action: ActivityKey.POST_PUBLISHED,
       createdAt: new Date(),
-      data: { source: ActivitySource.POST },
+      data: {
+        source: ActivitySource.POST,
+        value: 'Published to x: https://x.com/1',
+      },
       id: 'activity-legacy',
       isDeleted: false,
       updatedAt: new Date(),
@@ -90,7 +93,12 @@ describe('ActivitiesService action origin', () => {
     expect(activityRecord).toMatchObject({
       actorUserId: null,
       apiKeyId: null,
+      // Promote Prisma action/data into the wire-facing key/value/source fields.
+      isRead: false,
+      key: ActivityKey.POST_PUBLISHED,
       origin: ActionOrigin.UNKNOWN,
+      source: ActivitySource.POST,
+      value: 'Published to x: https://x.com/1',
     });
   });
 

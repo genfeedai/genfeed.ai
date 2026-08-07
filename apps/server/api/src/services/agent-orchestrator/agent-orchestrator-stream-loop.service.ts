@@ -4,6 +4,7 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
@@ -82,6 +83,7 @@ export class AgentOrchestratorStreamLoopService {
 
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly agentChatModelRegistry: AgentChatModelRegistryService,
     private readonly llmDispatcher: LlmDispatcherService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
@@ -246,6 +248,8 @@ export class AgentOrchestratorStreamLoopService {
         round++;
 
         const chatParams = buildAgentChatCompletionParams({
+          defaultModelKey:
+            await this.agentChatModelRegistry.getDefaultModelKey(),
           messages,
           model,
           prompt: latestUserMessage,
@@ -351,7 +355,12 @@ export class AgentOrchestratorStreamLoopService {
           },
         );
         actualModels.add(actualModel);
-        roundCredits += resolveAgentRoundCreditCost({ actualModel, turnCost });
+        roundCredits += resolveAgentRoundCreditCost({
+          actualModel,
+          roundCreditsForModel:
+            await this.agentChatModelRegistry.getRoundCredits(actualModel),
+          turnCost,
+        });
 
         const choice = response.choices[0];
         if (!choice) {
@@ -434,6 +443,8 @@ export class AgentOrchestratorStreamLoopService {
               ...artifactMetadata,
               ...buildAgentScopeMetadata(context),
               ...buildAgentRoutingMetadata({
+                defaultModelKey:
+                  await this.agentChatModelRegistry.getDefaultModelKey(),
                 model,
                 prompt: latestUserMessage,
                 source,

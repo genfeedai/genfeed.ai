@@ -35,9 +35,10 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
   return (
     <div
       className={cn(
+        'w-full min-w-0 max-w-full',
         isCards
-          ? 'grid w-full grid-cols-1 gap-2 sm:grid-cols-3'
-          : 'flex flex-wrap items-center justify-center gap-2',
+          ? 'grid grid-cols-1 gap-2 sm:grid-cols-3'
+          : 'flex min-w-0 flex-wrap items-center justify-center gap-2',
         className,
       )}
       aria-label="Prompt suggestions"
@@ -51,12 +52,12 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
           tooltipPosition="top"
           ariaLabel={suggestion.label}
           className={cn(
-            'h-auto text-left normal-case tracking-normal',
+            'h-auto min-w-0 max-w-full text-left normal-case tracking-normal',
             isCards
               ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background px-3.5 py-3.5 text-foreground/88 shadow-md shadow-black/25 transition-colors hover:border-border/80 hover:bg-background-secondary'
               : // Elevated pills so transcript CTAs fade under them cleanly
                 // without a tall opaque composer slab behind the row.
-                'inline-flex max-w-full items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/30 ring-1 ring-black/20 hover:border-border hover:bg-background-secondary',
+                'inline-flex max-w-[min(100%,18rem)] items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/30 ring-1 ring-black/20 hover:border-border hover:bg-background-secondary',
             isDisabled && 'pointer-events-none opacity-50',
           )}
           isDisabled={isDisabled}
@@ -72,11 +73,11 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
                   {suggestion.icon}
                 </span>
               ) : null}
-              <span className="text-left text-[13px] font-medium leading-snug text-foreground/88">
+              <span className="break-words text-left text-[13px] font-medium leading-snug text-foreground/88">
                 {suggestion.label}
               </span>
               {suggestion.description ? (
-                <span className="text-left text-[11px] leading-snug text-foreground/48">
+                <span className="break-words text-left text-[11px] leading-snug text-foreground/48">
                   {suggestion.description}
                 </span>
               ) : null}

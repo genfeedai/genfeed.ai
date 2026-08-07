@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
@@ -86,79 +86,83 @@ export default function ReviewDecisionPanel({
   setFeedback,
 }: ReviewDecisionPanelProps) {
   return (
-    <InsetSurface className="p-5" tone="contrast">
+    <InsetSurface className="p-4" tone="contrast">
       <h3 className="text-sm font-medium text-foreground">Decision</h3>
-      <p className="mt-1 text-sm text-foreground/55">
-        Keep momentum by making the decision from this panel.
+      <p className="mt-1 text-xs text-muted-foreground">
+        Approve, request changes, or reject this post.
       </p>
 
-      <div className="mt-4 flex flex-col gap-3">
-        <span className="space-y-2">
-          <span className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
-            Reviewer notes
+      <div className="mt-3 flex flex-col gap-2">
+        <span className="space-y-1.5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Notes
           </span>
           <Textarea
             value={feedback}
             onChange={(event) => setFeedback(event.target.value)}
-            placeholder="Add revision guidance or rejection context"
-            className="min-h-28 w-full rounded-xl border border-border bg-muted/40 px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-border-strong"
+            placeholder="Revision guidance or rejection context"
+            className="min-h-20 w-full rounded-md"
           />
         </span>
 
         {isReady ? (
           <>
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
               withWrapper={false}
               isDisabled={isActioning}
               onClick={() => onApprove(item.id)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              className="w-full gap-1.5"
             >
-              <Check className="size-4" />
+              <Check className="size-3.5" />
               {getApproveLabel(item)}
             </Button>
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
               withWrapper={false}
               isDisabled={isActioning}
               onClick={() => onRequestChanges(item.id, feedback)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-warning/25 bg-warning/10 px-4 py-3 text-sm font-medium text-warning transition-colors hover:bg-warning/20 disabled:opacity-50"
+              className="w-full gap-1.5"
             >
-              <Sparkles className="size-4" />
+              <Sparkles className="size-3.5" />
               Request changes
             </Button>
             <Button
-              variant={ButtonVariant.UNSTYLED}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DESTRUCTIVE}
               withWrapper={false}
               isDisabled={isActioning}
               onClick={() => onReject(item.id, feedback)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
+              className="w-full gap-1.5"
             >
-              <X className="size-4" />
-              Reject and remove
+              <X className="size-3.5" />
+              Reject
             </Button>
           </>
         ) : (
           <InsetSurface
-            className={`px-4 py-3 text-sm ${getResolvedDecisionStatus(item).className}`}
+            className={`px-3 py-2.5 text-sm ${getResolvedDecisionStatus(item).className}`}
             density="compact"
           >
             {getResolvedDecisionStatus(item).label}
           </InsetSurface>
         )}
 
-        {isReadyToReview(item) && (
+        {isReadyToReview(item) ? (
           <Button
-            variant={ButtonVariant.UNSTYLED}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
             withWrapper={false}
             onClick={() => onToggleSelect(item.id)}
-            className="rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-foreground/75 transition-colors hover:border-border-strong hover:bg-muted/60"
+            className="w-full"
           >
             {isSelected
               ? 'Remove from bulk selection'
               : 'Add to bulk selection'}
           </Button>
-        )}
+        ) : null}
       </div>
     </InsetSurface>
   );

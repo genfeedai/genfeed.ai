@@ -4,11 +4,15 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
+  AgentApiService,
   type AgentGenerationPriority,
   AgentSettings,
   type AgentSettingsValues,
+  useAgentRegistryModels,
 } from '@genfeedai/agent';
 import { AlertCategory } from '@genfeedai/enums';
+import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
@@ -47,6 +51,17 @@ export default function AgentConfigurationPage(): ReactElement {
   const params = useParams<{ brandSlug: string; orgSlug: string }>();
   const { brandId, isReady, refreshBrands, selectedBrand } = useBrand();
   const { currentUser, isLoading, mutateUser, refetchUser } = useCurrentUser();
+  const { getToken } = useAuthIdentity();
+  const agentApiService = useMemo(
+    () =>
+      new AgentApiService({
+        baseUrl: process.env.NEXT_PUBLIC_API_ENDPOINT ?? '',
+        getToken: async (options) => resolveAuthToken(getToken, options),
+      }),
+    [getToken],
+  );
+  const { isLoading: isModelsLoading, models: registryModels } =
+    useAgentRegistryModels(agentApiService);
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
@@ -158,6 +173,8 @@ export default function AgentConfigurationPage(): ReactElement {
         key={`${selectedBrandId}:${currentUser.id}`}
         initialSettings={initialSettings}
         isDefaultState={isDefaultState}
+        isModelsLoading={isModelsLoading}
+        models={registryModels}
         onSave={handleSave}
       />
     );

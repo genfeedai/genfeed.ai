@@ -127,7 +127,7 @@ export function getVerifiedMcpConnection(
 
 export function getCredentialBadge(credential: ICredential): {
   label: string;
-  variant: 'destructive' | 'outline' | 'success' | 'warning';
+  variant: 'destructive' | 'info' | 'success' | 'warning';
 } {
   if (!credential.isConnected) {
     return { label: 'Disconnected', variant: 'destructive' };
@@ -147,32 +147,48 @@ export function getCredentialBadge(credential: ICredential): {
     return { label: 'Healthy', variant: 'success' };
   }
 
-  return { label: 'Connected', variant: 'outline' };
+  // Connected but health unknown — blue info chip, never colorless outline.
+  return { label: 'Connected', variant: 'info' };
 }
 
 export function getActivityBadge(activity: IActivity): {
   label: string;
-  variant: 'destructive' | 'outline' | 'success' | 'warning';
+  variant: 'destructive' | 'info' | 'success' | 'warning';
 } {
-  const normalized = (activity.status ?? activity.value ?? '').toLowerCase();
+  const key = (activity.key ?? '').toLowerCase();
+  const normalized = (activity.status ?? activity.value ?? key).toLowerCase();
 
-  if (normalized.includes('fail') || normalized.includes('error')) {
+  if (
+    normalized.includes('fail') ||
+    normalized.includes('error') ||
+    key.endsWith('-failed')
+  ) {
     return { label: 'Failed', variant: 'destructive' };
   }
 
-  if (normalized.includes('pending') || normalized.includes('processing')) {
+  if (
+    normalized.includes('pending') ||
+    normalized.includes('processing') ||
+    key.endsWith('-processing') ||
+    key.endsWith('-created')
+  ) {
     return { label: 'In progress', variant: 'warning' };
   }
 
   if (
     normalized.includes('complete') ||
     normalized.includes('publish') ||
-    normalized.includes('success')
+    normalized.includes('success') ||
+    normalized.includes('generated') ||
+    key.endsWith('-completed') ||
+    key.endsWith('-generated') ||
+    key.endsWith('-published')
   ) {
     return { label: 'Completed', variant: 'success' };
   }
 
-  return { label: 'Recorded', variant: 'outline' };
+  // Generic log entry — blue info chip so the activity list isn't monochrome.
+  return { label: 'Recorded', variant: 'info' };
 }
 
 export function summarizeCredentialHealth(

@@ -33,6 +33,15 @@ const UNSCOPED_ROUTE_PREFIXES = new Set([
   'sign-up',
 ]);
 
+/** Legacy unscoped paths that 404 after brand-scoping if left alone. */
+const LEGACY_INTERNAL_PATH_REWRITES: Readonly<Record<string, string>> = {
+  '/calendar': '/publish/calendar',
+  '/calendar/posts': '/publish/calendar',
+  '/drafts': '/publish/review',
+  '/publish/drafts': '/publish/review',
+  '/review': '/publish/review',
+};
+
 @Injectable()
 export class AgentRouteRewriteService {
   constructor(
@@ -156,15 +165,16 @@ export class AgentRouteRewriteService {
       return href;
     }
 
-    const { path, suffix } = this.splitHrefSuffix(href);
+    const { path: rawPath, suffix } = this.splitHrefSuffix(href);
+    const path = LEGACY_INTERNAL_PATH_REWRITES[rawPath] ?? rawPath;
     const firstSegment = path.split('/').filter(Boolean)[0];
 
     if (!firstSegment || UNSCOPED_ROUTE_PREFIXES.has(firstSegment)) {
-      return href;
+      return `${path}${suffix}`;
     }
 
     if (path.startsWith(`/${slugs.orgSlug}/`)) {
-      return href;
+      return `${path}${suffix}`;
     }
 
     if (ORG_LEVEL_ROUTE_PREFIXES.has(firstSegment)) {

@@ -652,7 +652,7 @@ export class ArticlesContentService {
       if (
         article.slug &&
         publicUrl &&
-        String(article.status) === ArticleStatus.PUBLIC
+        String(article.status) === ArticleStatus.PUBLISHED
       ) {
         articleUrl = `${publicUrl}/articles/${article.slug}`;
       }

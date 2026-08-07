@@ -51,7 +51,7 @@ describe('ContentReviewService', () => {
       expect(mockContentDraftsService.listByBrand).toHaveBeenCalledWith(
         orgId,
         brandId,
-        ContentDraftStatus.PENDING,
+        ContentDraftStatus.READY,
       );
       expect(result).toBe(mockDrafts);
     });

@@ -19,6 +19,8 @@ function ReviewQueueContentContent() {
     isActioning,
     isBatchesLoading,
     isBatchLoading,
+    isRefreshing,
+    refreshQueue,
     selectedIds,
     selectedPostId,
     visibleItems,
@@ -50,6 +52,7 @@ function ReviewQueueContentContent() {
       hasInvalidBatchPayload={hasInvalidBatchPayload}
       isActioning={isActioning}
       isBatchLoading={isBatchLoading}
+      isRefreshing={isRefreshing}
       selectedIds={selectedIds}
       selectedPostId={selectedPostId}
       visibleItems={visibleItems}
@@ -59,6 +62,7 @@ function ReviewQueueContentContent() {
       onBulkReject={() => handleBulkAction('reject')}
       onClosePostDetail={() => setSelectedPostId(null)}
       onFilterChange={handleFilterChange}
+      onRefresh={refreshQueue}
       onRequestChanges={handleRequestChanges}
       onReject={handleRejectItem}
       onSelectItem={handleSelectItem}

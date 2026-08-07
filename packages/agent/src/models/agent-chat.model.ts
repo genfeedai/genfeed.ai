@@ -285,6 +285,8 @@ export interface AgentUiAction {
   completedCount?: number;
   failedCount?: number;
   creditsUsed?: number;
+  /** Completed posts beyond the max-3 preview cards. */
+  remainingCount?: number;
   audioUrl?: string;
   cloneProgress?: number;
   brandId?: string | null;

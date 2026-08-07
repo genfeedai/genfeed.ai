@@ -24,7 +24,10 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  CredentialPlatform as PrismaCredentialPlatform,
+} from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -352,6 +355,7 @@ export class BatchGenerationProcessingService {
         this.logger.error(`Batch item ${item.id} failed: ${item.error}`, {
           batchId,
           itemId: item.id,
+          rawError: error instanceof Error ? error.message : error,
         });
 
         const topics = batchConfig.topics ?? [];

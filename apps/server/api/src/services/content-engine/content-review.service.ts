@@ -23,7 +23,7 @@ export class ContentReviewService {
     return this.contentDraftsService.listByBrand(
       organizationId,
       brandId,
-      ContentDraftStatus.PENDING,
+      ContentDraftStatus.READY,
     );
   }
 

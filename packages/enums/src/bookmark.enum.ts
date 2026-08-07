@@ -22,10 +22,14 @@ export const BookmarkPlatform = {
 export type BookmarkPlatform =
   (typeof BookmarkPlatform)[keyof typeof BookmarkPlatform];
 
+/**
+ * Bookmark intent. Values match Prisma `BookmarkIntent`.
+ * @see packages/prisma/prisma/schema.prisma `enum BookmarkIntent`
+ */
 export enum BookmarkIntent {
-  VIDEO = 'video',
-  IMAGE = 'image',
-  REPLY = 'reply',
-  REFERENCE = 'reference',
-  INSPIRATION = 'inspiration',
+  VIDEO = 'VIDEO',
+  IMAGE = 'IMAGE',
+  REPLY = 'REPLY',
+  REFERENCE = 'REFERENCE',
+  INSPIRATION = 'INSPIRATION',
 }

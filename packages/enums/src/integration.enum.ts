@@ -1,12 +1,20 @@
+/**
+ * Integration platform. Values match Prisma `IntegrationPlatform`.
+ * @see packages/prisma/prisma/schema.prisma `enum IntegrationPlatform`
+ */
 export enum IntegrationPlatform {
-  TELEGRAM = 'telegram',
-  SLACK = 'slack',
-  DISCORD = 'discord',
-  UNIPILE = 'unipile',
+  TELEGRAM = 'TELEGRAM',
+  SLACK = 'SLACK',
+  DISCORD = 'DISCORD',
+  UNIPILE = 'UNIPILE',
 }
 
+/**
+ * Integration lifecycle. Values match Prisma `IntegrationStatus`.
+ * @see packages/prisma/prisma/schema.prisma `enum IntegrationStatus`
+ */
 export enum IntegrationStatus {
-  ACTIVE = 'active',
-  PAUSED = 'paused',
-  ERROR = 'error',
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  ERROR = 'ERROR',
 }

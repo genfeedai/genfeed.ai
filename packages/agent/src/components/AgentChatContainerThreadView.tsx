@@ -126,7 +126,10 @@ export function AgentChatContainerThreadView({
   return (
     <div
       className={cn(
-        'relative flex flex-1 overflow-hidden',
+        // min-w-0 is required on every flex ancestor — without it, wide
+        // message/code/card min-content blows the column and paints a
+        // horizontal scrollbar on the page (hiding overflow is not a fix).
+        'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
         isReadOnly && 'opacity-60',
       )}
     >
@@ -146,20 +149,17 @@ export function AgentChatContainerThreadView({
             AGENT_CONVERSATION_TRACK_CLASS,
             'space-y-1 pt-4',
             // Reserve only what the floating stack actually uses (glass bar
-            // ~7rem + optional chip row ~3rem + bottom offset).
+            // ~6rem + optional chip row ~2.5rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips
-              ? 'pb-44 md:pb-48'
+              ? 'pb-40 md:pb-44'
               : padBottomForComposer
-                ? 'pb-36 md:pb-40'
-                : 'pb-6',
+                ? 'pb-32 md:pb-36'
+                : 'pb-5',
           )}
         >
+          {/* Thread title lives in the shell topbar — no second title chrome. */}
           {activeThreadTitle ? (
-            <div className="mb-4 border-b border-border/50 px-1 pb-3">
-              <p className="truncate text-sm font-semibold tracking-tight text-foreground/85">
-                {activeThreadTitle}
-              </p>
-            </div>
+            <h2 className="sr-only">{activeThreadTitle}</h2>
           ) : null}
 
           <WorkflowPhaseProgressBar />

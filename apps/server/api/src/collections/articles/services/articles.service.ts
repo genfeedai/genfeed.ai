@@ -304,7 +304,7 @@ export class ArticlesService extends BaseService<
       });
 
       // If status is being changed to PUBLISHED, handle publishing logic
-      if (updateArticleDto.status === ArticleStatus.PUBLIC) {
+      if (updateArticleDto.status === ArticleStatus.PUBLISHED) {
         await this.applyPublishStateTransition({
           id,
           organizationId,
@@ -405,7 +405,7 @@ export class ArticlesService extends BaseService<
     status?: ArticleStatus,
   ): Promise<void> {
     if (
-      status !== ArticleStatus.PUBLIC ||
+      status !== ArticleStatus.PUBLISHED ||
       !this.notificationsService ||
       !this.organizationSettingsService ||
       !this.configService

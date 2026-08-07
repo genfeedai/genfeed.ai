@@ -8,7 +8,7 @@ import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSu
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
+import { UNRESOLVED_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
@@ -60,7 +60,7 @@ export function AgentChatContainer({
     models: registryModels,
   } = useAgentRegistryModels(apiService);
   const [selectedModel, setSelectedModel] = useState(
-    () => model?.trim() || DEFAULT_RUNTIME_AGENT_MODEL,
+    () => model?.trim() || UNRESOLVED_RUNTIME_AGENT_MODEL,
   );
 
   useEffect(() => {
@@ -68,14 +68,15 @@ export function AgentChatContainer({
       return;
     }
     const keys = new Set(registryModels.map((entry) => entry.key));
-    if (keys.has(selectedModel)) {
+    if (selectedModel && keys.has(selectedModel)) {
       return;
     }
     const next =
       (model?.trim() && keys.has(model.trim()) ? model.trim() : null) ||
       defaultModelKey ||
-      registryModels[0]?.key;
-    if (next && next !== selectedModel) {
+      registryModels[0]?.key ||
+      UNRESOLVED_RUNTIME_AGENT_MODEL;
+    if (next !== selectedModel) {
       setSelectedModel(next);
     }
   }, [
@@ -117,8 +118,9 @@ export function AgentChatContainer({
 
   // Full-width pane so the transcript scrollbar sits on the window edge
   // (Codex-style). Content + composer share AGENT_CONVERSATION_TRACK_CLASS.
+  // min-w-0 stops flex min-content from blowing past the shell width.
   const conversationColumnClass =
-    'relative flex min-h-0 w-full flex-1 flex-col';
+    'relative flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-clip';
   const activeWorkEvent = useMemo(
     () =>
       selectActiveWorkEvent(container.workEvents, {
@@ -164,20 +166,22 @@ export function AgentChatContainer({
       findPendingGenerationAction(messages),
     [container.streamState.pendingUiActions, messages],
   );
-  const shouldRenderInlineComposerFeedback =
-    !composerShell || composerShell.isComposerVisible === false;
-
-  const shouldShowDockedComposer =
+  // When the docked composer is visible, status/errors live above the glass
+  // bar (Claude/T3 pattern) — not as sticky timeline chrome.
+  const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
     (!container.isEmpty ||
       onboardingMode ||
       composerShell?.placement === 'inspector');
+  const shouldRenderInlineComposerFeedback = !isComposerDocked;
+
+  const shouldShowDockedComposer = isComposerDocked;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-col">
       {/*
-        One width owner for transcript + floating composer. Both children are
-        w-full of this track so card edges and the prompt shell match exactly.
+        One column: transcript scroll + floating composer share the same
+        AGENT_CONVERSATION_TRACK_CLASS width owner (portal or inflow).
       */}
       <div
         className={conversationColumnClass}
@@ -199,7 +203,7 @@ export function AgentChatContainer({
           </div>
         ) : null}
 
-        {archivedNotice ? (
+        {archivedNotice && shouldRenderInlineComposerFeedback ? (
           <div className={AGENT_CONVERSATION_TRACK_CLASS}>
             <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
               {archivedNotice}
@@ -315,7 +319,7 @@ export function AgentChatContainer({
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
             error={
-              composerShell && container.error
+              isComposerDocked && container.error
                 ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
                 : null
             }

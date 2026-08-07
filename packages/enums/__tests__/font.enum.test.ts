@@ -8,9 +8,9 @@ describe('font.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(FontFamily.MONTSERRAT_BLACK).toBe('montserrat-black');
-      expect(FontFamily.MONTSERRAT_BOLD).toBe('montserrat-bold');
-      expect(FontFamily.MONTSERRAT_REGULAR).toBe('montserrat-regular');
+      expect(FontFamily.MONTSERRAT_BLACK).toBe('MONTSERRAT_BLACK');
+      expect(FontFamily.MONTSERRAT_BOLD).toBe('MONTSERRAT_BOLD');
+      expect(FontFamily.MONTSERRAT_REGULAR).toBe('MONTSERRAT_REGULAR');
     });
   });
 });

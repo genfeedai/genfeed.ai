@@ -24,6 +24,8 @@ type Props = {
   balance: number;
   fullBalance: string;
   compactBalance: string;
+  /** True until the first topbar-balances response — no red zero flash. */
+  isLoading?: boolean;
   visibleProviderSegments: ITopbarBalanceSegment[];
   planLimit: number;
   planBalance: number;
@@ -35,7 +37,11 @@ type Props = {
 
 function getBalanceSeverity(
   balance: number,
-): 'critical' | 'warning' | 'healthy' {
+  isLoading: boolean,
+): 'critical' | 'warning' | 'healthy' | 'loading' {
+  if (isLoading) {
+    return 'loading';
+  }
   if (balance <= 0) {
     return 'critical';
   }
@@ -50,6 +56,7 @@ export default function CreditsBarTrigger({
   balance,
   fullBalance,
   compactBalance,
+  isLoading = false,
   visibleProviderSegments,
   planLimit,
   planBalance,
@@ -59,7 +66,8 @@ export default function CreditsBarTrigger({
 }: Props) {
   const href = billingHref || '/settings/credits';
   const unit = EnvironmentService.CREDITS_LABEL;
-  const severity = getBalanceSeverity(balance);
+  const severity = getBalanceSeverity(balance, isLoading);
+  const isLoadingState = severity === 'loading';
   const isCritical = severity === 'critical';
   const isWarning = severity === 'warning';
   const isLow = isCritical || isWarning;
@@ -81,13 +89,19 @@ export default function CreditsBarTrigger({
           textTransform="none"
           data-testid="topbar-credits-trigger"
           data-severity={severity}
-          title={`${fullBalance} ${unit}`}
+          title={
+            isLoadingState
+              ? `Loading ${unit} balance`
+              : `${fullBalance} ${unit}`
+          }
           ariaLabel={
-            isCritical
-              ? `Balance empty: 0 ${unit}. Open wallet to buy credits.`
-              : isWarning
-                ? `Balance low: ${fullBalance} ${unit}. Open wallet to buy credits.`
-                : `Balance ${fullBalance} ${unit}. Open wallet.`
+            isLoadingState
+              ? `Loading ${unit} balance`
+              : isCritical
+                ? `Balance empty: 0 ${unit}. Open wallet to buy credits.`
+                : isWarning
+                  ? `Balance low: ${fullBalance} ${unit}. Open wallet to buy credits.`
+                  : `Balance ${fullBalance} ${unit}. Open wallet.`
           }
           className={cn(
             'hidden h-8 items-center gap-1.5 rounded-md border px-2 shadow-none outline-none ring-0 transition-colors sm:inline-flex',
@@ -96,7 +110,7 @@ export default function CreditsBarTrigger({
               'animate-pulse border-destructive/45 bg-destructive/15 text-destructive hover:bg-destructive/20 data-[state=open]:animate-none data-[state=open]:bg-destructive/20 motion-reduce:animate-none',
             isWarning &&
               'border-amber-500/35 bg-amber-500/10 text-amber-600 hover:bg-amber-500/15 data-[state=open]:bg-amber-500/15 dark:text-amber-400',
-            !isLow &&
+            (isLoadingState || !isLow) &&
               'border-0 bg-transparent text-foreground hover:bg-hover data-[state=open]:bg-hover',
           )}
         >
@@ -105,7 +119,8 @@ export default function CreditsBarTrigger({
               'text-[13px] font-semibold tabular-nums tracking-[-0.02em]',
               isCritical && 'text-destructive',
               isWarning && 'text-amber-600 dark:text-amber-400',
-              !isLow && 'text-foreground',
+              isLoadingState && 'min-w-[2.25ch] text-muted-foreground',
+              !isLow && !isLoadingState && 'text-foreground',
             )}
           >
             {compactBalance}
@@ -115,7 +130,7 @@ export default function CreditsBarTrigger({
               'text-[11px] font-medium uppercase tracking-[0.06em]',
               isCritical && 'text-destructive/80',
               isWarning && 'text-amber-600/80 dark:text-amber-400/80',
-              !isLow && 'text-muted-foreground',
+              (isLoadingState || !isLow) && 'text-muted-foreground',
             )}
           >
             {unit}
@@ -161,7 +176,11 @@ export default function CreditsBarTrigger({
                 </span>
               </p>
             </div>
-            {planLimit > 0 ? (
+            {isLoadingState ? (
+              <p className="text-xs leading-none text-muted-foreground">
+                Loading balance…
+              </p>
+            ) : planLimit > 0 ? (
               <p className="text-xs leading-none text-muted-foreground">
                 {formatCompactNumber(planUsed)} /{' '}
                 {formatCompactNumber(planLimit)} plan used

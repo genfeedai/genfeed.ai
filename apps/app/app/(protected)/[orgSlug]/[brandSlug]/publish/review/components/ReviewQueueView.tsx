@@ -1,9 +1,10 @@
 'use client';
 
-import { PageScope } from '@genfeedai/enums';
+import { usePostsLayout } from '@contexts/posts/posts-layout-context';
+import { CardVariant, PageScope } from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
-import Container from '@ui/layout/container/Container';
+import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import {
   Select,
@@ -13,13 +14,16 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
+import { useEffect } from 'react';
 
 import ReviewGrid from './ReviewGrid';
-import ReviewStatsHeader from './ReviewStatsHeader';
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
 
 function getBatchOptionLabel(batch: IBatchSummary): string {
-  return `Batch ${batch.id.slice(-6)} - ${batch.totalCount} items (${batch.status})`;
+  const shortId = batch.id.slice(-6);
+  const status =
+    typeof batch.status === 'string' ? batch.status.replaceAll('_', ' ') : '';
+  return `${shortId} · ${batch.totalCount} items${status ? ` · ${status}` : ''}`;
 }
 
 interface ReviewQueueViewProps {
@@ -34,6 +38,7 @@ interface ReviewQueueViewProps {
   hasInvalidBatchPayload: boolean;
   isActioning: boolean;
   isBatchLoading: boolean;
+  isRefreshing?: boolean;
   selectedIds: Set<string>;
   selectedPostId: string | null;
   visibleItems: IBatchItem[];
@@ -43,12 +48,17 @@ interface ReviewQueueViewProps {
   onBulkReject: () => void;
   onClosePostDetail: () => void;
   onFilterChange: (filter: ReviewFilter) => void;
+  onRefresh: () => void | Promise<void>;
   onRequestChanges: (itemId: string, feedback?: string) => Promise<void>;
   onReject: (itemId: string, feedback?: string) => Promise<void>;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
 }
 
+/**
+ * Review queue body only — publish layout owns Container / New release / refresh.
+ * Batch picker registers into the layout action rail via PostsLayoutContext.
+ */
 export default function ReviewQueueView({
   activeFilter,
   activeItem,
@@ -61,6 +71,7 @@ export default function ReviewQueueView({
   hasInvalidBatchPayload,
   isActioning,
   isBatchLoading,
+  isRefreshing = false,
   selectedIds,
   selectedPostId,
   visibleItems,
@@ -70,106 +81,132 @@ export default function ReviewQueueView({
   onBulkReject,
   onClosePostDetail,
   onFilterChange,
+  onRefresh,
   onRequestChanges,
   onReject,
   onSelectItem,
   onToggleSelect,
 }: ReviewQueueViewProps) {
-  return (
-    <Container
-      label="Publishing Inbox"
-      description="Review generated assets and drafts before posting."
-      icon={ClipboardCheck}
-      right={
-        batchList.length > 0 ? (
-          <Select value={activeBatchId ?? ''} onValueChange={onBatchChange}>
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select batch" />
-            </SelectTrigger>
-            <SelectContent>
-              {batchList.map((batch) => (
-                <SelectItem key={batch.id} value={batch.id}>
-                  {getBatchOptionLabel(batch)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : undefined
-      }
-    >
-      {batchesError || hasInvalidBatchPayload ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-rose-500/20 bg-rose-500/5 py-16 text-center">
-          <TriangleAlert className="mb-3 size-10 text-rose-400" />
-          <p className="text-sm font-medium text-rose-100">
-            Unable to load the review queue
-          </p>
-          <p className="mt-1 max-w-md text-xs text-rose-200/70">
-            The review batches response was invalid or failed to load. Refresh
-            the page and check the batches API response shape.
-          </p>
-        </div>
-      ) : batchList.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-neutral-800 bg-neutral-900/50 py-16">
-          <ClipboardCheck className="mb-3 size-10 text-neutral-600" />
-          <p className="text-sm text-neutral-500">No review work waiting</p>
-          <p className="mt-1 text-xs text-neutral-600">
-            Approved assets will appear here when they are ready to post
-          </p>
-        </div>
-      ) : (
-        <>
-          <ReviewStatsHeader batch={activeBatch} isLoading={isBatchLoading} />
+  const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
 
-          {isBatchLoading ? (
-            <Loading />
-          ) : activeBatchError ? (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/5 py-16 text-center">
-              <TriangleAlert className="mb-3 size-10 text-amber-400" />
-              <p className="text-sm font-medium text-amber-100">
-                Unable to load the selected batch
-              </p>
-              <p className="mt-1 max-w-md text-xs text-amber-200/70">
-                The batch list loaded, but the selected batch details could not
-                be retrieved.
-              </p>
-            </div>
-          ) : activeBatch ? (
-            <ReviewGrid
-              activeFilter={activeFilter}
-              activeItem={activeItem}
-              batch={activeBatch}
-              filterCounts={filterCounts}
-              isActioning={isActioning}
-              items={visibleItems}
-              selectedIds={selectedIds}
-              onApprove={onApprove}
-              onBulkApprove={onBulkApprove}
-              onBulkReject={onBulkReject}
-              onFilterChange={onFilterChange}
-              onRequestChanges={onRequestChanges}
-              onReject={onReject}
-              onSelectItem={onSelectItem}
-              onToggleSelect={onToggleSelect}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/5 py-16 text-center">
-              <TriangleAlert className="mb-3 size-10 text-amber-400" />
-              <p className="text-sm font-medium text-amber-100">
-                No batch details are available
-              </p>
-              <p className="mt-1 max-w-md text-xs text-amber-200/70">
-                The selected batch could not be resolved. Pick another batch or
-                reload the queue.
-              </p>
-            </div>
-          )}
-        </>
+  useEffect(() => {
+    setRefresh(() => onRefresh);
+    return () => {
+      setRefresh(() => () => undefined);
+    };
+  }, [onRefresh, setRefresh]);
+
+  useEffect(() => {
+    setIsRefreshing(isRefreshing || isBatchLoading);
+  }, [isBatchLoading, isRefreshing, setIsRefreshing]);
+
+  useEffect(() => {
+    if (batchList.length === 0) {
+      setFiltersNode(null);
+      return () => {
+        setFiltersNode(null);
+      };
+    }
+
+    setFiltersNode(
+      <Select value={activeBatchId ?? ''} onValueChange={onBatchChange}>
+        <SelectTrigger
+          aria-label="Select review batch"
+          className="h-8 w-[min(100%,16rem)] text-xs"
+        >
+          <SelectValue placeholder="Select batch" />
+        </SelectTrigger>
+        <SelectContent>
+          {batchList.map((batch) => (
+            <SelectItem key={batch.id} value={batch.id}>
+              {getBatchOptionLabel(batch)}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>,
+    );
+
+    return () => {
+      setFiltersNode(null);
+    };
+  }, [activeBatchId, batchList, onBatchChange, setFiltersNode]);
+
+  if (batchesError || hasInvalidBatchPayload) {
+    return (
+      <Card
+        variant={CardVariant.DEFAULT}
+        icon={TriangleAlert}
+        label="Unable to load the review queue"
+        description="The review batches response was invalid or failed to load. Refresh the page and check the batches API."
+        bodyClassName="items-center py-12 text-center"
+        iconWrapperClassName="bg-destructive/10 text-destructive"
+        className="max-w-xl mx-auto"
+      />
+    );
+  }
+
+  if (batchList.length === 0) {
+    return (
+      <Card
+        variant={CardVariant.DEFAULT}
+        icon={ClipboardCheck}
+        label="No review work waiting"
+        description="Generated batches appear here when drafts are ready to review."
+        bodyClassName="items-center py-12 text-center"
+        iconWrapperClassName="bg-muted text-muted-foreground"
+        className="max-w-xl mx-auto"
+      />
+    );
+  }
+
+  return (
+    <>
+      {isBatchLoading && !activeBatch ? (
+        <Loading />
+      ) : activeBatchError ? (
+        <Card
+          variant={CardVariant.DEFAULT}
+          icon={TriangleAlert}
+          label="Unable to load the selected batch"
+          description="The batch list loaded, but the selected batch details could not be retrieved. Pick another batch or refresh."
+          bodyClassName="items-center py-12 text-center"
+          iconWrapperClassName="bg-warning/10 text-warning"
+          className="max-w-xl mx-auto"
+        />
+      ) : activeBatch ? (
+        <ReviewGrid
+          activeFilter={activeFilter}
+          activeItem={activeItem}
+          batch={activeBatch}
+          filterCounts={filterCounts}
+          isActioning={isActioning}
+          items={visibleItems}
+          selectedIds={selectedIds}
+          onApprove={onApprove}
+          onBulkApprove={onBulkApprove}
+          onBulkReject={onBulkReject}
+          onFilterChange={onFilterChange}
+          onRequestChanges={onRequestChanges}
+          onReject={onReject}
+          onSelectItem={onSelectItem}
+          onToggleSelect={onToggleSelect}
+        />
+      ) : (
+        <Card
+          variant={CardVariant.DEFAULT}
+          icon={TriangleAlert}
+          label="No batch details are available"
+          description="Pick another batch or reload the queue."
+          bodyClassName="items-center py-12 text-center"
+          iconWrapperClassName="bg-warning/10 text-warning"
+          className="max-w-xl mx-auto"
+        />
       )}
       <PostDetailOverlay
         postId={selectedPostId}
         scope={PageScope.PUBLISHER}
         onClose={onClosePostDetail}
       />
-    </Container>
+    </>
   );
 }
