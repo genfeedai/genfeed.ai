@@ -179,14 +179,6 @@
     {
       "delegate": "brandInterview",
       "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
-      "fingerprint": "1539a20e83c5c1c74658",
-      "method": "update",
-      "model": "BrandInterview",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "brandInterview",
-      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
       "fingerprint": "2853aaa7d171c0b68175",
       "method": "update",
       "model": "BrandInterview",
@@ -203,7 +195,15 @@
     {
       "delegate": "brandInterview",
       "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
-      "fingerprint": "67d0c83a3b48ca865f65",
+      "fingerprint": "85578941b0a46914175d",
+      "method": "update",
+      "model": "BrandInterview",
+      "reason": "missing-is-deleted"
+    },
+    {
+      "delegate": "brandInterview",
+      "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
+      "fingerprint": "f6cd553fef7df81a955c",
       "method": "update",
       "model": "BrandInterview",
       "reason": "missing-is-deleted"
@@ -219,7 +219,7 @@
     {
       "delegate": "brandInterview",
       "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
-      "fingerprint": "2c4456c1a29c21cecfe6",
+      "fingerprint": "53609da1757090cd6bbc",
       "method": "update",
       "model": "BrandInterview",
       "reason": "missing-organization-id"
@@ -235,7 +235,7 @@
     {
       "delegate": "brandInterview",
       "file": "apps/server/api/src/collections/brands/brand-interview/services/brand-interview.service.ts",
-      "fingerprint": "c407b481be8fb2e994f7",
+      "fingerprint": "d5493adc6d194508461c",
       "method": "update",
       "model": "BrandInterview",
       "reason": "missing-organization-id"
