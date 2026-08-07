@@ -470,14 +470,14 @@ export function DashboardRecentTasks({
                 <TableCell className="w-px whitespace-nowrap pr-2 align-top pt-2.5">
                   <span
                     className={cn(
-                      'inline-flex items-center justify-center rounded border border-border px-2 py-0.5 text-[9px] font-medium uppercase',
+                      'inline-flex items-center justify-center rounded border px-2 py-0.5 text-[9px] font-medium uppercase',
                       task.status === 'failed'
-                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                        ? 'bg-destructive/15 text-destructive border-destructive/40'
                         : task.status === 'in_review'
-                          ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                          ? 'bg-warning/15 text-warning border-warning/30'
                           : task.status === 'done'
-                            ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                            : 'bg-sky-500/10 text-sky-300 border-sky-500/20',
+                            ? 'bg-success/15 text-success border-success/30'
+                            : 'bg-info/15 text-info border-info/30',
                     )}
                   >
                     {task.status.replaceAll('_', ' ')}

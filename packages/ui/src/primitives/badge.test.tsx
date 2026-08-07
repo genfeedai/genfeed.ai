@@ -22,4 +22,23 @@ describe('Badge', () => {
     expect(badge.className).toContain('bg-transparent');
     expect(badge.className).toContain('border-white/[0.08]');
   });
+
+  it('renders destructive (failed) with a real red tone, not unstyled white', () => {
+    render(<Badge variant="destructive">FAILED</Badge>);
+
+    const badge = screen.getByText('FAILED');
+
+    expect(badge.className).toContain('text-destructive');
+    expect(badge.className).toContain('bg-destructive/15');
+    expect(badge.className).toContain('border-destructive/40');
+  });
+
+  it('renders success (completed) with the success semantic tone', () => {
+    render(<Badge variant="success">COMPLETED</Badge>);
+
+    const badge = screen.getByText('COMPLETED');
+
+    expect(badge.className).toContain('text-success');
+    expect(badge.className).toContain('bg-success/15');
+  });
 });

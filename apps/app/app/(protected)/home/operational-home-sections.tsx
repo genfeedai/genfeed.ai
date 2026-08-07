@@ -350,8 +350,14 @@ function PublishingSurface({
                       value={getRunTimestamp(run)}
                     />
                   </div>
-                  <Badge variant={RUN_STATUS_VARIANTS[run.status]}>
-                    {run.status.toLowerCase()}
+                  <Badge
+                    variant={
+                      RUN_STATUS_VARIANTS[
+                        String(run.status).toUpperCase() as AgentExecutionStatus
+                      ] ?? 'outline'
+                    }
+                  >
+                    {String(run.status).toLowerCase()}
                   </Badge>
                 </div>
               ))

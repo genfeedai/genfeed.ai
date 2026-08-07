@@ -37,19 +37,24 @@ type ReviewInboxItem =
 
 const STATUS_TONE: Record<AgentExecutionStatus, string> = {
   [AgentExecutionStatus.CANCELLED]:
-    'bg-zinc-500/10 text-zinc-300 border-zinc-500/20',
+    'bg-muted text-muted-foreground border-border',
   [AgentExecutionStatus.COMPLETED]:
-    'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+    'bg-success/15 text-success border-success/30',
   [AgentExecutionStatus.FAILED]:
-    'bg-rose-500/10 text-rose-300 border-rose-500/20',
+    'bg-destructive/15 text-destructive border-destructive/40',
   [AgentExecutionStatus.PENDING]:
-    'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  [AgentExecutionStatus.RUNNING]:
-    'bg-blue-500/10 text-blue-300 border-blue-500/20',
+    'bg-warning/15 text-warning border-warning/30',
+  [AgentExecutionStatus.RUNNING]: 'bg-info/15 text-info border-info/30',
 };
 
-function formatStatusLabel(status: AgentExecutionStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1);
+function formatStatusLabel(status: AgentExecutionStatus | string): string {
+  const normalized = String(status).toLowerCase().replaceAll('_', ' ');
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
+function resolveStatusTone(status: AgentExecutionStatus | string): string {
+  const key = String(status).toUpperCase() as AgentExecutionStatus;
+  return STATUS_TONE[key] ?? STATUS_TONE[AgentExecutionStatus.PENDING];
 }
 
 function formatRelativeTime(date: string): string {
@@ -98,13 +103,13 @@ function getRunModelLabel(run: IAgentRun): string {
 export function OverviewStatusBadge({
   status,
 }: {
-  status: AgentExecutionStatus;
+  status: AgentExecutionStatus | string;
 }) {
   return (
     <span
       className={cn(
         'inline-flex rounded-full border px-2 py-1 text-[11px] font-medium',
-        STATUS_TONE[status],
+        resolveStatusTone(status),
       )}
     >
       {formatStatusLabel(status)}
