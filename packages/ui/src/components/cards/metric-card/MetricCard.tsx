@@ -3,16 +3,20 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import type {
+  MetricCardAppearance,
   MetricCardProps,
   MetricCardSize,
+  MetricSummaryItem,
+  MetricSummaryProps,
 } from '@genfeedai/props/cards/metric-card.props';
+import Card from '@ui/card/Card';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import { memo, type ReactElement, type ReactNode } from 'react';
 
-const FRAME_SIZE: Record<MetricCardSize, string> = {
-  lg: 'rounded-card bg-card px-5 py-5 shadow-border sm:px-6 sm:py-6',
-  md: 'rounded-card bg-background px-4 py-4 shadow-border',
-  sm: 'rounded-card bg-background px-4 py-3 shadow-border',
+const BODY_PADDING: Record<MetricCardSize, string> = {
+  lg: 'p-5 sm:p-6',
+  md: 'p-4',
+  sm: 'p-3',
 };
 
 const VALUE_SIZE: Record<MetricCardSize, string> = {
@@ -79,13 +83,19 @@ function resolveValueContent(
 }
 
 /**
- * Single metric tile for the whole app.
+ * Canonical metric tile for the whole app.
  *
- * - Label + value type is fixed (size only scales the value).
- * - `trend` is optional: pass a number to show it, omit to hide — same component.
- * - `icon` is optional decoration, never required for a valid tile.
+ * **One component, states via props** — do not invent StatCard / KPICard /
+ * SummaryMetricCard / raw metric divs:
+ * - `appearance="tile"` (default) — framed {@link Card}, label → value → detail
+ * - `appearance="inline"` — frameless pair for {@link MetricSummary} strips
+ * - `size` — sm / md / lg scale only
+ * - `trend` — optional; omit to hide
+ *
+ * Surface frame is always {@link Card} (`rounded-card` + `shadow-border`).
  */
 const MetricCard = memo(function MetricCard({
+  appearance = 'tile',
   className,
   description,
   icon: Icon,
@@ -107,9 +117,62 @@ const MetricCard = memo(function MetricCard({
       ? TrendingDown
       : null;
 
-  return (
+  const valueNode = (
     <div
-      className={cn('flex h-full flex-col', FRAME_SIZE[size], className)}
+      className={cn(
+        'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1',
+        appearance === 'tile' ? 'mt-2' : undefined,
+      )}
+    >
+      <p
+        className={cn(
+          VALUE_CLASS,
+          appearance === 'inline' ? 'text-sm' : VALUE_SIZE[size],
+          valueClassName,
+        )}
+      >
+        {resolveValueContent(value, isLoading, size)}
+      </p>
+
+      {hasTrend && !isLoading ? (
+        <span
+          className={cn(
+            'inline-flex items-center gap-1 text-xs font-medium',
+            isPositiveTrend && 'text-success',
+            isNegativeTrend && 'text-destructive',
+            !isPositiveTrend && !isNegativeTrend && 'text-foreground/45',
+          )}
+        >
+          {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
+          {isPositiveTrend ? '+' : ''}
+          {trend}%
+          {trendLabel ? (
+            <span className="font-normal text-foreground/40">{trendLabel}</span>
+          ) : null}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  if (appearance === 'inline') {
+    return (
+      <span
+        className={cn('inline-flex items-baseline gap-1.5', className)}
+        data-testid="metric-card"
+        data-appearance="inline"
+      >
+        <span className="font-medium text-foreground tabular-nums">
+          {resolveValueContent(value, isLoading, 'sm')}
+        </span>
+        <span className="text-foreground/55">{label}</span>
+      </span>
+    );
+  }
+
+  return (
+    <Card
+      bodyClassName={cn('flex h-full flex-col gap-0', BODY_PADDING[size])}
+      className={cn('h-full', className)}
       data-testid="metric-card"
     >
       <div className="flex items-start justify-between gap-3">
@@ -127,40 +190,54 @@ const MetricCard = memo(function MetricCard({
         ) : null}
       </div>
 
-      <div className="mt-2 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-        <p className={cn(VALUE_CLASS, VALUE_SIZE[size], valueClassName)}>
-          {resolveValueContent(value, isLoading, size)}
-        </p>
-
-        {hasTrend && !isLoading ? (
-          <span
-            className={cn(
-              'inline-flex items-center gap-1 text-xs font-medium',
-              isPositiveTrend && 'text-success',
-              isNegativeTrend && 'text-destructive',
-              !isPositiveTrend && !isNegativeTrend && 'text-foreground/45',
-            )}
-          >
-            {TrendIcon ? <TrendIcon className="size-3.5" aria-hidden /> : null}
-            {isPositiveTrend ? '+' : ''}
-            {trend}%
-            {trendLabel ? (
-              <span className="font-normal text-foreground/40">
-                {trendLabel}
-              </span>
-            ) : null}
-          </span>
-        ) : null}
-      </div>
+      {valueNode}
 
       {description ? (
         <p className="mt-1.5 text-xs leading-5 text-foreground/55">
           {description}
         </p>
       ) : null}
-    </div>
+    </Card>
   );
 });
 
+/**
+ * Dense multi-metric strip: `3 accounts · 1 need attention · 2 healthy`.
+ * Prefer this over nesting {@link MetricCardGrid} of tiny tiles inside a surface.
+ */
+export function MetricSummary({
+  className,
+  items,
+  'data-testid': dataTestId = 'metric-summary',
+}: MetricSummaryProps): ReactElement {
+  return (
+    <p
+      className={cn('text-xs tabular-nums text-foreground/55', className)}
+      data-testid={dataTestId}
+    >
+      {items.map((item, index) => (
+        <span key={`${item.label}-${index}`}>
+          {index > 0 ? (
+            <span className="mx-1.5 text-foreground/25" aria-hidden>
+              ·
+            </span>
+          ) : null}
+          <MetricCard
+            appearance="inline"
+            label={item.label}
+            value={item.value}
+          />
+        </span>
+      ))}
+    </p>
+  );
+}
+
 export default MetricCard;
-export type { MetricCardProps, MetricCardSize };
+export type {
+  MetricCardAppearance,
+  MetricCardProps,
+  MetricCardSize,
+  MetricSummaryItem,
+  MetricSummaryProps,
+};

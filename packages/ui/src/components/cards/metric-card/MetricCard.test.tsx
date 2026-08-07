@@ -44,4 +44,31 @@ describe('MetricCard', () => {
     expect(screen.queryByText('10')).not.toBeInTheDocument();
     expect(container.querySelector('.animate-pulse')).not.toBeNull();
   });
+
+  it('renders inline appearance without a framed tile', () => {
+    render(<MetricCard appearance="inline" label="accounts" value="4" />);
+
+    const card = screen.getByTestId('metric-card');
+    expect(card).toHaveAttribute('data-appearance', 'inline');
+    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getByText('accounts')).toBeInTheDocument();
+  });
+});
+
+describe('MetricSummary', () => {
+  it('joins metrics with separators', async () => {
+    const { MetricSummary } = await import('./MetricCard');
+    render(
+      <MetricSummary
+        items={[
+          { label: 'accounts', value: '4' },
+          { label: 'healthy', value: '2' },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId('metric-summary')).toHaveTextContent(
+      '4 accounts · 2 healthy',
+    );
+  });
 });

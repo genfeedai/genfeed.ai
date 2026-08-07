@@ -16,6 +16,7 @@ import { useActivities } from '@hooks/data/activities/use-activities/use-activit
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
+import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import AppTable from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
@@ -181,17 +182,15 @@ function ApprovalsSurface({
         />
       ) : (
         <>
-          <p className="text-xs tabular-nums text-foreground/55">
-            <span className="font-medium text-foreground">
-              {reviewInbox.readyCount}
-            </span>{' '}
-            ready
-            <span className="mx-1.5 text-foreground/25">·</span>
-            <span className="font-medium text-foreground">
-              {reviewInbox.pendingCount}
-            </span>{' '}
-            generating
-          </p>
+          <MetricSummary
+            items={[
+              { label: 'ready', value: String(reviewInbox.readyCount) },
+              {
+                label: 'generating',
+                value: String(reviewInbox.pendingCount),
+              },
+            ]}
+          />
 
           <div className="space-y-2">
             {reviewInbox.recentItems.length === 0 ? (
@@ -307,20 +306,16 @@ function PublishingSurface({
         />
       ) : (
         <>
-          <p className="text-xs tabular-nums text-foreground/55">
-            <span className="font-medium text-foreground">
-              {activeRuns.length}
-            </span>{' '}
-            active
-            <span className="mx-1.5 text-foreground/25">·</span>
-            <span className="font-medium text-foreground">
-              {analyticsPendingPosts}
-            </span>{' '}
-            pending posts
-            <span className="mx-1.5 text-foreground/25">·</span>
-            <span className="font-medium text-foreground">{failedToday}</span>{' '}
-            failed today
-          </p>
+          <MetricSummary
+            items={[
+              { label: 'active', value: String(activeRuns.length) },
+              {
+                label: 'pending posts',
+                value: String(analyticsPendingPosts),
+              },
+              { label: 'failed today', value: String(failedToday) },
+            ]}
+          />
 
           <div className="space-y-2">
             {recentRuns.length === 0 ? (
@@ -434,34 +429,25 @@ function CredentialHealthSurface({
         />
       ) : (
         <>
-          {/* One summary line — no nested metric-card grid (same density as
-              Discover / Review batch summary). */}
-          <p
-            className="text-xs tabular-nums text-foreground/55"
+          <MetricSummary
             data-testid="credential-health-summary"
-          >
-            <span className="font-medium text-foreground">{summary.total}</span>{' '}
-            accounts
-            <span className="mx-1.5 text-foreground/25">·</span>
-            <span className="font-medium text-foreground">
-              {summary.attention}
-            </span>{' '}
-            need attention
-            <span className="mx-1.5 text-foreground/25">·</span>
-            <span className="font-medium text-foreground">
-              {summary.healthy}
-            </span>{' '}
-            healthy
-            {summary.unknown > 0 ? (
-              <>
-                <span className="mx-1.5 text-foreground/25">·</span>
-                <span className="font-medium text-foreground">
-                  {summary.unknown}
-                </span>{' '}
-                unknown
-              </>
-            ) : null}
-          </p>
+            items={[
+              { label: 'accounts', value: String(summary.total) },
+              {
+                label: 'need attention',
+                value: String(summary.attention),
+              },
+              { label: 'healthy', value: String(summary.healthy) },
+              ...(summary.unknown > 0
+                ? [
+                    {
+                      label: 'unknown',
+                      value: String(summary.unknown),
+                    },
+                  ]
+                : []),
+            ]}
+          />
 
           <div className="space-y-2">
             {credentials.length === 0 ? (
