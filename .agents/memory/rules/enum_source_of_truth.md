@@ -57,8 +57,19 @@ New casts fail CI. Cleanups must prune the baseline in the same PR.
    direction allows later).
 3. Update serializers, clients, and tests to the new member — no `as never`.
 
-## Pilot
+## Status (2026-08-07)
 
-`BatchStatus` / `BatchItemStatus` were harmonized first (2026-08-07). Next
-candidates: `AgentRunStatus`, `IngredientStatus`, `WorkflowExecutionStatus`,
-`TrainingStage`, `SubscriptionStatus` — same playbook.
+All shared-name domain enums that back a Prisma **column** are SCREAMING_SNAKE
+and include every Prisma label as a value. Guard: `packages/enums/__tests__/prisma-parity.enum.test.ts`.
+
+Still intentional exceptions:
+
+- **`WorkflowStatus`** — domain stays product lowercase; `workflows.status` is a
+  `String` column (orphan Prisma type dropped in #2492).
+- **`CampaignTargetStatus`** — domain keeps a richer outreach pipeline vocabulary
+  (orphan Prisma type; no column yet).
+- **`Platform` / `CredentialPlatform`** — still product-lowercase OAuth/UI
+  language; BaseService + write mappers upper-case for the Prisma column. Split
+  or flip in a dedicated pass (high blast radius).
+- Domain-only extras (e.g. `AgentRunStatus.BUDGET_EXHAUSTED`, Stripe-only
+  subscription states) stay SCREAMING and must be mapped before a Prisma write.

@@ -3,8 +3,8 @@ import { ArticleStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 
 /**
- * Maps app-level ArticleStatus values (lowercase) to Prisma enum values (uppercase).
- * processing and failed are generation-pipeline states; they never persist to
+ * Maps ArticleStatus to Prisma-persisted labels.
+ * PROCESSING and FAILED are domain-only pipeline states; they never persist to
  * Article.status and are excluded from persisted filters.
  */
 export type PrismaArticleStatusValue = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
@@ -13,7 +13,7 @@ const APP_TO_PRISMA_STATUS: Partial<
   Record<ArticleStatus, PrismaArticleStatusValue>
 > = {
   [ArticleStatus.DRAFT]: 'DRAFT',
-  [ArticleStatus.PUBLIC]: 'PUBLISHED',
+  [ArticleStatus.PUBLISHED]: 'PUBLISHED',
   [ArticleStatus.ARCHIVED]: 'ARCHIVED',
 };
 
@@ -38,6 +38,15 @@ export class ArticleFilterUtil {
       return status as PrismaArticleStatusValue;
     }
 
+    // Legacy lowercase / `public` alias from before SCREAMING_SNAKE harmonization.
+    const normalized = String(status).replace(/-/g, '_').toUpperCase();
+    if (normalized === 'PUBLIC') {
+      return 'PUBLISHED';
+    }
+    if (PRISMA_ARTICLE_STATUS_VALUES.has(normalized)) {
+      return normalized as PrismaArticleStatusValue;
+    }
+
     return undefined;
   }
 
@@ -58,7 +67,9 @@ export class ArticleFilterUtil {
     status: PrismaArticleStatusValue;
   } {
     return {
-      status: ArticleFilterUtil.toPersistedArticleStatus(ArticleStatus.PUBLIC),
+      status: ArticleFilterUtil.toPersistedArticleStatus(
+        ArticleStatus.PUBLISHED,
+      ),
     };
   }
 

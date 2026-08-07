@@ -235,7 +235,7 @@ export class ContentExecutionService {
       organizationId,
       platforms: itemPlatforms,
       skillSlug,
-      status: ContentDraftStatus.PENDING,
+      status: ContentDraftStatus.READY,
       type: result.draft.type,
     });
 
@@ -355,7 +355,7 @@ export class ContentExecutionService {
       organizationId,
       platforms: itemPlatforms,
       skillSlug: 'media-pipeline',
-      status: ContentDraftStatus.PENDING,
+      status: ContentDraftStatus.READY,
       type: 'media',
     });
 

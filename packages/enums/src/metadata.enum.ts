@@ -42,16 +42,20 @@ export enum MetadataStyle {
   WATERCOLOR = 'watercolor',
 }
 
+/**
+ * File extension metadata. Values match Prisma `MetadataExtension`.
+ * @see packages/prisma/prisma/schema.prisma `enum MetadataExtension`
+ */
 export enum MetadataExtension {
-  JPEG = 'jpeg',
-  JPG = 'jpg',
-  PNG = 'png',
-  GIF = 'gif',
-  WEBP = 'webp',
-  MP4 = 'mp4',
-  WEBM = 'webm',
-  MOV = 'mov',
-  AVI = 'avi',
-  MP3 = 'mp3',
-  WAV = 'wav',
+  JPEG = 'JPEG',
+  JPG = 'JPG',
+  PNG = 'PNG',
+  GIF = 'GIF',
+  WEBP = 'WEBP',
+  MP4 = 'MP4',
+  WEBM = 'WEBM',
+  MOV = 'MOV',
+  AVI = 'AVI',
+  MP3 = 'MP3',
+  WAV = 'WAV',
 }

@@ -11,10 +11,10 @@ describe('integration.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(IntegrationPlatform.TELEGRAM).toBe('telegram');
-      expect(IntegrationPlatform.SLACK).toBe('slack');
-      expect(IntegrationPlatform.DISCORD).toBe('discord');
-      expect(IntegrationPlatform.UNIPILE).toBe('unipile');
+      expect(IntegrationPlatform.TELEGRAM).toBe('TELEGRAM');
+      expect(IntegrationPlatform.SLACK).toBe('SLACK');
+      expect(IntegrationPlatform.DISCORD).toBe('DISCORD');
+      expect(IntegrationPlatform.UNIPILE).toBe('UNIPILE');
     });
   });
 
@@ -24,9 +24,9 @@ describe('integration.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(IntegrationStatus.ACTIVE).toBe('active');
-      expect(IntegrationStatus.PAUSED).toBe('paused');
-      expect(IntegrationStatus.ERROR).toBe('error');
+      expect(IntegrationStatus.ACTIVE).toBe('ACTIVE');
+      expect(IntegrationStatus.PAUSED).toBe('PAUSED');
+      expect(IntegrationStatus.ERROR).toBe('ERROR');
     });
   });
 });

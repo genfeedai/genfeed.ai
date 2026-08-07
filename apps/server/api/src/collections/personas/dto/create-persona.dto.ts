@@ -182,7 +182,7 @@ export class CreatePersonaDto {
   @IsOptional()
   @IsEnum(PersonaStatus)
   @ApiProperty({
-    default: PersonaStatus.DRAFT,
+    default: PersonaStatus.INACTIVE,
     description: 'Persona status',
     enum: PersonaStatus,
     enumName: 'PersonaStatus',

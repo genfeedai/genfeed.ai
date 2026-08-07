@@ -48,7 +48,7 @@ describe('PublicArticlesController', () => {
     publishedAt: new Date(),
     scope: AssetScope.PUBLIC,
     slug: 'public-article',
-    status: ArticleStatus.PUBLIC,
+    status: ArticleStatus.PUBLISHED,
     summary: 'A public article summary',
     tags: [],
     updatedAt: new Date(),

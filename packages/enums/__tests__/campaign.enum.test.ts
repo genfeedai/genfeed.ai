@@ -54,13 +54,13 @@ describe('campaign.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(CampaignTargetStatus.PENDING).toBe('pending');
-      expect(CampaignTargetStatus.SCHEDULED).toBe('scheduled');
-      expect(CampaignTargetStatus.PROCESSING).toBe('processing');
-      expect(CampaignTargetStatus.REPLIED).toBe('replied');
-      expect(CampaignTargetStatus.SENT).toBe('sent');
-      expect(CampaignTargetStatus.SKIPPED).toBe('skipped');
-      expect(CampaignTargetStatus.FAILED).toBe('failed');
+      expect(CampaignTargetStatus.PENDING).toBe('PENDING');
+      expect(CampaignTargetStatus.SCHEDULED).toBe('SCHEDULED');
+      expect(CampaignTargetStatus.PROCESSING).toBe('PROCESSING');
+      expect(CampaignTargetStatus.REPLIED).toBe('REPLIED');
+      expect(CampaignTargetStatus.SENT).toBe('SENT');
+      expect(CampaignTargetStatus.SKIPPED).toBe('SKIPPED');
+      expect(CampaignTargetStatus.FAILED).toBe('FAILED');
     });
   });
 

@@ -8,11 +8,11 @@ describe('tag.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(TagCategory.ORGANIZATION).toBe('Organization');
-      expect(TagCategory.CREDENTIAL).toBe('Credential');
-      expect(TagCategory.INGREDIENT).toBe('Ingredient');
-      expect(TagCategory.PROMPT).toBe('Prompt');
-      expect(TagCategory.ARTICLE).toBe('Article');
+      expect(TagCategory.ORGANIZATION).toBe('ORGANIZATION');
+      expect(TagCategory.CREDENTIAL).toBe('CREDENTIAL');
+      expect(TagCategory.INGREDIENT).toBe('INGREDIENT');
+      expect(TagCategory.PROMPT).toBe('PROMPT');
+      expect(TagCategory.ARTICLE).toBe('ARTICLE');
     });
   });
 

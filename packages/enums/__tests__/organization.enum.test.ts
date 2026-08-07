@@ -8,9 +8,9 @@ describe('organization.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(OrganizationCategory.CREATOR).toBe('creator');
-      expect(OrganizationCategory.BUSINESS).toBe('business');
-      expect(OrganizationCategory.AGENCY).toBe('agency');
+      expect(OrganizationCategory.CREATOR).toBe('CREATOR');
+      expect(OrganizationCategory.BUSINESS).toBe('BUSINESS');
+      expect(OrganizationCategory.AGENCY).toBe('AGENCY');
     });
   });
 });

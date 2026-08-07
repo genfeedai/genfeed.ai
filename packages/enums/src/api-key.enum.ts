@@ -1,9 +1,13 @@
+/**
+ * API key provider category. Values match Prisma `ApiKeyCategory`.
+ * @see packages/prisma/prisma/schema.prisma `enum ApiKeyCategory`
+ */
 export enum ApiKeyCategory {
-  GENFEEDAI = 'genfeedai',
-  ELEVENLABS = 'elevenlabs',
-  HEDRA = 'hedra',
-  HEYGEN = 'heygen',
-  OPUS_PRO = 'opuspro',
+  GENFEEDAI = 'GENFEEDAI',
+  ELEVENLABS = 'ELEVENLABS',
+  HEDRA = 'HEDRA',
+  HEYGEN = 'HEYGEN',
+  OPUS_PRO = 'OPUS_PRO',
 }
 
 export enum ApiKeyScope {

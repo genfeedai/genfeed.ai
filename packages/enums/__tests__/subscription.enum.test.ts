@@ -5,6 +5,7 @@ import {
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
+  subscriptionStatusFromStripe,
 } from '../src/subscription.enum';
 
 describe('subscription.enum', () => {
@@ -52,26 +53,49 @@ describe('subscription.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(ByokBillingStatus.ACTIVE).toBe('active');
-      expect(ByokBillingStatus.PAST_DUE).toBe('past_due');
-      expect(ByokBillingStatus.SUSPENDED).toBe('suspended');
+      expect(ByokBillingStatus.ACTIVE).toBe('ACTIVE');
+      expect(ByokBillingStatus.PAST_DUE).toBe('PAST_DUE');
+      expect(ByokBillingStatus.SUSPENDED).toBe('SUSPENDED');
     });
   });
 
   describe('SubscriptionStatus', () => {
-    it('should have 8 members', () => {
-      expect(Object.values(SubscriptionStatus)).toHaveLength(8);
+    it('should include Prisma labels plus Stripe domain-only states', () => {
+      expect(new Set(Object.values(SubscriptionStatus))).toEqual(
+        new Set([
+          'ACTIVE',
+          'CANCELLED',
+          'PAST_DUE',
+          'TRIALING',
+          'INCOMPLETE',
+          'INCOMPLETE_EXPIRED',
+          'UNPAID',
+          'PAUSED',
+        ]),
+      );
     });
 
-    it('should have correct values', () => {
-      expect(SubscriptionStatus.ACTIVE).toBe('active');
-      expect(SubscriptionStatus.TRIALING).toBe('trialing');
-      expect(SubscriptionStatus.PAST_DUE).toBe('past-due');
-      expect(SubscriptionStatus.CANCELED).toBe('canceled');
-      expect(SubscriptionStatus.INCOMPLETE).toBe('incomplete');
-      expect(SubscriptionStatus.INCOMPLETE_EXPIRED).toBe('incomplete-expired');
-      expect(SubscriptionStatus.UNPAID).toBe('unpaid');
-      expect(SubscriptionStatus.PAUSED).toBe('paused');
+    it('should match Prisma SCREAMING_SNAKE for persisted members', () => {
+      expect(SubscriptionStatus.ACTIVE).toBe('ACTIVE');
+      expect(SubscriptionStatus.TRIALING).toBe('TRIALING');
+      expect(SubscriptionStatus.PAST_DUE).toBe('PAST_DUE');
+      expect(SubscriptionStatus.CANCELLED).toBe('CANCELLED');
+      expect(SubscriptionStatus.INCOMPLETE).toBe('INCOMPLETE');
+      expect(SubscriptionStatus.INCOMPLETE_EXPIRED).toBe('INCOMPLETE_EXPIRED');
+      expect(SubscriptionStatus.UNPAID).toBe('UNPAID');
+      expect(SubscriptionStatus.PAUSED).toBe('PAUSED');
+    });
+
+    it('maps Stripe canceled US spelling to CANCELLED', () => {
+      expect(subscriptionStatusFromStripe('canceled')).toBe(
+        SubscriptionStatus.CANCELLED,
+      );
+      expect(subscriptionStatusFromStripe('cancelled')).toBe(
+        SubscriptionStatus.CANCELLED,
+      );
+      expect(subscriptionStatusFromStripe('active')).toBe(
+        SubscriptionStatus.ACTIVE,
+      );
     });
   });
 });

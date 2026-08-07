@@ -52,10 +52,10 @@ describe('batch.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(ReferenceImageCategory.FACE).toBe('face');
-      expect(ReferenceImageCategory.PRODUCT).toBe('product');
-      expect(ReferenceImageCategory.STYLE).toBe('style');
-      expect(ReferenceImageCategory.LOGO).toBe('logo');
+      expect(ReferenceImageCategory.FACE).toBe('FACE');
+      expect(ReferenceImageCategory.PRODUCT).toBe('PRODUCT');
+      expect(ReferenceImageCategory.STYLE).toBe('STYLE');
+      expect(ReferenceImageCategory.LOGO).toBe('LOGO');
     });
   });
 });

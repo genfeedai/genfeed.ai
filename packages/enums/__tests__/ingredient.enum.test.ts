@@ -19,18 +19,18 @@ describe('ingredient.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(IngredientCategory.IMAGE).toBe('image');
-      expect(IngredientCategory.VIDEO).toBe('video');
-      expect(IngredientCategory.MUSIC).toBe('music');
-      expect(IngredientCategory.GIF).toBe('gif');
-      expect(IngredientCategory.AVATAR).toBe('avatar');
-      expect(IngredientCategory.AUDIO).toBe('audio');
-      expect(IngredientCategory.IMAGE_EDIT).toBe('image-edit');
-      expect(IngredientCategory.VIDEO_EDIT).toBe('video-edit');
-      expect(IngredientCategory.VOICE).toBe('voice');
-      expect(IngredientCategory.INGREDIENT).toBe('ingredient');
-      expect(IngredientCategory.TEXT).toBe('text');
-      expect(IngredientCategory.SOURCE).toBe('source');
+      expect(IngredientCategory.IMAGE).toBe('IMAGE');
+      expect(IngredientCategory.VIDEO).toBe('VIDEO');
+      expect(IngredientCategory.MUSIC).toBe('MUSIC');
+      expect(IngredientCategory.GIF).toBe('GIF');
+      expect(IngredientCategory.AVATAR).toBe('AVATAR');
+      expect(IngredientCategory.AUDIO).toBe('AUDIO');
+      expect(IngredientCategory.IMAGE_EDIT).toBe('IMAGE_EDIT');
+      expect(IngredientCategory.VIDEO_EDIT).toBe('VIDEO_EDIT');
+      expect(IngredientCategory.VOICE).toBe('VOICE');
+      expect(IngredientCategory.INGREDIENT).toBe('INGREDIENT');
+      expect(IngredientCategory.TEXT).toBe('TEXT');
+      expect(IngredientCategory.SOURCE).toBe('SOURCE');
     });
   });
 
@@ -59,30 +59,30 @@ describe('ingredient.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(TransformationCategory.UPSCALED).toBe('upscaled');
-      expect(TransformationCategory.RESIZED).toBe('resized');
-      expect(TransformationCategory.ENHANCED).toBe('enhanced');
-      expect(TransformationCategory.EXTENDED).toBe('extended');
-      expect(TransformationCategory.INTERPOLATED).toBe('interpolated');
-      expect(TransformationCategory.STABILIZED).toBe('stabilized');
+      expect(TransformationCategory.UPSCALED).toBe('UPSCALED');
+      expect(TransformationCategory.RESIZED).toBe('RESIZED');
+      expect(TransformationCategory.ENHANCED).toBe('ENHANCED');
+      expect(TransformationCategory.EXTENDED).toBe('EXTENDED');
+      expect(TransformationCategory.INTERPOLATED).toBe('INTERPOLATED');
+      expect(TransformationCategory.STABILIZED).toBe('STABILIZED');
       expect(TransformationCategory.BACKGROUND_REMOVED).toBe(
         'background-removed',
       );
       expect(TransformationCategory.STYLE_TRANSFERRED).toBe(
         'style-transferred',
       );
-      expect(TransformationCategory.FACE_SWAPPED).toBe('face-swapped');
-      expect(TransformationCategory.LIP_SYNCED).toBe('lip-synced');
-      expect(TransformationCategory.ANIMATED).toBe('animated');
-      expect(TransformationCategory.IMAGE_TO_VIDEO).toBe('image-to-video');
-      expect(TransformationCategory.CLIPPED).toBe('clipped');
-      expect(TransformationCategory.MERGED).toBe('merged');
-      expect(TransformationCategory.EDITED).toBe('edited');
-      expect(TransformationCategory.REVERSED).toBe('reversed');
-      expect(TransformationCategory.MIRRORED).toBe('mirrored');
-      expect(TransformationCategory.CAPTIONED).toBe('captioned');
-      expect(TransformationCategory.VALIDATED).toBe('validated');
-      expect(TransformationCategory.REFRAMED).toBe('reframed');
+      expect(TransformationCategory.FACE_SWAPPED).toBe('FACE_SWAPPED');
+      expect(TransformationCategory.LIP_SYNCED).toBe('LIP_SYNCED');
+      expect(TransformationCategory.ANIMATED).toBe('ANIMATED');
+      expect(TransformationCategory.IMAGE_TO_VIDEO).toBe('IMAGE_TO_VIDEO');
+      expect(TransformationCategory.CLIPPED).toBe('CLIPPED');
+      expect(TransformationCategory.MERGED).toBe('MERGED');
+      expect(TransformationCategory.EDITED).toBe('EDITED');
+      expect(TransformationCategory.REVERSED).toBe('REVERSED');
+      expect(TransformationCategory.MIRRORED).toBe('MIRRORED');
+      expect(TransformationCategory.CAPTIONED).toBe('CAPTIONED');
+      expect(TransformationCategory.VALIDATED).toBe('VALIDATED');
+      expect(TransformationCategory.REFRAMED).toBe('REFRAMED');
     });
   });
 
@@ -129,10 +129,10 @@ describe('ingredient.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(FleetReviewStatus.PENDING).toBe('pending');
-      expect(FleetReviewStatus.APPROVED).toBe('approved');
-      expect(FleetReviewStatus.REJECTED).toBe('rejected');
-      expect(FleetReviewStatus.NEEDS_REVISION).toBe('needs-revision');
+      expect(FleetReviewStatus.PENDING).toBe('PENDING');
+      expect(FleetReviewStatus.APPROVED).toBe('APPROVED');
+      expect(FleetReviewStatus.REJECTED).toBe('REJECTED');
+      expect(FleetReviewStatus.NEEDS_REVISION).toBe('NEEDS_REVISION');
     });
   });
 
@@ -142,12 +142,12 @@ describe('ingredient.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(FleetAssetLabel.HERO).toBe('hero');
-      expect(FleetAssetLabel.FILLER).toBe('filler');
-      expect(FleetAssetLabel.BTS).toBe('bts');
-      expect(FleetAssetLabel.PROMO).toBe('promo');
-      expect(FleetAssetLabel.LIFESTYLE).toBe('lifestyle');
-      expect(FleetAssetLabel.EDITORIAL).toBe('editorial');
+      expect(FleetAssetLabel.HERO).toBe('HERO');
+      expect(FleetAssetLabel.FILLER).toBe('FILLER');
+      expect(FleetAssetLabel.BTS).toBe('BTS');
+      expect(FleetAssetLabel.PROMO).toBe('PROMO');
+      expect(FleetAssetLabel.LIFESTYLE).toBe('LIFESTYLE');
+      expect(FleetAssetLabel.EDITORIAL).toBe('EDITORIAL');
     });
   });
 
@@ -157,9 +157,9 @@ describe('ingredient.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(ContentRating.SFW).toBe('sfw');
-      expect(ContentRating.SUGGESTIVE).toBe('suggestive');
-      expect(ContentRating.NSFW).toBe('nsfw');
+      expect(ContentRating.SFW).toBe('SFW');
+      expect(ContentRating.SUGGESTIVE).toBe('SUGGESTIVE');
+      expect(ContentRating.NSFW).toBe('NSFW');
     });
   });
 

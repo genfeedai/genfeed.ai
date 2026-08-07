@@ -8,18 +8,16 @@ import {
 
 describe('crm.enum', () => {
   describe('LeadStatus', () => {
-    it('should have 7 members', () => {
-      expect(Object.values(LeadStatus)).toHaveLength(7);
+    it('should have 5 members matching Prisma', () => {
+      expect(Object.values(LeadStatus)).toHaveLength(5);
     });
 
-    it('should have correct values', () => {
-      expect(LeadStatus.NEW).toBe('new');
-      expect(LeadStatus.CONTACTED).toBe('contacted');
-      expect(LeadStatus.QUALIFIED).toBe('qualified');
-      expect(LeadStatus.PROPOSAL).toBe('proposal');
-      expect(LeadStatus.NEGOTIATION).toBe('negotiation');
-      expect(LeadStatus.WON).toBe('won');
-      expect(LeadStatus.LOST).toBe('lost');
+    it('should match Prisma SCREAMING_SNAKE', () => {
+      expect(LeadStatus.NEW).toBe('NEW');
+      expect(LeadStatus.CONTACTED).toBe('CONTACTED');
+      expect(LeadStatus.QUALIFIED).toBe('QUALIFIED');
+      expect(LeadStatus.CONVERTED).toBe('CONVERTED');
+      expect(LeadStatus.LOST).toBe('LOST');
     });
   });
 

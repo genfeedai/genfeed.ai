@@ -29,9 +29,9 @@ describe('bot.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(BotStatus.ACTIVE).toBe('active');
-      expect(BotStatus.PAUSED).toBe('paused');
-      expect(BotStatus.INACTIVE).toBe('inactive');
+      expect(BotStatus.ACTIVE).toBe('ACTIVE');
+      expect(BotStatus.PAUSED).toBe('PAUSED');
+      expect(BotStatus.STOPPED).toBe('STOPPED');
     });
   });
 

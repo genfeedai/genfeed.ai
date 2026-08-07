@@ -201,7 +201,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
       limit: 3,
       sortBy: 'createdAt',
       sortOrder: 'desc' as const,
-      status: [ArticleStatus.PUBLIC],
+      status: [ArticleStatus.PUBLISHED],
     };
 
     try {

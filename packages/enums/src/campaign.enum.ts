@@ -18,14 +18,25 @@ export enum CampaignStatus {
   COMPLETED = 'completed',
 }
 
+/**
+ * Outreach target lifecycle.
+ *
+ * Prisma declares `CampaignTargetStatus` (PENDING/CONTACTED/RESPONDED/
+ * CONVERTED/REJECTED) but no model column uses it yet. Domain keeps the
+ * richer outreach pipeline vocabulary used by campaign workers; values are
+ * SCREAMING for consistency. Map to the Prisma set before any future column
+ * write.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum CampaignTargetStatus`
+ */
 export enum CampaignTargetStatus {
-  PENDING = 'pending',
-  SCHEDULED = 'scheduled',
-  PROCESSING = 'processing',
-  REPLIED = 'replied',
-  SENT = 'sent',
-  SKIPPED = 'skipped',
-  FAILED = 'failed',
+  PENDING = 'PENDING',
+  SCHEDULED = 'SCHEDULED',
+  PROCESSING = 'PROCESSING',
+  REPLIED = 'REPLIED',
+  SENT = 'SENT',
+  SKIPPED = 'SKIPPED',
+  FAILED = 'FAILED',
 }
 
 export enum CampaignDiscoverySource {

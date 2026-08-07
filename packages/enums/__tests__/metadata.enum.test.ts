@@ -58,17 +58,17 @@ describe('metadata.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(MetadataExtension.JPEG).toBe('jpeg');
-      expect(MetadataExtension.JPG).toBe('jpg');
-      expect(MetadataExtension.PNG).toBe('png');
-      expect(MetadataExtension.GIF).toBe('gif');
-      expect(MetadataExtension.WEBP).toBe('webp');
-      expect(MetadataExtension.MP4).toBe('mp4');
-      expect(MetadataExtension.WEBM).toBe('webm');
-      expect(MetadataExtension.MOV).toBe('mov');
-      expect(MetadataExtension.AVI).toBe('avi');
-      expect(MetadataExtension.MP3).toBe('mp3');
-      expect(MetadataExtension.WAV).toBe('wav');
+      expect(MetadataExtension.JPEG).toBe('JPEG');
+      expect(MetadataExtension.JPG).toBe('JPG');
+      expect(MetadataExtension.PNG).toBe('PNG');
+      expect(MetadataExtension.GIF).toBe('GIF');
+      expect(MetadataExtension.WEBP).toBe('WEBP');
+      expect(MetadataExtension.MP4).toBe('MP4');
+      expect(MetadataExtension.WEBM).toBe('WEBM');
+      expect(MetadataExtension.MOV).toBe('MOV');
+      expect(MetadataExtension.AVI).toBe('AVI');
+      expect(MetadataExtension.MP3).toBe('MP3');
+      expect(MetadataExtension.WAV).toBe('WAV');
     });
   });
 });

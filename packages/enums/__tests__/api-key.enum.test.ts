@@ -8,11 +8,11 @@ describe('api-key.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(ApiKeyCategory.GENFEEDAI).toBe('genfeedai');
-      expect(ApiKeyCategory.ELEVENLABS).toBe('elevenlabs');
-      expect(ApiKeyCategory.HEDRA).toBe('hedra');
-      expect(ApiKeyCategory.HEYGEN).toBe('heygen');
-      expect(ApiKeyCategory.OPUS_PRO).toBe('opuspro');
+      expect(ApiKeyCategory.GENFEEDAI).toBe('GENFEEDAI');
+      expect(ApiKeyCategory.ELEVENLABS).toBe('ELEVENLABS');
+      expect(ApiKeyCategory.HEDRA).toBe('HEDRA');
+      expect(ApiKeyCategory.HEYGEN).toBe('HEYGEN');
+      expect(ApiKeyCategory.OPUS_PRO).toBe('OPUS_PRO');
     });
   });
 

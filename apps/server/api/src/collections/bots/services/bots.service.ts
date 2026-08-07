@@ -131,10 +131,9 @@ export class BotsService extends BaseService<
       throw new NotFoundException('Bot', id);
     }
 
+    const current = String(bot.status ?? '').toUpperCase();
     const nextStatus =
-      String(bot.status ?? '').toLowerCase() === BotStatus.ACTIVE
-        ? BotStatus.PAUSED
-        : BotStatus.ACTIVE;
+      current === BotStatus.ACTIVE ? BotStatus.PAUSED : BotStatus.ACTIVE;
 
     return super.patch(id, { status: nextStatus } as UpdateBotDto);
   }

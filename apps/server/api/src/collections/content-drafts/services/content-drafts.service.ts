@@ -70,7 +70,7 @@ export class ContentDraftsService extends BaseService<
             organizationId,
             platforms: draft.platforms ?? [],
             skillSlug,
-            status: ContentDraftStatus.PENDING,
+            status: ContentDraftStatus.READY,
             type: draft.type,
           } as Record<string, unknown>,
         }),
@@ -328,7 +328,7 @@ export class ContentDraftsService extends BaseService<
       where: scopedWhere(organizationId, {
         brandId,
         confidence: { gte: threshold },
-        status: ContentDraftStatus.PENDING,
+        status: ContentDraftStatus.READY,
       }),
       data: { status: ContentDraftStatus.APPROVED },
     })) as { count: number };

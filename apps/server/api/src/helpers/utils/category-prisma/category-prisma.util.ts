@@ -57,13 +57,13 @@ export type PrismaIngredientStatusValue =
 /**
  * Explicit app→Prisma mapping for IngredientCategory.
  *
- * App-level enum values are lowercase (e.g. 'video'); Prisma requires UPPERCASE
- * (e.g. 'VIDEO'). The Prisma 7 PG driver adapter does not populate
- * `_runtimeDataModel` so BaseService.normalizeEnumScalarValue() cannot rescue
- * these values at runtime.  This map is the canonical, exhaustive boundary.
+ * Domain values already match Prisma SCREAMING_SNAKE (identity map). Kept as an
+ * exhaustive boundary so a reintroduced lowercase spelling fails the guard test
+ * in category-prisma.util.spec.ts. Also accepts legacy lowercase input via
+ * PRISMA_INGREDIENT_CATEGORY_VALUES passthrough below after uppercasing paths.
  *
  * If you add a member to @genfeedai/enums IngredientCategory you MUST add it
- * here too — the guard test in category-prisma.util.spec.ts will fail otherwise.
+ * here too.
  */
 const APP_TO_PRISMA_INGREDIENT_CATEGORY: Record<
   IngredientCategory,
@@ -117,10 +117,8 @@ const PRISMA_ORGANIZATION_CATEGORY_VALUES = new Set<string>(
 /**
  * Explicit app→Prisma mapping for AssetScope.
  *
- * App-level enum values are lowercase (e.g. 'public'); Prisma stores UPPERCASE
- * (e.g. 'PUBLIC'). The Prisma 7 PG driver adapter does not populate
- * `_runtimeDataModel` so BaseService.normalizeEnumScalarValue() cannot rescue
- * these values at runtime. This map is the canonical, exhaustive boundary.
+ * Domain values already match Prisma SCREAMING_SNAKE (identity map). Kept as an
+ * exhaustive boundary against dual-spelling regressions.
  *
  * If you add a member to @genfeedai/enums AssetScope you MUST add it here too —
  * the guard test in category-prisma.util.spec.ts will fail otherwise.
@@ -135,8 +133,8 @@ const APP_TO_PRISMA_ASSET_SCOPE: Record<AssetScope, PrismaAssetScopeValue> = {
 /**
  * Explicit app→Prisma mapping for IngredientStatus.
  *
- * App-level enum values are lowercase (e.g. 'generated'); Prisma stores UPPERCASE
- * (e.g. 'GENERATED'). Same rationale as AssetScope above.
+ * Domain values already match Prisma SCREAMING_SNAKE (identity map). Kept as an
+ * exhaustive boundary against dual-spelling regressions.
  *
  * If you add a member to @genfeedai/enums IngredientStatus you MUST add it here
  * too — the guard test in category-prisma.util.spec.ts will fail otherwise.
@@ -165,13 +163,17 @@ const PRISMA_INGREDIENT_STATUS_VALUES = new Set<string>(
   Object.values(APP_TO_PRISMA_INGREDIENT_STATUS),
 );
 
+/** Normalize legacy lowercase/hyphen domain spellings to Prisma labels. */
+function toPrismaLabel(value: string): string {
+  return value.replace(/-/g, '_').toUpperCase();
+}
+
 export class CategoryPrismaUtil {
   /**
-   * Map a single IngredientCategory app-enum value to its Prisma UPPERCASE form.
+   * Map a single IngredientCategory value to its Prisma SCREAMING_SNAKE form.
    *
-   * - App-form values (lowercase, e.g. 'video') → mapped to 'VIDEO'.
-   * - Already-Prisma-form values (UPPERCASE, e.g. 'VIDEO') → passed through
-   *   idempotently.
+   * - Domain enum values (already SCREAMING) → identity.
+   * - Legacy lowercase / hyphen form (e.g. 'video', 'image-edit') → uppercased.
    * - `undefined` / empty string → returns `undefined` (caller omits the filter).
    * - Non-empty unmappable value → throws BadRequestException.
    */
@@ -195,9 +197,10 @@ export class CategoryPrismaUtil {
       return mapped;
     }
 
-    // Accept already-Prisma-form values for idempotent passthrough.
-    if (PRISMA_INGREDIENT_CATEGORY_VALUES.has(value as string)) {
-      return value as PrismaIngredientCategoryValue;
+    // Accept already-Prisma-form values and legacy lowercase/hyphen spellings.
+    const normalized = toPrismaLabel(String(value));
+    if (PRISMA_INGREDIENT_CATEGORY_VALUES.has(normalized)) {
+      return normalized as PrismaIngredientCategoryValue;
     }
 
     throw new BadRequestException(`Unknown IngredientCategory: ${value}`);
@@ -239,9 +242,9 @@ export class CategoryPrismaUtil {
       return mapped;
     }
 
-    // Accept already-Prisma-form values for idempotent passthrough.
-    if (PRISMA_ORGANIZATION_CATEGORY_VALUES.has(value as string)) {
-      return value as PrismaOrganizationCategoryValue;
+    const normalized = toPrismaLabel(String(value));
+    if (PRISMA_ORGANIZATION_CATEGORY_VALUES.has(normalized)) {
+      return normalized as PrismaOrganizationCategoryValue;
     }
 
     throw new BadRequestException(`Unknown OrganizationCategory: ${value}`);
@@ -281,8 +284,9 @@ export class CategoryPrismaUtil {
       return mapped;
     }
 
-    if (PRISMA_ASSET_SCOPE_VALUES.has(value as string)) {
-      return value as PrismaAssetScopeValue;
+    const normalized = toPrismaLabel(String(value));
+    if (PRISMA_ASSET_SCOPE_VALUES.has(normalized)) {
+      return normalized as PrismaAssetScopeValue;
     }
 
     throw new BadRequestException(`Unknown AssetScope: ${value}`);
@@ -309,8 +313,13 @@ export class CategoryPrismaUtil {
       return mapped;
     }
 
-    if (PRISMA_INGREDIENT_STATUS_VALUES.has(value as string)) {
-      return value as PrismaIngredientStatusValue;
+    const normalized = toPrismaLabel(String(value));
+    // Legacy alias: completed → GENERATED
+    if (normalized === 'COMPLETED') {
+      return 'GENERATED';
+    }
+    if (PRISMA_INGREDIENT_STATUS_VALUES.has(normalized)) {
+      return normalized as PrismaIngredientStatusValue;
     }
 
     throw new BadRequestException(`Unknown IngredientStatus: ${value}`);

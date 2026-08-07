@@ -8,10 +8,10 @@ describe('voice.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(VoiceProvider.HEYGEN).toBe('heygen');
-      expect(VoiceProvider.ELEVENLABS).toBe('elevenlabs');
-      expect(VoiceProvider.HEDRA).toBe('hedra');
-      expect(VoiceProvider.GENFEED_AI).toBe('genfeed-ai');
+      expect(VoiceProvider.HEYGEN).toBe('HEYGEN');
+      expect(VoiceProvider.ELEVENLABS).toBe('ELEVENLABS');
+      expect(VoiceProvider.HEDRA).toBe('HEDRA');
+      expect(VoiceProvider.GENFEED_AI).toBe('GENFEED_AI');
     });
   });
 });

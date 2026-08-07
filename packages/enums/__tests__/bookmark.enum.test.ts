@@ -8,11 +8,11 @@ describe('bookmark.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(BookmarkIntent.VIDEO).toBe('video');
-      expect(BookmarkIntent.IMAGE).toBe('image');
-      expect(BookmarkIntent.REPLY).toBe('reply');
-      expect(BookmarkIntent.REFERENCE).toBe('reference');
-      expect(BookmarkIntent.INSPIRATION).toBe('inspiration');
+      expect(BookmarkIntent.VIDEO).toBe('VIDEO');
+      expect(BookmarkIntent.IMAGE).toBe('IMAGE');
+      expect(BookmarkIntent.REPLY).toBe('REPLY');
+      expect(BookmarkIntent.REFERENCE).toBe('REFERENCE');
+      expect(BookmarkIntent.INSPIRATION).toBe('INSPIRATION');
     });
   });
 });

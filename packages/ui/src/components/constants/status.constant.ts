@@ -73,7 +73,7 @@ export const STATUS_METADATA = new Map<
     },
   ],
   [
-    ArticleStatus.PUBLIC,
+    ArticleStatus.PUBLISHED,
     {
       label: 'Published',
       variant: 'success',

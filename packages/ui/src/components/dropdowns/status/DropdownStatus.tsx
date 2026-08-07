@@ -56,7 +56,7 @@ const DEFAULT_VARIANT_COLOR = 'bg-muted text-foreground';
 // Pre-defined status option sets by entity type
 const ARTICLE_STATUS_OPTIONS = [
   ArticleStatus.DRAFT,
-  ArticleStatus.PUBLIC,
+  ArticleStatus.PUBLISHED,
   ArticleStatus.ARCHIVED,
 ];
 

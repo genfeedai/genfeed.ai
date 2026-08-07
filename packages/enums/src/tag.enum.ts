@@ -1,9 +1,13 @@
+/**
+ * Tag category. Values match Prisma `TagCategory`.
+ * @see packages/prisma/prisma/schema.prisma `enum TagCategory`
+ */
 export enum TagCategory {
-  ORGANIZATION = 'Organization',
-  CREDENTIAL = 'Credential',
-  INGREDIENT = 'Ingredient',
-  PROMPT = 'Prompt',
-  ARTICLE = 'Article',
+  ORGANIZATION = 'ORGANIZATION',
+  CREDENTIAL = 'CREDENTIAL',
+  INGREDIENT = 'INGREDIENT',
+  PROMPT = 'PROMPT',
+  ARTICLE = 'ARTICLE',
 }
 
 export enum TagKey {

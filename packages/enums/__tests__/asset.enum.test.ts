@@ -8,9 +8,9 @@ describe('asset.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(AssetCategory.LOGO).toBe('logo');
-      expect(AssetCategory.BANNER).toBe('banner');
-      expect(AssetCategory.REFERENCE).toBe('reference');
+      expect(AssetCategory.LOGO).toBe('LOGO');
+      expect(AssetCategory.BANNER).toBe('BANNER');
+      expect(AssetCategory.REFERENCE).toBe('REFERENCE');
     });
   });
 
@@ -20,10 +20,10 @@ describe('asset.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(AssetParent.ORGANIZATION).toBe('Organization');
-      expect(AssetParent.INGREDIENT).toBe('Ingredient');
-      expect(AssetParent.BRAND).toBe('Brand');
-      expect(AssetParent.ARTICLE).toBe('Article');
+      expect(AssetParent.ORGANIZATION).toBe('ORGANIZATION');
+      expect(AssetParent.INGREDIENT).toBe('INGREDIENT');
+      expect(AssetParent.BRAND).toBe('BRAND');
+      expect(AssetParent.ARTICLE).toBe('ARTICLE');
     });
   });
 });

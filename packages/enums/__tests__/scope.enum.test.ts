@@ -8,10 +8,10 @@ describe('scope.enum', () => {
     });
 
     it('should have correct values', () => {
-      expect(Scope.USER).toBe('user');
-      expect(Scope.BRAND).toBe('brand');
-      expect(Scope.ORGANIZATION).toBe('organization');
-      expect(Scope.PUBLIC).toBe('public');
+      expect(Scope.USER).toBe('USER');
+      expect(Scope.BRAND).toBe('BRAND');
+      expect(Scope.ORGANIZATION).toBe('ORGANIZATION');
+      expect(Scope.PUBLIC).toBe('PUBLIC');
     });
   });
 });

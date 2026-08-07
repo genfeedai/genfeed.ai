@@ -46,7 +46,7 @@ describe('ArticleFilterUtil', () => {
         'DRAFT',
       );
       expect(
-        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.PUBLIC),
+        ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.PUBLISHED),
       ).toBe('PUBLISHED');
       expect(
         ArticleFilterUtil.toPrismaArticleStatus(ArticleStatus.ARCHIVED),
@@ -78,7 +78,7 @@ describe('ArticleFilterUtil', () => {
       expect(
         ArticleFilterUtil.toArticlePersistenceData({
           label: 'Launch',
-          status: ArticleStatus.PUBLIC,
+          status: ArticleStatus.PUBLISHED,
         }),
       ).toEqual({ label: 'Launch', status: 'PUBLISHED' });
     });
@@ -100,7 +100,7 @@ describe('ArticleFilterUtil', () => {
 
     it('maps public to Prisma PUBLISHED', () => {
       const filter = ArticleFilterUtil.buildArticleStatusFilter(
-        ArticleStatus.PUBLIC,
+        ArticleStatus.PUBLISHED,
       );
       expect(filter).toEqual({ status: 'PUBLISHED' });
     });
@@ -128,7 +128,7 @@ describe('ArticleFilterUtil', () => {
 
     it('accepts multiple statuses and maps each', () => {
       const filter = ArticleFilterUtil.buildArticleStatusFilter([
-        ArticleStatus.PUBLIC,
+        ArticleStatus.PUBLISHED,
         ArticleStatus.DRAFT,
       ]);
       expect(filter).toEqual({ status: { in: ['PUBLISHED', 'DRAFT'] } });
@@ -231,7 +231,7 @@ describe('ArticleFilterUtil', () => {
       const prismaStatusSet = new Set(PRISMA_ARTICLE_STATUS_MEMBERS);
       for (const status of [
         ArticleStatus.DRAFT,
-        ArticleStatus.PUBLIC,
+        ArticleStatus.PUBLISHED,
         ArticleStatus.ARCHIVED,
       ]) {
         const prismaStatus = ArticleFilterUtil.toPersistedArticleStatus(status);
@@ -245,12 +245,12 @@ describe('ArticleFilterUtil', () => {
     it('detects direct app status filters after nested where/data filters', () => {
       expect(
         hasForbiddenStatusFilter(
-          'where: { publishedAt: { not: null }, status: ArticleStatus.PUBLIC }',
+          'where: { publishedAt: { not: null }, status: ArticleStatus.PUBLISHED }',
         ),
       ).toBe(true);
       expect(
         hasForbiddenStatusFilter(
-          'data: { metadata: { source: "rss" }, status: ArticleStatus.PUBLIC }',
+          'data: { metadata: { source: "rss" }, status: ArticleStatus.PUBLISHED }',
         ),
       ).toBe(true);
     });

@@ -1,0 +1,260 @@
+/**
+ * Guard: every domain enum that shares a name with a Prisma column enum must
+ * use the Prisma label as its value (SCREAMING_SNAKE). This is the class of
+ * bug that made `status: "pending"` fail at runtime while TypeScript stayed silent.
+ *
+ * When you add a Prisma enum member, add it here too.
+ *
+ * @see .claude/rules/enum_source_of_truth.md
+ * @see packages/prisma/prisma/schema.prisma
+ */
+import { describe, expect, it } from 'vitest';
+import {
+  AgentAutonomyMode,
+  AgentRunStatus,
+  ApiKeyCategory,
+  AppSource,
+  ArticleStatus,
+  AssetCategory,
+  AssetParent,
+  BatchStatus,
+  BookmarkIntent,
+  BotStatus,
+  ByokBillingStatus,
+  ContentDraftStatus,
+  ContentRating,
+  FleetAssetLabel,
+  FleetReviewStatus,
+  FontFamily,
+  IngredientCategory,
+  IngredientStatus,
+  IntegrationPlatform,
+  IntegrationStatus,
+  LeadStatus,
+  MetadataExtension,
+  OrganizationCategory,
+  PersonaStatus,
+  PlatformRole,
+  PostCategory,
+  PostEntityModel,
+  PromptCategory,
+  PromptStatus,
+  ReferenceImageCategory,
+  SubscriptionStatus,
+  TagCategory,
+  TrainingStage,
+  TransformationCategory,
+  VoiceCloneStatus,
+  VoiceProvider,
+  WorkflowExecutionStatus,
+} from '../src';
+
+/** Prisma labels that MUST appear as domain enum values (extras allowed). */
+const PRISMA_REQUIRED: Record<string, readonly string[]> = {
+  AgentAutonomyMode: ['SUPERVISED', 'AUTO_PUBLISH'],
+  AgentRunStatus: ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'],
+  ApiKeyCategory: ['GENFEEDAI', 'ELEVENLABS', 'HEDRA', 'HEYGEN', 'OPUS_PRO'],
+  AppSource: ['GENFEED', 'GETSHAREABLE'],
+  ArticleStatus: ['DRAFT', 'PUBLISHED', 'ARCHIVED'],
+  AssetCategory: ['LOGO', 'BANNER', 'REFERENCE'],
+  AssetParent: ['ORGANIZATION', 'INGREDIENT', 'BRAND', 'ARTICLE'],
+  BatchStatus: [
+    'PENDING',
+    'PROCESSING',
+    'COMPLETED',
+    'PARTIAL',
+    'FAILED',
+    'CANCELLED',
+  ],
+  BookmarkIntent: ['VIDEO', 'IMAGE', 'REPLY', 'REFERENCE', 'INSPIRATION'],
+  BotStatus: ['ACTIVE', 'PAUSED', 'STOPPED'],
+  ByokBillingStatus: ['ACTIVE', 'PAST_DUE', 'SUSPENDED'],
+  ContentDraftStatus: ['DRAFT', 'READY', 'APPROVED', 'REJECTED', 'PUBLISHED'],
+  ContentRating: ['SFW', 'SUGGESTIVE', 'NSFW'],
+  FleetAssetLabel: ['HERO', 'FILLER', 'BTS', 'PROMO', 'LIFESTYLE', 'EDITORIAL'],
+  FleetReviewStatus: ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_REVISION'],
+  FontFamily: ['MONTSERRAT_BLACK', 'MONTSERRAT_BOLD', 'MONTSERRAT_REGULAR'],
+  IngredientCategory: [
+    'IMAGE',
+    'VIDEO',
+    'MUSIC',
+    'GIF',
+    'AVATAR',
+    'AUDIO',
+    'IMAGE_EDIT',
+    'VIDEO_EDIT',
+    'VOICE',
+    'INGREDIENT',
+    'TEXT',
+    'SOURCE',
+  ],
+  IngredientStatus: [
+    'DRAFT',
+    'PROCESSING',
+    'UPLOADED',
+    'GENERATED',
+    'VALIDATED',
+    'FAILED',
+    'ARCHIVED',
+    'REJECTED',
+  ],
+  IntegrationPlatform: ['TELEGRAM', 'SLACK', 'DISCORD', 'UNIPILE'],
+  IntegrationStatus: ['ACTIVE', 'PAUSED', 'ERROR'],
+  LeadStatus: ['NEW', 'CONTACTED', 'QUALIFIED', 'CONVERTED', 'LOST'],
+  MetadataExtension: [
+    'JPEG',
+    'JPG',
+    'PNG',
+    'GIF',
+    'WEBP',
+    'MP4',
+    'WEBM',
+    'MOV',
+    'AVI',
+    'MP3',
+    'WAV',
+  ],
+  OrganizationCategory: ['CREATOR', 'BUSINESS', 'AGENCY'],
+  PersonaStatus: ['ACTIVE', 'INACTIVE', 'ARCHIVED'],
+  PlatformRole: ['USER', 'SUPERADMIN'],
+  PostCategory: ['ARTICLE', 'VIDEO', 'POST', 'REEL', 'STORY', 'IMAGE', 'TEXT'],
+  PostEntityModel: ['INGREDIENT', 'ARTICLE'],
+  PromptCategory: [
+    'BRAND_DESCRIPTION',
+    'STORYBOARD_SCRIPT_DESCRIPTION',
+    'PRESET_DESCRIPTION_TEXT',
+    'PRESET_DESCRIPTION_IMAGE',
+    'PRESET_DESCRIPTION_VIDEO',
+    'PRESET_DESCRIPTION_MUSIC',
+    'POST_CONTENT_TWITTER',
+    'POST_CONTENT_YOUTUBE',
+    'POST_CONTENT_TIKTOK',
+    'POST_CONTENT_INSTAGRAM',
+    'POST_TITLE_TWITTER',
+    'POST_TITLE_YOUTUBE',
+    'POST_TITLE_TIKTOK',
+    'POST_TITLE_INSTAGRAM',
+    'MODELS_PROMPT_IMAGE',
+    'MODELS_PROMPT_VIDEO',
+    'MODELS_PROMPT_MUSIC',
+    'MODELS_PROMPT_TRAINING',
+    'ARTICLE',
+  ],
+  PromptStatus: ['DRAFT', 'PROCESSING', 'GENERATED', 'FAILED'],
+  ReferenceImageCategory: ['FACE', 'PRODUCT', 'STYLE', 'LOGO'],
+  SubscriptionStatus: [
+    'ACTIVE',
+    'CANCELLED',
+    'PAST_DUE',
+    'TRIALING',
+    'INCOMPLETE',
+  ],
+  TagCategory: [
+    'ORGANIZATION',
+    'CREDENTIAL',
+    'INGREDIENT',
+    'PROMPT',
+    'ARTICLE',
+  ],
+  TrainingStage: [
+    'PENDING',
+    'UPLOADING',
+    'TRAINING',
+    'READY',
+    'FAILED',
+    'CANCELLED',
+  ],
+  TransformationCategory: [
+    'UPSCALED',
+    'RESIZED',
+    'ENHANCED',
+    'EXTENDED',
+    'INTERPOLATED',
+    'STABILIZED',
+    'BACKGROUND_REMOVED',
+    'STYLE_TRANSFERRED',
+    'FACE_SWAPPED',
+    'LIP_SYNCED',
+    'ANIMATED',
+    'IMAGE_TO_VIDEO',
+    'CLIPPED',
+    'MERGED',
+    'EDITED',
+    'REVERSED',
+    'MIRRORED',
+    'CAPTIONED',
+    'VALIDATED',
+    'REFRAMED',
+  ],
+  VoiceCloneStatus: ['PENDING', 'CLONING', 'READY', 'FAILED'],
+  VoiceProvider: ['HEYGEN', 'ELEVENLABS', 'HEDRA', 'GENFEED_AI'],
+  WorkflowExecutionStatus: [
+    'PENDING',
+    'RUNNING',
+    'COMPLETED',
+    'FAILED',
+    'CANCELLED',
+  ],
+};
+
+const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
+  AgentAutonomyMode,
+  AgentRunStatus,
+  ApiKeyCategory,
+  AppSource,
+  ArticleStatus,
+  AssetCategory,
+  AssetParent,
+  BatchStatus,
+  BookmarkIntent,
+  BotStatus,
+  ByokBillingStatus,
+  ContentDraftStatus,
+  ContentRating,
+  FleetAssetLabel,
+  FleetReviewStatus,
+  FontFamily,
+  IngredientCategory,
+  IngredientStatus,
+  IntegrationPlatform,
+  IntegrationStatus,
+  LeadStatus,
+  MetadataExtension,
+  OrganizationCategory,
+  PersonaStatus,
+  PlatformRole,
+  PostCategory,
+  PostEntityModel,
+  PromptCategory,
+  PromptStatus,
+  ReferenceImageCategory,
+  SubscriptionStatus,
+  TagCategory,
+  TrainingStage,
+  TransformationCategory,
+  VoiceCloneStatus,
+  VoiceProvider,
+  WorkflowExecutionStatus,
+};
+
+describe('prisma-parity (domain enum values === Prisma labels)', () => {
+  for (const [name, required] of Object.entries(PRISMA_REQUIRED)) {
+    it(`${name} includes every Prisma label as a value`, () => {
+      const domain = DOMAIN_ENUMS[name];
+      expect(domain, `missing domain export ${name}`).toBeDefined();
+      const values = new Set(Object.values(domain));
+      for (const label of required) {
+        expect(values.has(label), `${name} missing value ${label}`).toBe(true);
+      }
+    });
+  }
+
+  it('domain enum values for Prisma-backed enums are SCREAMING_SNAKE', () => {
+    for (const [name, required] of Object.entries(PRISMA_REQUIRED)) {
+      for (const label of required) {
+        expect(label).toMatch(/^[A-Z][A-Z0-9_]*$/);
+        expect(DOMAIN_ENUMS[name]).toBeDefined();
+      }
+    }
+  });
+});
