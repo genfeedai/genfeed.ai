@@ -367,7 +367,10 @@ describe('buildBetterAuthAdminOptions', () => {
     // mapping into the PlatformRole enum column — it must be a valid enum
     // value or every first-time sign-up fails at the Prisma write.
     expect(options.defaultRole).toBe(PlatformRole.USER);
-    expect(options.schema?.user?.fields?.role).toBe('platformRole');
+    const userFields = options.schema?.user?.fields;
+    expect(
+      userFields && 'role' in userFields ? userFields.role : undefined,
+    ).toBe('platformRole');
     expect(Object.keys(options.roles ?? {}).sort()).toEqual([
       PlatformRole.SUPERADMIN,
       PlatformRole.USER,
