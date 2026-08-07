@@ -92,6 +92,7 @@ export * from './router.enum';
 export * from './run.enum';
 export * from './scheduler.enum';
 export * from './scope.enum';
+export * from './setting.enum';
 export * from './severity.enum';
 export * from './social-inbox.enum';
 export * from './social-media.enum';

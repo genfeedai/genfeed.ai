@@ -1,11 +1,6 @@
+import type { TrendNotificationFrequency } from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
 import type { DashboardPreferences } from '../settings/dashboard-settings.interface';
-
-export type TrendNotificationFrequency =
-  | 'realtime'
-  | 'hourly'
-  | 'daily'
-  | 'weekly';
 
 export interface ISetting extends IBaseEntity {
   theme: string;

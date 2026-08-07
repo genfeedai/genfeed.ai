@@ -84,7 +84,7 @@ const createSetting = (partial: Partial<ISetting> = {}): ISetting => ({
   isTrendNotificationsTelegram: false,
   isVerified: false,
   theme: 'light',
-  trendNotificationsFrequency: 'daily',
+  trendNotificationsFrequency: 'DAILY',
   trendNotificationsMinViralScore: 0,
   ...partial,
 });
