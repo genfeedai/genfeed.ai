@@ -66,8 +66,6 @@ type AgentChatPromptBarProps = {
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
-  models?: readonly AgentModelOption[];
-  isModelsLoading?: boolean;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 };
@@ -105,8 +103,6 @@ export function AgentChatPromptBar({
   models,
   isModelsLoading = false,
   onModelChange,
-  models,
-  isModelsLoading = false,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatPromptBarProps): ReactElement {
@@ -191,8 +187,6 @@ export function AgentChatPromptBar({
         models={models}
         isModelsLoading={isModelsLoading}
         onModelChange={onModelChange}
-        models={models}
-        isModelsLoading={isModelsLoading}
         creditsAvailable={creditsAvailable}
         onBuyCredits={onBuyCredits}
       />

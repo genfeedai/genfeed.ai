@@ -61,9 +61,6 @@ interface AgentChatInputProps {
   models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
-  /** Override list for the model picker (registry-backed when provided). */
-  models?: readonly AgentModelOption[];
-  isModelsLoading?: boolean;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
 }
@@ -101,8 +98,6 @@ export function AgentChatInput({
   models,
   isModelsLoading = false,
   onModelChange,
-  models,
-  isModelsLoading = false,
   creditsAvailable = null,
   onBuyCredits,
 }: AgentChatInputProps): ReactElement {
@@ -233,8 +228,6 @@ export function AgentChatInput({
             onStop={onStop}
             onStopListening={stopListening}
             selectedModel={selectedModel}
-            models={models}
-            isModelsLoading={isModelsLoading}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
             showStop={Boolean(showStop)}

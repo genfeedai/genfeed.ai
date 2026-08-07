@@ -47,8 +47,6 @@ export interface AgentChatInputToolbarProps {
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
   selectedModel?: string;
-  models?: readonly AgentModelOption[];
-  isModelsLoading?: boolean;
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
   showStop: boolean;
@@ -75,8 +73,6 @@ function AgentChatInputToolbarInner({
   onStop,
   onStopListening,
   selectedModel,
-  models,
-  isModelsLoading = false,
   shouldShowSendButton,
   shouldShowVoiceInput,
   showStop,
