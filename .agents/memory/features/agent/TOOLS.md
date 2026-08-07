@@ -27,9 +27,9 @@ toAgentTools(tools): AgentToolDefinition[]  // adapter to agent format
 `packages/tools/src/registry/curated-action-catalog.spec.ts` verifies unique,
 sorted catalog entries, a complete definition bijection, and exact runtime
 surface derivation. Agent and MCP suites separately verify real executor paths.
-`.github/workflows/curated-action-catalog.yml` triggers only when the catalog
-file changes and reports additions, removals, and surface transitions as warning
-annotations plus a step summary.
+`.github/workflows/curated-action-catalog.yml` runs on pull requests that touch
+the catalog or its reporter, and reports additions, removals, and surface
+transitions as warning annotations plus a step-summary table.
 
 **CanonicalToolDefinition:**
 ```typescript

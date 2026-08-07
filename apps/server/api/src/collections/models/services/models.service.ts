@@ -373,6 +373,31 @@ export class ModelsService extends BaseService<
     };
   }
 
+  /**
+   * Prisma treats an *absent* `organizationId` key as "every value", so a bulk
+   * filter that simply omits it widens the write across every tenant plus the
+   * global registry. Require the key to be **present**, not truthy:
+   * `organizationId: null` is the global model registry this service is built to
+   * maintain (see `touchDiscoveredModels`), so a truthiness check would reject
+   * legitimate registry writes.
+   */
+  override async patchAll(
+    filter: Parameters<BaseService<ModelDocument>['patchAll']>[0],
+    update: Parameters<BaseService<ModelDocument>['patchAll']>[1],
+  ): Promise<{ modifiedCount: number }> {
+    if (!this.isModelRecord(filter)) {
+      throw new ValidationException('Filter criteria are required');
+    }
+
+    if (!('organizationId' in filter)) {
+      throw new ValidationException(
+        'organizationId is required for bulk model updates',
+      );
+    }
+
+    return super.patchAll(filter, update);
+  }
+
   async clearOtherDefaults(
     category: string,
     organizationId: string | null,
@@ -384,7 +409,6 @@ export class ModelsService extends BaseService<
       );
     }
 
-    // sql-risk-audit: ignore bulk-write-tenant-review -- The guard above rejects bulk writes without an explicit organization scope; null targets only global registry rows.
     await this.prisma.model.updateMany({
       data: { isDefault: false },
       where: {
