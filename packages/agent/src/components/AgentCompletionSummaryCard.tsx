@@ -1,10 +1,10 @@
-import { AGENT_CONVERSATION_SURFACE_RADIUS_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
   AgentUiActionCta,
   AgentUiActionOutputVariant,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -88,29 +88,33 @@ function CompletionActionButton({
   ) => void | Promise<void>;
   size?: 'default' | 'compact';
 }): ReactElement {
-  const sizeClass =
-    size === 'compact' ? 'px-2.5 py-1 text-xs' : 'px-3 py-2 text-sm';
+  // Always go through Button so global `a { color }` rules cannot paint
+  // black text on dark card chrome (raw anchors were unreadable).
+  const buttonSize = size === 'compact' ? ButtonSize.SM : ButtonSize.DEFAULT;
+  const variant = isPrimary ? ButtonVariant.SECONDARY : ButtonVariant.GHOST;
+  const className = cn(
+    'shrink-0 font-medium text-foreground',
+    size === 'compact' && 'h-7 px-2.5 text-xs',
+  );
 
   if (cta.href) {
     return (
-      <a
-        href={cta.href}
-        className={cn(
-          'inline-flex items-center justify-center font-medium transition-colors',
-          sizeClass,
-          isPrimary
-            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-            : 'border border-border bg-background text-foreground hover:bg-accent',
-        )}
+      <Button
+        asChild
+        size={buttonSize}
+        variant={variant}
+        withWrapper={false}
+        className={className}
       >
-        {cta.label}
-      </a>
+        <a href={cta.href}>{cta.label}</a>
+      </Button>
     );
   }
 
   return (
     <Button
-      variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
+      size={buttonSize}
+      variant={variant}
       withWrapper={false}
       onClick={() => {
         if (!cta.action) {
@@ -118,10 +122,7 @@ function CompletionActionButton({
         }
         void onUiAction?.(cta.action, cta.payload);
       }}
-      className={cn(
-        'inline-flex items-center justify-center font-medium',
-        sizeClass,
-      )}
+      className={className}
     >
       {cta.label}
     </Button>
@@ -165,8 +166,8 @@ export function AgentCompletionSummaryCard({
   return (
     <div
       className={cn(
-        'mt-2 w-full min-w-0 max-w-full overflow-hidden border border-border/70 bg-card/70 text-left shadow-sm backdrop-blur-sm',
-        AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+        AGENT_CONVERSATION_SURFACE_CLASS,
+        'mt-2 w-full min-w-0 max-w-full overflow-hidden text-left',
       )}
     >
       {/* Always-visible compact header — wrap instead of growing past track. */}

@@ -8,3 +8,12 @@ export const AGENT_CONVERSATION_TRACK_CLASS =
 
 /** Shared card/composer border radius so edges match visually. */
 export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-2xl';
+
+/**
+ * Shared agent timeline card chrome. Solid `bg-card` (not translucent /70 +
+ * blur) so Done, batch result, and form cards read as the same surface.
+ */
+export const AGENT_CONVERSATION_SURFACE_CLASS = [
+  'border border-border bg-card text-card-foreground shadow-sm',
+  AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+].join(' ');

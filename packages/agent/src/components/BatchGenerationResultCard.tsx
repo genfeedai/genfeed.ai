@@ -1,11 +1,12 @@
-import { AGENT_CONVERSATION_SURFACE_RADIUS_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
-import { isTwitterPlatform } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, isTwitterPlatform } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import {
   Calendar,
   CircleCheck,
@@ -35,15 +36,19 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
     return null;
   }
 
-  const className =
-    index === 0
-      ? 'inline-flex items-center justify-center bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
-      : 'inline-flex items-center justify-center border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent';
+  const isPrimary = index === 0;
 
   return (
-    <a key={cta.label} href={cta.href} className={className}>
-      {cta.label}
-    </a>
+    <Button
+      key={cta.label}
+      asChild
+      size={ButtonSize.SM}
+      variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY}
+      withWrapper={false}
+      className="font-medium"
+    >
+      <a href={cta.href}>{cta.label}</a>
+    </Button>
   );
 }
 
@@ -76,8 +81,8 @@ export function BatchGenerationResultCard({
   return (
     <div
       className={cn(
-        'mt-3 w-full min-w-0 max-w-full overflow-hidden border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm',
-        AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+        AGENT_CONVERSATION_SURFACE_CLASS,
+        'mt-3 w-full min-w-0 max-w-full overflow-hidden p-4 text-left',
       )}
     >
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

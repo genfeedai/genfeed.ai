@@ -1,4 +1,4 @@
-import { AGENT_CONVERSATION_SURFACE_RADIUS_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import {
   DEFAULT_BATCH_CONTENT_MIX,
@@ -98,8 +98,8 @@ export function BatchGenerationCard({
   return (
     <div
       className={cn(
-        'my-2 w-full min-w-0 max-w-full border border-border/70 bg-card/70 p-4 shadow-sm',
-        AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
+        AGENT_CONVERSATION_SURFACE_CLASS,
+        'my-2 w-full min-w-0 max-w-full p-4',
       )}
     >
       <div className="mb-3 flex min-w-0 items-center gap-2">
