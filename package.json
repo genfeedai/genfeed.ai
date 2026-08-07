@@ -160,7 +160,8 @@
     "test:e2e:release": "bunx playwright test --config=playwright/configs/playwright-release-e2e.config.ts",
     "type-check": "bunx turbo run type-check",
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",
-    "secretlint": "secretlint '**/*'"
+    "secretlint": "secretlint '**/*'",
+    "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.7",

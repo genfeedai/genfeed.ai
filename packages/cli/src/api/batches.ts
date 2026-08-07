@@ -6,7 +6,14 @@ import {
   type JsonApiSingleResponse,
 } from './json-api';
 
-export type BatchStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
+/** Matches @genfeedai/enums BatchStatus / Prisma BatchStatus wire values. */
+export type BatchStatus =
+  | 'PENDING'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'PARTIAL'
+  | 'FAILED'
+  | 'CANCELLED';
 
 export interface Batch {
   id: string;
@@ -83,6 +90,6 @@ export async function batchItemAction(batchId: string, request: BatchActionReque
 
 export async function cancelBatch(batchId: string): Promise<void> {
   await patch<JsonApiSingleResponse>(`/batches/${batchId}`, {
-    status: 'cancelled',
+    status: 'CANCELLED',
   });
 }

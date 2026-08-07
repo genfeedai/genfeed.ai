@@ -23,6 +23,6 @@ export function isReadyToReview(item: IBatchItem): boolean {
 export function isPendingReview(item: IBatchItem): boolean {
   return (
     item.status === BatchItemStatus.PENDING ||
-    item.status === BatchItemStatus.GENERATING
+    item.status === BatchItemStatus.PROCESSING
   );
 }
