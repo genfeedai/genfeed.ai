@@ -1,4 +1,4 @@
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/enums';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -186,13 +186,13 @@ export function useElements({
     }
 
     switch (type) {
-      case IngredientCategory.IMAGE:
+      case 'image':
         return imageModels;
-      case IngredientCategory.VIDEO:
+      case 'video':
         return videoModels;
-      case IngredientCategory.VOICE:
+      case 'voice':
         return voiceModels;
-      case IngredientCategory.MUSIC:
+      case 'music':
         return musicModels;
       default:
         return contextData.models || [];
