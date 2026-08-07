@@ -39,9 +39,12 @@ function requireFlag(argv: string[], flag: string): string {
 
 function parseTimestamp(value: string, flag: string): number {
   const numericValue = Number(value);
+  // ISO-8601 input may carry milliseconds; floor to whole Unix seconds so a
+  // valid `…T00:00:00.500Z` is accepted instead of failing the integer check.
+  // `Math.floor(NaN)` stays `NaN`, so unparseable strings are still rejected.
   const timestamp = Number.isFinite(numericValue)
     ? numericValue
-    : Date.parse(value) / 1_000;
+    : Math.floor(Date.parse(value) / 1_000);
 
   if (!Number.isInteger(timestamp) || timestamp <= 0) {
     throw new Error(`${flag} must be a Unix timestamp or ISO-8601 date`);
