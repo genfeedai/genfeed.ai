@@ -1,6 +1,12 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,6 +52,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 interface AgentChatStoreState {
+  activeRunId: string | null;
   activeRunStatus:
     | 'idle'
     | 'running'
@@ -56,10 +63,24 @@ interface AgentChatStoreState {
   activeThreadId: string | null;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   clearMessages: ReturnType<typeof vi.fn>;
+  composerSeed: {
+    content: string;
+    nonce: number;
+    threadId: string | null;
+  } | null;
+  draftPlanModeEnabled: boolean;
+  latestProposedPlan: Record<string, unknown> | null;
+  messages: Array<Record<string, unknown>>;
+  pendingInputRequest: Record<string, unknown> | null;
   resetActiveConversationState: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
+  runStartedAt: string | null;
   stream: {
+    activeToolCalls: unknown[];
     isStreaming: boolean;
+    pendingUiActions: unknown[];
+    streamingContent: string;
+    streamingReasoning: string;
   };
   threadUiBusyById: Record<string, boolean>;
   threads: AgentThread[];
@@ -71,21 +92,41 @@ interface AgentChatStoreState {
   setThreads: ReturnType<typeof vi.fn>;
   setThreadUiBusy: ReturnType<typeof vi.fn>;
   setWorkEvents: ReturnType<typeof vi.fn>;
+  workEvents: Array<Record<string, unknown>>;
 }
 
 const storeState: AgentChatStoreState = {
+  activeRunId: null,
   activeRunStatus: 'idle',
   activeThreadId: null,
   clearMessages: vi.fn(),
   clearThreadAttention: vi.fn(),
-  // Mirrors the store reducer: clears the active-conversation slices but not
-  // the thread id, which setActiveThread(null) owns.
+  composerSeed: null,
+  draftPlanModeEnabled: false,
+  latestProposedPlan: null,
+  messages: [],
+  pendingInputRequest: null,
   resetActiveConversationState: vi.fn(() => {
+    storeState.activeRunId = null;
     storeState.activeRunStatus = 'idle';
-    storeState.stream.isStreaming = false;
+    storeState.composerSeed = null;
+    storeState.draftPlanModeEnabled = false;
+    storeState.latestProposedPlan = null;
+    storeState.messages = [];
+    storeState.pendingInputRequest = null;
+    storeState.runStartedAt = null;
+    storeState.stream = {
+      activeToolCalls: [],
+      isStreaming: false,
+      pendingUiActions: [],
+      streamingContent: '',
+      streamingReasoning: '',
+    };
     storeState.threadUiBusyById = {};
+    storeState.workEvents = [];
   }),
   resetStreamState: vi.fn(),
+  runStartedAt: null,
   setActiveRun: vi.fn(),
   setActiveThread: vi.fn((threadId: string | null) => {
     storeState.activeThreadId = threadId;
@@ -99,10 +140,15 @@ const storeState: AgentChatStoreState = {
   setThreadUiBusy: vi.fn(),
   setWorkEvents: vi.fn(),
   stream: {
+    activeToolCalls: [],
     isStreaming: false,
+    pendingUiActions: [],
+    streamingContent: '',
+    streamingReasoning: '',
   },
   threads: [],
   threadUiBusyById: {},
+  workEvents: [],
 };
 
 vi.mock('../stores/agent-chat.store', () => ({
@@ -184,10 +230,36 @@ function createApiService(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  reject: (reason: Error) => void;
+  resolve: (value: T) => void;
+} {
+  let reject: ((reason: Error) => void) | null = null;
+  let resolve: ((value: T) => void) | null = null;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    reject = rejectPromise;
+    resolve = resolvePromise;
+  });
+
+  return {
+    promise,
+    reject: (reason) => reject?.(reason),
+    resolve: (value) => resolve?.(value),
+  };
+}
+
 describe('AgentThreadList', () => {
   beforeEach(() => {
+    storeState.activeRunId = null;
     storeState.activeRunStatus = 'idle';
     storeState.activeThreadId = null;
+    storeState.composerSeed = null;
+    storeState.draftPlanModeEnabled = false;
+    storeState.latestProposedPlan = null;
+    storeState.messages = [];
+    storeState.pendingInputRequest = null;
+    storeState.runStartedAt = null;
     storeState.threads = [];
     storeState.clearMessages.mockReset();
     storeState.clearThreadAttention.mockReset();
@@ -201,8 +273,15 @@ describe('AgentThreadList', () => {
     storeState.setError.mockReset();
     storeState.setMessages.mockReset();
     storeState.setWorkEvents.mockReset();
-    storeState.stream.isStreaming = false;
+    storeState.stream = {
+      activeToolCalls: [],
+      isStreaming: false,
+      pendingUiActions: [],
+      streamingContent: '',
+      streamingReasoning: '',
+    };
     storeState.threadUiBusyById = {};
+    storeState.workEvents = [];
   });
 
   it('shows a load failure state instead of the empty state on fetch errors', async () => {
@@ -737,6 +816,53 @@ describe('AgentThreadList', () => {
     ).not.toHaveClass('animate-spin');
   });
 
+  it('ignores a previous brand request that rejects after the next load starts', async () => {
+    const brandARequest = createDeferred<AgentThread[]>();
+    const brandBRequest = createDeferred<AgentThread[]>();
+    const brandBThread = createThread('conv-b', 'Brand B chat', {
+      brandId: 'brand-b',
+    });
+    const getThreads = vi
+      .fn()
+      .mockReturnValueOnce(brandARequest.promise)
+      .mockReturnValueOnce(brandBRequest.promise);
+    const apiService = createApiService({
+      getThreads,
+      unarchiveThread: vi.fn(),
+    });
+
+    const { rerender } = render(
+      <AgentThreadList apiService={apiService as never} brandId="brand-a" />,
+    );
+
+    await waitFor(() => {
+      expect(getThreads).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <AgentThreadList apiService={apiService as never} brandId="brand-b" />,
+    );
+
+    await waitFor(() => {
+      expect(getThreads).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      brandARequest.reject(new Error('Brand A request failed late'));
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText('Failed to load threads')).toBeNull();
+    expect(screen.queryByText('No threads')).toBeNull();
+
+    await act(async () => {
+      brandBRequest.resolve([brandBThread]);
+    });
+
+    expect(await screen.findByText('Brand B chat')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load threads')).toBeNull();
+  });
+
   it('resets the whole active conversation when the brand scope changes', async () => {
     const brandAThread = createThread('conv-a', 'Brand A chat', {
       brandId: 'brand-a',
@@ -747,9 +873,27 @@ describe('AgentThreadList', () => {
 
     // The previous scope left an active, streaming conversation behind.
     storeState.activeThreadId = 'conv-a';
+    storeState.activeRunId = 'run-a';
     storeState.activeRunStatus = 'running';
-    storeState.stream.isStreaming = true;
+    storeState.composerSeed = {
+      content: 'Brand A draft',
+      nonce: 1,
+      threadId: 'conv-a',
+    };
+    storeState.draftPlanModeEnabled = true;
+    storeState.latestProposedPlan = { id: 'plan-a' };
+    storeState.messages = [{ id: 'message-a' }];
+    storeState.pendingInputRequest = { id: 'input-a' };
+    storeState.runStartedAt = '2026-08-07T00:00:00.000Z';
+    storeState.stream = {
+      activeToolCalls: [{ id: 'tool-a' }],
+      isStreaming: true,
+      pendingUiActions: [{ id: 'action-a' }],
+      streamingContent: 'Brand A response',
+      streamingReasoning: 'Brand A reasoning',
+    };
     storeState.threadUiBusyById = { 'conv-a': true };
+    storeState.workEvents = [{ id: 'event-a' }];
 
     const apiService = createApiService({
       getThreads: vi
@@ -776,9 +920,23 @@ describe('AgentThreadList', () => {
     expect(storeState.setActiveThread).toHaveBeenCalledWith(null);
     expect(storeState.resetActiveConversationState).toHaveBeenCalledTimes(1);
     expect(storeState.activeThreadId).toBeNull();
+    expect(storeState.activeRunId).toBeNull();
     expect(storeState.activeRunStatus).toBe('idle');
-    expect(storeState.stream.isStreaming).toBe(false);
+    expect(storeState.composerSeed).toBeNull();
+    expect(storeState.draftPlanModeEnabled).toBe(false);
+    expect(storeState.latestProposedPlan).toBeNull();
+    expect(storeState.messages).toEqual([]);
+    expect(storeState.pendingInputRequest).toBeNull();
+    expect(storeState.runStartedAt).toBeNull();
+    expect(storeState.stream).toEqual({
+      activeToolCalls: [],
+      isStreaming: false,
+      pendingUiActions: [],
+      streamingContent: '',
+      streamingReasoning: '',
+    });
     expect(storeState.threadUiBusyById).toEqual({});
+    expect(storeState.workEvents).toEqual([]);
     expect(screen.queryByText('Brand A chat')).toBeNull();
   });
 

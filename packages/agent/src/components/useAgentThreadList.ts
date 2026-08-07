@@ -90,7 +90,8 @@ export function useAgentThreadList({
     }
 
     abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     // Only flip loading when the store is empty so thread switches / soft
     // refreshes do not replace the list with a spinner.
@@ -106,9 +107,12 @@ export function useAgentThreadList({
             status: viewStatus,
             brandId: brandId || undefined,
           },
-          abortRef.current.signal,
+          controller.signal,
         ),
       );
+      if (controller.signal.aborted || abortRef.current !== controller) {
+        return false;
+      }
       setAuthError(null);
       setLoadError(null);
       const matchesBrandScope = (thread: {
@@ -150,7 +154,7 @@ export function useAgentThreadList({
       setListRevision((revision) => revision + 1);
       return true;
     } catch (error) {
-      if (abortRef.current?.signal.aborted) {
+      if (controller.signal.aborted || abortRef.current !== controller) {
         return false;
       }
       if (isAuthError(error)) {
@@ -165,7 +169,9 @@ export function useAgentThreadList({
       setListRevision((revision) => revision + 1);
       return false;
     } finally {
-      setIsLoading(false);
+      if (abortRef.current === controller && !controller.signal.aborted) {
+        setIsLoading(false);
+      }
     }
   }, [apiService, brandId, isActive, setThreads, viewStatus]);
 

@@ -54,7 +54,7 @@ describe('canonicalize model registry migration', () => {
   });
 
   it('keeps config object-shaped for every providerConfig fixture shape', () => {
-    const fixtures: Array<{ label: string; providerConfig: unknown }> = [
+    const fixtures = [
       { label: 'object', providerConfig: { apiVersion: 'v1', region: 'eu' } },
       { label: 'array', providerConfig: ['v1', 'eu'] },
       { label: 'string scalar', providerConfig: 'v1' },
