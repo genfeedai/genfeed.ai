@@ -61,12 +61,17 @@ vi.mock('./CreditsBarTrigger', () => ({
     balance,
     billingHref,
     fullBalance,
+    isLoading,
   }: {
     balance: number;
     billingHref: string;
     fullBalance: string;
+    isLoading?: boolean;
   }) => (
-    <div data-testid="credits-trigger">
+    <div
+      data-testid="credits-trigger"
+      data-loading={isLoading ? 'true' : 'false'}
+    >
       <span data-testid="credits-balance">{fullBalance}</span>
       <span data-testid="credits-numeric">{balance}</span>
       <a href={billingHref} data-testid="credits-link">
@@ -107,12 +112,30 @@ describe('TopbarCreditsBar', () => {
       expect(screen.getByTestId('credits-balance')).toHaveTextContent('42');
     });
 
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-loading',
+      'false',
+    );
     expect(screen.getByTestId('credits-link')).toHaveAttribute(
       'href',
       '/genfeed/settings/credits',
     );
     expect(mockLoggerError).not.toHaveBeenCalled();
     expect(mockLoggerWarn).not.toHaveBeenCalled();
+  });
+
+  it('does not treat the pre-fetch state as a loaded zero balance', () => {
+    mockGetTopbarBalances.mockImplementation(
+      () => new Promise(() => undefined),
+    );
+
+    render(<TopbarCreditsBar />);
+
+    expect(screen.getByTestId('credits-trigger')).toHaveAttribute(
+      'data-loading',
+      'true',
+    );
+    expect(screen.getByTestId('credits-balance')).toHaveTextContent('—');
   });
 
   it('renders nothing on desktop BYOK-only shell', async () => {

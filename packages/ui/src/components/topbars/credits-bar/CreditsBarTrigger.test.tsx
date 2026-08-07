@@ -79,6 +79,25 @@ describe('CreditsBarTrigger', () => {
     expect(screen.getByText('4.2k')).toBeInTheDocument();
   });
 
+  it('stays neutral while loading instead of flashing critical zero', () => {
+    render(
+      <CreditsBarTrigger
+        {...defaultProps}
+        balance={0}
+        compactBalance="—"
+        fullBalance="—"
+        isLoading
+      />,
+    );
+
+    const trigger = screen.getByTestId('topbar-credits-trigger');
+    expect(trigger).toHaveAttribute('data-severity', 'loading');
+    expect(trigger).not.toHaveClass('text-destructive');
+    expect(trigger).not.toHaveClass('animate-pulse');
+    expect(screen.getByText('—')).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading GEN balance')).toBeInTheDocument();
+  });
+
   it('opens a consolidated wallet with Buy credits as the primary CTA', async () => {
     const user = userEvent.setup();
     render(
