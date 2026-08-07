@@ -513,10 +513,12 @@ describe('SubscriptionsController', () => {
 
       await controller.getCreditUsage({});
 
+      // No explicit `isDeleted: false` — #2429 moved soft-delete scoping into
+      // the service layer, so call sites pass the filter alone. The guarantee
+      // itself is covered by `base.service.spec.ts` / `scoped-where.spec.ts`.
       expect(mockOrganizationsService.find).toHaveBeenCalledTimes(1);
       expect(mockOrganizationsService.find).toHaveBeenCalledWith({
         id: { in: ['org_a', 'org_b'] },
-        isDeleted: false,
       });
     });
   });
