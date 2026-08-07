@@ -12,6 +12,7 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { WorkflowExecutionTrigger, WorkflowTrigger } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName, toAgentScopeMetadata } from '@genfeedai/interfaces';
@@ -458,7 +459,7 @@ export class AgentWorkflowToolHandler {
     return {
       creditsUsed: params.creditsUsed,
       data: {
-        editorUrl: `/automations/editor/${params.workflowId}`,
+        editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${params.workflowId}`,
         id: params.workflowId,
         label: params.workflowLabel,
         nextRunAt: params.nextRunAt ?? null,
@@ -470,11 +471,11 @@ export class AgentWorkflowToolHandler {
         {
           ctas: [
             {
-              href: `/automations/editor/${params.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${params.workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: '/automations/executions',
+              href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
               label: 'Open executions',
             },
           ],
@@ -605,7 +606,7 @@ export class AgentWorkflowToolHandler {
         creditsUsed: 0,
         data: {
           canonicalId,
-          editorUrl: `/automations/editor/${workflowId}`,
+          editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowId}`,
           id: workflowId,
           isScheduleEnabled: workflow.isScheduleEnabled,
           label: workflow.label ?? workflow.name,
@@ -1199,14 +1200,14 @@ export class AgentWorkflowToolHandler {
         data: {
           alreadyInstalled: true,
           canonicalId: source.id,
-          editorUrl: `/automations/editor/${installedWorkflowId}`,
+          editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${installedWorkflowId}`,
           id: installedWorkflowId,
         },
         nextActions: [
           {
             ctas: [
               {
-                href: `/automations/editor/${installedWorkflowId}`,
+                href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${installedWorkflowId}`,
                 label: 'Open workflow',
               },
             ],
@@ -1325,10 +1326,13 @@ export class AgentWorkflowToolHandler {
           {
             ctas: [
               {
-                href: `/automations/editor/${workflowId}`,
+                href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowId}`,
                 label: 'Open workflow',
               },
-              { href: '/automations/executions', label: 'Open executions' },
+              {
+                href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
+                label: 'Open executions',
+              },
             ],
             description: 'Genfeed automation installed into your workspace.',
             id: `workflow-installed-${workflowId}`,
@@ -1379,7 +1383,7 @@ export class AgentWorkflowToolHandler {
       return {
         creditsUsed: 0,
         data: {
-          editorUrl: `/automations/editor/${workflowId}`,
+          editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowId}`,
           id: workflowId,
           installedFrom: source.kind,
           nextRunAt,
@@ -1388,11 +1392,11 @@ export class AgentWorkflowToolHandler {
           {
             ctas: [
               {
-                href: `/automations/editor/${workflowId}`,
+                href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowId}`,
                 label: 'Open workflow',
               },
               {
-                href: '/automations/executions',
+                href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
                 label: 'Open executions',
               },
             ],
@@ -1497,7 +1501,7 @@ export class AgentWorkflowToolHandler {
     return {
       creditsUsed: 0,
       data: {
-        editorUrl: `/automations/editor/${installResult.resourceId}`,
+        editorUrl: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${installResult.resourceId}`,
         id: installResult.resourceId,
         installedFrom: source.kind,
         nextRunAt,
@@ -1507,11 +1511,11 @@ export class AgentWorkflowToolHandler {
         {
           ctas: [
             {
-              href: `/automations/editor/${installResult.resourceId}`,
+              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${installResult.resourceId}`,
               label: 'Open workflow',
             },
             {
-              href: '/automations/executions',
+              href: APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS,
               label: 'Open executions',
             },
           ],

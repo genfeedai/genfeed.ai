@@ -2858,7 +2858,7 @@ describe('AgentOrchestratorService', () => {
             expect.stringContaining('Automation ready'),
           ]),
           primaryCta: expect.objectContaining({
-            href: '/automations/editor/',
+            href: '/automate/workflows',
             label: 'Use in Workflow',
           }),
           secondaryCtas: expect.arrayContaining([
@@ -3069,7 +3069,7 @@ describe('AgentOrchestratorService', () => {
         {
           ctas: [
             {
-              href: '/automations/editor/wf-1',
+              href: '/automate/workflows/wf-1',
               label: 'Open workflow',
             },
           ],

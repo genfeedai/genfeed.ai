@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { InstagramInspirationService } from '@api/services/instagram-inspiration/instagram-inspiration.service';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   AgentToolResult,
@@ -155,7 +156,7 @@ export class AgentInstagramInspirationToolHandler {
         {
           ctas: [
             {
-              href: `/workflows/${result.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${result.workflowId}`,
               label: 'Review workflow',
             },
           ],

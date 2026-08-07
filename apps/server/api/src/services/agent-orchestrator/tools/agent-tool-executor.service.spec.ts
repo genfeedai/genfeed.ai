@@ -3590,7 +3590,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         brandId: 'c7a1234567890123456789aa',
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
         schedule: '0 17 * * *',
         timezone: 'Europe/Malta',
         workflowId: recurringWorkflowId,
@@ -3897,7 +3897,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/genfeed-ai/genfeed/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/genfeed-ai/genfeed/automate/workflows/${recurringWorkflowId}`,
         label: 'Weekly Content Planner',
         nextRunAt: expect.any(Date),
         schedule: '0 9 * * 1',
@@ -3909,10 +3909,10 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: `/genfeed-ai/genfeed/automations/editor/${recurringWorkflowId}`,
+            href: `/genfeed-ai/genfeed/automate/workflows/${recurringWorkflowId}`,
           }),
           expect.objectContaining({
-            href: '/genfeed-ai/genfeed/automations/executions',
+            href: '/genfeed-ai/genfeed/automate/workflows/executions',
           }),
         ],
         type: 'workflow_created_card',
@@ -4069,7 +4069,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
         label: 'Generated Workflow',
       }),
     );
@@ -4109,7 +4109,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         brandId: 'c7a1234567890123456789ab',
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
       }),
     );
   });
@@ -4819,11 +4819,11 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
-      editorUrl: `/automations/editor/${result.data?.id}`,
+      editorUrl: `/automate/workflows/${result.data?.id}`,
       installedFrom: 'seeded-template',
     });
     expect(result.nextActions?.[0]?.ctas?.[0]).toMatchObject({
-      href: `/automations/editor/${result.data?.id}`,
+      href: `/automate/workflows/${result.data?.id}`,
       label: 'Open workflow',
     });
   });
