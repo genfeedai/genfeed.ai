@@ -17,7 +17,7 @@ function makeMockAdapter(): {
 }
 
 function makeClient(
-  platform: 'discord' | 'slack' | 'telegram',
+  platform: 'DISCORD' | 'SLACK' | 'TELEGRAM',
   adapter: BotHttpAdapter,
   apiKey = 'test-key',
 ): BotInternalApiClient {
@@ -33,7 +33,7 @@ const validPayload = {
   id: 'int-1',
   organizationId: 'org-1',
   botToken: 'tok',
-  status: 'active',
+  status: 'ACTIVE',
   config: {},
 };
 
@@ -42,28 +42,28 @@ describe('BotInternalApiClient', () => {
     it('calls the correct URL for the given platform', async () => {
       const { adapter, get } = makeMockAdapter();
       get.mockResolvedValue([validPayload]);
-      const client = makeClient('discord', adapter);
+      const client = makeClient('DISCORD', adapter);
 
       const result = await client.fetchActiveIntegrations();
 
       expect(get).toHaveBeenCalledWith(
-        'http://api.local/v1/internal/integrations/discord',
+        'http://api.local/v1/internal/integrations/DISCORD',
         { Authorization: 'Bearer test-key' },
       );
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('int-1');
-      expect(result[0].platform).toBe('discord');
+      expect(result[0].platform).toBe('DISCORD');
     });
 
     it('uses the platform segment for slack', async () => {
       const { adapter, get } = makeMockAdapter();
       get.mockResolvedValue([]);
-      const client = makeClient('slack', adapter);
+      const client = makeClient('SLACK', adapter);
 
       await client.fetchActiveIntegrations();
 
       expect(get).toHaveBeenCalledWith(
-        'http://api.local/v1/internal/integrations/slack',
+        'http://api.local/v1/internal/integrations/SLACK',
         { Authorization: 'Bearer test-key' },
       );
     });
@@ -73,14 +73,14 @@ describe('BotInternalApiClient', () => {
       get.mockResolvedValue([]);
       const client = new BotInternalApiClient({
         apiUrl: 'http://api.local',
-        platform: 'telegram',
+        platform: 'TELEGRAM',
         http: adapter,
       });
 
       await client.fetchActiveIntegrations();
 
       expect(get).toHaveBeenCalledWith(
-        'http://api.local/v1/internal/integrations/telegram',
+        'http://api.local/v1/internal/integrations/TELEGRAM',
         undefined,
       );
     });
@@ -88,7 +88,7 @@ describe('BotInternalApiClient', () => {
     it('returns empty array when response is not an array', async () => {
       const { adapter, get } = makeMockAdapter();
       get.mockResolvedValue(null);
-      const client = makeClient('discord', adapter);
+      const client = makeClient('DISCORD', adapter);
 
       const result = await client.fetchActiveIntegrations();
       expect(result).toEqual([]);
@@ -97,7 +97,7 @@ describe('BotInternalApiClient', () => {
     it('filters out invalid entries silently', async () => {
       const { adapter, get } = makeMockAdapter();
       get.mockResolvedValue([validPayload, null, {}]);
-      const client = makeClient('discord', adapter);
+      const client = makeClient('DISCORD', adapter);
 
       const result = await client.fetchActiveIntegrations();
       expect(result).toHaveLength(1);
@@ -108,12 +108,12 @@ describe('BotInternalApiClient', () => {
     it('fetches a single integration by id', async () => {
       const { adapter, get } = makeMockAdapter();
       get.mockResolvedValue(validPayload);
-      const client = makeClient('telegram', adapter);
+      const client = makeClient('TELEGRAM', adapter);
 
       const result = await client.fetchIntegration('int-1');
 
       expect(get).toHaveBeenCalledWith(
-        'http://api.local/v1/internal/integrations/telegram/int-1',
+        'http://api.local/v1/internal/integrations/TELEGRAM/int-1',
         { Authorization: 'Bearer test-key' },
       );
       expect(result).not.toBeNull();
@@ -123,7 +123,7 @@ describe('BotInternalApiClient', () => {
     it('returns null when payload cannot be normalized', async () => {
       const { adapter, get } = makeMockAdapter();
       get.mockResolvedValue({});
-      const client = makeClient('slack', adapter);
+      const client = makeClient('SLACK', adapter);
 
       const result = await client.fetchIntegration('missing');
       expect(result).toBeNull();
@@ -135,7 +135,7 @@ describe('BotInternalApiClient', () => {
       const { adapter, get } = makeMockAdapter();
       const workflows = [{ id: 'wf-1', name: 'My workflow' }];
       get.mockResolvedValue(workflows);
-      const client = makeClient('discord', adapter);
+      const client = makeClient('DISCORD', adapter);
 
       const result = await client.fetchOrgWorkflows('org-abc');
 
@@ -152,7 +152,7 @@ describe('BotInternalApiClient', () => {
       const { adapter, get } = makeMockAdapter();
       const workflow = { id: 'wf-1', name: 'My workflow', nodes: {} };
       get.mockResolvedValue(workflow);
-      const client = makeClient('slack', adapter);
+      const client = makeClient('SLACK', adapter);
 
       const result = await client.fetchWorkflow('org-abc', 'wf-1');
 

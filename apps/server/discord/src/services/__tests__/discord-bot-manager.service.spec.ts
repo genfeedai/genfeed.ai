@@ -93,8 +93,8 @@ describe('DiscordBotManager', () => {
     createdAt: new Date('2024-01-01'),
     id: 'discord-integration-1',
     orgId: 'org-789',
-    platform: 'discord',
-    status: 'active',
+    platform: 'DISCORD',
+    status: 'ACTIVE',
     updatedAt: new Date('2024-01-01'),
   };
 
@@ -420,7 +420,7 @@ describe('DiscordBotManager', () => {
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
-          '/v1/internal/integrations/discord/discord-integration-1',
+          '/v1/internal/integrations/DISCORD/discord-integration-1',
         ),
         expect.any(Object),
       );
@@ -442,7 +442,7 @@ describe('DiscordBotManager', () => {
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
-          '/v1/internal/integrations/discord/discord-integration-1',
+          '/v1/internal/integrations/DISCORD/discord-integration-1',
         ),
         expect.any(Object),
       );
@@ -464,12 +464,12 @@ describe('DiscordBotManager', () => {
 
       (httpService.get as ReturnType<typeof vi.fn>).mockImplementation(
         (url: string) => {
-          if (url.endsWith('/v1/internal/integrations/discord')) {
+          if (url.endsWith('/v1/internal/integrations/DISCORD')) {
             return of({ data: [] });
           }
           if (
             url.endsWith(
-              '/v1/internal/integrations/discord/discord-integration-1',
+              '/v1/internal/integrations/DISCORD/discord-integration-1',
             )
           ) {
             return of({ data: toApiIntegration(mockIntegration) });
@@ -485,7 +485,7 @@ describe('DiscordBotManager', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         integrationId: 'discord-integration-1',
         orgId: 'org-789',
-        platform: 'discord',
+        platform: 'DISCORD',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -513,7 +513,7 @@ describe('DiscordBotManager', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         integrationId: 'slack-integration-1',
         orgId: 'org-789',
-        platform: 'slack',
+        platform: 'SLACK',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 50));

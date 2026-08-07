@@ -1,4 +1,5 @@
 import { ConfigService } from '@discord/config/config.service';
+import { IntegrationPlatform } from '@genfeedai/enums';
 import {
   BaseBotManager,
   type BotHttpAdapter,
@@ -91,7 +92,7 @@ export class DiscordBotManager
   extends BaseBotManager<DiscordBotInstance>
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly platform = 'discord' as const;
+  private readonly platform = IntegrationPlatform.DISCORD;
   private readonly workflowExecutionPollIntervalMs = 2000;
   private readonly workflowExecutionPollTimeoutMs = 300000;
   private readonly sessions = new Map<string, WorkflowSession>();

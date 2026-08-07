@@ -75,7 +75,9 @@ const DOMAIN_ONLY_PLATFORMS = new Set<string>([
  * - aliases via {@link parsePlatform} (`x` → TWITTER, `meta` → FACEBOOK)
  * - hyphen/underscore variants (`google-ads` → GOOGLE_ADS, `dev_to` → DEVTO)
  *
- * Returns `undefined` for null/empty/unknown (never throws, never `as never`).
+ * Returns `undefined` for null/empty/unknown — never throws, never forces a cast.
+ * (Spelling the forbidden cast out here would trip `check:type-assertions`,
+ * which matches raw lines including comments.)
  */
 export function toPrismaCredentialPlatform(
   input: string | null | undefined,

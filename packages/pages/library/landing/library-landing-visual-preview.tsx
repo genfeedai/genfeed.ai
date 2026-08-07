@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import type { Ingredient } from '@models/content/ingredient.model';
@@ -25,9 +25,9 @@ interface VisualBuckets {
 
 function getVisualHref(item: Ingredient): string {
   switch (item.category) {
-    case 'image':
+    case IngredientCategory.IMAGE:
       return '/library/images';
-    case 'gif':
+    case IngredientCategory.GIF:
       return '/library/gifs';
     default:
       return '/library/videos';

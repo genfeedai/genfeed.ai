@@ -104,8 +104,8 @@ describe('SlackBotManager', () => {
     createdAt: new Date(),
     id: 'integration-1',
     orgId: 'org-1',
-    platform: 'slack' as const,
-    status: 'active' as const,
+    platform: 'SLACK' as const,
+    status: 'ACTIVE' as const,
     updatedAt: new Date(),
     ...overrides,
   });

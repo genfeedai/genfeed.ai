@@ -223,7 +223,9 @@ export async function createPost({
     organizationId:
       firstIngredient?.organizationId ?? publicMetadata.organization,
     // credentials.platform is Prisma SCREAMING; posts.platform is lowercase.
-    platform: domainPlatform ?? String(credential.platform ?? '').toLowerCase(),
+    // fromPrismaCredentialPlatform already owns that mapping — an unknown
+    // credential platform stays undefined rather than inventing a dual map.
+    platform: domainPlatform,
     publishIntent: warmupHoldReason ? 'warmup_hold' : undefined,
     publicationDate: createPostDto.publicationDate,
     reviewFeedback: warmupHoldReason,

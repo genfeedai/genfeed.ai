@@ -559,9 +559,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
           columns={columns}
           emptyLabel="No activity yet"
           getItemId={(activity) => activity.id}
-          getRowClassName={(activity) =>
-            activity.isRead ? 'opacity-70' : undefined
-          }
+          getRowClassName={(activity) => (activity.isRead ? 'opacity-70' : '')}
           getRowKey={(activity) => activity.id}
           items={filteredActivities.slice(0, 5)}
         />

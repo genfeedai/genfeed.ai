@@ -42,10 +42,14 @@ export class MemberCreditsGuard implements CanActivate {
     }
 
     const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
+    // Express 5 route params can be repeated, so a param reads as
+    // `string | string[]`. Tenant lookups take a single id.
+    const routeOrganizationId =
+      request.params.organizationId || request.params.id;
     const organizationId =
-      request.params.organizationId ||
-      request.params.id ||
-      publicMetadata.organization;
+      (Array.isArray(routeOrganizationId)
+        ? routeOrganizationId[0]
+        : routeOrganizationId) || publicMetadata.organization;
 
     const settings = await this.organizationSettingsService.findOne({
       organizationId: organizationId,

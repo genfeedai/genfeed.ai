@@ -176,8 +176,8 @@ const mockIntegration = {
   createdAt: new Date(),
   id: 'int-1',
   orgId: 'org-1',
-  platform: 'discord' as const,
-  status: 'active' as const,
+  platform: 'DISCORD' as const,
+  status: 'ACTIVE' as const,
   updatedAt: new Date(),
 };
 

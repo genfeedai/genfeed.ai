@@ -100,8 +100,8 @@ describe('Discord Bot Manager Integration Flow', () => {
     createdAt: new Date('2024-01-01'),
     id: 'discord-integration-1',
     orgId: 'org-123',
-    platform: 'discord',
-    status: 'active',
+    platform: 'DISCORD',
+    status: 'ACTIVE',
     updatedAt: new Date('2024-01-01'),
   };
 
@@ -231,7 +231,7 @@ describe('Discord Bot Manager Integration Flow', () => {
       callback({
         integrationId: 'new-integration-2',
         orgId: 'org-456',
-        platform: 'discord',
+        platform: 'DISCORD',
       });
 
       // Allow async processing (fetchAndAddIntegration is async)
@@ -258,7 +258,7 @@ describe('Discord Bot Manager Integration Flow', () => {
       callback({
         integrationId: mockIntegration.id,
         orgId: mockIntegration.orgId,
-        platform: 'discord',
+        platform: 'DISCORD',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 200));

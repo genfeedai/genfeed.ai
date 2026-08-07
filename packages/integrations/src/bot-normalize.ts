@@ -1,5 +1,21 @@
-import type { IntegrationPlatform } from '@genfeedai/enums';
+import { type IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import type { OrgIntegration } from './types';
+
+const INTEGRATION_STATUS_VALUES = new Set<string>(
+  Object.values(IntegrationStatus),
+);
+
+/**
+ * `IntegrationStatus` is a Prisma-backed enum, so the wire format is
+ * SCREAMING_SNAKE. Anything else on the payload is unknown, not a second
+ * spelling to be coerced — it falls back to ACTIVE like a missing field does.
+ */
+function normalizeStatus(rawStatus: unknown): OrgIntegration['status'] {
+  return typeof rawStatus === 'string' &&
+    INTEGRATION_STATUS_VALUES.has(rawStatus)
+    ? (rawStatus as OrgIntegration['status'])
+    : IntegrationStatus.ACTIVE;
+}
 
 /**
  * Normalize a raw API payload into an OrgIntegration.
@@ -34,7 +50,7 @@ export function normalizeIntegration(
     id: String(rawId),
     orgId: String(rawOrgId),
     platform,
-    status: (raw.status as OrgIntegration['status'] | undefined) || 'active',
+    status: normalizeStatus(raw.status),
     updatedAt: raw.updatedAt ? new Date(raw.updatedAt as string) : new Date(),
   };
 }

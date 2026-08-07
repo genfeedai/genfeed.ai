@@ -65,8 +65,8 @@ function createIntegration(
     createdAt: new Date('2026-01-01'),
     id: 'int-1',
     orgId: 'org-1',
-    platform: 'telegram',
-    status: 'active',
+    platform: 'TELEGRAM',
+    status: 'ACTIVE',
     updatedAt: new Date('2026-01-01'),
     ...overrides,
   };
@@ -245,7 +245,7 @@ describe('BaseBotManager', () => {
       await manager.handleRedisEvent(REDIS_EVENTS.INTEGRATION_CREATED, {
         integrationId: 'int-1',
         orgId: 'org-1',
-        platform: 'telegram',
+        platform: 'TELEGRAM',
       });
 
       expect(manager.fetchAndAddCalls).toEqual(['int-1']);
@@ -255,7 +255,7 @@ describe('BaseBotManager', () => {
       await manager.handleRedisEvent(REDIS_EVENTS.INTEGRATION_UPDATED, {
         integrationId: 'int-2',
         orgId: 'org-1',
-        platform: 'slack',
+        platform: 'SLACK',
       });
 
       expect(manager.fetchAndUpdateCalls).toEqual(['int-2']);
@@ -268,7 +268,7 @@ describe('BaseBotManager', () => {
       await manager.handleRedisEvent(REDIS_EVENTS.INTEGRATION_DELETED, {
         integrationId: 'int-3',
         orgId: 'org-1',
-        platform: 'discord',
+        platform: 'DISCORD',
       });
 
       expect(manager.getBotsMap().size).toBe(0);
@@ -278,7 +278,7 @@ describe('BaseBotManager', () => {
       await manager.handleRedisEvent('unknown:event', {
         integrationId: 'int-1',
         orgId: 'org-1',
-        platform: 'telegram',
+        platform: 'TELEGRAM',
       });
 
       expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -298,7 +298,7 @@ describe('BaseBotManager', () => {
         manager.handleRedisEvent(REDIS_EVENTS.INTEGRATION_CREATED, {
           integrationId: 'int-1',
           orgId: 'org-1',
-          platform: 'telegram',
+          platform: 'TELEGRAM',
         }),
       ).resolves.toBeUndefined();
 

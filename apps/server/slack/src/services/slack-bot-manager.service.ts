@@ -1,3 +1,4 @@
+import { IntegrationPlatform } from '@genfeedai/enums';
 import {
   BaseBotManager,
   type BotHttpAdapter,
@@ -65,7 +66,7 @@ export class SlackBotManager
   extends BaseBotManager<SlackBotInstance>
   implements OnModuleInit, OnModuleDestroy
 {
-  private readonly platform = 'slack' as const;
+  private readonly platform = IntegrationPlatform.SLACK;
   private readonly integrationEvents = [
     REDIS_EVENTS.INTEGRATION_CREATED,
     REDIS_EVENTS.INTEGRATION_UPDATED,

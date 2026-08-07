@@ -56,8 +56,8 @@ describe('TelegramBotManager', () => {
     createdAt: new Date('2024-01-01'),
     id: 'telegram-integration-1',
     orgId: 'org-123',
-    platform: 'telegram',
-    status: 'active',
+    platform: 'TELEGRAM',
+    status: 'ACTIVE',
     updatedAt: new Date('2024-01-01'),
   };
 
@@ -142,7 +142,7 @@ describe('TelegramBotManager', () => {
         expect.any(Function),
       );
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://localhost:3010/v1/internal/integrations/telegram',
+        'http://localhost:3010/v1/internal/integrations/TELEGRAM',
         expect.objectContaining({
           headers: { Authorization: 'Bearer test-key' },
         }),
@@ -405,7 +405,7 @@ describe('TelegramBotManager', () => {
       await service.fetchAndAddIntegration('test-id');
 
       expect(httpService.get).toHaveBeenCalledWith(
-        expect.stringContaining('/internal/integrations/telegram/test-id'),
+        expect.stringContaining('/internal/integrations/TELEGRAM/test-id'),
         expect.any(Object),
       );
       expect(service.getActiveCount()).toBe(1);
@@ -441,7 +441,7 @@ describe('TelegramBotManager', () => {
       await service.fetchAndUpdateIntegration('test-id');
 
       expect(httpService.get).toHaveBeenCalledWith(
-        expect.stringContaining('/internal/integrations/telegram/test-id'),
+        expect.stringContaining('/internal/integrations/TELEGRAM/test-id'),
         expect.any(Object),
       );
     });
@@ -470,7 +470,7 @@ describe('TelegramBotManager', () => {
       const result = await service.fetchActiveIntegrations();
 
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://localhost:3010/v1/internal/integrations/telegram',
+        'http://localhost:3010/v1/internal/integrations/TELEGRAM',
         expect.objectContaining({
           headers: { Authorization: 'Bearer test-key' },
         }),
@@ -545,13 +545,13 @@ describe('TelegramBotManager', () => {
       );
 
       httpService.get.mockImplementation((url: string) => {
-        if (url.endsWith('/v1/internal/integrations/telegram')) {
+        if (url.endsWith('/v1/internal/integrations/TELEGRAM')) {
           return of({ data: [] }) as any;
         }
 
         if (
           url.endsWith(
-            '/v1/internal/integrations/telegram/telegram-integration-1',
+            '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
           )
         ) {
           return of({ data: toApiIntegration(mockIntegration) }) as any;
@@ -567,7 +567,7 @@ describe('TelegramBotManager', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         integrationId: 'telegram-integration-1',
         orgId: 'org-123',
-        platform: 'telegram',
+        platform: 'TELEGRAM',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -575,7 +575,7 @@ describe('TelegramBotManager', () => {
       expect(service.getActiveCount()).toBe(1);
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
-          '/v1/internal/integrations/telegram/telegram-integration-1',
+          '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
         ),
         expect.any(Object),
       );
@@ -600,7 +600,7 @@ describe('TelegramBotManager', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         integrationId: 'discord-integration-1',
         orgId: 'org-999',
-        platform: 'discord',
+        platform: 'DISCORD',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -644,8 +644,8 @@ describe('TelegramBotManager', () => {
         config: {},
         createdAt: new Date('2024-01-01').toISOString(),
         organizationId: 'org-123',
-        platform: 'telegram',
-        status: 'active',
+        platform: 'TELEGRAM',
+        status: 'ACTIVE',
         updatedAt: new Date('2024-01-01').toISOString(),
       };
 
@@ -666,13 +666,13 @@ describe('TelegramBotManager', () => {
       };
 
       httpService.get.mockImplementation((url: string) => {
-        if (url.endsWith('/v1/internal/integrations/telegram')) {
+        if (url.endsWith('/v1/internal/integrations/TELEGRAM')) {
           return of({ data: [] }) as any;
         }
 
         if (
           url.endsWith(
-            '/v1/internal/integrations/telegram/telegram-integration-1',
+            '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
           )
         ) {
           return of({ data: integrationFromApi }) as any;
@@ -707,13 +707,13 @@ describe('TelegramBotManager', () => {
         return throwError(() => new Error(`Unexpected URL: ${url}`));
       });
       httpService.get.mockImplementation((url: string) => {
-        if (url.endsWith('/v1/internal/integrations/telegram')) {
+        if (url.endsWith('/v1/internal/integrations/TELEGRAM')) {
           return of({ data: [] }) as any;
         }
 
         if (
           url.endsWith(
-            '/v1/internal/integrations/telegram/telegram-integration-1',
+            '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
           )
         ) {
           return of({ data: integrationFromApi }) as any;
@@ -760,7 +760,7 @@ describe('TelegramBotManager', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         integrationId: 'telegram-integration-1',
         orgId: 'org-123',
-        platform: 'telegram',
+        platform: 'TELEGRAM',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 0));

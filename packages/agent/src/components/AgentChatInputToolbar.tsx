@@ -62,7 +62,7 @@ function AgentChatInputToolbarInner({
   isModelsLoading = false,
   isTranscribing,
   isUploading,
-  models,
+  models = [],
   onAddFiles,
   onBuyCredits,
   onInsertReference,

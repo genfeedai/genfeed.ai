@@ -299,7 +299,7 @@ describe('ClipResultsService', () => {
   it('lists organization results newest first with tenant and deletion scope', async () => {
     prisma.clipResult.findMany.mockResolvedValue([]);
 
-    await service.findAllByOrganization('org-1');
+    await service.findRecentByOrganization('org-1');
 
     expect(prisma.clipResult.findMany).toHaveBeenCalledWith({
       orderBy: { createdAt: 'desc' },

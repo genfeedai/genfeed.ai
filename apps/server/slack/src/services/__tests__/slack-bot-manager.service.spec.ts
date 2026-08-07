@@ -51,8 +51,8 @@ describe('SlackBotManager', () => {
     createdAt: new Date('2024-01-01'),
     id: 'slack-integration-1',
     orgId: 'org-456',
-    platform: 'slack',
-    status: 'active',
+    platform: 'SLACK',
+    status: 'ACTIVE',
     updatedAt: new Date('2024-01-01'),
   };
 
@@ -414,7 +414,7 @@ describe('SlackBotManager', () => {
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
-          '/internal/integrations/slack/slack-integration-1',
+          '/internal/integrations/SLACK/slack-integration-1',
         ),
         expect.any(Object),
       );
@@ -446,7 +446,7 @@ describe('SlackBotManager', () => {
 
       const updatedIntegration = {
         ...mockIntegration,
-        status: 'paused' as const,
+        status: 'PAUSED' as const,
       };
       httpService.get.mockReturnValue(
         of({ data: toApiIntegration(updatedIntegration) } as any),
@@ -456,7 +456,7 @@ describe('SlackBotManager', () => {
 
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
-          '/internal/integrations/slack/slack-integration-1',
+          '/internal/integrations/SLACK/slack-integration-1',
         ),
         expect.any(Object),
       );
@@ -490,12 +490,12 @@ describe('SlackBotManager', () => {
 
       mockApp.start.mockResolvedValue(undefined);
       httpService.get.mockImplementation((url: string) => {
-        if (url.endsWith('/v1/internal/integrations/slack')) {
+        if (url.endsWith('/v1/internal/integrations/SLACK')) {
           return of({ data: [] } as any);
         }
 
         if (
-          url.endsWith('/v1/internal/integrations/slack/slack-integration-1')
+          url.endsWith('/v1/internal/integrations/SLACK/slack-integration-1')
         ) {
           return of({ data: toApiIntegration(mockIntegration) } as any);
         }
@@ -508,7 +508,7 @@ describe('SlackBotManager', () => {
       handlers.get(REDIS_EVENTS.INTEGRATION_CREATED)?.({
         integrationId: 'slack-integration-1',
         orgId: 'org-456',
-        platform: 'slack',
+        platform: 'SLACK',
       });
 
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -516,7 +516,7 @@ describe('SlackBotManager', () => {
       expect(service.getActiveCount()).toBe(1);
       expect(httpService.get).toHaveBeenCalledWith(
         expect.stringContaining(
-          '/v1/internal/integrations/slack/slack-integration-1',
+          '/v1/internal/integrations/SLACK/slack-integration-1',
         ),
         expect.any(Object),
       );

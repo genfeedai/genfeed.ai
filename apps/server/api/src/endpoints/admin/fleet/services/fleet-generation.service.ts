@@ -10,6 +10,7 @@ import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
   FleetReviewStatus as FleetReviewStatusEnum,
+  IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -181,7 +182,7 @@ export class AdminFleetGenerationService {
 
     const ingredient = await this.ingredientsService.create({
       brandId,
-      category: 'image',
+      category: IngredientCategory.IMAGE,
       ...AdminFleetValueReader.getDefaultFleetModerationState(),
       generationError: undefined,
       generationProgress: 5,
