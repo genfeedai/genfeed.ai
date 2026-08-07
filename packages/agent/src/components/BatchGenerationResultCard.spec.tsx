@@ -43,7 +43,7 @@ describe('BatchGenerationResultCard', () => {
     expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
   });
 
-  it('renders at most three post preview cards and a link to the rest', () => {
+  it('renders server-limited preview items and a link to the rest', () => {
     render(
       <BatchGenerationResultCard
         action={{
@@ -57,6 +57,7 @@ describe('BatchGenerationResultCard', () => {
           ],
           description: 'Generated 8 X drafts.',
           id: 'batch-result-previews',
+          // Server already applied takeBatchPostPreviews({ limit: 3 }).
           items: [
             {
               id: 'post-1',
@@ -76,16 +77,10 @@ describe('BatchGenerationResultCard', () => {
               title: 'Third draft for the feed',
               type: 'post',
             },
-            {
-              id: 'post-4',
-              platform: 'twitter',
-              title: 'Should not render as a fourth card',
-              type: 'post',
-            },
           ],
           remainingCount: 5,
           title: 'Batch generation complete',
-          type: 'batch_generation_card',
+          type: 'batch_generation_result_card',
         }}
       />,
     );
@@ -96,9 +91,6 @@ describe('BatchGenerationResultCard', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Second draft with a hook')).toBeInTheDocument();
     expect(screen.getByText('Third draft for the feed')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Should not render as a fourth card'),
-    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: '+5 more posts in review' }),
     ).toHaveAttribute('href', '/publish/review?batch=batch-xyz&filter=ready');

@@ -14,8 +14,6 @@ import {
 } from 'lucide-react';
 import type { ReactElement } from 'react';
 
-const MAX_PREVIEW_POSTS = 3;
-
 interface BatchGenerationResultCardProps {
   action: AgentUiAction;
 }
@@ -66,7 +64,8 @@ export function BatchGenerationResultCard({
   const hasCompletionMetrics =
     completedCount != null || (failedCount != null && failedCount > 0);
   const platformLabels = (action.platforms ?? []).map(formatPlatformLabel);
-  const previewItems = (action.items ?? []).slice(0, MAX_PREVIEW_POSTS);
+  // Server already applies the preview limit — render the payload as-is.
+  const previewItems = action.items ?? [];
   const remainingCount =
     action.remainingCount ??
     Math.max((completedCount ?? 0) - previewItems.length, 0);

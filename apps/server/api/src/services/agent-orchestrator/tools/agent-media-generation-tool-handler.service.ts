@@ -14,6 +14,10 @@ import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/too
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import {
+  BATCH_POST_PREVIEW_LIMIT,
+  takeBatchPostPreviews,
+} from '@api/services/agent-orchestrator/tools/batch-post-preview.util';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { formatPlatformLabel, Status } from '@genfeedai/enums';
@@ -1082,27 +1086,16 @@ export class AgentMediaGenerationToolHandler {
         }),
       );
 
-      const completedItems = streamedItems.filter(
-        (entry) => entry.status === 'completed' && entry.postId,
-      );
-      const previewItems = completedItems.slice(0, 3).map((entry) => ({
-        id: entry.postId as string,
-        platform: entry.platform,
-        title:
-          (entry.previewText && entry.previewText.trim()) ||
-          entry.topic ||
-          `Post ${entry.index + 1}`,
-        type: 'post',
-      }));
-      const remainingCount = Math.max(
-        completedItems.length - previewItems.length,
-        0,
+      const { previews, remainingCount } = takeBatchPostPreviews(
+        streamedItems,
+        { limit: BATCH_POST_PREVIEW_LIMIT },
       );
       const reviewHref = `/publish/review?batch=${batchId}&filter=ready`;
+      const readyCount = summary.completedCount;
       const viewAllLabel =
-        completedItems.length > 3
-          ? `View all ${completedItems.length} posts`
-          : completedItems.length > 0
+        readyCount > BATCH_POST_PREVIEW_LIMIT
+          ? `View all ${readyCount} posts`
+          : readyCount > 0
             ? 'Open review queue'
             : 'Open Review Queue';
 
@@ -1116,6 +1109,8 @@ export class AgentMediaGenerationToolHandler {
             summary.failedCount > 0
               ? `Batch finished with ${summary.completedCount} ready and ${summary.failedCount} failed.`
               : `Batch finished with ${summary.completedCount} generated post${summary.completedCount === 1 ? '' : 's'}.`,
+          previewLimit: BATCH_POST_PREVIEW_LIMIT,
+          remainingCount,
           status: summary.status,
           streamedItems,
           streamedTranscript,
@@ -1135,10 +1130,9 @@ export class AgentMediaGenerationToolHandler {
                 : `Batch finished with 0 ready drafts${summary.failedCount > 0 ? `; ${summary.failedCount} failed` : ''}.`,
             failedCount: summary.failedCount,
             id: `batch-generation-${batchId}`,
-            items: previewItems,
+            // Already limited server-side via takeBatchPostPreviews({ limit }).
+            items: previews,
             platforms,
-            // remainingCount is read by BatchGenerationResultCard for the
-            // "and N more" link when more than 3 posts completed.
             remainingCount,
             title: 'Batch generation complete',
             // Result card (previews + review link), not the configure/generate form.
