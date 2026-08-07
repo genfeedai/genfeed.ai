@@ -21,20 +21,20 @@ describe('QueryDefaultsUtil', () => {
       });
     });
 
-    it('should pass through limit and page when pagination is disabled', () => {
+    it('should enforce pagination when the client sends pagination=false', () => {
       const query = { limit: 5, page: 3, pagination: false };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
       expect(result).toEqual({
         limit: 5,
         page: 3,
-        pagination: false,
+        pagination: true,
       });
     });
 
-    it('should convert string pagination to boolean', () => {
+    it('should enforce pagination for the string "false" from a raw query param', () => {
       const query = { pagination: 'false' };
       const result = QueryDefaultsUtil.getPaginationDefaults(query);
-      expect(result.pagination).toBe(false);
+      expect(result.pagination).toBe(true);
     });
 
     it('should handle string "true" for pagination', () => {
@@ -113,7 +113,7 @@ describe('QueryDefaultsUtil', () => {
       expect(result).toEqual(query);
     });
 
-    it('should preserve provided limit and page when pagination is disabled', () => {
+    it('should enforce pagination even when the client disables it', () => {
       const query = {
         isDeleted: true,
         limit: 25,
@@ -126,7 +126,7 @@ describe('QueryDefaultsUtil', () => {
         isDeleted: true,
         limit: 25,
         page: 3,
-        pagination: false,
+        pagination: true,
         sort: 'name',
       });
     });
