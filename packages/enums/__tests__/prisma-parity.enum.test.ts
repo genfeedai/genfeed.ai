@@ -42,6 +42,7 @@ import {
   PostEntityModel,
   PromptCategory,
   PromptStatus,
+  QualityStatus,
   ReferenceImageCategory,
   ReviewDecision,
   SubscriptionStatus,
@@ -150,6 +151,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'ARTICLE',
   ],
   PromptStatus: ['DRAFT', 'PROCESSING', 'GENERATED', 'FAILED'],
+  QualityStatus: ['UNRATED', 'GOOD', 'NEEDS_REVIEW'],
   ReferenceImageCategory: ['FACE', 'PRODUCT', 'STYLE', 'LOGO'],
   ReviewDecision: ['APPROVED', 'REJECTED', 'REQUEST_CHANGES'],
   SubscriptionStatus: [
@@ -250,6 +252,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   PostEntityModel,
   PromptCategory,
   PromptStatus,
+  QualityStatus,
   ReferenceImageCategory,
   ReviewDecision,
   SubscriptionStatus,
