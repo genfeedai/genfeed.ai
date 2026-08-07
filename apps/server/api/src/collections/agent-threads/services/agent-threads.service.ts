@@ -407,14 +407,17 @@ export class AgentThreadsService extends BaseService<
   private mapAgentRunStatus(
     status?: AgentExecutionStatus | string | null,
   ): ThreadRunStatus {
-    switch (String(status ?? '').toLowerCase()) {
+    const normalized = String(status ?? '').toUpperCase();
+    switch (normalized) {
       case AgentExecutionStatus.PENDING:
+      case 'QUEUED':
         return 'queued';
       case AgentExecutionStatus.RUNNING:
         return 'running';
       case AgentExecutionStatus.COMPLETED:
         return 'completed';
       case AgentExecutionStatus.FAILED:
+      case 'BUDGET_EXHAUSTED':
         return 'failed';
       case AgentExecutionStatus.CANCELLED:
         return 'cancelled';
