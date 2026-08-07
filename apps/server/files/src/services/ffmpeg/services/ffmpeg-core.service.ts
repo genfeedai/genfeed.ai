@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { existsSync, promises as fs, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
@@ -15,6 +16,42 @@ import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 
 const createBadRequest = (message: string) => new BadRequestException(message);
 
+const DEFAULT_FFMPEG_MAX_CONCURRENCY = 4;
+
+/**
+ * Small process-wide FIFO semaphore. Bounds how many FFmpeg processes may
+ * run concurrently; callers beyond the limit queue in call order and are
+ * released one at a time as running processes finish.
+ */
+export class FifoSemaphore {
+  private available: number;
+  private readonly queue: Array<() => void> = [];
+
+  constructor(limit: number) {
+    this.available = limit;
+  }
+
+  acquire(): Promise<void> {
+    if (this.available > 0) {
+      this.available -= 1;
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      this.queue.push(resolve);
+    });
+  }
+
+  release(): void {
+    const next = this.queue.shift();
+    if (next) {
+      next();
+      return;
+    }
+    this.available += 1;
+  }
+}
+
 /**
  * Core FFmpeg execution service.
  * Handles binary execution, probing, and temp file management.
@@ -22,20 +59,41 @@ const createBadRequest = (message: string) => new BadRequestException(message);
 @Injectable()
 export class FFmpegCoreService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
+  private readonly ffmpegSemaphore: FifoSemaphore;
 
   constructor(
     private readonly loggerService: LoggerService,
     private readonly binaryValidationService: BinaryValidationService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    const maxConcurrency =
+      Number(this.configService.get('FFMPEG_MAX_CONCURRENCY')) ||
+      DEFAULT_FFMPEG_MAX_CONCURRENCY;
+    this.ffmpegSemaphore = new FifoSemaphore(maxConcurrency);
+  }
 
   async onModuleInit(): Promise<void> {
     await this.binaryValidationService.validateBinaries();
   }
 
   /**
-   * Execute ffmpeg command with arguments
+   * Execute ffmpeg command with arguments. Spawning is bounded by a
+   * process-wide semaphore (FFMPEG_MAX_CONCURRENCY, default 4) so an
+   * unbounded number of simultaneous encoders can never exhaust the host.
    */
-  executeFFmpeg(
+  async executeFFmpeg(
+    args: string[],
+    onProgress?: (progress: FFmpegProgress) => void,
+  ): Promise<void> {
+    await this.ffmpegSemaphore.acquire();
+    try {
+      await this.spawnFFmpeg(args, onProgress);
+    } finally {
+      this.ffmpegSemaphore.release();
+    }
+  }
+
+  private spawnFFmpeg(
     args: string[],
     onProgress?: (progress: FFmpegProgress) => void,
   ): Promise<void> {

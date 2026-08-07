@@ -1,3 +1,4 @@
+import { ConfigService } from '@files/config/config.service';
 import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
 import { FFmpegCoreService } from '@files/services/ffmpeg/services/ffmpeg-core.service';
@@ -87,6 +88,10 @@ describe('FFmpegCoreService', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: ConfigService,
+          useValue: { get: vi.fn().mockReturnValue(undefined) },
         },
       ],
     }).compile();
@@ -213,6 +218,187 @@ describe('FFmpegCoreService', () => {
         path.dirname('/tmp/output/video.mp4'),
         { recursive: true },
       );
+    });
+  });
+
+  describe('executeFFmpeg concurrency cap (FFMPEG_MAX_CONCURRENCY)', () => {
+    type ProcessControl = {
+      close: (code: number) => void;
+      error: (err: Error) => void;
+    };
+
+    const buildService = async (
+      maxConcurrency?: string,
+    ): Promise<FFmpegCoreService> => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          FFmpegCoreService,
+          {
+            provide: BinaryValidationService,
+            useValue: {
+              getBinaryPaths: vi.fn().mockReturnValue({
+                ffmpegPath: '/usr/bin/ffmpeg',
+                ffprobePath: '/usr/bin/ffprobe',
+              }),
+              validateBinaries: vi.fn().mockResolvedValue(undefined),
+            },
+          },
+          {
+            provide: LoggerService,
+            useValue: {
+              debug: vi.fn(),
+              error: vi.fn(),
+              log: vi.fn(),
+              warn: vi.fn(),
+            },
+          },
+          {
+            provide: ConfigService,
+            useValue: {
+              get: vi.fn((key: string) =>
+                key === 'FFMPEG_MAX_CONCURRENCY' ? maxConcurrency : undefined,
+              ),
+            },
+          },
+        ],
+      }).compile();
+
+      return module.get(FFmpegCoreService);
+    };
+
+    // Builds a spawn() stand-in whose 'close'/'error' handlers are only
+    // fired when the test explicitly invokes the returned control, so
+    // in-flight process count can be observed deterministically.
+    const makeControllableProcess = (): {
+      proc: {
+        on: ReturnType<typeof vi.fn>;
+        stderr: { on: ReturnType<typeof vi.fn> };
+        stdout: { on: ReturnType<typeof vi.fn> };
+      };
+      control: ProcessControl;
+    } => {
+      let closeHandler: ((code: number) => void) | undefined;
+      let errorHandler: ((err: Error) => void) | undefined;
+
+      const proc = {
+        on: vi.fn((event: string, cb: (arg?: number | Error) => void) => {
+          if (event === 'close') closeHandler = cb as (code: number) => void;
+          if (event === 'error') errorHandler = cb as (err: Error) => void;
+        }),
+        stderr: { on: vi.fn() },
+        stdout: { on: vi.fn() },
+      };
+
+      return {
+        control: {
+          close: (code: number) => closeHandler?.(code),
+          error: (err: Error) => errorHandler?.(err),
+        },
+        proc,
+      };
+    };
+
+    const flushMicrotasks = async (): Promise<void> => {
+      for (let i = 0; i < 5; i += 1) {
+        await Promise.resolve();
+      }
+    };
+
+    it('never spawns more than K ffmpeg processes at once and drains the queue FIFO', async () => {
+      const K = 2;
+      const service = await buildService(String(K));
+      const activated: ProcessControl[] = [];
+      let spawnCount = 0;
+
+      (spawn as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        spawnCount += 1;
+        const { proc, control } = makeControllableProcess();
+        activated.push(control);
+        return proc;
+      });
+
+      const results = Array.from({ length: 6 }, (_, i) =>
+        service.executeFFmpeg([`-task-${i}`]).catch((error: Error) => error),
+      );
+
+      await flushMicrotasks();
+      expect(spawnCount).toBe(K);
+
+      // Completing the first (FIFO) in-flight process must release exactly
+      // one slot to the third queued task, never more than K at once.
+      activated[0].close(0);
+      await flushMicrotasks();
+      expect(spawnCount).toBe(K + 1);
+
+      // A failing process must still release its slot (finally-path).
+      activated[1].close(1);
+      await flushMicrotasks();
+      expect(spawnCount).toBe(K + 2);
+
+      activated[2].close(0);
+      await flushMicrotasks();
+      expect(spawnCount).toBe(K + 3);
+
+      activated[3].close(0);
+      await flushMicrotasks();
+      expect(spawnCount).toBe(6);
+
+      activated[4].close(0);
+      activated[5].close(0);
+
+      const settled = await Promise.all(results);
+      expect(spawnCount).toBe(6);
+      // Task 1 (second FIFO slot) was closed with a non-zero exit code.
+      expect(settled[1]).toBeInstanceOf(Error);
+    });
+
+    it('releases the slot on process error, not only on close', async () => {
+      const service = await buildService('1');
+      const activated: ProcessControl[] = [];
+      let spawnCount = 0;
+
+      (spawn as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        spawnCount += 1;
+        const { proc, control } = makeControllableProcess();
+        activated.push(control);
+        return proc;
+      });
+
+      const first = service
+        .executeFFmpeg(['-task-0'])
+        .catch((error: Error) => error);
+      const second = service
+        .executeFFmpeg(['-task-1'])
+        .catch((error: Error) => error);
+
+      await flushMicrotasks();
+      expect(spawnCount).toBe(1);
+
+      activated[0].error(new Error('spawn ENOENT'));
+      await flushMicrotasks();
+      expect(spawnCount).toBe(2);
+
+      activated[1].close(0);
+      const [firstResult] = await Promise.all([first, second]);
+      expect(firstResult).toBeInstanceOf(Error);
+    });
+
+    it('defaults to a concurrency of 4 when FFMPEG_MAX_CONCURRENCY is unset', async () => {
+      const service = await buildService(undefined);
+      let spawnCount = 0;
+
+      (spawn as ReturnType<typeof vi.fn>).mockImplementation(() => {
+        spawnCount += 1;
+        const { proc } = makeControllableProcess();
+        return proc;
+      });
+
+      for (let i = 0; i < 5; i += 1) {
+        service.executeFFmpeg([`-task-${i}`]).catch(() => undefined);
+      }
+
+      await flushMicrotasks();
+      expect(spawnCount).toBe(4);
     });
   });
 });
