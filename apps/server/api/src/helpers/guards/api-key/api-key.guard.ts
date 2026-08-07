@@ -1,4 +1,5 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { RateLimitError } from '@api/helpers/exceptions/api/api-error.exception';
 import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/enums';
 import {
   CanActivate,
@@ -60,9 +61,11 @@ export class ApiKeyAuthGuard implements CanActivate {
     }
 
     // Check rate limit
-    const rateLimitOk = await this.apiKeysService.checkRateLimit(apiKey);
-    if (!rateLimitOk) {
-      throw new UnauthorizedException('Rate limit exceeded');
+    const rateLimit = await this.apiKeysService.checkRateLimit(apiKey);
+    if (!rateLimit.allowed) {
+      const response = context.switchToHttp().getResponse();
+      response.setHeader('Retry-After', String(rateLimit.retryAfterSeconds));
+      throw new RateLimitError(rateLimit.retryAfterSeconds);
     }
 
     // Check required scopes

@@ -1,7 +1,11 @@
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ActionOrigin } from '@genfeedai/enums';
-import { type ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  type ExecutionContext,
+  HttpStatus,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { createMockExecutionContext } from '@test/mocks/controller.mocks';
@@ -148,22 +152,36 @@ describe('ApiKeyAuthGuard', () => {
       expect(apiKeysService.isIpAllowed).not.toHaveBeenCalled();
     });
 
-    it('should throw UnauthorizedException for rate limit exceeded', async () => {
-      mockContext = createMockExecutionContext({ request });
+    it('throws a 429 RateLimitError with Retry-After when the limit is exceeded', async () => {
+      const setHeader = vi.fn();
+      mockContext = createMockExecutionContext({
+        request,
+        response: { setHeader },
+      });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
       vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
-      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue(false);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: false,
+        limit: 60,
+        retryAfterSeconds: 30,
+      });
 
-      await expect(guard.canActivate(mockContext)).rejects.toThrow(
-        new UnauthorizedException('Rate limit exceeded'),
-      );
+      await expect(guard.canActivate(mockContext)).rejects.toMatchObject({
+        errorCode: 'RATE_LIMIT_EXCEEDED',
+        status: HttpStatus.TOO_MANY_REQUESTS,
+      });
+      expect(setHeader).toHaveBeenCalledWith('Retry-After', '30');
     });
 
     it('should throw UnauthorizedException for insufficient permissions', async () => {
       mockContext = createMockExecutionContext({ request });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
       vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
-      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
       vi.spyOn(reflector, 'get').mockReturnValue(['images:create']);
       vi.spyOn(apiKeysService, 'hasScope').mockReturnValue(false);
 
@@ -176,7 +194,11 @@ describe('ApiKeyAuthGuard', () => {
       mockContext = createMockExecutionContext({ request });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
       vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
-      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
       vi.spyOn(reflector, 'get').mockReturnValue(['videos:create']);
       vi.spyOn(apiKeysService, 'hasScope').mockReturnValue(true);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
@@ -208,7 +230,11 @@ describe('ApiKeyAuthGuard', () => {
       mockContext = createMockExecutionContext({ request });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
       vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
-      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
       vi.spyOn(reflector, 'get').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
@@ -226,7 +252,11 @@ describe('ApiKeyAuthGuard', () => {
       mockContext = createMockExecutionContext({ request });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
       vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
-      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
       vi.spyOn(reflector, 'get').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
@@ -245,7 +275,11 @@ describe('ApiKeyAuthGuard', () => {
       mockContext = createMockExecutionContext({ request });
       vi.spyOn(apiKeysService, 'findByKey').mockResolvedValue(mockApiKey);
       vi.spyOn(apiKeysService, 'isIpAllowed').mockReturnValue(true);
-      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue(true);
+      vi.spyOn(apiKeysService, 'checkRateLimit').mockResolvedValue({
+        allowed: true,
+        limit: 60,
+        retryAfterSeconds: 0,
+      });
       vi.spyOn(reflector, 'get').mockReturnValue(null);
       vi.spyOn(apiKeysService, 'updateLastUsed').mockResolvedValue(undefined);
 
