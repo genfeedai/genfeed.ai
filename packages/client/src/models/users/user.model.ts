@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type { PlatformRole } from '@genfeedai/enums';
+import type { OnboardingType, PlatformRole } from '@genfeedai/enums';
 import type {
   IBrand,
   IOrganization,
@@ -27,7 +27,7 @@ export class User extends BaseEntity implements IUser {
   public declare isOnboardingCompleted?: boolean;
   public declare onboardingStartedAt?: Date;
   public declare onboardingCompletedAt?: Date;
-  public declare onboardingType?: 'creator' | 'organization';
+  public declare onboardingType?: OnboardingType;
   public declare onboardingStepsCompleted?: string[];
 
   constructor(data: Partial<IUser> = {}) {

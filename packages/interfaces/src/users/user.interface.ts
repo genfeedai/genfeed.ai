@@ -1,8 +1,6 @@
-import type { PlatformRole } from '@genfeedai/enums';
+import type { OnboardingType, PlatformRole } from '@genfeedai/enums';
 import type { ISetting } from '../automation';
 import type { IBaseEntity } from '../core/base.interface';
-
-export type OnboardingType = 'creator' | 'organization';
 
 export interface IUser extends IBaseEntity {
   handle: string;
