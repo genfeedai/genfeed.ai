@@ -309,7 +309,10 @@ describe('ModalErrorDebug', () => {
     expect(screen.queryByText('URL')).not.toBeInTheDocument();
     expect(screen.queryByText('Method')).not.toBeInTheDocument();
     expect(screen.queryByText('Status')).not.toBeInTheDocument();
-    expect(screen.queryByText('Error Code')).not.toBeInTheDocument();
+    // 'Code', not 'Error Code' — #2466 shortened the label. The old string is
+    // one the component can no longer render under any input, so asserting its
+    // absence passed regardless of behaviour.
+    expect(screen.queryByText('Code')).not.toBeInTheDocument();
   });
 
   it('should clear error info on close', () => {
