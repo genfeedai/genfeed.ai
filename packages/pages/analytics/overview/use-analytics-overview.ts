@@ -379,7 +379,7 @@ export function useAnalyticsOverview({
         description:
           'Accounts are connected, but there is not enough tracked performance yet. Keep publishing and check back after the next sync.',
         primaryAction: {
-          href: APP_ROUTES.PUBLISH.ROOT,
+          href: APP_ROUTES.PUBLISH.OVERVIEW,
           label: 'Create content',
           variant: ButtonVariant.DEFAULT,
         },

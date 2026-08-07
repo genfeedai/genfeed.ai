@@ -368,12 +368,13 @@ const config = createAppNextConfig({
     },
     ...retiredStudioTabRedirects(),
     // Complete-path homes: bare `/[app]` → `/[app]/overview` (Workspace,
-    // Analytics, Automate, Library). Discover/Studio already redirect ROOT to
-    // a named child (discovery / storyboard).
+    // Analytics, Automate, Library, Publish). Discover/Studio already redirect
+    // ROOT to a named child (discovery / storyboard).
     ...appHomeToOverviewRedirects(APP_ROUTES.WORKSPACE.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.AUTOMATE.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
+    ...appHomeToOverviewRedirects(APP_ROUTES.PUBLISH.ROOT),
     // Campaigns / outreach moved from Automate → Publish (hard cut).
     ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.PUBLISH.CAMPAIGNS),
     ...legacyPathRedirects(

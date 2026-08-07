@@ -138,6 +138,7 @@ describe('app next.config', () => {
     APP_ROUTES.AUTOMATE.ROOT,
     APP_ROUTES.LIBRARY.ROOT,
     APP_ROUTES.ANALYTICS.ROOT,
+    APP_ROUTES.PUBLISH.ROOT,
   ] as const)(
     'permanently redirects bare %s to complete-path overview home',
     async (appRoot) => {

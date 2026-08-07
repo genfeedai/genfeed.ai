@@ -184,7 +184,7 @@ export default function AnalyticsOverviewLeaderboards({
           description="As soon as posts start collecting views and engagement, this module will highlight the strongest creative in the selected range."
           icon={Newspaper}
           primaryAction={{
-            href: APP_ROUTES.PUBLISH.ROOT,
+            href: APP_ROUTES.PUBLISH.OVERVIEW,
             label: 'Draft content',
             variant: ButtonVariant.DEFAULT,
           }}

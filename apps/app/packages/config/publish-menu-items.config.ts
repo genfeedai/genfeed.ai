@@ -3,7 +3,7 @@ import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interf
 import {
   Calendar,
   ClipboardCheck,
-  FileText,
+  LayoutDashboard,
   List,
   Mail,
   Megaphone,
@@ -18,11 +18,12 @@ import {
 export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
-    href: APP_ROUTES.PUBLISH.ROOT,
-    label: 'All posts',
-    matchPaths: [APP_ROUTES.PUBLISH.ROOT],
-    outline: FileText,
-    solid: FileText,
+    href: APP_ROUTES.PUBLISH.OVERVIEW,
+    isExactMatch: true,
+    label: 'Overview',
+    matchPaths: [APP_ROUTES.PUBLISH.OVERVIEW, APP_ROUTES.PUBLISH.ROOT],
+    outline: LayoutDashboard,
+    solid: LayoutDashboard,
   },
   {
     group: '',
@@ -92,4 +93,4 @@ export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const PUBLISH_LOGO_HREF = APP_ROUTES.PUBLISH.ROOT;
+export const PUBLISH_LOGO_HREF = APP_ROUTES.PUBLISH.OVERVIEW;

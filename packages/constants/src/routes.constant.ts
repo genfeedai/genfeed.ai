@@ -210,6 +210,12 @@ export const APP_ROUTES = {
     /** Outreach / growth campaigns (Publish surface). */
     OUTREACH_CAMPAIGNS: '/publish/outreach-campaigns',
     OUTREACH_CAMPAIGNS_NEW: '/publish/outreach-campaigns/new',
+    /**
+     * Canonical Publish home (all-posts list). Bare ROOT permanently redirects
+     * here so Overview is a complete path that does not prefix-match Review /
+     * Scheduled / etc. (same pattern as workspace/discover/library).
+     */
+    OVERVIEW: '/publish/overview',
     PUBLISHED: '/publish/published',
     REMIX: '/publish/remix',
     REVIEW: '/publish/review',

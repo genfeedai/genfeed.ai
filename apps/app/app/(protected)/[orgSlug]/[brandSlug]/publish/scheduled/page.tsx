@@ -30,8 +30,8 @@ export default async function ScheduledPostsPage({
       orgSlug,
       brandSlug,
       queryString
-        ? `${APP_ROUTES.PUBLISH.ROOT}?${queryString}`
-        : APP_ROUTES.PUBLISH.ROOT,
+        ? `${APP_ROUTES.PUBLISH.OVERVIEW}?${queryString}`
+        : APP_ROUTES.PUBLISH.OVERVIEW,
     ),
   );
 }

@@ -21,7 +21,10 @@ import { Suspense, useCallback, useMemo, useReducer } from 'react';
 const KNOWN_SUB_ROUTES = [
   'analytics',
   'calendar',
+  'campaigns',
   'newsletters',
+  'outreach-campaigns',
+  'overview',
   'published',
   'remix',
   'review',

@@ -265,7 +265,7 @@ function PublishingSurface({
     APP_ROUTES.SETTINGS.BRANDS,
   );
   const postsHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.ROOT)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.OVERVIEW)
     : brandSetupHref;
   const recentRuns = [...activeRuns, ...runs]
     .filter(

@@ -537,11 +537,12 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/~/publish',
+      '/:orgSlug/~/publish/overview',
       '/:orgSlug/~/publish/published',
       '/:orgSlug/~/publish/scheduled',
     ],
     {
-      fallback: '/:orgSlug/~/publish',
+      fallback: '/:orgSlug/~/publish/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'organization',
@@ -699,7 +700,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/edit/post/:id',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/publish',
+      fallback: '/:orgSlug/:brandSlug/publish/overview',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -750,6 +751,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
   ...registerRoutes(
     [
       '/:orgSlug/:brandSlug/publish',
+      '/:orgSlug/:brandSlug/publish/overview',
       '/:orgSlug/:brandSlug/publish/:id',
       '/:orgSlug/:brandSlug/publish/calendar',
       '/:orgSlug/:brandSlug/publish/campaigns',
@@ -764,7 +766,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publish/scheduled',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/publish',
+      fallback: '/:orgSlug/:brandSlug/publish/overview',
       mode: 'canvas',
       productClass: 'control-plane',
       scope: 'brand',
