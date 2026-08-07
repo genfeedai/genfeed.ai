@@ -5,7 +5,7 @@ import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
 
 export const EMPTY_AGENT_RUNS: IAgentRun[] = [];
 
-export type WorkspaceSection = 'activity' | 'inbox' | 'overview';
+export type WorkspaceSection = 'inbox' | 'overview';
 export type InboxView = 'all' | 'recent' | 'unread';
 
 export interface ReviewInboxItem {
@@ -68,11 +68,6 @@ export const SECTION_COPY: Record<
   WorkspaceSection,
   { description: string; title: string }
 > = {
-  activity: {
-    description:
-      'App activity, execution logs, and task progress across your account.',
-    title: 'Activity',
-  },
   inbox: {
     description: 'Unread work, recent movement, and the full queue.',
     title: 'Inbox',
