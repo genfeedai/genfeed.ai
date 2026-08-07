@@ -42,7 +42,9 @@ export function useReviewQueueContent() {
   const {
     data: batches = [],
     error: batchesError,
+    isFetching: isBatchesFetching,
     isLoading: isBatchesLoading,
+    refetch: refetchBatches,
   } = useQuery({
     queryKey: ['review-batches'],
     queryFn: async () => {
@@ -102,6 +104,7 @@ export function useReviewQueueContent() {
   const {
     data: activeBatch = null,
     error: activeBatchError,
+    isFetching: isBatchFetching,
     isLoading: isBatchLoading,
     refetch: refetchBatch,
   } = useQuery({
@@ -119,6 +122,10 @@ export function useReviewQueueContent() {
   const refreshBatch = useCallback(async () => {
     await refetchBatch();
   }, [refetchBatch]);
+
+  const refreshQueue = useCallback(async () => {
+    await Promise.all([refetchBatches(), refetchBatch()]);
+  }, [refetchBatch, refetchBatches]);
 
   const actionableItems = useMemo(
     () => activeBatch?.items.filter((item) => isReadyToReview(item)) ?? [],
@@ -514,6 +521,8 @@ export function useReviewQueueContent() {
     isActioning,
     isBatchesLoading,
     isBatchLoading,
+    isRefreshing: isBatchesFetching || isBatchFetching,
+    refreshQueue,
     selectedIds,
     selectedPostId,
     visibleItems,

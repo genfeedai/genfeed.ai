@@ -8,6 +8,11 @@ import {
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/publish/review',
+  useSearchParams: () => new URLSearchParams(),
+}));
+
 const mockBatch = {
   brandId: 'brand-1',
   completedCount: 1,
@@ -301,7 +306,7 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Approved0/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Approved\s*0/i }));
     fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
     fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));

@@ -1,8 +1,9 @@
 'use client';
 
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Check, Sparkles, X } from 'lucide-react';
 
@@ -30,25 +31,23 @@ interface ReviewGridProps {
 
 const REVIEW_FILTERS: Array<{
   filter: ReviewFilter;
-  helper: string;
   label: string;
 }> = [
-  { filter: 'ready', helper: 'Needs action now', label: 'Ready' },
-  {
-    filter: 'approved',
-    helper: 'Approved and moved forward',
-    label: 'Approved',
-  },
-  {
-    filter: 'changes_requested',
-    helper: 'Sent back for revision',
-    label: 'Changes',
-  },
-  { filter: 'failed', helper: 'Generation failed', label: 'Failed' },
-  { filter: 'pending', helper: 'Still generating', label: 'Pending' },
-  { filter: 'skipped', helper: 'Rejected items', label: 'Skipped' },
-  { filter: 'all', helper: 'Everything in this batch', label: 'All' },
+  { filter: 'ready', label: 'Ready' },
+  { filter: 'approved', label: 'Approved' },
+  { filter: 'changes_requested', label: 'Changes' },
+  { filter: 'failed', label: 'Failed' },
+  { filter: 'pending', label: 'Pending' },
+  { filter: 'skipped', label: 'Skipped' },
+  { filter: 'all', label: 'All' },
 ];
+
+function formatBatchStatus(status: unknown): string {
+  if (typeof status !== 'string' || !status.trim()) {
+    return '';
+  }
+  return status.replaceAll('_', ' ').toLowerCase();
+}
 
 export default function ReviewGrid({
   activeFilter,
@@ -67,107 +66,117 @@ export default function ReviewGrid({
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
+  const statusLabel = formatBatchStatus(batch.status);
+  const total = batch.totalCount ?? 0;
+  const completed = batch.completedCount ?? 0;
+  const failed = batch.failedCount ?? 0;
+  const pending =
+    typeof batch.pendingCount === 'number'
+      ? batch.pendingCount
+      : Math.max(total - completed - failed, 0);
+
+  const summaryParts = [
+    `${total} total`,
+    `${completed} done`,
+    failed > 0 ? `${failed} failed` : null,
+    pending > 0 ? `${pending} pending` : null,
+    statusLabel || null,
+  ].filter(Boolean);
+
+  const filterTabs = REVIEW_FILTERS.map((entry) => ({
+    id: entry.filter,
+    label: entry.label,
+    badge: (
+      <span className="text-[11px] tabular-nums opacity-70">
+        {filterCounts[entry.filter]}
+      </span>
+    ),
+  }));
+
   return (
-    <div className="grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
-      <section className="rounded-2xl border border-white/10 bg-card">
-        <div className="border-b border-white/10 p-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-foreground/45">
-                Publishing Inbox
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-foreground">
+    <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(280px,22rem)_minmax(0,1fr)]">
+      <section className="flex min-h-0 min-w-0 flex-col rounded-xl border border-border bg-card">
+        <div className="space-y-3 border-b border-border px-3 py-3">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-semibold text-foreground">
                 Batch {batch.id.slice(-6)}
               </h2>
-              <p className="mt-1 text-sm text-foreground/55">
-                Work through ready-to-publish assets one decision at a time.
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                {summaryParts.join(' · ')}
               </p>
             </div>
-            <div className="rounded-full border border-white/10 px-3 py-1 text-xs text-foreground/55">
-              {items.length} visible
-            </div>
+            <span className="shrink-0 rounded-md border border-border px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+              {items.length} shown
+            </span>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {REVIEW_FILTERS.map((filter) => (
-              <Button
-                key={filter.filter}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                onClick={() => onFilterChange(filter.filter)}
-                className={cn(
-                  'rounded-full border px-3 py-2 text-left transition-colors',
-                  activeFilter === filter.filter
-                    ? 'border-primary/40 bg-primary/15 text-foreground'
-                    : 'border-white/10 bg-card/60 text-foreground/60 hover:border-white/20 hover:text-foreground/80',
-                )}
-              >
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <span>{filter.label}</span>
-                  <span className="text-xs text-foreground/45">
-                    {filterCounts[filter.filter as keyof ReviewFilterCounts]}
-                  </span>
-                </div>
-                <div className="mt-0.5 text-[11px] text-foreground/40">
-                  {filter.helper}
-                </div>
-              </Button>
-            ))}
-          </div>
+          <Tabs
+            activeTab={activeFilter}
+            className="w-full"
+            fullWidth={false}
+            items={filterTabs}
+            onTabChange={(id) => {
+              onFilterChange(id as ReviewFilter);
+            }}
+            size="sm"
+            variant="underline"
+          />
 
-          {selectedIds.size > 0 && (
-            <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">
-                    {selectedIds.size} selected
-                  </p>
-                  <p className="text-xs text-foreground/50">
-                    Use bulk review for obvious keeps and skips.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    isDisabled={isActioning}
-                    onClick={onBulkApprove}
-                    className="flex items-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-medium text-emerald-400 transition-colors hover:bg-emerald-500/25 disabled:opacity-50"
-                  >
-                    <Check className="size-3.5" />
-                    Approve
-                  </Button>
-                  <Button
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    isDisabled={isActioning}
-                    onClick={onBulkReject}
-                    className="flex items-center gap-1.5 rounded-lg bg-rose-500/15 px-3 py-2 text-xs font-medium text-rose-400 transition-colors hover:bg-rose-500/25 disabled:opacity-50"
-                  >
-                    <X className="size-3.5" />
-                    Reject
-                  </Button>
-                </div>
+          {selectedIds.size > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-2.5 py-2">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {selectedIds.size}
+                </span>{' '}
+                selected
+              </p>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                  isDisabled={isActioning}
+                  onClick={onBulkApprove}
+                  className="h-7 gap-1 px-2 text-xs"
+                >
+                  <Check className="size-3.5" />
+                  Approve
+                </Button>
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  withWrapper={false}
+                  isDisabled={isActioning}
+                  onClick={onBulkReject}
+                  className="h-7 gap-1 px-2 text-xs"
+                >
+                  <X className="size-3.5" />
+                  Reject
+                </Button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
 
         {items.length === 0 ? (
-          <div className="flex min-h-[440px] flex-col items-center justify-center p-8 text-center">
-            <div className="rounded-full border border-white/10 bg-card p-4">
-              <Sparkles className="size-6 text-foreground/50" />
+          <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
+            <div className="rounded-full border border-border bg-background p-3">
+              <Sparkles className="size-5 text-muted-foreground" />
             </div>
-            <p className="mt-4 text-sm font-medium text-foreground">
+            <p className="mt-3 text-sm font-medium text-foreground">
               No items in this view
             </p>
-            <p className="mt-1 max-w-xs text-sm text-foreground/50">
-              Switch filters or pick another batch to continue reviewing
-              content.
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+              Switch filters or pick another batch.
             </p>
           </div>
         ) : (
-          <div className="max-h-[720px] space-y-3 overflow-y-auto p-4">
+          <div
+            className={cn(
+              'max-h-[min(720px,calc(100dvh-14rem))] space-y-2 overflow-y-auto p-2',
+            )}
+          >
             {items.map((item) => (
               <ReviewItemCard
                 key={item.id}

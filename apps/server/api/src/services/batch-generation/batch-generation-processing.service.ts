@@ -23,7 +23,10 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  CredentialPlatform as PrismaCredentialPlatform,
+} from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -33,6 +36,50 @@ type BatchProcessingCounts = {
   completedCount: number;
   failedCount: number;
 };
+
+const PRISMA_CREDENTIAL_PLATFORMS = new Set<string>(
+  Object.values(PrismaCredentialPlatform),
+);
+
+function toPostPlatform(platform: string): string {
+  return platform.trim().toLowerCase().replace(/-/g, '_');
+}
+
+function toPrismaCredentialPlatform(
+  platform: string,
+): PrismaCredentialPlatform | undefined {
+  const candidate = platform.trim().toUpperCase().replace(/-/g, '_');
+  if (!PRISMA_CREDENTIAL_PLATFORMS.has(candidate)) {
+    return undefined;
+  }
+  return candidate as PrismaCredentialPlatform;
+}
+
+function toBatchItemFailureMessage(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return 'Unknown error';
+  }
+
+  const message = error.message;
+  if (
+    /Null constraint violation|Argument `.+` is missing|Invalid.*credentialId/i.test(
+      message,
+    )
+  ) {
+    const fieldMatch = message.match(/`([A-Za-z]+)`/);
+    const field = fieldMatch?.[1];
+    return field
+      ? `Draft post create failed: missing or invalid "${field}". Connect a brand social account for this platform, or leave the draft untargeted.`
+      : 'Draft post create failed due to a database constraint. Connect a brand social account for this platform, or leave the draft untargeted.';
+  }
+
+  // Surface the first meaningful line — Prisma dumps are multi-line walls.
+  const firstLine = message
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0);
+  return firstLine ?? message;
+}
 
 @Injectable()
 export class BatchGenerationProcessingService {
@@ -235,8 +282,6 @@ export class BatchGenerationProcessingService {
         item.prompt = content?.content ?? topic;
         item.caption = content?.content ?? '';
 
-        // Untargeted draft — credential is optional until the user picks a
-        // publish account (posts.credentialId is nullable).
         if (!batchRecord.brandId || !batchRecord.userId) {
           throw new BadRequestException(
             'Batch is missing brandId or userId; cannot create draft posts',
@@ -244,18 +289,49 @@ export class BatchGenerationProcessingService {
         }
 
         const caption =
-          (item.caption && item.caption.trim()) ||
-          (item.prompt && item.prompt.trim()) ||
+          item.caption?.trim() ||
+          item.prompt?.trim() ||
           topic.trim() ||
           'Draft post';
 
+        // Posts store lowercase platform strings; credentials use Prisma
+        // CredentialPlatform SCREAMING_SNAKE enums — keep both shapes.
+        const platformRaw =
+          typeof item.platform === 'string' && item.platform.trim().length > 0
+            ? item.platform.trim()
+            : undefined;
+        const platformForPost = platformRaw
+          ? toPostPlatform(platformRaw)
+          : undefined;
+        const platformForCredential = platformRaw
+          ? toPrismaCredentialPlatform(platformRaw)
+          : undefined;
+
+        // Prefer a connected brand credential for the item platform so drafts
+        // land on a real target. credentialId remains nullable for untargeted
+        // drafts when no matching credential exists.
+        let credentialId: string | null = null;
+        if (platformForCredential) {
+          const credential = await this.prisma.credential.findFirst({
+            select: { id: true },
+            where: scopedWhere(orgId, {
+              brandId: batchRecord.brandId,
+              isConnected: true,
+              isDeleted: false,
+              platform: platformForCredential,
+            }),
+          });
+          credentialId = credential?.id ?? null;
+        }
+
         const post = await this.postsService.create({
           brandId: batchRecord.brandId,
+          ...(credentialId ? { credentialId } : {}),
           description: caption,
           ingredients: [],
-          label: `Batch: ${topic}`,
+          label: `Batch: ${topic}`.slice(0, 200),
           organizationId: orgId,
-          platform: item.platform || undefined,
+          platform: platformForPost,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
@@ -286,12 +362,13 @@ export class BatchGenerationProcessingService {
         );
       } catch (error: unknown) {
         item.status = BatchItemStatus.FAILED;
-        item.error = error instanceof Error ? error.message : 'Unknown error';
+        item.error = toBatchItemFailureMessage(error);
         failedCount++;
 
         this.logger.error(`Batch item ${item.id} failed: ${item.error}`, {
           batchId,
           itemId: item.id,
+          rawError: error instanceof Error ? error.message : error,
         });
 
         const topics = batchConfig.topics ?? [];
