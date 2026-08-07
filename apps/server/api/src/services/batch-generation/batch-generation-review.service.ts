@@ -8,11 +8,13 @@ import {
   type ReviewInboxSummary,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { UpdateBatchDto } from '@api/services/batch-generation/dto/update-batch.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary, IPublishApproval } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -56,7 +58,7 @@ export class BatchGenerationReviewService {
         } else if (decision === 'request_changes') {
           changesRequestedCount++;
         } else if (
-          status === BatchItemStatus.GENERATING ||
+          status === BatchItemStatus.PROCESSING ||
           status === BatchItemStatus.PENDING
         ) {
           pendingCount++;
@@ -118,7 +120,7 @@ export class BatchGenerationReviewService {
 
     const where: Record<string, unknown> = scopedWhere(orgId);
     if (query?.status) {
-      where.status = query.status;
+      where.status = toPrismaBatchStatus(query.status);
     }
 
     const [batches, total] = await Promise.all([
@@ -126,9 +128,9 @@ export class BatchGenerationReviewService {
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
-        where: where as never,
+        where: where as Prisma.BatchWhereInput,
       }),
-      this.prisma.batch.count({ where: where as never }),
+      this.prisma.batch.count({ where: where as Prisma.BatchWhereInput }),
     ]);
 
     return {
@@ -233,7 +235,7 @@ export class BatchGenerationReviewService {
         selectedPostIds.map((postId) =>
           transaction.post.updateMany({
             data: {
-              reviewDecision: 'APPROVED' as never,
+              reviewDecision: 'APPROVED',
               reviewVersionPinId: versionPinIds.get(postId),
               reviewedAt: new Date(reviewedAt),
             },
@@ -249,13 +251,13 @@ export class BatchGenerationReviewService {
 
       if (postIdsToSchedule.length > 0) {
         await transaction.post.updateMany({
-          data: { status: PostStatus.SCHEDULED as never },
+          data: { status: PostStatus.SCHEDULED },
           where: scopedWhere(orgId, { id: { in: postIdsToSchedule } }),
         });
       }
 
       const batchUpdate = await transaction.batch.updateMany({
-        data: { items: batchItems as never },
+        data: { items: batchItems as Prisma.InputJsonValue },
         where: scopedWhere(orgId, { id: batchId }),
       });
       if (batchUpdate.count !== 1) {
@@ -362,7 +364,7 @@ export class BatchGenerationReviewService {
       await this.prisma.post.updateMany({
         data: {
           isDeleted: true,
-          reviewDecision: 'REJECTED' as never,
+          reviewDecision: 'REJECTED',
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
         },
@@ -381,7 +383,7 @@ export class BatchGenerationReviewService {
     }
 
     const batchUpdate = await this.prisma.batch.updateMany({
-      data: { items: batchItems as never },
+      data: { items: batchItems as Prisma.InputJsonValue },
       where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
@@ -445,10 +447,10 @@ export class BatchGenerationReviewService {
     if (postIdsToKeepAsDraft.length > 0) {
       await this.prisma.post.updateMany({
         data: {
-          reviewDecision: 'REQUEST_CHANGES' as never,
+          reviewDecision: 'REQUEST_CHANGES',
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
-          status: PostStatus.DRAFT as never,
+          status: PostStatus.DRAFT,
         },
         where: scopedWhere(orgId, { id: { in: postIdsToKeepAsDraft } }),
       });
@@ -465,7 +467,7 @@ export class BatchGenerationReviewService {
     }
 
     const batchUpdate = await this.prisma.batch.updateMany({
-      data: { items: batchItems as never },
+      data: { items: batchItems as Prisma.InputJsonValue },
       where: scopedWhere(orgId, { id: batchId }),
     });
     if (batchUpdate.count !== 1) {
@@ -507,8 +509,8 @@ export class BatchGenerationReviewService {
 
     const batchUpdate = await this.prisma.batch.updateMany({
       data: {
-        items: batchItems as never,
-        status: BatchStatus.CANCELLED as never,
+        items: batchItems as Prisma.InputJsonValue,
+        status: toPrismaBatchStatus(BatchStatus.CANCELLED),
       },
       where: scopedWhere(orgId, { id: batchId }),
     });
@@ -550,7 +552,7 @@ export class BatchGenerationReviewService {
 
     const batchUpdate = await this.prisma.batch.updateMany({
       data: {
-        status: dto.status as never,
+        ...(dto.status ? { status: toPrismaBatchStatus(dto.status) } : {}),
       },
       where: scopedWhere(orgId, { id: batchRecord.id }),
     });

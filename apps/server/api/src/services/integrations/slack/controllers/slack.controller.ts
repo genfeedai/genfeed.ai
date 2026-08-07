@@ -38,7 +38,6 @@ export class SlackController {
 
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: organization,
     });
 

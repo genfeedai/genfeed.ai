@@ -65,7 +65,11 @@ export function AdGridCard({
                 {item.source === 'public' ? 'Public' : 'Connected'}
               </Badge>
               <Badge variant="ghost">
-                {item.platform === 'meta' ? 'Meta' : 'Google'}
+                {item.platform === 'meta'
+                  ? 'Meta'
+                  : item.platform === 'tiktok'
+                    ? 'TikTok'
+                    : 'Google'}
               </Badge>
               {item.channel !== 'all' && (
                 <Badge variant="ghost">{item.channel}</Badge>
@@ -151,7 +155,11 @@ export function AdTableRow({
     >
       <TableCell className="px-4 py-3">
         <Badge variant="ghost">
-          {item.platform === 'meta' ? 'Meta' : 'Google'}
+          {item.platform === 'meta'
+            ? 'Meta'
+            : item.platform === 'tiktok'
+              ? 'TikTok'
+              : 'Google'}
         </Badge>
       </TableCell>
       <TableCell className="max-w-[300px] px-4 py-3">

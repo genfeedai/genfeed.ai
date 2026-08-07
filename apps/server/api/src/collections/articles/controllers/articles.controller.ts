@@ -162,7 +162,6 @@ export class ArticlesController extends BaseCRUDController<
 
     const article = await this.articlesService.findOne({
       id: articleId,
-      isDeleted: false,
     });
 
     if (!article) {

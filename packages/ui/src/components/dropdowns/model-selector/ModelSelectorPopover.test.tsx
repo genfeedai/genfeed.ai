@@ -270,7 +270,7 @@ describe('ModelSelectorPopover', () => {
     expect(screen.queryByText('Balanced')).not.toBeInTheDocument();
   });
 
-  it('hides the manual model catalog and exposes flat auto routing options', async () => {
+  it('keeps auto routing and the manual catalog visible when auto is selected', async () => {
     const user = userEvent.setup();
     const onPrioritizeChange = vi.fn();
 
@@ -293,10 +293,8 @@ describe('ModelSelectorPopover', () => {
 
     await user.click(screen.getByRole('button', { name: /auto/i }));
 
-    expect(
-      screen.queryByPlaceholderText('Search models…'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+    expect(screen.getByText('Nano Banana')).toBeInTheDocument();
     expect(screen.getByText('Best Quality')).toBeInTheDocument();
     expect(screen.getByText('Lowest Cost')).toBeInTheDocument();
 

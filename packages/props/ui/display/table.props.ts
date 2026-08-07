@@ -17,6 +17,10 @@ export interface TableProps<T> {
 
   getRowKey?: (item: T, index: number) => Key;
   getRowClassName?: (item: T) => string;
+  /** Section title inside the table card chrome (matches Card `label`). */
+  label?: string;
+  /** Optional supporting line under `label`. */
+  description?: string;
   emptyLabel?: string;
   /** Optional supporting line under `emptyLabel`. Omit for title-only empties. */
   emptyDescription?: string;

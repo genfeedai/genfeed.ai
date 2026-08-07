@@ -3,6 +3,7 @@ import { PatternStoreService } from '@api/collections/content-intelligence/servi
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -114,7 +115,7 @@ describe('ContentGeneratorService', () => {
   });
 
   it('generates content using available patterns', async () => {
-    const results = await service.generateContent(ORG_ID, BASE_DTO as any);
+    const results = await service.generateContent(ORG_ID, BASE_DTO as never);
 
     expect(results).toHaveLength(2);
     expect(results[0]).toMatchObject({
@@ -141,7 +142,7 @@ describe('ContentGeneratorService', () => {
       ],
     });
 
-    const results = await service.generateContent(ORG_ID, BASE_DTO as any);
+    const results = await service.generateContent(ORG_ID, BASE_DTO as never);
 
     expect(results).toHaveLength(2);
     expect(results[0].patternUsed).toBe('freeform');
@@ -153,7 +154,7 @@ describe('ContentGeneratorService', () => {
       new Error('LLM timeout'),
     );
 
-    const results = await service.generateContent(ORG_ID, BASE_DTO as any);
+    const results = await service.generateContent(ORG_ID, BASE_DTO as never);
 
     expect(results).toHaveLength(2);
     expect(mockLogger.error).toHaveBeenCalledWith(
@@ -175,7 +176,7 @@ describe('ContentGeneratorService', () => {
       variationsCount: 1,
     };
 
-    const results = await service.generateContent(ORG_ID, dto as any);
+    const results = await service.generateContent(ORG_ID, dto as never);
 
     expect(patternStoreService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({ id: expect.any(String) }),
@@ -191,7 +192,7 @@ describe('ContentGeneratorService', () => {
     });
 
     const dto = { ...BASE_DTO, patternId: PATTERN_ID.toString() };
-    const results = await service.generateContent(ORG_ID, dto as any);
+    const results = await service.generateContent(ORG_ID, dto as never);
 
     expect(results).toHaveLength(0);
   });
@@ -207,7 +208,7 @@ describe('ContentGeneratorService', () => {
 
     const dto = { ...BASE_DTO, playbookId };
 
-    await service.generateContent(ORG_ID, dto as any);
+    await service.generateContent(ORG_ID, dto as never);
 
     expect(playbookBuilderService.findOne).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -223,9 +224,14 @@ describe('ContentGeneratorService', () => {
       brandGuidance: 'Use bold, direct language.',
     });
 
-    await service.generateContent(ORG_ID, BASE_DTO as any);
+    await service.generateContent(ORG_ID, BASE_DTO as never);
 
     expect(contextAssemblyService.buildSystemPrompt).toHaveBeenCalled();
+    expect(contextAssemblyService.buildSystemPrompt).toHaveBeenCalledWith(
+      '',
+      expect.anything(),
+      { maxBrandContextLength: Number.POSITIVE_INFINITY },
+    );
     expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: expect.arrayContaining([
@@ -235,12 +241,38 @@ describe('ContentGeneratorService', () => {
     );
   });
 
+  it('applies one budget after brand and historical assemblers contribute', async () => {
+    contextAssemblyService.assembleContext.mockResolvedValue({
+      brandGuidance: 'available',
+    });
+    contextAssemblyService.buildSystemPrompt.mockReturnValue(
+      `## Brand Voice\n- Style: ${'v'.repeat(7000)}`,
+    );
+    topPerformerPromptContextService.assembleContext.mockResolvedValue(
+      `## Historical Performance Context\n- ${'h'.repeat(5000)}`,
+    );
+
+    await service.generateContent(ORG_ID, BASE_DTO as never);
+
+    const systemMessage =
+      openRouterService.chatCompletion.mock.calls[0]?.[0]?.messages?.find(
+        (message: { role?: string }) => message.role === 'system',
+      );
+    expect(systemMessage?.content.length).toBeLessThanOrEqual(
+      BRAND_CONTEXT_CHARACTER_BUDGET,
+    );
+    expect(systemMessage?.content).toContain('## Brand Voice');
+    expect(systemMessage?.content).not.toContain(
+      '## Historical Performance Context',
+    );
+  });
+
   it('adds scoped top-performer context to the generation system prompt', async () => {
     topPerformerPromptContextService.assembleContext.mockResolvedValue(
       '## Historical Performance Context\n- Reuse hook structure like "Contrarian opener".',
     );
 
-    await service.generateContent(ORG_ID, BASE_DTO as any);
+    await service.generateContent(ORG_ID, BASE_DTO as never);
 
     expect(
       topPerformerPromptContextService.assembleContext,
@@ -268,7 +300,7 @@ describe('ContentGeneratorService', () => {
       new Error('analytics unavailable'),
     );
 
-    const results = await service.generateContent(ORG_ID, BASE_DTO as any);
+    const results = await service.generateContent(ORG_ID, BASE_DTO as never);
 
     expect(results).toHaveLength(2);
     expect(mockLogger.warn).toHaveBeenCalledWith(
@@ -293,7 +325,7 @@ describe('ContentGeneratorService', () => {
 
     const dto = { ...BASE_DTO, hashtags: undefined, variationsCount: 1 };
 
-    const results = await service.generateContent(ORG_ID, dto as any);
+    const results = await service.generateContent(ORG_ID, dto as never);
 
     expect(results[0].hashtags).toEqual(
       expect.arrayContaining(['marketing', 'productivity']),
@@ -307,7 +339,7 @@ describe('ContentGeneratorService', () => {
       variationsCount: 1,
     };
 
-    const results = await service.generateContent(ORG_ID, dto as any);
+    const results = await service.generateContent(ORG_ID, dto as never);
 
     expect(results[0].hashtags).toEqual(['ai', 'creator']);
   });
@@ -316,7 +348,7 @@ describe('ContentGeneratorService', () => {
     patternStoreService.findByOrganization.mockResolvedValue([MOCK_PATTERN]);
     const dto = { ...BASE_DTO, variationsCount: 3 };
 
-    const results = await service.generateContent(ORG_ID, dto as any);
+    const results = await service.generateContent(ORG_ID, dto as never);
 
     expect(results).toHaveLength(3);
   });

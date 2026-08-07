@@ -353,10 +353,7 @@ export class AgentOrchestratorController {
       );
     }
 
-    const dbUser = await this.usersService.findOne(
-      { id: userId, isDeleted: false },
-      [],
-    );
+    const dbUser = await this.usersService.findOne({ id: userId }, []);
     if (!dbUser?.id) {
       throw new UnauthorizedException('User account not found');
     }

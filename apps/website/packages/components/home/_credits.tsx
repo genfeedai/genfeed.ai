@@ -10,7 +10,6 @@ import {
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { ArrowRight, Check } from 'lucide-react';
@@ -32,7 +31,7 @@ export default function HomeCredits(): React.ReactElement {
     >
       <div className="container mx-auto px-6">
         <div className="mb-12 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
-          <VStack className="gap-4">
+          <div className="flex flex-col gap-4">
             <Heading
               as="h2"
               className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
@@ -44,19 +43,19 @@ export default function HomeCredits(): React.ReactElement {
               subscription only exists to make those credits cheaper and support
               shared team seats.
             </Text>
-          </VStack>
+          </div>
 
           <div className="gen-card-spotlight p-5">
-            <VStack className="gap-4">
+            <div className="flex flex-col gap-4">
               {CREDIT_EXPLAINERS.map((item) => (
-                <HStack key={item} className="items-start gap-3">
+                <div className="flex flex-row items-start gap-3" key={item}>
                   <Check className="mt-0.5 size-4 shrink-0 text-surface/70" />
                   <Text className="text-sm leading-6 text-surface/60">
                     {item}
                   </Text>
-                </HStack>
+                </div>
               ))}
-            </VStack>
+            </div>
           </div>
         </div>
 
@@ -82,7 +81,7 @@ export default function HomeCredits(): React.ReactElement {
           </Text>
         ) : null}
 
-        <HStack className="mt-4 flex-wrap items-center justify-center gap-4">
+        <div className="flex flex-row mt-4 flex-wrap items-center justify-center gap-4">
           <ButtonTracked
             asChild
             size={ButtonSize.PUBLIC}
@@ -109,7 +108,7 @@ export default function HomeCredits(): React.ReactElement {
               Book a Demo
             </a>
           </ButtonTracked>
-        </HStack>
+        </div>
       </div>
     </section>
   );

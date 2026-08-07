@@ -1,3 +1,4 @@
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AgentToolName,
   type AgentUiAction,
@@ -9,6 +10,8 @@ export interface AgentCompletionSuggestedAction {
   id: string;
   label: string;
   prompt: string;
+  /** Optional one-line helper; omit for chip-style short labels. */
+  description?: string;
 }
 
 export interface AgentCompletionToolCall {
@@ -199,8 +202,8 @@ export class AgentCompletionCardBuilderService {
           workflowAction.ctas?.[0],
         ) ?? {
           href: workflowAction.workflowId
-            ? `/automations/editor/${workflowAction.workflowId}`
-            : '/automations/editor/',
+            ? `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflowAction.workflowId}`
+            : APP_ROUTES.AUTOMATE.WORKFLOWS,
           label: 'Use in Workflow',
         },
         secondaryCtas: this.buildCompletionSecondaryCtas(
@@ -428,20 +431,21 @@ export class AgentCompletionCardBuilderService {
         'rate_content',
       )
     ) {
+      // Short chip labels; full prompt is what gets sent on click (PostHog-style).
       addSuggestion(
         'analytics-repeat',
         'Find repeatable winners',
-        'Show me the strongest patterns here and what I should repeat next',
+        'Show me the strongest patterns from this analytics summary and what I should deliberately repeat next week.',
       );
       addSuggestion(
         'analytics-remix',
         'Create a remix',
-        'Take the best performer and give me a fresh remix to test next',
+        'Take the best-performing item from this analysis and draft a fresh remix I can publish next.',
       );
       addSuggestion(
         'analytics-schedule',
         'Plan the next batch',
-        'Plan my next batch around the winners from this analysis',
+        'Plan my next content batch around the winners from this analysis, with formats and timing.',
       );
     }
 

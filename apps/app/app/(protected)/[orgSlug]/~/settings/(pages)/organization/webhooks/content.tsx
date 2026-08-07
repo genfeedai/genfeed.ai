@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  PUBLISH_WEBHOOK_EVENT_TYPES,
-  type PublishWebhookEventType,
+  ORGANIZATION_WEBHOOK_EVENT_TYPES,
+  type OrganizationWebhookEventType,
 } from '@api-types/contracts';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { webhookSettingsSchema } from '@genfeedai/client/schemas/integrations/webhook.schema';
@@ -35,12 +35,16 @@ type WebhookFormState = {
 
 const SECONDARY_BUTTON_VARIANT = 'secondary' as ButtonVariant;
 
-const EVENT_LABELS: Record<PublishWebhookEventType, string> = {
+const EVENT_LABELS: Record<OrganizationWebhookEventType, string> = {
+  'generation.completed': 'Generation completed',
+  'generation.failed': 'Generation failed',
   'release.failed': 'Release failed',
   'release.partially_published': 'Release partially published',
   'release.published': 'Release published',
   'target.failed': 'Target failed',
   'target.published': 'Target published',
+  'workflow.execution.completed': 'Workflow execution completed',
+  'workflow.execution.failed': 'Workflow execution failed',
 };
 
 const initialForm: WebhookFormState = {
@@ -162,7 +166,7 @@ export default function SettingsWebhooksPage() {
     return () => controller.abort();
   }, [loadSettings]);
 
-  const toggleEvent = useCallback((event: PublishWebhookEventType) => {
+  const toggleEvent = useCallback((event: OrganizationWebhookEventType) => {
     setForm((current) => {
       const eventSet = new Set(current.webhookEventTypes);
       if (eventSet.has(event)) {
@@ -327,13 +331,13 @@ export default function SettingsWebhooksPage() {
 
           <div className="grid gap-2">
             <div className="flex items-center justify-between gap-3">
-              <Label>Publish events</Label>
+              <Label>Events</Label>
               <span className="text-xs text-muted-foreground">
-                No selection means all publish events
+                No selection means every event
               </span>
             </div>
             <div className="grid gap-2 md:grid-cols-2">
-              {PUBLISH_WEBHOOK_EVENT_TYPES.map((event) => (
+              {ORGANIZATION_WEBHOOK_EVENT_TYPES.map((event) => (
                 <Checkbox
                   key={event}
                   isChecked={selectedEvents.has(event)}

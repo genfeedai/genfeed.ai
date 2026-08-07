@@ -1,4 +1,5 @@
 export * from '@serializers/configs/collections/model.config';
+export * from '@serializers/configs/collections/model-catalog.config';
 export * from '@serializers/configs/collections/platform-setting.config';
 export * from '@serializers/configs/collections/prompt.config';
 export * from '@serializers/configs/collections/role.config';

@@ -19,8 +19,10 @@ describe('WorkflowExecutionsService', () => {
       create: vi.fn().mockResolvedValue({ id: 'execution-1' }),
       findFirst: vi.fn(),
       findUnique: vi.fn().mockResolvedValue({
+        organizationId: 'org-1',
         result: {},
         startedAt: new Date('2026-06-29T00:00:00.000Z'),
+        trigger: 'manual',
         workflowId: 'workflow-1',
       }),
       findMany: vi.fn().mockResolvedValue([]),
@@ -33,9 +35,18 @@ describe('WorkflowExecutionsService', () => {
       workflowExecution,
     };
 
+    const workflowEventWebhookService = {
+      emitExecutionOutcome: vi.fn().mockResolvedValue(undefined),
+    };
+
     return {
       prisma,
-      service: new WorkflowExecutionsService(prisma as never, logger as never),
+      service: new WorkflowExecutionsService(
+        prisma as never,
+        logger as never,
+        workflowEventWebhookService as never,
+      ),
+      workflowEventWebhookService,
     };
   };
 
@@ -239,7 +250,13 @@ describe('WorkflowExecutionsService', () => {
     await service.completeExecution('execution-1');
 
     expect(prisma.workflowExecution.findUnique).toHaveBeenCalledWith({
-      select: { result: true, startedAt: true, workflowId: true },
+      select: {
+        organizationId: true,
+        result: true,
+        startedAt: true,
+        trigger: true,
+        workflowId: true,
+      },
       where: { id: 'execution-1' },
     });
     expect(prisma.workflowExecution.update).toHaveBeenCalledWith(
@@ -257,6 +274,46 @@ describe('WorkflowExecutionsService', () => {
           status: PrismaWorkflowExecutionStatus.COMPLETED,
         }),
         where: { id: 'execution-1' },
+      }),
+    );
+  });
+
+  it('emits a terminal workflow execution webhook for both outcomes', async () => {
+    const { prisma, service, workflowEventWebhookService } = makeService();
+    prisma.workflowExecution.findUnique.mockResolvedValue({
+      organizationId: 'org-1',
+      result: { creditsUsed: 12, failedNodeId: 'node-3' },
+      startedAt: new Date('2026-06-29T00:00:00.000Z'),
+      trigger: 'scheduled',
+      workflowId: 'workflow-1',
+    });
+
+    await service.completeExecution('execution-1');
+    await service.completeExecution('execution-1', 'Provider timed out');
+
+    expect(
+      workflowEventWebhookService.emitExecutionOutcome,
+    ).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        creditsUsed: 12,
+        errorMessage: null,
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+        progress: 100,
+        status: SharedWorkflowExecutionStatus.COMPLETED,
+        trigger: 'scheduled',
+        workflowId: 'workflow-1',
+      }),
+    );
+    expect(
+      workflowEventWebhookService.emitExecutionOutcome,
+    ).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        errorMessage: 'Provider timed out',
+        failedNodeId: 'node-3',
+        status: SharedWorkflowExecutionStatus.FAILED,
       }),
     );
   });

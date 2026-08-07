@@ -103,6 +103,9 @@ export function AgentThreadListRow({
     (isStreaming ||
       activeRunStatus === 'running' ||
       activeRunStatus === 'cancelling');
+  // Background runs use attentionState from stream/API — bare runStatus alone
+  // can be stale and must not spin forever after you leave a thread.
+  const isBackgroundRunning = conv.attentionState === 'running';
   const isThreadMarkedRunning =
     isActiveConversation &&
     (conv.runStatus === 'queued' || conv.runStatus === 'running');
@@ -116,7 +119,10 @@ export function AgentThreadListRow({
     conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,
   );
   const isLoadingStatus =
-    isConversationWorking || isThreadMarkedRunning || isThreadUiBusy;
+    isConversationWorking ||
+    isBackgroundRunning ||
+    isThreadMarkedRunning ||
+    isThreadUiBusy;
   const statusDotClass = getThreadStatusDotClass({
     attentionState: conv.attentionState,
     pendingInputCount: conv.pendingInputCount,

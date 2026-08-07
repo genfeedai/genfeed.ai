@@ -33,7 +33,6 @@ export class MetadataLookupService {
   ): Promise<MetadataDocument | null> {
     let metadata = await this.metadataService.findOne({
       externalId,
-      isDeleted: false,
     });
 
     if (!metadata && externalId.includes('_')) {
@@ -44,7 +43,6 @@ export class MetadataLookupService {
       );
       metadata = await this.metadataService.findOne({
         externalId: baseExternalId,
-        isDeleted: false,
       });
     }
 
@@ -76,7 +74,6 @@ export class MetadataLookupService {
 
       const foundMetadata = await this.metadataService.findOne({
         externalId: baseExternalIdForSearch,
-        isDeleted: false,
       });
 
       if (!foundMetadata) {

@@ -4,20 +4,17 @@ import { Command } from 'commander';
 import { authCommand } from './commands/auth';
 import { batchCommand } from './commands/batch';
 import { brandsCommand } from './commands/brands';
-import { captionCommand } from './commands/caption';
 import { chatCommand } from './commands/chat';
 import { configCommand } from './commands/config';
 import { creditsCommand } from './commands/credits';
-import { datasetCommand } from './commands/dataset';
-import { fleetCommand } from './commands/fleet';
 import { generateCommand } from './commands/generate/index';
 import { insightsCommand } from './commands/insights';
 import { keysCommand } from './commands/keys';
 import { libraryCommand } from './commands/library';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
+import { organizationsCommand } from './commands/organizations';
 import { performanceCommand } from './commands/performance';
-import { personasCommand } from './commands/personas';
 import { postsCommand } from './commands/posts';
 import { profileCommand } from './commands/profile';
 import { publishCommand } from './commands/publish';
@@ -26,10 +23,8 @@ import { statusCommand } from './commands/status';
 import { templateCommand } from './commands/template';
 import { threadsCommand } from './commands/threads';
 import { toolsCommand } from './commands/tools';
-import { trainCommand } from './commands/train';
 import { whoamiCommand } from './commands/whoami';
 import { workflowCommand } from './commands/workflow';
-import { getRole } from './config/store';
 import { runAgentShell } from './shell/agent-shell';
 import { formatError, formatHeader, print } from './ui/theme';
 
@@ -46,12 +41,13 @@ const program = new Command();
 program
   .name('gf')
   .description('Unified CLI for Genfeed.ai')
-  .version('0.4.0')
+  .version('0.5.0')
   .addCommand(authCommand)
   .addCommand(loginCommand)
   .addCommand(logoutCommand)
   .addCommand(whoamiCommand)
   .addCommand(keysCommand)
+  .addCommand(organizationsCommand)
   .addCommand(brandsCommand)
   .addCommand(generateCommand)
   .addCommand(statusCommand)
@@ -71,35 +67,22 @@ program
   .addCommand(configCommand)
   .addCommand(toolsCommand);
 
-program
-  .addCommand(fleetCommand)
-  .addCommand(trainCommand)
-  .addCommand(personasCommand)
-  .addCommand(captionCommand)
-  .addCommand(datasetCommand);
-
 program.exitOverride();
 
-async function printBanner(): Promise<void> {
+function printBanner(): void {
   print(BANNER);
   print(chalk.dim('  Unified CLI for Genfeed.ai'));
-
-  const role = await getRole();
-  if (role === 'admin') {
-    print(chalk.dim('  Mode: ') + chalk.green('admin'));
-  }
   print();
 }
 
-async function printHelp(): Promise<void> {
-  const role = await getRole();
-
+function printHelp(): void {
   print(formatHeader('User Commands:\n'));
   print('  login          Authenticate with your Genfeed API key');
   print('  auth          Authentication commands, including `gf auth login`');
   print('  logout         Remove stored credentials');
   print('  whoami         Show current user and organization');
   print('  keys           Manage API keys for headless and MCP access');
+  print('  organizations  List organizations and switch the active one');
   print('  brands         Manage brands');
   print('  generate       Generate AI content (image, video, article)');
   print('  status         Check the status of a generation job');
@@ -119,24 +102,14 @@ async function printHelp(): Promise<void> {
   print('  config         Manage CLI configuration');
   print('  tools          List canonical agent tools available in the CLI shell');
 
-  if (role === 'admin') {
-    print();
-    print(formatHeader('Admin Commands:\n'));
-    print('  fleet       Fleet infrastructure (health, comfy, loras)');
-    print('  train          LoRA training (start, status)');
-    print('  personas       List and manage personas');
-    print('  caption        Run Florence-2 auto-captioning');
-    print('  dataset        Manage training datasets');
-  }
-
   print();
   print(chalk.dim('  Run `gf <command> --help` for command details'));
   print(chalk.dim('  Run `gf` with no args for the interactive agent shell'));
 }
 
 async function startRepl(): Promise<void> {
-  await printBanner();
-  await printHelp();
+  printBanner();
+  printHelp();
   print();
   await runAgentShell();
 }

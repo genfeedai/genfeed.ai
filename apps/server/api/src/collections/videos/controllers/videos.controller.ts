@@ -287,7 +287,6 @@ export class VideosController {
     const vote = await this.votesService.findOne({
       entityId: videoId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 
@@ -308,7 +307,6 @@ export class VideosController {
     const publicMetadata = getPublicMetadata(user);
     const video = await this.videosService.findOne({
       id: videoId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

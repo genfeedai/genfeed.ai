@@ -139,7 +139,7 @@ describe('MembersList seat limit', () => {
     ).toBeVisible();
     expect(
       screen.getByRole('link', { name: 'Upgrade to Pro' }),
-    ).toHaveAttribute('href', '/org-123/~/settings/billing');
+    ).toHaveAttribute('href', '/org-123/~/settings/subscription');
     expect(
       screen.queryByRole('button', { name: /Invite Member/i }),
     ).not.toBeInTheDocument();

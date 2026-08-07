@@ -3,7 +3,6 @@
 import type { ITrendPlaybook } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 
@@ -28,13 +27,13 @@ export default function PlaybookSection({
   return (
     <section>
       <Card className="backdrop-blur" bodyClassName="space-y-6">
-        <VStack gap={2}>
+        <div className="flex flex-col gap-2">
           <Heading size="xl">Viral format playbook</Heading>
           <Text as="p" size="sm" color="subtle-60">
             Repeatable storytelling patterns pulled from today&apos;s winning
             videos.
           </Text>
-        </VStack>
+        </div>
         <ul className="space-y-4">
           {playbooks.map((pattern: ITrendPlaybook) => (
             <li key={pattern.id} className="bg-tertiary p-4">

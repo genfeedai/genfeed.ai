@@ -42,7 +42,7 @@ export function AgentOnboardingChecklist({
   totalOnboardingCreditsVisible,
   completionPercent,
   journeyHref = APP_ROUTES.AGENT.JOURNEY,
-  showCreditRewards = true,
+  isCreditRewardsVisible = true,
 }: AgentOnboardingChecklistProps) {
   const resolvedPercent =
     completionPercent ??
@@ -77,7 +77,7 @@ export function AgentOnboardingChecklist({
         </div>
 
         <div className="mt-3 border border-border/60 bg-background/80 p-3">
-          {showCreditRewards ? (
+          {isCreditRewardsVisible ? (
             <div className="space-y-2 text-[11px] text-muted-foreground">
               <div className="flex items-center justify-between">
                 <span>Signup gift</span>
@@ -102,7 +102,7 @@ export function AgentOnboardingChecklist({
           <div
             className={cn(
               'h-2 overflow-hidden rounded-full bg-white/8',
-              showCreditRewards && 'mt-2',
+              isCreditRewardsVisible && 'mt-2',
             )}
           >
             <div
@@ -149,7 +149,7 @@ export function AgentOnboardingChecklist({
                   >
                     {step.title}
                   </p>
-                  {showCreditRewards ? (
+                  {isCreditRewardsVisible ? (
                     <span className="shrink-0 text-[11px] font-medium text-amber-300">
                       +{step.rewardCredits ?? 0}
                     </span>

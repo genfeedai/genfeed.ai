@@ -8,7 +8,7 @@ import type { HTMLAttributes, ReactNode } from 'react';
  * Keep visual tokens here so both bars stay cousins, not look-alikes by accident.
  */
 export const PROMPT_BAR_SURFACE_CLASS =
-  'overflow-hidden rounded-2xl border border-white/[0.08] bg-background/55 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.55)] backdrop-blur-xl backdrop-saturate-150 transition-[border-color,background-color,box-shadow] focus-within:border-white/[0.14] focus-within:bg-background/65';
+  'overflow-hidden rounded-2xl border border-white/[0.1] bg-background/70 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.65),0_0_0_1px_rgba(0,0,0,0.25)] backdrop-blur-xl backdrop-saturate-150 transition-[border-color,background-color,box-shadow] focus-within:border-white/[0.16] focus-within:bg-background/78';
 
 export interface PromptBarShellProps extends HTMLAttributes<HTMLDivElement> {
   /**
@@ -30,7 +30,10 @@ export default function PromptBarShell({
     <div
       {...props}
       className={cn(
-        'relative bg-background transition-[border-color] focus-within:border-white/16',
+        // No solid bg here — callers pass PROMPT_BAR_SURFACE_CLASS (glass) or
+        // their own fill. A hardcoded bg-background painted an opaque black
+        // slab behind every agent/studio composer.
+        'relative transition-[border-color,background-color,box-shadow]',
         className,
       )}
     >

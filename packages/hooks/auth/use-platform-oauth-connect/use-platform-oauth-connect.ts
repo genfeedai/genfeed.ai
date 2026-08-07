@@ -6,6 +6,7 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
+import { resolveOAuthServicePath } from '@ui/constants/oauth-connect-platforms';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 
@@ -63,7 +64,10 @@ export function usePlatformOAuthConnect(
           // Private mode / blocked storage — URL param is best-effort only.
         }
 
-        const service = new ServicesService(platform, token);
+        const service = new ServicesService(
+          resolveOAuthServicePath(platform),
+          token,
+        );
         const credential = await service.postConnect({ brandId });
         const separator = credential.url.includes('?') ? '&' : '?';
         window.open(

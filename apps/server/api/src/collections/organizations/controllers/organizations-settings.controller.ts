@@ -21,7 +21,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
-import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
+import { WebhookDispatchService } from '@api/services/webhook-client/webhook-client.module';
 import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {
   IByokProviderStatus,
@@ -71,7 +71,7 @@ export class OrganizationsSettingsController {
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
     private readonly byokService: ByokService,
-    private readonly publishEventWebhookService: PublishEventWebhookService,
+    private readonly webhookDispatchService: WebhookDispatchService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -184,7 +184,7 @@ export class OrganizationsSettingsController {
       req,
       organizationId,
     );
-    const data = await this.publishEventWebhookService.sendTestDelivery({
+    const data = await this.webhookDispatchService.sendTestDelivery({
       event: body.event,
       organizationId: resolvedOrganizationId,
     });
@@ -206,7 +206,6 @@ export class OrganizationsSettingsController {
     const brandSettings = await this.brandsService.findOne(
       {
         id: brandId,
-        isDeleted: false,
         organizationId: resolvedOrganizationId,
       },
       'none',

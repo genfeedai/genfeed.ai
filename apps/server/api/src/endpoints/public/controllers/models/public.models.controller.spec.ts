@@ -1,0 +1,239 @@
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { PublicModelsController } from '@api/endpoints/public/controllers/models/public.models.controller';
+import { PublicModelsQueryDto } from '@api/endpoints/public/dto/public-models-query.dto';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { modelCatalogAttributes } from '@genfeedai/serializers';
+import { LoggerService } from '@libs/logger/logger.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import type { Request as ExpressRequest } from 'express';
+
+vi.mock('@api/helpers/utils/response/response.util', () => ({
+  returnNotFound: vi.fn((type, id) => ({
+    errors: [
+      { detail: `${type} ${id} not found`, status: '404', title: 'Not Found' },
+    ],
+  })),
+  serializeCollection: vi.fn((_req, _serializer, data) => ({
+    data: data.docs || data,
+  })),
+  serializeSingle: vi.fn((_req, _serializer, data) => ({ data })),
+  setTopLinks: vi.fn((_req, opts) => opts),
+}));
+
+vi.mock('@genfeedai/serializers', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@genfeedai/serializers')>();
+  return {
+    ...actual,
+    ModelCatalogSerializer: {
+      opts: {},
+      serialize: vi.fn((data) => data),
+    },
+  };
+});
+
+describe('PublicModelsController', () => {
+  let controller: PublicModelsController;
+  let modelsService: vi.Mocked<ModelsService>;
+
+  const mockRequest = {
+    originalUrl: '/v1/public/models',
+    query: {},
+  } as unknown as ExpressRequest;
+
+  const mockCatalog = {
+    docs: [
+      { id: 'model-1', key: 'fal-ai/flux/dev', label: 'FLUX.1 [dev]' },
+      { id: 'model-2', key: 'black-forest-labs/flux-pro', label: 'FLUX Pro' },
+    ],
+    page: 1,
+    totalDocs: 2,
+  };
+
+  /** The `where` clause the controller handed to the service. */
+  function whereFromLastCall(): Record<string, unknown> {
+    const [aggregate] = modelsService.findAll.mock.calls[0] as [
+      { where: Record<string, unknown> },
+    ];
+    return aggregate.where;
+  }
+
+  function buildQuery(
+    overrides: Partial<PublicModelsQueryDto> = {},
+  ): PublicModelsQueryDto {
+    return { limit: 50, page: 1, ...overrides } as PublicModelsQueryDto;
+  }
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [PublicModelsController],
+      providers: [
+        {
+          provide: ModelsService,
+          useValue: {
+            findAll: vi.fn().mockResolvedValue(mockCatalog),
+          },
+        },
+        {
+          provide: LoggerService,
+          useValue: {
+            error: vi.fn(),
+            log: vi.fn(),
+          },
+        },
+      ],
+    })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    controller = module.get<PublicModelsController>(PublicModelsController);
+    modelsService = module.get(ModelsService);
+
+    vi.clearAllMocks();
+    modelsService.findAll.mockResolvedValue(mockCatalog);
+  });
+
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
+  });
+
+  describe('findPublicModels', () => {
+    it('returns the serialized catalog', async () => {
+      const result = await controller.findPublicModels(
+        mockRequest,
+        buildQuery(),
+      );
+
+      expect(modelsService.findAll).toHaveBeenCalled();
+      expect(result).toEqual({ data: mockCatalog.docs });
+    });
+
+    it('gates on public, active, non-legacy, platform-owned rows', async () => {
+      await controller.findPublicModels(mockRequest, buildQuery());
+
+      expect(whereFromLastCall()).toEqual({
+        isActive: true,
+        isDeleted: false,
+        isLegacy: false,
+        isPublic: true,
+        organizationId: null,
+      });
+    });
+
+    it('filters by category when provided', async () => {
+      await controller.findPublicModels(
+        mockRequest,
+        buildQuery({ category: ModelCategory.VIDEO }),
+      );
+
+      expect(whereFromLastCall().category).toBe(ModelCategory.VIDEO);
+    });
+
+    it('filters by provider when provided', async () => {
+      await controller.findPublicModels(
+        mockRequest,
+        buildQuery({ provider: ModelProvider.FAL }),
+      );
+
+      expect(whereFromLastCall().provider).toBe(ModelProvider.FAL);
+    });
+
+    it('never lets a caller widen the visibility gate', async () => {
+      // `organizationId`, `isDeleted`, and `registryStatus` are not on the DTO,
+      // so the global ValidationPipe strips them — but assert the controller
+      // ignores them even if they reach the handler.
+      const hostileQuery = {
+        isDeleted: true,
+        limit: 50,
+        organizationId: 'c07f191e810c19729de860ee',
+        page: 1,
+        registryStatus: 'pending',
+      } as unknown as PublicModelsQueryDto;
+
+      await controller.findPublicModels(mockRequest, hostileQuery);
+
+      const where = whereFromLastCall();
+      expect(where.organizationId).toBeNull();
+      expect(where.isDeleted).toBe(false);
+      expect(where.registryStatus).toBeUndefined();
+    });
+
+    it('orders highlighted then default then alphabetical', async () => {
+      await controller.findPublicModels(mockRequest, buildQuery());
+
+      const [aggregate] = modelsService.findAll.mock.calls[0] as [
+        { orderBy: Record<string, number> },
+      ];
+      expect(aggregate.orderBy).toEqual({
+        isDefault: -1,
+        isHighlighted: -1,
+        label: 1,
+      });
+    });
+
+    it('caps the page size', async () => {
+      await controller.findPublicModels(
+        mockRequest,
+        buildQuery({ limit: 500 }),
+      );
+
+      const [, options] = modelsService.findAll.mock.calls[0] as [
+        unknown,
+        { limit: number; page: number },
+      ];
+      expect(options.limit).toBe(100);
+    });
+
+    it('passes pagination through', async () => {
+      await controller.findPublicModels(
+        mockRequest,
+        buildQuery({ limit: 20, page: 3 }),
+      );
+
+      const [, options] = modelsService.findAll.mock.calls[0] as [
+        unknown,
+        { limit: number; page: number },
+      ];
+      expect(options).toMatchObject({ limit: 20, page: 3 });
+    });
+  });
+
+  describe('catalog serializer allowlist', () => {
+    it('exposes the fields the hub renders', () => {
+      expect(modelCatalogAttributes).toEqual(
+        expect.arrayContaining([
+          'capabilities',
+          'category',
+          'cost',
+          'costTier',
+          'description',
+          'isDefault',
+          'isHighlighted',
+          'key',
+          'label',
+          'provider',
+          'recommendedFor',
+        ]),
+      );
+    });
+
+    it('never exposes operator-internal or margin fields', () => {
+      for (const field of [
+        'margin',
+        'organizationId',
+        'providerConfig',
+        'providerCostUsd',
+        'rejectionReason',
+        'reviewStatus',
+        'reviewedAt',
+        'reviewedBy',
+        'isDeleted',
+        'isDiscovered',
+      ]) {
+        expect(modelCatalogAttributes).not.toContain(field);
+      }
+    });
+  });
+});

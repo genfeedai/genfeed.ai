@@ -8,7 +8,21 @@ describe('COMMUNITY_ONBOARDING_SYSTEM_PROMPT', () => {
     );
     expect(COMMUNITY_ONBOARDING_SYSTEM_PROMPT).toContain('Settings → API keys');
     expect(COMMUNITY_ONBOARDING_SYSTEM_PROMPT).toContain(
-      'Do not attempt generation until a provider is ready',
+      'Do not attempt image generation until providerReadiness reports an image-capable provider',
+    );
+  });
+
+  it('requires an image-capable provider before the first generation', () => {
+    expect(COMMUNITY_ONBOARDING_SYSTEM_PROMPT).toContain(
+      'Image generation needs an image-capable provider: fal, Replicate, or Leonardo.',
+    );
+    // A text-only setup must be routed back to the existing API-key checklist
+    // rather than being told a configured provider is ready to generate.
+    expect(COMMUNITY_ONBOARDING_SYSTEM_PROMPT).toContain(
+      'When providers are configured but none is image-capable',
+    );
+    expect(COMMUNITY_ONBOARDING_SYSTEM_PROMPT).toContain(
+      'Only after providerReadiness confirms an image-capable provider, use generate_image',
     );
   });
 

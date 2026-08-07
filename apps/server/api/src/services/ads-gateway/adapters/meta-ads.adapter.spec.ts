@@ -24,6 +24,8 @@ describe('MetaAdsAdapter', () => {
             createAdSet: vi.fn(),
             createCampaign: vi.fn(),
             getAdAccounts: vi.fn(),
+            getAdInsights: vi.fn(),
+            getAdSetInsights: vi.fn(),
             getCampaignInsights: vi.fn(),
             getTopPerformers: vi.fn(),
             listCampaigns: vi.fn(),
@@ -155,6 +157,93 @@ describe('MetaAdsAdapter', () => {
         platform: 'meta',
         spend: 0,
       });
+    });
+  });
+
+  // ── getAdSetInsights ──────────────────────────────────────────────────────
+
+  describe('getAdSetInsights', () => {
+    it('forwards the date preset and returns unified insights', async () => {
+      metaAdsService.getAdSetInsights.mockResolvedValue([
+        {
+          clicks: 120,
+          conversions: 4,
+          cpc: 0.6,
+          cpm: 6,
+          ctr: 2.4,
+          dateStart: '2026-03-01',
+          dateStop: '2026-03-15',
+          impressions: 5000,
+          spend: 72,
+        },
+      ] as never);
+
+      const result = await adapter.getAdSetInsights(mockCtx, 'as1', {
+        datePreset: 'last_7d',
+      });
+
+      expect(metaAdsService.getAdSetInsights).toHaveBeenCalledWith(
+        mockCtx.accessToken,
+        'as1',
+        { datePreset: 'last_7d', timeRange: undefined },
+      );
+      expect(result).toMatchObject({
+        clicks: 120,
+        impressions: 5000,
+        platform: 'meta',
+        spend: 72,
+      });
+    });
+
+    it('returns empty insights when no data rows', async () => {
+      metaAdsService.getAdSetInsights.mockResolvedValue([] as never);
+
+      const result = await adapter.getAdSetInsights(mockCtx, 'as1');
+
+      expect(result).toMatchObject({ clicks: 0, impressions: 0, spend: 0 });
+    });
+  });
+
+  // ── getAdInsights ─────────────────────────────────────────────────────────
+
+  describe('getAdInsights', () => {
+    it('forwards a custom time range and returns unified insights', async () => {
+      metaAdsService.getAdInsights.mockResolvedValue([
+        {
+          clicks: 30,
+          conversions: 1,
+          cpc: 0.5,
+          cpm: 5,
+          ctr: 3,
+          dateStart: '2026-03-01',
+          dateStop: '2026-03-07',
+          impressions: 1000,
+          spend: 15,
+        },
+      ] as never);
+
+      const timeRange = { since: '2026-03-01', until: '2026-03-07' };
+      const result = await adapter.getAdInsights(mockCtx, 'ad1', { timeRange });
+
+      expect(metaAdsService.getAdInsights).toHaveBeenCalledWith(
+        mockCtx.accessToken,
+        'ad1',
+        { datePreset: undefined, timeRange },
+      );
+      expect(result).toMatchObject({
+        clicks: 30,
+        impressions: 1000,
+        platform: 'meta',
+        spend: 15,
+      });
+    });
+
+    it('returns empty insights when no data rows', async () => {
+      metaAdsService.getAdInsights.mockResolvedValue([] as never);
+
+      const result = await adapter.getAdInsights(mockCtx, 'ad1');
+
+      expect(result).toMatchObject({ clicks: 0, impressions: 0, spend: 0 });
     });
   });
 

@@ -100,7 +100,6 @@ export class TelegramService {
       // Check if credential already exists
       const existingCredential = await this.credentialsService.findOne({
         brandId: brandId,
-        isDeleted: false,
         organizationId: organizationId,
         platform: CredentialPlatform.TELEGRAM,
       });

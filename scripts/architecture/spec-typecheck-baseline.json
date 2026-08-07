@@ -105,14 +105,6 @@
       "workspace": "api"
     },
     {
-      "code": 18048,
-      "count": 5,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "0a04220976f46ed4fc76",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/collections/agent-threads/services/agent-artifact-reference.service.spec.ts",
@@ -1682,14 +1674,6 @@
     },
     {
       "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/prompts/controllers/prompts.controller.spec.ts",
-      "fingerprint": "5a5f78266b442e0badd7",
-      "message": "Argument of type '{}' is not assignable to parameter of type 'PromptQueryDto'.   Type '{}' is missing the following properties from type 'PromptQueryDto': page, limit, pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 4,
       "file": "apps/server/api/src/collections/roles/controllers/roles.controller.spec.ts",
       "fingerprint": "74b44315694671a936b3",
@@ -2118,14 +2102,6 @@
       "file": "apps/server/api/src/collections/videos/services/video-generation.service.spec.ts",
       "fingerprint": "5367209e8aaff6e69738",
       "message": "Object literal may only specify known properties, but 'brand' does not exist in type 'Partial<CreateVideoDto>'. Did you mean to write 'brandId'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/services/video-music-orchestration.service.spec.ts",
-      "fingerprint": "7dc25e9011c810bf2c7f",
-      "message": "Property 'MUSICGEN' does not exist on type '{ readonly REPLICATE_FAST_FLUX_TRAINER: \"replicate/fast-flux-trainer\"; readonly REPLICATE_GOOGLE_IMAGEN_3: \"google/imagen-3\"; readonly REPLICATE_GOOGLE_IMAGEN_3_FAST: \"google/imagen-3-fast\"; ... 104 more ...; readonly GENFEED_AI_Z_IMAGE_TURBO_LORA: \"genfeed-ai/z-image-turbo-lora\"; }'.",
       "workspace": "api"
     },
     {

@@ -351,7 +351,6 @@ export class AiInfluencerService {
 
     const persona = await this.personasService.findOne({
       isFleetCharacter: true,
-      isDeleted: false,
       slug,
     });
 

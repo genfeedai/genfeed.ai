@@ -1,3 +1,6 @@
+import type { ToolCategory } from '@genfeedai/tools';
+import type { McpResource } from '@mcp/shared/interfaces/mcp-server.interface';
+
 export interface McpConfiguration {
   mcpServers: {
     [key: string]:
@@ -13,6 +16,41 @@ export interface McpConfiguration {
           url: string;
         };
   };
+}
+
+export interface McpExampleToolPreview {
+  category: ToolCategory;
+  description: string;
+  name: string;
+}
+
+/**
+ * How the public example describes the tool surface. It never inlines the whole
+ * catalog: the authoritative list is role-filtered and lives behind the
+ * authenticated `endpoint`, so an unauthenticated reader gets an accurate count
+ * plus a small `user`-role sample instead of a hand-maintained fiction.
+ */
+export interface McpExampleTools {
+  endpoint: string;
+  preview: McpExampleToolPreview[];
+  total: number;
+}
+
+export interface McpExample {
+  capabilities: {
+    resources: { listChanged: boolean };
+    tools: { listChanged: boolean };
+  };
+  description: string;
+  installation: {
+    clientExamples: McpClientExamples;
+    description: string;
+    steps: string[];
+  };
+  name: string;
+  resources: McpResource[];
+  tools: McpExampleTools;
+  version: string;
 }
 
 export interface McpClientExamples {

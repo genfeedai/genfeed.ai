@@ -11,7 +11,6 @@ import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper
 import type { OutputFormat } from '@props/website/home.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_ASSETS } from '@web-components/home/_assets';
@@ -72,7 +71,7 @@ export default function HomeFormats(): React.ReactElement {
     >
       <div className="container mx-auto px-6">
         <div className="mb-12 grid gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(320px,0.55fr)] lg:items-end">
-          <VStack className="gap-4">
+          <div className="flex flex-col gap-4">
             <Heading
               as="h2"
               className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.03em] sm:text-5xl"
@@ -83,7 +82,7 @@ export default function HomeFormats(): React.ReactElement {
               Images, video, ads, avatars, voice, long-form. Price up front on
               every one.
             </Text>
-          </VStack>
+          </div>
 
           <div className="lg:justify-self-end">
             <ButtonTracked
@@ -117,7 +116,7 @@ export default function HomeFormats(): React.ReactElement {
                 />
               </div>
 
-              <VStack className="flex-1 gap-2 p-6">
+              <div className="flex flex-col flex-1 gap-2 p-6">
                 <div className="flex items-baseline justify-between gap-4">
                   <Heading
                     as="h3"
@@ -136,7 +135,7 @@ export default function HomeFormats(): React.ReactElement {
                   ≈ {formatCreditsPrice(format.credits)}
                   {format.priceSuffix ?? ''} at the pay-as-you-go rate
                 </Text>
-              </VStack>
+              </div>
             </div>
           ))}
         </div>

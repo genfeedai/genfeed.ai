@@ -7,15 +7,27 @@ import {
   WorkflowStepCategory,
   WorkflowTrigger,
 } from '@genfeedai/enums';
-import type { Workflow } from '@genfeedai/prisma';
+import { type Prisma, type Workflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generate-article.task';
-import { GenerateImageTask } from '@workers/crons/workflows/task-types/generate-image.task';
-import { GenerateMusicTask } from '@workers/crons/workflows/task-types/generate-music.task';
-import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-video.task';
+import {
+  type GenerateArticleConfig,
+  GenerateArticleTask,
+} from '@workers/crons/workflows/task-types/generate-article.task';
+import {
+  type GenerateImageConfig,
+  GenerateImageTask,
+} from '@workers/crons/workflows/task-types/generate-image.task';
+import {
+  type GenerateMusicConfig,
+  GenerateMusicTask,
+} from '@workers/crons/workflows/task-types/generate-music.task';
+import {
+  type GenerateVideoConfig,
+  GenerateVideoTask,
+} from '@workers/crons/workflows/task-types/generate-video.task';
 
 type WorkflowStep = {
   id: string;
@@ -118,7 +130,7 @@ export class CronWorkflowsService {
         where: {
           isDeleted: false,
           organizationId: { not: undefined },
-          status: WorkflowStatus.ACTIVE as never,
+          status: WorkflowStatus.ACTIVE,
           userId: { not: undefined },
         },
       });
@@ -215,8 +227,8 @@ export class CronWorkflowsService {
             ...cfg,
             executionCount,
             startedAt: new Date().toISOString(),
-          } as never,
-          status: WorkflowStatus.RUNNING as never,
+          } as Prisma.InputJsonValue,
+          status: WorkflowStatus.RUNNING,
         },
         where: { id: workflow.id },
       });
@@ -249,7 +261,7 @@ export class CronWorkflowsService {
 
           // Write back steps before re-throwing
           await this.prisma.workflow.update({
-            data: { steps: updatedSteps as never },
+            data: { steps: updatedSteps as Prisma.InputJsonValue },
             where: { id: workflow.id },
           });
 
@@ -267,9 +279,9 @@ export class CronWorkflowsService {
             executionCount,
             lastExecutedAt: completedAt,
             progress: 100,
-          } as never,
-          status: WorkflowStatus.COMPLETED as never,
-          steps: updatedSteps as never,
+          } as Prisma.InputJsonValue,
+          status: WorkflowStatus.COMPLETED,
+          steps: updatedSteps as Prisma.InputJsonValue,
         },
         where: { id: workflow.id },
       });
@@ -299,8 +311,8 @@ export class CronWorkflowsService {
             ...cfg,
             completedAt,
             executionCount,
-          } as never,
-          status: WorkflowStatus.FAILED as never,
+          } as Prisma.InputJsonValue,
+          status: WorkflowStatus.FAILED,
         },
         where: { id: workflow.id },
       });
@@ -393,7 +405,7 @@ export class CronWorkflowsService {
           message,
         },
         type: 'telegram',
-      } as never,
+      },
       type: 'telegram',
       userId: workflow.userId,
     });
@@ -407,17 +419,17 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config;
+    const config = step.config as GenerateImageConfig;
 
     // Validate config
-    const validation = this.generateImageTask.validateConfig(config as never);
+    const validation = this.generateImageTask.validateConfig(config);
     if (!validation.valid) {
       throw new Error(`Invalid image generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateImageTask.execute(
-      config as never,
+      config,
       userId,
       organizationId,
     );
@@ -440,17 +452,17 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config;
+    const config = step.config as GenerateVideoConfig;
 
     // Validate config
-    const validation = this.generateVideoTask.validateConfig(config as never);
+    const validation = this.generateVideoTask.validateConfig(config);
     if (!validation.valid) {
       throw new Error(`Invalid video generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateVideoTask.execute(
-      config as never,
+      config,
       userId,
       organizationId,
     );
@@ -473,17 +485,17 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config;
+    const config = step.config as GenerateMusicConfig;
 
     // Validate config
-    const validation = this.generateMusicTask.validateConfig(config as never);
+    const validation = this.generateMusicTask.validateConfig(config);
     if (!validation.valid) {
       throw new Error(`Invalid music generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateMusicTask.execute(
-      config as never,
+      config,
       userId,
       organizationId,
     );
@@ -506,17 +518,17 @@ export class CronWorkflowsService {
     userId: string,
     organizationId: string,
   ): Promise<void> {
-    const config = step.config;
+    const config = step.config as GenerateArticleConfig;
 
     // Validate config
-    const validation = this.generateArticleTask.validateConfig(config as never);
+    const validation = this.generateArticleTask.validateConfig(config);
     if (!validation.valid) {
       throw new Error(`Invalid article generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateArticleTask.execute(
-      config as never,
+      config,
       userId,
       organizationId,
     );
@@ -643,8 +655,8 @@ export class CronWorkflowsService {
             ...cfg,
             recurrence: { ...recurrence, nextRunAt: undefined },
             scheduledFor: undefined,
-          } as never,
-          status: WorkflowStatus.COMPLETED as never,
+          } as Prisma.InputJsonValue,
+          status: WorkflowStatus.COMPLETED,
         },
         where: { id: workflowId },
       });
@@ -666,8 +678,8 @@ export class CronWorkflowsService {
             nextRunAt: nextRun.toISOString(),
           },
           scheduledFor: nextRun.toISOString(),
-        } as never,
-        status: WorkflowStatus.ACTIVE as never,
+        } as Prisma.InputJsonValue,
+        status: WorkflowStatus.ACTIVE,
       },
       where: { id: workflowId },
     });

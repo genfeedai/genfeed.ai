@@ -1,5 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
+import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -355,11 +356,17 @@ describe('ToolRegistryService', () => {
     expect(tools.length).toBeGreaterThan(0);
   });
 
-  it('getResources returns two analytics resources', () => {
+  it('getResources returns the shared catalog', () => {
     const resources = service.getResources();
-    expect(resources).toHaveLength(2);
+    expect(resources).toEqual([...MCP_RESOURCES]);
     expect(resources[0].uri).toBe('genfeed://analytics/videos');
     expect(resources[1].uri).toBe('genfeed://analytics/organization');
+  });
+
+  it('getResources hands out a copy, never the shared array', () => {
+    service.getResources().pop();
+
+    expect(service.getResources()).toHaveLength(MCP_RESOURCES.length);
   });
 
   it('handleToolCall generate_video proxies through executeAgentTool', async () => {
@@ -399,6 +406,83 @@ describe('ToolRegistryService', () => {
     expect(
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('videoId required');
+  });
+
+  it('handleToolCall get_content_analytics video keeps the direct video route', async () => {
+    const result = await service.handleToolCall({
+      arguments: { contentId: 'vid-1', contentType: 'video', timeRange: '30d' },
+      name: 'get_content_analytics',
+    });
+
+    expect(clientService.getVideoAnalytics).toHaveBeenCalledWith(
+      'vid-1',
+      '30d',
+    );
+    expect(clientService.executeAgentTool).not.toHaveBeenCalled();
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('"views": 1000');
+  });
+
+  it('handleToolCall get_content_analytics article proxies to the agent executor', async () => {
+    const result = await service.handleToolCall({
+      arguments: { contentId: 'art-1', contentType: 'article' },
+      name: 'get_content_analytics',
+    });
+
+    expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+      'get_analytics',
+      { contentId: 'art-1' },
+    );
+    expect(clientService.getVideoAnalytics).not.toHaveBeenCalled();
+    const text = (result as { content: { text: string }[] }).content[0].text;
+    expect(text).toContain('lifetime totals');
+    expect(text).toContain('get_analytics');
+  });
+
+  it('handleToolCall get_content_analytics image proxies to the agent executor', async () => {
+    const result = await service.handleToolCall({
+      arguments: { contentId: 'img-1', contentType: 'image' },
+      name: 'get_content_analytics',
+    });
+
+    expect(clientService.executeAgentTool).toHaveBeenCalledWith(
+      'get_analytics',
+      { contentId: 'img-1' },
+    );
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('img-1');
+  });
+
+  it('handleToolCall get_content_analytics surfaces an agent executor failure', async () => {
+    clientService.executeAgentTool.mockResolvedValueOnce({
+      creditsUsed: 0,
+      error: 'Content art-404 not found',
+      success: false,
+    });
+
+    const result = await service.handleToolCall({
+      arguments: { contentId: 'art-404', contentType: 'article' },
+      name: 'get_content_analytics',
+    });
+
+    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('Content art-404 not found');
+  });
+
+  it('handleToolCall get_content_analytics throws when contentType missing', async () => {
+    const result = await service.handleToolCall({
+      arguments: { contentId: 'art-1' },
+      name: 'get_content_analytics',
+    });
+
+    expect((result as { isError: boolean }).isError).toBe(true);
+    expect(
+      (result as { content: { text: string }[] }).content[0].text,
+    ).toContain('contentId and contentType required');
   });
 
   it('handleToolCall list_videos returns video list via legacy handler', async () => {

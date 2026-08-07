@@ -1,13 +1,4 @@
 import type { McpRole } from '@mcp/services/auth.service';
-import type { Server } from '@modelcontextprotocol/sdk/server';
-import type { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-
-export interface McpServerConfig {
-  name: string;
-  version: string;
-  transport: StdioServerTransport;
-  server: Server;
-}
 
 export interface McpToolInputSchema {
   type: string;
@@ -21,6 +12,8 @@ export interface McpTool {
   description: string;
   inputSchema: McpToolInputSchema;
   requiredRole: McpRole;
+  /** Vendor metadata preserved by MCP clients, keyed by `genfeed.ai/*`. */
+  _meta?: Record<string, unknown>;
 }
 
 export interface McpResource {

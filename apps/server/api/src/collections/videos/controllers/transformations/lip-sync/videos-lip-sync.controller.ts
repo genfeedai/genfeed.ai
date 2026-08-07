@@ -95,7 +95,6 @@ export class VideosLipSyncController {
       // 1. Resolve parent (image) ingredient
       const imageIngredient = await this.ingredientsService.findOne({
         id: createLipSyncDto.parent,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
 
@@ -137,7 +136,6 @@ export class VideosLipSyncController {
       // 2. Resolve voice (audio) ingredient
       const audioIngredient = await this.ingredientsService.findOne({
         id: createLipSyncDto.voice,
-        isDeleted: false,
         organizationId: publicMetadata.organization,
       });
 

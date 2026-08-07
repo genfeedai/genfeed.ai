@@ -18,6 +18,7 @@ import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { IngredientStatus, MetadataExtension } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -232,7 +233,7 @@ export class IngredientsService extends BaseService<
         id: ingredientId,
         category: 'AVATAR' as const,
       }),
-      include: { metadata: true } as never,
+      include: { metadata: true },
     })) as
       | (IngredientDocument & {
           metadata?: { extension?: string } | null;
@@ -313,7 +314,7 @@ export class IngredientsService extends BaseService<
           toIngredientUpdateData(
             updateDto as unknown as Record<string, unknown>,
           ),
-        ) as never,
+        ) as Prisma.IngredientUpdateInput,
       });
 
       if (!updated) {
@@ -374,7 +375,7 @@ export class IngredientsService extends BaseService<
               where: this.normalizeWhere({
                 ...filter,
                 isDeleted: filter.isDeleted ?? false,
-              }) as never,
+              }) as Prisma.IngredientWhereInput,
               select: { organizationId: true },
               distinct: ['organizationId'],
             })
@@ -385,8 +386,10 @@ export class IngredientsService extends BaseService<
         where: this.normalizeWhere({
           ...filter,
           isDeleted: filter.isDeleted ?? false,
-        }) as never,
-        data: this.normalizeData(updateData) as never,
+        }) as Prisma.IngredientWhereInput,
+        data: this.normalizeData(
+          updateData,
+        ) as Prisma.IngredientUpdateManyMutationInput,
       });
 
       this.logger.debug(`${this.constructorName} patchAll success`, {
@@ -488,7 +491,7 @@ export class IngredientsService extends BaseService<
     limit?: number;
     organizationId: string;
   }): Promise<AggregatePaginateResult<IngredientDocument>> {
-    const where: Record<string, unknown> = scopedWhere(
+    const where: Prisma.IngredientWhereInput = scopedWhere(
       params.organizationId,
       {},
     );
@@ -504,11 +507,11 @@ export class IngredientsService extends BaseService<
 
     const [docs, totalDocs] = await Promise.all([
       this.prisma.ingredient.findMany({
-        where: where as never,
+        where,
         orderBy: { createdAt: 'desc' },
         take: limit,
       }),
-      this.prisma.ingredient.count({ where: where as never }),
+      this.prisma.ingredient.count({ where }),
     ]);
 
     return {
@@ -547,30 +550,33 @@ export class IngredientsService extends BaseService<
         organizationId,
       });
 
-      const baseWhere: Record<string, unknown> = scopedWhere(organizationId, {
-        ...CategoryPrismaUtil.toIngredientCategoryFilter(category),
-      });
+      const baseWhere: Prisma.IngredientWhereInput = scopedWhere(
+        organizationId,
+        {
+          ...CategoryPrismaUtil.toIngredientCategoryFilter(category),
+        },
+      );
 
       if (category) {
         const [total, generated, rejected, validated] = await Promise.all([
-          this.prisma.ingredient.count({ where: baseWhere as never }),
+          this.prisma.ingredient.count({ where: baseWhere }),
           this.prisma.ingredient.count({
             where: {
               ...baseWhere,
-              status: 'GENERATED',
-            } as never,
+              status: IngredientStatus.GENERATED,
+            },
           }),
           this.prisma.ingredient.count({
             where: {
               ...baseWhere,
-              status: 'REJECTED',
-            } as never,
+              status: IngredientStatus.REJECTED,
+            },
           }),
           this.prisma.ingredient.count({
             where: {
               ...baseWhere,
-              status: 'VALIDATED',
-            } as never,
+              status: IngredientStatus.VALIDATED,
+            },
           }),
         ]);
 
@@ -579,31 +585,31 @@ export class IngredientsService extends BaseService<
 
       // All categories
       const [total, generated, rejected, validated] = await Promise.all([
-        this.prisma.ingredient.count({ where: baseWhere as never }),
+        this.prisma.ingredient.count({ where: baseWhere }),
         this.prisma.ingredient.count({
           where: {
             ...baseWhere,
-            status: 'GENERATED',
-          } as never,
+            status: IngredientStatus.GENERATED,
+          },
         }),
         this.prisma.ingredient.count({
           where: {
             ...baseWhere,
-            status: 'REJECTED',
-          } as never,
+            status: IngredientStatus.REJECTED,
+          },
         }),
         this.prisma.ingredient.count({
           where: {
             ...baseWhere,
-            status: 'VALIDATED',
-          } as never,
+            status: IngredientStatus.VALIDATED,
+          },
         }),
       ]);
 
       // Build per-category breakdown
       const categoryGroups = await this.prisma.ingredient.groupBy({
         by: ['category', 'status'],
-        where: baseWhere as never,
+        where: baseWhere,
         _count: { id: true },
       });
 
@@ -621,11 +627,11 @@ export class IngredientsService extends BaseService<
             validated: 0,
           };
         }
-        if (group.status === 'GENERATED') {
+        if (group.status === IngredientStatus.GENERATED) {
           byCategory[group.category].generated = group._count.id;
-        } else if (group.status === 'REJECTED') {
+        } else if (group.status === IngredientStatus.REJECTED) {
           byCategory[group.category].rejected = group._count.id;
-        } else if (group.status === 'VALIDATED') {
+        } else if (group.status === IngredientStatus.VALIDATED) {
           byCategory[group.category].validated = group._count.id;
         }
       }

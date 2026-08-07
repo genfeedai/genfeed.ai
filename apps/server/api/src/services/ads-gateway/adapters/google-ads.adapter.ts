@@ -1,6 +1,11 @@
+import type {
+  GoogleAdsAdGroupInsights,
+  GoogleAdsAdInsights,
+} from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import type {
   AdsAdapterContext,
+  AdsInsightsParams,
   CreateAdInput,
   CreateAdSetInput,
   CreateCampaignInput,
@@ -66,10 +71,7 @@ export class GoogleAdsAdapter implements IAdsAdapter {
   async getCampaignInsights(
     ctx: AdsAdapterContext,
     campaignId: string,
-    params?: {
-      datePreset?: string;
-      timeRange?: { since: string; until: string };
-    },
+    params?: AdsInsightsParams,
   ): Promise<UnifiedInsights> {
     const dateRange = this.resolveDateRange(params);
 
@@ -105,6 +107,42 @@ export class GoogleAdsAdapter implements IAdsAdapter {
           : undefined,
       spend,
     };
+  }
+
+  async getAdSetInsights(
+    ctx: AdsAdapterContext,
+    adSetId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights> {
+    const dateRange = this.resolveDateRange(params);
+
+    const rows = await this.googleAdsService.getAdGroupInsights(
+      ctx.accessToken,
+      ctx.adAccountId,
+      adSetId,
+      dateRange ? { dateRange } : undefined,
+      ctx.loginCustomerId,
+    );
+
+    return this.toUnifiedInsights(rows[0], dateRange);
+  }
+
+  async getAdInsights(
+    ctx: AdsAdapterContext,
+    adId: string,
+    params?: AdsInsightsParams,
+  ): Promise<UnifiedInsights> {
+    const dateRange = this.resolveDateRange(params);
+
+    const rows = await this.googleAdsService.getAdInsights(
+      ctx.accessToken,
+      ctx.adAccountId,
+      adId,
+      dateRange ? { dateRange } : undefined,
+      ctx.loginCustomerId,
+    );
+
+    return this.toUnifiedInsights(rows[0], dateRange);
   }
 
   async createCampaign(
@@ -340,6 +378,37 @@ export class GoogleAdsAdapter implements IAdsAdapter {
     return performers
       .sort((a, b) => b.value - a.value)
       .slice(0, params?.limit || 10);
+  }
+
+  /**
+   * Ad group and ad level GAQL reports share a metric set that omits
+   * `metrics.average_cpm` and `metrics.conversions_value`, so CPM is derived
+   * from spend over impressions (Google's own definition) and revenue/ROAS are
+   * left undefined rather than guessed.
+   */
+  private toUnifiedInsights(
+    row: GoogleAdsAdGroupInsights | GoogleAdsAdInsights | undefined,
+    dateRange?: { startDate: string; endDate: string },
+  ): UnifiedInsights {
+    if (!row) {
+      return this.emptyInsights();
+    }
+
+    const spend = row.costMicros / MICROS_DIVISOR;
+
+    return {
+      clicks: row.clicks,
+      conversions: row.conversions,
+      cpa: row.conversions > 0 ? spend / row.conversions : undefined,
+      cpc: row.averageCpc / MICROS_DIVISOR,
+      cpm: row.impressions > 0 ? (spend / row.impressions) * 1000 : 0,
+      ctr: row.ctr,
+      dateStart: dateRange?.startDate || '',
+      dateStop: dateRange?.endDate || '',
+      impressions: row.impressions,
+      platform: this.platform,
+      spend,
+    };
   }
 
   private resolveMetricValue(

@@ -5,6 +5,7 @@ import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { VideoCompletionService } from '@api/services/video-completion/video-completion.service';
+import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -18,6 +19,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => IngredientsModule),
     forwardRef(() => MetadataModule),
     forwardRef(() => NotificationsPublisherModule),
+    forwardRef(() => WebhookClientModule),
   ],
   providers: [VideoCompletionService],
 })

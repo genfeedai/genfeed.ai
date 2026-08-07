@@ -65,7 +65,6 @@ export class PersonaPublisherService {
       try {
         const credential = await this.credentialsService.findOne({
           id: credentialId,
-          isDeleted: false,
           organizationId: input.organizationId,
         });
 
@@ -124,7 +123,6 @@ export class PersonaPublisherService {
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       id: personaId,
-      isDeleted: false,
       organizationId,
     });
 

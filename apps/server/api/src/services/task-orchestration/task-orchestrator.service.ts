@@ -186,7 +186,6 @@ export class TaskOrchestratorService {
   ): Promise<void> {
     // Find the workspace task that links to this run
     const task = await this.tasksService.findOne({
-      isDeleted: false,
       linkedRuns: { some: { id: runId } },
       organizationId: organizationId,
     });
@@ -396,7 +395,6 @@ export class TaskOrchestratorService {
 
   async handleRunStarted(runId: string, organizationId: string): Promise<void> {
     const task = await this.tasksService.findOne({
-      isDeleted: false,
       linkedRuns: { some: { id: runId } },
       organizationId: organizationId,
     });

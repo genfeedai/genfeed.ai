@@ -55,7 +55,7 @@ function buildStatusLabel(item: ReviewPanelItem): string {
       return 'Ready to review';
     case BatchItemStatus.FAILED:
       return 'Generation failed';
-    case BatchItemStatus.GENERATING:
+    case BatchItemStatus.PROCESSING:
       return 'Generating';
     case BatchItemStatus.PENDING:
       return 'Pending';

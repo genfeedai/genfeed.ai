@@ -43,7 +43,6 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -85,7 +84,6 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: body.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -120,7 +118,6 @@ export class WhatsappController {
 
     const brand = await this.brandsService.findOne({
       id: brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

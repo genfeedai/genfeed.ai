@@ -48,7 +48,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --config vitest.config.ts --coverage"
   },
   "sideEffects": false,
   "type": "module",

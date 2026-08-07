@@ -420,7 +420,6 @@ export class ContentOrchestrationService {
   ): Promise<PersonaDocument> {
     const persona = await this.personasService.findOne({
       id: personaId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

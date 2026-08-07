@@ -126,7 +126,6 @@ export class AgentPrepareToolHandler {
   async prepareVoiceClone(ctx: ToolExecutionContext): Promise<AgentToolResult> {
     const currentBrand = await this.brandsService.findOne(
       {
-        isDeleted: false,
         isSelected: true,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
@@ -269,7 +268,6 @@ export class AgentPrepareToolHandler {
   ): Promise<AgentToolResult> {
     const currentBrand = await this.brandsService.findOne(
       {
-        isDeleted: false,
         isSelected: true,
         organizationId: ctx.organizationId,
         userId: ctx.userId,
@@ -345,7 +343,6 @@ export class AgentPrepareToolHandler {
     ) {
       const workflow = await this.workflowsService.findOne({
         id: selectedWorkflow,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 

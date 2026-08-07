@@ -34,6 +34,8 @@ describe('AdsGatewayController', () => {
     createAdSet: ReturnType<typeof vi.fn>;
     createCampaign: ReturnType<typeof vi.fn>;
     getAdAccounts: ReturnType<typeof vi.fn>;
+    getAdInsights: ReturnType<typeof vi.fn>;
+    getAdSetInsights: ReturnType<typeof vi.fn>;
     getCampaignInsights: ReturnType<typeof vi.fn>;
     getTopPerformers: ReturnType<typeof vi.fn>;
     listAdSets: ReturnType<typeof vi.fn>;
@@ -59,6 +61,8 @@ describe('AdsGatewayController', () => {
       createAdSet: vi.fn(),
       createCampaign: vi.fn(),
       getAdAccounts: vi.fn(),
+      getAdInsights: vi.fn(),
+      getAdSetInsights: vi.fn(),
       getCampaignInsights: vi.fn(),
       getTopPerformers: vi.fn(),
       listAdSets: vi.fn(),
@@ -260,6 +264,114 @@ describe('AdsGatewayController', () => {
         expect.objectContaining({
           timeRange: { since: '2026-03-01', until: '2026-03-14' },
         }),
+      );
+    });
+  });
+
+  // ─── getAdSetInsights ────────────────────────────────────────────────────
+
+  describe('getAdSetInsights', () => {
+    it('should resolve the adapter for any supported platform', async () => {
+      mockAdapter.getAdSetInsights.mockResolvedValue({ clicks: 12 });
+
+      const result = await controller.getAdSetInsights(
+        mockUser,
+        'tiktok',
+        'adset_1',
+        validCredentialId,
+        validAdAccountId,
+        'last_14d',
+      );
+
+      expect(result).toEqual({ clicks: 12 });
+      expect(adsGatewayService.getAdapter).toHaveBeenCalledWith('tiktok');
+      expect(mockAdapter.getAdSetInsights).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accessToken: 'token-abc',
+          adAccountId: validAdAccountId,
+        }),
+        'adset_1',
+        { datePreset: 'last_14d' },
+      );
+    });
+
+    it('should reject an unsupported platform', async () => {
+      await expect(
+        controller.getAdSetInsights(
+          mockUser,
+          'snapchat',
+          'adset_1',
+          validCredentialId,
+          validAdAccountId,
+        ),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should omit timeRange when only one bound is provided', async () => {
+      mockAdapter.getAdSetInsights.mockResolvedValue({});
+
+      await controller.getAdSetInsights(
+        mockUser,
+        'google',
+        'adset_1',
+        validCredentialId,
+        validAdAccountId,
+        undefined,
+        '2026-03-01',
+      );
+
+      expect(mockAdapter.getAdSetInsights).toHaveBeenCalledWith(
+        expect.anything(),
+        'adset_1',
+        {},
+      );
+    });
+  });
+
+  // ─── getAdInsights ───────────────────────────────────────────────────────
+
+  describe('getAdInsights', () => {
+    it('should pass a custom time range through to the adapter', async () => {
+      mockAdapter.getAdInsights.mockResolvedValue({ clicks: 3 });
+
+      const result = await controller.getAdInsights(
+        mockUser,
+        'meta',
+        'ad_1',
+        validCredentialId,
+        validAdAccountId,
+        undefined,
+        '2026-03-01',
+        '2026-03-14',
+      );
+
+      expect(result).toEqual({ clicks: 3 });
+      expect(mockAdapter.getAdInsights).toHaveBeenCalledWith(
+        expect.anything(),
+        'ad_1',
+        { timeRange: { since: '2026-03-01', until: '2026-03-14' } },
+      );
+    });
+
+    it('should forward loginCustomerId on the adapter context', async () => {
+      mockAdapter.getAdInsights.mockResolvedValue({});
+
+      await controller.getAdInsights(
+        mockUser,
+        'google',
+        'ad_1',
+        validCredentialId,
+        validAdAccountId,
+        'last_30d',
+        undefined,
+        undefined,
+        '1112223334',
+      );
+
+      expect(mockAdapter.getAdInsights).toHaveBeenCalledWith(
+        expect.objectContaining({ loginCustomerId: '1112223334' }),
+        'ad_1',
+        { datePreset: 'last_30d' },
       );
     });
   });

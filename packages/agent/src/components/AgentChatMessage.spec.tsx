@@ -460,7 +460,7 @@ describe('AgentChatMessage', () => {
                 id: 'completion-card-2',
                 outcomeBullets: ['Workflow scheduled for weekdays at 5pm'],
                 primaryCta: {
-                  href: '/automations/editor/workflow-1',
+                  href: '/automate/workflows/workflow-1',
                   label: 'Use in Workflow',
                 },
                 status: 'completed',
@@ -482,7 +482,7 @@ describe('AgentChatMessage', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Use in Workflow' }),
-    ).toHaveAttribute('href', '/automations/editor/workflow-1');
+    ).toHaveAttribute('href', '/automate/workflows/workflow-1');
     expect(screen.queryByRole('img', { name: /Variant/i })).toBeNull();
   });
 

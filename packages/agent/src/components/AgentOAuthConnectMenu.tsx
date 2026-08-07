@@ -5,6 +5,8 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   groupOAuthConnectPlatforms,
   OAUTH_CONNECT_PLATFORMS,
+  type OAuthConnectPlatform,
+  resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
 import { Button } from '@ui/primitives/button';
 import {
@@ -44,16 +46,20 @@ export function AgentOAuthConnectMenu({
   const [error, setError] = useState<string | null>(null);
 
   const handleConnect = useCallback(
-    async (platform: string) => {
+    async (item: OAuthConnectPlatform) => {
       if (!onOAuthConnect || connectingPlatform) {
         return;
       }
 
+      const connectKey = item.connectId ?? item.platform;
       setError(null);
-      setConnectingPlatform(platform);
+      setConnectingPlatform(connectKey);
 
       try {
-        await onOAuthConnect(platform);
+        // Pass Nest service path (google-ads), not enum (google_ads).
+        await onOAuthConnect(
+          resolveOAuthServicePath(item.platform, item.servicePath),
+        );
         // A successful handoff normally replaces the current document. Closing
         // also restores the control when auth cancellation leaves us in place.
         setOpen(false);
@@ -135,20 +141,23 @@ export function AgentOAuthConnectMenu({
                 {group.label}
               </p>
               <div className="grid grid-cols-2 gap-1">
-                {group.platforms.map((item) => (
-                  <Button
-                    key={item.platform}
-                    variant={ButtonVariant.UNSTYLED}
-                    withWrapper={false}
-                    onClick={() => void handleConnect(item.platform)}
-                    isDisabled={connectingPlatform !== null}
-                    isLoading={connectingPlatform === item.platform}
-                    className="gen-shell-surface flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
-                  >
-                    {item.icon}
-                    {item.label}
-                  </Button>
-                ))}
+                {group.platforms.map((item) => {
+                  const connectKey = item.connectId ?? item.platform;
+                  return (
+                    <Button
+                      key={connectKey}
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
+                      onClick={() => void handleConnect(item)}
+                      isDisabled={connectingPlatform !== null}
+                      isLoading={connectingPlatform === connectKey}
+                      className="gen-shell-surface flex w-full items-center rounded-xl px-3 py-2 text-left text-xs font-medium text-foreground transition-colors"
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           ))}

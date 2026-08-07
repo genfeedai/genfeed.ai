@@ -362,20 +362,20 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
       action: () => {
         navigate(
           `${orgPath}${
-            isBillingEnabled ? '/settings/billing' : '/settings/credits'
+            isBillingEnabled ? '/settings/subscription' : '/settings/credits'
           }`,
         );
       },
       category: 'settings',
       description: isBillingEnabled
-        ? 'Manage billing and plan'
+        ? 'Manage subscription and plan'
         : 'Buy and manage credits',
       icon: CreditCard,
       id: 'settings-billing',
       keywords: isBillingEnabled
         ? ['billing', 'subscription', 'plan', 'payment']
         : ['credits', 'billing', 'top up', 'payment'],
-      label: isBillingEnabled ? 'Billing & Subscription' : 'Credits',
+      label: isBillingEnabled ? 'Subscription' : 'Credits',
       priority: 6,
     },
   ];

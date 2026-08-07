@@ -49,6 +49,14 @@ const checks = [
     command: [
       'bun',
       'run',
+      'scripts/architecture/check-config-package-boundary.ts',
+    ],
+    name: 'Config package license-state boundary',
+  },
+  {
+    command: [
+      'bun',
+      'run',
       'scripts/architecture/check-deterministic-locale.ts',
     ],
     name: 'Deterministic locale boundary',
@@ -100,6 +108,14 @@ const checks = [
       'scripts/architecture/check-agent-decomposition-size.ts',
     ],
     name: 'Agent decomposition size ratchet',
+  },
+  {
+    command: [
+      'bun',
+      'run',
+      'scripts/architecture/check-agent-tool-dispatch.ts',
+    ],
+    name: 'Agent tool dispatch coverage',
   },
 ] as const;
 

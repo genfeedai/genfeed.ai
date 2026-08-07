@@ -1,4 +1,3 @@
-import { AGENT_BRAND_PROFILE_TOOLS } from '@api/services/agent-orchestrator/tools/agent-brand-profile-tools';
 import type { AgentToolDefinition } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { getToolsForSurface, toAgentTools } from '@genfeedai/tools';
@@ -13,8 +12,14 @@ const CANONICAL_OVERLAP_TOOL_NAMES = new Set<AgentToolName>([
   AgentToolName.LIST_ADS_RESEARCH,
 ]);
 
+/**
+ * Cloud-only schema and prompt overrides for actions that are already reviewed
+ * in the curated action catalog. Every entry MUST correspond to a catalog
+ * action carrying the `agent` surface — this list refines existing actions and
+ * never introduces new ones. `assertExtensionsAreCurated` enforces that at
+ * module load, mirroring the MCP boot-time drift guard.
+ */
 const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
-  ...AGENT_BRAND_PROFILE_TOOLS,
   {
     creditCost: 0,
     description:
@@ -1035,23 +1040,33 @@ const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolDefinition[] = [
       type: 'object',
     },
   },
-  {
-    creditCost: 0,
-    description:
-      'Get the input variable definitions for a workflow. Use this before execute_workflow to discover what inputs a workflow expects.',
-    name: AgentToolName.GET_WORKFLOW_INPUTS,
-    parameters: {
-      properties: {
-        workflowId: {
-          description: 'ID of the workflow to inspect',
-          type: 'string',
-        },
-      },
-      required: ['workflowId'],
-      type: 'object',
-    },
-  },
 ].filter((tool) => !CANONICAL_OVERLAP_TOOL_NAMES.has(tool.name));
+
+/**
+ * Agent-side drift guard, mirroring `ToolRegistryService.validateDispatchCoverage`
+ * on MCP. A cloud extension that names an action the curated catalog does not
+ * surface to the agent would ship a live, credit-costed tool outside review —
+ * exactly the drift that produced `generate_ad_pack`, `prepare_ad_launch_review`,
+ * `get_workflow_inputs`, `draft_brand_voice_profile`, and
+ * `save_brand_voice_profile`. Throwing here fails API boot instead.
+ */
+function assertExtensionsAreCurated(
+  baseTools: AgentToolDefinition[],
+  extensions: AgentToolDefinition[],
+): void {
+  const curatedAgentNames = new Set(baseTools.map((tool) => String(tool.name)));
+  const uncurated = extensions
+    .map((tool) => String(tool.name))
+    .filter((name) => !curatedAgentNames.has(name));
+
+  if (uncurated.length > 0) {
+    throw new Error(
+      `Agent tool registry drift: [${uncurated.join(', ')}] ship to the agent without an 'agent' surface in the curated action catalog. Add them to CURATED_ACTION_CATALOG with a source tool definition instead of extending here.`,
+    );
+  }
+}
+
+assertExtensionsAreCurated(BASE_AGENT_TOOLS, CLOUD_AGENT_TOOL_EXTENSIONS);
 
 function mergeAgentTools(
   baseTools: AgentToolDefinition[],

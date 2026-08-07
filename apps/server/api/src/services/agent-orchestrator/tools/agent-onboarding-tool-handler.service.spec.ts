@@ -60,6 +60,9 @@ function createHandler(options?: {
   };
   const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
   const imagesService = { findOne: vi.fn().mockResolvedValue(null) };
+  const contentGeneratorService = {
+    generateText: vi.fn().mockResolvedValue({ text: 'Generated tweet' }),
+  };
   const internalApi = {
     callInternalApi: vi.fn(),
     callInternalFindOne: vi.fn().mockResolvedValue(null),
@@ -70,7 +73,7 @@ function createHandler(options?: {
     brandsService as never,
     postsService as never,
     creditsUtilsService as never,
-    {} as never,
+    contentGeneratorService as never,
     internalApi as never,
     credentialsService as never,
     imagesService as never,
@@ -82,6 +85,7 @@ function createHandler(options?: {
   return {
     creditsUtilsService,
     handler,
+    internalApi,
     organizationSettingsService,
     postsService,
   };
@@ -211,8 +215,10 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     const result = await handler.checkOnboardingStatus(CONTEXT);
 
     expect(result.data?.providerReadiness).toEqual({
+      configuredImageProviders: [],
       configuredProviderCount: 1,
       configuredProviders: ['openai'],
+      isImageReady: false,
       isReady: true,
     });
     expect(JSON.stringify(result)).not.toContain('encrypted-openai-key');
@@ -235,8 +241,10 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     const result = await handler.checkOnboardingStatus(CONTEXT);
 
     expect(result.data?.providerReadiness).toEqual({
+      configuredImageProviders: [],
       configuredProviderCount: 1,
       configuredProviders: ['openai'],
+      isImageReady: false,
       isReady: true,
     });
   });
@@ -253,9 +261,102 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     const result = await handler.checkOnboardingStatus(CONTEXT);
 
     expect(result.data?.providerReadiness).toEqual({
+      configuredImageProviders: [],
       configuredProviderCount: 0,
       configuredProviders: [],
+      isImageReady: false,
       isReady: false,
+    });
+  });
+
+  it('reports image readiness only for image-capable providers', async () => {
+    vi.stubEnv('GENFEED_CLOUD', undefined);
+    const { handler } = createHandler({
+      byokKeys: {
+        fal: { apiKey: 'encrypted-fal-key', isEnabled: true, provider: 'fal' },
+        openai: {
+          apiKey: 'encrypted-openai-key',
+          isEnabled: true,
+          provider: 'openai',
+        },
+      },
+      isByokEnabled: true,
+    });
+
+    const result = await handler.checkOnboardingStatus(CONTEXT);
+    const imageStep = getChecklist(result).checklist?.find(
+      (step) => step.id === 'generate_first_image',
+    );
+
+    expect(result.data?.providerReadiness).toEqual({
+      configuredImageProviders: ['fal'],
+      configuredProviderCount: 2,
+      configuredProviders: ['fal', 'openai'],
+      isImageReady: true,
+      isReady: true,
+    });
+    expect(imageStep?.description).not.toContain('image provider API key');
+  });
+
+  it('keeps first image blocked when only a text-only provider is configured', async () => {
+    vi.stubEnv('GENFEED_CLOUD', undefined);
+    const { handler } = createHandler({
+      byokKeys: {
+        openai: {
+          apiKey: 'encrypted-openai-key',
+          isEnabled: true,
+          provider: 'openai',
+        },
+      },
+      isByokEnabled: true,
+    });
+
+    const result = await handler.checkOnboardingStatus(CONTEXT);
+    const imageStep = getChecklist(result).checklist?.find(
+      (step) => step.id === 'generate_first_image',
+    );
+
+    // A configured text-only key satisfies `isReady`, but `generate_image` has
+    // nothing to call — the checklist must still route to the API-key CTA.
+    expect(result.data?.providerReadiness).toMatchObject({
+      isImageReady: false,
+      isReady: true,
+    });
+    expect(imageStep).toMatchObject({
+      ctaHref: '/settings/api-keys',
+      isCompleted: false,
+    });
+    expect(imageStep?.description).toContain(
+      'Add an image provider API key (fal, Replicate, or Leonardo)',
+    );
+  });
+
+  it('does not call the image API when only a text provider is configured', async () => {
+    vi.stubEnv('GENFEED_CLOUD', undefined);
+    const { handler, internalApi } = createHandler({
+      byokKeys: {
+        openai: {
+          apiKey: 'encrypted-openai-key',
+          isEnabled: true,
+          provider: 'openai',
+        },
+      },
+      isByokEnabled: true,
+    });
+
+    const result = await handler.generateOnboardingContent(
+      { brandId: 'brand-1', brandName: 'Test brand' },
+      CONTEXT,
+    );
+    const checklist = getChecklist(result);
+    const imageStep = checklist.checklist?.find(
+      (step) => step.id === 'generate_first_image',
+    );
+
+    expect(internalApi.callInternalApi).not.toHaveBeenCalled();
+    expect(imageStep).toMatchObject({
+      ctaHref: '/settings/api-keys',
+      isCompleted: false,
     });
   });
 
@@ -270,8 +371,10 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     );
 
     expect(result.data?.providerReadiness).toEqual({
+      configuredImageProviders: [],
       configuredProviderCount: 0,
       configuredProviders: [],
+      isImageReady: false,
       isReady: false,
     });
     expect(imageStep).toMatchObject({
@@ -279,7 +382,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       isCompleted: false,
       rewardCredits: 0,
     });
-    expect(imageStep?.description).toContain('provider API key');
+    expect(imageStep?.description).toContain('image provider API key');
   });
 
   it.each([

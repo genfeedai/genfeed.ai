@@ -168,7 +168,15 @@ interface ContractRoute {
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
   // ── Agent executor (shared route for all AgentToolName tools) ──
-  { method: 'Post', sub: ':name/execute', controller: 'agentTools', tools: [] },
+  // `get_content_analytics` is a legacy-switch tool, not an `AgentToolName`, but
+  // its article/image branch proxies to the agent executor — so it is named here
+  // explicitly rather than being covered by the blanket agent-executor entry.
+  {
+    method: 'Post',
+    sub: ':name/execute',
+    controller: 'agentTools',
+    tools: ['get_content_analytics'],
+  },
 
   // ── Agent chat + runs ──
   {
@@ -591,6 +599,20 @@ const ROUTE_CONTRACT: ContractRoute[] = [
     sub: ':platform/ads',
     controller: 'adsGateway',
     tools: ['list_tiktok_ads'],
+  },
+
+  // ── Ads gateway (platform-generic, backed by IAdsAdapter) ──
+  {
+    method: 'Get',
+    sub: ':platform/adsets/:adSetId/insights',
+    controller: 'adsGateway',
+    tools: ['get_ads_adset_insights'],
+  },
+  {
+    method: 'Get',
+    sub: ':platform/ads/:adId/insights',
+    controller: 'adsGateway',
+    tools: ['get_ads_ad_insights'],
   },
 ];
 

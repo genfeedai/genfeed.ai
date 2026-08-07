@@ -1,9 +1,9 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
+import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import type { McpRole } from '@mcp/services/auth.service';
-import { ClientService } from '@mcp/services/client.service';
-import { ServerService } from '@mcp/services/server.service';
+import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpTool } from '@mcp/shared/interfaces/mcp-server.interface';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -36,8 +36,8 @@ vi.mock('@mcp/services/client.service', () => ({
   ClientService: class ClientService {},
 }));
 
-vi.mock('@mcp/services/server.service', () => ({
-  ServerService: class ServerService {},
+vi.mock('@mcp/services/streamable-http.service', () => ({
+  StreamableHttpService: class StreamableHttpService {},
 }));
 
 vi.mock('@mcp/guards/mcp-auth.guard', () => ({
@@ -114,41 +114,18 @@ describe('McpController', () => {
     getMcpExample: vi.fn().mockReturnValue({ example: 'data' }),
   };
 
-  const mockClientService = {
-    createArticle: vi.fn(),
-    createImage: vi.fn(),
-    createMusic: vi.fn(),
-    createVideo: vi.fn(),
-    createWorkflow: vi.fn(),
-    executeWorkflow: vi.fn(),
-    getArticle: vi.fn(),
-    getCredits: vi.fn(),
-    getOrganizationAnalytics: vi.fn(),
-    getTrendingTopics: vi.fn(),
-    getUsageStats: vi.fn(),
-    getVideoAnalytics: vi.fn(),
-    getVideoStatus: vi.fn(),
-    getWorkflowStatus: vi.fn(),
-    listAvatars: vi.fn(),
-    listImages: vi.fn(),
-    listMusic: vi.fn(),
-    listPosts: vi.fn(),
-    listVideos: vi.fn(),
-    listWorkflows: vi.fn(),
-    listWorkflowTemplates: vi.fn(),
-    publishContent: vi.fn(),
-    searchArticles: vi.fn(),
-    setBearerToken: vi.fn(),
-  };
-
-  const mockServerService = {
-    isServerRunning: vi.fn().mockReturnValue(true),
-    setBearerToken: vi.fn(),
+  const mockStreamableHttpService = {
+    isTransportReady: vi.fn().mockReturnValue(true),
   };
 
   const mockToolRegistryService = {
     getToolsForRole: getToolsForRoleMock,
-  } satisfies Pick<ToolRegistryService, 'getToolsForRole'>;
+    handleResourceRead: vi.fn(),
+    setBearerToken: vi.fn(),
+  } satisfies Pick<
+    ToolRegistryService,
+    'getToolsForRole' | 'handleResourceRead' | 'setBearerToken'
+  >;
 
   const mockLoggerService = {
     debug: vi.fn(),
@@ -162,8 +139,10 @@ describe('McpController', () => {
       controllers: [McpController],
       providers: [
         { provide: MCPService, useValue: mockMcpService },
-        { provide: ClientService, useValue: mockClientService },
-        { provide: ServerService, useValue: mockServerService },
+        {
+          provide: StreamableHttpService,
+          useValue: mockStreamableHttpService,
+        },
         { provide: ToolRegistryService, useValue: mockToolRegistryService },
         { provide: LoggerService, useValue: mockLoggerService },
       ],
@@ -240,13 +219,32 @@ describe('McpController', () => {
   });
 
   describe('getManifest', () => {
-    it('should return manifest with server status', () => {
+    it('reports readiness from the transport that serves MCP traffic', () => {
       const result = controller.getManifest();
-      expect(result).toHaveProperty('server_running', true);
+      expect(result).toHaveProperty('transport_ready', true);
       expect(result).toHaveProperty('status', 'active');
       expect(result).toHaveProperty('mcp_version', '1.18.1');
       expect(result).toHaveProperty('server_version', '1.0.0');
       expect(result).toHaveProperty('timestamp');
+      expect(mockStreamableHttpService.isTransportReady).toHaveBeenCalled();
+    });
+
+    it('reports not-ready before the transport routes are mounted', () => {
+      mockStreamableHttpService.isTransportReady.mockReturnValueOnce(false);
+
+      expect(controller.getManifest()).toHaveProperty('transport_ready', false);
+    });
+  });
+
+  describe('getMcpInfo', () => {
+    it('reports Streamable HTTP transport readiness', () => {
+      const result = controller.getMcpInfo();
+
+      expect(result).toMatchObject({
+        endpoint: 'https://mcp.genfeed.ai/mcp',
+        transport: 'streamable-http',
+        transportReady: true,
+      });
     });
   });
 
@@ -296,16 +294,19 @@ describe('McpController', () => {
   });
 
   describe('getResources', () => {
-    it('should return list of available resources', () => {
+    it('advertises the shared resource catalog verbatim', () => {
       const result = controller.getResources();
-      expect(result).toHaveProperty('resources');
-      expect(Array.isArray(result.resources)).toBe(true);
-      expect(result.resources.length).toBe(2);
 
-      const videoAnalytics = result.resources.find(
-        (resource) => resource.uri === 'genfeed://analytics/videos',
+      expect(result.resources).toEqual([...MCP_RESOURCES]);
+    });
+
+    it('hands out a copy so a caller cannot mutate the shared catalog', () => {
+      const result = controller.getResources();
+      result.resources.pop();
+
+      expect(controller.getResources().resources).toHaveLength(
+        MCP_RESOURCES.length,
       );
-      expect(videoAnalytics).toBeDefined();
     });
   });
 
@@ -318,48 +319,45 @@ describe('McpController', () => {
       },
     } as AuthenticatedControllerRequest;
 
-    it('should read video analytics resource', async () => {
-      mockClientService.getVideoAnalytics.mockResolvedValue({
-        comments: 100,
-        engagement: 75,
-        likes: 500,
-        shares: 50,
-        views: 1000,
-      });
+    it('delegates the read to the registry used by the JSON-RPC transport', async () => {
+      const contents = { contents: [{ text: '{}', uri: 'genfeed://x' }] };
+      mockToolRegistryService.handleResourceRead.mockResolvedValue(contents);
 
       const result = await controller.readResource(
-        'genfeed://analytics/videos',
+        McpResourceUri.VIDEO_ANALYTICS,
         mockRequest,
       );
 
-      expect(mockClientService.setBearerToken).toHaveBeenCalledWith(
+      expect(mockToolRegistryService.setBearerToken).toHaveBeenCalledWith(
         'test-token',
       );
-      expect(mockClientService.getVideoAnalytics).toHaveBeenCalled();
-      expect(result).toHaveProperty('resource', 'genfeed://analytics/videos');
-      expect(result).toHaveProperty('result');
+      expect(mockToolRegistryService.handleResourceRead).toHaveBeenCalledWith({
+        uri: McpResourceUri.VIDEO_ANALYTICS,
+      });
+      expect(result).toMatchObject({
+        resource: McpResourceUri.VIDEO_ANALYTICS,
+        result: contents,
+      });
     });
 
-    it('should read organization analytics resource', async () => {
-      mockClientService.getOrganizationAnalytics.mockResolvedValue({
-        activeUsers: 10,
-        totalVideos: 50,
-        totalViews: 10000,
+    it('skips bearer propagation when the request carries no token', async () => {
+      mockToolRegistryService.handleResourceRead.mockResolvedValue({
+        contents: [],
       });
 
-      const result = await controller.readResource(
-        'genfeed://analytics/organization',
-        mockRequest,
+      await controller.readResource(
+        McpResourceUri.ORGANIZATION_ANALYTICS,
+        {} as AuthenticatedControllerRequest,
       );
 
-      expect(mockClientService.getOrganizationAnalytics).toHaveBeenCalled();
-      expect(result).toHaveProperty(
-        'resource',
-        'genfeed://analytics/organization',
-      );
+      expect(mockToolRegistryService.setBearerToken).not.toHaveBeenCalled();
     });
 
-    it('should throw error for unknown resource', async () => {
+    it('propagates the registry error for an unknown resource', async () => {
+      mockToolRegistryService.handleResourceRead.mockRejectedValue(
+        new Error('Unknown resource: genfeed://unknown'),
+      );
+
       await expect(
         controller.readResource('genfeed://unknown', mockRequest),
       ).rejects.toThrow('Unknown resource: genfeed://unknown');

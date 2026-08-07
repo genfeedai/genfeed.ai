@@ -13,6 +13,9 @@ export class UserEntity extends BaseEntity implements User {
   declare readonly name: string | null;
   declare readonly emailVerified: boolean;
   declare readonly platformRole: User['platformRole'];
+  declare readonly banned: User['banned'];
+  declare readonly banReason: User['banReason'];
+  declare readonly banExpires: User['banExpires'];
 
   declare readonly isInvited: boolean;
 

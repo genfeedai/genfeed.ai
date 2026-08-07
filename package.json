@@ -61,6 +61,7 @@
     "build:web:parallel": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs",
     "build:web:sequential": "bunx turbo run build --filter=@genfeedai/app --filter=@genfeedai/website --filter=@genfeedai/docs --concurrency=1",
     "build:website": "bunx turbo run build --filter=@genfeedai/website",
+    "check:agent-tool-dispatch": "bun run scripts/architecture/check-agent-tool-dispatch.ts",
     "check:architecture": "bun run scripts/check-architecture.ts",
     "check:cron-boundary": "bun run scripts/architecture/check-platform-cron-boundary.ts",
     "check:deterministic-locale": "bun run scripts/architecture/check-deterministic-locale.ts",
@@ -160,7 +161,8 @@
     "test:e2e:release": "bunx playwright test --config=playwright/configs/playwright-release-e2e.config.ts",
     "type-check": "bunx turbo run type-check",
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",
-    "secretlint": "secretlint '**/*'"
+    "secretlint": "secretlint '**/*'",
+    "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.7",

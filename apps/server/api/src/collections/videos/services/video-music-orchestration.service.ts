@@ -96,7 +96,6 @@ export class VideoMusicOrchestrationService {
     if (backgroundMusic.ingredientId) {
       const existingMusic = await this.musicsService.findOne({
         id: backgroundMusic.ingredientId,
-        isDeleted: false,
         organizationId: context.organizationId,
       });
 

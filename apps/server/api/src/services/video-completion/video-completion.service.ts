@@ -6,6 +6,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import {
   IngredientStatus,
   JobState,
@@ -69,6 +70,7 @@ export class VideoCompletionService implements OnModuleInit {
     private readonly redisService: RedisService,
     private readonly editorProjectsService: EditorProjectsService,
     private readonly fileQueueService: FileQueueService,
+    private readonly generationEventWebhookService: GenerationEventWebhookService,
     private readonly ingredientsService: IngredientsService,
     private readonly metadataService: MetadataService,
     private readonly notificationsPublisher: NotificationsPublisherService,
@@ -145,6 +147,17 @@ export class VideoCompletionService implements OnModuleInit {
             metadataUpdate,
           );
         }
+
+        await this.generationEventWebhookService.emitGenerationCompleted({
+          generationId: ingredientId,
+          kind: 'video',
+          organizationId,
+          output: {
+            mimeType: null,
+            storageKey: result?.s3Key ?? null,
+            url: null,
+          },
+        });
       } else if (status === Status.FAILED) {
         // Update ingredient status to failed
         await this.ingredientsService.patch(ingredientId, {
@@ -154,6 +167,13 @@ export class VideoCompletionService implements OnModuleInit {
         this.logger.error(
           `Updated ingredient ${ingredientId} status to FAILED: ${error}`,
         );
+
+        await this.generationEventWebhookService.emitGenerationFailed({
+          errorMessage: error ?? null,
+          generationId: ingredientId,
+          kind: 'video',
+          organizationId,
+        });
       }
     } catch (error: unknown) {
       this.logger.error(
@@ -420,7 +440,6 @@ export class VideoCompletionService implements OnModuleInit {
   ): Promise<void> {
     const ingredient = await this.ingredientsService.findOne({
       id: ingredientId,
-      isDeleted: false,
       organizationId,
     });
 

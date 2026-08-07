@@ -178,13 +178,11 @@ export class AgentBrandContentToolHandler {
     if (explicitBrandId) {
       return this.brandsService.findOne({
         id: explicitBrandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
     }
 
     return this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
   }

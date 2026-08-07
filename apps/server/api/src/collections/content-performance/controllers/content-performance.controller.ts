@@ -224,7 +224,6 @@ export class ContentPerformanceController {
 
     const record = await this.contentPerformanceService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -246,7 +245,6 @@ export class ContentPerformanceController {
 
     const record = await this.contentPerformanceService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

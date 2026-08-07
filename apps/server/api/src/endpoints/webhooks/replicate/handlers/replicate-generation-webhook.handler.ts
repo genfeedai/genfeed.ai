@@ -32,7 +32,6 @@ export class ReplicateGenerationWebhookHandler {
     // Check if this is an asset generation first
     const asset = await this.assetsService.findOne({
       externalId: payload.id,
-      isDeleted: false,
     });
 
     if (asset) {
@@ -50,7 +49,6 @@ export class ReplicateGenerationWebhookHandler {
     // Check if this is a failed asset generation first
     const asset = await this.assetsService.findOne({
       externalId: payload.id,
-      isDeleted: false,
     });
 
     if (asset) {
@@ -103,7 +101,6 @@ export class ReplicateGenerationWebhookHandler {
     payload: ReplicateWebhookPayload,
   ): Promise<IngredientCategory> {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: payload.model,
     });
 

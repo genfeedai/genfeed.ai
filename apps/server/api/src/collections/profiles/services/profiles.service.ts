@@ -19,6 +19,7 @@ import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -144,7 +145,7 @@ export class ProfilesService {
               data: this.serializeProfileData({
                 ...this.readObjectRecord(profile.data),
                 isDefault: false,
-              }) as never,
+              }) as Prisma.InputJsonValue,
             },
             where: { id: profile.id },
           }),
@@ -176,9 +177,9 @@ export class ProfilesService {
         createdById: userId,
         data: this.serializeProfileData(
           dto as unknown as Record<string, unknown>,
-        ) as never,
+        ) as Prisma.InputJsonValue,
         organizationId,
-      } as never,
+      } as Prisma.InputJsonValue,
     });
 
     this.logger.debug('Profile created', { profileId: profile.id });
@@ -276,7 +277,7 @@ export class ProfilesService {
         data: this.serializeProfileData({
           ...this.readObjectRecord(existing.data),
           ...dto,
-        }) as never,
+        }) as Prisma.InputJsonValue,
       },
       where: { id },
     });
@@ -295,7 +296,7 @@ export class ProfilesService {
     );
 
     await this.prisma.profile.update({
-      data: { isDeleted: true } as never,
+      data: { isDeleted: true },
       where: { id },
     });
   }
@@ -347,9 +348,11 @@ export class ProfilesService {
             ...this.readObjectRecord(profileDoc.data),
             ...profile,
             usageCount: nextUsageCount,
-          }) as never,
+          }) as Prisma.InputJsonValue,
         },
-        where: scopedWhere(organizationId, { id: profile.id }) as never,
+        where: scopedWhere(organizationId, {
+          id: profile.id,
+        }) as Prisma.ProfileWhereInput,
       });
 
       return {
@@ -644,7 +647,6 @@ Only include content types that are present in examples.`;
     output: string,
   ): Promise<number> {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(DEFAULT_TEXT_MODEL),
     });
 

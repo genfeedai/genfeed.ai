@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/tools';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
+import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
@@ -14,6 +15,7 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
+import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
   CLIP_PROJECTS_TOOL_NAMES,
@@ -118,6 +120,13 @@ const isTikTokAdsTool = (name: string): boolean =>
   name.startsWith('list_tiktok_') || name.startsWith('get_tiktok_');
 
 /**
+ * Platform-generic ads gateway tools (`/ads/:platform/*`). The `get_ads_` prefix
+ * is reserved for this executor — per-platform tools use their own platform
+ * prefix (`get_meta_`, `get_google_ads_`), so the namespaces cannot overlap.
+ */
+const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
+
+/**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
  * a registry/handler mismatch fails the boot health check instead of surfacing
@@ -133,6 +142,7 @@ type ExecutorKind =
   | 'meta-ads'
   | 'google-ads'
   | 'tiktok-ads'
+  | 'ads-gateway'
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
@@ -228,8 +238,9 @@ export class ToolRegistryService implements OnModuleInit {
     private readonly logger: LoggerService,
     // Per-request callers (`StreamableHttpService.buildServer`) pass the
     // authenticated caller's role via `new ToolRegistryService(...)`. When
-    // resolved as a DI singleton (e.g. `ServerService`), there is no per-request
-    // role, so it falls back to `'user'` — deny-by-default for admin tools.
+    // resolved as a DI singleton (`McpController`'s REST mirror), there is no
+    // per-request role, so it falls back to `'user'` — deny-by-default for
+    // admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
   ) {}
 
@@ -265,20 +276,7 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   getResources(): McpResource[] {
-    return [
-      {
-        description: 'Get analytics for all videos in your organization',
-        mimeType: 'application/json',
-        name: 'Video Analytics',
-        uri: 'genfeed://analytics/videos',
-      },
-      {
-        description: 'Get overall organization analytics',
-        mimeType: 'application/json',
-        name: 'Organization Analytics',
-        uri: 'genfeed://analytics/organization',
-      },
-    ];
+    return [...MCP_RESOURCES];
   }
 
   async handleToolCall(params: ToolCallParams) {
@@ -342,6 +340,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
     if (isTikTokAdsTool(name)) return 'tiktok-ads';
+    if (isAdsGatewayTool(name)) return 'ads-gateway';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
@@ -371,6 +370,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleGoogleAdsTool(this.clientService, name, args);
       case 'tiktok-ads':
         return handleTikTokAdsTool(this.clientService, name, args);
+      case 'ads-gateway':
+        return handleAdsGatewayTool(this.clientService, name, args);
       case 'account-management':
         return handleAccountManagementTool(this.clientService, name, args);
       case 'social-messages':
@@ -754,25 +755,50 @@ export class ToolRegistryService implements OnModuleInit {
           throw new Error('contentId and contentType required');
         }
 
-        if (args.contentType === 'video') {
+        const contentId = args.contentId as string;
+        const contentType = args.contentType as string;
+
+        if (contentType === 'video') {
           const analytics = await this.clientService.getVideoAnalytics(
-            args.contentId as string,
+            contentId,
             (args.timeRange as string) || '7d',
           );
           return {
             content: [
               {
-                text: `Analytics for ${args.contentType} ${args.contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
+                text: `Analytics for ${contentType} ${contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
                 type: 'text',
               },
             ],
           };
         }
 
+        // Articles and images route through the canonical agent executor
+        // (`get_analytics`), which already owns content→published-post
+        // resolution, per-collection analytics rollups, and tenant scoping.
+        // Reusing it keeps the MCP and agent surfaces on one implementation
+        // rather than two that drift — this branch used to return a hardcoded
+        // "data is being compiled" string for exactly these two types.
+        const result = await this.clientService.executeAgentTool(
+          'get_analytics',
+          { contentId },
+        );
+
+        if (!result.success) {
+          throw new Error(
+            result.error ||
+              `Failed to get analytics for ${contentType} ${contentId}`,
+          );
+        }
+
+        // `getPostAnalyticsSummary` and `getArticleAnalyticsSummary` both roll
+        // up every recorded day, so this is a lifetime total; the declared
+        // `timeRange` argument does not narrow it. Say so rather than stamping
+        // a range the numbers do not honor.
         return {
           content: [
             {
-              text: `Analytics for ${args.contentType} ${args.contentId} (${args.timeRange || '7d'}):\n\nAnalytics data is being compiled. Please check the dashboard for detailed metrics.`,
+              text: `Analytics for ${contentType} ${contentId} (lifetime totals):\n\n${JSON.stringify(result.data, null, 2)}`,
               type: 'text',
             },
           ],
@@ -867,7 +893,7 @@ export class ToolRegistryService implements OnModuleInit {
 
     try {
       switch (uri) {
-        case 'genfeed://analytics/videos': {
+        case McpResourceUri.VIDEO_ANALYTICS: {
           const videoAnalytics = await this.clientService.getVideoAnalytics();
           return {
             contents: [
@@ -880,7 +906,7 @@ export class ToolRegistryService implements OnModuleInit {
           };
         }
 
-        case 'genfeed://analytics/organization': {
+        case McpResourceUri.ORGANIZATION_ANALYTICS: {
           const orgAnalytics =
             await this.clientService.getOrganizationAnalytics();
           return {

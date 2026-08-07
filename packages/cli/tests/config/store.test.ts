@@ -22,8 +22,6 @@ function makeConfigJson(profileOverrides: Record<string, unknown> = {}) {
       default: {
         apiUrl: 'https://api.genfeed.ai/v1',
         defaults: { imageModel: 'imagen-4', videoModel: 'google-veo-3' },
-        fleetApiPort: 8189,
-        fleetHost: '100.106.229.81',
         role: 'user',
         ...profileOverrides,
       },
@@ -38,12 +36,11 @@ describe('config/store', () => {
     clearConfigCache();
     delete process.env.GENFEED_API_KEY;
     delete process.env.GENFEED_API_URL;
+    delete process.env.GENFEED_APP_URL;
     delete process.env.GENFEED_TOKEN;
     delete process.env.GENFEED_ORGANIZATION_ID;
     delete process.env.GENFEED_USER_ID;
     delete process.env.GENFEED_AGENT_MODEL;
-    delete process.env.GF_FLEET_HOST;
-    delete process.env.GF_FLEET_PORT;
   });
 
   describe('getApiKey', () => {
@@ -94,6 +91,40 @@ describe('config/store', () => {
       const { setProfileField, getApiUrl } = await import('../../src/config/store');
       await setProfileField('apiUrl', 'https://new.api.com/v1');
       expect(await getApiUrl()).toBe('https://new.api.com/v1');
+    });
+  });
+
+  describe('getAppUrl', () => {
+    it('derives the SaaS app URL from the default API URL', async () => {
+      const { getAppUrl } = await import('../../src/config/store');
+      expect(await getAppUrl()).toBe('https://app.genfeed.ai');
+    });
+
+    it('derives a self-hosted app URL from the configured API URL', async () => {
+      mockFileSystem.content = makeConfigJson({ apiUrl: 'https://api.selfhost.dev/v1' });
+      const { getAppUrl } = await import('../../src/config/store');
+      expect(await getAppUrl()).toBe('https://app.selfhost.dev');
+    });
+
+    it('prefers an explicitly configured app URL', async () => {
+      mockFileSystem.content = makeConfigJson({
+        apiUrl: 'https://api.selfhost.dev/v1',
+        appUrl: 'https://studio.selfhost.dev',
+      });
+      const { getAppUrl } = await import('../../src/config/store');
+      expect(await getAppUrl()).toBe('https://studio.selfhost.dev');
+    });
+  });
+
+  describe('getLoginEndpoints', () => {
+    it('returns the API, app, and auth URLs for the active profile', async () => {
+      mockFileSystem.content = makeConfigJson({ apiUrl: 'https://api.selfhost.dev/v1' });
+      const { getLoginEndpoints } = await import('../../src/config/store');
+      expect(await getLoginEndpoints()).toEqual({
+        apiBaseUrl: 'https://api.selfhost.dev/v1',
+        appUrl: 'https://app.selfhost.dev',
+        authUrl: 'https://app.selfhost.dev/oauth/cli',
+      });
     });
   });
 
@@ -209,6 +240,19 @@ describe('config/store', () => {
       process.env.GENFEED_API_URL = 'https://env.api.com/v1';
       const { getApiUrl } = await import('../../src/config/store');
       expect(await getApiUrl()).toBe('https://env.api.com/v1');
+    });
+
+    it('env var overrides the configured app URL', async () => {
+      mockFileSystem.content = makeConfigJson({ appUrl: 'https://studio.selfhost.dev' });
+      process.env.GENFEED_APP_URL = 'https://env.selfhost.dev';
+      const { getAppUrl } = await import('../../src/config/store');
+      expect(await getAppUrl()).toBe('https://env.selfhost.dev');
+    });
+
+    it('derives the app URL from an env-provided API URL', async () => {
+      process.env.GENFEED_API_URL = 'https://api.env-host.dev/v1';
+      const { getAppUrl } = await import('../../src/config/store');
+      expect(await getAppUrl()).toBe('https://app.env-host.dev');
     });
 
     it('env var overrides the configured agent model', async () => {

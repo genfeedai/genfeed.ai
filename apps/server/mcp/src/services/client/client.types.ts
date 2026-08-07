@@ -1,3 +1,5 @@
+import type { AdsPlatform } from '@genfeedai/interfaces';
+
 /**
  * Shared types and constants for the MCP API client family.
  *
@@ -34,6 +36,22 @@ export interface PersonaResponse {
   name: string;
   status?: string;
   [key: string]: unknown;
+}
+
+/**
+ * Query shape for the platform-generic ads gateway insight routes. `entityId`
+ * is the ad set/ad group ID or the ad ID depending on the route; every other
+ * field maps 1:1 onto a gateway query parameter.
+ */
+export interface AdsGatewayInsightsParams {
+  platform: AdsPlatform;
+  credentialId: string;
+  adAccountId: string;
+  entityId: string;
+  datePreset?: string;
+  since?: string;
+  until?: string;
+  loginCustomerId?: string;
 }
 
 export interface CreateBatchParams {

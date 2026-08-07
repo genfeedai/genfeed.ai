@@ -8,6 +8,7 @@ import type {
   BatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
@@ -20,6 +21,7 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -58,7 +60,6 @@ export class BatchGenerationCreationService {
     // Verify brand exists and belongs to org
     const brand = await this.brandsService.findOne({
       id: dto.brandId,
-      isDeleted: false,
       organizationId: orgId,
     });
 
@@ -101,11 +102,11 @@ export class BatchGenerationCreationService {
     const batch = (await this.prisma.batch.create({
       data: {
         brandId: dto.brandId,
-        config: config as never,
+        config: config as Prisma.InputJsonValue,
         isDeleted: false,
-        items: items as never,
+        items: items as Prisma.InputJsonValue,
         organizationId: orgId,
-        status: BatchStatus.PENDING as never,
+        status: toPrismaBatchStatus(BatchStatus.PENDING),
         userId,
       },
     })) as BatchWithConfig;
@@ -141,7 +142,6 @@ export class BatchGenerationCreationService {
   ): Promise<IBatchSummary> {
     const brand = await this.brandsService.findOne({
       id: dto.brandId,
-      isDeleted: false,
       organizationId: orgId,
     });
 
@@ -179,11 +179,11 @@ export class BatchGenerationCreationService {
       batch = (await this.prisma.batch.create({
         data: {
           brandId: dto.brandId,
-          config: config as never,
+          config: config as Prisma.InputJsonValue,
           isDeleted: false,
-          items: batchItems as never,
+          items: batchItems as Prisma.InputJsonValue,
           organizationId: orgId,
-          status: BatchStatus.COMPLETED as never,
+          status: toPrismaBatchStatus(BatchStatus.COMPLETED),
           userId,
         },
       })) as BatchWithConfig;
@@ -255,7 +255,7 @@ export class BatchGenerationCreationService {
           ingredients: reviewItem.ingredientId ? [reviewItem.ingredientId] : [],
           label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
           organizationId: orgId,
-          platform: reviewItem.platform as never,
+          platform: reviewItem.platform,
           publishIntent: reviewItem.publishIntent,
           promptUsed: reviewItem.prompt,
           scheduleSlot: reviewItem.scheduleSlot,
@@ -265,7 +265,7 @@ export class BatchGenerationCreationService {
           status: PostStatus.DRAFT,
           userId: userId,
           variantId: reviewItem.variantId,
-        } as never);
+        } as Prisma.PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
 

@@ -35,6 +35,18 @@ export class GenerateArticlesDto {
   @IsEntityId()
   credential?: string;
 
+  /**
+   * Per-request text model for the generation step, e.g. the agent's
+   * `agentPolicy.generationModelOverride`. Takes precedence over the org's
+   * `defaultModel`; the review/update steps keep their own configured models.
+   * Unknown keys are rejected with 400 rather than silently falling back,
+   * because text billing resolves the key against the models table *after* the
+   * provider call and would otherwise fail the request post-spend.
+   */
+  @IsOptional()
+  @IsString()
+  model?: string;
+
   @IsOptional()
   @IsString({ each: true })
   keywords?: string[];

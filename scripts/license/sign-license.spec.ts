@@ -10,6 +10,72 @@ import { exportPKCS8, generateKeyPair, jwtVerify } from 'jose';
 import { describe, expect, it } from 'vitest';
 import { parseSignLicenseArgs, signLicense } from './sign-license';
 
+const BASE_ARGS = [
+  '--email',
+  'operator-fixture@example.com',
+  '--kid',
+  'test-runtime-v1',
+  '--license-id',
+  'b4ad2bdc-6751-4f67-b70d-f64c9387202f',
+  '--licensee',
+  'Operator Fixture',
+  '--plan',
+  'ee',
+  '--private-key',
+  '/tmp/private-key.pem',
+  '--seats',
+  '25',
+];
+
+function parseExpiresAt(value: string): number {
+  return parseSignLicenseArgs([
+    ...BASE_ARGS,
+    '--expires-at',
+    value,
+    '--issued-at',
+    '1798761600',
+  ]).expiresAt;
+}
+
+describe('parseSignLicenseArgs timestamps', () => {
+  it('keeps numeric Unix timestamps unchanged', () => {
+    expect(parseExpiresAt('1830297600')).toBe(1_830_297_600);
+  });
+
+  it('converts second-precision ISO-8601 dates to Unix seconds', () => {
+    expect(parseExpiresAt('2028-01-01T00:00:00Z')).toBe(1_830_297_600);
+  });
+
+  it('floors ISO-8601 dates carrying milliseconds', () => {
+    expect(parseExpiresAt('2028-01-01T00:00:00.500Z')).toBe(1_830_297_600);
+    expect(parseExpiresAt('2028-01-01T00:00:00.999Z')).toBe(1_830_297_600);
+  });
+
+  it('rejects unparseable values', () => {
+    expect(() => parseExpiresAt('not-a-date')).toThrow(
+      '--expires-at must be a Unix timestamp or ISO-8601 date',
+    );
+  });
+
+  it('rejects non-positive and fractional Unix timestamps', () => {
+    expect(() => parseExpiresAt('0')).toThrow(
+      '--expires-at must be a Unix timestamp or ISO-8601 date',
+    );
+    expect(() => parseExpiresAt('-1')).toThrow(
+      '--expires-at must be a Unix timestamp or ISO-8601 date',
+    );
+    expect(() => parseExpiresAt('1830297600.5')).toThrow(
+      '--expires-at must be a Unix timestamp or ISO-8601 date',
+    );
+  });
+
+  it('rejects ISO-8601 dates before the Unix epoch', () => {
+    expect(() => parseExpiresAt('1969-01-01T00:00:00Z')).toThrow(
+      '--expires-at must be a Unix timestamp or ISO-8601 date',
+    );
+  });
+});
+
 describe('signLicense', () => {
   it('verifies CLI signing output against the runtime public key', async () => {
     const { privateKey, publicKey } = await generateKeyPair('EdDSA', {

@@ -135,7 +135,6 @@ export class ArticleTextGenerationService {
     }
 
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(modelKey),
     });
 

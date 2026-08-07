@@ -202,6 +202,8 @@ jobs:
         run: bun run check:product-workflow-boundary
       - name: DI Value Imports
         run: bun run check:di-value-imports
+      - name: Type Assertion Ratchet
+        run: bun run check:type-assertions
       - name: Relation Alias Reads
         run: bun run check:relation-alias-reads
       - name: Relation Alias Writes
@@ -212,6 +214,13 @@ jobs:
         run: bun run check:route-inventory
       - name: Tenant Scope (API + shared server)
         run: bun run check:tenant-scope
+      # The agent half of the curated action catalog contract. MCP crashes on
+      # boot when its surface and dispatch disagree; the agent had no such
+      # check, and five live credit-costed tools drifted outside the catalog.
+      - name: Agent Tool Dispatch Coverage
+        run: bun run check:agent-tool-dispatch
+      - name: Agent Tool Dispatch Guard Tests
+        run: bunx vitest run --config scripts/architecture/vitest.config.ts check-agent-tool-dispatch.test.ts
       # CLAUDE.md and lint-staged.config.mjs both described these as CI-enforced
       # while neither ran in any workflow: the repo-wide half of the raw-control
       # and design-token contracts was dark, leaving only a pre-commit hook that
@@ -324,7 +333,7 @@ jobs:
   spec-typecheck:
     name: Spec Typecheck
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: trust
     if: needs.trust.outputs.is-trusted == 'true'
     steps:
@@ -343,11 +352,17 @@ jobs:
       - name: Build packages
         run: bunx turbo run build --filter='./packages/*' --filter='./ee/packages/*'
       - name: Spec Typecheck Ratchet
+        # Keep each TypeScript program in its own process. A single repo-wide
+        # process retained enough compiler state to hit the runner shutdown
+        # window without emitting a diagnostic.
         run: |
+          set -euo pipefail
           for config in apps/server/*/tsconfig.typecheck.specs.json; do
             workspace="${config#apps/server/}"
             workspace="${workspace%%/*}"
-            bun run check:spec-typecheck --workspace "$workspace"
+            echo "::group::Spec typecheck: ${workspace}"
+            bun run check:spec-typecheck --workspace "${workspace}"
+            echo "::endgroup::"
           done
 
   # Heavy test jobs run only on the on-demand full-suite path. full-suite.yml

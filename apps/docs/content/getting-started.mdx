@@ -38,9 +38,24 @@ bun add --global @genfeedai/cli
 genfeed --help
 ```
 
-See the
-[`@genfeedai/cli` README](https://github.com/genfeedai/genfeed.ai/tree/master/packages/cli)
-for implemented commands and authentication requirements.
+See the [CLI reference](/api-reference/cli) for authentication, configuration,
+and the full command surface.
+
+## API access
+
+Programmatic access uses a `gf_` API key created in organization settings at
+`/{orgSlug}/~/settings/api-keys`. The same key authenticates the REST API and the
+hosted MCP server:
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx
+curl https://api.genfeed.ai/v1/posts \
+  -H "Authorization: Bearer $GENFEED_API_KEY"
+```
+
+Follow the [API keys guide](/api-reference/api-keys) for scopes, rate limits, and
+rotation. In managed cloud, API access is a paid-plan entitlement; self-hosted
+deployments always have it.
 
 ## Next steps
 
@@ -48,3 +63,4 @@ for implemented commands and authentication requirements.
 - [Self-hosted vs Cloud](/core/self-hosted-vs-cloud)
 - [Configuration](/core/configuration)
 - [REST API reference](/api-reference)
+- [API keys](/api-reference/api-keys)

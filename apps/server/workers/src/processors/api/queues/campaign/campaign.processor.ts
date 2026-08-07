@@ -72,7 +72,6 @@ export class CampaignProcessor extends WorkerHost {
       // Fetch campaign
       const campaign = await this.campaignsService.findOne({
         id: campaignId,
-        isDeleted: false,
         organizationId: organizationId,
       });
 

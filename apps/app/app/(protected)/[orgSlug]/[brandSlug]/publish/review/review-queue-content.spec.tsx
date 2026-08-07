@@ -124,10 +124,10 @@ vi.mock('./components/review-grid.helpers', () => ({
     changes_requested: items.filter(
       (item) => item.status === 'changes_requested',
     ).length,
-    failed: items.filter((item) => item.status === 'failed').length,
-    pending: items.filter((item) => item.status === 'pending').length,
-    ready: items.filter((item) => item.status === 'completed').length,
-    skipped: items.filter((item) => item.status === 'skipped').length,
+    failed: items.filter((item) => item.status === 'FAILED').length,
+    pending: items.filter((item) => item.status === 'PENDING').length,
+    ready: items.filter((item) => item.status === 'COMPLETED').length,
+    skipped: items.filter((item) => item.status === 'SKIPPED').length,
   }),
   getVisibleReviewItems: (
     items: Array<{ id: string; status?: string }>,
@@ -135,7 +135,7 @@ vi.mock('./components/review-grid.helpers', () => ({
   ) =>
     filter === 'all'
       ? items
-      : items.filter((item) => item.status === 'completed'),
+      : items.filter((item) => item.status === 'COMPLETED'),
   getNextActiveItemId: (
     items: Array<{ id: string }>,
     currentItemId: string | null,
@@ -169,7 +169,7 @@ vi.mock('./components/review-grid.helpers', () => ({
 }));
 
 vi.mock('./components/review-state', () => ({
-  isReadyToReview: (item: { status?: string }) => item.status === 'completed',
+  isReadyToReview: (item: { status?: string }) => item.status === 'COMPLETED',
 }));
 
 vi.mock('./components/ReviewStatsHeader', () => ({
@@ -263,30 +263,30 @@ describe('ReviewQueueContent', () => {
           format: 'video',
           id: 'item-1',
           postId: 'post-123',
-          status: 'completed',
+          status: 'COMPLETED',
         },
         {
           createdAt: '2026-01-01T00:05:00.000Z',
           format: 'image',
           id: 'item-2',
           scheduledDate: '2026-01-02T00:00:00.000Z',
-          status: 'completed',
+          status: 'COMPLETED',
         },
         {
           createdAt: '2026-01-01T00:10:00.000Z',
           format: 'post',
           id: 'item-3',
-          status: 'pending',
+          status: 'PENDING',
         },
       ],
-      status: 'completed',
+      status: 'COMPLETED',
       totalCount: 3,
     },
     activeBatchError = null,
     batchList = [
       {
         id: 'batch-1',
-        status: 'completed',
+        status: 'COMPLETED',
         totalCount: 3,
       },
       {
@@ -370,7 +370,7 @@ describe('ReviewQueueContent', () => {
           data: [
             {
               id: 'batch-1',
-              status: 'completed',
+              status: 'COMPLETED',
               totalCount: 1,
             },
           ],
@@ -388,10 +388,10 @@ describe('ReviewQueueContent', () => {
               format: 'video',
               id: 'item-1',
               postId: 'post-123',
-              status: 'completed',
+              status: 'COMPLETED',
             },
           ],
-          status: 'completed',
+          status: 'COMPLETED',
           totalCount: 1,
         },
         error: null,

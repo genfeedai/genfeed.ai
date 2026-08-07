@@ -65,17 +65,30 @@ export class AgentWorkspaceToolHandler {
   }
 
   async getCurrentBrand(ctx: ToolExecutionContext): Promise<AgentToolResult> {
-    const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    } as never);
+    // Prefer explicit thread/run scope over the user's selected-brand flag.
+    // Agent turns always carry brandId in context when the URL/thread has one;
+    // relying only on isSelected fails when that flag is false or stale.
+    const scopedBrandId = ctx.brandId || ctx.validatedScope?.brandId;
+
+    const currentBrand = scopedBrandId
+      ? await this.brandsService.findOne({
+          id: scopedBrandId,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+        })
+      : await this.brandsService.findOne({
+          isDeleted: false,
+          isSelected: true,
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        });
 
     if (!currentBrand) {
       return {
         creditsUsed: 0,
-        error: 'No brand is currently selected. Please select a brand first.',
+        error: scopedBrandId
+          ? `Brand ${scopedBrandId} was not found for this organization.`
+          : 'No brand is currently selected. Please select a brand first.',
         success: false,
       };
     }

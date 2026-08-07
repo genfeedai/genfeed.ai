@@ -4,10 +4,25 @@ export enum AgentRunFrequency {
   DAILY = 'daily',
 }
 
+/**
+ * Agent run lifecycle. Values match Prisma `AgentRunStatus` (SCREAMING_SNAKE)
+ * so DB writes need no `as never` cast.
+ *
+ * `BUDGET_EXHAUSTED` is domain-only (strategy history / orchestration) — not a
+ * Postgres AgentRunStatus label. Map it to FAILED before writing the agent_runs
+ * column (see task-orchestrator normalizeRunStatus).
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum AgentRunStatus`
+ * @see AgentExecutionStatus (identical Prisma set without BUDGET_EXHAUSTED)
+ */
 export enum AgentRunStatus {
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  BUDGET_EXHAUSTED = 'budget_exhausted',
+  PENDING = 'PENDING',
+  RUNNING = 'RUNNING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  /** Strategy / orchestration only — not a Prisma AgentRun column value. */
+  BUDGET_EXHAUSTED = 'BUDGET_EXHAUSTED',
 }
 
 export enum AgentType {

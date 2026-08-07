@@ -147,7 +147,6 @@ export class CampaignQueueService implements OnModuleInit {
   > {
     try {
       const campaigns = await this.campaignsService.find({
-        isDeleted: false,
         status: CampaignStatus.ACTIVE,
       });
 

@@ -281,12 +281,40 @@ describe('ProtectedRootResolver', () => {
         name: 'Workspace setup needs attention',
       }),
     ).toBeInTheDocument();
+    // Agent-first users cannot bootstrap through the classic wizard, and no
+    // organization scope resolved — retry is the only honest action left.
     expect(
-      screen.getByRole('link', { name: 'Continue setup' }),
-    ).toHaveAttribute('href', '/onboarding');
+      screen.queryByRole('link', { name: 'Continue setup' }),
+    ).not.toBeInTheDocument();
 
     screen.getByRole('button', { name: 'Retry workspace' }).click();
 
     expect(mocks.brandState.refreshBrands).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends the workspace fallback CTA to agent onboarding once an org scope exists', async () => {
+    vi.useFakeTimers();
+    vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
+    mocks.brandState.isReady = false;
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'default',
+    };
+    mocks.currentUserState.currentUser = {
+      id: 'user_1',
+      isOnboardingCompleted: true,
+      onboardingStepsCompleted: ['brand', 'providers', 'summary'],
+    };
+
+    render(<ProtectedRootResolver />);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(8_000);
+    });
+
+    expect(
+      screen.getByRole('link', { name: 'Continue setup' }),
+    ).toHaveAttribute('href', '/acme/~/agent/onboarding');
   });
 });

@@ -182,7 +182,7 @@ export class SkillsService {
         isDeleted: false,
         label: customName,
         organizationId,
-      } as never,
+      } as Prisma.InputJsonValue,
     });
 
     return this.normalizeSkill(result);
@@ -218,7 +218,7 @@ export class SkillsService {
         config: mergedConfig,
         label: payload.name ?? (existingConfig['name'] as string | undefined),
         organizationId,
-      } as never,
+      } as Prisma.InputJsonValue,
       where: { id: String(skill.id) },
     });
 
@@ -228,14 +228,18 @@ export class SkillsService {
   async listAllForOrg(organizationId: string): Promise<SkillDocument[]> {
     const results = await this.prisma.skill.findMany({
       orderBy: [{ createdAt: 'desc' }],
-      where: this.buildAccessibleSkillWhere(organizationId) as never,
+      where: this.buildAccessibleSkillWhere(
+        organizationId,
+      ) as Prisma.SkillWhereInput,
     });
     return results.map((r) => this.normalizeSkill(r));
   }
 
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {
     const allSkills = await this.prisma.skill.findMany({
-      where: this.buildAccessibleSkillWhere(organizationId) as never,
+      where: this.buildAccessibleSkillWhere(
+        organizationId,
+      ) as Prisma.SkillWhereInput,
     });
 
     const availableSkills: SkillDocument[] = [];
@@ -268,13 +272,15 @@ export class SkillsService {
       where: {
         ...this.buildAccessibleSkillWhere(organizationId),
         OR: [{ id: idOrSlug }],
-      } as never,
+      } as Prisma.InputJsonValue,
     });
 
     if (!result) {
       // Try by slug (stored in config.slug) — fall back to in-memory scan for slug match
       const all = await this.prisma.skill.findMany({
-        where: this.buildAccessibleSkillWhere(organizationId) as never,
+        where: this.buildAccessibleSkillWhere(
+          organizationId,
+        ) as Prisma.SkillWhereInput,
       });
       const bySlug = all.find((r) => {
         const cfg = this.getConfig(r);
@@ -341,7 +347,9 @@ export class SkillsService {
     }
 
     const all = await this.prisma.skill.findMany({
-      where: this.buildAccessibleSkillWhere(organizationId) as never,
+      where: this.buildAccessibleSkillWhere(
+        organizationId,
+      ) as Prisma.SkillWhereInput,
     });
 
     // Filter by enabled slugs (config.slug)

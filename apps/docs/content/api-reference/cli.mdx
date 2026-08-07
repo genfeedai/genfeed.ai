@@ -1,0 +1,339 @@
+---
+title: CLI
+description: 'Install and use the @genfeedai/cli terminal client to authenticate, generate, publish, schedule, analyze, and automate Genfeed content from your shell.'
+---
+
+# CLI
+
+`@genfeedai/cli` is the terminal client for Genfeed. It generates content,
+publishes and schedules posts, reads analytics, drives workflows, and runs an
+interactive agent shell — against Genfeed Cloud or a self-hosted deployment.
+
+**Package:** [`@genfeedai/cli`](https://www.npmjs.com/package/@genfeedai/cli)
+
+**Binaries:** `genfeed` and `gf` (identical; `gf` is used throughout this page).
+
+**Source:** [`packages/cli`](https://github.com/genfeedai/genfeed.ai/tree/master/packages/cli)
+
+## Install
+
+```bash
+bun add -g @genfeedai/cli
+```
+
+Verify the install:
+
+```bash
+gf --version
+gf --help
+```
+
+Node.js 18 or newer is required.
+
+## Authenticate
+
+### Genfeed Cloud
+
+`gf login` opens a browser and completes a PKCE authorization flow against
+`https://app.genfeed.ai/oauth/cli`. The CLI listens on a temporary localhost
+port, exchanges the returned code for a key, and stores it:
+
+```bash
+gf login
+```
+
+`gf auth login` is the same command under the `auth` namespace.
+
+After a successful login the CLI validates the key, records your organization,
+and selects your brand — automatically when you have exactly one, interactively
+when you have several.
+
+### API keys and headless environments
+
+Skip the browser entirely by passing a key. Use this in CI, containers, and
+agent runtimes:
+
+```bash
+gf login -k gf_live_xxx
+```
+
+Keys must start with `gf_live_` or `gf_test_`. Create them at
+[API key settings](https://app.genfeed.ai/settings/api-keys) or with
+[`gf keys create`](#api-keys).
+
+To paste a key interactively instead of opening a browser:
+
+```bash
+gf login -i
+```
+
+### Self-hosted
+
+Point the CLI at your own API base URL, then authenticate with a key issued by
+that deployment:
+
+```bash
+export GENFEED_API_URL=http://localhost:3010/v1
+gf login -k gf_live_xxx
+```
+
+The browser flow targets Genfeed Cloud, so self-hosted deployments use
+`gf login -k` or `gf login -i`.
+
+You can persist the URL on a profile instead of exporting it each session:
+
+```bash
+gf config set api-url http://localhost:3010/v1
+```
+
+### Session commands
+
+```bash
+gf whoami          # current user, organization, and scopes
+gf logout          # remove stored credentials
+```
+
+## Configuration
+
+Configuration lives in `~/.gf/config.json`, organized into named profiles with
+one active profile at a time. The default API URL is
+`https://api.genfeed.ai/v1`.
+
+```bash
+gf config show           # resolved configuration for the active profile
+gf config path           # print the config file location
+gf config set <key> <value>
+gf config reset          # restore profile defaults (--force to skip the prompt)
+```
+
+Settable keys: `agent-model`, `api-key`, `api-url`, `brand`, `org-id`, `role`.
+
+Use profiles to keep separate credentials for cloud, staging, and a self-hosted
+instance:
+
+```bash
+gf profile list
+gf profile create staging --api-url https://staging.example.com/v1 --api-key gf_test_xxx
+gf profile use staging
+gf profile set api-url https://staging.example.com/v1
+```
+
+### Environment variables
+
+Environment variables override the active profile for the current process.
+
+| Variable | Description |
+|---|---|
+| `GENFEED_API_KEY` | API key |
+| `GENFEED_API_URL` | API base URL (include the `/v1` suffix) |
+| `GENFEED_TOKEN` | Auth token |
+| `GENFEED_ORGANIZATION_ID` | Organization ID |
+| `GENFEED_USER_ID` | User ID |
+| `GENFEED_AGENT_MODEL` | Default model for `gf chat` and `gf chat send` |
+
+## Command surface
+
+Every command accepts `--json` for machine-readable output. Run
+`gf <command> --help` for the full option list.
+
+### Identity and access
+
+| Command | Purpose |
+|---|---|
+| `gf login` | Authenticate (browser flow, `-k <key>`, or `-i`) |
+| `gf auth login` | Same login flow under the `auth` namespace |
+| `gf logout` | Remove stored credentials |
+| `gf whoami` | Show current user, organization, and scopes |
+| `gf keys` | Manage API keys |
+
+#### API keys
+
+```bash
+gf keys list
+gf keys create -n "CI publisher" -p content
+gf keys rotate <id>
+gf keys revoke <id>
+```
+
+`create` takes a scope preset via `-p` (`mcp`, `read`, `content`, `full`) or an
+explicit `--scopes` list, plus optional `--expires-at`, `--rate-limit`, and
+`--allow-ip` restrictions. The secret is printed once, on creation and on
+rotation.
+
+### Brands and credits
+
+```bash
+gf brands              # list brands
+gf brands select       # choose the active brand
+gf brands current      # show the active brand
+gf brands show <id>    # full brand details
+
+gf credits usage       # credit consumption
+gf credits summary     # billing summary
+```
+
+Most content commands accept `-b, --brand <id>` to override the active brand
+for a single call.
+
+### Generate
+
+```bash
+gf generate image "A futuristic cityscape at sunset" --model imagen-4 --width 1920 --height 1080
+gf generate video "A drone flying over mountains" --model google-veo-3 --duration 10 --resolution 1080p
+gf generate article "Write about AI marketing trends" --category marketing
+gf generate article-x "Write a founder update thread"
+```
+
+Shared options: `-m, --model`, `-b, --brand`, `-o, --output <path>` to download
+the result, and `--no-wait` to return an ID immediately instead of blocking.
+
+Poll an async job with `gf status`:
+
+```bash
+gf status <id>                  # defaults to --type image
+gf status <id> --type video
+gf status <id> --type article
+```
+
+### Batch and templates
+
+Generate many pieces in one job, then review before anything ships:
+
+```bash
+gf batch create -n 5 -p twitter,linkedin --topics ai,product --style professional
+gf batch list
+gf batch show <id>
+gf batch approve <id> [itemIds...]
+gf batch reject <id> [itemIds...]
+gf batch cancel <id>
+```
+
+Reusable prompt and workflow templates:
+
+```bash
+gf template list
+gf template create --label "LinkedIn Hook" --purpose prompt --content "Write a hook about {{topic}}"
+gf template use <id> --variables '{"topic":"AI workflows"}'
+gf template show <id>
+gf template popular
+gf template suggest --prompt "weekly product changelog post"
+gf template delete <id>
+```
+
+### Library
+
+Browse generated assets:
+
+```bash
+gf library --type image --limit 20
+```
+
+### Publish and schedule
+
+```bash
+gf publish <ingredientId> --platforms twitter,linkedin --caption "Ship day"
+gf publish <ingredientId> --platforms twitter --status draft
+gf publish <ingredientId> --platforms linkedin --scheduled-date 2026-09-01T14:00:00Z
+
+gf posts list --platform twitter --status published
+```
+
+Calendar and scheduling helpers:
+
+```bash
+gf schedule calendar --start 2026-09-01T00:00:00Z --end 2026-09-30T00:00:00Z
+gf schedule optimal --platform instagram --timezone Europe/Berlin
+gf schedule bulk --items '[{"contentId":"...","platform":"linkedin","scheduledAt":"2026-09-02T09:00:00Z"}]'
+gf schedule repurpose <id> --platforms tiktok,instagram
+gf schedule repurpose-status <id>
+```
+
+### Insights and performance
+
+AI-derived recommendations:
+
+```bash
+gf insights                          # top insights
+gf insights times --platform twitter # best posting times
+gf insights forecast --topic "agentic workflows" --platform linkedin
+gf insights viral --content "Draft post text"
+gf insights gaps
+gf insights growth --platform instagram
+```
+
+Measured results:
+
+```bash
+gf performance weekly --top 5 --worst 5
+gf performance top --limit 10 --start 2026-08-01T00:00:00Z
+gf performance prompts
+```
+
+### Agent, threads, and workflows
+
+Start the interactive agent shell — also what `gf` with no arguments opens:
+
+```bash
+gf chat
+gf chat --thread <threadId>
+gf chat --model claude-3-7-sonnet
+```
+
+Send a single non-interactive turn, which is the entry point for external
+model and tool runners:
+
+```bash
+gf chat send "Plan a launch week content sequence" --json
+gf chat send --thread <threadId> --stdin < prompt.txt
+```
+
+Manage threads:
+
+```bash
+gf threads list --status active
+gf threads show <threadId>
+gf threads resume <threadId>
+gf threads respond <threadId> "Use the more technical angle" --json
+gf threads archive <threadId>
+```
+
+Run workflows:
+
+```bash
+gf workflow list --status active
+gf workflow show <id>
+gf workflow run <id> --inputs '{"topic":"launch recap"}'
+```
+
+List the canonical tool names available to the agent shell:
+
+```bash
+gf tools --json
+```
+
+## Scripting
+
+`--json` makes every command pipeable. Combine it with `--no-wait` to start
+work and poll separately:
+
+```bash
+ID=$(gf generate image "Studio product shot" --no-wait --json | jq -r '.id')
+gf status "$ID" --json | jq -r '.status'
+```
+
+A full headless sequence:
+
+```bash
+gf login -k "$GENFEED_API_KEY"
+RESULT=$(gf generate image "Professional headshot, studio lighting" --json)
+IMAGE_ID=$(echo "$RESULT" | jq -r '.id')
+gf publish "$IMAGE_ID" --platforms twitter,linkedin --json
+```
+
+## Related
+
+- [MCP Server](/api-reference/mcp) — connect Claude Code, Codex, and other MCP
+  clients to the same capabilities
+- [Endpoint Reference](/api-reference/reference) — the underlying REST API
+- [Self-host quick start](/guides/self-host-quickstart) — run the API the CLI
+  talks to

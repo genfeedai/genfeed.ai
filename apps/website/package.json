@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@genfeedai/api-types": "*",
     "@genfeedai/auth-client": "*",
     "@genfeedai/config": "*",
     "@genfeedai/constants": "*",

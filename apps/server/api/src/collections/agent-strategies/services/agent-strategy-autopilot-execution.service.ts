@@ -40,6 +40,7 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -204,7 +205,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     await this.contentDraftsService.patch(getDraftId(input.draft), {
       metadata,
-    } as never);
+    } as Prisma.InputJsonValue);
 
     return metadata;
   }
@@ -261,7 +262,7 @@ export class AgentStrategyAutopilotExecutionService {
         ...input.autopilotMetadata,
         revisionInstructions: input.gate.revisionInstructions,
       },
-    } as never);
+    } as Prisma.InputJsonValue);
 
     const revisedGate = await this.evaluateDraft(
       input.strategy,
@@ -654,7 +655,7 @@ export class AgentStrategyAutopilotExecutionService {
         reviewItemId: reviewItem?.id,
         reviewPostId: reviewItem?.postId,
       },
-    } as never);
+    } as Prisma.InputJsonValue);
 
     if (reviewItem?.postId) {
       await this.createPublishingInboxActivity({
@@ -740,7 +741,7 @@ export class AgentStrategyAutopilotExecutionService {
           sentence: description,
           topic: input.topic,
         }),
-      } as never);
+      } as Prisma.InputJsonValue);
     } catch (error) {
       this.logger.warn('Failed to create publishing inbox activity', {
         batchId: input.batchId,
@@ -783,7 +784,7 @@ export class AgentStrategyAutopilotExecutionService {
         scheduledDate: new Date(),
         status: PostStatus.PENDING,
         userId: userId,
-      } as never);
+      } as Prisma.InputJsonValue);
 
       createdPostIds.push(documentId(post));
     }
@@ -794,7 +795,7 @@ export class AgentStrategyAutopilotExecutionService {
           publishedPostIds: createdPostIds,
         },
         status: ContentDraftStatus.PUBLISHED,
-      } as never);
+      } as Prisma.InputJsonValue);
       return {
         postIds: createdPostIds,
         published: true,

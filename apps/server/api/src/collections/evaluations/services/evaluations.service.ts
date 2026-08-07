@@ -33,6 +33,7 @@ import type {
   IEvaluationComparisonResult,
   IEvaluationTrend,
 } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -253,7 +254,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           overallScore: aiResult.overallScore,
           scores: aiResult.scores,
           status: Status.COMPLETED,
-        }) as never,
+        }) as Prisma.InputJsonValue,
       },
     });
 
@@ -324,7 +325,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           overallScore: aiResult.overallScore,
           scores: aiResult.scores,
           status: Status.COMPLETED,
-        }) as never,
+        }) as Prisma.InputJsonValue,
       },
     });
 
@@ -392,7 +393,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           overallScore: aiResult.overallScore,
           scores: aiResult.scores,
           status: Status.COMPLETED,
-        }) as never,
+        }) as Prisma.InputJsonValue,
       },
     });
 
@@ -435,7 +436,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           brandId,
           evaluationType,
           status: Status.PROCESSING,
-        }) as never,
+        }) as Prisma.InputJsonValue,
       },
     });
 
@@ -518,7 +519,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
             overallScore: aiResult.overallScore,
             scores: aiResult.scores,
             status: Status.COMPLETED,
-          }) as never,
+          }) as Prisma.InputJsonValue,
         },
       });
 
@@ -545,7 +546,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           data: evaluationResultProjection.buildStoredEvaluationData({
             ...existingData,
             status: Status.FAILED,
-          }) as never,
+          }) as Prisma.InputJsonValue,
         },
       });
 
@@ -626,7 +627,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           reviewerId: userId,
           reviewerScore: dto.reviewerScore,
           tags,
-        }) as never,
+        }) as Prisma.InputJsonValue,
       },
     });
 
@@ -735,7 +736,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
           metrics,
           predictedEngagement,
           new Date().toISOString(),
-        ) as never,
+        ) as Prisma.InputJsonValue,
       },
     });
 
@@ -762,7 +763,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
 
     const evaluations = await this.prisma.evaluation.findMany({
-      where: where as never,
+      where: where as Prisma.EvaluationWhereInput,
       select: { updatedAt: true, data: true },
       orderBy: { updatedAt: 'asc' },
     });
