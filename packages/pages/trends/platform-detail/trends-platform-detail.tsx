@@ -181,7 +181,13 @@ export default function TrendsPlatformDetail({
         actions={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
         }
-        tabs={<SocialsNavigation active={platform} basePath={basePath} />}
+        tabs={
+          // Discover platforms are sidebar menu items. Analytics still needs
+          // local surface switching in the section topbar.
+          basePath === '/analytics/trends' ? (
+            <SocialsNavigation active={platform} basePath={basePath} />
+          ) : undefined
+        }
       />
 
       <Container>

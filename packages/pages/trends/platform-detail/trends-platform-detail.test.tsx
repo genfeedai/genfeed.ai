@@ -144,18 +144,10 @@ describe('TrendsPlatformDetail', () => {
     render(<TrendsPlatformDetail platform="tiktok" />);
 
     expect(mockUseTrendContent).toHaveBeenCalledWith('tiktok');
-    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
-    expect(screen.getByRole('link', { name: 'TikTok' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
-      'href',
-      '/discover/socials',
-    );
+    // Discover: platform destinations are sidebar menu items, not topbar pills.
+    expect(
+      screen.queryByTestId('socials-platform-filter'),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('TikTok Trends')).toBeInTheDocument();
     expect(
       screen.getByText('Three hooks driving the AI agent trend'),
@@ -254,20 +246,26 @@ describe('TrendsPlatformDetail', () => {
 
     render(<TrendsPlatformDetail platform="linkedin" />);
 
-    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
+    expect(screen.getByText('LinkedIn Trends')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('socials-platform-filter'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps local platform menu rows on analytics trends routes', () => {
+    render(
+      <TrendsPlatformDetail basePath="/analytics/trends" platform="twitter" />,
+    );
+
+    const filter = screen.getByTestId('socials-platform-filter');
+    expect(filter).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
-      'data-state',
-      'inactive',
-    );
-    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
-      'aria-current',
+    expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
+      'href',
+      '/analytics/trends',
     );
   });
 });

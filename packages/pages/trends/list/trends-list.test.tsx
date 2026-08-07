@@ -149,19 +149,15 @@ describe('TrendsList', () => {
     });
   });
 
-  it('renders the overview tab as active with platform tabs', () => {
+  it('does not render platform pills in the topbar (platforms live in sidebar menu)', () => {
     render(<TrendsList />);
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
-      'href',
-      '/discover/socials',
-    );
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
-      'data-state',
-      'active',
-    );
-    expect(screen.getByRole('link', { name: 'X' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'LinkedIn' })).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('socials-platform-filter'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'LinkedIn' }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders actual content cards instead of topic-only trend cards', () => {
@@ -260,7 +256,7 @@ describe('TrendsList', () => {
     );
   });
 
-  it('renders the section topbar with the title and tabs inside the bordered bar', () => {
+  it('renders the section topbar with title and search actions', () => {
     render(<TrendsList />);
 
     const topbar = screen.getByTestId('section-topbar');
@@ -269,23 +265,10 @@ describe('TrendsList', () => {
       screen.getByRole('heading', { level: 1, name: 'Trending Content' }),
     );
     expect(topbar).toContainElement(
-      screen.getByRole('link', { name: 'Overview' }),
-    );
-    expect(topbar).toContainElement(
       screen.getByPlaceholderText('Search trending content'),
     );
-  });
-
-  it('renders socials platform tab links', () => {
-    render(<TrendsList />);
-
-    expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
-      'href',
-      '/discover/twitter',
-    );
-    expect(screen.getByRole('link', { name: 'LinkedIn' })).toHaveAttribute(
-      'href',
-      '/discover/linkedin',
-    );
+    expect(
+      screen.queryByTestId('socials-platform-filter'),
+    ).not.toBeInTheDocument();
   });
 });

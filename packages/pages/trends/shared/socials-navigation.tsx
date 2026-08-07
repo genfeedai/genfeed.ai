@@ -27,70 +27,30 @@ interface SocialsNavigationItem {
 
 type IconComponent = ComponentType<{ className?: string }>;
 
-/**
- * Brand-colored platform chips. Text tabs hid recognition and ate a full
- * row for 8 peers; a dropdown hides options. Same icon+color pattern as
- * PlatformSelector / PlatformBadge elsewhere.
- */
-const PLATFORM_CHIP: Record<
+const PLATFORM_ICONS: Record<
   TrendPlatform,
-  { Icon: IconComponent; iconClass: string; selectedClass: string }
+  { Icon: IconComponent; iconClass: string }
 > = {
-  instagram: {
-    Icon: InstagramIcon,
-    iconClass: 'text-pink-500',
-    selectedClass:
-      'border-pink-500/40 bg-pink-500/15 text-pink-400 ring-1 ring-pink-500/25',
-  },
-  linkedin: {
-    Icon: LinkedinIcon,
-    iconClass: 'text-blue-600',
-    selectedClass:
-      'border-blue-600/40 bg-blue-600/15 text-blue-400 ring-1 ring-blue-600/25',
-  },
-  pinterest: {
-    Icon: PinterestIcon,
-    iconClass: 'text-red-600',
-    selectedClass:
-      'border-red-600/40 bg-red-600/15 text-red-400 ring-1 ring-red-600/25',
-  },
-  reddit: {
-    Icon: RedditIcon,
-    iconClass: 'text-orange-500',
-    selectedClass:
-      'border-orange-500/40 bg-orange-500/15 text-orange-400 ring-1 ring-orange-500/25',
-  },
-  tiktok: {
-    Icon: TiktokIcon,
-    iconClass: 'text-foreground',
-    selectedClass:
-      'border-foreground/30 bg-foreground/10 text-foreground ring-1 ring-foreground/15',
-  },
-  twitter: {
-    Icon: XTwitterIcon,
-    iconClass: 'text-foreground',
-    selectedClass:
-      'border-foreground/30 bg-foreground/10 text-foreground ring-1 ring-foreground/15',
-  },
-  youtube: {
-    Icon: YoutubeIcon,
-    iconClass: 'text-red-500',
-    selectedClass:
-      'border-red-500/40 bg-red-500/15 text-red-400 ring-1 ring-red-500/25',
-  },
+  instagram: { Icon: InstagramIcon, iconClass: 'text-pink-500' },
+  linkedin: { Icon: LinkedinIcon, iconClass: 'text-blue-600' },
+  pinterest: { Icon: PinterestIcon, iconClass: 'text-red-600' },
+  reddit: { Icon: RedditIcon, iconClass: 'text-orange-500' },
+  tiktok: { Icon: TiktokIcon, iconClass: 'text-foreground' },
+  twitter: { Icon: XTwitterIcon, iconClass: 'text-foreground' },
+  youtube: { Icon: YoutubeIcon, iconClass: 'text-red-500' },
 };
 
 /**
- * Socials surface filter: Overview + per-platform feeds.
- * Brand Following is a Discover sidebar peer (`/discover/following`), not a
- * Socials sub-control — keep this strip free of ops/source-management chrome.
+ * Local surface switcher for analytics/trends (and any host still using a
+ * section topbar). Platform destinations on Discover live in the **sidebar
+ * menu** — not as rounded pills.
  */
 const PLATFORM_LABELS: Array<{
   id: 'overview' | TrendPlatform;
   label: string;
   matchMode?: 'exact';
 }> = [
-  { id: 'overview', label: 'Overview', matchMode: 'exact' },
+  { id: 'overview', label: 'All platforms', matchMode: 'exact' },
   { id: 'twitter', label: 'X' },
   { id: 'instagram', label: 'Instagram' },
   { id: 'youtube', label: 'YouTube' },
@@ -136,15 +96,18 @@ function buildSocialsNavItems(
 
 export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
-function SocialsNavChip({
+/**
+ * Menu-row local nav: icon + label, underline active state — not filter pills.
+ * Prefer Discover sidebar menu items for platform destinations; keep this for
+ * analytics/trends section chrome and tests.
+ */
+function SocialsNavItem({
   children,
-  className,
   href,
   isActive,
   label,
 }: {
   children: ReactNode;
-  className?: string;
   href: string;
   isActive: boolean;
   label: string;
@@ -161,11 +124,11 @@ function SocialsNavChip({
       onMouseEnter={prefetchHref}
       title={label}
       className={cn(
-        'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-2.5 text-[11px] font-medium transition-colors',
+        'inline-flex h-8 shrink-0 items-center gap-1.5 border-b-2 px-2.5 text-xs font-medium transition-colors',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         isActive
-          ? className
-          : 'border-border/60 bg-background/40 text-foreground/55 hover:border-border hover:bg-foreground/[0.04] hover:text-foreground/80',
+          ? 'border-foreground text-foreground'
+          : 'border-transparent text-foreground/55 hover:border-border hover:text-foreground/85',
       )}
     >
       {children}
@@ -185,7 +148,7 @@ export function SocialsNavigation({
   return (
     <nav
       aria-label="Social platforms"
-      className="flex max-w-full flex-wrap items-center gap-1.5"
+      className="flex max-w-full flex-wrap items-center gap-0.5"
       data-testid="socials-platform-filter"
     >
       {items.map((item) => {
@@ -193,16 +156,11 @@ export function SocialsNavigation({
 
         if (item.id === 'overview') {
           return (
-            <SocialsNavChip
+            <SocialsNavItem
               key={item.id}
               href={item.href}
               isActive={isActive}
               label={item.label}
-              className={
-                isActive
-                  ? 'border-foreground/25 bg-foreground/10 text-foreground ring-1 ring-foreground/10'
-                  : undefined
-              }
             >
               <LayoutGrid
                 aria-hidden="true"
@@ -212,34 +170,30 @@ export function SocialsNavigation({
                 )}
               />
               <span>{item.label}</span>
-            </SocialsNavChip>
+            </SocialsNavItem>
           );
         }
 
-        const chip = PLATFORM_CHIP[item.id];
-        const Icon = chip.Icon;
+        const platform = PLATFORM_ICONS[item.id];
+        const Icon = platform.Icon;
 
         return (
-          <SocialsNavChip
+          <SocialsNavItem
             key={item.id}
             href={item.href}
             isActive={isActive}
             label={item.label}
-            className={isActive ? chip.selectedClass : undefined}
           >
             <Icon
               aria-hidden="true"
               className={cn(
                 'size-3.5',
-                chip.iconClass,
+                platform.iconClass,
                 !isActive && 'opacity-70',
               )}
             />
-            {/* Label only when selected — keeps the strip compact like a filter. */}
-            {isActive ? (
-              <span className="max-w-[7rem] truncate">{item.label}</span>
-            ) : null}
-          </SocialsNavChip>
+            <span className="max-w-[7rem] truncate">{item.label}</span>
+          </SocialsNavItem>
         );
       })}
     </nav>

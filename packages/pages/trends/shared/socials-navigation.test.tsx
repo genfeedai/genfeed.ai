@@ -36,10 +36,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 describe('SocialsNavigation', () => {
-  it('renders Socials tabs only (Following is a Discover peer, not a sub-tab)', () => {
+  it('renders platform menu items only (Following is a Discover sidebar peer)', () => {
     render(<SocialsNavigation active="overview" />);
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'href',
       '/discover/socials',
     );
@@ -76,14 +76,22 @@ describe('SocialsNavigation', () => {
     );
   });
 
-  it('marks the overview tab as active on the socials landing page', () => {
+  it('uses underline menu rows, not rounded filter pills', () => {
     render(<SocialsNavigation active="overview" />);
 
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+    const allPlatforms = screen.getByRole('link', { name: 'All platforms' });
+    expect(allPlatforms.className).toMatch(/border-b-2/);
+    expect(allPlatforms.className).not.toMatch(/rounded-full/);
+  });
+
+  it('marks the all-platforms item as active on the socials landing page', () => {
+    render(<SocialsNavigation active="overview" />);
+
+    expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -96,7 +104,7 @@ describe('SocialsNavigation', () => {
     );
   });
 
-  it('marks the matching platform tab as active on platform pages', () => {
+  it('marks the matching platform item as active on platform pages', () => {
     render(<SocialsNavigation active="twitter" />);
 
     expect(screen.getByRole('link', { name: 'X' })).toHaveAttribute(
@@ -107,12 +115,12 @@ describe('SocialsNavigation', () => {
       'aria-current',
       'page',
     );
-    expect(screen.getByRole('link', { name: 'Overview' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'All platforms' })).toHaveAttribute(
       'data-state',
       'inactive',
     );
-    expect(screen.getByRole('link', { name: 'Overview' })).not.toHaveAttribute(
-      'aria-current',
-    );
+    expect(
+      screen.getByRole('link', { name: 'All platforms' }),
+    ).not.toHaveAttribute('aria-current');
   });
 });

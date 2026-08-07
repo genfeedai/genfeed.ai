@@ -22,7 +22,6 @@ import {
   toTrendContentFinding,
   toTrendVideoFinding,
 } from '@pages/research/work-surface/research-work-surface.types';
-import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import type { TrendsSummary } from '@props/trends/trends-page.props';
 import { TrendsService } from '@services/social/trends.service';
@@ -533,7 +532,6 @@ export default function TrendsList() {
             />
           </>
         }
-        tabs={<SocialsNavigation active="overview" />}
       />
 
       <Container>
