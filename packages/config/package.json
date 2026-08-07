@@ -15,15 +15,25 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
-    "./*": {
-      "types": "./dist/*.d.ts",
-      "import": "./dist/*.js",
-      "default": "./dist/*.js"
+    "./deployment": {
+      "types": "./dist/deployment.d.ts",
+      "import": "./dist/deployment.js",
+      "default": "./dist/deployment.js"
     },
     "./interfaces": {
       "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js",
       "default": "./dist/interfaces/index.js"
+    },
+    "./license": {
+      "types": "./dist/license.d.ts",
+      "import": "./dist/license.js",
+      "default": "./dist/license.js"
+    },
+    "./license-server": {
+      "types": "./dist/license-server.d.ts",
+      "import": "./dist/license-server.js",
+      "default": "./dist/license-server.js"
     },
     "./schemas": {
       "types": "./dist/schemas/index.d.ts",
@@ -51,11 +61,17 @@
   "types": "./dist/index.d.ts",
   "typesVersions": {
     "*": {
-      "*": [
-        "dist/index.d.ts"
+      "deployment": [
+        "dist/deployment.d.ts"
       ],
       "interfaces": [
         "dist/interfaces/index.d.ts"
+      ],
+      "license": [
+        "dist/license.d.ts"
+      ],
+      "license-server": [
+        "dist/license-server.d.ts"
       ],
       "schemas": [
         "dist/schemas/index.d.ts"

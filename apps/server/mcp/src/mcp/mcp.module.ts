@@ -7,7 +7,6 @@ import { AuthService } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { RateLimitService } from '@mcp/services/rate-limit.service';
-import { ServerService } from '@mcp/services/server.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { HttpModule } from '@nestjs/axios';
@@ -24,7 +23,6 @@ import { APP_GUARD } from '@nestjs/core';
     McpAuthGuard,
     PostHogAnalyticsService,
     RateLimitService,
-    ServerService,
     StreamableHttpService,
     ToolRegistryService,
     {

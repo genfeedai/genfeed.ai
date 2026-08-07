@@ -29,7 +29,6 @@ export interface CreatePatternDto {
     engagementRate: number;
     viralScore: number;
   };
-  embedding?: number[];
   tags: string[];
   sourcePostId?: string;
   sourcePostUrl?: string;

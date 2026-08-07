@@ -498,6 +498,12 @@ model User {
   name                     String?
   emailVerified            Boolean         @default(false)
   platformRole             PlatformRole    @default(USER)
+  // Better Auth admin plugin (#2423). The plugin's `role` field maps onto
+  // `platformRole` above (one role system); ban state is plugin-owned
+  // moderation state checked on session creation.
+  banned                   Boolean         @default(false)
+  banReason                String?
+  banExpires               DateTime?
   isDefault                Boolean         @default(false)
   isDeleted                Boolean         @default(false)
   isInvited                Boolean         @default(false)
@@ -1105,11 +1111,15 @@ model Session {
   // Better Auth organization-plugin session state. Genfeed request
   // authorization still validates organization access from User/Member rows.
   activeOrganizationId String?
+  // Better Auth admin plugin (#2423): operator User.id recorded while this
+  // session impersonates its user — the impersonation audit trail.
+  impersonatedBy       String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   @@index([userId])
   @@index([activeOrganizationId])
+  @@index([impersonatedBy])
   @@map("sessions")
 }
 

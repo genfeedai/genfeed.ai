@@ -123,6 +123,24 @@ export class AgentMediaGenerationToolHandler {
     );
   }
 
+  /**
+   * Normalise a `POST /v1/articles/generations` body to a single JSON:API
+   * resource. The route answers with a collection for `type: 'standard'` and a
+   * single resource for `type: 'x-article'`, so both shapes reach this handler.
+   */
+  private readArticleResource(
+    response: Record<string, unknown>,
+  ): Record<string, unknown> | undefined {
+    const payload = response.data ?? response;
+
+    if (Array.isArray(payload)) {
+      const first = payload[0];
+      return this.isPlainRecord(first) ? first : undefined;
+    }
+
+    return this.isPlainRecord(payload) ? payload : undefined;
+  }
+
   private readResponseAssetUrl(
     response: Record<string, unknown>,
     endpoint: string,
@@ -272,7 +290,7 @@ export class AgentMediaGenerationToolHandler {
         normalizedType === 'x-article' ? 'x-article' : 'standard';
       const response = await this.internalApi.callInternalApi(
         'POST',
-        '/v1/articles/generate',
+        '/v1/articles/generations',
         {
           count: articleType === 'standard' ? 1 : undefined,
           generateHeaderImage:
@@ -299,13 +317,14 @@ export class AgentMediaGenerationToolHandler {
         ctx,
       );
 
-      const data = (response.data ?? response) as Record<string, unknown>;
-      const attributes = (data.attributes ?? data) as Record<string, unknown>;
+      const resource = this.readArticleResource(response);
+      const attributes = this.isPlainRecord(resource?.attributes)
+        ? resource.attributes
+        : (resource ?? {});
       const articleId =
-        (data.id as string | undefined) ||
-        (attributes.id as string | undefined);
-      const articleContent = (attributes.content as string) || '';
-      const articleTitle = (attributes.label as string) || '';
+        readOptionalString(resource?.id) ?? readOptionalString(attributes.id);
+      const articleContent = readOptionalString(attributes.content) ?? '';
+      const articleTitle = readOptionalString(attributes.label) ?? '';
 
       return {
         creditsUsed: 2,

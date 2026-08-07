@@ -1,77 +1,58 @@
 import { Command } from 'commander';
 import ora from 'ora';
-import { type Article, generateArticle, getArticle } from '@/api/articles';
+import { type Article, generateArticles } from '@/api/articles';
 import { requireAuth } from '@/api/client';
+import { printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
-import {
-  printGeneratedResult,
-  printGenerationStarted,
-  requireGenerationBrand,
-  waitForGenerated,
-} from './helpers';
+import { parseKeywords, printArticle } from './helpers';
+
+function toJsonSummary(article: Article): Record<string, unknown> {
+  return {
+    category: article.category,
+    id: article.id,
+    slug: article.slug,
+    status: article.status,
+    summary: article.summary,
+    title: article.label,
+  };
+}
 
 export const articleCommand = new Command('article')
   .description('Generate an AI article')
   .argument('<prompt>', 'The prompt describing the article to generate')
-  .option('-c, --count <n>', 'Number of articles to generate', Number.parseInt, 1)
-  .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
+  .option('-c, --count <n>', 'Number of articles to generate (1-4)', Number.parseInt, 1)
   .option('--category <cat>', 'Article category')
-  .option('--no-wait', 'Return immediately without waiting')
+  .option('--keywords <list>', 'Comma-separated keywords to steer the article')
   .option('--json', 'Output as JSON')
   .action(async (prompt, options) => {
     try {
       await requireAuth();
 
-      const brandId = await requireGenerationBrand(options.brand);
-      const spinner = ora('Creating article...').start();
+      // `POST /articles/generations` runs the generate/review/update cycle
+      // inline, so this call blocks until the articles are finished.
+      const spinner = ora('Generating article...').start();
+      const startedAt = Date.now();
 
-      const activity = await generateArticle({
-        brand: brandId,
+      const articles = await generateArticles({
         category: options.category,
         count: options.count,
+        keywords: parseKeywords(options.keywords),
         prompt,
       });
 
-      if (!options.wait) {
-        spinner.succeed('Article generation started');
-        printGenerationStarted(
-          activity.id,
-          activity.status,
-          options.json,
-          'article',
-          activity.articleId
-        );
+      const elapsed = Date.now() - startedAt;
+      spinner.succeed(
+        `${articles.length} article${articles.length === 1 ? '' : 's'} generated (${(elapsed / 1000).toFixed(1)}s)`
+      );
+
+      if (options.json) {
+        printJson({ articles: articles.map(toJsonSummary), elapsed });
         return;
       }
 
-      const { result, elapsed } = await waitForGenerated<Article>(
-        spinner,
-        'article',
-        'Article',
-        () => getArticle(activity.articleId ?? activity.id),
-        activity.id,
-        'IMAGE',
-        300000
-      );
-
-      printGeneratedResult(
-        options.json,
-        {
-          category: result.category,
-          elapsed,
-          id: result.id,
-          status: result.status,
-          summary: result.summary,
-          title: result.title,
-          wordCount: result.wordCount,
-        },
-        [
-          result.title ? ['Title', result.title] : false,
-          result.summary ? ['Summary', result.summary] : false,
-          result.wordCount ? ['Words', String(result.wordCount)] : false,
-          result.category ? ['Category', result.category] : false,
-        ]
-      );
+      for (const article of articles) {
+        printArticle(article);
+      }
     } catch (error) {
       handleError(error);
     }
