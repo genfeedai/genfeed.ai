@@ -1,4 +1,7 @@
-import type { TrendNotificationFrequency } from '@genfeedai/enums';
+import type {
+  GenerationPriority,
+  TrendNotificationFrequency,
+} from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
 import type { DashboardPreferences } from '../settings/dashboard-settings.interface';
 
@@ -21,7 +24,7 @@ export interface ISetting extends IBaseEntity {
   contentPreferences?: string[];
   defaultAgentModel?: string;
   isAgentAssetsPanelOpen?: boolean;
-  generationPriority?: 'quality' | 'speed' | 'cost' | 'balanced';
+  generationPriority?: GenerationPriority;
   dashboardPreferences?: DashboardPreferences;
   isSidebarProgressCollapsed?: boolean;
   isSidebarProgressVisible?: boolean;

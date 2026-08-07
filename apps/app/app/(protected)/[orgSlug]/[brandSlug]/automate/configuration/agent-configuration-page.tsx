@@ -5,12 +5,11 @@ import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-con
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   AgentApiService,
-  type AgentGenerationPriority,
   AgentSettings,
   type AgentSettingsValues,
   useAgentRegistryModels,
 } from '@genfeedai/agent';
-import { AlertCategory } from '@genfeedai/enums';
+import { AlertCategory, GenerationPriority } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -26,7 +25,8 @@ import { Settings } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { type ReactElement, useCallback, useMemo } from 'react';
 
-const DEFAULT_GENERATION_PRIORITY: AgentGenerationPriority = 'balanced';
+const DEFAULT_GENERATION_PRIORITY: GenerationPriority =
+  GenerationPriority.BALANCED;
 
 interface ConfigurationErrorStateProps {
   actionLabel: string;

@@ -25,10 +25,7 @@ import type {
   AgentThreadUiActionRequest,
   ThreadResolutionResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import {
-  type AgentGenerationPriority,
-  ResolvedAgentExecutionPolicy,
-} from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   recordAgentRunScope,
@@ -50,6 +47,7 @@ import {
   AgentExecutionTrigger,
   AgentMessageRole,
   AgentType,
+  toRouterPriority,
 } from '@genfeedai/enums';
 import {
   toAgentScopeMetadata,
@@ -119,7 +117,7 @@ export class AgentOrchestratorService {
       const resolvedMemories = resolved.memories ?? [];
       const generationPriority = context.strategyId
         ? resolved.policy.generationPriority
-        : ((userSettings?.generationPriority as AgentGenerationPriority) ??
+        : (toRouterPriority(userSettings?.generationPriority) ??
           resolved.policy.generationPriority);
       if (resolved.model !== request.model) {
         request = { ...request, model: resolved.model };
@@ -327,7 +325,7 @@ export class AgentOrchestratorService {
     const resolvedMemories = resolved.memories ?? [];
     const generationPriority = context.strategyId
       ? resolved.policy.generationPriority
-      : ((userSettings?.generationPriority as AgentGenerationPriority) ??
+      : (toRouterPriority(userSettings?.generationPriority) ??
         resolved.policy.generationPriority);
     if (resolved.model !== request.model) {
       request = { ...request, model: resolved.model };

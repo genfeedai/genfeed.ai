@@ -14,7 +14,12 @@ import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
 } from '@genfeedai/config';
-import { ByokProvider, PostStatus, Status } from '@genfeedai/enums';
+import {
+  ByokProvider,
+  PostStatus,
+  RouterPriority,
+  Status,
+} from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -917,7 +922,7 @@ export class AgentOnboardingToolHandler {
     const body: Record<string, unknown> = {
       autoSelectModel: true,
       height: dimensions.height,
-      prioritize: ctx.generationPriority || 'quality',
+      prioritize: ctx.generationPriority || RouterPriority.QUALITY,
       prompt,
       text: prompt,
       waitForCompletion: true,

@@ -1,3 +1,4 @@
+import { GenerationPriority } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsConversationPage from '../app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-conversation-page';
@@ -17,7 +18,7 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
       id: 'db-user-123',
       settings: {
         defaultAgentModel: '',
-        generationPriority: 'balanced',
+        generationPriority: GenerationPriority.BALANCED,
       },
     },
     mutateUser: vi.fn(),

@@ -48,7 +48,11 @@ import {
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { AgentMessageRole, AgentType } from '@genfeedai/enums';
+import {
+  AgentMessageRole,
+  AgentType,
+  type RouterPriority,
+} from '@genfeedai/enums';
 import { AgentToolName, type AgentUIBlocksEvent } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -111,7 +115,7 @@ export class AgentOrchestratorStreamLoopService {
     model: string,
     turnCost: number,
     resolvedPolicy: ResolvedAgentExecutionPolicy,
-    generationPriority: string,
+    generationPriority: RouterPriority,
     memoryEntries: AgentMemoryDocument[],
     agentType?: AgentType,
     source?: AgentChatRequest['source'],

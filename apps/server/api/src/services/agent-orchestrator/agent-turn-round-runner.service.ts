@@ -21,7 +21,7 @@ import type {
   OpenRouterMessage,
   OpenRouterToolCallResponse,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { ActivitySource } from '@genfeedai/enums';
+import { ActivitySource, type RouterPriority } from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
   AgentToolName,
@@ -129,7 +129,7 @@ export type ExecuteToolRoundParams = {
   assistantContent: string | null;
   attachmentUrls?: string[];
   context: AgentChatContext;
-  generationPriority: string;
+  generationPriority: RouterPriority;
   messages: OpenRouterMessage[];
   model: string;
   policy: ResolvedAgentExecutionPolicy;

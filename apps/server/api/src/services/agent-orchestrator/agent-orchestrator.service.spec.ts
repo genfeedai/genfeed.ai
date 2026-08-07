@@ -33,7 +33,13 @@ import {
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   getAgentChatModelRoundCredits,
 } from '@genfeedai/constants';
-import { AgentAutonomyMode, AgentType, ApiKeyScope } from '@genfeedai/enums';
+import {
+  AgentAutonomyMode,
+  AgentType,
+  ApiKeyScope,
+  GenerationPriority,
+  RouterPriority,
+} from '@genfeedai/enums';
 import {
   type AgentArtifactReference,
   AgentToolName,
@@ -1466,7 +1472,7 @@ describe('AgentOrchestratorService', () => {
       onboardingCompleted: true,
     } as never);
     settingsService.findOne.mockResolvedValue({
-      generationPriority: 'speed',
+      generationPriority: GenerationPriority.SPEED,
     } as never);
 
     // Make LLM return a tool call, then a final response
@@ -1521,7 +1527,7 @@ describe('AgentOrchestratorService', () => {
         prompt: 'a cat',
       }),
       expect.objectContaining({
-        generationPriority: 'speed',
+        generationPriority: RouterPriority.SPEED,
         organizationId: ORG_ID,
         userId: USER_ID,
       }),
@@ -1585,7 +1591,7 @@ describe('AgentOrchestratorService', () => {
         prompt: 'a dog',
       }),
       expect.objectContaining({
-        generationPriority: 'balanced',
+        generationPriority: RouterPriority.BALANCED,
       }),
     );
   });
@@ -1961,7 +1967,7 @@ describe('AgentOrchestratorService', () => {
           useOrganizationPool: true,
         },
         generationModelOverride: 'openai/gpt-5.6-terra',
-        generationPriority: 'quality',
+        generationPriority: RouterPriority.QUALITY,
         platform: 'linkedin',
         qualityTier: 'high_quality',
         reviewModelOverride: 'openai/gpt-5.6-luna',
@@ -2045,7 +2051,7 @@ describe('AgentOrchestratorService', () => {
       'prepare_generation',
       expect.any(Object),
       expect.objectContaining({
-        generationPriority: 'cost',
+        generationPriority: RouterPriority.COST,
         qualityTier: 'budget',
       }),
     );
@@ -3734,7 +3740,7 @@ describe('AgentOrchestratorService', () => {
         prompt: 'Editorial product photo on a dark neutral set',
       }),
       expect.objectContaining({
-        generationPriority: 'quality',
+        generationPriority: RouterPriority.QUALITY,
         organizationId: ORG_ID,
         threadId: CONVERSATION_ID,
         userId: USER_ID,

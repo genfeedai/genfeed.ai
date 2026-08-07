@@ -32,6 +32,7 @@ import {
   FleetAssetLabel,
   FleetReviewStatus,
   FontFamily,
+  GenerationPriority,
   IngredientCategory,
   IngredientStatus,
   IntegrationPlatform,
@@ -93,6 +94,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
   FleetAssetLabel: ['HERO', 'FILLER', 'BTS', 'PROMO', 'LIFESTYLE', 'EDITORIAL'],
   FleetReviewStatus: ['PENDING', 'APPROVED', 'REJECTED', 'NEEDS_REVISION'],
   FontFamily: ['MONTSERRAT_BLACK', 'MONTSERRAT_BOLD', 'MONTSERRAT_REGULAR'],
+  GenerationPriority: ['QUALITY', 'SPEED', 'COST', 'BALANCED'],
   IngredientCategory: [
     'IMAGE',
     'VIDEO',
@@ -263,6 +265,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   FleetAssetLabel,
   FleetReviewStatus,
   FontFamily,
+  GenerationPriority,
   IngredientCategory,
   IngredientStatus,
   IntegrationPlatform,

@@ -36,7 +36,12 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { AgentAutonomyMode, AgentMessageRole } from '@genfeedai/enums';
+import {
+  AgentAutonomyMode,
+  AgentMessageRole,
+  RouterPriority,
+  toRouterPriority,
+} from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
   AgentToolName,
@@ -58,7 +63,7 @@ import { Effect } from 'effect';
 export type AgentOrchestratorUiActionHost = {
   executeSynchronousChatLoop: (params: {
     context: AgentChatContext;
-    generationPriority: string;
+    generationPriority: RouterPriority;
     model: string;
     policy: ResolvedAgentExecutionPolicy;
     request: AgentChatRequest;
@@ -560,10 +565,11 @@ export class AgentOrchestratorUiActionService {
         ? params.payload.model.trim()
         : undefined;
     const requestedPriority =
-      typeof params.payload?.prioritize === 'string' &&
-      params.payload.prioritize.trim().length > 0
-        ? params.payload.prioritize.trim()
-        : params.context.generationPriority;
+      toRouterPriority(
+        typeof params.payload?.prioritize === 'string'
+          ? params.payload.prioritize
+          : undefined,
+      ) ?? params.context.generationPriority;
     const toolPayload = {
       aspectRatio:
         typeof params.payload?.aspectRatio === 'string'
@@ -789,7 +795,8 @@ export class AgentOrchestratorUiActionService {
 
     return await host.executeSynchronousChatLoop({
       context: params.context,
-      generationPriority: params.context.generationPriority ?? 'balanced',
+      generationPriority:
+        params.context.generationPriority ?? RouterPriority.BALANCED,
       model: params.model,
       policy: {
         allowAdvancedOverrides: false,
@@ -799,7 +806,8 @@ export class AgentOrchestratorUiActionService {
           useOrganizationPool: true,
         },
         generationModelOverride: undefined,
-        generationPriority: params.context.generationPriority ?? 'balanced',
+        generationPriority:
+          params.context.generationPriority ?? RouterPriority.BALANCED,
         platform: undefined,
         qualityTier: 'balanced',
         reviewModelOverride: undefined,

@@ -1,6 +1,10 @@
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { COST_TIER_DISPLAY } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  GenerationPriority,
+} from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -12,11 +16,9 @@ import {
   useState,
 } from 'react';
 
-export type AgentGenerationPriority = 'quality' | 'balanced' | 'speed' | 'cost';
-
 export interface AgentSettingsValues {
   defaultModel: string;
-  generationPriority: AgentGenerationPriority;
+  generationPriority: GenerationPriority;
   persona: string;
 }
 
@@ -30,7 +32,7 @@ interface AgentSettingsProps {
 }
 
 interface PriorityOption {
-  key: AgentGenerationPriority;
+  key: GenerationPriority;
   label: string;
   description: string;
   icon: ReactElement;
@@ -40,25 +42,25 @@ const GENERATION_PRIORITY_OPTIONS: PriorityOption[] = [
   {
     description: 'Premium models, highest quality output',
     icon: <Trophy className="size-4" />,
-    key: 'quality',
+    key: GenerationPriority.QUALITY,
     label: 'Best Quality',
   },
   {
     description: 'Smart balance of quality, speed, and cost',
     icon: <Scale className="size-4" />,
-    key: 'balanced',
+    key: GenerationPriority.BALANCED,
     label: 'Balanced',
   },
   {
     description: 'Fastest generation, may use lighter models',
     icon: <Zap className="size-4" />,
-    key: 'speed',
+    key: GenerationPriority.SPEED,
     label: 'Fast',
   },
   {
     description: 'Cheapest models, saves credits',
     icon: <DollarSign className="size-4" />,
-    key: 'cost',
+    key: GenerationPriority.COST,
     label: 'Budget',
   },
 ];
@@ -75,7 +77,7 @@ export function AgentSettings({
   );
   const [persona, setPersona] = useState(initialSettings.persona);
   const [generationPriority, setGenerationPriority] =
-    useState<AgentGenerationPriority>(initialSettings.generationPriority);
+    useState<GenerationPriority>(initialSettings.generationPriority);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>(
     'idle',
@@ -103,13 +105,10 @@ export function AgentSettings({
     }
   }, [generationPriority, onSave, persona, selectedModel]);
 
-  const handlePriorityChange = useCallback(
-    (priority: AgentGenerationPriority) => {
-      setGenerationPriority(priority);
-      setSaveStatus('idle');
-    },
-    [],
-  );
+  const handlePriorityChange = useCallback((priority: GenerationPriority) => {
+    setGenerationPriority(priority);
+    setSaveStatus('idle');
+  }, []);
 
   const handleModelChange = useCallback((model: string) => {
     setSelectedModel(model);

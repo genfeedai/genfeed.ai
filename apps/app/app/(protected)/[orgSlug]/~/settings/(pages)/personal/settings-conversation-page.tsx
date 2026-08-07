@@ -1,7 +1,11 @@
 'use client';
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { AgentReplyStyle } from '@genfeedai/enums';
+import {
+  AgentReplyStyle,
+  GenerationPriority,
+  toGenerationPriority,
+} from '@genfeedai/enums';
 import type { ISetting } from '@genfeedai/interfaces';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -30,27 +34,27 @@ const REPLY_STYLE_OPTIONS: Array<{ label: string; value: AgentReplyStyle }> = [
 const GENERATION_PRIORITY_OPTIONS: Array<{
   description: string;
   label: string;
-  value: NonNullable<ISetting['generationPriority']>;
+  value: GenerationPriority;
 }> = [
   {
     description: 'Use the strongest models where possible.',
     label: 'Best Quality',
-    value: 'quality',
+    value: GenerationPriority.QUALITY,
   },
   {
     description: 'Balance quality, latency, and spend.',
     label: 'Balanced',
-    value: 'balanced',
+    value: GenerationPriority.BALANCED,
   },
   {
     description: 'Prefer faster models for interactive chat.',
     label: 'Fast',
-    value: 'speed',
+    value: GenerationPriority.SPEED,
   },
   {
     description: 'Bias toward cheaper models to save credits.',
     label: 'Budget',
-    value: 'cost',
+    value: GenerationPriority.COST,
   },
 ];
 
@@ -65,7 +69,7 @@ export default function SettingsConversationPage({
   const { currentUser, mutateUser } = useCurrentUser();
   const { refresh, settings, updateSettings } = useOrganization();
   const [generationPriority, setGenerationPriority] =
-    useState<NonNullable<ISetting['generationPriority']>>('balanced');
+    useState<GenerationPriority>(GenerationPriority.BALANCED);
   const [defaultAgentModel, setDefaultAgentModel] = useState('');
   const [isSavingConversation, setIsSavingConversation] = useState(false);
   const [isSavingReplyStyle, setIsSavingReplyStyle] = useState(false);
@@ -76,7 +80,7 @@ export default function SettingsConversationPage({
 
   useEffect(() => {
     setGenerationPriority(
-      currentUser?.settings?.generationPriority ?? 'balanced',
+      currentUser?.settings?.generationPriority ?? GenerationPriority.BALANCED,
     );
     setDefaultAgentModel(currentUser?.settings?.defaultAgentModel ?? '');
   }, [
@@ -199,7 +203,7 @@ export default function SettingsConversationPage({
               disabled={isSavingConversation}
               onValueChange={(value) =>
                 setGenerationPriority(
-                  value as NonNullable<ISetting['generationPriority']>,
+                  toGenerationPriority(value) ?? GenerationPriority.BALANCED,
                 )
               }
             >

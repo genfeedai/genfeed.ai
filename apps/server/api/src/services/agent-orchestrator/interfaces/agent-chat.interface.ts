@@ -1,5 +1,5 @@
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
-import type { AgentType } from '@genfeedai/enums';
+import type { AgentType, RouterPriority } from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   AnalyticsQueryReference,
@@ -55,7 +55,12 @@ export interface AgentChatContext {
   authToken?: string;
   /** Campaign ID — when set, enables campaign coordination features */
   campaignId?: string;
-  generationPriority?: string;
+  /**
+   * Router request vocabulary (lowercase). The persisted setting is the Prisma
+   * enum `GenerationPriority` (SCREAMING) — map it with `toRouterPriority`
+   * before it reaches this context or `body.prioritize`.
+   */
+  generationPriority?: RouterPriority;
   organizationId: string;
   /** Resolved runtime skills for tool set augmentation */
   resolvedSkills?: ResolvedRuntimeSkill[];
