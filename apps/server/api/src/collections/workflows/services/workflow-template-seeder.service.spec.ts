@@ -167,7 +167,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
           }),
         }),
       },
-      where: { id: 'workflow-1' },
+      where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(tx.workflow.create).not.toHaveBeenCalled();
   });
@@ -203,7 +203,7 @@ describe('WorkflowTemplateSeederService seeded livestream bot workflows', () => 
           }),
         }),
       },
-      where: { id: 'workflow-1' },
+      where: { id: 'workflow-1', isDeleted: false, organizationId: 'org-1' },
     });
     expect(tx.workflow.create).not.toHaveBeenCalled();
   });
