@@ -731,6 +731,14 @@ export function deriveTimeline(
     const normalizedGroup = normalizeWorkGroupEvents(
       collapseWorkGroupEvents(group),
     );
+    // Lifecycle-only bookends (run started/completed) are not a user-facing
+    // "Worked for" row. Drop them — real tools live in other groups.
+    const hasRealSteps = normalizedGroup.some(
+      (event) => !isGenericRunLifecycleEvent(event),
+    );
+    if (!hasRealSteps) {
+      continue;
+    }
     const answerBoundaryIso = findAnswerBoundaryIso(
       normalizedGroup,
       assistantMessages,
@@ -787,8 +795,74 @@ export function deriveTimeline(
 }
 
 /**
+ * Merge consecutive settled work groups into one summary so a single turn
+ * never stacks three "Worked for …" rows (split runIds / lifecycle residue).
+ */
+function mergeWorkGroupEntries(
+  groups: TimelineWorkGroup[],
+): TimelineWorkGroup | null {
+  if (groups.length === 0) {
+    return null;
+  }
+  if (groups.length === 1) {
+    return groups[0] ?? null;
+  }
+
+  const events = groups
+    .flatMap((group) => group.events)
+    .toSorted((left, right) => left.createdAt.localeCompare(right.createdAt));
+  const first = groups[0];
+  if (!first || events.length === 0) {
+    return null;
+  }
+
+  const durations = groups
+    .map((group) => group.totalDurationMs)
+    .filter(
+      (value): value is number => value != null && Number.isFinite(value),
+    );
+  const wallStart = parseEventTime(
+    events[0]?.startedAt ?? events[0]?.createdAt,
+  );
+  const wallEndCandidates = events.flatMap((event) => {
+    const start =
+      parseEventTime(event.startedAt) ?? parseEventTime(event.createdAt);
+    const created = parseEventTime(event.createdAt);
+    const fromDuration =
+      start != null && event.durationMs != null
+        ? start + event.durationMs
+        : null;
+    return [created, fromDuration, start].filter(
+      (value): value is number => value != null,
+    );
+  });
+  const wallEnd =
+    wallEndCandidates.length > 0 ? Math.max(...wallEndCandidates) : null;
+  const wallClockMs =
+    wallStart != null && wallEnd != null && wallEnd >= wallStart
+      ? wallEnd - wallStart
+      : null;
+  const maxDuration = durations.length > 0 ? Math.max(...durations) : null;
+  const totalDurationMs =
+    wallClockMs != null && maxDuration != null
+      ? Math.max(wallClockMs, maxDuration)
+      : (wallClockMs ?? maxDuration);
+
+  const isAnyLive = groups.some((group) => group.presentation === 'live');
+
+  return {
+    createdAt: first.createdAt,
+    events,
+    id: first.id,
+    kind: 'work-group',
+    presentation: isAnyLive ? 'live' : 'archived',
+    totalDurationMs,
+  };
+}
+
+/**
  * When a run finished and the assistant reply exists, render the answer first
- * and the collapsible "Worked for …" / step log immediately after it.
+ * and a single collapsible "Worked for …" / step log immediately after it.
  * Live work with no answer yet stays above (tools still in flight).
  */
 export function placeWorkGroupsAfterAnswers(
@@ -810,18 +884,25 @@ export function placeWorkGroupsAfterAnswers(
       end += 1;
     }
 
+    const workSlice = entries
+      .slice(index, end)
+      .filter(
+        (entry): entry is TimelineWorkGroup => entry.kind === 'work-group',
+      );
+    const merged = mergeWorkGroupEntries(workSlice);
     const following = entries[end];
+
     if (following?.kind === 'assistant-message') {
       result.push(following);
-      for (let workIndex = index; workIndex < end; workIndex += 1) {
-        result.push(entries[workIndex]);
+      if (merged) {
+        result.push(merged);
       }
       index = end + 1;
       continue;
     }
 
-    for (let workIndex = index; workIndex < end; workIndex += 1) {
-      result.push(entries[workIndex]);
+    if (merged) {
+      result.push(merged);
     }
     index = end;
   }

@@ -86,9 +86,9 @@ function AgentChatInputToolbarInner({
         ariaLabel="Select model"
         creditsAvailable={creditsAvailable}
         density={isCompact ? 'compact' : 'default'}
-        isDisabled={Boolean(
-          disabled || showStop || isUploading || isTranscribing,
-        )}
+        // Model pick stays available while reconnecting / send is paused —
+        // only block during an active run or attachment/mic work.
+        isDisabled={Boolean(showStop || isUploading || isTranscribing)}
         isLoading={isModelsLoading}
         models={models}
         onBuyCredits={onBuyCredits}

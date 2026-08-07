@@ -104,6 +104,11 @@ export function TimelineWorkGroup({
 
   const showSteps = stepCount > 0 && (!isCollapsible || isExpanded);
 
+  // Lifecycle-only residue with no tools is not a product row.
+  if (stepCount === 0 && isTerminal) {
+    return <></>;
+  }
+
   const durationFooter = (
     <div
       className={cn(
