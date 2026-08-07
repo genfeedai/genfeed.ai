@@ -1,5 +1,4 @@
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
-import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   AGENT_CHAT_CAPABILITY,
@@ -45,7 +44,7 @@ function mapRegistryModelToOption(model: IModel): AgentModelOption {
 }
 
 function isAgentChatRegistryModel(model: IModel): boolean {
-  if (model.category !== ModelCategory.TEXT) {
+  if (model.category !== ModelCategory.TEXT && model.category !== 'text') {
     return false;
   }
   if (model.isLegacy || model.isActive === false) {
@@ -60,29 +59,28 @@ function isAgentChatRegistryModel(model: IModel): boolean {
 
   return (
     capabilities.includes(AGENT_CHAT_CAPABILITY) ||
-    recommended.includes(AGENT_CHAT_CAPABILITY)
+    recommended.includes(AGENT_CHAT_CAPABILITY) ||
+    model.provider === 'openrouter'
   );
 }
 
 /**
- * Loads agent chat models from the unified `Model` registry.
- *
- * Falls back to the hard-coded catalogue while the registry seed rolls out, so
- * the picker never goes blank mid-migration. That fallback is temporary — once
- * the boot seed is proven in cloud, an empty registry becomes an empty picker
- * rather than a silently re-expanded constants list (#2422 phase D).
+ * Loads agent chat models from the Model registry only (Phase D / #2422).
+ * No silent constants fallback — empty list means seed/API is incomplete.
  */
 export function useAgentRegistryModels(apiService: AgentApiService | null): {
+  defaultModelKey: string | null;
   isLoading: boolean;
   models: readonly AgentModelOption[];
 } {
-  const [models, setModels] =
-    useState<readonly AgentModelOption[]>(AGENT_MODELS);
+  const [models, setModels] = useState<readonly AgentModelOption[]>([]);
+  const [defaultModelKey, setDefaultModelKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(apiService));
 
   useEffect(() => {
     if (!apiService) {
-      setModels(AGENT_MODELS);
+      setModels([]);
+      setDefaultModelKey(null);
       setIsLoading(false);
       return;
     }
@@ -113,8 +111,8 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
           return;
         }
 
-        const options = rows
-          .filter(isAgentChatRegistryModel)
+        const agentRows = rows.filter(isAgentChatRegistryModel);
+        const options = agentRows
           .map(mapRegistryModelToOption)
           .toSorted((left, right) => {
             const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
@@ -125,10 +123,17 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
             return left.label.localeCompare(right.label);
           });
 
-        setModels(options.length > 0 ? options : AGENT_MODELS);
+        const defaultRow =
+          agentRows.find((row) => row.isDefault) ??
+          agentRows.find((row) => row.isHighlighted) ??
+          agentRows[0];
+
+        setModels(options);
+        setDefaultModelKey(defaultRow?.key ?? null);
       } catch {
         if (!isCancelled) {
-          setModels(AGENT_MODELS);
+          setModels([]);
+          setDefaultModelKey(null);
         }
       } finally {
         if (!isCancelled) {
@@ -143,5 +148,5 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
     };
   }, [apiService]);
 
-  return { isLoading, models };
+  return { defaultModelKey, isLoading, models };
 }
