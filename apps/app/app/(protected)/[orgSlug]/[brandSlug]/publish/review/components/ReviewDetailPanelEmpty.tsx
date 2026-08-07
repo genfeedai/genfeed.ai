@@ -1,21 +1,20 @@
 'use client';
 
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { MousePointerClick } from 'lucide-react';
 
 export default function ReviewDetailPanelEmpty() {
   return (
-    <InsetSurface className="flex min-h-[720px] flex-col items-center justify-center p-8 text-center">
-      <div className="rounded-full border border-white/10 bg-card p-5">
-        <MousePointerClick className="size-8 text-foreground/50" />
+    <div className="flex min-h-[320px] flex-col items-center justify-center rounded-card bg-card p-8 text-center shadow-border">
+      <div className="rounded-card border border-border bg-background p-3">
+        <MousePointerClick className="size-6 text-muted-foreground" />
       </div>
-      <h2 className="mt-5 text-xl font-semibold text-foreground">
-        Select an item to review
+      <h2 className="mt-4 text-sm font-semibold text-foreground">
+        Select a post to review
       </h2>
-      <p className="mt-2 max-w-md text-sm text-foreground/55">
-        Pick a post from the queue to inspect the creative, caption, prompt, and
-        scheduling details before you approve or reject it.
+      <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+        Pick an item from the queue to inspect the caption, draft, and decision
+        actions.
       </p>
-    </InsetSurface>
+    </div>
   );
 }

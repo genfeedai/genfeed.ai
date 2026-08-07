@@ -95,7 +95,7 @@ export default function ReviewGrid({
 
   return (
     <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(280px,22rem)_minmax(0,1fr)]">
-      <section className="flex min-h-0 min-w-0 flex-col rounded-xl border border-border bg-card">
+      <section className="flex min-h-0 min-w-0 flex-col rounded-card bg-card shadow-border">
         <div className="space-y-3 border-b border-border px-3 py-3">
           <div className="flex min-w-0 items-start justify-between gap-2">
             <div className="min-w-0">
@@ -124,7 +124,7 @@ export default function ReviewGrid({
           />
 
           {selectedIds.size > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-background/50 px-2.5 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-border bg-background/50 px-2.5 py-2">
               <p className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">
                   {selectedIds.size}
@@ -160,8 +160,8 @@ export default function ReviewGrid({
         </div>
 
         {items.length === 0 ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center p-8 text-center">
-            <div className="rounded-full border border-border bg-background p-3">
+          <div className="flex min-h-[240px] flex-col items-center justify-center p-8 text-center">
+            <div className="rounded-card border border-border bg-background p-3">
               <Sparkles className="size-5 text-muted-foreground" />
             </div>
             <p className="mt-3 text-sm font-medium text-foreground">
@@ -174,7 +174,7 @@ export default function ReviewGrid({
         ) : (
           <div
             className={cn(
-              'max-h-[min(720px,calc(100dvh-14rem))] space-y-2 overflow-y-auto p-2',
+              'max-h-[min(720px,calc(100dvh-14rem))] space-y-1.5 overflow-y-auto p-2',
             )}
           >
             {items.map((item) => (
