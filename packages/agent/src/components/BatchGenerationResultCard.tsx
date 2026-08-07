@@ -9,9 +9,12 @@ import {
   CircleCheck,
   CircleX,
   DollarSign,
+  FileText,
   Layers,
 } from 'lucide-react';
 import type { ReactElement } from 'react';
+
+const MAX_PREVIEW_POSTS = 3;
 
 interface BatchGenerationResultCardProps {
   action: AgentUiAction;
@@ -44,6 +47,15 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
   );
 }
 
+function resolveReviewHref(action: AgentUiAction): string | undefined {
+  const reviewCta = action.ctas?.find(
+    (cta) =>
+      typeof cta.href === 'string' &&
+      (cta.href.includes('review') || cta.label.toLowerCase().includes('view')),
+  );
+  return reviewCta?.href;
+}
+
 export function BatchGenerationResultCard({
   action,
 }: BatchGenerationResultCardProps): ReactElement {
@@ -54,6 +66,11 @@ export function BatchGenerationResultCard({
   const hasCompletionMetrics =
     completedCount != null || (failedCount != null && failedCount > 0);
   const platformLabels = (action.platforms ?? []).map(formatPlatformLabel);
+  const previewItems = (action.items ?? []).slice(0, MAX_PREVIEW_POSTS);
+  const remainingCount =
+    action.remainingCount ??
+    Math.max((completedCount ?? 0) - previewItems.length, 0);
+  const reviewHref = resolveReviewHref(action);
 
   return (
     <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
@@ -127,6 +144,69 @@ export function BatchGenerationResultCard({
           </div>
         ) : null}
       </div>
+
+      {previewItems.length > 0 ? (
+        <div className="mt-4 space-y-2">
+          <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+            Draft previews
+          </div>
+          <div className="grid gap-2">
+            {previewItems.map((item) => {
+              const platform =
+                typeof item.platform === 'string'
+                  ? formatPlatformLabel(item.platform)
+                  : null;
+              const href = reviewHref
+                ? `${reviewHref}${reviewHref.includes('?') ? '&' : '?'}post=${encodeURIComponent(item.id)}`
+                : undefined;
+
+              const body = (
+                <>
+                  <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded border border-border/60 bg-muted/40 text-foreground/60">
+                    <FileText className="size-3.5" aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-sm leading-5 text-foreground">
+                      {item.title}
+                    </p>
+                    {platform ? (
+                      <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                        {platform}
+                      </p>
+                    ) : null}
+                  </div>
+                </>
+              );
+
+              return href ? (
+                <a
+                  key={item.id}
+                  href={href}
+                  className="flex items-start gap-3 rounded border border-border/60 bg-background/70 p-3 transition-colors hover:border-border hover:bg-accent/40"
+                >
+                  {body}
+                </a>
+              ) : (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 rounded border border-border/60 bg-background/70 p-3"
+                >
+                  {body}
+                </div>
+              );
+            })}
+          </div>
+          {remainingCount > 0 && reviewHref ? (
+            <a
+              href={reviewHref}
+              className="inline-flex text-sm font-medium text-primary hover:underline"
+            >
+              +{remainingCount} more post{remainingCount === 1 ? '' : 's'} in
+              review
+            </a>
+          ) : null}
+        </div>
+      ) : null}
 
       {platformLabels.length > 0 ? (
         <div className="mt-4 space-y-2">

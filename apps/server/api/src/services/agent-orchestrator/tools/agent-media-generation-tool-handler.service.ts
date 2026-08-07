@@ -1082,6 +1082,30 @@ export class AgentMediaGenerationToolHandler {
         }),
       );
 
+      const completedItems = streamedItems.filter(
+        (entry) => entry.status === 'completed' && entry.postId,
+      );
+      const previewItems = completedItems.slice(0, 3).map((entry) => ({
+        id: entry.postId as string,
+        platform: entry.platform,
+        title:
+          (entry.previewText && entry.previewText.trim()) ||
+          entry.topic ||
+          `Post ${entry.index + 1}`,
+        type: 'post',
+      }));
+      const remainingCount = Math.max(
+        completedItems.length - previewItems.length,
+        0,
+      );
+      const reviewHref = `/publish/review?batch=${batchId}&filter=ready`;
+      const viewAllLabel =
+        completedItems.length > 3
+          ? `View all ${completedItems.length} posts`
+          : completedItems.length > 0
+            ? 'Open review queue'
+            : 'Open Review Queue';
+
       return {
         creditsUsed: 5,
         data: {
@@ -1100,12 +1124,22 @@ export class AgentMediaGenerationToolHandler {
         nextActions: [
           {
             batchCount: totalCount,
+            completedCount: summary.completedCount,
             ctas: [
-              { href: '/review', label: 'Open Review Queue' },
+              { href: reviewHref, label: viewAllLabel },
               { href: '/calendar/posts', label: 'Open Calendar' },
             ],
-            description: `Generated ${totalCount} ${platformLabel} draft${totalCount === 1 ? '' : 's'}.`,
+            description:
+              summary.completedCount > 0
+                ? `Generated ${summary.completedCount} ${platformLabel} draft${summary.completedCount === 1 ? '' : 's'}${summary.failedCount > 0 ? ` (${summary.failedCount} failed)` : ''}.`
+                : `Batch finished with 0 ready drafts${summary.failedCount > 0 ? `; ${summary.failedCount} failed` : ''}.`,
+            failedCount: summary.failedCount,
             id: `batch-generation-${batchId}`,
+            items: previewItems,
+            platforms,
+            // remainingCount is read by BatchGenerationResultCard for the
+            // "and N more" link when more than 3 posts completed.
+            remainingCount,
             title: 'Batch generation complete',
             type: 'batch_generation_card',
           },

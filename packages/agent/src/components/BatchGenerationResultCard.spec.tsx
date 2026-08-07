@@ -42,4 +42,65 @@ describe('BatchGenerationResultCard', () => {
     ).toHaveAttribute('href', '/publish/review?batch=batch-123&filter=ready');
     expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
   });
+
+  it('renders at most three post preview cards and a link to the rest', () => {
+    render(
+      <BatchGenerationResultCard
+        action={{
+          batchCount: 10,
+          completedCount: 8,
+          ctas: [
+            {
+              href: '/publish/review?batch=batch-xyz&filter=ready',
+              label: 'View all 8 posts',
+            },
+          ],
+          description: 'Generated 8 X drafts.',
+          id: 'batch-result-previews',
+          items: [
+            {
+              id: 'post-1',
+              platform: 'twitter',
+              title: 'First draft about image content',
+              type: 'post',
+            },
+            {
+              id: 'post-2',
+              platform: 'twitter',
+              title: 'Second draft with a hook',
+              type: 'post',
+            },
+            {
+              id: 'post-3',
+              platform: 'twitter',
+              title: 'Third draft for the feed',
+              type: 'post',
+            },
+            {
+              id: 'post-4',
+              platform: 'twitter',
+              title: 'Should not render as a fourth card',
+              type: 'post',
+            },
+          ],
+          remainingCount: 5,
+          title: 'Batch generation complete',
+          type: 'batch_generation_card',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Draft previews')).toBeInTheDocument();
+    expect(
+      screen.getByText('First draft about image content'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Second draft with a hook')).toBeInTheDocument();
+    expect(screen.getByText('Third draft for the feed')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Should not render as a fourth card'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: '+5 more posts in review' }),
+    ).toHaveAttribute('href', '/publish/review?batch=batch-xyz&filter=ready');
+  });
 });

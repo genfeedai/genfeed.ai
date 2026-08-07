@@ -214,6 +214,11 @@ export interface AgentUiAction extends AgentUiActionBase {
     postCount: number;
   }[];
   batchCount?: number;
+  completedCount?: number;
+  failedCount?: number;
+  creditsUsed?: number;
+  /** Completed posts not shown in the max-3 preview strip. */
+  remainingCount?: number;
   audioUrl?: string;
   cloneProgress?: number;
   brandId?: string;

@@ -235,15 +235,27 @@ export class BatchGenerationProcessingService {
         item.prompt = content?.content ?? topic;
         item.caption = content?.content ?? '';
 
-        // Create a draft post as placeholder
+        // Untargeted draft — credential is optional until the user picks a
+        // publish account (posts.credentialId is nullable).
+        if (!batchRecord.brandId || !batchRecord.userId) {
+          throw new BadRequestException(
+            'Batch is missing brandId or userId; cannot create draft posts',
+          );
+        }
+
+        const caption =
+          (item.caption && item.caption.trim()) ||
+          (item.prompt && item.prompt.trim()) ||
+          topic.trim() ||
+          'Draft post';
+
         const post = await this.postsService.create({
           brandId: batchRecord.brandId,
-          credentialId: undefined,
-          description: item.caption,
+          description: caption,
           ingredients: [],
           label: `Batch: ${topic}`,
           organizationId: orgId,
-          platform: item.platform,
+          platform: item.platform || undefined,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
