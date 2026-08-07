@@ -161,7 +161,7 @@ export function AgentChatInput({
 
   return (
     <div
-      className="relative w-full"
+      className="relative w-full min-w-0 max-w-full"
       data-density={density}
       onPaste={handlePasteImages}
       {...dragHandlers}

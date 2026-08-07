@@ -153,7 +153,8 @@ export function AgentChatPromptBar({
       topContent={topContent}
       zIndex={40}
       className={cn(
-        'w-full min-w-0 max-w-full overflow-x-hidden',
+        // min-w-0 so chips/toolbar cannot expand past the portal track.
+        'w-full min-w-0 max-w-full',
         isPortaled && 'pointer-events-auto',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
         layoutMode === 'surface-fixed' && 'bottom-0',

@@ -169,16 +169,16 @@ export function AgentCompletionSummaryCard({
         AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
       )}
     >
-      {/* Always-visible compact header */}
-      <div className="flex min-w-0 items-center gap-2 px-3 py-2">
+      {/* Always-visible compact header — wrap instead of growing past track. */}
+      <div className="flex min-w-0 flex-wrap items-center gap-2 px-3 py-2">
         <CircleCheck className="size-4 shrink-0 text-emerald-500" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <div className="min-w-0 flex-1 basis-40">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="text-sm font-medium text-foreground">
               {action.title || 'Done'}
             </span>
             {!isExpanded && oneLiner ? (
-              <span className="truncate text-xs text-muted-foreground">
+              <span className="min-w-0 truncate text-xs text-muted-foreground">
                 · {oneLiner}
               </span>
             ) : null}

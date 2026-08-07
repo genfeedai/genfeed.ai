@@ -98,12 +98,13 @@ export function GenerationActionCardControls({
         />
       </div>
 
-      {/* Model & Aspect Ratio row */}
-      <div className="flex items-end gap-3">
+      {/* Model & Aspect Ratio row — wrap on narrow tracks so controls never
+          force the conversation column wider than the viewport. */}
+      <div className="flex min-w-0 flex-wrap items-end gap-3">
         {/* Every control in this row sizes to its own content — flex-1 here let
             the model picker eat ~80% of the row and stretched its label away
             from the chevron while the siblings stayed compact. */}
-        <div className="min-w-0 shrink-0">
+        <div className="min-w-0 shrink">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Model
           </span>

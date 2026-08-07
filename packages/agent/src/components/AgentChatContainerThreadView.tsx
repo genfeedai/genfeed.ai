@@ -126,7 +126,10 @@ export function AgentChatContainerThreadView({
   return (
     <div
       className={cn(
-        'relative flex flex-1 overflow-hidden',
+        // min-w-0 is required on every flex ancestor — without it, wide
+        // message/code/card min-content blows the column and paints a
+        // horizontal scrollbar on the page (hiding overflow is not a fix).
+        'relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden',
         isReadOnly && 'opacity-60',
       )}
     >
@@ -143,12 +146,14 @@ export function AgentChatContainerThreadView({
           same class as the floating composer so borders match. */}
       <div
         ref={scrollContainerRef}
-        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
+        className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]"
       >
         <div
           className={cn(
             AGENT_CONVERSATION_TRACK_CLASS,
-            'space-y-1 pt-4',
+            // Force descendants to respect the track width (flex/grid children
+            // default min-width:auto and will expand the column otherwise).
+            'space-y-1 pt-4 [&>*]:min-w-0',
             // Reserve only what the floating stack actually uses (glass bar
             // ~7rem + optional chip row ~3rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips

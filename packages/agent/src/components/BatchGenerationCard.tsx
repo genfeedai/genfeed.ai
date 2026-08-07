@@ -98,27 +98,29 @@ export function BatchGenerationCard({
   return (
     <div
       className={cn(
-        'my-2 w-full min-w-0 max-w-full overflow-hidden border border-border/70 bg-card/70 p-4 shadow-sm',
+        'my-2 w-full min-w-0 max-w-full border border-border/70 bg-card/70 p-4 shadow-sm',
         AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
       )}
     >
       <div className="mb-3 flex min-w-0 items-center gap-2">
         <Layers className="size-5 shrink-0 text-cyan-500" />
-        <h3 className="truncate text-sm font-semibold">
+        <h3 className="min-w-0 truncate text-sm font-semibold">
           {action.title || 'Batch Generation'}
         </h3>
       </div>
 
       {action.description && (
-        <p className="mb-3 text-xs text-muted-foreground">
+        <p className="mb-3 break-words text-xs text-muted-foreground [overflow-wrap:anywhere]">
           {action.description}
         </p>
       )}
 
-      <div className="mb-3 min-w-0">
+      {/* Stack controls — never put count + CTAs on one nowrap row (that was
+          forcing the conversation track past the viewport). */}
+      <div className="mb-3 min-w-0 space-y-1.5">
         <label
           htmlFor="batch-count"
-          className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+          className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
         >
           Number of items
         </label>
@@ -129,23 +131,24 @@ export function BatchGenerationCard({
           max={50}
           value={count}
           onChange={(e) => setCount(Number(e.target.value))}
-          className="w-full min-w-0 max-w-full"
+          className="w-full min-w-0 max-w-[12rem]"
         />
       </div>
 
-      <div className="mb-3">
+      <div className="mb-3 min-w-0">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Platforms
         </span>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex min-w-0 flex-wrap gap-2">
           {AVAILABLE_PLATFORMS.map((platform) => (
             <label
               key={platform}
-              className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors ${
+              className={cn(
+                'inline-flex max-w-full shrink-0 cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors',
                 selectedPlatforms.has(platform)
                   ? 'border-primary bg-primary/5 text-foreground'
-                  : 'border-border text-muted-foreground hover:border-primary/50'
-              }`}
+                  : 'border-border text-muted-foreground hover:border-primary/50',
+              )}
             >
               <Input
                 type="checkbox"
@@ -159,14 +162,14 @@ export function BatchGenerationCard({
         </div>
       </div>
 
-      <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-        <DollarSign className="size-3.5" />
-        <span>
+      <div className="mb-1 flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+        <DollarSign className="size-3.5 shrink-0" />
+        <span className="min-w-0 break-words">
           Estimated cost: {estimatedCredits} credit
           {estimatedCredits === 1 ? '' : 's'}
         </span>
       </div>
-      <p className="mb-3 text-[10px] leading-4 text-muted-foreground/80">
+      <p className="mb-3 break-words text-[10px] leading-4 text-muted-foreground/80 [overflow-wrap:anywhere]">
         Based on default mix (image{' '}
         {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.IMAGE]}% / video{' '}
         {DEFAULT_BATCH_CONTENT_MIX[ContentFormat.VIDEO]}% / reel{' '}
@@ -180,7 +183,7 @@ export function BatchGenerationCard({
         onClick={handleGenerate}
         isDisabled={count < 1 || selectedPlatforms.size === 0}
         icon={<Layers className="size-4" />}
-        className="w-full justify-center"
+        className="w-full max-w-full justify-center"
       >
         Generate
       </Button>

@@ -1170,7 +1170,7 @@ function UniversalWorkspaceShellContent({
                 (max-w-4xl + px-3/sm:px-4) so prompt borders match cards.
                 Empty sessions leave the slot empty (`empty:hidden`). */}
               {isCanvasComposerVisible ? (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center overflow-x-hidden pb-3 md:pb-5">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex min-w-0 justify-center pb-3 md:pb-5">
                   <div
                     className="mx-auto w-full min-w-0 max-w-4xl px-3 empty:hidden sm:px-4"
                     data-testid="workspace-composer-slot"

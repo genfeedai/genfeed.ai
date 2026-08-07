@@ -1,3 +1,4 @@
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Code } from '@genfeedai/ui';
 import type { ReactElement, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -86,7 +87,12 @@ export function SafeMarkdown({
     : content;
 
   return (
-    <div className={className}>
+    <div
+      className={cn(
+        'min-w-0 max-w-full break-words [overflow-wrap:anywhere]',
+        className,
+      )}
+    >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         skipHtml
@@ -151,15 +157,30 @@ export function SafeMarkdown({
               codeClassName.includes('language-');
 
             if (!isBlockCode) {
-              return <Code className="text-[0.9em]">{children}</Code>;
+              // Inline code must wrap — mono tokens are the #1 horizontal
+              // overflow source in agent failure dumps.
+              return (
+                <Code className="break-all text-[0.9em] [overflow-wrap:anywhere]">
+                  {children}
+                </Code>
+              );
             }
 
             return (
-              <Code display="block" size="sm" className="bg-muted/70">
+              <Code
+                display="block"
+                size="sm"
+                className="max-w-full overflow-x-auto break-words bg-muted/70 whitespace-pre-wrap"
+              >
                 {children}
               </Code>
             );
           },
+          pre: ({ children }): ReactElement => (
+            <pre className="my-3 max-w-full overflow-x-auto rounded-lg">
+              {children}
+            </pre>
+          ),
         }}
       >
         {renderedContent}

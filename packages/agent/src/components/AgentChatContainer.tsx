@@ -118,8 +118,9 @@ export function AgentChatContainer({
 
   // Full-width pane so the transcript scrollbar sits on the window edge
   // (Codex-style). Content + composer share AGENT_CONVERSATION_TRACK_CLASS.
+  // min-w-0 stops flex min-content from blowing past the shell width.
   const conversationColumnClass =
-    'relative flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden';
+    'relative flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-clip';
   const activeWorkEvent = useMemo(
     () =>
       selectActiveWorkEvent(container.workEvents, {
