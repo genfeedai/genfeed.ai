@@ -38,6 +38,14 @@ export enum ActivitySource {
   BRAND_RELOCATION = 'brand-relocation',
 }
 
+/**
+ * Flat wire vocabulary for Activity.key (Postgres string column).
+ *
+ * Do not nest this enum — values are persisted and grepped as kebab-case.
+ * For hierarchical DX use `ActivityKeys.video.reframe.processing` (same
+ * strings). For copy, use `parseActivityKey` / `getActivityMessageDescriptor`
+ * — never add another per-key English switch.
+ */
 export enum ActivityKey {
   CREDITS_ADD = 'credits-add',
   CREDITS_REMOVE = 'credits-remove',

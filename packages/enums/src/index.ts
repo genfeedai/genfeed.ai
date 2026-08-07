@@ -1,5 +1,7 @@
 export * from './action-origin.enum';
 export * from './activity.enum';
+export * from './activity-key.catalog';
+export * from './activity-keys.tree';
 export * from './agent-conversation.enum';
 export * from './agent-reply-style.enum';
 export * from './agent-run.enum';
