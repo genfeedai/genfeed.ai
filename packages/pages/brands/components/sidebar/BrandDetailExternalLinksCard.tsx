@@ -13,9 +13,10 @@ const EMPTY_STATE_CLASSNAME =
   'rounded-md bg-background-secondary/50 px-3 py-3 text-xs text-muted-foreground';
 
 function isManualLinkCategory(category: string | undefined): boolean {
-  const value = String(category ?? '').toLowerCase();
   return (
-    value === LinkCategory.WEBSITE || value === LinkCategory.OTHER || !value
+    !category ||
+    category === LinkCategory.WEBSITE ||
+    category === LinkCategory.OTHER
   );
 }
 

@@ -1,5 +1,6 @@
 import { LinksService } from '@api/collections/links/services/links.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { LinkCategory } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -36,7 +37,7 @@ describe('LinksService', () => {
 
     await service.create({
       brandId: 'brand_1',
-      category: 'website' as never,
+      category: LinkCategory.WEBSITE,
       label: 'Website',
       url: 'https://example.com',
     });

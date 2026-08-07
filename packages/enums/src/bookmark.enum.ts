@@ -1,22 +1,34 @@
-import { Platform } from './platform.enum';
-
+/**
+ * Bookmark source category. Values match Prisma `BookmarkCategory` exactly.
+ *
+ * These are Prisma enum labels, not `Platform` ids — `bookmarks.category` is a
+ * Postgres enum column. The name overlap with `Platform` is coincidental.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum BookmarkCategory`
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
 export const BookmarkCategory = {
-  INSTAGRAM: Platform.INSTAGRAM,
-  TIKTOK: Platform.TIKTOK,
-  TWEET: 'tweet' as const,
-  URL: 'url' as const,
-  YOUTUBE: Platform.YOUTUBE,
+  INSTAGRAM: 'INSTAGRAM',
+  TIKTOK: 'TIKTOK',
+  TWEET: 'TWEET',
+  URL: 'URL',
+  YOUTUBE: 'YOUTUBE',
 } as const;
 
 export type BookmarkCategory =
   (typeof BookmarkCategory)[keyof typeof BookmarkCategory];
 
+/**
+ * Bookmark origin platform. Values match Prisma `BookmarkPlatform` exactly.
+ *
+ * @see packages/prisma/prisma/schema.prisma `enum BookmarkPlatform`
+ */
 export const BookmarkPlatform = {
-  INSTAGRAM: Platform.INSTAGRAM,
-  TIKTOK: Platform.TIKTOK,
-  TWITTER: Platform.TWITTER,
-  WEB: 'web' as const,
-  YOUTUBE: Platform.YOUTUBE,
+  INSTAGRAM: 'INSTAGRAM',
+  TIKTOK: 'TIKTOK',
+  TWITTER: 'TWITTER',
+  WEB: 'WEB',
+  YOUTUBE: 'YOUTUBE',
 } as const;
 
 export type BookmarkPlatform =

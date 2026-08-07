@@ -41,7 +41,9 @@ function createCompleteBrand(): BrandKitSourceBrand {
     label: 'Acme',
     links: [
       {
-        category: 'website',
+        // Prisma `LinkCategory` label as it arrives on the wire (SCREAMING);
+        // `socialLinks[].platform` below must still read lowercase.
+        category: 'WEBSITE',
         label: 'Website',
         url: 'https://acme.example',
       },
