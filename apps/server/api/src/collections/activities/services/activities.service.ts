@@ -131,6 +131,52 @@ export class ActivitiesService extends BaseService<
     data.origin = origin;
     normalized.data = data as Prisma.JsonValue;
     normalized.origin = origin;
+
+    // Prisma columns are action + data JSON. Wire contract (serializer /
+    // frontend) still expects top-level key/value/source/isRead. Promote from
+    // data first, then fall back to the action column so list UIs do not render
+    // blank rows with only a timestamp.
+    const keyFromData =
+      typeof data.key === 'string' && data.key.length > 0 ? data.key : null;
+    const actionKey =
+      typeof normalized.action === 'string' && normalized.action.length > 0
+        ? normalized.action
+        : null;
+    const existingKey =
+      typeof normalized.key === 'string' && normalized.key.length > 0
+        ? normalized.key
+        : null;
+    normalized.key = existingKey ?? keyFromData ?? actionKey ?? null;
+
+    if (
+      (typeof normalized.value !== 'string' || normalized.value.length === 0) &&
+      typeof data.value === 'string'
+    ) {
+      normalized.value = data.value;
+    }
+
+    if (
+      (typeof normalized.source !== 'string' ||
+        normalized.source.length === 0) &&
+      typeof data.source === 'string'
+    ) {
+      normalized.source = data.source;
+    }
+
+    if (typeof normalized.isRead !== 'boolean') {
+      normalized.isRead =
+        typeof data.isRead === 'boolean' ? data.isRead : false;
+    }
+
+    if (
+      (typeof normalized.status !== 'string' ||
+        (normalized.status as string).length === 0) &&
+      typeof data.status === 'string'
+    ) {
+      (normalized as ActivityDocument & { status?: string }).status =
+        data.status;
+    }
+
     normalized.actorUserId =
       typeof normalized.actorUserId === 'string'
         ? normalized.actorUserId

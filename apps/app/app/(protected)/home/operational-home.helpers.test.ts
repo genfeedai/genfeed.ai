@@ -158,6 +158,16 @@ describe('getActivityBadge', () => {
       { status: 'published' },
       { label: 'Completed', variant: 'success' },
     ],
+    [
+      'key-generated',
+      { key: 'image-generated' },
+      { label: 'Completed', variant: 'success' },
+    ],
+    [
+      'key-failed',
+      { key: 'video-failed' },
+      { label: 'Failed', variant: 'destructive' },
+    ],
     ['unknown', {}, { label: 'Recorded', variant: 'info' }],
   ])('maps %s activity', (_label, activity, expected) => {
     expect(getActivityBadge(activity as unknown as IActivity)).toEqual(

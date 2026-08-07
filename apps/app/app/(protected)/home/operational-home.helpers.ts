@@ -155,20 +155,34 @@ export function getActivityBadge(activity: IActivity): {
   label: string;
   variant: 'destructive' | 'info' | 'success' | 'warning';
 } {
-  const normalized = (activity.status ?? activity.value ?? '').toLowerCase();
+  const key = (activity.key ?? '').toLowerCase();
+  const normalized = (activity.status ?? activity.value ?? key).toLowerCase();
 
-  if (normalized.includes('fail') || normalized.includes('error')) {
+  if (
+    normalized.includes('fail') ||
+    normalized.includes('error') ||
+    key.endsWith('-failed')
+  ) {
     return { label: 'Failed', variant: 'destructive' };
   }
 
-  if (normalized.includes('pending') || normalized.includes('processing')) {
+  if (
+    normalized.includes('pending') ||
+    normalized.includes('processing') ||
+    key.endsWith('-processing') ||
+    key.endsWith('-created')
+  ) {
     return { label: 'In progress', variant: 'warning' };
   }
 
   if (
     normalized.includes('complete') ||
     normalized.includes('publish') ||
-    normalized.includes('success')
+    normalized.includes('success') ||
+    normalized.includes('generated') ||
+    key.endsWith('-completed') ||
+    key.endsWith('-generated') ||
+    key.endsWith('-published')
   ) {
     return { label: 'Completed', variant: 'success' };
   }

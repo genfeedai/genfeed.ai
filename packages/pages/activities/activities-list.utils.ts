@@ -143,6 +143,41 @@ export function getResultTypeFromActivityKey(
   }
 }
 
+function humanizeActivityToken(value: string): string {
+  return value
+    .replaceAll(/[_-]+/g, ' ')
+    .replaceAll(/\s+/g, ' ')
+    .trim()
+    .replaceAll(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getActivityFallbackDescription(activity: IActivity): string {
+  if (activity.label?.trim()) {
+    return activity.label.trim();
+  }
+
+  if (activity.key?.trim()) {
+    return humanizeActivityToken(activity.key);
+  }
+
+  const sourceLabel = activity.source
+    ? getActivitySourceLabel(activity.source)
+    : undefined;
+  if (sourceLabel) {
+    return sourceLabel;
+  }
+
+  if (
+    typeof activity.value === 'string' &&
+    activity.value.trim() &&
+    !activity.value.trim().startsWith('{')
+  ) {
+    return activity.value.trim();
+  }
+
+  return 'Activity recorded';
+}
+
 export function getActivityDescription(activity: IActivity): string {
   const key = activity.key as ActivityKey;
 
@@ -154,6 +189,18 @@ export function getActivityDescription(activity: IActivity): string {
       return 'Generated an image';
     case ActivityKey.IMAGE_FAILED:
       return 'Failed to generate image';
+    case ActivityKey.IMAGE_REFRAME_PROCESSING:
+      return 'Reframing an image...';
+    case ActivityKey.IMAGE_REFRAME_COMPLETED:
+      return 'Reframed an image';
+    case ActivityKey.IMAGE_REFRAME_FAILED:
+      return 'Failed to reframe image';
+    case ActivityKey.IMAGE_UPSCALE_PROCESSING:
+      return 'Upscaling an image...';
+    case ActivityKey.IMAGE_UPSCALE_COMPLETED:
+      return 'Upscaled an image';
+    case ActivityKey.IMAGE_UPSCALE_FAILED:
+      return 'Failed to upscale image';
 
     // Video
     case ActivityKey.VIDEO_PROCESSING:
@@ -165,6 +212,18 @@ export function getActivityDescription(activity: IActivity): string {
       return 'Failed to generate video';
     case ActivityKey.VIDEO_SCHEDULED:
       return 'Scheduled a video';
+    case ActivityKey.VIDEO_REFRAME_PROCESSING:
+      return 'Reframing a video...';
+    case ActivityKey.VIDEO_REFRAME_COMPLETED:
+      return 'Reframed a video';
+    case ActivityKey.VIDEO_REFRAME_FAILED:
+      return 'Failed to reframe video';
+    case ActivityKey.VIDEO_UPSCALE_PROCESSING:
+      return 'Upscaling a video...';
+    case ActivityKey.VIDEO_UPSCALE_COMPLETED:
+      return 'Upscaled a video';
+    case ActivityKey.VIDEO_UPSCALE_FAILED:
+      return 'Failed to upscale video';
 
     // Music
     case ActivityKey.MUSIC_PROCESSING:
@@ -173,6 +232,14 @@ export function getActivityDescription(activity: IActivity): string {
       return 'Generated music';
     case ActivityKey.MUSIC_FAILED:
       return 'Failed to generate music';
+
+    // Voice
+    case ActivityKey.VOICE_PROCESSING:
+      return 'Generating a voice...';
+    case ActivityKey.VOICE_GENERATED:
+      return 'Generated a voice';
+    case ActivityKey.VOICE_FAILED:
+      return 'Failed to generate voice';
 
     // Posts
     case ActivityKey.POST_GENERATED: {
@@ -191,6 +258,8 @@ export function getActivityDescription(activity: IActivity): string {
       return 'Published a post';
     case ActivityKey.POST_FAILED:
       return 'Failed to publish post';
+    case ActivityKey.POST_PROCESSING:
+      return 'Processing a post...';
 
     // Articles
     case ActivityKey.ARTICLE_PROCESSING:
@@ -199,6 +268,20 @@ export function getActivityDescription(activity: IActivity): string {
       return 'Generated an article';
     case ActivityKey.ARTICLE_FAILED:
       return 'Failed to generate article';
+
+    // Prompts
+    case ActivityKey.PROMPT_ENHANCE_PROCESSING:
+      return 'Enhancing a prompt...';
+    case ActivityKey.PROMPT_ENHANCE_COMPLETED:
+      return 'Enhanced a prompt';
+    case ActivityKey.PROMPT_ENHANCE_FAILED:
+      return 'Failed to enhance prompt';
+    case ActivityKey.PROMPT_REMIX_PROCESSING:
+      return 'Remixing a prompt...';
+    case ActivityKey.PROMPT_REMIX_COMPLETED:
+      return 'Remixed a prompt';
+    case ActivityKey.PROMPT_REMIX_FAILED:
+      return 'Failed to remix prompt';
 
     // Model Training
     case ActivityKey.MODELS_TRAINING_CREATED:
@@ -226,8 +309,11 @@ export function getActivityDescription(activity: IActivity): string {
     case ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED:
       return 'Social account disconnected';
 
+    case ActivityKey.BRAND_RELOCATED:
+      return 'Brand relocated';
+
     default:
-      return activity.label || activity.key;
+      return getActivityFallbackDescription(activity);
   }
 }
 

@@ -11,19 +11,20 @@ import {
   ButtonVariant,
   PageScope,
 } from '@genfeedai/enums';
-import type { IAgentRun, ICredential } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import type { IActivity, IAgentRun, ICredential } from '@genfeedai/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
+import AppTable from '@ui/display/table/Table';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useMemo } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
@@ -506,6 +507,38 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
     scope: PageScope.ORGANIZATION,
   });
 
+  const columns = useMemo(
+    () => [
+      {
+        header: 'Activity',
+        key: 'description',
+        render: (activity: IActivity) => (
+          <div className="min-w-0">
+            <p className="line-clamp-1 text-sm font-medium text-foreground">
+              {getActivityDescription(activity)}
+            </p>
+            <ClientFormattedDate
+              className="mt-1 block text-xs text-foreground/45"
+              fallback="Time unavailable"
+              format="relative"
+              value={activity.createdAt}
+            />
+          </div>
+        ),
+      },
+      {
+        className: 'w-28 text-right',
+        header: 'Status',
+        key: 'status',
+        render: (activity: IActivity) => {
+          const badge = getActivityBadge(activity);
+          return <Badge variant={badge.variant}>{badge.label}</Badge>;
+        },
+      },
+    ],
+    [],
+  );
+
   return (
     <WorkspaceSurface
       actions={
@@ -536,34 +569,16 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
           description="No activity has been recorded for this organization yet."
         />
       ) : (
-        <div className="space-y-2">
-          {filteredActivities.slice(0, 5).map((activity) => {
-            const badge = getActivityBadge(activity);
-
-            return (
-              <div
-                className={cn(
-                  'flex items-center justify-between gap-3 rounded-card bg-background px-4 py-3 shadow-border',
-                  activity.isRead && 'opacity-70',
-                )}
-                key={activity.id}
-              >
-                <div className="min-w-0">
-                  <p className="line-clamp-1 text-sm font-medium text-foreground">
-                    {getActivityDescription(activity)}
-                  </p>
-                  <ClientFormattedDate
-                    className="mt-1 block text-xs text-foreground/45"
-                    fallback="Time unavailable"
-                    format="relative"
-                    value={activity.createdAt}
-                  />
-                </div>
-                <Badge variant={badge.variant}>{badge.label}</Badge>
-              </div>
-            );
-          })}
-        </div>
+        <AppTable<IActivity>
+          columns={columns}
+          emptyLabel="No activity yet"
+          getItemId={(activity) => activity.id}
+          getRowClassName={(activity) =>
+            activity.isRead ? 'opacity-70' : undefined
+          }
+          getRowKey={(activity) => activity.id}
+          items={filteredActivities.slice(0, 5)}
+        />
       )}
     </WorkspaceSurface>
   );
@@ -589,8 +604,10 @@ export default function OperationalHomeSections({
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
   );
+  // Workspace Activity is the operator surface for this feed (same list as
+  // /overview/activities, registered under the workspace switcher).
   const activityHref = brandSlug
-    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.OVERVIEW.ACTIVITIES)
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.ACTIVITY)
     : brandSetupHref;
 
   return (
