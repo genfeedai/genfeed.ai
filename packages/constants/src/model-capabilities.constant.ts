@@ -892,12 +892,6 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
-    [MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST]: {
-      category: ModelCategory.TEXT,
-      isBatchSupported: false,
-      maxOutputs: 1,
-      maxReferences: 0,
-    },
     [MODEL_KEYS.OPENROUTER_XAI_GROK_4]: {
       category: ModelCategory.TEXT,
       isBatchSupported: false,
