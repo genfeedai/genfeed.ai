@@ -66,7 +66,7 @@ function createIntegration(
     id: 'int-1',
     orgId: 'org-1',
     platform: 'telegram',
-    status: 'active',
+    status: 'ACTIVE',
     updatedAt: new Date('2026-01-01'),
     ...overrides,
   };

@@ -27,7 +27,7 @@ describe('normalizeIntegration', () => {
       organizationId: 'org-1',
       botToken: 'tok-abc',
       config: { allowedUserIds: ['u1'] },
-      status: 'active',
+      status: 'ACTIVE',
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-06-01T00:00:00.000Z',
     };
@@ -38,7 +38,7 @@ describe('normalizeIntegration', () => {
     expect(result!.orgId).toBe('org-1');
     expect(result!.botToken).toBe('tok-abc');
     expect(result!.platform).toBe('discord');
-    expect(result!.status).toBe('active');
+    expect(result!.status).toBe('ACTIVE');
     expect(result!.config.allowedUserIds).toContain('u1');
   });
 
@@ -48,7 +48,7 @@ describe('normalizeIntegration', () => {
       organization: 'org-mongo-1',
       botToken: 'tok-mongo',
       config: {},
-      status: 'active',
+      status: 'ACTIVE',
     };
 
     expect(normalizeIntegration(payload, 'telegram')).toBeNull();
@@ -66,7 +66,7 @@ describe('normalizeIntegration', () => {
     expect(result!.id).toBe('prisma-id');
   });
 
-  it('defaults status to "active" when absent', () => {
+  it('defaults status to "ACTIVE" when absent', () => {
     const payload = {
       id: 'int-1',
       organizationId: 'org-1',
@@ -74,7 +74,29 @@ describe('normalizeIntegration', () => {
     };
 
     const result = normalizeIntegration(payload, 'slack');
-    expect(result!.status).toBe('active');
+    expect(result!.status).toBe('ACTIVE');
+  });
+
+  it('falls back to ACTIVE for a status outside the Prisma enum', () => {
+    // IntegrationStatus is Prisma-backed, so SCREAMING_SNAKE is the only wire
+    // format. Legacy lowercase is unknown input, not a second spelling.
+    for (const status of ['active', 'PENDING', '', 42, null]) {
+      const result = normalizeIntegration(
+        { botToken: 'tok', id: 'int-1', organizationId: 'org-1', status },
+        'slack',
+      );
+      expect(result!.status).toBe('ACTIVE');
+    }
+  });
+
+  it('preserves every valid Prisma status label', () => {
+    for (const status of ['ACTIVE', 'PAUSED', 'ERROR']) {
+      const result = normalizeIntegration(
+        { botToken: 'tok', id: 'int-1', organizationId: 'org-1', status },
+        'slack',
+      );
+      expect(result!.status).toBe(status);
+    }
   });
 
   it('defaults createdAt/updatedAt to now when absent', () => {
@@ -133,13 +155,13 @@ describe('normalizeIntegrations', () => {
         id: 'int-1',
         organizationId: 'org-1',
         botToken: 'tok-1',
-        status: 'active',
+        status: 'ACTIVE',
       },
       {
         id: 'int-2',
         organizationId: 'org-2',
         botToken: 'tok-2',
-        status: 'paused',
+        status: 'PAUSED',
       },
     ];
 
