@@ -240,12 +240,13 @@ describe('TrendsList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the search bar', () => {
+  it('renders the search bar in the section topbar actions, not the body', () => {
     render(<TrendsList />);
 
-    expect(
-      screen.getByPlaceholderText('Search trending content'),
-    ).toBeInTheDocument();
+    const topbar = screen.getByTestId('section-topbar');
+    const search = screen.getByPlaceholderText('Search trending content');
+
+    expect(topbar).toContainElement(search);
   });
 
   it('renders the viral videos section below the grid', () => {
@@ -269,6 +270,9 @@ describe('TrendsList', () => {
     );
     expect(topbar).toContainElement(
       screen.getByRole('link', { name: 'Overview' }),
+    );
+    expect(topbar).toContainElement(
+      screen.getByPlaceholderText('Search trending content'),
     );
   });
 

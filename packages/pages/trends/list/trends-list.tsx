@@ -1,7 +1,12 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  AlertCategory,
+  ButtonSize,
+  ButtonVariant,
+  ComponentSize,
+} from '@genfeedai/enums';
 import type { ITrendVideo } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
@@ -231,6 +236,10 @@ function SummaryMetricCards({
   );
 }
 
+/**
+ * Same vertical stack as {@link SummaryMetricCard}: label → value → detail.
+ * Badge is optional chrome on the label row only — never reorder the metric.
+ */
 function ReadinessCard({
   badge,
   description,
@@ -244,16 +253,18 @@ function ReadinessCard({
 }) {
   return (
     <Card bodyClassName="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-foreground">{label}</div>
-          <div className="mt-1 text-xs leading-5 text-foreground/68">
-            {description}
-          </div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/62">
+          {label}
         </div>
         <Badge variant="ghost">{badge}</Badge>
       </div>
-      <div className="mt-5 text-xl font-semibold text-foreground">{value}</div>
+      <div className="mt-3 text-2xl font-semibold tracking-[-0.02em] text-foreground">
+        {value}
+      </div>
+      <div className="mt-2 text-xs leading-5 text-foreground/68">
+        {description}
+      </div>
     </Card>
   );
 }
@@ -497,7 +508,30 @@ export default function TrendsList() {
         subtitle="Actual posts and videos trending across platforms, ready to remix."
         icon={TrendingUp}
         actions={
-          <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
+          <>
+            <div className="w-44 sm:w-56">
+              <FormSearchbar
+                value={search}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setSearch(event.target.value)
+                }
+                onClear={() => setSearch('')}
+                placeholder="Search trending content"
+                size={ComponentSize.SM}
+                className="w-full"
+                inputClassName="h-8"
+              />
+            </div>
+            <Badge variant="ghost">
+              {isLoading
+                ? 'Loading'
+                : `${filteredItems.length} remixable items`}
+            </Badge>
+            <ButtonRefresh
+              isRefreshing={isRefreshing}
+              onClick={handleRefresh}
+            />
+          </>
         }
         tabs={<SocialsNavigation active="overview" />}
       />
@@ -538,22 +572,6 @@ export default function TrendsList() {
         {!isLoading && !currentError && items.length === 0 ? (
           <DiscoveryReadinessCards summary={summary} />
         ) : null}
-
-        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="w-full md:max-w-md">
-            <FormSearchbar
-              value={search}
-              onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                setSearch(event.target.value)
-              }
-              onClear={() => setSearch('')}
-              placeholder="Search trending content"
-            />
-          </div>
-          <Badge variant="ghost">
-            {isLoading ? 'Loading' : `${filteredItems.length} remixable items`}
-          </Badge>
-        </div>
 
         {isLoading ? (
           <div className="py-8 text-sm text-foreground/40">
