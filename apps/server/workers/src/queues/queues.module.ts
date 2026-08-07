@@ -6,6 +6,7 @@
  * registrations to ensure consistent retry/backoff behaviour.
  */
 
+import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { SocialReplyCampaignQueueService } from '@api/queues/social-reply-campaign/social-reply-campaign-queue.service';
@@ -25,6 +26,7 @@ import {
   ANALYTICS_YOUTUBE_QUEUE,
   ARTICLE_GENERATION_QUEUE,
   BATCH_CONTENT_QUEUE,
+  BATCH_GENERATION_QUEUE,
   BATCH_WORKFLOW_QUEUE,
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   CAMPAIGN_PROCESSING_QUEUE,
@@ -70,6 +72,7 @@ import { ConfigService } from '@workers/config/config.service';
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
     PostPublishQueueService,
+    BatchGenerationQueueService,
   ],
   imports: [
     LoggerModule,
@@ -268,6 +271,16 @@ import { ConfigService } from '@workers/config/config.service';
         name: AGENT_RUN_QUEUE,
       },
       {
+        // Retries are owned by the resume path, not by BullMQ: a redelivered
+        // whole-batch job would regenerate items the dead run already persisted.
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: BATCH_GENERATION_QUEUE,
+      },
+      {
         defaultJobOptions: {
           attempts: 2,
           backoff: { delay: 5000, type: 'exponential' },
@@ -439,6 +452,11 @@ import { ConfigService } from '@workers/config/config.service';
     WorkspaceTaskQueueService,
     HeygenPollQueueService,
     PostPublishQueueService,
+    // Producer for the reconciliation sweep: the sweep re-queues stranded
+    // batches from inside the workers process, so it needs the API's producer
+    // here rather than reaching into the API's QueuesModule (which would
+    // register a second BullMQ root).
+    BatchGenerationQueueService,
     {
       provide: SERVER_TOKENS.logger,
       useExisting: LoggerService,

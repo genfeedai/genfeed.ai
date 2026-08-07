@@ -1,6 +1,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@workers/config/config.service';
+import { CronBatchGenerationReconcileService } from '@workers/crons/batch-generation/cron.batch-generation-reconcile.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
 import { CronStreaksService } from '@workers/crons/streaks/cron.streaks.service';
@@ -13,6 +14,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('SystemSweepsProcessor', () => {
   let processor: SystemSweepsProcessor;
+  let batchGenerationService: {
+    resumeStrandedBatches: ReturnType<typeof vi.fn>;
+  };
   let postsService: { publishScheduledPosts: ReturnType<typeof vi.fn> };
   let reviewGateService: {
     resolveTimedOutReviewGates: ReturnType<typeof vi.fn>;
@@ -31,6 +35,7 @@ describe('SystemSweepsProcessor', () => {
   }
 
   beforeEach(async () => {
+    batchGenerationService = { resumeStrandedBatches: vi.fn() };
     postsService = { publishScheduledPosts: vi.fn() };
     reviewGateService = { resolveTimedOutReviewGates: vi.fn() };
     streaksService = { processStreaks: vi.fn() };
@@ -43,6 +48,10 @@ describe('SystemSweepsProcessor', () => {
       providers: [
         SystemSweepsProcessor,
         { provide: ConfigService, useValue: configService },
+        {
+          provide: CronBatchGenerationReconcileService,
+          useValue: batchGenerationService,
+        },
         { provide: CronPostsService, useValue: postsService },
         {
           provide: CronReviewGateTimeoutService,
@@ -86,6 +95,14 @@ describe('SystemSweepsProcessor', () => {
     await processor.process(jobNamed(SYSTEM_SWEEP_JOBS.REVIEW_GATE_TIMEOUT));
 
     expect(reviewGateService.resolveTimedOutReviewGates).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the batch generation reconcile sweep', async () => {
+    await processor.process(
+      jobNamed(SYSTEM_SWEEP_JOBS.BATCH_GENERATION_RECONCILE),
+    );
+
+    expect(batchGenerationService.resumeStrandedBatches).toHaveBeenCalledOnce();
   });
 
   it('warns on unknown job names without dispatching', async () => {

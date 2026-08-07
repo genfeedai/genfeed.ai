@@ -1,4 +1,5 @@
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
+import type { BatchPricingOptions } from '@genfeedai/constants';
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
 import type { IPublishApproval } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
@@ -45,6 +46,20 @@ export interface BatchItemFull extends BatchItem {
   publishApproval?: IPublishApproval;
 }
 
+/**
+ * Running total of credits actually moved for a batch.
+ *
+ * `chargedCredits` is the net amount deducted so far (up-front estimate plus
+ * any settlement delta, minus refunds). Settlement always targets the price of
+ * what landed and charges `target - chargedCredits`, so replaying settlement is
+ * a no-op rather than a second charge.
+ */
+export type BatchCreditsLedger = {
+  chargedCredits: number;
+  refundedCredits?: number;
+  settledAt?: string;
+};
+
 export type BatchConfig = {
   contentMix?: ContentMixConfig;
   dateRangeStart?: string;
@@ -57,6 +72,17 @@ export type BatchConfig = {
   completedAt?: string;
   source?: string;
   style?: string;
+  credits?: BatchCreditsLedger;
+  /**
+   * Pricing inputs captured at creation. Stored on the batch rather than
+   * carried in job data so a resumed run settles at the same rates as the run
+   * it replaces.
+   */
+  pricing?: BatchPricingOptions;
+  /** Set when the batch was handed to the batch-generation queue. */
+  queuedAt?: string;
+  /** Number of times a stranded run has been re-claimed and resumed. */
+  resumeCount?: number;
 };
 
 export type BatchWithConfig = Batch & {

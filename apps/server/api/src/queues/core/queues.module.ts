@@ -8,6 +8,7 @@
  */
 
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
+import { BatchGenerationQueueService } from '@api/queues/batch-generation/batch-generation-queue.service';
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
 import { QueueDiagnosticsController } from '@api/queues/core/queue-diagnostics.controller';
@@ -28,6 +29,7 @@ import {
   ANALYTICS_THREADS_QUEUE,
   ANALYTICS_TWITTER_QUEUE,
   ANALYTICS_YOUTUBE_QUEUE,
+  BATCH_GENERATION_QUEUE,
   CAMPAIGN_PROCESSING_QUEUE,
   DEFAULT_QUEUE,
   EMAIL_DIGEST_QUEUE,
@@ -57,6 +59,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     AgentRunQueueService,
+    BatchGenerationQueueService,
     HeygenPollQueueService,
     PostPublishQueueService,
     QueueService,
@@ -232,6 +235,16 @@ import { Module } from '@nestjs/common';
         name: AGENT_RUN_QUEUE,
       },
       {
+        // Retries are owned by the resume path, not by BullMQ: a redelivered
+        // whole-batch job would regenerate items the dead run already persisted.
+        defaultJobOptions: {
+          attempts: 1,
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: BATCH_GENERATION_QUEUE,
+      },
+      {
         defaultJobOptions: {
           attempts: 2,
           backoff: { delay: 10000, type: 'exponential' },
@@ -310,6 +323,7 @@ import { Module } from '@nestjs/common';
     ReplyBotQueueService,
     CampaignQueueService,
     AgentRunQueueService,
+    BatchGenerationQueueService,
     SocialReplyCampaignQueueService,
     WorkspaceTaskQueueService,
     HeygenPollQueueService,

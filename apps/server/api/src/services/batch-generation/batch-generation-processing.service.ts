@@ -2,6 +2,7 @@ import { ContentGeneratorService } from '@api/collections/content-intelligence/s
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { BATCH_LEASE_STALE_MS } from '@api/services/batch-generation/batch-generation.constants';
 import {
   type BatchConfig,
   type BatchItemFull,
@@ -37,6 +38,14 @@ type BatchProcessingCounts = {
   completedCount: number;
   failedCount: number;
 };
+
+/**
+ * Result of trying to take ownership of a batch run.
+ * - `claimed` — fresh PENDING → PROCESSING transition
+ * - `resumed` — re-claimed a PROCESSING batch whose lease went stale
+ * - `busy` — someone else owns it, or it is already terminal / missing
+ */
+type BatchClaimOutcome = 'busy' | 'claimed' | 'resumed';
 
 /** Posts store lowercase platform strings (String column, not Prisma enum). */
 function toPostPlatform(platform: string): string {
@@ -83,18 +92,9 @@ export class BatchGenerationProcessingService {
     orgId: string,
     options?: BatchProcessOptions,
   ): Promise<IBatchSummary> {
-    // Idempotency guard: atomically transition PENDING → PROCESSING.
-    // If two concurrent calls race, exactly one updateMany will match (count=1);
-    // the other gets count=0 and exits early, preventing duplicate processing.
-    const claimed = await this.prisma.batch.updateMany({
-      data: { status: toPrismaBatchStatus(BatchStatus.PROCESSING) },
-      where: scopedWhere(orgId, {
-        id: batchId,
-        status: toPrismaBatchStatus(BatchStatus.PENDING),
-      }),
-    });
+    const claim = await this.claimBatchForProcessing(batchId, orgId);
 
-    if (claimed.count === 0) {
+    if (claim === 'busy') {
       // Either the batch doesn't exist for this org, or it's already being processed.
       const existing = await this.prisma.batch.findFirst({
         where: scopedWhere(orgId, { id: batchId }),
@@ -117,6 +117,25 @@ export class BatchGenerationProcessingService {
 
     const batchConfig = (batchRecord.config ?? {}) as BatchConfig;
     const batchItems = cloneBatchItems(batchRecord.items);
+
+    if (claim === 'resumed') {
+      // The previous run died mid-batch. Items it had started but never
+      // persisted go back to PENDING so they are regenerated; items already
+      // persisted as COMPLETED/FAILED are left alone, so neither the work nor
+      // the credits for them are duplicated.
+      for (const item of batchItems) {
+        if (item.status === BatchItemStatus.PROCESSING) {
+          item.status = BatchItemStatus.PENDING;
+          item.error = undefined;
+        }
+      }
+      batchConfig.resumeCount = (batchConfig.resumeCount ?? 0) + 1;
+
+      this.logger.warn(`Resuming stranded batch: ${batchId}`, {
+        batchId,
+        resumeCount: batchConfig.resumeCount,
+      });
+    }
 
     await this.invokeLifecycleCallback(
       'onBatchStarted',
@@ -215,10 +234,29 @@ export class BatchGenerationProcessingService {
     batchItems: BatchItemFull[],
     options?: BatchProcessOptions,
   ): Promise<BatchProcessingCounts> {
-    let completedCount = 0;
-    let failedCount = 0;
+    // Seed from what is already persisted so a resumed run keeps the totals of
+    // the items its predecessor finished instead of restarting the count.
+    let completedCount = batchItems.filter(
+      (entry) => entry.status === BatchItemStatus.COMPLETED,
+    ).length;
+    let failedCount = batchItems.filter(
+      (entry) => entry.status === BatchItemStatus.FAILED,
+    ).length;
+
     for (let i = 0; i < batchItems.length; i++) {
-      if (!(await this.isBatchGenerating(batchId, orgId))) {
+      // Persist progress so far and renew the processing lease in one write.
+      // A miss means the batch was cancelled or re-claimed elsewhere — this
+      // replaces the old read-only status probe at the same round-trip cost,
+      // and is what makes a killed run resumable without losing finished items.
+      const stillOwned = await this.persistItemProgress(
+        batchId,
+        orgId,
+        batchConfig,
+        batchItems,
+        completedCount,
+        failedCount,
+      );
+      if (!stillOwned) {
         return { cancelled: true, completedCount, failedCount };
       }
 
@@ -394,15 +432,82 @@ export class BatchGenerationProcessingService {
     )) as BatchWithConfig;
   }
 
-  private async isBatchGenerating(
+  /**
+   * Take ownership of a batch run.
+   *
+   * A fresh claim is the atomic PENDING → PROCESSING transition: if two callers
+   * race, exactly one updateMany matches (count=1) and the other exits.
+   *
+   * The second attempt is the resume path. A run killed mid-batch (API reload,
+   * worker restart) leaves the row PROCESSING with nothing left to finish it,
+   * which used to strand the batch permanently. `updatedAt` acts as the lease —
+   * every item persist bumps it — so filtering on it inside updateMany
+   * re-claims a stale run atomically, and a still-live run (whose lease is
+   * fresh) can never be stolen out from under itself.
+   */
+  private async claimBatchForProcessing(
     batchId: string,
     orgId: string,
-  ): Promise<boolean> {
-    const batch = await this.prisma.batch.findFirst({
-      select: { status: true },
-      where: scopedWhere(orgId, { id: batchId }),
+  ): Promise<BatchClaimOutcome> {
+    const claimed = await this.prisma.batch.updateMany({
+      data: { status: toPrismaBatchStatus(BatchStatus.PROCESSING) },
+      where: scopedWhere(orgId, {
+        id: batchId,
+        status: toPrismaBatchStatus(BatchStatus.PENDING),
+      }),
     });
-    return fromPrismaBatchStatus(batch?.status) === BatchStatus.PROCESSING;
+    if (claimed.count === 1) {
+      return 'claimed';
+    }
+
+    const staleBefore = new Date(Date.now() - BATCH_LEASE_STALE_MS);
+    const resumed = await this.prisma.batch.updateMany({
+      data: { status: toPrismaBatchStatus(BatchStatus.PROCESSING) },
+      where: scopedWhere(orgId, {
+        id: batchId,
+        status: toPrismaBatchStatus(BatchStatus.PROCESSING),
+        updatedAt: { lt: staleBefore },
+      }),
+    });
+    if (resumed.count === 1) {
+      return 'resumed';
+    }
+
+    return 'busy';
+  }
+
+  /**
+   * Write item results accumulated so far and renew the run lease.
+   *
+   * Returns false when the batch is no longer ours — cancelled, or re-claimed
+   * by another run — in which case the caller must stop without finalizing.
+   */
+  private async persistItemProgress(
+    batchId: string,
+    orgId: string,
+    batchConfig: BatchConfig,
+    batchItems: BatchItemFull[],
+    completedCount: number,
+    failedCount: number,
+  ): Promise<boolean> {
+    const progressConfig: BatchConfig = {
+      ...batchConfig,
+      completedCount,
+      failedCount,
+    };
+
+    const persisted = await this.prisma.batch.updateMany({
+      data: {
+        config: progressConfig as Prisma.InputJsonValue,
+        items: batchItems as unknown as Prisma.InputJsonValue,
+      },
+      where: scopedWhere(orgId, {
+        id: batchId,
+        status: toPrismaBatchStatus(BatchStatus.PROCESSING),
+      }),
+    });
+
+    return persisted.count === 1;
   }
 
   private async invokeLifecycleCallback(
