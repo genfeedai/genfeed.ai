@@ -49,6 +49,17 @@ const DEFAULT_API_KEY_SCOPES: readonly string[] = [
   'analytics:read',
 ];
 
+/**
+ * Result of a rate-limit check. `limit` is `null` when the caller has no
+ * platform-enforced ceiling (Enterprise custom / non-cloud unlimited).
+ * `retryAfterSeconds` is only meaningful when `allowed` is `false`.
+ */
+export interface ApiKeyRateLimitResult {
+  allowed: boolean;
+  limit: number | null;
+  retryAfterSeconds: number;
+}
+
 @Injectable()
 export class ApiKeysService extends BaseService<
   ApiKeyDocument,
@@ -57,6 +68,29 @@ export class ApiKeysService extends BaseService<
   Prisma.ApiKeyWhereInput
 > {
   private static readonly RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute sliding window
+
+  /**
+   * Atomic sliding-window rate-limit check, ported from the MCP transport's
+   * proven `RateLimitService.CONSUME_LUA` (apps/server/mcp/src/services/rate-limit.service.ts).
+   * Prune expired entries → count → conditionally add the new member if under
+   * the limit → refresh TTL, all in one round trip so concurrent requests for
+   * the same key can never all observe the same under-limit count and burst
+   * past it. Returns `[allowed(1|0), count, referenceScoreMs]` where
+   * `referenceScoreMs` is the current time (allowed) or the oldest in-window
+   * entry's score (blocked, used to compute Retry-After).
+   */
+  private static readonly RATE_LIMIT_LUA = `
+    redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, ARGV[2])
+    local count = redis.call('ZCARD', KEYS[1])
+    if count >= tonumber(ARGV[3]) then
+      local oldest = redis.call('ZRANGE', KEYS[1], 0, 0, 'WITHSCORES')
+      local ref = oldest[2] or ARGV[1]
+      return {0, count, ref}
+    end
+    redis.call('ZADD', KEYS[1], ARGV[1], ARGV[4])
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[5]))
+    return {1, count + 1, ARGV[1]}
+  `;
 
   constructor(
     public readonly prisma: PrismaService,
@@ -224,10 +258,16 @@ export class ApiKeysService extends BaseService<
       take: 10,
     });
 
+    // Note: this method intentionally does NOT bump lastUsedAt/usageCount.
+    // Callers that authenticate a real request (ApiKeyAuthGuard) call
+    // updateLastUsed() themselves with the request's clientIp — doing it here
+    // too used to write the same row twice per request. Callers that don't
+    // represent genuine key usage (e.g. the /validate test endpoint, the
+    // GitHub secret-scanning auto-revoke flow) simply no longer register a
+    // "used" event, which is the correct behavior for them.
     for (const key of fingerprintMatches as ApiKeyDocument[]) {
       const isValid = await this.verifyApiKey(plainKey, key.key);
       if (isValid) {
-        await this.updateLastUsed(key.id);
         return key;
       }
     }
@@ -250,7 +290,6 @@ export class ApiKeysService extends BaseService<
           where: { id: key.id },
           data: { keyFingerprint: fingerprint },
         });
-        await this.updateLastUsed(key.id);
         return key;
       }
     }
@@ -481,18 +520,18 @@ export class ApiKeysService extends BaseService<
   }
 
   /**
-   * Check rate limit using Redis sliding window.
-   * Tracks requests in a sorted set with timestamps.
-   * The effective limit is the org's per-tier ceiling in managed cloud, or the
-   * per-key limit off cloud. Returns true if within limit, false if exceeded
-   * or if the org's tier has no API access.
+   * Check rate limit using an atomic Redis sliding-window Lua script (one
+   * round trip instead of four sequential ZREMRANGEBYSCORE/ZCARD/ZADD/EXPIRE
+   * calls). The effective limit is the org's per-tier ceiling in managed
+   * cloud, or the per-key limit off cloud. `allowed` is false when the limit
+   * is exceeded or the org's tier has no API access.
    */
-  async checkRateLimit(apiKey: ApiKeyDocument): Promise<boolean> {
+  async checkRateLimit(apiKey: ApiKeyDocument): Promise<ApiKeyRateLimitResult> {
     const effectiveLimit = await this.resolveEffectiveRateLimit(apiKey);
 
     // No platform-enforced ceiling (Enterprise custom, or non-cloud unlimited).
     if (effectiveLimit === null) {
-      return true;
+      return { allowed: true, limit: null, retryAfterSeconds: 0 };
     }
 
     // A zero/negative ceiling means the tier has no API access → deny.
@@ -501,7 +540,13 @@ export class ApiKeysService extends BaseService<
         apiKeyId: apiKey.id,
         organizationId: apiKey.organizationId,
       });
-      return false;
+      return {
+        allowed: false,
+        limit: effectiveLimit,
+        retryAfterSeconds: Math.ceil(
+          ApiKeysService.RATE_LIMIT_WINDOW_MS / 1000,
+        ),
+      };
     }
 
     const client = this.redisService.getPublisher();
@@ -510,48 +555,56 @@ export class ApiKeysService extends BaseService<
       this.logger?.warn(
         'Redis unavailable for rate limiting, allowing request',
       );
-      return true;
+      return { allowed: true, limit: effectiveLimit, retryAfterSeconds: 0 };
     }
 
     const key = `rateLimit:${apiKey.id}`;
     const now = Date.now();
     const windowStart = now - ApiKeysService.RATE_LIMIT_WINDOW_MS;
+    const ttlSeconds =
+      Math.ceil(ApiKeysService.RATE_LIMIT_WINDOW_MS / 1000) + 10;
+    // Timestamp + random suffix to ensure unique members
+    const member = `${now}:${crypto.randomBytes(4).toString('hex')}`;
 
     try {
-      // Remove expired entries outside the sliding window
-      await client.zremrangebyscore(key, 0, windowStart);
+      const raw = (await client.eval(
+        ApiKeysService.RATE_LIMIT_LUA,
+        1,
+        key,
+        String(now),
+        String(windowStart),
+        String(effectiveLimit),
+        member,
+        String(ttlSeconds),
+      )) as [number, number, string];
 
-      // Count requests in the current window
-      const requestCount = await client.zcard(key);
+      const [allowedFlag, requestCount, referenceScore] = raw;
 
-      if (requestCount >= effectiveLimit) {
-        this.logger?.warn('API key rate limit exceeded', {
-          apiKeyId: apiKey.id,
-          limit: effectiveLimit,
-          requestCount,
-        });
-        return false;
+      if (allowedFlag === 1) {
+        return { allowed: true, limit: effectiveLimit, retryAfterSeconds: 0 };
       }
 
-      // Add the current request with timestamp as both score and member
-      // Use timestamp + random suffix to ensure unique members
-      const member = `${now}:${crypto.randomBytes(4).toString('hex')}`;
-      await client.zadd(key, now, member);
+      this.logger?.warn('API key rate limit exceeded', {
+        apiKeyId: apiKey.id,
+        limit: effectiveLimit,
+        requestCount,
+      });
 
-      // Set TTL on the key to auto-cleanup (slightly longer than the window)
-      await client.expire(
-        key,
-        Math.ceil(ApiKeysService.RATE_LIMIT_WINDOW_MS / 1000) + 10,
+      const oldestScoreMs = Number(referenceScore) || now;
+      const resetAtMs = oldestScoreMs + ApiKeysService.RATE_LIMIT_WINDOW_MS;
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((resetAtMs - now) / 1000),
       );
 
-      return true;
+      return { allowed: false, limit: effectiveLimit, retryAfterSeconds };
     } catch (error: unknown) {
       this.logger?.error('Rate limit check failed', {
         apiKeyId: apiKey.id,
         error: (error as Error)?.message,
       });
       // On Redis errors, allow the request to avoid blocking users
-      return true;
+      return { allowed: true, limit: effectiveLimit, retryAfterSeconds: 0 };
     }
   }
 }
