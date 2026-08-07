@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   declare `brandId`, and the global ValidationPipe strips unknown properties, so the brand was
   silently dropped and generations fell back to the organization's default brand
   (`src/api/images.ts`, `src/api/videos.ts`).
+- `gf performance weekly|top|prompts` no longer returns 400. The CLI now sends the query parameter
+  names the API reads (`brandId`, `topN`, `worstN`, `limit`, `startDate`, `endDate` instead of
+  `brand`, `top`, `worst`, `start`, `end`), fails fast with `NoBrandError` when no brand is
+  selected, and parses the real response shapes — `top`/`prompts` return plain arrays, not a
+  JSON:API envelope (`src/api/performance.ts`, `src/commands/performance.ts`).
 
 ## [0.4.1] - 2026-07-10
 
