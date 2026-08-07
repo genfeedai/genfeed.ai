@@ -753,6 +753,13 @@ describe('AdsResearchPageClient', () => {
     expect(
       screen.getByText('Connect accounts for your campaigns'),
     ).toBeInTheDocument();
+    // The strip is the only place the surface names the connectable ad
+    // platforms — it has to list every one the connections page offers.
+    expect(
+      screen.getByText(
+        'Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
