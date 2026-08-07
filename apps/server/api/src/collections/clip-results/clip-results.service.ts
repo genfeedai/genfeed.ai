@@ -145,7 +145,10 @@ export class ClipResultsService extends BaseService<
     return result ? this.normalizeDocument(result) : null;
   }
 
-  async findAllByOrganization(
+  // Named distinctly from BaseService.findAllByOrganization — this variant
+  // takes a row cap for the HTTP listing and must not override the base
+  // signature (filters/sort/populate).
+  async findRecentByOrganization(
     organizationId: string,
     limit?: number,
   ): Promise<ClipResultDocument[]> {

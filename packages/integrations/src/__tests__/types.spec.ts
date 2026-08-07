@@ -86,12 +86,12 @@ describe('Integration Common Types', () => {
         createdAt: new Date(),
         id: 'int-unipile-123',
         orgId: 'org-999',
-        platform: 'unipile',
+        platform: 'UNIPILE',
         status: 'ACTIVE',
         updatedAt: new Date(),
       };
 
-      expect(integration.platform).toBe('unipile');
+      expect(integration.platform).toBe('UNIPILE');
       expect(integration.config.allowedAccountIds).toContain('acct_1');
     });
   });

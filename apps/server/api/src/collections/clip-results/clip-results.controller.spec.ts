@@ -37,7 +37,7 @@ function createMockService(): Record<string, ReturnType<typeof vi.fn>> {
   return {
     create: vi.fn(),
     createForOrganization: vi.fn(),
-    findAllByOrganization: vi.fn(),
+    findRecentByOrganization: vi.fn(),
     findByProject: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
@@ -106,7 +106,7 @@ describe('ClipResultsController', () => {
         organizationId,
         100,
       );
-      expect(service.findAllByOrganization).not.toHaveBeenCalled();
+      expect(service.findRecentByOrganization).not.toHaveBeenCalled();
     });
 
     it('should find by project when filter[project] query param is provided', async () => {
@@ -124,11 +124,11 @@ describe('ClipResultsController', () => {
 
     it('should find all by organization when no project filter is given', async () => {
       const docs = [{ id: 'cr-1' }, { id: 'cr-2' }];
-      service.findAllByOrganization.mockResolvedValue(docs);
+      service.findRecentByOrganization.mockResolvedValue(docs);
 
       await controller.findAll(mockReq, '', '', mockUser);
 
-      expect(service.findAllByOrganization).toHaveBeenCalledWith(
+      expect(service.findRecentByOrganization).toHaveBeenCalledWith(
         organizationId,
         100,
       );
