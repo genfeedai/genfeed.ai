@@ -18,6 +18,13 @@ const AVAILABLE_PLATFORMS = [
   'facebook',
 ];
 
+/**
+ * Flat tool fee for `generate_content_batch` (see
+ * packages/tools/src/registry/source/overlap-generation.tools.ts `creditCost`).
+ * Not per-item: the handler reports creditsUsed: 5 for the whole batch.
+ */
+const BATCH_TOOL_CREDIT_COST = 5;
+
 export function BatchGenerationCard({
   action,
   onGenerate,
@@ -25,7 +32,8 @@ export function BatchGenerationCard({
   const suggestedPlatforms = action.platforms ?? [];
   const [count, setCount] = useState(action.batchCount ?? 5);
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(
-    () => new Set(suggestedPlatforms),
+    () =>
+      new Set(suggestedPlatforms.length > 0 ? suggestedPlatforms : ['twitter']),
   );
   const [isGenerated, setIsGenerated] = useState(false);
 
@@ -52,8 +60,7 @@ export function BatchGenerationCard({
     setIsGenerated(true);
   }, [count, selectedPlatforms, onGenerate]);
 
-  const estimatedCredits =
-    action.creditEstimate ?? count * selectedPlatforms.size * 10;
+  const estimatedCredits = action.creditEstimate ?? BATCH_TOOL_CREDIT_COST;
 
   if (isGenerated) {
     return (
@@ -128,10 +135,17 @@ export function BatchGenerationCard({
         </div>
       </div>
 
-      {/* Credit estimate */}
+      {/* Credit estimate — flat batch tool fee, not count × platforms */}
       <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
         <DollarSign className="size-3.5" />
-        <span>Estimated cost: {estimatedCredits} credits</span>
+        <span>
+          Estimated cost: {estimatedCredits} credit
+          {estimatedCredits === 1 ? '' : 's'}
+          <span className="text-muted-foreground/70">
+            {' '}
+            (flat batch fee, not per post)
+          </span>
+        </span>
       </div>
 
       {/* Generate button */}

@@ -1141,7 +1141,8 @@ export class AgentMediaGenerationToolHandler {
             // "and N more" link when more than 3 posts completed.
             remainingCount,
             title: 'Batch generation complete',
-            type: 'batch_generation_card',
+            // Result card (previews + review link), not the configure/generate form.
+            type: 'batch_generation_result_card',
           },
         ],
         success: true,
