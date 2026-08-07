@@ -25,6 +25,14 @@ describe('ClipboardService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // jsdom ships no execCommand at all, and vi.spyOn refuses to stub a
+    // property that does not exist. Define it so the fallback-path tests
+    // have something to spy on.
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn(() => false),
+      writable: true,
+    });
     clipboardService = ClipboardService.getInstance();
   });
 
