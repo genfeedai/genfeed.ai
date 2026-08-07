@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { ThemeProvider } from 'next-themes';
 import { useState } from 'react';
 import { Toaster } from 'sonner';
+import FormModEnterSubmit from './FormModEnterSubmit';
 
 const LazyModalErrorDebug = dynamic(
   () => import('@ui/modals/system/error-debug/ModalErrorDebug'),
@@ -48,6 +49,7 @@ export default function AppProviders({
         disableTransitionOnChange={disableTransitionOnChange}
       >
         <ThemeCookieSync />
+        <FormModEnterSubmit />
         {children}
         {includeToaster ? (
           <Toaster richColors closeButton position="top-right" />
