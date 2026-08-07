@@ -96,22 +96,18 @@ export function useAppProtectedLayout(
   const isLibraryLandingRoute = pathname === APP_ROUTES.LIBRARY.OVERVIEW;
   const isLibraryRoute = pathname.startsWith(APP_ROUTE_PREFIXES.LIBRARY);
   const isMessagesRoute = pathname.startsWith(APP_ROUTE_PREFIXES.MESSAGES);
-  // The retired one-off image/video/avatar/music tabs are gone; the surviving
-  // Studio production surfaces each carry their own inline prompt bar.
+  // Floating product prompt bars are retired on Publish (sidebar agent owns
+  // generation). Studio / automate still flag a few routes for banner layout
+  // (no docked posts prompt bar).
   const isStudioPromptBarRoute =
     /^\/studio\/(batch|clips|fastlane|storyboard)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
-  const isPublishPromptBarRoute =
-    pathname === APP_ROUTES.PUBLISH.OVERVIEW ||
-    pathname === APP_ROUTES.PUBLISH.ROOT;
   const isPublishRoute = pathname.startsWith(APP_ROUTE_PREFIXES.PUBLISH);
   const isMissionControlPromptBarRoute =
     pathname === APP_ROUTES.AUTOMATE.WORKFLOWS_EXECUTIONS ||
     pathname === APP_ROUTES.AUTOMATE.RUNS;
   const isPromptBarRoute =
-    isStudioPromptBarRoute ||
-    isPublishPromptBarRoute ||
-    isMissionControlPromptBarRoute;
+    isStudioPromptBarRoute || isMissionControlPromptBarRoute;
   const isSettingsRoute = pathname.startsWith(APP_ROUTE_PREFIXES.SETTINGS);
   const hasSecondaryTopbar =
     !isAdminRoute && pathname.startsWith(APP_ROUTE_PREFIXES.STUDIO);
