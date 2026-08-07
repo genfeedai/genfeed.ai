@@ -153,22 +153,20 @@ export function AgentChatContainerThreadView({
             AGENT_CONVERSATION_TRACK_CLASS,
             // Force descendants to respect the track width (flex/grid children
             // default min-width:auto and will expand the column otherwise).
-            'space-y-1 pt-4 [&>*]:min-w-0',
+            // Tighter vertical rhythm — T3/Codex density.
+            'space-y-0.5 pt-3 [&>*]:min-w-0',
             // Reserve only what the floating stack actually uses (glass bar
-            // ~7rem + optional chip row ~3rem + bottom offset).
+            // ~6rem + optional chip row ~2.5rem + bottom offset).
             padBottomForComposer && padBottomForFollowUpChips
-              ? 'pb-44 md:pb-48'
+              ? 'pb-40 md:pb-44'
               : padBottomForComposer
-                ? 'pb-36 md:pb-40'
-                : 'pb-6',
+                ? 'pb-32 md:pb-36'
+                : 'pb-5',
           )}
         >
+          {/* Thread title lives in the shell topbar — no second title chrome. */}
           {activeThreadTitle ? (
-            <div className="mb-4 border-b border-border/50 px-1 pb-3">
-              <p className="truncate text-sm font-semibold tracking-tight text-foreground/85">
-                {activeThreadTitle}
-              </p>
-            </div>
+            <h2 className="sr-only">{activeThreadTitle}</h2>
           ) : null}
 
           <WorkflowPhaseProgressBar />

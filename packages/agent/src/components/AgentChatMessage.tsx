@@ -5,6 +5,7 @@ import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { shouldRenderCompletionSummary } from '@genfeedai/agent/utils/should-render-completion-summary';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
@@ -98,7 +99,7 @@ export function AgentChatMessage({
 
     let genericOAuthCardRendered = false;
 
-    return uiActions.filter((action) => {
+    const filtered = uiActions.filter((action) => {
       // Generation configuration follows the single conversation composer.
       // The completed content_preview_card remains in the transcript.
       if (action.type === 'generation_action_card') {
@@ -118,6 +119,15 @@ export function AgentChatMessage({
 
       genericOAuthCardRendered = true;
       return true;
+    });
+
+    // Drop noise Done cards when a sibling result card already owns the turn
+    // (T3/Codex density — one surface per outcome, not stacked chrome).
+    return filtered.filter((action) => {
+      if (action.type !== 'completion_summary_card') {
+        return true;
+      }
+      return shouldRenderCompletionSummary(action, filtered);
     });
   }, [uiActions]);
   const completionSummaryAction =
@@ -218,7 +228,7 @@ export function AgentChatMessage({
     <div
       id={messageAnchorId}
       className={cn(
-        'mb-3 flex min-w-0 w-full motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
+        'mb-2 flex min-w-0 w-full motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
         isUser ? 'justify-end' : 'justify-start',
       )}
       style={{

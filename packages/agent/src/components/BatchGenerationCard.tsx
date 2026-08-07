@@ -99,7 +99,7 @@ export function BatchGenerationCard({
     <div
       className={cn(
         AGENT_CONVERSATION_SURFACE_CLASS,
-        'my-2 w-full min-w-0 max-w-full p-4',
+        'my-1.5 w-full min-w-0 max-w-full p-3',
       )}
     >
       <div className="mb-3 flex min-w-0 items-center gap-2">

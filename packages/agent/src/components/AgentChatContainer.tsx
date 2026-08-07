@@ -166,20 +166,22 @@ export function AgentChatContainer({
       findPendingGenerationAction(messages),
     [container.streamState.pendingUiActions, messages],
   );
-  const shouldRenderInlineComposerFeedback =
-    !composerShell || composerShell.isComposerVisible === false;
-
-  const shouldShowDockedComposer =
+  // When the docked composer is visible, status/errors live above the glass
+  // bar (Claude/T3 pattern) — not as sticky timeline chrome.
+  const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
     (!container.isEmpty ||
       onboardingMode ||
       composerShell?.placement === 'inspector');
+  const shouldRenderInlineComposerFeedback = !isComposerDocked;
+
+  const shouldShowDockedComposer = isComposerDocked;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-col">
       {/*
-        One width owner for transcript + floating composer. Both children are
-        w-full of this track so card edges and the prompt shell match exactly.
+        One column: transcript scroll + floating composer share the same
+        AGENT_CONVERSATION_TRACK_CLASS width owner (portal or inflow).
       */}
       <div
         className={conversationColumnClass}
@@ -201,7 +203,7 @@ export function AgentChatContainer({
           </div>
         ) : null}
 
-        {archivedNotice ? (
+        {archivedNotice && shouldRenderInlineComposerFeedback ? (
           <div className={AGENT_CONVERSATION_TRACK_CLASS}>
             <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
               {archivedNotice}
@@ -317,7 +319,7 @@ export function AgentChatContainer({
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
             error={
-              composerShell && container.error
+              isComposerDocked && container.error
                 ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
                 : null
             }

@@ -1,4 +1,7 @@
-import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
+import {
+  AGENT_CONVERSATION_INLINE_ROW_CLASS,
+  AGENT_CONVERSATION_SURFACE_CLASS,
+} from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
   AgentUiActionCta,
@@ -129,6 +132,10 @@ function CompletionActionButton({
   );
 }
 
+/**
+ * T3/Codex density: default is a single inline status row (no card shell).
+ * Expands to a bordered surface only when there are media previews or detail.
+ */
 export function AgentCompletionSummaryCard({
   action,
   onCopy,
@@ -142,8 +149,7 @@ export function AgentCompletionSummaryCard({
     (action.outcomeBullets?.length ?? 0) > 0 ||
     Boolean(action.secondaryCtas?.length);
 
-  // Compact by default — expand only when the user wants detail.
-  // Media previews still default open so assets aren't hidden.
+  // Media previews open by default; text-only stays collapsed (one-line row).
   const [isExpanded, setIsExpanded] = useState(outputVariants.length > 0);
   const [feedbackState, setFeedbackState] = useState<
     'positive' | 'negative' | null
@@ -163,167 +169,181 @@ export function AgentCompletionSummaryCard({
     action.description?.trim() ||
     '';
 
+  const header = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <CircleCheck className="size-3.5 shrink-0 text-emerald-500" />
+      <div className="min-w-0 flex-1 basis-32">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-[13px] font-medium text-foreground/90">
+            {action.title || 'Done'}
+          </span>
+          {!isExpanded && oneLiner ? (
+            <span className="min-w-0 truncate text-[12px] text-muted-foreground">
+              · {oneLiner}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {action.primaryCta ? (
+        <CompletionActionButton
+          cta={action.primaryCta}
+          isPrimary
+          size="compact"
+          onUiAction={onUiAction}
+        />
+      ) : null}
+
+      {hasRichBody ? (
+        <Button
+          ariaLabel={isExpanded ? 'Collapse summary' : 'Expand summary'}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+          className="h-7 w-7 shrink-0 p-0 text-muted-foreground"
+          onClick={() => setIsExpanded((open) => !open)}
+        >
+          {isExpanded ? (
+            <ChevronUp className="size-3.5" />
+          ) : (
+            <ChevronDown className="size-3.5" />
+          )}
+        </Button>
+      ) : null}
+    </div>
+  );
+
+  // Collapsed / no-detail: borderless inline row (Codex density).
+  if (!isExpanded) {
+    return (
+      <div
+        className={AGENT_CONVERSATION_INLINE_ROW_CLASS}
+        data-testid="agent-completion-summary"
+      >
+        {header}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
         AGENT_CONVERSATION_SURFACE_CLASS,
-        'mt-2 w-full min-w-0 max-w-full overflow-hidden text-left',
+        'mt-1.5 w-full min-w-0 max-w-full overflow-hidden text-left',
       )}
+      data-testid="agent-completion-summary"
     >
-      {/* Always-visible compact header — wrap instead of growing past track. */}
-      <div className="flex min-w-0 flex-wrap items-center gap-2 px-3 py-2">
-        <CircleCheck className="size-4 shrink-0 text-emerald-500" />
-        <div className="min-w-0 flex-1 basis-40">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span className="text-sm font-medium text-foreground">
-              {action.title || 'Done'}
-            </span>
-            {!isExpanded && oneLiner ? (
-              <span className="min-w-0 truncate text-xs text-muted-foreground">
-                · {oneLiner}
-              </span>
-            ) : null}
-          </div>
-        </div>
+      <div className="px-3 py-2">{header}</div>
 
-        {action.primaryCta ? (
-          <CompletionActionButton
-            cta={action.primaryCta}
-            isPrimary
-            size="compact"
-            onUiAction={onUiAction}
-          />
+      <div className="space-y-2.5 border-t border-border/50 px-3 pb-2.5 pt-2">
+        {action.summaryText ? (
+          <p className="text-[13px] leading-5 text-foreground/90">
+            {action.summaryText}
+          </p>
         ) : null}
 
-        {hasRichBody ? (
+        {action.outcomeBullets?.length ? (
+          <ul className="space-y-1 text-[13px] text-foreground/80">
+            {action.outcomeBullets.slice(0, 4).map((bullet) => (
+              <li key={bullet} className="flex gap-2">
+                <span className="mt-[0.4rem] size-1.5 shrink-0 rounded-full bg-primary/80" />
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {outputVariants.length > 0 ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {outputVariants.map((variant) => {
+              const preview = renderOutputPreview(variant);
+              if (!preview) {
+                return (
+                  <div
+                    key={variant.id}
+                    className="flex aspect-square items-center justify-center border border-dashed border-border/60 bg-background/60 text-muted-foreground"
+                  >
+                    {variant.kind === 'video' ? (
+                      <Video className="size-5" />
+                    ) : (
+                      <Image className="size-5" />
+                    )}
+                  </div>
+                );
+              }
+
+              return <div key={variant.id}>{preview}</div>;
+            })}
+          </div>
+        ) : null}
+
+        {action.secondaryCtas?.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {action.secondaryCtas.slice(0, 3).map((cta, index) => (
+              <CompletionActionButton
+                key={`${action.id}-secondary-${cta.label}-${index}`}
+                cta={cta}
+                size="compact"
+                onUiAction={onUiAction}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-2 text-xs text-muted-foreground">
           <Button
-            ariaLabel={isExpanded ? 'Collapse summary' : 'Expand summary'}
+            ariaLabel="Copy result summary"
             variant={ButtonVariant.GHOST}
-            withWrapper={false}
-            className="h-7 w-7 shrink-0 p-0 text-muted-foreground"
-            onClick={() => setIsExpanded((open) => !open)}
+            className="h-7 px-2 text-xs"
+            onClick={() => {
+              if (!copyValue) {
+                return;
+              }
+              void onCopy?.(copyValue);
+            }}
           >
-            {isExpanded ? (
-              <ChevronUp className="size-4" />
-            ) : (
-              <ChevronDown className="size-4" />
-            )}
+            <Clipboard className="mr-1 size-3.5" />
+            Copy
           </Button>
-        ) : null}
-      </div>
-
-      {isExpanded ? (
-        <div className="space-y-3 border-t border-border/50 px-3 pb-3 pt-2">
-          {action.summaryText ? (
-            <p className="text-sm leading-5 text-foreground/90">
-              {action.summaryText}
-            </p>
+          <Button
+            ariaLabel="Retry result"
+            variant={ButtonVariant.GHOST}
+            className="h-7 px-2 text-xs"
+            onClick={() => {
+              void onRetry?.();
+            }}
+          >
+            Retry
+          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            ariaLabel="Mark result helpful"
+            className="h-7 px-2 text-xs"
+            onClick={() => setFeedbackState('positive')}
+          >
+            <ThumbsUp className="mr-1 size-3.5" />
+            Good
+          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            ariaLabel="Mark result not helpful"
+            className="h-7 px-2 text-xs"
+            onClick={() => setFeedbackState('negative')}
+          >
+            <ThumbsDown className="mr-1 size-3.5" />
+            Bad
+          </Button>
+          {feedbackState ? (
+            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
+              {feedbackState === 'positive' ? (
+                <CircleCheck className="size-3.5 text-emerald-500" />
+              ) : (
+                <Frown className="size-3.5 text-amber-500" />
+              )}
+              Thanks for the feedback.
+            </span>
           ) : null}
-
-          {action.outcomeBullets?.length ? (
-            <ul className="space-y-1 text-sm text-foreground/80">
-              {action.outcomeBullets.slice(0, 4).map((bullet) => (
-                <li key={bullet} className="flex gap-2">
-                  <span className="mt-[0.4rem] size-1.5 shrink-0 rounded-full bg-primary/80" />
-                  <span>{bullet}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          {outputVariants.length > 0 ? (
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {outputVariants.map((variant) => {
-                const preview = renderOutputPreview(variant);
-                if (!preview) {
-                  return (
-                    <div
-                      key={variant.id}
-                      className="flex aspect-square items-center justify-center border border-dashed border-border/60 bg-background/60 text-muted-foreground"
-                    >
-                      {variant.kind === 'video' ? (
-                        <Video className="size-5" />
-                      ) : (
-                        <Image className="size-5" />
-                      )}
-                    </div>
-                  );
-                }
-
-                return <div key={variant.id}>{preview}</div>;
-              })}
-            </div>
-          ) : null}
-
-          {action.secondaryCtas?.length ? (
-            <div className="flex flex-wrap gap-1.5">
-              {action.secondaryCtas.slice(0, 3).map((cta, index) => (
-                <CompletionActionButton
-                  key={`${action.id}-secondary-${cta.label}-${index}`}
-                  cta={cta}
-                  size="compact"
-                  onUiAction={onUiAction}
-                />
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-1 border-t border-border/50 pt-2 text-xs text-muted-foreground">
-            <Button
-              ariaLabel="Copy result summary"
-              variant={ButtonVariant.GHOST}
-              className="h-7 px-2 text-xs"
-              onClick={() => {
-                if (!copyValue) {
-                  return;
-                }
-                void onCopy?.(copyValue);
-              }}
-            >
-              <Clipboard className="mr-1 size-3.5" />
-              Copy
-            </Button>
-            <Button
-              ariaLabel="Retry result"
-              variant={ButtonVariant.GHOST}
-              className="h-7 px-2 text-xs"
-              onClick={() => {
-                void onRetry?.();
-              }}
-            >
-              Retry
-            </Button>
-            <Button
-              variant={ButtonVariant.GHOST}
-              ariaLabel="Mark result helpful"
-              className="h-7 px-2 text-xs"
-              onClick={() => setFeedbackState('positive')}
-            >
-              <ThumbsUp className="mr-1 size-3.5" />
-              Good
-            </Button>
-            <Button
-              variant={ButtonVariant.GHOST}
-              ariaLabel="Mark result not helpful"
-              className="h-7 px-2 text-xs"
-              onClick={() => setFeedbackState('negative')}
-            >
-              <ThumbsDown className="mr-1 size-3.5" />
-              Bad
-            </Button>
-            {feedbackState ? (
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
-                {feedbackState === 'positive' ? (
-                  <CircleCheck className="size-3.5 text-emerald-500" />
-                ) : (
-                  <Frown className="size-3.5 text-amber-500" />
-                )}
-                Thanks for the feedback.
-              </span>
-            ) : null}
-          </div>
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

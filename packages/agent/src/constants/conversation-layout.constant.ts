@@ -7,13 +7,20 @@ export const AGENT_CONVERSATION_TRACK_CLASS =
   'mx-auto w-full min-w-0 max-w-4xl px-3 sm:px-4';
 
 /** Shared card/composer border radius so edges match visually. */
-export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-2xl';
+export const AGENT_CONVERSATION_SURFACE_RADIUS_CLASS = 'rounded-xl';
 
 /**
- * Shared agent timeline card chrome. Solid `bg-card` (not translucent /70 +
- * blur) so Done, batch result, and form cards read as the same surface.
+ * Shared agent timeline card chrome — solid surface, T3/Codex density
+ * (tighter radius, no translucent blur stack).
  */
 export const AGENT_CONVERSATION_SURFACE_CLASS = [
-  'border border-border bg-card text-card-foreground shadow-sm',
+  'border border-border/80 bg-card text-card-foreground',
   AGENT_CONVERSATION_SURFACE_RADIUS_CLASS,
 ].join(' ');
+
+/**
+ * Borderless inline row for low-chrome timeline status (Done / work lines).
+ * Prefer this over full cards when the turn already has a product result card.
+ */
+export const AGENT_CONVERSATION_INLINE_ROW_CLASS =
+  'mt-1.5 flex w-full min-w-0 max-w-full items-center gap-2 py-1 text-left';

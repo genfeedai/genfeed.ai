@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 describe('BatchGenerationResultCard', () => {
-  it('renders status and credit badges without exposing the batch id', () => {
+  it('renders a dense metrics line without nested metric boxes', () => {
     render(
       <BatchGenerationResultCard
         action={{
@@ -29,14 +29,14 @@ describe('BatchGenerationResultCard', () => {
     );
 
     expect(screen.getByText('Batch generation started')).toBeInTheDocument();
-    expect(screen.getByText('5 credits')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        '20 requested · 12 ready · 1 failed · 5 credits · Instagram · X · LinkedIn',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Processing')).toBeInTheDocument();
-    expect(screen.getByText('Posts')).toBeInTheDocument();
-    expect(screen.getByText('20')).toBeInTheDocument();
-    expect(screen.getByText('Ready')).toBeInTheDocument();
-    expect(screen.getByText('Failed')).toBeInTheDocument();
-    expect(screen.getByText('Instagram')).toBeInTheDocument();
-    expect(screen.getByText('X')).toBeInTheDocument();
+    // Nested metric boxes removed for T3 density.
+    expect(screen.queryByText('Posts')).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open review queue' }),
     ).toHaveAttribute('href', '/publish/review?batch=batch-123&filter=ready');
@@ -85,7 +85,6 @@ describe('BatchGenerationResultCard', () => {
       />,
     );
 
-    expect(screen.getByText('Draft previews')).toBeInTheDocument();
     expect(
       screen.getByText('First draft about image content'),
     ).toBeInTheDocument();
@@ -94,5 +93,29 @@ describe('BatchGenerationResultCard', () => {
     expect(
       screen.getByRole('link', { name: '+5 more posts in review' }),
     ).toHaveAttribute('href', '/publish/review?batch=batch-xyz&filter=ready');
+  });
+
+  it('emphasizes all-failed batches without Ready metrics', () => {
+    render(
+      <BatchGenerationResultCard
+        action={{
+          batchCount: 20,
+          completedCount: 0,
+          description: 'Generated 20 X drafts.',
+          failedCount: 20,
+          id: 'batch-failed',
+          platforms: ['twitter'],
+          title: 'Batch generation complete',
+          type: 'batch_generation_result_card',
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText('20 requested · 0 ready · 20 failed · X'),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('batch-generation-result').className).toMatch(
+      /border-destructive/,
+    );
   });
 });
