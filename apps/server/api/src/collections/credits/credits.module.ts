@@ -15,7 +15,7 @@ import { TransactionModule } from '@api/helpers/utils/transaction/transaction.mo
 import { CreditDeductionModule } from '@api/queues/credit-deduction/credit-deduction.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import { isEEEnabled } from '@genfeedai/config';
+import { usesMeteredCredits } from '@genfeedai/config';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
@@ -42,7 +42,12 @@ import { forwardRef, Module } from '@nestjs/common';
     CreditTransactionsService,
     {
       provide: CreditsUtilsService,
-      useClass: isEEEnabled() ? CreditsUtilsService : OssCreditsUtilsService,
+      // SaaS cloud AND self-hosted EE use the real ledger. Community OSS / desktop
+      // get the infinite stub. `isEEEnabled()` alone was wrong — cloud SaaS with no
+      // EE license key still must meter (0 balance must block generation).
+      useClass: usesMeteredCredits()
+        ? CreditsUtilsService
+        : OssCreditsUtilsService,
     },
     TopbarBalancesService,
   ],

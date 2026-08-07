@@ -100,6 +100,8 @@ export function useGenerationActionCard({
   );
   const [models, setModels] = useState<GenerationModel[]>([]);
   const [modelsLoading, setModelsLoading] = useState(true);
+  /** Ingredient IDs selected on the generation canvas as model references. */
+  const [referenceIds, setReferenceIds] = useState<string[]>([]);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const setThreadUiBusy = useAgentChatStore((s) => s.setThreadUiBusy);
   const abortRef = useRef<AbortController | null>(null);
@@ -218,6 +220,7 @@ export function useGenerationActionCard({
           model: !isAutoMode && modelKey ? modelKey : undefined,
           prioritize,
           prompt,
+          references: referenceIds.length > 0 ? referenceIds : undefined,
           sourceActionId: action.id,
         });
         setStatus('done');
@@ -245,6 +248,7 @@ export function useGenerationActionCard({
         prioritize,
         promptId: promptDoc.id,
         promptText: prompt,
+        references: referenceIds.length > 0 ? referenceIds : undefined,
       });
 
       const result = await runAgentApiEffect(
@@ -290,6 +294,7 @@ export function useGenerationActionCard({
     apiService,
     clearGenerationOutcome,
     prioritize,
+    referenceIds,
     onUiAction,
     setThreadUiBusy,
   ]);
@@ -307,6 +312,25 @@ export function useGenerationActionCard({
   const handleGenerateVoid = useCallback(() => {
     void handleGenerate();
   }, [handleGenerate]);
+
+  const handleToggleReference = useCallback((assetId: string) => {
+    setReferenceIds((current) =>
+      current.includes(assetId)
+        ? current.filter((id) => id !== assetId)
+        : [...current, assetId],
+    );
+  }, []);
+
+  const handleUseResultAsReference = useCallback(() => {
+    if (!resultId) {
+      return;
+    }
+    setReferenceIds((current) =>
+      current.includes(resultId) ? current : [...current, resultId],
+    );
+    // Return to idle so the user can re-generate with the result as input.
+    setStatus('idle');
+  }, [resultId]);
 
   const handleModelChange = useCallback((_name: string, values: string[]) => {
     const hasAutoOption = values.includes(AUTO_MODEL_OPTION_VALUE);
@@ -356,10 +380,13 @@ export function useGenerationActionCard({
     availableAspectRatios,
     showDuration,
     durationOptions,
+    referenceIds,
     textareaRef: textareaRef as RefObject<HTMLTextAreaElement | null>,
     onRegenerateProp,
     handleRetryVoid,
     handleGenerateVoid,
+    handleToggleReference,
+    handleUseResultAsReference,
     handleModelChange,
     handleAspectRatioChange,
     handleDurationChange,

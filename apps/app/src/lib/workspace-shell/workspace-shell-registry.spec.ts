@@ -151,7 +151,7 @@ describe('workspace shell trusted registry', () => {
     ['/:orgSlug/:brandSlug/studio/clips', 'canvas'],
     ['/:orgSlug/:brandSlug/studio/fastlane', 'canvas'],
     ['/:orgSlug/:brandSlug/settings/publishing', 'canvas'],
-    ['/:orgSlug/~/settings/billing', 'canvas'],
+    ['/:orgSlug/~/settings/subscription', 'canvas'],
     ['/admin/administration/users', 'canvas'],
   ] as const)('classifies %s as %s', (pattern, mode) => {
     expect(
@@ -258,7 +258,7 @@ describe('workspace shell trusted registry', () => {
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/organization/credentials',
       '/acme/~/settings/api-keys',
-      '/acme/~/settings/billing',
+      '/acme/~/settings/subscription',
       '/admin/overview',
       '/admin/overview/activities',
     ]) {
@@ -301,7 +301,7 @@ describe('workspace shell trusted registry', () => {
   it('keeps the two accepted hard-cut families outside the registry', () => {
     expect(resolveWorkspaceShellRoute('/acme/~/workspace')).toBeNull();
     expect(
-      resolveWorkspaceShellRoute('/acme/~/settings/organization/billing'),
+      resolveWorkspaceShellRoute('/acme/~/settings/subscription'),
     ).toBeNull();
   });
 

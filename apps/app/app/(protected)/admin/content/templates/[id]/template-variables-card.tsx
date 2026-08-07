@@ -4,7 +4,6 @@ import { ComponentSize } from '@genfeedai/enums';
 import type { TemplateVariable } from '@genfeedai/interfaces/content/template-ui.interface';
 import { Code } from '@genfeedai/ui';
 import Badge from '@ui/display/badge/Badge';
-import { VStack } from '@ui/layout/stack';
 import { Text } from '@ui/typography/text';
 import { DetailCard } from './template-detail-helpers';
 
@@ -19,7 +18,7 @@ export default function TemplateVariablesCard({ variables }: Props) {
 
   return (
     <DetailCard title="Variables">
-      <VStack gap={4}>
+      <div className="flex flex-col gap-4">
         {variables.map((variable) => (
           <div
             key={variable.id}
@@ -86,7 +85,7 @@ export default function TemplateVariablesCard({ variables }: Props) {
             )}
           </div>
         ))}
-      </VStack>
+      </div>
     </DetailCard>
   );
 }

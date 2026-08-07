@@ -43,16 +43,21 @@ export interface VideoAttributes {
 /**
  * Article resource attributes from API
  */
+/**
+ * Mirrors `articleAttributes` in `@genfeedai/serializers`. The title is
+ * serialized as `label` and the excerpt as `summary`; there is no `title`,
+ * `excerpt`, or `wordCount` attribute on the wire — declaring them made three
+ * read sites here type-check while always resolving to `undefined`.
+ */
 export interface ArticleAttributes {
   category?: string;
   content?: string;
   createdAt?: string;
-  excerpt?: string;
   id?: string;
+  label?: string;
   status?: string;
-  title?: string;
+  summary?: string;
   updatedAt?: string;
-  wordCount?: number;
 }
 
 /**

@@ -9,6 +9,10 @@ import {
   cloneBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import {
+  fromPrismaBatchStatus,
+  toPrismaBatchStatus,
+} from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, PostStatus } from '@genfeedai/enums';
@@ -46,10 +50,10 @@ export class BatchGenerationProcessingService {
     // If two concurrent calls race, exactly one updateMany will match (count=1);
     // the other gets count=0 and exits early, preventing duplicate processing.
     const claimed = await this.prisma.batch.updateMany({
-      data: { status: PrismaBatchStatus.PROCESSING },
+      data: { status: toPrismaBatchStatus(BatchStatus.GENERATING) },
       where: scopedWhere(orgId, {
         id: batchId,
-        status: PrismaBatchStatus.PENDING,
+        status: toPrismaBatchStatus(BatchStatus.PENDING),
       }),
     });
 
@@ -123,17 +127,20 @@ export class BatchGenerationProcessingService {
       data: {
         config: updatedConfig as Prisma.InputJsonValue,
         items: batchItems as Prisma.InputJsonValue,
-        status: finalStatus,
+        status: toPrismaBatchStatus(finalStatus),
       },
       where: scopedWhere(orgId, {
         id: batchId,
-        status: PrismaBatchStatus.PROCESSING,
+        status: toPrismaBatchStatus(BatchStatus.GENERATING),
       }),
     });
 
     if (finalized.count !== 1) {
       const currentBatch = await this.findScopedBatch(batchId, orgId);
-      if (String(currentBatch.status) === PrismaBatchStatus.FAILED) {
+      if (
+        fromPrismaBatchStatus(String(currentBatch.status)) ===
+        BatchStatus.CANCELLED
+      ) {
         return this.summaryService.toBatchSummary(currentBatch);
       }
       throw new BadRequestException(
@@ -317,7 +324,7 @@ export class BatchGenerationProcessingService {
       select: { status: true },
       where: scopedWhere(orgId, { id: batchId }),
     });
-    return String(batch?.status) === PrismaBatchStatus.PROCESSING;
+    return fromPrismaBatchStatus(batch?.status) === BatchStatus.GENERATING;
   }
 
   private async invokeLifecycleCallback(

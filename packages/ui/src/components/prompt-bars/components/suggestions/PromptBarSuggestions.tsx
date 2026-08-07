@@ -37,7 +37,7 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
       className={cn(
         isCards
           ? 'grid w-full grid-cols-1 gap-2 sm:grid-cols-3'
-          : 'flex flex-wrap items-center gap-2',
+          : 'flex flex-wrap items-center justify-center gap-2',
         className,
       )}
       aria-label="Prompt suggestions"
@@ -47,18 +47,16 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
         <Button
           key={suggestion.id}
           variant={ButtonVariant.UNSTYLED}
-          tooltip={
-            isCards
-              ? (suggestion.description ?? suggestion.prompt)
-              : (suggestion.description ?? suggestion.prompt)
-          }
+          tooltip={suggestion.description ?? suggestion.prompt}
           tooltipPosition="top"
           ariaLabel={suggestion.label}
           className={cn(
             'h-auto text-left normal-case tracking-normal',
             isCards
-              ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border/45 bg-foreground/[0.03] px-3.5 py-3.5 text-foreground/88 transition-colors hover:border-border/70 hover:bg-foreground/[0.055]'
-              : 'max-w-full rounded-xl border border-border/45 bg-foreground/[0.03] px-3 py-2 text-xs hover:bg-foreground/[0.06]',
+              ? 'flex min-h-[5.5rem] w-full flex-col items-start gap-2.5 rounded-2xl border border-border bg-background px-3.5 py-3.5 text-foreground/88 shadow-md shadow-black/25 transition-colors hover:border-border/80 hover:bg-background-secondary'
+              : // Elevated pills so transcript CTAs fade under them cleanly
+                // without a tall opaque composer slab behind the row.
+                'inline-flex max-w-full items-center rounded-full border border-border/80 bg-background px-3.5 py-2 text-xs shadow-md shadow-black/30 ring-1 ring-black/20 hover:border-border hover:bg-background-secondary',
             isDisabled && 'pointer-events-none opacity-50',
           )}
           isDisabled={isDisabled}
@@ -84,13 +82,13 @@ const PromptBarSuggestions = memo(function PromptBarSuggestions({
               ) : null}
             </span>
           ) : (
-            <span className="flex min-w-0 items-center gap-2.5">
+            <span className="flex min-w-0 items-center gap-2">
               {suggestion.icon ? (
                 <span className="flex shrink-0" aria-hidden="true">
                   {suggestion.icon}
                 </span>
               ) : null}
-              <span className="truncate text-xs font-medium">
+              <span className="truncate text-[13px] font-medium text-foreground/88">
                 {suggestion.label}
               </span>
             </span>

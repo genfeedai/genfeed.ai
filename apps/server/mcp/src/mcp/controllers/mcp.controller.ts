@@ -1,11 +1,11 @@
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import * as appMetadata from '@mcp/config/app-metadata.json';
+import { MCP_RESOURCES } from '@mcp/mcp/resource-catalog';
 import { MCPService } from '@mcp/mcp/services/mcp.service';
 import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
 import { type McpRole } from '@mcp/services/auth.service';
-import { ClientService } from '@mcp/services/client.service';
-import { ServerService } from '@mcp/services/server.service';
+import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import { Controller, Get, Param, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
@@ -18,8 +18,7 @@ interface AuthenticatedRequest extends Request {
 export class McpController {
   constructor(
     private readonly mcpService: MCPService,
-    private readonly clientService: ClientService,
-    private readonly serverService: ServerService,
+    private readonly streamableHttpService: StreamableHttpService,
     private readonly toolRegistry: ToolRegistryService,
     private readonly logger: LoggerService,
   ) {}
@@ -57,8 +56,10 @@ export class McpController {
       endpoint,
       methods: ['POST', 'GET', 'DELETE'],
       protocol: 'MCP 2025-03-26',
-      serverRunning: this.serverService.isServerRunning(),
       transport: 'streamable-http',
+      // Readiness of the transport that actually serves MCP traffic — the
+      // Streamable HTTP routes mounted in `main.ts`.
+      transportReady: this.streamableHttpService.isTransportReady(),
     };
   }
 
@@ -81,10 +82,10 @@ export class McpController {
         },
       },
       mcp_version: '1.18.1',
-      server_running: this.serverService.isServerRunning(),
       server_version: '1.0.0',
       status: 'active',
       timestamp: new Date().toISOString(),
+      transport_ready: this.streamableHttpService.isTransportReady(),
     };
   }
 
@@ -99,57 +100,15 @@ export class McpController {
   @Get('resources')
   getResources() {
     return {
-      resources: [
-        {
-          description: 'Get analytics for all videos in your organization',
-          mimeType: 'application/json',
-          name: 'Video Analytics',
-          uri: 'genfeed://analytics/videos',
-        },
-        {
-          description: 'Get overall organization analytics',
-          mimeType: 'application/json',
-          name: 'Organization Analytics',
-          uri: 'genfeed://analytics/organization',
-        },
-      ],
+      resources: [...MCP_RESOURCES],
     };
   }
 
-  private async simulateResourceRead(resourceUri: string) {
-    switch (resourceUri) {
-      case 'genfeed://analytics/videos': {
-        const videoAnalytics = await this.clientService.getVideoAnalytics();
-        return {
-          contents: [
-            {
-              mimeType: 'application/json',
-              text: JSON.stringify(videoAnalytics, null, 2),
-              uri: 'genfeed://analytics/videos',
-            },
-          ],
-        };
-      }
-
-      case 'genfeed://analytics/organization': {
-        const orgAnalytics =
-          await this.clientService.getOrganizationAnalytics();
-        return {
-          contents: [
-            {
-              mimeType: 'application/json',
-              text: JSON.stringify(orgAnalytics, null, 2),
-              uri: 'genfeed://analytics/organization',
-            },
-          ],
-        };
-      }
-
-      default:
-        throw new Error(`Unknown resource: ${resourceUri}`);
-    }
-  }
-
+  /**
+   * REST mirror of `resources/read`. It delegates to the same registry the
+   * JSON-RPC transport uses instead of re-implementing the readers, so the two
+   * surfaces cannot answer differently for the same URI.
+   */
   @Get('resources/:resourceUri')
   async readResource(
     @Param('resourceUri') resourceUri: string,
@@ -158,10 +117,12 @@ export class McpController {
     this.logger.log(`Reading resource: ${resourceUri}`);
 
     if (request.authContext?.token) {
-      this.clientService.setBearerToken(request.authContext.token);
+      this.toolRegistry.setBearerToken(request.authContext.token);
     }
 
-    const result = await this.simulateResourceRead(resourceUri);
+    const result = await this.toolRegistry.handleResourceRead({
+      uri: resourceUri,
+    });
 
     return {
       resource: resourceUri,

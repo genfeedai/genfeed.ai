@@ -43,11 +43,11 @@ describe('workspace surface launcher', () => {
       resolveWorkspaceSurfaceLaunch({
         currentHref: '/acme/~/agent/thread-1',
         destinationHref:
-          '/acme/~/settings/billing?overlay=shell-preview&thread=thread-1',
+          '/acme/~/settings/subscription?overlay=shell-preview&thread=thread-1',
       }),
     ).toMatchObject({
       announcement: 'Opening organization settings in canvas mode.',
-      href: '/acme/~/settings/billing',
+      href: '/acme/~/settings/subscription',
       mode: 'canvas',
     });
   });

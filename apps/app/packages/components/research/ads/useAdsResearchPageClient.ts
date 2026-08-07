@@ -64,7 +64,7 @@ type CredentialOption = {
 type AdSortKey = 'score' | 'ctr' | 'roas';
 
 const SOURCE_VALUES = ['all', 'my_accounts', 'public'] as const;
-const PLATFORM_VALUES = ['all', 'google', 'meta'] as const;
+const PLATFORM_VALUES = ['all', 'google', 'meta', 'tiktok'] as const;
 const CHANNEL_VALUES = ['all', 'display', 'search', 'youtube'] as const;
 const METRIC_VALUES = [
   'performanceScore',
@@ -218,11 +218,20 @@ export function useAdsResearchPageClient(
           return options;
         }
 
+        if (effectivePlatform === 'tiktok') {
+          if (value === 'tiktok' || value === 'tiktok_ads') {
+            options.push(credential as CredentialOption);
+          }
+          return options;
+        }
+
         if (
           value === 'facebook' ||
           value === 'meta' ||
           value === 'google_ads' ||
-          value === 'google'
+          value === 'google' ||
+          value === 'tiktok' ||
+          value === 'tiktok_ads'
         ) {
           options.push(credential as CredentialOption);
         }
@@ -468,7 +477,13 @@ export function useAdsResearchPageClient(
 
       const result = await service.prepareCampaignForReview({
         ...payload,
-        campaignName: `${brandLabel} ${selectedAd.platform === 'meta' ? 'Meta' : 'Google'} Campaign`,
+        campaignName: `${brandLabel} ${
+          selectedAd.platform === 'meta'
+            ? 'Meta'
+            : selectedAd.platform === 'tiktok'
+              ? 'TikTok'
+              : 'Google'
+        } Campaign`,
         createWorkflow: true,
         dailyBudget: 50,
       });

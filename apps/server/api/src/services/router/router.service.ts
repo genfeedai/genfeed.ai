@@ -4,6 +4,8 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
   ModelRecommendation,
+  ModelResolution,
+  ModelResolutionRequest,
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@api/services/router/interfaces/router.interfaces';
@@ -14,6 +16,27 @@ import { Injectable } from '@nestjs/common';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
 const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
+
+/**
+ * Last-resort keys for a registry that holds nothing usable in a category.
+ *
+ * This is a safety net for a broken or unseeded install, not a second
+ * catalogue: nothing reads it until `resolveModelKey` has failed to find an
+ * active, non-legacy registry row, and reaching it is logged at error level so
+ * the install gets fixed rather than silently running on constants (#2422).
+ */
+const FALLBACK_MODEL_KEYS: Record<ModelCategory, string> = {
+  [ModelCategory.EMBEDDING]: MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
+  [ModelCategory.IMAGE]: DEFAULT_IMAGE_MODEL,
+  [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+  [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+  [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+  [ModelCategory.TEXT]: DEFAULT_TEXT_MODEL,
+  [ModelCategory.VIDEO]: DEFAULT_VIDEO_MODEL,
+  [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
+  [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+  [ModelCategory.VOICE]: 'elevenlabs',
+};
 
 @Injectable()
 export class RouterService {
@@ -41,6 +64,24 @@ export class RouterService {
     artistic: 15,
     creative: 15,
     stylized: 20,
+  };
+
+  /**
+   * Ranking weights used when a category has no `isDefault` row — the registry
+   * still has to yield one deterministic answer.
+   */
+  private static readonly QUALITY_TIER_RANKS: Record<string, number> = {
+    basic: 1,
+    high: 3,
+    standard: 2,
+    ultra: 4,
+  };
+
+  /** Cheaper wins the tiebreak between two models of equal quality. */
+  private static readonly COST_TIER_RANKS: Record<string, number> = {
+    high: 1,
+    low: 3,
+    medium: 2,
   };
 
   constructor(
@@ -72,15 +113,122 @@ export class RouterService {
   }
 
   /**
-   * Get all active models for a category from the database
+   * The registry rows this router is allowed to pick from, for one category.
+   *
+   * A row is usable when it is active, not soft-deleted, and not legacy —
+   * retired keys keep their row so historical generations still resolve, but
+   * must never be routed to again. Discovery drafts are excluded by the same
+   * `isActive` gate that keeps them out of the public catalog.
+   *
+   * Org-private rows (customer trainings, BYO models) are only eligible for
+   * their owner. Entitlement is still enforced downstream by
+   * `ModelRegistrationService.validateModelForOrg`; this is a visibility
+   * filter, not the authorization check.
    */
-  private async getModelsByCategory(
+  private async getUsableModels(
     category: ModelCategory,
+    organizationId?: string,
   ): Promise<ModelDocument[]> {
-    // Since ModelsService.findAllActive() returns all active non-deleted models,
-    // we filter in memory for the specific category
-    const allActive = await this.modelsService.findAllActive();
-    return allActive.filter((m) => m.category === category);
+    const models = await this.modelsService.findAllActive({
+      category,
+      isLegacy: false,
+    });
+
+    return models.filter(
+      (model) =>
+        !model.organizationId || model.organizationId === organizationId,
+    );
+  }
+
+  /**
+   * Rank a registry row when the category has no explicit default. Highlighted
+   * rows outrank everything, then quality tier, then the cheaper option.
+   */
+  private rankModel(model: ModelDocument): number {
+    const quality =
+      RouterService.QUALITY_TIER_RANKS[String(model.qualityTier ?? '')] ?? 0;
+    const cost =
+      RouterService.COST_TIER_RANKS[String(model.costTier ?? '')] ?? 0;
+
+    return (model.isHighlighted ? 100 : 0) + quality * 10 + cost;
+  }
+
+  /**
+   * Highest-ranked usable row, or null when there is none. Ties break on key so
+   * two pods reading the same registry always resolve to the same model.
+   */
+  private getHighestRankedModel(models: ModelDocument[]): ModelDocument | null {
+    const ranked = models
+      .filter((model) => this.readString(model.key))
+      .sort((a, b) => {
+        const delta = this.rankModel(b) - this.rankModel(a);
+        return delta !== 0 ? delta : String(a.key).localeCompare(String(b.key));
+      });
+
+    return ranked[0] ?? null;
+  }
+
+  /**
+   * First candidate key the registry actually carries as a usable row.
+   * A stale brand or organization default simply falls through.
+   */
+  private findUsableCandidate(
+    candidates: Array<string | null | undefined> | undefined,
+    models: ModelDocument[],
+  ): string | undefined {
+    for (const candidate of candidates ?? []) {
+      const key = this.readString(candidate);
+      if (key && models.some((model) => model.key === key)) {
+        return key;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * The single policy for turning a category into a model key (#2422 Phase C).
+   *
+   * Precedence: caller candidates (explicit > brand > organization), then the
+   * registry's `isDefault` row, then the highest-ranked usable row, then the
+   * last-resort constant. Every step reads the registry — the constant is only
+   * reached when the registry has nothing usable, and that is an error-level
+   * event, not a routine fallback.
+   */
+  public async resolveModelKey(
+    request: ModelResolutionRequest,
+  ): Promise<ModelResolution> {
+    const models = await this.getUsableModels(
+      request.category,
+      request.organizationId,
+    );
+
+    const candidate = this.findUsableCandidate(request.candidates, models);
+    if (candidate) {
+      return { key: candidate, source: 'candidate' };
+    }
+
+    const registryDefault = models.find(
+      (model) => model.isDefault && this.readString(model.key),
+    );
+    if (registryDefault) {
+      return { key: String(registryDefault.key), source: 'registry-default' };
+    }
+
+    const highestRanked = this.getHighestRankedModel(models);
+    if (highestRanked) {
+      return { key: String(highestRanked.key), source: 'registry-best' };
+    }
+
+    const fallback =
+      FALLBACK_MODEL_KEYS[request.category] ?? DEFAULT_TEXT_MODEL;
+
+    this.logger.error(`${RouterService.name} resolveModelKey empty registry`, {
+      category: request.category,
+      fallback,
+    });
+
+    return { key: fallback, source: 'fallback-constant' };
   }
 
   /**
@@ -448,7 +596,10 @@ export class RouterService {
       // Analyze prompt
       const analysis = this.analyzePrompt(options.prompt);
 
-      const models = await this.getModelsByCategory(options.category);
+      const models = await this.getUsableModels(
+        options.category,
+        options.organizationId,
+      );
 
       if (models.length === 0) {
         this.logger.warn(`${url} no models found for category`, {
@@ -594,38 +745,18 @@ export class RouterService {
   }
 
   /**
-   * Get default model for category from database
+   * Default model key for a category, straight from the registry.
+   *
+   * Thin wrapper over `resolveModelKey` so every caller that only needs "the
+   * system default" shares the same policy — including the highlighted/ranked
+   * step, which the old `isDefault`-or-constant lookup skipped entirely.
    */
-  public async getDefaultModel(category: ModelCategory): Promise<string> {
-    // Try to get the default model from database
-    const defaultModel = await this.modelsService.findOne({
-      category,
-      isDefault: true,
-      isDeleted: false,
-    });
+  public async getDefaultModel(
+    category: ModelCategory,
+    organizationId?: string,
+  ): Promise<string> {
+    const resolution = await this.resolveModelKey({ category, organizationId });
 
-    if (defaultModel?.key) {
-      return defaultModel.key;
-    }
-
-    // Fallback to hardcoded defaults if no database default is set
-    const fallbacks: Record<ModelCategory, string> = {
-      [ModelCategory.IMAGE]: DEFAULT_IMAGE_MODEL,
-      [ModelCategory.VIDEO]: DEFAULT_VIDEO_MODEL,
-      [ModelCategory.TEXT]: DEFAULT_TEXT_MODEL,
-      [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
-      [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-      [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-      [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
-      [ModelCategory.VOICE]: 'elevenlabs',
-      [ModelCategory.EMBEDDING]: MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
-    };
-
-    this.logger.warn(
-      `No default model found in database for category ${category}, using fallback`,
-    );
-
-    return fallbacks[category] || DEFAULT_TEXT_MODEL;
+    return resolution.key;
   }
 }

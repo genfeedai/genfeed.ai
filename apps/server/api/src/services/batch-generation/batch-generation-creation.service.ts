@@ -8,6 +8,7 @@ import type {
   BatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import { toPrismaBatchStatus } from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
@@ -15,10 +16,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, ContentFormat, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import {
-  type Prisma,
-  BatchStatus as PrismaBatchStatus,
-} from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -104,7 +102,7 @@ export class BatchGenerationCreationService {
         isDeleted: false,
         items: items as Prisma.InputJsonValue,
         organizationId: orgId,
-        status: PrismaBatchStatus.PENDING,
+        status: toPrismaBatchStatus(BatchStatus.PENDING),
         userId,
       },
     })) as BatchWithConfig;
@@ -182,7 +180,7 @@ export class BatchGenerationCreationService {
           isDeleted: false,
           items: batchItems as Prisma.InputJsonValue,
           organizationId: orgId,
-          status: PrismaBatchStatus.COMPLETED,
+          status: toPrismaBatchStatus(BatchStatus.COMPLETED),
           userId,
         },
       })) as BatchWithConfig;

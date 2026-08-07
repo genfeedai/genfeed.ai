@@ -19,7 +19,10 @@ export interface Image {
 
 export interface CreateImageRequest {
   text: string;
-  brand: string;
+  // Must stay `brandId`: CreateImageDto extends CreateIngredientDto, and the
+  // global ValidationPipe validates with `whitelist: true`, which silently
+  // strips any property the DTO does not declare.
+  brandId: string;
   model?: string;
   width?: number;
   height?: number;

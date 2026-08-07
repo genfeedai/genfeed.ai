@@ -394,7 +394,9 @@ describe('GenerationActionCard', () => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
     });
 
-    expect(await screen.findByText('Open in Library')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('link', { name: 'Library' }),
+    ).toBeInTheDocument();
   });
 
   it('routes composer generation through the persisted thread UI action', async () => {

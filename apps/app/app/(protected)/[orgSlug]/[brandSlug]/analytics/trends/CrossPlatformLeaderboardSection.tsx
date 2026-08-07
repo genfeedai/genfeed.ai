@@ -7,7 +7,6 @@ import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
-import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 
@@ -35,12 +34,12 @@ export default function CrossPlatformLeaderboardSection({
     <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
       {viralLeaderboard.length > 0 && (
         <Card className="xl:col-span-2 backdrop-blur" bodyClassName="space-y-6">
-          <VStack gap={2}>
+          <div className="flex flex-col gap-2">
             <Heading size="xl">Cross-Platform Leaderboard</Heading>
             <Text as="p" size="sm" color="subtle-60">
               Top viral content across all platforms in the last 72 hours.
             </Text>
-          </VStack>
+          </div>
           <Table<ITrendVideo>
             items={viralLeaderboard}
             columns={[
@@ -146,12 +145,12 @@ export default function CrossPlatformLeaderboardSection({
 
       {creatorLeaderboard.length > 0 && (
         <Card className="backdrop-blur" bodyClassName="space-y-6">
-          <VStack gap={2}>
+          <div className="flex flex-col gap-2">
             <Heading size="xl">Creator watchlist</Heading>
             <Text as="p" size="sm" color="subtle-60">
               Fastest-growing creators to follow and benchmark this week.
             </Text>
-          </VStack>
+          </div>
           <ul className="space-y-4">
             {creatorLeaderboard.map((brand: ICreatorWatchlist) => {
               const platform = platformConfigLookup[brand.platform];

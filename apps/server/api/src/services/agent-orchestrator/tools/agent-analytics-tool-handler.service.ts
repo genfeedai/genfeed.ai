@@ -275,13 +275,10 @@ export class AgentAnalyticsToolHandler {
       data: { overview, period },
       nextActions: [
         {
-          ctas: [
-            { href: '/analytics/overview', label: 'Open analytics dashboard' },
-            {
-              href: '/automation/analytics',
-              label: 'Open automation analytics',
-            },
-          ],
+          // Single dashboard CTA — period switching is client-side when
+          // multiple snapshots exist in the thread. Automation analytics is a
+          // different surface and is not the right link for org overview cards.
+          ctas: [{ href: '/analytics/overview', label: 'Open analytics' }],
           data: { overview, period },
           // Stable per org+period so tool_complete + done metadata dedupe, and
           // re-runs replace the prior snapshot instead of stacking clones.

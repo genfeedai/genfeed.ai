@@ -1,6 +1,12 @@
 import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,6 +52,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 interface AgentChatStoreState {
+  activeRunId: string | null;
   activeRunStatus:
     | 'idle'
     | 'running'
@@ -56,9 +63,24 @@ interface AgentChatStoreState {
   activeThreadId: string | null;
   clearThreadAttention: ReturnType<typeof vi.fn>;
   clearMessages: ReturnType<typeof vi.fn>;
+  composerSeed: {
+    content: string;
+    nonce: number;
+    threadId: string | null;
+  } | null;
+  draftPlanModeEnabled: boolean;
+  latestProposedPlan: Record<string, unknown> | null;
+  messages: Array<Record<string, unknown>>;
+  pendingInputRequest: Record<string, unknown> | null;
+  resetActiveConversationState: ReturnType<typeof vi.fn>;
   resetStreamState: ReturnType<typeof vi.fn>;
+  runStartedAt: string | null;
   stream: {
+    activeToolCalls: unknown[];
     isStreaming: boolean;
+    pendingUiActions: unknown[];
+    streamingContent: string;
+    streamingReasoning: string;
   };
   threadUiBusyById: Record<string, boolean>;
   threads: AgentThread[];
@@ -70,16 +92,45 @@ interface AgentChatStoreState {
   setThreads: ReturnType<typeof vi.fn>;
   setThreadUiBusy: ReturnType<typeof vi.fn>;
   setWorkEvents: ReturnType<typeof vi.fn>;
+  workEvents: Array<Record<string, unknown>>;
 }
 
 const storeState: AgentChatStoreState = {
+  activeRunId: null,
   activeRunStatus: 'idle',
   activeThreadId: null,
   clearMessages: vi.fn(),
   clearThreadAttention: vi.fn(),
+  composerSeed: null,
+  draftPlanModeEnabled: false,
+  latestProposedPlan: null,
+  messages: [],
+  pendingInputRequest: null,
+  resetActiveConversationState: vi.fn(() => {
+    storeState.activeRunId = null;
+    storeState.activeRunStatus = 'idle';
+    storeState.composerSeed = null;
+    storeState.draftPlanModeEnabled = false;
+    storeState.latestProposedPlan = null;
+    storeState.messages = [];
+    storeState.pendingInputRequest = null;
+    storeState.runStartedAt = null;
+    storeState.stream = {
+      activeToolCalls: [],
+      isStreaming: false,
+      pendingUiActions: [],
+      streamingContent: '',
+      streamingReasoning: '',
+    };
+    storeState.threadUiBusyById = {};
+    storeState.workEvents = [];
+  }),
   resetStreamState: vi.fn(),
+  runStartedAt: null,
   setActiveRun: vi.fn(),
-  setActiveThread: vi.fn(),
+  setActiveThread: vi.fn((threadId: string | null) => {
+    storeState.activeThreadId = threadId;
+  }),
   setError: vi.fn(),
   setMessages: vi.fn(),
   setThreadPrompt: vi.fn(),
@@ -89,10 +140,15 @@ const storeState: AgentChatStoreState = {
   setThreadUiBusy: vi.fn(),
   setWorkEvents: vi.fn(),
   stream: {
+    activeToolCalls: [],
     isStreaming: false,
+    pendingUiActions: [],
+    streamingContent: '',
+    streamingReasoning: '',
   },
   threads: [],
   threadUiBusyById: {},
+  workEvents: [],
 };
 
 vi.mock('../stores/agent-chat.store', () => ({
@@ -174,24 +230,58 @@ function createApiService(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  reject: (reason: Error) => void;
+  resolve: (value: T) => void;
+} {
+  let reject: ((reason: Error) => void) | null = null;
+  let resolve: ((value: T) => void) | null = null;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    reject = rejectPromise;
+    resolve = resolvePromise;
+  });
+
+  return {
+    promise,
+    reject: (reason) => reject?.(reason),
+    resolve: (value) => resolve?.(value),
+  };
+}
+
 describe('AgentThreadList', () => {
   beforeEach(() => {
+    storeState.activeRunId = null;
     storeState.activeRunStatus = 'idle';
     storeState.activeThreadId = null;
+    storeState.composerSeed = null;
+    storeState.draftPlanModeEnabled = false;
+    storeState.latestProposedPlan = null;
+    storeState.messages = [];
+    storeState.pendingInputRequest = null;
+    storeState.runStartedAt = null;
     storeState.threads = [];
     storeState.clearMessages.mockReset();
     storeState.clearThreadAttention.mockReset();
+    storeState.resetActiveConversationState.mockClear();
     storeState.resetStreamState.mockReset();
     storeState.setActiveRun.mockReset();
-    storeState.setActiveThread.mockReset();
+    storeState.setActiveThread.mockClear();
     storeState.setThreadPrompt.mockReset();
     storeState.setThreads.mockClear();
     storeState.setThreadUiBusy.mockReset();
     storeState.setError.mockReset();
     storeState.setMessages.mockReset();
     storeState.setWorkEvents.mockReset();
-    storeState.stream.isStreaming = false;
+    storeState.stream = {
+      activeToolCalls: [],
+      isStreaming: false,
+      pendingUiActions: [],
+      streamingContent: '',
+      streamingReasoning: '',
+    };
     storeState.threadUiBusyById = {};
+    storeState.workEvents = [];
   });
 
   it('shows a load failure state instead of the empty state on fetch errors', async () => {
@@ -256,15 +346,21 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Recent thread')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Show archived threads' }),
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Show archived threads' }),
     );
 
     await waitFor(() => {
       expect(screen.getByText('Archived thread')).toBeInTheDocument();
     });
 
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
     expect(
-      screen.getByRole('button', { name: 'Show recent threads' }),
+      await screen.findByRole('menuitem', { name: 'Show recent threads' }),
     ).toBeInTheDocument();
     expect(apiService.getThreads).toHaveBeenNthCalledWith(
       2,
@@ -386,7 +482,10 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('No threads')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Show archived threads' }),
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Show archived threads' }),
     );
 
     expect(await screen.findByText('Restore me')).toBeInTheDocument();
@@ -486,7 +585,7 @@ describe('AgentThreadList', () => {
     expect(
       screen.getByText('This preview should not render anymore.'),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Awaiting response')).toBeNull();
+    expect(screen.queryByText('Running')).toBeNull();
   });
 
   it('uses a warning status dot for threads that need input', async () => {
@@ -537,8 +636,11 @@ describe('AgentThreadList', () => {
     });
 
     expect(storeState.threads[0]?.id).toBe('conv-2');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
     expect(
-      screen.getByRole('button', { name: 'Archive all threads' }),
+      await screen.findByRole('menuitem', { name: 'Archive all threads' }),
     ).toBeInTheDocument();
   });
 
@@ -636,7 +738,10 @@ describe('AgentThreadList', () => {
     expect(await screen.findByText('Thread one')).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Archive all threads' }),
+      screen.getByRole('button', { name: 'Conversation list actions' }),
+    );
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Archive all threads' }),
     );
 
     await waitFor(() => {
@@ -690,17 +795,35 @@ describe('AgentThreadList', () => {
       await screen.findByText('Assess desktop app readiness'),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(
-        'Awaiting response status for Assess desktop app readiness',
-      ),
+      screen.getByLabelText('Running status for Assess desktop app readiness'),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText(
-        'Awaiting response status for Assess desktop app readiness',
-      ),
+      screen.getByLabelText('Running status for Assess desktop app readiness'),
     ).toHaveClass('animate-spin');
-    expect(screen.getByText('Awaiting response')).toBeInTheDocument();
-    expect(screen.getByTitle('Awaiting response')).toBeInTheDocument();
+    expect(screen.getByText('Running')).toBeInTheDocument();
+    expect(screen.getByTitle('Running')).toBeInTheDocument();
+  });
+
+  it('shows a spinner for a non-active thread that is still running', async () => {
+    const thread = createThread('conv-1', 'Background run', {
+      attentionState: 'running',
+      runStatus: 'running',
+    } as Partial<AgentThread>);
+    storeState.activeThreadId = 'conv-2';
+    storeState.activeRunStatus = 'idle';
+
+    const apiService = createApiService({
+      getThreads: vi.fn().mockResolvedValue([thread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    render(<AgentThreadList apiService={apiService as never} />);
+
+    expect(await screen.findByText('Background run')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Running status for Background run'),
+    ).toHaveClass('animate-spin');
+    expect(screen.getByText('Running')).toBeInTheDocument();
   });
 
   it('does not show a spinner for a non-active thread with stale running status', async () => {
@@ -719,11 +842,135 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Old stuck thread')).toBeInTheDocument();
     expect(
-      screen.queryByLabelText('Awaiting response status for Old stuck thread'),
+      screen.queryByLabelText('Running status for Old stuck thread'),
     ).toBeNull();
     expect(
       screen.getByLabelText('Conversation status for Old stuck thread'),
     ).not.toHaveClass('animate-spin');
+  });
+
+  it('ignores a previous brand request that rejects after the next load starts', async () => {
+    const brandARequest = createDeferred<AgentThread[]>();
+    const brandBRequest = createDeferred<AgentThread[]>();
+    const brandBThread = createThread('conv-b', 'Brand B chat', {
+      brandId: 'brand-b',
+    });
+    const getThreads = vi
+      .fn()
+      .mockReturnValueOnce(brandARequest.promise)
+      .mockReturnValueOnce(brandBRequest.promise);
+    const apiService = createApiService({
+      getThreads,
+      unarchiveThread: vi.fn(),
+    });
+
+    const { rerender } = render(
+      <AgentThreadList apiService={apiService as never} brandId="brand-a" />,
+    );
+
+    await waitFor(() => {
+      expect(getThreads).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <AgentThreadList apiService={apiService as never} brandId="brand-b" />,
+    );
+
+    await waitFor(() => {
+      expect(getThreads).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      brandARequest.reject(new Error('Brand A request failed late'));
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText('Failed to load threads')).toBeNull();
+    expect(screen.queryByText('No threads')).toBeNull();
+
+    await act(async () => {
+      brandBRequest.resolve([brandBThread]);
+    });
+
+    expect(await screen.findByText('Brand B chat')).toBeInTheDocument();
+    expect(screen.queryByText('Failed to load threads')).toBeNull();
+  });
+
+  it('resets the whole active conversation when the brand scope changes', async () => {
+    const brandAThread = createThread('conv-a', 'Brand A chat', {
+      brandId: 'brand-a',
+    });
+    const brandBThread = createThread('conv-b', 'Brand B chat', {
+      brandId: 'brand-b',
+    });
+
+    // The previous scope left an active, streaming conversation behind.
+    storeState.activeThreadId = 'conv-a';
+    storeState.activeRunId = 'run-a';
+    storeState.activeRunStatus = 'running';
+    storeState.composerSeed = {
+      content: 'Brand A draft',
+      nonce: 1,
+      threadId: 'conv-a',
+    };
+    storeState.draftPlanModeEnabled = true;
+    storeState.latestProposedPlan = { id: 'plan-a' };
+    storeState.messages = [{ id: 'message-a' }];
+    storeState.pendingInputRequest = { id: 'input-a' };
+    storeState.runStartedAt = '2026-08-07T00:00:00.000Z';
+    storeState.stream = {
+      activeToolCalls: [{ id: 'tool-a' }],
+      isStreaming: true,
+      pendingUiActions: [{ id: 'action-a' }],
+      streamingContent: 'Brand A response',
+      streamingReasoning: 'Brand A reasoning',
+    };
+    storeState.threadUiBusyById = { 'conv-a': true };
+    storeState.workEvents = [{ id: 'event-a' }];
+
+    const apiService = createApiService({
+      getThreads: vi
+        .fn()
+        .mockResolvedValueOnce([brandAThread])
+        .mockResolvedValue([brandBThread]),
+      unarchiveThread: vi.fn(),
+    });
+
+    const { rerender } = render(
+      <AgentThreadList apiService={apiService as never} brandId="brand-a" />,
+    );
+
+    expect(await screen.findByText('Brand A chat')).toBeInTheDocument();
+
+    rerender(
+      <AgentThreadList apiService={apiService as never} brandId="brand-b" />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Brand B chat')).toBeInTheDocument();
+    });
+
+    expect(storeState.setActiveThread).toHaveBeenCalledWith(null);
+    expect(storeState.resetActiveConversationState).toHaveBeenCalledTimes(1);
+    expect(storeState.activeThreadId).toBeNull();
+    expect(storeState.activeRunId).toBeNull();
+    expect(storeState.activeRunStatus).toBe('idle');
+    expect(storeState.composerSeed).toBeNull();
+    expect(storeState.draftPlanModeEnabled).toBe(false);
+    expect(storeState.latestProposedPlan).toBeNull();
+    expect(storeState.messages).toEqual([]);
+    expect(storeState.pendingInputRequest).toBeNull();
+    expect(storeState.runStartedAt).toBeNull();
+    expect(storeState.stream).toEqual({
+      activeToolCalls: [],
+      isStreaming: false,
+      pendingUiActions: [],
+      streamingContent: '',
+      streamingReasoning: '',
+    });
+    expect(storeState.threadUiBusyById).toEqual({});
+    expect(storeState.workEvents).toEqual([]);
+    expect(screen.queryByText('Brand A chat')).toBeNull();
   });
 
   it('shows an inline spinner for the active thread while a local ui action is busy', async () => {
