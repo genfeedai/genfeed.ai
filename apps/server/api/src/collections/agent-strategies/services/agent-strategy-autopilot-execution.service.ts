@@ -26,6 +26,7 @@ import { ContentDraftsService } from '@api/collections/content-drafts/services/c
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
@@ -784,7 +785,8 @@ export class AgentStrategyAutopilotExecutionService {
         scheduledDate: new Date(),
         status: PostStatus.PENDING,
         userId: userId,
-      });
+        // Pre-existing shape: ingredients/label ride the service defaults.
+      } as PostCreateInput);
 
       createdPostIds.push(documentId(post));
     }

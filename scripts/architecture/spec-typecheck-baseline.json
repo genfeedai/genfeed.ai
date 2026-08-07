@@ -105,14 +105,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "12c62729ac1e001ac822",
-      "message": "Argument of type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: CredentialPlatform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is not assignable to parameter of type 'PostCreateInput'.   Type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: Platform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is missing the following properties from type 'Omit<CreatePostDto, \"credentialId\">': label, ingredients",
-      "workspace": "api"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/api/src/collections/agent-threads/services/agent-artifact-reference.service.spec.ts",
@@ -6047,14 +6039,6 @@
       "fingerprint": "b1ed810bf1624a3d4854",
       "message": "Cannot assign to 'pid' because it is a read-only property.",
       "workspace": "voices"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-strategies/services/agent-strategy-autopilot-execution.service.ts",
-      "fingerprint": "548111b214acd4cec434",
-      "message": "Argument of type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: CredentialPlatform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is not assignable to parameter of type 'PostCreateInput'.   Type '{ brandId: string; category: PostCategory.TEXT; credentialId: string; description: string; organizationId: string; platform: Platform; scheduledDate: Date; status: PostStatus.PENDING; userId: string; }' is missing the following properties from type 'Omit<CreatePostDto, \"credentialId\">': label, ingredients",
-      "workspace": "workers"
     },
     {
       "code": 2540,
