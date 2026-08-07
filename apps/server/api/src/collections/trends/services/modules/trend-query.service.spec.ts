@@ -6,6 +6,7 @@ type PrismaMock = {
   trend: {
     findMany: ReturnType<typeof vi.fn>;
     findFirst: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -43,6 +44,7 @@ describe('TrendQueryService', () => {
       trend: {
         findFirst: vi.fn().mockResolvedValue(null),
         findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
       },
     };
 
@@ -168,31 +170,77 @@ describe('TrendQueryService', () => {
     });
   });
 
-  describe('getBootstrapTrends', () => {
-    it('returns the bootstrap reference set, filtered by platform', () => {
-      const all = service.getBootstrapTrends();
-      const tiktok = service.getBootstrapTrends('tiktok');
+  describe('synthetic prelaunch exclusion', () => {
+    it('filters prelaunch corpus rows out of active trend queries', async () => {
+      prisma.trend.findMany.mockResolvedValue([
+        {
+          brandId: null,
+          createdAt: new Date(),
+          data: {
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            isCurrent: true,
+            metadata: { prelaunchCorpus: true, source: 'public-reference' },
+            platform: 'twitter',
+            topic: 'AI agent workflow demos',
+            viralityScore: 90,
+          },
+          id: 'prelaunch-1',
+          isDeleted: false,
+          organizationId: null,
+          updatedAt: new Date(),
+        },
+        {
+          brandId: null,
+          createdAt: new Date(),
+          data: {
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            isCurrent: true,
+            metadata: { source: 'apify' },
+            platform: 'twitter',
+            topic: '#RealSignal',
+            viralityScore: 70,
+          },
+          id: 'real-1',
+          isDeleted: false,
+          organizationId: null,
+          updatedAt: new Date(),
+        },
+      ]);
 
-      expect(all.length).toBeGreaterThan(1);
-      expect(tiktok).toHaveLength(1);
-      expect(tiktok[0]?.platform).toBe('tiktok');
+      const result = await service.findActiveTrends({
+        brandId: null,
+        organizationId: null,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.topic).toBe('#RealSignal');
     });
 
-    it('every bootstrap trend has a valid trendType in metadata', () => {
-      const validTrendTypes = new Set([
-        'topic',
-        'hashtag',
-        'sound',
-        'video',
-        'creator',
+    it('soft-deletes synthetic prelaunch rows on purge', async () => {
+      prisma.trend.findMany.mockResolvedValue([
+        {
+          brandId: null,
+          createdAt: new Date(),
+          data: {
+            metadata: { prelaunchCorpus: true },
+            platform: 'twitter',
+            topic: 'seed',
+          },
+          id: 'prelaunch-1',
+          isDeleted: false,
+          organizationId: null,
+          updatedAt: new Date(),
+        },
       ]);
-      const all = service.getBootstrapTrends();
+      prisma.trend.update.mockResolvedValue({});
 
-      for (const trend of all) {
-        const trendType = trend.metadata?.trendType;
-        expect(trendType).toBeDefined();
-        expect(validTrendTypes.has(trendType as string)).toBe(true);
-      }
+      const result = await service.purgeSyntheticTrendRows();
+
+      expect(result).toEqual({ purged: 1 });
+      expect(prisma.trend.update).toHaveBeenCalledWith({
+        data: { isDeleted: true },
+        where: { id: 'prelaunch-1' },
+      });
     });
   });
 });

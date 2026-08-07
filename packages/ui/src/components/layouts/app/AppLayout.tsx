@@ -21,7 +21,6 @@ export default function AppLayout({
   providers,
   shellChromeVariant = 'default',
   topbarChromeVariant = 'inherit',
-  hasSecondaryTopbar: _hasSecondaryTopbar = false,
   menuItems = EMPTY_ARRAY,
   breadcrumb,
   agentPanel,

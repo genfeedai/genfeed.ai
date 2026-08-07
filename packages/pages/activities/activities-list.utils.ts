@@ -140,38 +140,71 @@ export function getResultTypeFromActivityKey(
   }
 }
 
+function parseCreditAmount(value: string | undefined): number | null {
+  if (!value?.trim()) {
+    return null;
+  }
+  const parsed = parseActivityValue(value);
+  const raw =
+    typeof parsed?.value === 'string' || typeof parsed?.value === 'number'
+      ? String(parsed.value)
+      : value;
+  const amount = Number(raw);
+  return Number.isFinite(amount) ? amount : null;
+}
+
 /**
  * Human-readable activity line.
  *
- * Prefer catalog templates (i18n-ready descriptors). Special cases only for
- * payload-driven copy (post-generated JSON) and source-aware credit lines.
+ * Catalog templates own copy. Never prefer stored/model labels — those used to
+ * dump wire keys (`image-failed`) and JSON payloads (`Image {ingredientId…}`).
  */
 export function getActivityDescription(activity: IActivity): string {
   const key = activity.key?.trim() ?? '';
 
-  // Payload-driven post ready message
   if (key === ActivityKey.POST_GENERATED || key === 'post-generated') {
     const parsed = parseActivityValue(activity.value ?? '');
     const fromValue =
       (typeof parsed?.description === 'string' && parsed.description) ||
       (typeof parsed?.label === 'string' && parsed.label);
-    if (fromValue) {
-      return fromValue;
+    if (fromValue && !fromValue.trim().startsWith('{')) {
+      return fromValue.trim();
     }
   }
 
-  // Credit remove prefers the billing source label when present
-  if (key === ActivityKey.CREDITS_REMOVE || key === 'credits-remove') {
+  if (isCreditActivity(key)) {
+    const amount = parseCreditAmount(activity.value);
+    const amountLabel = amount !== null ? amount.toLocaleString() : null;
     const sourceLabel = activity.source
       ? getActivitySourceLabel(activity.source)
       : undefined;
-    if (sourceLabel) {
-      return sourceLabel;
-    }
-  }
 
-  if (activity.label?.trim()) {
-    return activity.label.trim();
+    if (key === ActivityKey.CREDITS_ADD || key === 'credits-add') {
+      return amountLabel
+        ? `${amountLabel} credits added`
+        : formatActivityMessage(getActivityMessageDescriptor(key));
+    }
+    if (key === ActivityKey.CREDITS_REMOVE || key === 'credits-remove') {
+      if (amountLabel && sourceLabel) {
+        return `${sourceLabel} · ${amountLabel} credits used`;
+      }
+      if (amountLabel) {
+        return `${amountLabel} credits used`;
+      }
+      if (sourceLabel) {
+        return sourceLabel;
+      }
+      return formatActivityMessage(getActivityMessageDescriptor(key));
+    }
+    if (
+      key === ActivityKey.CREDITS_REMOVE_ALL ||
+      key === 'credits-remove-all'
+    ) {
+      return formatActivityMessage(getActivityMessageDescriptor(key));
+    }
+    if (key === ActivityKey.CREDITS_RESET || key === 'credits-reset') {
+      return formatActivityMessage(getActivityMessageDescriptor(key));
+    }
   }
 
   if (key) {
@@ -183,14 +216,6 @@ export function getActivityDescription(activity: IActivity): string {
     : undefined;
   if (sourceLabel) {
     return sourceLabel;
-  }
-
-  if (
-    typeof activity.value === 'string' &&
-    activity.value.trim() &&
-    !activity.value.trim().startsWith('{')
-  ) {
-    return activity.value.trim();
   }
 
   return 'Activity recorded';

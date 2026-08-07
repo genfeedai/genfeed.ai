@@ -196,7 +196,7 @@ describe('PostsList', () => {
     resourceData = [];
   });
 
-  it('registers one header toolbar and renders the prompt bar without duplicate status chrome', async () => {
+  it('registers one header toolbar without a docked product prompt bar', async () => {
     render(
       <PostsList
         scope={PageScope.PUBLISHER}
@@ -206,11 +206,13 @@ describe('PostsList', () => {
     );
 
     expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
+    // Sidebar agent owns generation — no floating posts prompt bar.
     expect(
-      screen.getByPlaceholderText(/ai productivity tips/i),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId('low-credits-banner')).toBeInTheDocument();
-    expect(screen.queryByText('Generated')).not.toBeInTheDocument();
+      screen.queryByPlaceholderText(/ai productivity tips/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /generate/i }),
+    ).not.toBeInTheDocument();
 
     await waitFor(() => {
       expect(setFiltersNodeMock).toHaveBeenCalled();

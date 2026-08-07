@@ -63,7 +63,7 @@ const PLATFORM_LABELS: Array<{
 function buildOverviewHref(basePath: SocialsNavigationBasePath): string {
   return basePath === '/analytics/trends'
     ? '/analytics/trends'
-    : '/discover/socials';
+    : '/discover/overview';
 }
 
 function buildPlatformHref(

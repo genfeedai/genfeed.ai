@@ -132,12 +132,11 @@ function AppLayoutWithDynamicMenu({
     isLibraryRoute,
     isMessagesRoute,
     isOrgRoute,
-    isPromptBarRoute,
+    suppressShellLowCreditsBanner,
     isDiscoverRoute,
     isSettingsRoute,
     isStudioRoute,
     isAutomateRoute,
-    hasSecondaryTopbar,
     currentApp,
     orgSlug,
     brandSlug,
@@ -386,7 +385,7 @@ function AppLayoutWithDynamicMenu({
     hasOrganizationBillingHint() &&
     isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
-    !isPromptBarRoute &&
+    !suppressShellLowCreditsBanner &&
     !isLibraryLandingRoute ? (
       <LowCreditsBanner />
     ) : null;
@@ -497,7 +496,6 @@ function AppLayoutWithDynamicMenu({
         topbarComponent={topbarComponent}
         shellChromeVariant={shellChromeVariant}
         topbarChromeVariant={topbarChromeVariant}
-        hasSecondaryTopbar={hasSecondaryTopbar}
         menuItems={navigationMenuItems}
         orgSlug={orgSlug}
         isWorkspaceShell={isWorkspaceShellMounted}

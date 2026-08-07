@@ -348,6 +348,93 @@ describe('deriveTimeline', () => {
     }
   });
 
+  it('drops lifecycle-only bookends so they never become Worked for rows', () => {
+    const messages = [
+      msg('user', 'u1', '2026-01-01T00:00:01Z'),
+      msg('assistant', 'a1', '2026-01-01T00:00:10Z'),
+    ];
+    const events = [
+      workEvent({
+        createdAt: '2026-01-01T00:00:02Z',
+        event: AgentWorkEventType.STARTED,
+        id: 'life-start',
+        label: 'Agent started',
+        runId: 'r1',
+        status: AgentWorkEventStatus.COMPLETED,
+      }),
+      workEvent({
+        createdAt: '2026-01-01T00:00:03Z',
+        durationMs: 4000,
+        id: 'tool-1',
+        runId: 'r1',
+        startedAt: '2026-01-01T00:00:03Z',
+        status: AgentWorkEventStatus.COMPLETED,
+        toolName: 'search',
+      }),
+      workEvent({
+        createdAt: '2026-01-01T00:00:08Z',
+        event: AgentWorkEventType.COMPLETED,
+        id: 'life-end',
+        label: 'Run completed',
+        runId: 'r1',
+        status: AgentWorkEventStatus.COMPLETED,
+      }),
+      workEvent({
+        createdAt: '2026-01-01T00:00:09Z',
+        event: AgentWorkEventType.COMPLETED,
+        id: 'life-other',
+        label: 'Agent completed',
+        runId: 'r2',
+        status: AgentWorkEventStatus.COMPLETED,
+      }),
+    ];
+
+    const result = deriveTimeline(messages, events, idleStream, null);
+    const workGroups = result.filter((entry) => entry.kind === 'work-group');
+
+    expect(workGroups).toHaveLength(1);
+    if (workGroups[0]?.kind === 'work-group') {
+      expect(workGroups[0].events.every((event) => event.toolName)).toBe(true);
+      expect(workGroups[0].events).toHaveLength(1);
+    }
+  });
+
+  it('merges split runIds into one Worked for summary after the answer', () => {
+    const messages = [
+      msg('user', 'u1', '2026-01-01T00:00:00Z'),
+      msg('assistant', 'a1', '2026-01-01T00:00:20Z'),
+    ];
+    const events = [
+      workEvent({
+        createdAt: '2026-01-01T00:00:02Z',
+        durationMs: 2000,
+        id: 'w-a',
+        runId: 'run-a',
+        startedAt: '2026-01-01T00:00:01Z',
+        status: AgentWorkEventStatus.COMPLETED,
+        toolName: 'search',
+      }),
+      workEvent({
+        createdAt: '2026-01-01T00:00:08Z',
+        durationMs: 3000,
+        id: 'w-b',
+        runId: 'run-b',
+        startedAt: '2026-01-01T00:00:05Z',
+        status: AgentWorkEventStatus.COMPLETED,
+        toolName: 'generate',
+      }),
+    ];
+
+    const result = deriveTimeline(messages, events, idleStream, null);
+    const workGroups = result.filter((entry) => entry.kind === 'work-group');
+
+    expect(workGroups).toHaveLength(1);
+    if (workGroups[0]?.kind === 'work-group') {
+      expect(workGroups[0].events).toHaveLength(2);
+      expect(workGroups[0].presentation).toBe('archived');
+    }
+  });
+
   it('does not under-report multi-step runs as a single short tool durationMs', () => {
     const messages = [
       msg('user', 'u1', '2026-01-01T00:00:00Z'),

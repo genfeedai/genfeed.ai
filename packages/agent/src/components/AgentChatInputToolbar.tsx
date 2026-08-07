@@ -86,9 +86,9 @@ function AgentChatInputToolbarInner({
         ariaLabel="Select model"
         creditsAvailable={creditsAvailable}
         density={isCompact ? 'compact' : 'default'}
-        isDisabled={Boolean(
-          disabled || showStop || isUploading || isTranscribing,
-        )}
+        // Model pick stays available while reconnecting / send is paused —
+        // only block during an active run or attachment/mic work.
+        isDisabled={Boolean(showStop || isUploading || isTranscribing)}
         isLoading={isModelsLoading}
         models={models}
         onBuyCredits={onBuyCredits}
@@ -107,13 +107,8 @@ function AgentChatInputToolbarInner({
 
   // One toolbar control height so model chip + send share a single baseline.
   const controlSize = isCompact ? 'size-8' : 'size-9';
-  const controlHeight = isCompact ? 'h-8' : 'h-9';
-  // Every control keeps the same optical inset: an icon Button centers a
-  // `size-4` glyph in its square, so the padded controls (Actions, model chip,
-  // Stop) must match that half-difference exactly — 10px at h-9, 8px at h-8.
-  const controlPadding = isCompact ? 'px-2' : 'px-2.5';
-  // Cancel that inset at the row edges so the first glyph lines up with the
-  // editor text above it instead of hanging 10px further in.
+  // Cancel outer padding at the row edges so the first glyph lines up with the
+  // editor text above it.
   const leadingEdgeOffset = isCompact ? '-ml-2' : '-ml-2.5';
   const trailingEdgeOffset = isCompact ? '-mr-2' : '-mr-2.5';
 
@@ -172,21 +167,14 @@ function AgentChatInputToolbarInner({
           <DropdownMenuTrigger asChild>
             <Button
               ariaLabel="Open composer actions"
-              className={cn(
-                'shrink-0',
-                // Compact / inspector: icon only — never "Actions" label in a rail.
-                isCompact
-                  ? controlSize
-                  : cn('gap-1.5', controlHeight, controlPadding),
-              )}
+              className={cn('shrink-0', controlSize)}
               icon={<Zap className="size-4" />}
               isDisabled={disabled || !hasEditor}
-              tooltip={isCompact ? 'Actions' : undefined}
+              size={ButtonSize.ICON}
+              tooltip="Actions"
               variant={ButtonVariant.GHOST}
               withWrapper={false}
-            >
-              {isCompact ? null : <span className="text-xs">Actions</span>}
-            </Button>
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="start"

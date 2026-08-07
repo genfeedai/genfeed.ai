@@ -15,15 +15,11 @@ import {
   VIEW_TYPE_TABLE,
 } from '@pages/posts/list/usePostsList';
 import type { ContentProps } from '@props/layout/content.props';
-import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import AppTable from '@ui/display/table/Table';
 import Loading from '@ui/loading/default/Loading';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
-import PromptBarContent from '@ui/prompt-bars/content/PromptBarContent';
-import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
-import { POSTS_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
 import { LayoutGrid, Table } from 'lucide-react';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -49,7 +45,6 @@ export default function PostsList({
     actions,
     adminBrand,
     adminOrg,
-    availablePlatforms,
     columns,
     currentPage,
     filterSort,
@@ -57,17 +52,12 @@ export default function PostsList({
     handleAdminBrandChange,
     handleAdminOrgChange,
     handleFiltersChange,
-    handleGenerate,
     handleOpenPostDetail,
     handlePageChange,
-    handlePlatformChange,
     handlePublicationStateChange,
     handlePostEvaluated,
-    isGenerating,
     isLoading,
     pagination,
-    platform,
-    postPresets,
     posts,
     primaryCardAction,
     publicationState,
@@ -163,7 +153,7 @@ export default function PostsList({
   }, [setFiltersNode]);
 
   return (
-    <div className={scope === PageScope.PUBLISHER ? 'pb-24 md:pb-32' : ''}>
+    <div>
       {scope === PageScope.SUPERADMIN && (
         <div className="mb-4">
           <AdminOrgBrandFilter
@@ -232,25 +222,6 @@ export default function PostsList({
             </div>
           )}
         </>
-      )}
-
-      {scope === PageScope.PUBLISHER && (
-        <PromptBarSurfaceRenderer
-          surface={POSTS_PROMPT_BAR_SURFACE}
-          topContent={<LowCreditsBanner />}
-        >
-          <PromptBarContent
-            onSubmit={handleGenerate}
-            isEnhancing={isGenerating}
-            showCountDropdown={true}
-            showThreadToggle={true}
-            buttonLabel="Generate"
-            platform={platform}
-            onPlatformChange={handlePlatformChange}
-            availablePlatforms={availablePlatforms}
-            presets={postPresets}
-          />
-        </PromptBarSurfaceRenderer>
       )}
 
       <PostDetailOverlay

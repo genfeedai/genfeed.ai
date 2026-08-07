@@ -61,9 +61,7 @@ flowchart LR
 
 Each v1 area now has one narrow verification path:
 
-- **Trend ingestion**: verify `TrendsService` falls through the cached path into the live-fetch path when cache is empty
-- **Prelaunch corpus health**: verify launch readiness against explicit platform, content-type, freshness, and prompt-ready metadata targets
-- **Prelaunch corpus backfill**: dry-run the global seed plan, then apply it with `seed:prelaunch-corpus` when launch data is needed
+- **Trend ingestion**: verify `TrendsService` falls through the cached path into the live-fetch path when cache is empty — empty feed when no real data (no synthetic seed)
 - **Agent orchestration**: verify new agent-facing automation routes through one runtime boundary instead of adding another peer orchestrator
 - **Generation service**: verify dynamic provider-backed model discovery merges into the stable generation-facing model surface
 - **Analytics backbone**: verify provider metrics are stored in `postAnalytics`, visible in publication analytics, and included in content-performance summaries once the data is no longer current-day incomplete
@@ -73,7 +71,5 @@ Each v1 area now has one narrow verification path:
 - `#159` Trend Ingestion API
 - `#160` Analytics Backbone
 - `#161` Generation Service
-- `#210` Prelaunch corpus launch targets and health metrics
-- `#211` Prelaunch corpus backfill
 
 Continue with the step-specific pages for the concrete module inventories and smoke-path details.

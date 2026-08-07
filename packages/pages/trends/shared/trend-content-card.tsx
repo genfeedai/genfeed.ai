@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, Platform } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -19,6 +19,12 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import {
   buildTrendSourceAgentHref,
   buildTrendSourcePrompt,
   buildTrendSourceTwitterDraftHref,
@@ -26,6 +32,7 @@ import {
 import {
   ClipboardList,
   Copy,
+  Ellipsis,
   ExternalLink,
   Film,
   Sparkles,
@@ -265,56 +272,64 @@ export default function TrendContentCard({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-1">
+        <div className="flex items-center gap-2 pt-1">
+          <Button
+            className="min-w-0 flex-1 sm:flex-none"
+            icon={<Sparkles className="size-3.5" />}
+            label="Remix"
+            onClick={handleRemix}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
           {finding && onSelect ? (
             <Button
               aria-pressed={isSelected}
-              label={isSelected ? 'Selected for context' : 'Use as context'}
+              label={isSelected ? 'Selected' : 'Use as context'}
               onClick={() => onSelect(finding)}
+              size={ButtonSize.SM}
               variant={
                 isSelected ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
               }
             />
           ) : null}
-          <Button
-            icon={<Sparkles className="size-3.5" />}
-            label="Remix"
-            onClick={handleRemix}
-            variant={ButtonVariant.SECONDARY}
-          />
-          <Button
-            icon={<ClipboardList className="size-3.5" />}
-            isLoading={isSavingBrief}
-            label="Save Brief"
-            onClick={() => {
-              handleSaveBrief().catch(() => {
-                /* handled in callback */
-              });
-            }}
-            variant={ButtonVariant.GHOST}
-          />
-          <Button
-            icon={<ExternalLink className="size-3.5" />}
-            label="Open Source"
-            onClick={handleOpenSource}
-            variant={ButtonVariant.GHOST}
-          />
-          <Button
-            icon={<Copy className="size-3.5" />}
-            label="Get Prompt"
-            onClick={() => {
-              handleCopyPrompt().catch(() => {
-                /* handled in callback */
-              });
-            }}
-            variant={ButtonVariant.GHOST}
-          />
-          <Button
-            icon={<Film className="size-3.5" />}
-            label="Send to Agent"
-            onClick={handleSendToAgent}
-            variant={ButtonVariant.GHOST}
-          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                ariaLabel="More trend actions"
+                icon={<Ellipsis className="size-4" />}
+                size={ButtonSize.ICON}
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem
+                disabled={isSavingBrief}
+                onSelect={() => {
+                  void handleSaveBrief();
+                }}
+              >
+                <ClipboardList className="size-4" />
+                {isSavingBrief ? 'Saving brief…' : 'Save brief'}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  void handleCopyPrompt();
+                }}
+              >
+                <Copy className="size-4" />
+                Copy prompt
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleOpenSource}>
+                <ExternalLink className="size-4" />
+                Open source
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleSendToAgent}>
+                <Film className="size-4" />
+                Send to agent
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </article>

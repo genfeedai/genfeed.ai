@@ -1,119 +1,16 @@
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import type { TrendSourceClassification } from '@api/collections/trends/interfaces/trend.interfaces';
 import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
-import { normalizeTrendSourceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { Platform } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 
 /**
- * Owns trend read queries against Prisma and the bootstrap reference fallback.
+ * Owns trend read queries against Prisma.
  *
- * Extracted from TrendsService (issue #752). The previously near-duplicate
- * `findActiveTrends` / `findLastGoodTrends` helpers are unified behind a single
- * parameterized {@link queryTrendsByFilter}.
+ * Prelaunch/bootstrap fake corpus is hard-cut: discovery returns real rows only
+ * (tenant-scoped or genuine global ingestion), never synthetic seed content.
  */
 @Injectable()
 export class TrendQueryService {
-  private readonly BOOTSTRAP_TRENDS = [
-    {
-      growthRate: 68,
-      mentions: 42_000,
-      metadata: {
-        hashtags: ['#AIAgents', '#WorkflowAutomation'],
-        sampleContent:
-          'Creators are showing how AI agents turn recurring workflows into reusable content systems.',
-        source: 'public-reference',
-        sourcePreviewState: 'fallback',
-        trendType: 'topic',
-        urls: ['https://genfeed.ai/articles'],
-      },
-      platform: 'twitter',
-      topic: 'AI agent workflow demos',
-      viralityScore: 78,
-    },
-    {
-      growthRate: 55,
-      mentions: 31_000,
-      metadata: {
-        hashtags: ['#CreatorOps', '#ContentSystems'],
-        sampleContent:
-          'Teams are packaging trend research, briefs, reviews, and publishing into repeatable creator ops loops.',
-        source: 'public-reference',
-        sourcePreviewState: 'fallback',
-        trendType: 'topic',
-        urls: ['https://genfeed.ai/workflows'],
-      },
-      platform: 'linkedin',
-      topic: 'Creator ops playbooks',
-      viralityScore: 72,
-    },
-    {
-      growthRate: 49,
-      mentions: 27_500,
-      metadata: {
-        hashtags: ['#VideoRepurposing', '#ShortFormVideo'],
-        sampleContent:
-          'Short-form creators are remixing long-form clips into hooks, captions, and platform-native edits.',
-        source: 'public-reference',
-        sourcePreviewState: 'fallback',
-        trendType: 'video',
-        urls: ['https://genfeed.ai/studio'],
-      },
-      platform: 'youtube',
-      topic: 'Clip remix systems',
-      viralityScore: 69,
-    },
-    {
-      growthRate: 61,
-      mentions: 38_500,
-      metadata: {
-        hashtags: ['#CarouselDesign', '#CreatorStrategy'],
-        sampleContent:
-          'Instagram teams are turning dense strategy notes into swipeable carousel lessons and remixable Reel hooks.',
-        source: 'public-reference',
-        sourcePreviewState: 'fallback',
-        trendType: 'topic',
-        urls: ['https://genfeed.ai/studio'],
-      },
-      platform: 'instagram',
-      topic: 'Carousel-to-Reel content systems',
-      viralityScore: 74,
-    },
-    {
-      growthRate: 64,
-      mentions: 44_200,
-      metadata: {
-        hashtags: ['#TikTokTrends', '#AICreators'],
-        sampleContent:
-          'TikTok creators are testing fast before-and-after demos that show a manual content workflow becoming automated.',
-        source: 'public-reference',
-        sourcePreviewState: 'fallback',
-        trendType: 'video',
-        urls: ['https://genfeed.ai/workflows'],
-      },
-      platform: 'tiktok',
-      topic: 'Automation before-and-after demos',
-      viralityScore: 76,
-    },
-    {
-      growthRate: 42,
-      mentions: 18_700,
-      metadata: {
-        hashtags: ['#CreatorTools', '#SaaS'],
-        sampleContent:
-          'Reddit discussions are comparing lightweight creator stacks for briefs, assets, scheduling, and analytics.',
-        source: 'public-reference',
-        sourcePreviewState: 'fallback',
-        trendType: 'topic',
-        urls: ['https://genfeed.ai/articles'],
-      },
-      platform: 'reddit',
-      topic: 'Lean creator stack comparisons',
-      viralityScore: 63,
-    },
-  ] as const;
-
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -161,6 +58,12 @@ export class TrendQueryService {
       return null;
     }
 
+    if (
+      this.isSyntheticTrendData(doc.data as unknown as Record<string, unknown>)
+    ) {
+      return null;
+    }
+
     // If organizationId provided, trend must belong to that org or be global
     if (organizationId) {
       const docOrgId = (doc as unknown as Record<string, unknown>)
@@ -174,92 +77,50 @@ export class TrendQueryService {
   }
 
   /**
-   * Bootstrap reference trends used as a final fallback when no data is cached.
+   * Count active global trends (real rows only — prelaunch seed excluded).
    */
-  getBootstrapTrends(platform?: string): TrendEntity[] {
+  async countActiveGlobalTrends(): Promise<number> {
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-
-    return this.BOOTSTRAP_TRENDS.filter(
-      (trend) => !platform || trend.platform === platform,
-    ).map((trend, index) => {
-      const id = `bootstrap-trend-${trend.platform}-${index + 1}`;
-      const sourceClassification = this.buildBootstrapSourceClassification(
-        trend,
-        now,
-      );
-      const metadata = {
-        ...trend.metadata,
-        sourceClassification,
-        sourcePreviewCache: [
-          {
-            contentType:
-              trend.platform === Platform.TWITTER
-                ? 'tweet'
-                : trend.metadata.trendType === 'video'
-                  ? 'video'
-                  : 'post',
-            id: `${id}-fallback-1`,
-            platform: trend.platform,
-            sourceClassification,
-            sourceUrl: trend.metadata.urls[0],
-            text: trend.metadata.sampleContent,
-            title: trend.topic,
-          },
-        ],
-        sourcePreviewCachedAt: now.toISOString(),
-      };
-
-      return new TrendEntity({
-        brandId: null,
-        createdAt: now,
-        data: {
-          ...trend,
-          expiresAt,
-          isCurrent: true,
-          isDeleted: false,
-          metadata,
-          requiresAuth: false,
-        },
-        expiresAt,
-        growthRate: trend.growthRate,
-        id,
-        isCurrent: true,
-        isDeleted: false,
-        mentions: trend.mentions,
-        metadata,
-        organizationId: null,
-        platform: trend.platform,
-        requiresAuth: false,
-        topic: trend.topic,
-        updatedAt: now,
-        viralityScore: trend.viralityScore,
-      } as unknown as TrendDocument);
+    const allGlobalTrends = await this.prisma.trend.findMany({
+      where: { isDeleted: false, organizationId: null },
     });
+
+    return allGlobalTrends.filter((doc) => {
+      const d = doc.data as unknown as Record<string, unknown>;
+      if (this.isSyntheticTrendData(d)) {
+        return false;
+      }
+      return (
+        d.isCurrent === true &&
+        d.expiresAt != null &&
+        new Date(d.expiresAt as string) > now
+      );
+    }).length;
   }
 
-  private buildBootstrapSourceClassification(
-    trend: { platform: string; topic: string },
-    now: Date,
-  ): TrendSourceClassification {
-    const sourceClassification = normalizeTrendSourceClassification({
-      capturedAt: now,
-      confidence: 'low',
-      freshnessWindowDays: 30,
-      intendedUse: 'evergreen_prompt_context',
-      platform: trend.platform,
-      sourceAuthor: 'genfeed',
-      sourceKind: 'owned_brand_reference',
-      sourceLabel: 'Genfeed bootstrap references',
-      sourceTimestamp: now,
-      sourceTopic: trend.topic,
+  /**
+   * Soft-delete every prelaunch seed trend row so nothing can surface again.
+   * Idempotent.
+   */
+  async purgeSyntheticTrendRows(): Promise<{ purged: number }> {
+    const docs = await this.prisma.trend.findMany({
+      where: { isDeleted: false },
     });
 
-    if (!sourceClassification) {
-      throw new Error('Failed to build bootstrap source classification');
+    let purged = 0;
+    for (const doc of docs) {
+      const data = doc.data as unknown as Record<string, unknown>;
+      if (!this.isSyntheticTrendData(data)) {
+        continue;
+      }
+      await this.prisma.trend.update({
+        data: { isDeleted: true },
+        where: { id: doc.id },
+      });
+      purged += 1;
     }
 
-    return sourceClassification;
+    return { purged };
   }
 
   /**
@@ -275,6 +136,29 @@ export class TrendQueryService {
       ...doc,
       ...(doc.data as Record<string, unknown>),
     } as unknown as TrendDocument);
+  }
+
+  private isSyntheticTrendData(data: Record<string, unknown> | null): boolean {
+    if (!data || typeof data !== 'object') {
+      return false;
+    }
+    const metadata =
+      data.metadata && typeof data.metadata === 'object'
+        ? (data.metadata as Record<string, unknown>)
+        : null;
+    if (metadata?.prelaunchCorpus === true) {
+      return true;
+    }
+    if (typeof metadata?.launchCorpusSlice === 'string') {
+      return true;
+    }
+    if (typeof metadata?.prelaunchCorpusKey === 'string') {
+      return true;
+    }
+    if (typeof data.id === 'string' && data.id.startsWith('bootstrap-trend-')) {
+      return true;
+    }
+    return false;
   }
 
   private async queryTrendsByFilter(
@@ -299,6 +183,9 @@ export class TrendQueryService {
     return docs
       .filter((doc) => {
         const d = doc.data as unknown as Record<string, unknown>;
+        if (this.isSyntheticTrendData(d)) {
+          return false;
+        }
         if (options.activeOnly) {
           if (d.isCurrent !== true) return false;
           if (d.expiresAt && new Date(d.expiresAt as string) <= now) {

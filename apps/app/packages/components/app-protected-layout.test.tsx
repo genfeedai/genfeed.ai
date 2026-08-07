@@ -230,7 +230,6 @@ vi.mock('@app-config/discover-menu-items.config', () => ({
   DISCOVER_LOGO_HREF: '/discover/overview',
   DISCOVER_MENU_ITEMS: [
     { href: '/discover/overview', label: 'Overview' },
-    { href: '/discover/socials', label: 'Socials' },
     { href: '/discover/following', label: 'Following' },
     { href: '/discover/ads', label: 'Ads' },
   ],
@@ -573,7 +572,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        hasSecondaryTopbar: false,
         shellChromeVariant: 'default',
         topbarChromeVariant: 'default',
       }),
@@ -680,7 +678,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        hasSecondaryTopbar: true,
         topbarChromeVariant: 'default',
       }),
     );
@@ -760,7 +757,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        hasSecondaryTopbar: false,
         topbarChromeVariant: 'default',
         topbarComponent: expect.any(Function),
       }),
@@ -1378,7 +1374,6 @@ describe('AppProtectedLayout', () => {
         currentApp: 'discover',
         items: [
           { href: '/discover/overview', label: 'Overview' },
-          { href: '/discover/socials', label: 'Socials' },
           { href: '/discover/following', label: 'Following' },
           { href: '/discover/ads', label: 'Ads' },
         ],

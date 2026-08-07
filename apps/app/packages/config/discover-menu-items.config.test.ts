@@ -9,10 +9,11 @@ describe('DISCOVER_MENU_ITEMS', () => {
     expect(DISCOVER_LOGO_HREF).toBe('/discover/overview');
   });
 
-  it('renders Discover peers and platform feeds as menu items', () => {
+  it('renders Discover peers then platform feeds (no Socials peer)', () => {
     expect(DISCOVER_MENU_ITEMS.map((item) => item.label)).toEqual([
       'Overview',
-      'Socials',
+      'Following',
+      'Ads',
       'X',
       'Instagram',
       'YouTube',
@@ -20,22 +21,21 @@ describe('DISCOVER_MENU_ITEMS', () => {
       'LinkedIn',
       'Reddit',
       'Pinterest',
-      'Following',
-      'Ads',
     ]);
   });
 
-  it('groups platform feeds under Platforms (not Socials matchPaths)', () => {
-    const socials = DISCOVER_MENU_ITEMS.find(
-      (item) => item.label === 'Socials',
-    );
+  it('keeps Following and Ads above the Platforms group', () => {
+    const labels = DISCOVER_MENU_ITEMS.map((item) => item.label);
+    expect(labels.indexOf('Following')).toBeLessThan(labels.indexOf('X'));
+    expect(labels.indexOf('Ads')).toBeLessThan(labels.indexOf('X'));
+    expect(labels.indexOf('Following')).toBeLessThan(labels.indexOf('Ads'));
+  });
+
+  it('groups platform feeds under Platforms', () => {
     const platforms = DISCOVER_MENU_ITEMS.filter(
       (item) => item.group === 'Platforms',
     );
 
-    expect(socials?.href).toBe('/discover/socials');
-    expect(socials?.isExactMatch).toBe(true);
-    expect(socials?.matchPaths ?? []).toEqual(['/discover/socials']);
     expect(platforms.map((item) => item.href)).toEqual([
       '/discover/twitter',
       '/discover/instagram',
@@ -48,16 +48,17 @@ describe('DISCOVER_MENU_ITEMS', () => {
     expect(platforms[0]?.isCollapsible).toBe(true);
   });
 
-  it('keeps Following as a peer of Socials, not a Socials matchPath', () => {
-    const socials = DISCOVER_MENU_ITEMS.find(
-      (item) => item.label === 'Socials',
+  it('treats retired /discover/socials as an Overview matchPath', () => {
+    const overview = DISCOVER_MENU_ITEMS.find(
+      (item) => item.label === 'Overview',
     );
     const following = DISCOVER_MENU_ITEMS.find(
       (item) => item.label === 'Following',
     );
 
+    expect(overview?.matchPaths ?? []).toContain('/discover/socials');
     expect(following?.href).toBe('/discover/following');
-    expect(socials?.matchPaths ?? []).not.toContain('/discover/following');
+    expect(overview?.matchPaths ?? []).not.toContain('/discover/following');
   });
 
   it('uses /discover/overview as the home href (not /discover/discovery)', () => {
@@ -69,6 +70,7 @@ describe('DISCOVER_MENU_ITEMS', () => {
 
     expect(hrefs).not.toContain('/workspace');
     expect(hrefs).not.toContain('/messages');
+    expect(hrefs).not.toContain('/discover/socials');
   });
 
   it('has no duplicate hrefs', () => {

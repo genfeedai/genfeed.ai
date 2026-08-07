@@ -415,26 +415,6 @@ describe('AppLayout', () => {
     );
   });
 
-  it('keeps topbar chrome when a secondary topbar is present', () => {
-    const TopbarMock = () => <div data-testid="topbar-mock" />;
-
-    render(
-      <AppLayout
-        topbarComponent={TopbarMock}
-        topbarChromeVariant="default"
-        hasSecondaryTopbar
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'bg-background',
-      'border-b',
-      'border-border',
-    );
-  });
-
   it('keeps topbar borderless when transparent override is explicit', () => {
     const TopbarMock = () => <div data-testid="topbar-mock" />;
 

@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseTrendContent = vi.fn();
 const mockUseQuery = vi.fn();
-const mockUsePathname = vi.fn(() => '/discover/socials');
+const mockUsePathname = vi.fn(() => '/discover/overview');
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
@@ -14,6 +14,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 
 vi.mock('@hooks/data/trends/use-trend-content/use-trend-content', () => ({
   useTrendContent: (...args: unknown[]) => mockUseTrendContent(...args),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) => path,
+  }),
 }));
 
 vi.mock('@tanstack/react-query', () => ({
@@ -57,7 +63,7 @@ vi.mock('next/link', () => ({
 describe('TrendsList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsePathname.mockReturnValue('/discover/socials');
+    mockUsePathname.mockReturnValue('/discover/overview');
 
     mockUseTrendContent.mockReturnValue({
       error: null,
@@ -216,16 +222,13 @@ describe('TrendsList', () => {
     expect(screen.getByText('Locked sources')).toBeInTheDocument();
     expect(screen.getByText('Feed state')).toBeInTheDocument();
     expect(
-      screen.getByText('No remixable trend content yet'),
+      screen.getByText('Warm this workspace with real sources'),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', { name: 'Source' }),
+      screen.getByRole('link', { name: /Connect accounts/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Source' })).toHaveClass(
-      'text-foreground/72',
-    );
     expect(
-      screen.getByRole('columnheader', { name: 'Content' }),
+      screen.getByRole('link', { name: /Follow creators/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Refresh feed' }),

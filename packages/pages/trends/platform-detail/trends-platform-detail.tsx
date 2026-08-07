@@ -40,10 +40,38 @@ import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import { TrendingUp } from 'lucide-react';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import TrendsPlatformRelatedSections from './components/trends-platform-related-sections';
 import TrendsPlatformStatBar from './components/trends-platform-stat-bar';
+
+function SectionHeader({
+  badge,
+  icon,
+  title,
+}: {
+  badge?: string;
+  icon: ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {icon}
+      <h2 className="text-base font-semibold tracking-[-0.01em] text-foreground">
+        {title}
+      </h2>
+      {badge ? <Badge variant="ghost">{badge}</Badge> : null}
+    </div>
+  );
+}
+
+function EmptyBlock({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-card bg-background px-4 py-6 text-sm text-muted-foreground shadow-border">
+      {children}
+    </div>
+  );
+}
 
 export default function TrendsPlatformDetail({
   platform,
@@ -56,6 +84,7 @@ export default function TrendsPlatformDetail({
   const surface = useOptionalResearchWorkSurface();
   const label = getTrendPlatformLabel(platform);
   const relatedContent = PLATFORM_RELATED_CONTENT[platform];
+  const isDiscover = basePath === '/discover';
   const unsupportedContentFeed = ![
     Platform.TWITTER,
     Platform.INSTAGRAM,
@@ -176,8 +205,9 @@ export default function TrendsPlatformDetail({
     <>
       <SectionTopbar
         title={`${label} Trends`}
-        subtitle="Platform-specific trending posts and videos, with related signal sets below."
+        subtitle="Platform-specific trending posts and videos."
         icon={TrendingUp}
+        titleVisibility={isDiscover ? 'sr-only' : 'auto'}
         actions={
           <ButtonRefresh isRefreshing={isRefreshing} onClick={handleRefresh} />
         }
@@ -191,17 +221,20 @@ export default function TrendsPlatformDetail({
       />
 
       <Container>
-        <TrendsPlatformStatBar
-          feedModeLabel={feedModeLabel}
-          totalItems={summary.totalItems ?? items.length}
-          totalTrends={summary.totalTrends}
-        />
+        {!isLoading && !error ? (
+          <TrendsPlatformStatBar
+            feedModeLabel={feedModeLabel}
+            totalItems={summary.totalItems ?? items.length}
+            totalTrends={summary.totalTrends}
+            videoCount={relatedContent.videos ? viralVideos.length : undefined}
+          />
+        ) : null}
 
         {unsupportedContentFeed ? (
-          <div className="mb-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm text-foreground/65">
-            No public source-post feed is available for this platform yet. We
-            only show adjacent trend metadata for now.
-          </div>
+          <EmptyBlock>
+            No public source-post feed is available for this platform yet. Only
+            adjacent trend metadata is shown for now.
+          </EmptyBlock>
         ) : null}
 
         {error && !isLoading ? (
@@ -211,7 +244,7 @@ export default function TrendsPlatformDetail({
                 <div className="font-medium">
                   Failed to load platform content
                 </div>
-                <div className="text-xs text-foreground/70">
+                <div className="text-xs text-muted-foreground">
                   Retry to fetch the latest saved trend feed.
                 </div>
               </div>
@@ -229,26 +262,24 @@ export default function TrendsPlatformDetail({
         ) : null}
 
         {!error ? (
-          <div className="space-y-6">
-            <section className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <TrendingUp className="size-5 text-foreground/70" />
-                <h2 className="text-lg font-semibold text-foreground">
-                  {label} content feed
-                </h2>
-                <Badge variant="ghost">Remix-ready</Badge>
-              </div>
+          <div className="space-y-5">
+            <section className="space-y-3">
+              <SectionHeader
+                title={`${label} content feed`}
+                badge="Remix-ready"
+                icon={<TrendingUp className="size-4 text-muted-foreground" />}
+              />
 
               {unsupportedContentFeed ? (
-                <div className="py-3 text-sm text-foreground/40">
+                <EmptyBlock>
                   No public content feed available for this platform right now.
-                </div>
+                </EmptyBlock>
               ) : isLoading ? (
-                <div className="py-3 text-sm text-foreground/40">
+                <p className="py-3 text-sm text-muted-foreground">
                   Loading content feed…
-                </div>
+                </p>
               ) : pageItems.length > 0 ? (
-                <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {pageItems.map((item) => {
                     const finding = toTrendContentFinding(item);
                     return (
@@ -270,10 +301,10 @@ export default function TrendsPlatformDetail({
                   })}
                 </div>
               ) : (
-                <div className="py-3 text-sm text-foreground/40">
+                <EmptyBlock>
                   No remixable source posts are available for this platform
                   right now.
-                </div>
+                </EmptyBlock>
               )}
               {pagination ? <div className="pt-2">{pagination}</div> : null}
             </section>

@@ -7,7 +7,6 @@ import { TrendAnalysisService } from '@api/collections/trends/services/modules/t
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
 import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
-import { TrendPrelaunchCorpusService } from '@api/collections/trends/services/modules/trend-prelaunch-corpus.service';
 import { TrendQueryService } from '@api/collections/trends/services/modules/trend-query.service';
 import { TrendSourceItemsService } from '@api/collections/trends/services/modules/trend-source-items.service';
 import { TrendSourcePreviewService } from '@api/collections/trends/services/modules/trend-source-preview.service';
@@ -118,7 +117,6 @@ describe('TrendsService', () => {
         TrendContentIdeasService,
         TrendFetchService,
         TrendFilteringService,
-        TrendPrelaunchCorpusService,
         TrendQueryService,
         TrendSourceItemsService,
         TrendSourcePreviewService,
@@ -268,101 +266,25 @@ describe('TrendsService', () => {
     ).toHaveBeenCalledWith({ platform: 'tiktok' });
   });
 
-  describe('backfillPrelaunchReferenceCorpus', () => {
-    const fixedNow = new Date('2026-06-09T00:00:00.000Z');
-    const makeSeedTrendDoc = (id: string, data: Record<string, unknown>) => ({
-      brandId: null,
-      createdAt: fixedNow,
-      data,
-      id,
-      isDeleted: false,
-      organizationId: null,
-      updatedAt: fixedNow,
-    });
+  describe('purgeSyntheticTrendRows', () => {
+    it('delegates soft-delete of prelaunch seed rows', async () => {
+      const purgeSpy = vi
+        .spyOn(service as never, 'purgeSyntheticTrendRows')
+        .mockResolvedValue({ purged: 3 } as never);
 
-    it('plans the credential-free corpus without writes by default', async () => {
-      prisma.trend.findMany.mockResolvedValue([]);
+      // Call through the real method path via trendQueryService mock instead
+      purgeSpy.mockRestore();
+      const trendQueryService = (
+        service as unknown as { trendQueryService: TrendQueryService }
+      ).trendQueryService;
+      const queryPurge = vi
+        .spyOn(trendQueryService, 'purgeSyntheticTrendRows')
+        .mockResolvedValue({ purged: 3 });
 
-      const result = await service.backfillPrelaunchReferenceCorpus({
-        now: fixedNow,
+      await expect(service.purgeSyntheticTrendRows()).resolves.toEqual({
+        purged: 3,
       });
-
-      expect(result).toMatchObject({
-        createdTrends: 0,
-        dryRun: true,
-        plannedCreates: 70,
-        plannedUpdates: 0,
-        seedReferences: 140,
-        seedTrends: 70,
-        updatedTrends: 0,
-      });
-      expect(prisma.trend.create).not.toHaveBeenCalled();
-      expect(prisma.trend.update).not.toHaveBeenCalled();
-      expect(
-        trendReferenceCorpusService.syncTrendReferences,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('creates missing global trends and syncs source references in live mode', async () => {
-      prisma.trend.findMany.mockResolvedValue([]);
-      prisma.trend.create.mockImplementation(async (input: unknown) => {
-        const payload = input as {
-          data: {
-            data: Record<string, unknown>;
-          };
-        };
-
-        return makeSeedTrendDoc(
-          `prelaunch-${prisma.trend.create.mock.calls.length}`,
-          payload.data.data,
-        );
-      });
-      trendReferenceCorpusService.syncTrendReferences.mockResolvedValue({
-        links: 140,
-        references: 140,
-        snapshots: 140,
-      });
-
-      const result = await service.backfillPrelaunchReferenceCorpus({
-        dryRun: false,
-        now: fixedNow,
-      });
-
-      expect(prisma.trend.create).toHaveBeenCalledTimes(70);
-      expect(prisma.trend.update).not.toHaveBeenCalled();
-      expect(
-        trendReferenceCorpusService.syncTrendReferences,
-      ).toHaveBeenCalledTimes(1);
-
-      const syncCall =
-        trendReferenceCorpusService.syncTrendReferences.mock.calls[0];
-      const syncPayload = syncCall?.[0] as Array<{
-        sourcePreview: unknown[];
-        sourcePreviewState: string;
-      }>;
-
-      expect(syncPayload).toHaveLength(70);
-      expect(syncPayload[0]).toMatchObject({
-        sourcePreviewState: 'fallback',
-      });
-      expect(syncPayload[0]?.sourcePreview).toHaveLength(2);
-      expect(cacheService.invalidateByTags).toHaveBeenCalledWith([
-        'trends',
-        'trends:content',
-      ]);
-      expect(result).toMatchObject({
-        createdTrends: 70,
-        dryRun: false,
-        plannedCreates: 70,
-        referenceSync: {
-          links: 140,
-          references: 140,
-          snapshots: 140,
-        },
-        seedReferences: 140,
-        seedTrends: 70,
-        updatedTrends: 0,
-      });
+      expect(queryPurge).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -730,22 +652,13 @@ describe('TrendsService', () => {
       });
     });
 
-    it('returns bootstrap content when the trend corpus is empty', async () => {
+    it('returns an empty feed when the trend corpus is empty (no synthetic seed)', async () => {
       const result = await service.getTrendContent(undefined, undefined, {
         limit: 10,
       });
 
-      expect(result.items.length).toBeGreaterThan(0);
-      expect(result.totalTrends).toBeGreaterThan(0);
-      expect(result.items[0]).toMatchObject({
-        requiresAuth: false,
-        sourcePreviewState: 'fallback',
-      });
-      expect(
-        result.items.some((item) =>
-          item.trendId.startsWith('bootstrap-trend-'),
-        ),
-      ).toBe(true);
+      expect(result.items).toEqual([]);
+      expect(result.totalTrends).toBe(0);
     });
 
     it.each([
@@ -756,26 +669,20 @@ describe('TrendsService', () => {
       'twitter',
       'youtube',
     ])(
-      'returns platform-scoped bootstrap content for %s when the corpus is empty',
+      'returns empty platform feed for %s when the corpus is empty',
       async (platform) => {
         const result = await service.getTrendContent(undefined, undefined, {
           limit: 10,
           platform,
         });
 
-        expect(result.items.length).toBeGreaterThan(0);
-        expect(result.items.every((item) => item.platform === platform)).toBe(
-          true,
-        );
-        expect(
-          result.items.every((item) => item.sourcePreviewState === 'fallback'),
-        ).toBe(true);
+        expect(result.items).toEqual([]);
       },
     );
   });
 
   describe('getTrendsWithAccessControl', () => {
-    it('preserves the last-good dataset before using bootstrap trends', async () => {
+    it('preserves the last-good dataset when active cache is empty', async () => {
       prisma.trend.findMany.mockResolvedValue([
         makePrismaTrendDoc({
           expiresAt: new Date('2026-01-01T00:00:00.000Z').toISOString(),

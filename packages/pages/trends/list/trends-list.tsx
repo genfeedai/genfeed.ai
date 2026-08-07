@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import { APP_ROUTES } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonSize,
@@ -10,6 +11,7 @@ import {
 import type { ITrendVideo } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   useOptionalResearchWorkSurface,
   useResearchPagination,
@@ -28,6 +30,7 @@ import { TrendsService } from '@services/social/trends.service';
 import { useQuery } from '@tanstack/react-query';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
+import CardEmpty from '@ui/card/empty/CardEmpty';
 import MetricCard from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import Badge from '@ui/display/badge/Badge';
@@ -38,15 +41,8 @@ import Container from '@ui/layout/container/Container';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import { Button } from '@ui/primitives/button';
 import FormSearchbar from '@ui/primitives/searchbar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@ui/primitives/table';
-import { Film, Inbox, Sparkles, TrendingUp } from 'lucide-react';
+import { AtSign, Film, Link2, Sparkles, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
 import { type ChangeEvent, type ReactNode, useMemo } from 'react';
 
 function getVideoExternalId(video: ITrendVideo): string | null {
@@ -276,63 +272,70 @@ function SectionCardHeader({
   );
 }
 
-function TrendContentEmptyTable({
+function TrendContentEmptyState({
+  followingHref,
   isRefreshing,
-  onAction,
+  onRefresh,
+  publishingHref,
   search,
+  onClearSearch,
 }: {
+  followingHref: string;
   isRefreshing: boolean;
-  onAction: () => void;
+  onClearSearch: () => void;
+  onRefresh: () => void;
+  publishingHref: string;
   search: string;
 }) {
   const hasSearch = Boolean(search.trim());
-  const headClassName =
-    'px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/72';
+
+  if (hasSearch) {
+    return (
+      <EmptyStateCard
+        icon={TrendingUp}
+        title="No matching trend content"
+        description="Nothing in your real discovery feed matches that search."
+        action={{
+          label: 'Clear search',
+          onClick: onClearSearch,
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="overflow-hidden rounded-card border border-border bg-card">
-      <Table className="w-full text-left">
-        <TableHeader>
-          <TableRow className="border-b border-border bg-background-secondary">
-            <TableHead className={headClassName}>Source</TableHead>
-            <TableHead className={headClassName}>Content</TableHead>
-            <TableHead className={headClassName}>Trend</TableHead>
-            <TableHead className={headClassName}>Score</TableHead>
-            <TableHead className={headClassName}>Mentions</TableHead>
-            <TableHead className={headClassName}>Action</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow className="hover:bg-transparent">
-            <TableCell colSpan={6} className="px-4 py-12 text-foreground/70">
-              <div className="mx-auto flex max-w-xl flex-col items-center text-center">
-                <div className="flex size-11 items-center justify-center rounded-full border border-border bg-background-secondary text-foreground/70">
-                  <Inbox className="size-5" />
-                </div>
-                <div className="mt-4 text-base font-semibold text-foreground">
-                  {hasSearch
-                    ? 'No matching trend content'
-                    : 'No remixable trend content yet'}
-                </div>
-                <div className="mt-2 text-sm leading-6 text-foreground/72">
-                  {hasSearch
-                    ? 'The current saved feed has no source posts matching that search.'
-                    : 'The feed is waiting for source posts from trend syncs before it can show remix-ready rows.'}
-                </div>
-                <Button
-                  label={hasSearch ? 'Clear search' : 'Refresh feed'}
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  isLoading={!hasSearch && isRefreshing}
-                  onClick={onAction}
-                  className="mt-5"
-                />
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-    </div>
+    <CardEmpty
+      actions={
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href={publishingHref}>
+              <Link2 className="size-3.5" />
+              Connect accounts
+            </Link>
+          </Button>
+          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
+            <Link href={followingHref}>
+              <AtSign className="size-3.5" />
+              Follow creators
+            </Link>
+          </Button>
+          <Button
+            isLoading={isRefreshing}
+            label="Refresh"
+            onClick={onRefresh}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          />
+        </div>
+      }
+      description="Discover stays empty until you connect publishing accounts or follow creators. No fake demo corpus — only signals you actually own."
+      icon={TrendingUp}
+      label="Warm this workspace with real sources"
+    />
   );
 }
 
@@ -385,8 +388,11 @@ function ViralVideosEmptyState({
 
 export default function TrendsList() {
   const brandId = useBrandId();
+  const { orgHref } = useOrgUrl();
   const surface = useOptionalResearchWorkSurface();
   const [search, setSearch] = useResearchQueryState();
+  const followingHref = orgHref(APP_ROUTES.DISCOVER.FOLLOWING);
+  const publishingHref = orgHref(APP_ROUTES.SETTINGS.PUBLISHING);
   const {
     error,
     isLoading,
@@ -538,19 +544,17 @@ export default function TrendsList() {
               />
 
               {filteredItems.length === 0 ? (
-                <TrendContentEmptyTable
+                <TrendContentEmptyState
+                  followingHref={followingHref}
                   isRefreshing={isRefreshing}
-                  search={search}
-                  onAction={() => {
-                    if (search.trim()) {
-                      setSearch('');
-                      return;
-                    }
-
+                  onClearSearch={() => setSearch('')}
+                  onRefresh={() => {
                     handleRefresh().catch(() => {
                       /* surfaced via hook */
                     });
                   }}
+                  publishingHref={publishingHref}
+                  search={search}
                 />
               ) : (
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
