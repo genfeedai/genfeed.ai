@@ -5,7 +5,9 @@
 name: Tmp Spec Baseline
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - claude/master-audit-ci-cleanup-7e1847
 
 jobs:
   regenerate:
