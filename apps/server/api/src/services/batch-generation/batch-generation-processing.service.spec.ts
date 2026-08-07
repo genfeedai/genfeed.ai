@@ -48,6 +48,32 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     userId: 'user-1',
   };
 
+  /**
+   * Repoint the batch delegate at a specific item set so a test can exercise
+   * multi-item batches or per-item platform shapes. `totalCount` follows the
+   * item count so the PARTIAL/COMPLETED branch resolves the way it does in
+   * production.
+   */
+  function useBatchItems(items: Array<Record<string, unknown>>): void {
+    batchDelegate.findFirst.mockImplementation(() =>
+      Promise.resolve({
+        ...batchRecord,
+        config: { ...batchRecord.config, totalCount: items.length },
+        items: items.map((item) => ({ ...item })),
+        status: BatchStatus.PROCESSING,
+      }),
+    );
+  }
+
+  /** Data written by the finalizing `updateMany` at the end of processBatch. */
+  function finalUpdatePayload(): {
+    config?: { completedCount?: number; failedCount?: number };
+    items?: Array<{ error?: string; status?: string }>;
+    status?: string;
+  } {
+    return batchDelegate.updateMany.mock.calls.at(-1)?.[0]?.data ?? {};
+  }
+
   beforeEach(async () => {
     postsService = {
       create: vi.fn().mockResolvedValue({ id: 'post-1' }),
@@ -173,5 +199,94 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     const lastUpdate = batchDelegate.updateMany.mock.calls.at(-1)?.[0];
     const items = lastUpdate?.data?.items as Array<{ error?: string }>;
     expect(items?.[0]?.error).toMatch(/missing or invalid "credentialId"/i);
+  });
+
+  it('skips the credential lookup for an unmappable platform', async () => {
+    // `toPrismaCredentialPlatform` returns undefined for unknown platforms.
+    // Querying anyway would put `platform: undefined` into the where clause,
+    // which `normalizeWhere` drops — silently matching ANY connected credential
+    // for the brand and cross-wiring the draft to the wrong account.
+    useBatchItems([{ ...baseItem, platform: 'myspace' }]);
+
+    await service.processBatch('batch-1', 'org-1');
+
+    expect(credentialDelegate.findFirst).not.toHaveBeenCalled();
+    expect(postsService.create.mock.calls[0]?.[0]).not.toHaveProperty(
+      'credentialId',
+    );
+  });
+
+  it('skips the credential lookup when the item has a blank platform', async () => {
+    useBatchItems([{ ...baseItem, platform: '   ' }]);
+
+    await service.processBatch('batch-1', 'org-1');
+
+    expect(credentialDelegate.findFirst).not.toHaveBeenCalled();
+    const created = postsService.create.mock.calls[0]?.[0];
+    expect(created).not.toHaveProperty('credentialId');
+    expect(created?.platform).toBeUndefined();
+  });
+
+  it('normalizes a hyphenated platform for both the credential and the post', async () => {
+    useBatchItems([{ ...baseItem, platform: 'google-ads' }]);
+    credentialDelegate.findFirst.mockResolvedValue({ id: 'cred-google-ads-1' });
+
+    await service.processBatch('batch-1', 'org-1');
+
+    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          platform: CredentialPlatform.GOOGLE_ADS,
+        }),
+      }),
+    );
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-google-ads-1',
+        platform: 'google_ads',
+      }),
+    );
+  });
+
+  it('surfaces only the first line of a generic error, not the raw stack dump', async () => {
+    postsService.create.mockRejectedValue(
+      new Error(
+        'Post creation rejected by validation\n    at PostsService.create\n    at processTicksAndRejections',
+      ),
+    );
+
+    await service.processBatch('batch-1', 'org-1');
+
+    const error = finalUpdatePayload().items?.[0]?.error;
+    expect(error).toBe('Post creation rejected by validation');
+    expect(error).not.toContain('at PostsService.create');
+  });
+
+  it('isolates per-item failures and finalizes a mixed batch as PARTIAL', async () => {
+    useBatchItems([
+      { ...baseItem, id: 'item-1' },
+      { ...baseItem, id: 'item-2' },
+    ]);
+    postsService.create
+      .mockResolvedValueOnce({ id: 'post-1' })
+      .mockRejectedValueOnce(
+        new Error('Null constraint violation on the fields: (`credentialId`)'),
+      );
+
+    await service.processBatch('batch-1', 'org-1');
+
+    const payload = finalUpdatePayload();
+    expect(payload.status).toBe('PARTIAL');
+    expect(payload.config?.completedCount).toBe(1);
+    expect(payload.config?.failedCount).toBe(1);
+
+    // The failure must stay attached to the item that caused it.
+    expect(payload.items?.[0]?.status).toBe(BatchItemStatus.COMPLETED);
+    expect(payload.items?.[0]?.error).toBeUndefined();
+    expect(payload.items?.[1]?.status).toBe(BatchItemStatus.FAILED);
+    expect(payload.items?.[1]?.error).toMatch(
+      /missing or invalid "credentialId"/i,
+    );
   });
 });
