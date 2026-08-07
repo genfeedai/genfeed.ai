@@ -20,6 +20,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PromptsController } from '@api/collections/prompts/controllers/prompts.controller';
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
+import type { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -49,6 +50,13 @@ describe('PromptsController', () => {
   } as unknown as User;
 
   const mockReq = {} as Request;
+  const mockPromptQuery = {
+    isDeleted: false,
+    limit: 10,
+    page: 1,
+    pagination: true,
+    sort: 'createdAt: -1',
+  } satisfies PromptQueryDto;
 
   const mockPrompt = {
     _id: '507f1f77bcf86cd799439014',
@@ -174,10 +182,48 @@ describe('PromptsController', () => {
 
       mockPromptsService.findAll.mockResolvedValue(mockData);
 
-      const result = await controller.findAll(mockReq, mockUser, {});
+      const result = await controller.findAll(
+        mockReq,
+        mockUser,
+        mockPromptQuery,
+      );
 
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('scopes the list to the current user so marketplace installs are listable', async () => {
+      const installedPrompt = {
+        ...mockPrompt,
+        _id: '507f1f77bcf86cd799439015',
+        isFavorite: true,
+        original: 'Installed from the marketplace',
+        userId: '507f1f77bcf86cd799439011',
+      };
+
+      mockPromptsService.findAll.mockResolvedValue({
+        docs: [installedPrompt],
+        limit: 10,
+        page: 1,
+        totalDocs: 1,
+      });
+
+      const result = await controller.findAll(
+        mockReq,
+        mockUser,
+        mockPromptQuery,
+      );
+
+      expect(service.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isDeleted: false,
+            userId: '507f1f77bcf86cd799439011',
+          }),
+        }),
+        expect.anything(),
+      );
+      expect(result).toEqual([installedPrompt]);
     });
   });
 

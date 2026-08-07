@@ -14,9 +14,48 @@ genfeed.ai is a B2B AI content creation and distribution platform. The API provi
 
 **OpenAPI Spec:** https://api.genfeed.ai/v1/openapi.json
 
-**Authentication:** Better Auth bearer JWTs
+**Authentication:** Better Auth bearer JWTs or `gf_` API keys
 
-## Quick Start
+## Authentication
+
+The API accepts two bearer credentials on the same `Authorization` header. Any
+token beginning with `gf_` is validated as an API key; everything else is
+validated as a Better Auth JWT.
+
+| Method | Credential | Use it for |
+| --- | --- | --- |
+| Better Auth JWT | Short-lived session token | Browser and app clients acting as a signed-in user |
+| API key | Long-lived `gf_live_…` / `gf_test_…` secret | Server-to-server calls, automation, CI, and MCP clients |
+
+API keys also accept the `ApiKey` scheme:
+
+```http
+Authorization: Bearer gf_live_xxx
+Authorization: ApiKey gf_live_xxx
+```
+
+See [API Keys](/api-reference/api-keys) for creation, scopes, rate limits, and
+credit metering, and [MCP Server](/api-reference/mcp) for AI-client setup.
+
+## Quick Start with an API Key
+
+### 1. Create a Key
+
+Create a key in organization settings at `/{orgSlug}/~/settings/api-keys`, copy
+it once, and export it where your integration runs:
+
+```bash
+export GENFEED_API_KEY=gf_live_xxx
+```
+
+### 2. Make API Request
+
+```bash
+curl https://api.genfeed.ai/v1/posts \
+  -H "Authorization: Bearer $GENFEED_API_KEY"
+```
+
+## Quick Start with a Session Token
 
 ### 1. Get Authentication Token
 
@@ -60,6 +99,10 @@ console.log(data);
 The full OpenAPI specification is available at https://api.genfeed.ai/v1/openapi.json
 
 For interactive API documentation, visit the [API Reference](/api-reference/reference) page.
+
+- [API Keys](/api-reference/api-keys) — create, scope, rotate, and revoke `gf_` keys
+- [MCP Server](/api-reference/mcp) — connect AI clients over Streamable HTTP
+- [Webhooks](/api-reference/webhooks) — signed outbound publish events
 
 ## Support
 

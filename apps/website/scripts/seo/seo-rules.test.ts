@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parsePage } from './page-parser';
+import { decodeEntities, parsePage } from './page-parser';
 import {
   auditPage,
   checkDuplicateDescriptions,
@@ -9,6 +9,7 @@ import {
   checkSoftNotFound,
   checkStructuredData,
   collectBreadcrumbTargets,
+  findingKey,
   type PageInput,
 } from './seo-rules';
 
@@ -81,6 +82,40 @@ describe('page parser', () => {
     );
 
     expect(facts.imagesWithoutAlt).toBe(1);
+  });
+});
+
+describe('entity decoding', () => {
+  it('decodes named, decimal and hex entities', () => {
+    expect(decodeEntities('A &amp; B, caf&#233; and caf&#xE9;')).toBe(
+      'A & B, café and café',
+    );
+  });
+
+  it('leaves numeric entities outside the Unicode range untouched', () => {
+    // Regression guard: String.fromCodePoint throws above 0x10FFFF and the
+    // regex accepts an unbounded digit run. The throw escaped parsePage and
+    // failed the whole audit upstream of the SEO_SOFT advisory guard.
+    expect(decodeEntities('&#1114112;')).toBe('&#1114112;');
+    expect(decodeEntities('&#xFFFFFFFF;')).toBe('&#xFFFFFFFF;');
+    expect(decodeEntities('&#99999999999999999999999;')).toBe(
+      '&#99999999999999999999999;',
+    );
+  });
+
+  it('leaves a decimal entity carrying hex digits untouched', () => {
+    // The character class admits a-f in the decimal branch too, so "&#12ab;"
+    // reaches the parse. Decoding it as 12 would invent text that is not there.
+    expect(decodeEntities('&#12ab;')).toBe('&#12ab;');
+  });
+
+  it('keeps parsing a page that contains an out-of-range entity', () => {
+    const facts = parsePage(
+      page('<title>Genfeed &#1114112; Studio</title>', '<p>one two three</p>'),
+    );
+
+    expect(facts.title).toBe('Genfeed &#1114112; Studio');
+    expect(facts.wordCount).toBe(3);
   });
 });
 
@@ -260,6 +295,67 @@ describe('structured data', () => {
     );
   });
 
+  it('gives two defects on one page two baseline keys', () => {
+    // Regression guard: the baseline key was "<rule> <path>", so accepting the
+    // missing Product image also silently accepted the missing Offer price.
+    const findings = checkStructuredData(
+      withJsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        mainEntity: {
+          '@type': 'Product',
+          name: 'Genfeed Pro',
+          offers: { '@type': 'Offer', priceCurrency: 'USD' },
+        },
+      }),
+    );
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map(findingKey).sort()).toEqual([
+      'structured-data-incomplete /vs/jasper Offer block-0.node-2',
+      'structured-data-incomplete /vs/jasper Product block-0.node-1',
+    ]);
+  });
+
+  it('gives repeated nodes of the same type distinct baseline keys', () => {
+    const findings = checkStructuredData(
+      withJsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        mainEntity: [
+          {
+            '@type': 'Product',
+            name: 'Genfeed Pro',
+            offers: { '@type': 'Offer', price: '49', priceCurrency: 'USD' },
+          },
+          {
+            '@type': 'Product',
+            name: 'Genfeed Scale',
+            offers: { '@type': 'Offer', price: '149', priceCurrency: 'USD' },
+          },
+        ],
+      }),
+    );
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map(findingKey)).toEqual([
+      'structured-data-incomplete /vs/jasper Product block-0.node-1',
+      'structured-data-incomplete /vs/jasper Product block-0.node-3',
+    ]);
+  });
+
+  it('gives each type of a multi-type node its own baseline key', () => {
+    const findings = checkStructuredData(
+      withJsonLd({
+        '@context': 'https://schema.org',
+        '@type': ['Article', 'BlogPosting'],
+        headline: 'The Genfeed changelog',
+      }),
+    );
+
+    expect(new Set(findings.map(findingKey)).size).toBe(2);
+  });
+
   it('reports unparseable JSON-LD instead of throwing', () => {
     const html = healthyHtml('/pricing').replace(
       '</head>',
@@ -314,6 +410,23 @@ describe('structured data', () => {
       `${ORIGIN}/`,
       `${ORIGIN}/use-cases`,
     ]);
+  });
+});
+
+describe('baseline identity', () => {
+  it('keys a rule that fires once per page by rule and path alone', () => {
+    const html = healthyHtml('/faq').replace(
+      `<link rel="canonical" href="${ORIGIN}/faq" />`,
+      '',
+    );
+    const missingCanonical = auditPage(input('/faq', html)).find(
+      (f) => f.rule === 'canonical-missing',
+    );
+
+    expect(missingCanonical).toBeDefined();
+    expect(missingCanonical && findingKey(missingCanonical)).toBe(
+      'canonical-missing /faq',
+    );
   });
 });
 

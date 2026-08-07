@@ -107,7 +107,7 @@ test.describe('Visual Regression Tests - Desktop', () => {
     test('Settings - Billing Page - should match baseline', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_BILLING);
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.SUBSCRIPTION);
 
       // Wait for billing page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');
@@ -212,7 +212,7 @@ test.describe('Visual Regression Tests - Mobile', () => {
     test('Settings - Billing Page - Mobile - should match baseline', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(APP_ROUTES.SETTINGS.ORGANIZATION_BILLING);
+      await authenticatedPage.goto(APP_ROUTES.SETTINGS.SUBSCRIPTION);
 
       // Wait for billing page to load
       await authenticatedPage.waitForLoadState('domcontentloaded');

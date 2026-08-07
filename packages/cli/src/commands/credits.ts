@@ -102,7 +102,7 @@ creditsCommand
       }
 
       print();
-      print(chalk.dim(`Manage billing at ${await getAppUrl()}/settings/billing`));
+      print(chalk.dim(`Manage billing at ${await getAppUrl()}/settings/credits`));
     } catch (error) {
       handleError(error);
     }

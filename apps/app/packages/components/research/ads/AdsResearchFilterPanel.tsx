@@ -31,7 +31,8 @@ const PLATFORM_OPTIONS: Array<{
 }> = [
   { label: 'All Platforms', value: 'all' },
   { label: 'Meta Ads', value: 'meta' },
-  { label: 'Google Ads', value: 'google' },
+  { label: 'Google / YouTube Ads', value: 'google' },
+  { label: 'TikTok Ads', value: 'tiktok' },
 ];
 
 const GOOGLE_CHANNEL_OPTIONS: Array<{ label: string; value: AdsChannel }> = [

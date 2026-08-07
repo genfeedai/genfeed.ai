@@ -1,3 +1,4 @@
+import type { PlatformRole } from '@genfeedai/enums';
 import type { ISetting } from '../automation';
 import type { IBaseEntity } from '../core/base.interface';
 
@@ -8,6 +9,8 @@ export interface IUser extends IBaseEntity {
   firstName: string;
   lastName: string;
   email: string;
+  // Platform access role; SUPERADMIN gates /admin surfaces and impersonation.
+  platformRole?: PlatformRole;
   avatar?: string;
   settings: ISetting;
   fullName?: string;

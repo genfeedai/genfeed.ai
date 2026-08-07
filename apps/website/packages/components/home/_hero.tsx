@@ -3,7 +3,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
-import { HStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { HOME_OUTPUT_WALL_ASSETS } from '@web-components/home/_assets';
@@ -92,7 +91,7 @@ export default function HomeHero(): React.ReactElement {
               publish to. No stitching six tools together.
             </Text>
 
-            <HStack className="mt-8 flex-wrap gap-3">
+            <div className="flex flex-row items-center mt-8 flex-wrap gap-3">
               <ButtonTracked
                 asChild
                 size={ButtonSize.PUBLIC}
@@ -122,7 +121,7 @@ export default function HomeHero(): React.ReactElement {
                   Book a Demo
                 </a>
               </ButtonTracked>
-            </HStack>
+            </div>
           </div>
 
           <figure

@@ -5,10 +5,18 @@ import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import type { ReactNode } from 'react';
 import { useState } from 'react';
 import CreditTopUpPanel from '../credits/credit-top-up-panel';
 
-export default function AddCreditsCard() {
+type AddCreditsCardProps = {
+  /** Optional secondary control next to Add credit (e.g. billing portal). */
+  secondaryAction?: ReactNode;
+};
+
+export default function AddCreditsCard({
+  secondaryAction,
+}: AddCreditsCardProps) {
   const [isStartingCheckout, setIsStartingCheckout] = useState(false);
 
   const getStripeService = useAuthedService((token: string) =>
@@ -53,6 +61,7 @@ export default function AddCreditsCard() {
   return (
     <CreditTopUpPanel
       isStartingCheckout={isStartingCheckout}
+      secondaryAction={secondaryAction}
       submitLabel="Add credit"
       onSubmit={handleAddCredits}
     />

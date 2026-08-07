@@ -99,6 +99,8 @@ describe('FacebookService', () => {
       expect(url).toContain('email');
       expect(url).toContain('pages_read_engagement');
       expect(url).toContain('publish_video');
+      expect(url).toContain('ads_management');
+      expect(url).toContain('ads_read');
     });
   });
 

@@ -2,7 +2,6 @@
 
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import Badge from '@ui/display/badge/Badge';
-import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 
@@ -23,7 +22,7 @@ export default function TrendsPageHeader({
 }: Props) {
   return (
     <header>
-      <VStack gap={3}>
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant="default" className="text-xs uppercase tracking-wide">
             Live sync
@@ -56,7 +55,7 @@ export default function TrendsPageHeader({
         <Heading size="2xl" as="h1" className="sr-only">
           Social Media Trends
         </Heading>
-      </VStack>
+      </div>
     </header>
   );
 }

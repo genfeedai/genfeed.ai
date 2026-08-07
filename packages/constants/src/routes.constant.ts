@@ -135,6 +135,7 @@ export const APP_ROUTES = {
     ADS: '/discover/ads',
     ADS_GOOGLE: '/discover/ads/google',
     ADS_META: '/discover/ads/meta',
+    ADS_TIKTOK: '/discover/ads/tiktok',
     /**
      * @deprecated Use OVERVIEW. Bare `/discover/discovery` permanently redirects
      * to `/discover/overview` (same pattern as workspace/analytics/automate).
@@ -217,9 +218,11 @@ export const APP_ROUTES = {
   },
   SETTINGS: {
     API_KEYS: '/settings/api-keys',
-    BILLING: '/settings/billing',
     BRANDS: '/settings/brands',
     CREDITS: '/settings/credits',
+    /** Provider BYOK keys (OpenAI, Replicate, …) — not Genfeed product API keys. */
+    INTEGRATIONS: '/settings/integrations',
+    SUBSCRIPTION: '/settings/subscription',
     ELEMENTS_SCENES: '/settings/elements/scenes',
     HELP: '/settings/help',
     MEMBERS: '/settings/members',
@@ -229,7 +232,6 @@ export const APP_ROUTES = {
     MODEL_VIDEO: '/settings/models/video',
     ORGANIZATION: '/settings/organization',
     ORGANIZATION_API_KEYS: '/settings/organization/api-keys',
-    ORGANIZATION_BILLING: '/settings/organization/billing',
     /**
      * @deprecated Dead path — no page shipped. Brand OAuth (Facebook / Google Ads
      * / social) lives at SETTINGS.SOCIAL. Prefer that; legacy URLs redirect.

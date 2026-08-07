@@ -219,7 +219,7 @@ describe('workspace shell URL restoration', () => {
     '/acme/moonrise/studio/fastlane',
     '/acme/~/agent/journey',
     '/acme/~/agent/onboarding',
-    '/acme/~/settings/billing',
+    '/acme/~/settings/subscription',
   ])('restores the permanent canvas route %s', (pathname) => {
     expect(
       restoreWorkspaceShellLocation({

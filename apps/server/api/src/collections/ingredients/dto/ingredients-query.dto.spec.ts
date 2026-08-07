@@ -15,21 +15,22 @@ describe('IngredientsQueryDto', () => {
 
     it('should accept repeated status query keys as an array', async () => {
       // Express parses ?status=a&status=b as an array on req.query.
+      // Legacy lowercase is uppercased to Prisma IngredientStatus labels.
       const dto = plainToInstance(IngredientsQueryDto, {
         status: ['generated', 'processing', 'validated'],
       });
       const errors = await validate(dto);
 
       expect(errors).toHaveLength(0);
-      expect(dto.status).toEqual(['generated', 'processing', 'validated']);
+      expect(dto.status).toEqual(['GENERATED', 'PROCESSING', 'VALIDATED']);
     });
 
     it('should normalize a single status value into an array', async () => {
-      const dto = plainToInstance(IngredientsQueryDto, { status: 'generated' });
+      const dto = plainToInstance(IngredientsQueryDto, { status: 'GENERATED' });
       const errors = await validate(dto);
 
       expect(errors).toHaveLength(0);
-      expect(dto.status).toEqual(['generated']);
+      expect(dto.status).toEqual(['GENERATED']);
     });
 
     it('should validate successfully with no status filter', async () => {
