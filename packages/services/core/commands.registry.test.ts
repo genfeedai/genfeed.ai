@@ -463,7 +463,7 @@ describe('commands.registry', () => {
       );
     });
 
-    it('billing action should navigate to the billing URL when EE is enabled', () => {
+    it('billing action should navigate to subscription when EE is enabled', () => {
       process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
       const settingsCommands = createSettingsCommands(TEST_ORG);
       const billingCmd = settingsCommands.find(
@@ -473,7 +473,7 @@ describe('commands.registry', () => {
       billingCmd?.action();
 
       expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/billing`,
+        `https://app.genfeed.ai/${TEST_ORG}/~/settings/subscription`,
       );
     });
 

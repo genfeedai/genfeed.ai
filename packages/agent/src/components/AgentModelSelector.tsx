@@ -112,14 +112,22 @@ export function AgentModelSelector({
 
   const filteredModels = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    if (!query) {
-      return models;
-    }
+    const matched = query
+      ? models.filter((model) => {
+          const haystack =
+            `${model.label} ${model.description} ${model.key}`.toLowerCase();
+          return haystack.includes(query);
+        })
+      : [...models];
 
-    return models.filter((model) => {
-      const haystack =
-        `${model.label} ${model.description} ${model.key}`.toLowerCase();
-      return haystack.includes(query);
+    // Cheapest first, then A–Z label. Missing cost sorts last (unknown/legacy).
+    return matched.toSorted((left, right) => {
+      const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
+      const rightCost = right.creditCost ?? Number.POSITIVE_INFINITY;
+      if (leftCost !== rightCost) {
+        return leftCost - rightCost;
+      }
+      return left.label.localeCompare(right.label);
     });
   }, [models, searchTerm]);
 
@@ -149,9 +157,12 @@ export function AgentModelSelector({
           isDisabled={isDisabled || isLoading}
           className={cn(
             'inline-flex min-w-0 max-w-full items-center gap-1 rounded-lg text-xs text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground',
+            // Padding matches the composer toolbar's icon-button optical inset
+            // (half of control height minus a `size-4` glyph), so the chip sits
+            // on the same rhythm as the buttons beside it.
             isCompact
-              ? 'h-8 max-w-[7.5rem] px-1.5'
-              : 'h-9 shrink-0 gap-1.5 px-2',
+              ? 'h-8 max-w-[7.5rem] px-2'
+              : 'h-9 shrink-0 gap-1.5 px-2.5',
           )}
         >
           {current?.isReasoning && (

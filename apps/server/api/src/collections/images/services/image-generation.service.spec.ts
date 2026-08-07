@@ -12,6 +12,7 @@ import { ReplicateImageGenerationProviderAdapter } from '@api/collections/images
 import { SdxlImageGenerationProviderAdapter } from '@api/collections/images/services/providers/sdxl-image-generation-provider.adapter';
 import type { RequestWithContext as ExpressRequest } from '@api/common/middleware/request-context.middleware';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -151,6 +152,23 @@ const createService = () => {
   };
   const routerService = {
     getDefaultModel: vi.fn().mockResolvedValue(NON_BATCH_REPLICATE_MODEL),
+    // Stands in for the registry policy: the first candidate the registry
+    // carries wins, otherwise the category default (#2422 Phase C).
+    resolveModelKey: vi
+      .fn()
+      .mockImplementation(
+        ({ candidates }: { candidates?: Array<string | null | undefined> }) => {
+          const key = candidates?.find((candidate): candidate is string =>
+            Boolean(candidate),
+          );
+
+          return Promise.resolve(
+            key
+              ? { key, source: 'candidate' }
+              : { key: NON_BATCH_REPLICATE_MODEL, source: 'registry-default' },
+          );
+        },
+      ),
     selectModel: vi.fn(),
   };
   const pollingService = {
@@ -230,10 +248,13 @@ const createService = () => {
     creditsUtilsService,
     failedGenerationService,
     falService,
+    loggerService,
     metadataService,
+    modelRegistrationService,
     promptBuilderService,
     promptsService,
     replicateService,
+    routerService,
     service,
   };
 };
@@ -269,6 +290,85 @@ describe('ImageGenerationService', () => {
         'p07f1f77bcf86cd799439015',
         expect.objectContaining({ status: 'processing' }),
       );
+    });
+  });
+
+  describe('registry-backed model resolution (#2422 Phase C)', () => {
+    it('asks the router policy for the model, candidates in precedence order', async () => {
+      const { service, routerService } = createService();
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: FAL_MODEL }),
+        buildRequest(),
+      );
+
+      expect(routerService.resolveModelKey).toHaveBeenCalledWith({
+        candidates: [FAL_MODEL, undefined, undefined],
+        category: ModelCategory.IMAGE,
+        organizationId: ORG,
+      });
+    });
+
+    it('generates with the registry answer when the requested key is not routable', async () => {
+      const { service, routerService, modelRegistrationService, falService } =
+        createService();
+
+      routerService.resolveModelKey.mockResolvedValue({
+        key: FAL_MODEL,
+        source: 'registry-default',
+      });
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ model: 'retired/model' }),
+        buildRequest(),
+      );
+
+      expect(modelRegistrationService.validateModelForOrg).toHaveBeenCalledWith(
+        FAL_MODEL,
+        ORG,
+      );
+      expect(falService.generateImage).toHaveBeenCalled();
+    });
+
+    it('logs an error when the registry had nothing and the constant was used', async () => {
+      const { service, routerService, loggerService } = createService();
+
+      routerService.resolveModelKey.mockResolvedValue({
+        key: NON_BATCH_REPLICATE_MODEL,
+        source: 'fallback-constant',
+      });
+
+      await service.generateImage(buildUser(), baseDto(), buildRequest());
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        'Image model resolved from constant fallback',
+        expect.objectContaining({ model: NON_BATCH_REPLICATE_MODEL }),
+      );
+    });
+
+    it('leaves auto-select on the scoring path', async () => {
+      const { service, routerService } = createService();
+
+      routerService.selectModel.mockResolvedValue({
+        reason: 'best match',
+        selectedModel: FAL_MODEL,
+      });
+
+      await service.generateImage(
+        buildUser(),
+        baseDto({ autoSelectModel: true }),
+        buildRequest(),
+      );
+
+      expect(routerService.selectModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: ModelCategory.IMAGE,
+          organizationId: ORG,
+        }),
+      );
+      expect(routerService.resolveModelKey).not.toHaveBeenCalled();
     });
   });
 

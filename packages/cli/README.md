@@ -102,6 +102,24 @@ Non-interactive login:
 genfeed login --key gf_live_xxx
 ```
 
+Self-hosted login — point the browser flow at your own deployment:
+
+```bash
+genfeed login --api-url https://api.yourdomain.com/v1
+```
+
+Both URLs are saved to the active profile, so subsequent commands target the same deployment. The
+web app URL serving `/oauth/cli` is derived from the API URL (`api.` → `app.`, or the API origin
+when the API is path-mounted). Override it when your app lives somewhere else:
+
+```bash
+genfeed login --api-url https://yourdomain.com/api/v1 --app-url https://studio.yourdomain.com
+```
+
+The same values are settable outside login via `genfeed config set api-url <url>` /
+`genfeed config set app-url <url>`, or the `GENFEED_API_URL` / `GENFEED_APP_URL` env vars.
+`genfeed config show` prints the resolved app URL and marks it `(derived)` when it was inferred.
+
 Check current user:
 
 ```bash
@@ -115,6 +133,26 @@ genfeed logout
 ```
 
 ## Commands
+
+### Organizations
+
+List your organizations:
+
+```bash
+gf organizations
+```
+
+Switch the active organization (also updates the default brand):
+
+```bash
+gf organizations select
+```
+
+Show the current organization:
+
+```bash
+gf organizations current
+```
 
 ### Brand Management
 
@@ -178,16 +216,22 @@ Generate an article:
 genfeed generate article "Write about AI marketing trends" --category marketing
 ```
 
+Generate several at once, steered by keywords:
+
+```bash
+genfeed generate article "Write about AI marketing trends" --count 3 --keywords ai,marketing,seo
+```
+
 Generate long-form X article:
 
 ```bash
-genfeed generate article-x "Write a founder update thread"
+genfeed generate article-x "Write a founder update thread" --tone analytical --words 3000
 ```
 
-Start async and poll later:
+Article generation is synchronous — the command returns the finished articles, so
+there is nothing to poll. To re-read one later:
 
 ```bash
-genfeed generate article "Your prompt" --no-wait
 genfeed status <article-id> --type article
 ```
 
@@ -362,6 +406,20 @@ gf caption <handle> --trigger "custom_trigger"
 | `-d, --duration <sec>` | Video duration |
 | `-r, --resolution <res>` | Resolution (720p, 1080p, 4k) |
 
+### Article-specific Options
+
+Articles resolve their brand from the API key's own context, and generation is
+synchronous — neither `--brand` nor `--no-wait` applies.
+
+| Option | Description |
+|--------|-------------|
+| `-c, --count <n>` | Number of standard articles (1-4) |
+| `--category <cat>` | Article category |
+| `--keywords <list>` | Comma-separated keywords |
+| `--tone <tone>` | Tone of voice (`article-x` only) |
+| `--words <n>` | Target word count, 2500-10000 (`article-x` only) |
+| `--no-header-image` | Skip the header image (`article-x` only) |
+
 ## Scripting
 
 Use `--json` for machine-readable output:
@@ -462,6 +520,7 @@ Config is stored in `~/.gf/config.json`:
   "profiles": {
     "default": {
       "apiUrl": "https://api.genfeed.ai/v1",
+      "appUrl": "https://app.genfeed.ai",
       "role": "user",
       "fleetHost": "100.106.229.81",
       "fleetApiPort": 8189,
@@ -484,6 +543,7 @@ Config is stored in `~/.gf/config.json`:
 |----------|-------------|
 | `GENFEED_API_KEY` | API key |
 | `GENFEED_API_URL` | API base URL |
+| `GENFEED_APP_URL` | Web app URL serving `/oauth/cli` (derived from `GENFEED_API_URL` when unset) |
 | `GENFEED_TOKEN` | Auth token |
 | `GENFEED_ORGANIZATION_ID` | Organization ID |
 | `GENFEED_USER_ID` | User ID |

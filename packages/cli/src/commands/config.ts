@@ -1,6 +1,7 @@
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { resolveLoginEndpoints } from '@/config/endpoints';
 import { defaultProfile, type Profile } from '@/config/schema';
 import {
   getActiveProfile,
@@ -17,6 +18,7 @@ const SETTABLE_KEYS: Record<string, keyof Profile> = {
   'agent-model': 'agent',
   'api-key': 'apiKey',
   'api-url': 'apiUrl',
+  'app-url': 'appUrl',
   brand: 'activeBrand',
   'fleet-host': 'fleetHost',
   'fleet-port': 'fleetApiPort',
@@ -35,13 +37,21 @@ configCommand
     try {
       const { name, profile } = await getActiveProfile();
 
+      const resolvedAppUrl = resolveLoginEndpoints(profile.apiUrl, profile.appUrl).appUrl;
+
       if (options.json) {
-        printJson({ profile: name, ...profile });
+        printJson({ profile: name, ...profile, resolvedAppUrl });
         return;
       }
 
       print(formatHeader(`\nConfiguration (profile: ${name}):\n`));
       print(formatLabel('API URL', profile.apiUrl));
+      print(
+        formatLabel(
+          'App URL',
+          profile.appUrl ? resolvedAppUrl : `${resolvedAppUrl} ${chalk.dim('(derived)')}`
+        )
+      );
       print(
         formatLabel('API Key', profile.apiKey ? `${profile.apiKey.slice(0, 12)}...` : 'not set')
       );

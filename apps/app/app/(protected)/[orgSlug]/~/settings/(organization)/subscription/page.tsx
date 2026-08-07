@@ -2,18 +2,18 @@ import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import { redirect } from 'next/navigation';
-import SettingsBillingPage from '../../(pages)/organization/billing/content';
+import SettingsSubscriptionPage from '../../(pages)/organization/subscription/content';
 import { SettingsOrganizationRouteShell } from '../SettingsOrganizationRouteShell';
 
-export const generateMetadata = createPageMetadata('Billing Settings');
+export const generateMetadata = createPageMetadata('Subscription Settings');
 
-interface SettingsOrganizationBillingRouteProps {
+interface SettingsOrganizationSubscriptionRouteProps {
   params: Promise<{ orgSlug: string }>;
 }
 
-export default async function SettingsOrganizationBillingRoute({
+export default async function SettingsOrganizationSubscriptionRoute({
   params,
-}: SettingsOrganizationBillingRouteProps) {
+}: SettingsOrganizationSubscriptionRouteProps) {
   if (!hasOrganizationBillingHint()) {
     const { orgSlug } = await params;
     redirect(createOrganizationAppRoute(orgSlug, APP_ROUTES.SETTINGS.CREDITS));
@@ -21,7 +21,7 @@ export default async function SettingsOrganizationBillingRoute({
 
   return (
     <SettingsOrganizationRouteShell>
-      <SettingsBillingPage />
+      <SettingsSubscriptionPage />
     </SettingsOrganizationRouteShell>
   );
 }

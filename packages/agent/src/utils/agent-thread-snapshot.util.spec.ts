@@ -40,8 +40,45 @@ describe('mapSnapshotWorkEvents', () => {
     expect(event.status).toBe(AgentWorkEventStatus.COMPLETED);
   });
 
-  it('maps tool start entries without explicit status as running', () => {
-    const [event] = mapSnapshotWorkEvents({
+  it('maps tool start entries without explicit status as running only while the run is live', () => {
+    const [liveEvent] = mapSnapshotWorkEvents({
+      activeRun: {
+        completedAt: null,
+        runId: 'run-1',
+        startedAt: '2026-03-24T10:00:00.000Z',
+        status: 'running',
+      },
+      lastAssistantMessage: null,
+      lastSequence: 1,
+      latestProposedPlan: null,
+      latestUiBlocks: null,
+      memorySummaryRefs: [],
+      pendingApprovals: [],
+      pendingInputRequests: [],
+      profileSnapshot: null,
+      sessionBinding: null,
+      source: null,
+      threadId: 'thread-1',
+      threadStatus: null,
+      timeline: [
+        {
+          createdAt: '2026-03-24T10:00:00.000Z',
+          id: 'evt-2',
+          kind: 'tool',
+          label: 'Tool started',
+          payload: { sourceEventType: 'tool.started' },
+          runId: 'run-1',
+          sequence: 2,
+          toolName: 'check_onboarding_status',
+        },
+      ],
+      title: null,
+    });
+
+    expect(liveEvent.event).toBe(AgentWorkEventType.TOOL_STARTED);
+    expect(liveEvent.status).toBe(AgentWorkEventStatus.RUNNING);
+
+    const [settledEvent] = mapSnapshotWorkEvents({
       activeRun: null,
       lastAssistantMessage: null,
       lastSequence: 1,
@@ -70,8 +107,8 @@ describe('mapSnapshotWorkEvents', () => {
       title: null,
     });
 
-    expect(event.event).toBe(AgentWorkEventType.TOOL_STARTED);
-    expect(event.status).toBe(AgentWorkEventStatus.RUNNING);
+    // No live run → orphaned tool.started must not rehydrate as Working forever.
+    expect(settledEvent.status).toBe(AgentWorkEventStatus.COMPLETED);
   });
 
   it('maps resolved input entries to submitted events', () => {

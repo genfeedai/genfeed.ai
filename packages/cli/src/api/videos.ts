@@ -19,7 +19,10 @@ export interface Video {
 
 export interface CreateVideoRequest {
   text: string;
-  brand: string;
+  // Must stay `brandId`: CreateVideoDto extends CreateIngredientDto, and the
+  // global ValidationPipe validates with `whitelist: true`, which silently
+  // strips any property the DTO does not declare.
+  brandId: string;
   model?: string;
   duration?: number;
   resolution?: string;

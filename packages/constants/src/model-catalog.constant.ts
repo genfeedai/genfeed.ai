@@ -12,6 +12,8 @@
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import {
   AGENT_CHAT_MODELS,
+  DEFAULT_AGENT_CHAT_MODEL_KEY,
+  HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
   SELECTABLE_AGENT_CHAT_MODELS,
 } from './agent-chat-models.constant';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
@@ -127,8 +129,8 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
         description: model.description,
         inputCostPerMillionTokens: model.pricing.promptPerMillion,
         isActive: isSelectable,
-        isDefault: model.key === 'openai/gpt-5.6-terra',
-        isHighlighted: model.key === 'openai/gpt-5.6-terra',
+        isDefault: model.key === DEFAULT_AGENT_CHAT_MODEL_KEY,
+        isHighlighted: model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY,
         isLegacy: !isSelectable,
         isPublic: true,
         key: model.key,

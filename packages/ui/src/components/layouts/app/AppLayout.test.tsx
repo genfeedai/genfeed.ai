@@ -89,7 +89,7 @@ describe('AppLayout', () => {
       'overflow-x-hidden',
       'bg-background',
     );
-    expect(layoutRoot).not.toHaveClass('h-screen', 'overflow-hidden');
+    expect(layoutRoot).not.toHaveClass('h-dvh', 'overflow-hidden');
     expect(contentShell).not.toHaveClass(
       'overflow-y-auto',
       'min-h-0',
@@ -97,6 +97,32 @@ describe('AppLayout', () => {
       'flex-col',
     );
     expect(agentRail).toHaveClass('fixed', 'bottom-0', 'left-0', 'right-0');
+  });
+
+  it('locks the conversation shell to the viewport so banners cannot double-scroll', () => {
+    render(
+      <AppLayout
+        bannerComponent={<div data-testid="shell-banner">Banner</div>}
+        lockViewportHeight
+      >
+        <div data-testid="page-content">Content</div>
+      </AppLayout>,
+    );
+
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+    const contentShell = screen.getByTestId('app-content-shell');
+    const mainContent = screen.getByTestId('app-main-content');
+
+    expect(layoutRoot).toHaveClass('h-dvh', 'overflow-hidden');
+    expect(contentShell).toHaveClass('h-dvh', 'overflow-hidden', 'flex');
+    expect(mainContent).toHaveClass(
+      'flex',
+      'min-h-0',
+      'flex-1',
+      'overflow-hidden',
+    );
+    expect(screen.getByTestId('shell-banner')).toBeInTheDocument();
+    expect(screen.getByTestId('page-content')).toBeInTheDocument();
   });
 
   it('renders a distinct left rail when a menu component is provided', () => {

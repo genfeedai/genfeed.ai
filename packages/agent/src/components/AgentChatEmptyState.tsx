@@ -2,6 +2,7 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type {
@@ -44,7 +45,7 @@ type AgentChatEmptyStateProps = {
   removeAttachment: (id: string) => void;
   selectedModel?: string;
   onModelChange?: (model: string) => void;
-  models?: import('@genfeedai/agent/constants/agent-models.constant').AgentModelOption[];
+  models?: readonly AgentModelOption[];
   isModelsLoading?: boolean;
 };
 

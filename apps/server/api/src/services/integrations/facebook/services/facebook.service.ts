@@ -66,8 +66,10 @@ export class FacebookService {
   public generateAuthUrl(state: string): string {
     const clientId = this.configService.get('FACEBOOK_APP_ID');
     const redirectUri = this.configService.get('FACEBOOK_REDIRECT_URI');
+    // Organic publishing + Meta Marketing API (Meta Ads reuses this token).
     const scope = [
       'ads_management',
+      'ads_read',
       'public_profile',
       'email',
       'pages_show_list',

@@ -60,14 +60,11 @@ export class SkillCheckoutService {
       success_url: this.resolveRedirectUrl(dto.successUrl, defaultSuccessUrl),
     };
 
-    const promotionCodeId = this.configService.get(
-      'STRIPE_PROMOTION_CODE_SKILLS_PRO',
-    );
-    if (promotionCodeId) {
-      sessionConfig.discounts = [{ promotion_code: promotionCodeId }];
-    } else {
-      sessionConfig.allow_promotion_codes = true;
-    }
+    // Promo field open so public defaults (EARLYGEN) and team codes
+    // (GENFEED100) can be entered. Stripe forbids both `discounts` and
+    // `allow_promotion_codes` on the same session — never force-apply.
+    sessionConfig.allow_promotion_codes = true;
+    delete sessionConfig.discounts;
 
     if (dto.email) {
       sessionConfig.customer_email = dto.email;

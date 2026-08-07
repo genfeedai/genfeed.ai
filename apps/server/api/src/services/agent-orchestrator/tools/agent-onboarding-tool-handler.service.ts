@@ -808,7 +808,7 @@ export class AgentOnboardingToolHandler {
    */
   presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
     const billingHref = hasOrganizationBilling()
-      ? '/settings/billing'
+      ? '/settings/subscription'
       : '/settings/api-keys';
     const billingLabel = hasOrganizationBilling()
       ? 'View all plans'

@@ -1,7 +1,14 @@
 import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnapshotCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    orgHref: (path: string) =>
+      `/acme/~${path.startsWith('/') ? path : `/${path}`}`,
+  }),
+}));
 
 describe('AnalyticsSnapshotCard', () => {
   it('renders normalized metrics items from the server', () => {
@@ -26,9 +33,45 @@ describe('AnalyticsSnapshotCard', () => {
     expect(screen.getByText('12')).toBeTruthy();
     expect(screen.getByText('Avg engagement')).toBeTruthy();
     expect(screen.getByText('4.3%')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Open analytics' }),
+    ).toHaveAttribute('href', '/acme/~/analytics/overview');
   });
 
-  it('renders non-post metric labels for campaign snapshots', () => {
+  it('toggles between period snapshots without rendering two cards', () => {
+    const action: AgentUiAction = {
+      data: {
+        period: '30d',
+        periodSnapshots: [
+          {
+            metrics: { items: [{ label: 'Views', value: 10 }] },
+            period: '7d',
+            title: 'Analytics summary (7d)',
+          },
+          {
+            metrics: { items: [{ label: 'Views', value: 99 }] },
+            period: '30d',
+            title: 'Analytics summary (30d)',
+          },
+        ],
+      },
+      id: 'analytics-snapshot:org:merged',
+      metrics: { items: [{ label: 'Views', value: 99 }] },
+      title: 'Analytics summary',
+      type: 'analytics_snapshot_card',
+    };
+
+    render(<AnalyticsSnapshotCard action={action} />);
+
+    expect(screen.getByRole('tab', { name: '7d' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '30d' })).toBeTruthy();
+    expect(screen.getByText('99')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('tab', { name: '7d' }));
+    expect(screen.getByText('10')).toBeTruthy();
+  });
+
+  it('collapses metrics behind the header chevron', () => {
     const action: AgentUiAction = {
       id: 'analytics-card-2',
       metrics: {
@@ -44,8 +87,8 @@ describe('AnalyticsSnapshotCard', () => {
     render(<AnalyticsSnapshotCard action={action} />);
 
     expect(screen.getByText('Replies / hour')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse analytics' }));
+    expect(screen.queryByText('Replies / hour')).toBeNull();
     expect(screen.getByText('3.4')).toBeTruthy();
-    expect(screen.getByText('Success rate')).toBeTruthy();
-    expect(screen.getByText('48.9%')).toBeTruthy();
   });
 });

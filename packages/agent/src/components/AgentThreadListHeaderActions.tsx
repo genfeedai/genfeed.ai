@@ -1,8 +1,13 @@
 import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/agent-thread-list.helpers';
 import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
-import { SimpleTooltip } from '@ui/primitives/tooltip';
-import { Archive, ArchiveX, RefreshCw } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@ui/primitives/dropdown-menu';
+import { Archive, ArchiveX, Ellipsis, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface AgentThreadListHeaderActionsProps {
@@ -24,54 +29,51 @@ export function AgentThreadListHeaderActions({
     : 'Show archived threads';
 
   return (
-    <div className="flex items-center gap-0.5">
-      {!isArchivedView && (
-        <SimpleTooltip label="Refresh conversations" position="bottom">
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
-            withWrapper={false}
-            ariaLabel="Refresh conversations"
-            textTransform="none"
-            className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
-            onClick={() => {
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          withWrapper={false}
+          ariaLabel="Conversation list actions"
+          textTransform="none"
+          className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
+        >
+          <Ellipsis className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        {!isArchivedView ? (
+          <DropdownMenuItem
+            onSelect={() => {
               window.dispatchEvent(
                 new Event(AGENT_REFRESH_CONVERSATIONS_EVENT),
               );
             }}
           >
-            <RefreshCw className="size-3.5" />
-          </Button>
-        </SimpleTooltip>
-      )}
-      {!isArchivedView && threadCount > 0 && (
-        <SimpleTooltip label="Archive all threads" position="bottom">
-          <Button
-            variant={ButtonVariant.GHOST}
-            size={ButtonSize.ICON}
-            withWrapper={false}
-            ariaLabel="Archive all threads"
-            textTransform="none"
-            className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
-            onClick={onArchiveAll}
+            <RefreshCw className="size-4" />
+            Refresh conversations
+          </DropdownMenuItem>
+        ) : null}
+        {!isArchivedView && threadCount > 0 ? (
+          <DropdownMenuItem
+            onSelect={() => {
+              onArchiveAll();
+            }}
           >
-            <ArchiveX className="size-3.5" />
-          </Button>
-        </SimpleTooltip>
-      )}
-      <SimpleTooltip label={toggleButtonLabel} position="bottom">
-        <Button
-          variant={ButtonVariant.GHOST}
-          size={ButtonSize.ICON}
-          withWrapper={false}
-          ariaLabel={toggleButtonLabel}
-          textTransform="none"
-          className="size-7 rounded-md text-foreground/45 hover:bg-foreground/[0.06] hover:text-foreground/80"
-          onClick={onToggleView}
+            <ArchiveX className="size-4" />
+            Archive all threads
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem
+          onSelect={() => {
+            onToggleView();
+          }}
         >
-          <Archive className="size-3.5" />
-        </Button>
-      </SimpleTooltip>
-    </div>
+          <Archive className="size-4" />
+          {toggleButtonLabel}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

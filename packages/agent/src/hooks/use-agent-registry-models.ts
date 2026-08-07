@@ -1,5 +1,6 @@
 import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { isRetiredAgentChatModel } from '@genfeedai/constants';
 import { type CostTier, ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { ModelsService } from '@services/ai/models.service';
@@ -26,6 +27,9 @@ function isAgentChatRegistryModel(model: IModel): boolean {
     return false;
   }
   if (model.isLegacy || model.isActive === false) {
+    return false;
+  }
+  if (isRetiredAgentChatModel(model.key)) {
     return false;
   }
   const capabilities = model.capabilities ?? [];

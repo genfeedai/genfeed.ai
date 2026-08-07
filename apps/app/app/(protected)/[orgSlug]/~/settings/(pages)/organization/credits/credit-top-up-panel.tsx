@@ -34,6 +34,8 @@ type CreditTopUpPanelProps = {
   helperContent?: ReactNode;
   isSubmitDisabled?: boolean;
   isStartingCheckout: boolean;
+  /** Rendered next to the primary submit button (e.g. secondary portal link). */
+  secondaryAction?: ReactNode;
   submitLabel?: string;
   title?: string;
   onSubmit: (selection: {
@@ -46,6 +48,7 @@ export default function CreditTopUpPanel({
   helperContent,
   isSubmitDisabled = false,
   isStartingCheckout,
+  secondaryAction,
   submitLabel = 'Add credit',
   title = 'Add credits',
   onSubmit,
@@ -102,7 +105,7 @@ export default function CreditTopUpPanel({
       <div className="space-y-3">
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Amount</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {PAYG_CREDIT_PACKS.map((pack) => {
               const amountUsd = pack.credits / CREDITS_PER_USD;
               const isSelected = !isCustom && selectedUsd === amountUsd;
@@ -129,9 +132,7 @@ export default function CreditTopUpPanel({
                 </Button>
               );
             })}
-          </div>
 
-          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
@@ -146,8 +147,20 @@ export default function CreditTopUpPanel({
             </Button>
 
             {isCustom ? (
-              <>
-                <span className="text-sm text-muted-foreground">$</span>
+              <div
+                className={cn(
+                  'inline-flex h-9 max-w-full items-stretch overflow-hidden rounded border bg-muted/40',
+                  customError
+                    ? 'border-destructive'
+                    : 'border-border focus-within:border-border-strong',
+                )}
+              >
+                <span
+                  className="inline-flex items-center border-r border-border px-2.5 text-sm font-medium text-muted-foreground"
+                  aria-hidden="true"
+                >
+                  $
+                </span>
                 <Input
                   type="number"
                   inputMode="numeric"
@@ -159,18 +172,21 @@ export default function CreditTopUpPanel({
                   onChange={(event) => setCustomValue(event.target.value)}
                   placeholder={String(PAYG_MIN_PURCHASE_USD)}
                   aria-label="Custom credit top-up amount in dollars"
-                  className="h-9 w-28"
+                  aria-describedby="custom-credit-amount-hint"
+                  aria-invalid={Boolean(customError)}
+                  className="h-full w-20 min-w-0 rounded-none border-0 bg-transparent px-2.5 shadow-none focus-visible:border-0 focus-visible:ring-0"
                 />
-                <p
+                <span
+                  id="custom-credit-amount-hint"
                   className={cn(
-                    'text-xs',
+                    'inline-flex items-center border-l border-border px-2.5 text-xs tabular-nums whitespace-nowrap',
                     customError ? 'text-destructive' : 'text-muted-foreground',
                   )}
                 >
                   {customError ??
                     `${formatUsd(PAYG_MIN_PURCHASE_USD)}–${formatUsd(PAYG_MAX_PURCHASE_USD)}`}
-                </p>
-              </>
+                </span>
+              </div>
             ) : null}
           </div>
         </div>
@@ -199,15 +215,18 @@ export default function CreditTopUpPanel({
             )}
           </p>
 
-          <Button
-            variant={ButtonVariant.DEFAULT}
-            onClick={handleSubmit}
-            isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
-            isLoading={isStartingCheckout}
-            icon={<CreditCard className="size-4" />}
-          >
-            {isStartingCheckout ? 'Opening checkout...' : submitLabel}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {secondaryAction}
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              onClick={handleSubmit}
+              isDisabled={!isValid || isSubmitDisabled || isStartingCheckout}
+              isLoading={isStartingCheckout}
+              icon={<CreditCard className="size-4" />}
+            >
+              {isStartingCheckout ? 'Opening checkout...' : submitLabel}
+            </Button>
+          </div>
         </div>
       </div>
     </Card>
