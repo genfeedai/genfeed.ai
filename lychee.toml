@@ -38,7 +38,8 @@ exclude_path = ["node_modules", ".next", "dist", "build", ".turbo"]
 # - Loopback (no server runs during this offline scan).
 # - Hosts that aggressively block bots, producing false "dead link" reports
 #   (twitter/x/linkedin return 403/999 to non-browser clients; OpenAI's
-#   platform host 403s the same way on /api-keys).
+#   platform host 403s the same way on /api-keys; npmjs.com 403s package
+#   pages, so our own published @genfeedai/* links read as dead).
 # - Badge CDNs are cosmetic and intermittently return 408 to non-browser checks.
 exclude = [
   "^https://genfeed\\.ai",
@@ -49,4 +50,5 @@ exclude = [
   "x\\.com",
   "linkedin\\.com",
   "openai\\.com",
+  "npmjs\\.com",
 ]
