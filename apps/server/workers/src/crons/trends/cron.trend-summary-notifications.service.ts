@@ -1,7 +1,7 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { ParseMode } from '@genfeedai/enums';
+import { ParseMode, TrendNotificationFrequency } from '@genfeedai/enums';
 import {
   buildTrendDigestHtml,
   buildTrendDigestMessage,
@@ -53,7 +53,10 @@ export class CronTrendSummaryNotificationsService {
    * Runs every hour for users with 'hourly' frequency
    */
   async sendHourlyTrendSummaries() {
-    await this.sendTrendSummariesByFrequency('hourly', this.LOCK_KEY_HOURLY);
+    await this.sendTrendSummariesByFrequency(
+      TrendNotificationFrequency.HOURLY,
+      this.LOCK_KEY_HOURLY,
+    );
   }
 
   /**
@@ -61,7 +64,10 @@ export class CronTrendSummaryNotificationsService {
    * Runs every day at 9 AM for users with 'daily' frequency
    */
   async sendDailyTrendSummaries() {
-    await this.sendTrendSummariesByFrequency('daily', this.LOCK_KEY_DAILY);
+    await this.sendTrendSummariesByFrequency(
+      TrendNotificationFrequency.DAILY,
+      this.LOCK_KEY_DAILY,
+    );
   }
 
   /**
@@ -69,11 +75,14 @@ export class CronTrendSummaryNotificationsService {
    * Runs every Monday at 9 AM for users with 'weekly' frequency
    */
   async sendWeeklyTrendSummaries() {
-    await this.sendTrendSummariesByFrequency('weekly', this.LOCK_KEY_WEEKLY);
+    await this.sendTrendSummariesByFrequency(
+      TrendNotificationFrequency.WEEKLY,
+      this.LOCK_KEY_WEEKLY,
+    );
   }
 
   private async sendTrendSummariesByFrequency(
-    frequency: string,
+    frequency: TrendNotificationFrequency,
     lockKey: string,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -103,7 +112,7 @@ export class CronTrendSummaryNotificationsService {
                 { isTrendNotificationsTelegram: true },
                 { isTrendNotificationsEmail: true },
               ],
-              trendNotificationsFrequency: frequency.toUpperCase() as never,
+              trendNotificationsFrequency: frequency,
             },
           });
 

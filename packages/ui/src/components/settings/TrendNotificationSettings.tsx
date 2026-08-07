@@ -1,9 +1,7 @@
 'use client';
 
-import type {
-  ISetting,
-  TrendNotificationFrequency,
-} from '@genfeedai/interfaces';
+import { TrendNotificationFrequency } from '@genfeedai/enums';
+import type { ISetting } from '@genfeedai/interfaces';
 import type { TrendNotificationSettingsProps } from '@genfeedai/props/settings/notifications.props';
 import { Input } from '@ui/primitives/input';
 import FormRange from '@ui/primitives/range-field';
@@ -22,18 +20,22 @@ const FREQUENCY_OPTIONS: {
   {
     description: 'Get notified as soon as trends are detected',
     label: 'Real-time',
-    value: 'realtime',
+    value: TrendNotificationFrequency.REALTIME,
   },
   {
     description: 'Hourly digest of trending content',
     label: 'Hourly',
-    value: 'hourly',
+    value: TrendNotificationFrequency.HOURLY,
   },
-  { description: 'Daily summary at 9 AM', label: 'Daily', value: 'daily' },
+  {
+    description: 'Daily summary at 9 AM',
+    label: 'Daily',
+    value: TrendNotificationFrequency.DAILY,
+  },
   {
     description: 'Weekly roundup every Monday',
     label: 'Weekly',
-    value: 'weekly',
+    value: TrendNotificationFrequency.WEEKLY,
   },
 ];
 
@@ -184,7 +186,10 @@ export default function TrendNotificationSettings({
           <SelectField
             name="trendNotificationsFrequency"
             label="Notification Frequency"
-            value={settings.trendNotificationsFrequency ?? 'daily'}
+            value={
+              settings.trendNotificationsFrequency ??
+              TrendNotificationFrequency.DAILY
+            }
             onChange={(e) =>
               handleInputChange(
                 'trendNotificationsFrequency',

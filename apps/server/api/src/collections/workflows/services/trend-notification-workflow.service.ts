@@ -4,7 +4,7 @@ import type { TrendNotificationCadence } from '@api/collections/workflows/templa
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ParseMode } from '@genfeedai/enums';
+import { ParseMode, TrendNotificationFrequency } from '@genfeedai/enums';
 import {
   buildTrendDigestHtml,
   buildTrendDigestMessage,
@@ -16,6 +16,20 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type TrendNotificationAction = 'trendSummaryNotifications';
+
+/**
+ * Workflow templates speak lowercase cadence (`daily`), the
+ * `settings.trendNotificationsFrequency` column speaks Prisma labels (`DAILY`).
+ * Exhaustive map — the two vocabularies stay separate on purpose.
+ */
+const CADENCE_TO_FREQUENCY: Record<
+  TrendNotificationCadence,
+  TrendNotificationFrequency
+> = {
+  daily: TrendNotificationFrequency.DAILY,
+  hourly: TrendNotificationFrequency.HOURLY,
+  weekly: TrendNotificationFrequency.WEEKLY,
+};
 
 type TrendRecord = {
   description?: string;
@@ -221,7 +235,7 @@ export class TrendNotificationWorkflowService {
           { isTrendNotificationsInApp: true },
           { isTrendNotificationsTelegram: true },
         ],
-        trendNotificationsFrequency: cadence.toUpperCase() as never,
+        trendNotificationsFrequency: CADENCE_TO_FREQUENCY[cadence],
         userId,
       },
     });

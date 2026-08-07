@@ -46,6 +46,7 @@ import {
   TagCategory,
   TrainingStage,
   TransformationCategory,
+  TrendNotificationFrequency,
   VoiceCloneStatus,
   VoiceProvider,
   WarmupAccountStatus,
@@ -191,6 +192,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'VALIDATED',
     'REFRAMED',
   ],
+  TrendNotificationFrequency: ['REALTIME', 'HOURLY', 'DAILY', 'WEEKLY'],
   VoiceCloneStatus: ['PENDING', 'CLONING', 'READY', 'FAILED'],
   VoiceProvider: ['HEYGEN', 'ELEVENLABS', 'HEDRA', 'GENFEED_AI'],
   WarmupAccountStatus: [
@@ -248,6 +250,7 @@ const DOMAIN_ENUMS: Record<string, Record<string, string>> = {
   TagCategory,
   TrainingStage,
   TransformationCategory,
+  TrendNotificationFrequency,
   VoiceCloneStatus,
   VoiceProvider,
   WarmupAccountStatus,

@@ -1,9 +1,6 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type {
-  DashboardPreferences,
-  ISetting,
-  TrendNotificationFrequency,
-} from '@genfeedai/interfaces';
+import type { TrendNotificationFrequency } from '@genfeedai/enums';
+import type { DashboardPreferences, ISetting } from '@genfeedai/interfaces';
 
 export class Setting extends BaseEntity implements ISetting {
   public declare theme: string;

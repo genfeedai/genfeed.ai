@@ -1,5 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/constants';
+import { TrendNotificationFrequency } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -12,12 +13,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-
-export type TrendNotificationFrequency =
-  | 'realtime'
-  | 'hourly'
-  | 'daily'
-  | 'weekly';
 
 export class CreateSettingDto {
   @IsEntityId()
@@ -148,12 +143,13 @@ export class CreateSettingDto {
   })
   readonly trendNotificationsEmailAddress?: string;
 
-  @IsEnum(['realtime', 'hourly', 'daily', 'weekly'])
+  @IsEnum(TrendNotificationFrequency)
   @IsOptional()
   @ApiProperty({
-    default: 'daily',
+    default: TrendNotificationFrequency.DAILY,
     description: 'Frequency of trend notifications',
-    enum: ['realtime', 'hourly', 'daily', 'weekly'],
+    enum: TrendNotificationFrequency,
+    enumName: 'TrendNotificationFrequency',
     required: false,
   })
   readonly trendNotificationsFrequency?: TrendNotificationFrequency;
