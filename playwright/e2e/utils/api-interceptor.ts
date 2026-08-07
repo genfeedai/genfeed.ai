@@ -142,7 +142,7 @@ export function generateMockApiUser(
     lastName: 'User',
     onboardingCompletedAt: new Date(Date.now() - 86400000).toISOString(),
     onboardingStepsCompleted: ['profile', 'organization', 'subscription'],
-    onboardingType: 'creator',
+    onboardingType: 'CREATOR',
     settings: {
       id: 'mock-settings-id',
       isFirstLogin: false,

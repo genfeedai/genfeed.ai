@@ -1,10 +1,11 @@
 import { CreateUserDto } from '@api/collections/users/dto/create-user.dto';
+import { OnboardingType } from '@genfeedai/enums';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsDateString,
-  IsIn,
+  IsEnum,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -48,13 +49,13 @@ export class UpdateUserDto extends PartialType(CreateUserDto) {
   readonly onboardingCompletedAt?: string | Date;
 
   @IsOptional()
-  @IsIn(['creator', 'organization'])
+  @IsEnum(OnboardingType)
   @ApiProperty({
     description: 'Onboarding flow type',
-    enum: ['creator', 'organization'],
+    enum: OnboardingType,
     required: false,
   })
-  readonly onboardingType?: 'creator' | 'organization';
+  readonly onboardingType?: OnboardingType;
 
   @IsOptional()
   @IsArray()

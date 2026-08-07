@@ -1,4 +1,4 @@
-import type { OnboardingType } from '../users/user.interface';
+import type { OnboardingType } from '@genfeedai/enums';
 
 export type OnboardingStepKey = 'brand' | 'providers' | 'summary';
 

@@ -1,9 +1,10 @@
+import { OnboardingType } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
   IsBoolean,
   IsDateString,
-  IsIn,
+  IsEnum,
   IsOptional,
   IsString,
 } from 'class-validator';
@@ -39,13 +40,13 @@ export class UpdateUserOnboardingDto {
   readonly onboardingCompletedAt?: string | Date;
 
   @IsOptional()
-  @IsIn(['creator', 'organization'])
+  @IsEnum(OnboardingType)
   @ApiProperty({
     description: 'Onboarding flow type',
-    enum: ['creator', 'organization'],
+    enum: OnboardingType,
     required: false,
   })
-  readonly onboardingType?: 'creator' | 'organization';
+  readonly onboardingType?: OnboardingType;
 
   @IsOptional()
   @IsArray()
