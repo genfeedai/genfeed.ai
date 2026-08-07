@@ -124,7 +124,6 @@ export class IngredientsOperationsController {
       {
         id: ingredientId,
         organizationId: callerOrganizationId,
-        isDeleted: false,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -273,7 +272,6 @@ export class IngredientsOperationsController {
           { userId: publicMetadata.user },
           { organizationId: publicMetadata.organization },
         ],
-        isDeleted: false,
       },
       [PopulatePatterns.metadataFull],
     );

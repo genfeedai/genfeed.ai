@@ -630,6 +630,7 @@ type CanonicalResolution = {
 const ORG_ROOT_APP_PREFIXES = [
   'analytics',
   'agent',
+  'discover',
   'library',
   'publish',
   'settings',

@@ -31,6 +31,7 @@ vi.mock('@api/helpers/utils/response/response.util', async (importOriginal) => {
 });
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CustomersService } from '@api/collections/customers/services/customers.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -46,18 +47,25 @@ import type { Request } from 'express';
 describe('StripeController', () => {
   let controller: StripeController;
   let stripeService: {
+    createOrganizationCustomer: ReturnType<typeof vi.fn>;
     createPaymentSession: ReturnType<typeof vi.fn>;
     createSetupCheckoutSession: ReturnType<typeof vi.fn>;
     getBillingPortalUrl: ReturnType<typeof vi.fn>;
+    retrieveCustomer: ReturnType<typeof vi.fn>;
   };
   let subscriptionsService: {
     createForOrganization: ReturnType<typeof vi.fn>;
     findByOrganizationId: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
   };
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let organizationsService: { findOne: ReturnType<typeof vi.fn> };
   let lifecycleEmailService: {
     recordCheckoutStarted: ReturnType<typeof vi.fn>;
+  };
+  let customersService: {
+    create: ReturnType<typeof vi.fn>;
+    patch: ReturnType<typeof vi.fn>;
   };
 
   const mockRequest = {
@@ -76,11 +84,15 @@ describe('StripeController', () => {
 
   const mockSubscription = {
     id: 'test-object-id',
+    customerId: 'cust_row_1',
     stripeCustomerId: 'cus_test123',
   };
 
   beforeEach(async () => {
     stripeService = {
+      createOrganizationCustomer: vi.fn().mockResolvedValue({
+        id: 'cus_recreated',
+      }),
       createPaymentSession: vi.fn().mockResolvedValue({
         id: 'cs_org_1',
         url: 'https://checkout.stripe.com/session',
@@ -91,11 +103,13 @@ describe('StripeController', () => {
       getBillingPortalUrl: vi
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com/portal' }),
+      retrieveCustomer: vi.fn().mockResolvedValue({ id: 'cus_test123' }),
     };
 
     subscriptionsService = {
       createForOrganization: vi.fn().mockResolvedValue(mockSubscription),
       findByOrganizationId: vi.fn().mockResolvedValue(mockSubscription),
+      patch: vi.fn().mockResolvedValue(mockSubscription),
     };
 
     usersService = {
@@ -106,18 +120,26 @@ describe('StripeController', () => {
     };
 
     organizationsService = {
-      findOne: vi.fn().mockResolvedValue({ id: orgId }),
+      findOne: vi.fn().mockResolvedValue({ id: orgId, label: 'Test Org' }),
     };
     lifecycleEmailService = {
       recordCheckoutStarted: vi.fn().mockResolvedValue(undefined),
+    };
+    customersService = {
+      create: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
+      patch: vi.fn().mockResolvedValue({ id: 'cust_row_1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StripeController],
       providers: [
-        { provide: LoggerService, useValue: { error: vi.fn(), log: vi.fn() } },
+        {
+          provide: LoggerService,
+          useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+        },
         { provide: StripeService, useValue: stripeService },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
+        { provide: CustomersService, useValue: customersService },
         { provide: UsersService, useValue: usersService },
         { provide: OrganizationsService, useValue: organizationsService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },

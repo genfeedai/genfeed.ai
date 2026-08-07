@@ -193,7 +193,7 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
       expect(result.success).toBe(true);
       expect(result.data).toMatchObject({
         canonicalId: 'daily-trends-digest',
-        editorUrl: '/automations/editor/wf-new',
+        editorUrl: '/automate/workflows/wf-new',
         id: 'wf-new',
         label: 'Daily Trends Digest',
       });

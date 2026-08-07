@@ -31,7 +31,6 @@ export class BotUserResolverService {
       const credential = await this.credentialsService.findOne({
         externalId: platformUserId,
         isConnected: true,
-        isDeleted: false,
         platform,
       });
 
@@ -101,7 +100,6 @@ export class BotUserResolverService {
     try {
       // Find brand by name within the user's organization
       const brand = await this.brandsService.findOne({
-        isDeleted: false,
         label: { contains: new RegExp(`^${brandName}$`, 'i') },
         organizationId: resolvedUser.organizationId,
       });
@@ -140,7 +138,6 @@ export class BotUserResolverService {
 
     try {
       const brands = await this.brandsService.find({
-        isDeleted: false,
         organizationId,
       });
 

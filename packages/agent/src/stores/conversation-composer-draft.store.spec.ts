@@ -3,6 +3,7 @@ import {
   clearConversationComposerDraft,
   readConversationComposerDraft,
   writeConversationComposerAttachments,
+  writeConversationComposerContentReferences,
   writeConversationComposerDocument,
   writeConversationComposerFocusIntent,
 } from './conversation-composer-draft.store';
@@ -12,22 +13,12 @@ describe('conversation composer draft persistence', () => {
     sessionStorage.clear();
   });
 
-  it('restores document, typed nodes, attachments, and focus by scoped key', () => {
+  it('restores document, attachments, content references, and focus by scoped key', () => {
     const scopeKey = 'acme:thread-1:4';
     const document = {
       content: [
         {
-          content: [
-            { text: 'Draft with ', type: 'text' },
-            {
-              attrs: {
-                contentId: 'post-1',
-                contentTitle: 'Launch post',
-                contentType: 'post',
-              },
-              type: 'contentMention',
-            },
-          ],
+          content: [{ text: 'Draft with a visual reference', type: 'text' }],
           type: 'paragraph',
         },
       ],
@@ -45,10 +36,24 @@ describe('conversation composer draft persistence', () => {
         url: 'https://cdn.example/reference.png',
       },
     ]);
+    writeConversationComposerContentReferences(scopeKey, [
+      {
+        contentTitle: 'Launch post',
+        contentType: 'post',
+        id: 'post-1',
+        thumbnailUrl: 'https://cdn.example/launch.jpg',
+      },
+    ]);
     writeConversationComposerFocusIntent(scopeKey, true);
 
     expect(readConversationComposerDraft(scopeKey)).toMatchObject({
       attachments: [expect.objectContaining({ ingredientId: 'ingredient-1' })],
+      contentReferences: [
+        expect.objectContaining({
+          id: 'post-1',
+          thumbnailUrl: 'https://cdn.example/launch.jpg',
+        }),
+      ],
       document,
       hasFocusIntent: true,
       plainText: 'Draft',

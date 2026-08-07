@@ -5,6 +5,7 @@ import {
 import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
@@ -61,6 +62,9 @@ type AgentChatPromptBarProps = {
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
@@ -96,6 +100,8 @@ export function AgentChatPromptBar({
   pendingInputRequest,
   socketConnectionState,
   selectedModel,
+  models,
+  isModelsLoading = false,
   onModelChange,
   creditsAvailable = null,
   onBuyCredits,
@@ -114,6 +120,8 @@ export function AgentChatPromptBar({
       socketConnectionState={socketConnectionState}
     />
   );
+  const hasFollowUpChips =
+    showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions);
   const topContent = (
     <>
       {!isReadOnly && activeGenerationAction ? (
@@ -127,25 +135,27 @@ export function AgentChatPromptBar({
         </div>
       ) : null}
       {statusStack}
-      {showSuggestedActionsWhenNotEmpty && promptBarSuggestions ? (
-        <div className="px-1 pb-3">{promptBarSuggestions}</div>
+      {hasFollowUpChips ? (
+        // Chips carry their own solid fill + shadow — no full-width black strip.
+        <div className="relative z-10 pb-0.5">{promptBarSuggestions}</div>
       ) : null}
     </>
   );
   const isPortaled = Boolean(composerShell?.portalTarget);
+  // Surface canvas portal is already max-w-4xl (Codex-aligned with transcript).
+  // Inspector rail is narrower — fill it. Never re-center with a second max-w.
   const promptBar = (
     <PromptBarContainer
       layoutMode={isPortaled ? 'inflow' : layoutMode}
-      maxWidth={isInspectorComposer ? 'full' : '4xl'}
-      // Overlay (portaled or surface-fixed) needs a scrim so transcript
-      // soft-fades into the frosted bar instead of clipping hard.
-      showTopFade={!isInspectorComposer}
+      maxWidth="full"
+      showTopFade={false}
       topContent={topContent}
       zIndex={40}
       className={cn(
-        isPortaled && 'pointer-events-auto w-full',
+        'w-full',
+        isPortaled && 'pointer-events-auto',
         layoutMode === 'fixed' && 'bottom-2 md:bottom-4',
-        layoutMode === 'surface-fixed' && 'bottom-3 md:bottom-5',
+        layoutMode === 'surface-fixed' && 'bottom-0',
       )}
     >
       <AgentChatInput
@@ -162,7 +172,8 @@ export function AgentChatPromptBar({
         }
         onStop={onStop}
         apiService={apiService}
-        showStop={isRunActive}
+        // Error ends the turn from the operator's POV — show Send again, not Stop.
+        showStop={isRunActive && !error}
         density={isInspectorComposer ? 'inspector' : 'default'}
         attachments={chatAttachments}
         isUploading={isAttachmentUploading}
@@ -173,6 +184,8 @@ export function AgentChatPromptBar({
         getCompletedAttachments={getCompletedAttachments}
         clearAllAttachments={clearAllAttachments}
         selectedModel={selectedModel}
+        models={models}
+        isModelsLoading={isModelsLoading}
         onModelChange={onModelChange}
         creditsAvailable={creditsAvailable}
         onBuyCredits={onBuyCredits}

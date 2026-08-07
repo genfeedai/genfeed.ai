@@ -1,5 +1,6 @@
 import type {
   PersistedConversationComposerAttachment,
+  PersistedConversationComposerContentReference,
   PersistedConversationComposerDraft,
 } from '@genfeedai/agent/models/conversation-composer.model';
 import type { JSONContent } from '@tiptap/core';
@@ -8,6 +9,7 @@ const STORAGE_PREFIX = 'genfeed:conversation-composer:v1';
 
 const EMPTY_DRAFT: PersistedConversationComposerDraft = {
   attachments: [],
+  contentReferences: [],
   document: null,
   hasFocusIntent: false,
   plainText: '',
@@ -30,11 +32,47 @@ function getStorageKey(scopeKey: string): string {
   return `${STORAGE_PREFIX}:${scopeKey}`;
 }
 
+function normalizeContentReference(
+  value: unknown,
+): PersistedConversationComposerContentReference | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (
+    typeof record.id !== 'string' ||
+    typeof record.contentTitle !== 'string' ||
+    typeof record.contentType !== 'string'
+  ) {
+    return null;
+  }
+
+  return {
+    contentTitle: record.contentTitle,
+    contentType: record.contentType,
+    id: record.id,
+    ...(typeof record.thumbnailUrl === 'string'
+      ? { thumbnailUrl: record.thumbnailUrl }
+      : {}),
+  };
+}
+
 function normalizeDraft(
   value: Partial<PersistedConversationComposerDraft>,
 ): PersistedConversationComposerDraft {
+  const contentReferences = Array.isArray(value.contentReferences)
+    ? value.contentReferences
+        .map((item) => normalizeContentReference(item))
+        .filter(
+          (item): item is PersistedConversationComposerContentReference =>
+            item !== null,
+        )
+    : [];
+
   return {
     attachments: Array.isArray(value.attachments) ? value.attachments : [],
+    contentReferences,
     document:
       value.document && typeof value.document === 'object'
         ? value.document
@@ -133,6 +171,13 @@ export function writeConversationComposerAttachments(
   attachments: PersistedConversationComposerAttachment[],
 ): void {
   writeDraft(scopeKey, { attachments });
+}
+
+export function writeConversationComposerContentReferences(
+  scopeKey: string | null,
+  contentReferences: PersistedConversationComposerContentReference[],
+): void {
+  writeDraft(scopeKey, { contentReferences });
 }
 
 export function writeConversationComposerFocusIntent(

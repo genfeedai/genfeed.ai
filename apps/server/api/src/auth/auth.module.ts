@@ -1,6 +1,5 @@
 import { BetterAuthModule } from '@api/auth/better-auth/better-auth.module';
 import { AuthBootstrapController } from '@api/auth/controllers/auth-bootstrap.controller';
-import { AuthCliController } from '@api/auth/controllers/auth-cli.controller';
 import { AuthDesktopController } from '@api/auth/controllers/auth-desktop.controller';
 import { AuthWhoamiController } from '@api/auth/controllers/auth-whoami.controller';
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
@@ -28,7 +27,6 @@ import { PassportModule } from '@nestjs/passport';
   controllers: [
     AuthBootstrapController,
     AuthWhoamiController,
-    AuthCliController,
     AuthDesktopController,
   ],
   exports: [PassportModule],

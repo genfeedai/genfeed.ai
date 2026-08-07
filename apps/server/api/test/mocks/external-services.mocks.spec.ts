@@ -50,10 +50,13 @@ describe('External Services Mocks', () => {
 
     it('should return embedding array', async () => {
       const mock = createMockReplicateService();
-      const result = await mock.generateEmbedding('test text');
+      const result = await mock.generateEmbedding(
+        'embedding-model',
+        'test text',
+      );
 
       expect(Array.isArray(result)).toBe(true);
-      expect(result.length).toBe(512);
+      expect(result.length).toBe(1024);
     });
   });
 

@@ -563,6 +563,12 @@ describe('AgentToolExecutorService', () => {
     const ingredientsService = {
       findOne: vi.fn().mockResolvedValue(null),
     };
+    const articlesService = {
+      findOne: vi.fn().mockResolvedValue(null),
+    };
+    const articleAnalyticsService = {
+      getArticleAnalyticsSummary: vi.fn().mockResolvedValue(null),
+    };
     const adsResearchService = {
       createRemixWorkflow: vi.fn().mockResolvedValue({
         adPack: {
@@ -849,6 +855,8 @@ describe('AgentToolExecutorService', () => {
       publishHandler,
       ingredientsService as never,
       agentScopeContextService as never,
+      articlesService as never,
+      articleAnalyticsService as never,
     );
     const workflowHandler = new AgentWorkflowToolHandler(
       configService as never,
@@ -938,6 +946,8 @@ describe('AgentToolExecutorService', () => {
       brandsService,
       authProviderService,
       contentQualityScorerService,
+      articleAnalyticsService,
+      articlesService,
       credentialsService,
       creditsUtilsService,
       httpService,
@@ -2309,6 +2319,189 @@ describe('AgentToolExecutorService', () => {
     expect(postAnalyticsService.getPostAnalyticsSummary).not.toHaveBeenCalled();
   });
 
+  it('returns post analytics for an article contentId once it has a published post', async () => {
+    const {
+      articleAnalyticsService,
+      articlesService,
+      postAnalyticsService,
+      postsService,
+      service,
+    } = createService();
+
+    // Not an ingredient — the id names an article, which lives in its own
+    // collection and reaches a post through the `entityArticleId` scalar FK.
+    articlesService.findOne.mockResolvedValue({
+      id: 'c7a123456789012345678970',
+      brandId: 'c7a123456789012345678971',
+    });
+    articleAnalyticsService.getArticleAnalyticsSummary.mockResolvedValue({
+      avgEngagementRate: 1.2,
+      totalComments: 2,
+      totalLikes: 5,
+      totalViews: 40,
+    });
+    postsService.findAll.mockResolvedValue({
+      docs: [{ id: 'c7a123456789012345678972' }],
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.GET_ANALYTICS,
+      { contentId: 'c7a123456789012345678970' },
+      {
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.creditsUsed).toBe(0);
+    expect(postsService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          entityArticleId: 'c7a123456789012345678970',
+          isDeleted: false,
+          organizationId: 'c7a123456789012345678901',
+        }),
+      }),
+      { pagination: false },
+    );
+    expect(postAnalyticsService.getPostAnalyticsSummary).toHaveBeenCalledWith(
+      'c7a123456789012345678972',
+    );
+    expect(result.data).toMatchObject({
+      articleId: 'c7a123456789012345678970',
+      postId: 'c7a123456789012345678972',
+    });
+    expect(result.nextActions).toEqual([
+      expect.objectContaining({
+        title: 'Article analytics snapshot',
+        type: 'analytics_snapshot_card',
+      }),
+    ]);
+  });
+
+  it('returns on-site article analytics when the article has no published post', async () => {
+    const {
+      articleAnalyticsService,
+      articlesService,
+      postAnalyticsService,
+      postsService,
+      service,
+    } = createService();
+
+    articlesService.findOne.mockResolvedValue({
+      id: 'c7a123456789012345678973',
+      brandId: 'c7a123456789012345678974',
+    });
+    articleAnalyticsService.getArticleAnalyticsSummary.mockResolvedValue({
+      avgEngagementRate: 3.5,
+      totalComments: 4,
+      totalLikes: 11,
+      totalViews: 320,
+    });
+    postsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.GET_ANALYTICS,
+      { contentId: 'c7a123456789012345678973' },
+      {
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(postAnalyticsService.getPostAnalyticsSummary).not.toHaveBeenCalled();
+    expect(result.data).toMatchObject({
+      articleId: 'c7a123456789012345678973',
+      articleSummary: { totalViews: 320 },
+    });
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        metrics: expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({ label: 'Views', value: 320 }),
+          ]),
+        }),
+        title: 'Article analytics snapshot',
+        type: 'analytics_snapshot_card',
+      }),
+    );
+  });
+
+  it('returns a no-analytics-yet message for an article with neither source', async () => {
+    const { articlesService, postsService, service } = createService();
+
+    articlesService.findOne.mockResolvedValue({
+      id: 'c7a123456789012345678975',
+      brandId: 'c7a123456789012345678976',
+    });
+    postsService.findAll.mockResolvedValue({ docs: [] });
+
+    const result = await service.executeTool(
+      AgentToolName.GET_ANALYTICS,
+      { contentId: 'c7a123456789012345678975' },
+      {
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      articleId: 'c7a123456789012345678975',
+      message:
+        'This article has no analytics yet. Publish it to start collecting metrics.',
+    });
+  });
+
+  it('rejects article analytics outside the validated brand scope', async () => {
+    const {
+      agentScopeContextService,
+      articleAnalyticsService,
+      articlesService,
+      postAnalyticsService,
+      service,
+    } = createService();
+
+    articlesService.findOne.mockResolvedValue({
+      id: 'c7a123456789012345678977',
+      brandId: 'c7a123456789012345678978',
+    });
+    agentScopeContextService.assertResourceBrand.mockImplementation(
+      (_scope: unknown, brandId: string | undefined) => {
+        if (brandId !== 'c7a123456789012345678951') {
+          throw new Error(
+            'Selected content is outside the validated brand scope.',
+          );
+        }
+      },
+    );
+
+    const context = scopedContext('c7a123456789012345678951');
+    const result = await service.executeTool(
+      AgentToolName.GET_ANALYTICS,
+      { contentId: 'c7a123456789012345678977' },
+      context,
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        error: 'Selected content is outside the validated brand scope.',
+        success: false,
+      }),
+    );
+    expect(agentScopeContextService.assertResourceBrand).toHaveBeenCalledWith(
+      context.validatedScope,
+      'c7a123456789012345678978',
+      'selected content',
+    );
+    expect(
+      articleAnalyticsService.getArticleAnalyticsSummary,
+    ).not.toHaveBeenCalled();
+    expect(postAnalyticsService.getPostAnalyticsSummary).not.toHaveBeenCalled();
+  });
+
   it('returns a no-analytics-yet response when content has no published post', async () => {
     const { credentialsService, ingredientsService, postsService, service } =
       createService();
@@ -3397,7 +3590,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         brandId: 'c7a1234567890123456789aa',
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
         schedule: '0 17 * * *',
         timezone: 'Europe/Malta',
         workflowId: recurringWorkflowId,
@@ -3704,7 +3897,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/genfeed-ai/genfeed/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/genfeed-ai/genfeed/automate/workflows/${recurringWorkflowId}`,
         label: 'Weekly Content Planner',
         nextRunAt: expect.any(Date),
         schedule: '0 9 * * 1',
@@ -3716,10 +3909,10 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         ctas: [
           expect.objectContaining({
-            href: `/genfeed-ai/genfeed/automations/editor/${recurringWorkflowId}`,
+            href: `/genfeed-ai/genfeed/automate/workflows/${recurringWorkflowId}`,
           }),
           expect.objectContaining({
-            href: '/genfeed-ai/genfeed/automations/executions',
+            href: '/genfeed-ai/genfeed/automate/workflows/executions',
           }),
         ],
         type: 'workflow_created_card',
@@ -3876,7 +4069,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(result.data).toEqual(
       expect.objectContaining({
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
         label: 'Generated Workflow',
       }),
     );
@@ -3916,7 +4109,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.data).toEqual(
       expect.objectContaining({
         brandId: 'c7a1234567890123456789ab',
-        editorUrl: `/automations/editor/${recurringWorkflowId}`,
+        editorUrl: `/automate/workflows/${recurringWorkflowId}`,
       }),
     );
   });
@@ -4626,11 +4819,11 @@ describe('AgentToolExecutorService', () => {
     );
     expect(result.success).toBe(true);
     expect(result.data).toMatchObject({
-      editorUrl: `/automations/editor/${result.data?.id}`,
+      editorUrl: `/automate/workflows/${result.data?.id}`,
       installedFrom: 'seeded-template',
     });
     expect(result.nextActions?.[0]?.ctas?.[0]).toMatchObject({
-      href: `/automations/editor/${result.data?.id}`,
+      href: `/automate/workflows/${result.data?.id}`,
       label: 'Open workflow',
     });
   });

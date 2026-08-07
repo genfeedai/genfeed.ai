@@ -28,7 +28,7 @@ describe('review-state', () => {
       true,
     );
     expect(
-      isPendingReview({ status: BatchItemStatus.GENERATING } as never),
+      isPendingReview({ status: BatchItemStatus.PROCESSING } as never),
     ).toBe(true);
   });
 });

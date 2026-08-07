@@ -90,7 +90,6 @@ export class ArticleAnalyticsService extends BaseService<
     const yesterdayAnalytics = await this.findOne({
       articleId,
       date: yesterday,
-      isDeleted: false,
     });
 
     // Get current values from yesterday or 0
@@ -102,7 +101,6 @@ export class ArticleAnalyticsService extends BaseService<
     const todayAnalytics = await this.findOne({
       articleId,
       date: today,
-      isDeleted: false,
     });
 
     const currentViews = metrics.totalViews ?? todayAnalytics?.totalViews ?? 0;

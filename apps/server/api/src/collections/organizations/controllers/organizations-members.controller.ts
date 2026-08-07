@@ -125,7 +125,6 @@ export class OrganizationsMembersController {
 
     const organization = await this.organizationsService.findOne({
       id: organizationId,
-      isDeleted: false,
     });
     if (!organization) {
       return returnNotFound(this.constructorName, organizationId);
@@ -135,7 +134,6 @@ export class OrganizationsMembersController {
     const existingUser = await this.usersService.findOne({
       email: inviteDto.email,
       isInvited: false,
-      isDeleted: false,
     });
 
     if (existingUser) {
@@ -199,7 +197,6 @@ export class OrganizationsMembersController {
       if (newUser) {
         // Check if this pending user is already in a member relationship
         const existingMembership = await this.membersService.findOne({
-          isDeleted: false,
           userId: newUser.id,
         });
 
@@ -285,7 +282,6 @@ export class OrganizationsMembersController {
     // Verify organization exists
     const organization = await this.organizationsService.findOne({
       id: organizationId,
-      isDeleted: false,
     });
     if (!organization) {
       return returnNotFound('Organization', organizationId);
@@ -294,7 +290,6 @@ export class OrganizationsMembersController {
     // Verify member exists and belongs to this organization
     const member = await this.membersService.findOne({
       id: memberId,
-      isDeleted: false,
       organizationId,
     });
 

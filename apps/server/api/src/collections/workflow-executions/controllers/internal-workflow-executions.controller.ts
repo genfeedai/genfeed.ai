@@ -42,7 +42,6 @@ export class InternalWorkflowExecutionsController {
   ) {
     const workflow = await this.workflowsService.findOne({
       id: dto.workflowId,
-      isDeleted: false,
       organizationId: orgId,
     });
 
@@ -63,7 +62,6 @@ export class InternalWorkflowExecutionsController {
     );
     const execution = await this.workflowExecutionsService.findOne({
       id: result.executionId,
-      isDeleted: false,
       organizationId: orgId,
     });
 
@@ -78,7 +76,6 @@ export class InternalWorkflowExecutionsController {
   ) {
     const execution = await this.workflowExecutionsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: orgId,
     });
 
@@ -98,7 +95,6 @@ export class InternalWorkflowExecutionsController {
   ) {
     const execution = await this.workflowExecutionsService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: orgId,
     });
 

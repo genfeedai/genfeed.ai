@@ -1,0 +1,5 @@
+import { MODEL_KEYS } from './model-keys.constant';
+
+export const CONTEXT_EMBEDDING_DIMENSION = 1024;
+export const DEFAULT_CONTEXT_EMBEDDING_MODEL =
+  MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5;

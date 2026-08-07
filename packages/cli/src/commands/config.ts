@@ -1,6 +1,7 @@
 import { confirm } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
+import { resolveLoginEndpoints } from '@/config/endpoints';
 import { defaultProfile, type Profile } from '@/config/schema';
 import {
   getActiveProfile,
@@ -17,11 +18,9 @@ const SETTABLE_KEYS: Record<string, keyof Profile> = {
   'agent-model': 'agent',
   'api-key': 'apiKey',
   'api-url': 'apiUrl',
+  'app-url': 'appUrl',
   brand: 'activeBrand',
-  'fleet-host': 'fleetHost',
-  'fleet-port': 'fleetApiPort',
   'org-id': 'organizationId',
-  persona: 'activePersona',
   role: 'role',
 };
 
@@ -35,25 +34,30 @@ configCommand
     try {
       const { name, profile } = await getActiveProfile();
 
+      const resolvedAppUrl = resolveLoginEndpoints(profile.apiUrl, profile.appUrl).appUrl;
+
       if (options.json) {
-        printJson({ profile: name, ...profile });
+        printJson({ profile: name, ...profile, resolvedAppUrl });
         return;
       }
 
       print(formatHeader(`\nConfiguration (profile: ${name}):\n`));
       print(formatLabel('API URL', profile.apiUrl));
       print(
+        formatLabel(
+          'App URL',
+          profile.appUrl ? resolvedAppUrl : `${resolvedAppUrl} ${chalk.dim('(derived)')}`
+        )
+      );
+      print(
         formatLabel('API Key', profile.apiKey ? `${profile.apiKey.slice(0, 12)}...` : 'not set')
       );
       print(formatLabel('Organization', profile.organizationId ?? 'not set'));
       print(formatLabel('Active Brand', profile.activeBrand ?? 'not set'));
-      print(formatLabel('Active Persona', profile.activePersona ?? 'not set'));
       print(formatLabel('Agent Model', profile.agent.model ?? 'server default'));
       print(formatLabel('Role', profile.role));
       print(formatLabel('Image Model', profile.defaults.imageModel));
       print(formatLabel('Video Model', profile.defaults.videoModel));
-      print(formatLabel('Fleet Host', profile.fleetHost));
-      print(formatLabel('Fleet Port', String(profile.fleetApiPort)));
     } catch (error) {
       handleError(error);
     }
@@ -80,19 +84,10 @@ configCommand
         process.exit(1);
       }
 
-      let coerced: Profile[typeof profileKey] | string | number = value;
-      if (profileKey === 'fleetApiPort') {
-        coerced = Number.parseInt(value, 10);
-        if (Number.isNaN(coerced)) {
-          print(chalk.red('Port must be a number'));
-          process.exit(1);
-        }
-      }
-
       if (profileKey === 'agent') {
         await setAgentModel(value);
       } else {
-        await setProfileField(profileKey, coerced as Profile[typeof profileKey]);
+        await setProfileField(profileKey, value as Profile[typeof profileKey]);
       }
       print(formatSuccess(`Set ${key} = ${value}`));
     } catch (error) {

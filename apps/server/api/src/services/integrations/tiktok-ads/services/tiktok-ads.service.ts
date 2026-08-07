@@ -24,6 +24,19 @@ import { firstValueFrom } from 'rxjs';
 const MICROS_MULTIPLIER = 1_000_000;
 const MICROS_DIVISOR = 1_000_000;
 const RATE_LIMIT_DELAY_MS = 2000;
+const REPORT_METRICS = [
+  'spend',
+  'impressions',
+  'clicks',
+  'ctr',
+  'cpc',
+  'cpm',
+  'conversion',
+  'cost_per_conversion',
+  'conversion_rate',
+  'reach',
+  'frequency',
+];
 
 @Injectable()
 export class TikTokAdsService {
@@ -127,19 +140,73 @@ export class TikTokAdsService {
         filtering: {
           campaign_ids: [campaignId],
         },
-        metrics: [
-          'spend',
-          'impressions',
-          'clicks',
-          'ctr',
-          'cpc',
-          'cpm',
-          'conversion',
-          'cost_per_conversion',
-          'conversion_rate',
-          'reach',
-          'frequency',
-        ],
+        metrics: REPORT_METRICS,
+        page: params.page || 1,
+        page_size: params.pageSize || 100,
+        report_type: 'BASIC',
+        start_date: params.startDate,
+      });
+
+      return (response.list || []).map((row) => this.normalizeReportRow(row));
+    } catch (error: unknown) {
+      this.logger.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  async getAdGroupInsights(
+    accessToken: string,
+    advertiserId: string,
+    adGroupId: string,
+    params: TikTokReportingParams,
+  ): Promise<TikTokInsightsData[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const response = await this.makePostRequest<{
+        list: TikTokReportRow[];
+      }>(accessToken, 'report/integrated/get', {
+        advertiser_id: advertiserId,
+        data_level: 'AUCTION_ADGROUP',
+        dimensions: ['adgroup_id', 'stat_time_day'],
+        end_date: params.endDate,
+        filtering: {
+          adgroup_ids: [adGroupId],
+        },
+        metrics: REPORT_METRICS,
+        page: params.page || 1,
+        page_size: params.pageSize || 100,
+        report_type: 'BASIC',
+        start_date: params.startDate,
+      });
+
+      return (response.list || []).map((row) => this.normalizeReportRow(row));
+    } catch (error: unknown) {
+      this.logger.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  async getAdInsights(
+    accessToken: string,
+    advertiserId: string,
+    adId: string,
+    params: TikTokReportingParams,
+  ): Promise<TikTokInsightsData[]> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const response = await this.makePostRequest<{
+        list: TikTokReportRow[];
+      }>(accessToken, 'report/integrated/get', {
+        advertiser_id: advertiserId,
+        data_level: 'AUCTION_AD',
+        dimensions: ['ad_id', 'stat_time_day'],
+        end_date: params.endDate,
+        filtering: {
+          ad_ids: [adId],
+        },
+        metrics: REPORT_METRICS,
         page: params.page || 1,
         page_size: params.pageSize || 100,
         report_type: 'BASIC',

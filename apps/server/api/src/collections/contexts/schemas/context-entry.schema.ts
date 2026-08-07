@@ -5,11 +5,29 @@ export type { ContextEntry as PrismaContextEntry } from '@genfeedai/prisma';
 export interface ContextEntry extends PrismaContextEntry {
   content?: string;
   contextBase?: string;
-  embedding?: number[];
   metadata?: Record<string, unknown>;
   organization?: string;
   relevanceWeight?: number;
   [key: string]: unknown;
 }
+
+export type ContextEntryPendingEmbeddingRow = {
+  content: string | null;
+  id: string;
+};
+
+export type ContextEntrySimilarityRow = {
+  content: string | null;
+  contextBaseId: string;
+  metadata: unknown;
+  similarity: number;
+};
+
+export type ContextEntrySimilarityResult = {
+  content: string;
+  contextBaseId: string;
+  metadata?: Record<string, unknown>;
+  similarity: number;
+};
 
 export type ContextEntryDocument = ContextEntry;

@@ -177,7 +177,6 @@ export class OnboardingReadinessService {
       const dbUser = (await this.usersService.findOne(
         {
           id: userId,
-          isDeleted: false,
         },
         [PopulateBuilder.withFields('settings', ['dashboardPreferences'])],
       )) as
@@ -194,7 +193,6 @@ export class OnboardingReadinessService {
     if (organizationId && /^[0-9a-f]{24}$/i.test(organizationId)) {
       const organization = await this.organizationsService.findOne({
         id: organizationId,
-        isDeleted: false,
       });
 
       hasOrganization = !!organization;
@@ -202,7 +200,6 @@ export class OnboardingReadinessService {
       if (organization) {
         const [brand, settings] = await Promise.all([
           this.brandsService.findOne({
-            isDeleted: false,
             organizationId: organization.id,
           }),
           this.organizationSettingsService.findOne({

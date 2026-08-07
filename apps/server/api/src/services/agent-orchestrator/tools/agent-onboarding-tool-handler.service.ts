@@ -14,7 +14,7 @@ import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
 } from '@genfeedai/config';
-import { PostStatus, Status } from '@genfeedai/enums';
+import { ByokProvider, PostStatus, Status } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
   type IOnboardingJourneyMissionState,
@@ -26,6 +26,20 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
+
+/**
+ * BYOK providers `generate_image` can actually reach, mirroring the branches in
+ * `ImageGenerationHandler`. Onboarding-scoped on purpose: a text-only key such
+ * as OpenAI or Anthropic satisfies "a provider is configured" but cannot produce
+ * the first onboarding image, so the prompt and checklist gate on this set
+ * instead of on provider count. Provider capability semantics elsewhere are
+ * unchanged.
+ */
+const IMAGE_CAPABLE_ONBOARDING_PROVIDERS: readonly string[] = [
+  ByokProvider.FAL,
+  ByokProvider.LEONARDOAI,
+  ByokProvider.REPLICATE,
+];
 
 interface AgentBrandsServiceLike {
   create: (
@@ -113,7 +127,6 @@ export class AgentOnboardingToolHandler {
     const voice = (params.voice as string) || 'conversational';
 
     const existing = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
       slug: normalizedHandle,
     });
@@ -167,19 +180,16 @@ export class AgentOnboardingToolHandler {
     const [brand, credential, firstImage, firstVideo, publishedPost, settings] =
       await Promise.all([
         this.brandsService.findOne({
-          isDeleted: false,
           organizationId,
         }),
         this.credentialsService
           ? this.credentialsService.findOne({
               isConnected: true,
-              isDeleted: false,
               organizationId,
             })
           : null,
         this.imagesService
           ? this.imagesService.findOne({
-              isDeleted: false,
               organizationId,
             })
           : null,
@@ -190,7 +200,6 @@ export class AgentOnboardingToolHandler {
         ),
         this.postsService.findOne(
           {
-            isDeleted: false,
             organizationId,
             status: PostStatus.PUBLIC,
           },
@@ -274,7 +283,7 @@ export class AgentOnboardingToolHandler {
         this.buildOnboardingChecklistCard(
           missions,
           creditBuckets,
-          providerReadiness.isReady,
+          providerReadiness.isImageReady,
         ),
       ],
       success: true,
@@ -288,7 +297,7 @@ export class AgentOnboardingToolHandler {
       signupGiftCredits: number;
       totalOnboardingCreditsVisible: number;
     },
-    hasConfiguredProvider: boolean,
+    hasImageCapableProvider: boolean,
   ): AgentUiAction {
     const isSelfHosted = isSelfHostedDeployment();
     const nextRecommendedMissionId =
@@ -307,8 +316,8 @@ export class AgentOnboardingToolHandler {
 
       if (isSelfHosted) {
         const description =
-          mission.id === 'generate_first_image' && !hasConfiguredProvider
-            ? 'Add a model or image provider API key before generating your first image.'
+          mission.id === 'generate_first_image' && !hasImageCapableProvider
+            ? 'Add an image provider API key (fal, Replicate, or Leonardo) before generating your first image.'
             : mission.id === 'publish_first_post'
               ? 'Publish your first post to complete the onboarding journey.'
               : mission.description;
@@ -551,7 +560,6 @@ export class AgentOnboardingToolHandler {
       if (this.usersService) {
         const dbUser = await this.usersService.findOne({
           id: ctx.userId,
-          isDeleted: false,
         });
 
         if (dbUser?.id) {
@@ -584,8 +592,10 @@ export class AgentOnboardingToolHandler {
       isByokEnabled?: boolean;
     } | null,
   ): {
+    configuredImageProviders: string[];
     configuredProviderCount: number;
     configuredProviders: string[];
+    isImageReady: boolean;
     isReady: boolean;
   } {
     const byokKeys =
@@ -622,9 +632,18 @@ export class AgentOnboardingToolHandler {
       })
       .sort();
 
+    // A configured provider is not automatically an image provider: OpenAI or
+    // Anthropic keys make `isReady` true while `generate_image` still has
+    // nothing to call.
+    const configuredImageProviders = configuredProviders.filter((provider) =>
+      IMAGE_CAPABLE_ONBOARDING_PROVIDERS.includes(provider),
+    );
+
     return {
+      configuredImageProviders,
       configuredProviderCount: configuredProviders.length,
       configuredProviders,
+      isImageReady: configuredImageProviders.length > 0,
       isReady: configuredProviders.length > 0,
     };
   }
@@ -642,7 +661,6 @@ export class AgentOnboardingToolHandler {
     if (this.usersService) {
       const dbUser = await this.usersService.findOne({
         id: ctx.userId,
-        isDeleted: false,
       });
 
       if (dbUser) {
@@ -757,12 +775,22 @@ export class AgentOnboardingToolHandler {
             userId: ctx.userId,
           }).pipe(Effect.catchAll(() => Effect.void)),
         );
-        imageResults.push(
-          await this.generateOnboardingImage(imagePrompts[i] ?? '', ctx).then(
-            (value) => ({ status: 'fulfilled' as const, value }),
-            (reason: unknown) => ({ reason, status: 'rejected' as const }),
-          ),
+        const imageResult = await this.generateOnboardingImage(
+          imagePrompts[i] ?? '',
+          ctx,
+        ).then(
+          (value) => ({ status: 'fulfilled' as const, value }),
+          (reason: unknown) => ({ reason, status: 'rejected' as const }),
         );
+        if (
+          imageResult.status === 'fulfilled' &&
+          imageResult.value.nextActions?.some(
+            (action) => action.type === 'onboarding_checklist_card',
+          )
+        ) {
+          return imageResult.value;
+        }
+        imageResults.push(imageResult);
       }
 
       const images: string[] = imageResults
@@ -808,7 +836,7 @@ export class AgentOnboardingToolHandler {
    */
   presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
     const billingHref = hasOrganizationBilling()
-      ? '/settings/billing'
+      ? '/settings/subscription'
       : '/settings/api-keys';
     const billingLabel = hasOrganizationBilling()
       ? 'View all plans'
@@ -873,6 +901,18 @@ export class AgentOnboardingToolHandler {
     prompt: string,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const settings = this.organizationSettingsService
+      ? await this.organizationSettingsService.findOne({
+          organizationId: ctx.organizationId,
+        })
+      : null;
+    if (
+      isSelfHostedDeployment() &&
+      !this.resolveProviderReadiness(settings).isImageReady
+    ) {
+      return this.checkOnboardingStatus(ctx);
+    }
+
     const dimensions = this.aspectRatioToDimensions('1:1');
     const body: Record<string, unknown> = {
       autoSelectModel: true,

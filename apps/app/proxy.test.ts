@@ -1096,6 +1096,51 @@ describe('proxy', () => {
     );
   });
 
+  it('keeps flat discover routes on their org surface when no brand is selected', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/token')) {
+        return new Response(JSON.stringify({ token: BEARER_TOKEN }), {
+          status: 200,
+        });
+      }
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: {},
+            brands: [{ id: 'brand_1', slug: 'moonrise-studio' }],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations?mine=true')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    // `/~/discover` mirrors the brand tree in full, so a brandless org keeps the
+    // requested surface instead of collapsing onto the org overview.
+    const adsResponse = await proxy(
+      makeSignedInRequest('/discover/ads/meta'),
+      {} as never,
+    );
+
+    expect(adsResponse.status).toBe(307);
+    expect(adsResponse.headers.get('location')).toBe(
+      'http://localhost:3000/acme/~/discover/ads/meta',
+    );
+  });
+
   it('keeps personal settings canonical when no brand is selected', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);

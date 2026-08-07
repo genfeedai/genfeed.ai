@@ -163,7 +163,6 @@ export class PatternsController {
     const publicMetadata = getPublicMetadata(user);
     const data = await this.patternStoreService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 
@@ -187,7 +186,6 @@ export class PatternsController {
     const publicMetadata = getPublicMetadata(user);
     const pattern = await this.patternStoreService.findOne({
       id: id,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

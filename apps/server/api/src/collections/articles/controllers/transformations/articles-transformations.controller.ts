@@ -294,7 +294,6 @@ export class ArticlesTransformationsController {
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
       ],
-      isDeleted: false,
     });
 
     if (!article) {
@@ -305,7 +304,6 @@ export class ArticlesTransformationsController {
     const brand = article.brandId
       ? await this.brandsService.findOne({
           id: article.brandId,
-          isDeleted: false,
           organizationId: publicMetadata.organization,
         })
       : null;
@@ -351,7 +349,6 @@ export class ArticlesTransformationsController {
         { userId: publicMetadata.user },
         { organizationId: publicMetadata.organization },
       ],
-      isDeleted: false,
     });
 
     if (!article) {
@@ -362,7 +359,6 @@ export class ArticlesTransformationsController {
     const brand = article.brandId
       ? await this.brandsService.findOne({
           id: article.brandId,
-          isDeleted: false,
           organizationId: publicMetadata.organization,
         })
       : null;

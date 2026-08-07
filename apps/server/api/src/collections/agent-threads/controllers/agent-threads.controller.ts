@@ -53,6 +53,7 @@ export class AgentThreadsController {
     @CurrentUser() user: User,
     @Query('status') status?: string,
     @Query('brand') brand?: string,
+    @Query('source') source?: string,
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
@@ -64,11 +65,16 @@ export class AgentThreadsController {
         : undefined;
       // Brand selected → hard filter to that brand. Brand cleared → full org.
       const brandId = brand?.trim() ? brand.trim() : undefined;
+      // Entry-point filter. Onboarding resume queries `source=onboarding` so
+      // the newest onboarding thread is found regardless of how many newer
+      // standard threads exist.
+      const threadSource = source?.trim() ? source.trim() : undefined;
       const docs = await this.agentThreadsService.getUserThreads(
         dbUserId,
         organizationId,
         parsedStatus,
         brandId,
+        threadSource,
       );
       return serializeCollection(req, AgentThreadSerializer, {
         docs,
@@ -148,7 +154,6 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const message = await this.agentMessagesService.findOne({
         id: messageId,
-        isDeleted: false,
         organizationId: organizationId,
         threadId,
       });
@@ -170,7 +175,6 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const thread = await this.agentThreadsService.findOne({
         id: threadId,
-        isDeleted: false,
         organizationId: organizationId,
       });
       return serializeSingle(req, AgentThreadSerializer, thread);
@@ -376,10 +380,7 @@ export class AgentThreadsController {
       );
     }
 
-    const dbUser = await this.usersService.findOne(
-      { id: userId, isDeleted: false },
-      [],
-    );
+    const dbUser = await this.usersService.findOne({ id: userId }, []);
     const fallbackUserId = dbUser?.id;
     if (!fallbackUserId) {
       throw new UnauthorizedException('User account not found');

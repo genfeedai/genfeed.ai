@@ -15,6 +15,7 @@ import type {
   McpTool,
 } from '@mcp/shared/interfaces/mcp-server.interface';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
+import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
 import {
   CLIP_PROJECTS_TOOL_NAMES,
@@ -115,6 +116,13 @@ const isGoogleAdsTool = (name: string): boolean =>
   name.startsWith('list_google_ads_') || name.startsWith('get_google_ads_');
 
 /**
+ * Platform-generic ads gateway tools (`/ads/:platform/*`). The `get_ads_` prefix
+ * is reserved for this executor — per-platform tools use their own platform
+ * prefix (`get_meta_`, `get_google_ads_`), so the namespaces cannot overlap.
+ */
+const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
+
+/**
  * Which executor handles a tool name. `'unknown'` means no dispatch path exists
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
  * a registry/handler mismatch fails the boot health check instead of surfacing
@@ -129,6 +137,7 @@ type ExecutorKind =
   | 'legacy'
   | 'meta-ads'
   | 'google-ads'
+  | 'ads-gateway'
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
@@ -325,6 +334,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (LEGACY_TOOL_NAMES.has(name)) return 'legacy';
     if (isMetaAdsTool(name)) return 'meta-ads';
     if (isGoogleAdsTool(name)) return 'google-ads';
+    if (isAdsGatewayTool(name)) return 'ads-gateway';
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
@@ -352,6 +362,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleMetaAdsTool(this.clientService, name, args);
       case 'google-ads':
         return handleGoogleAdsTool(this.clientService, name, args);
+      case 'ads-gateway':
+        return handleAdsGatewayTool(this.clientService, name, args);
       case 'account-management':
         return handleAccountManagementTool(this.clientService, name, args);
       case 'social-messages':
@@ -735,25 +747,50 @@ export class ToolRegistryService implements OnModuleInit {
           throw new Error('contentId and contentType required');
         }
 
-        if (args.contentType === 'video') {
+        const contentId = args.contentId as string;
+        const contentType = args.contentType as string;
+
+        if (contentType === 'video') {
           const analytics = await this.clientService.getVideoAnalytics(
-            args.contentId as string,
+            contentId,
             (args.timeRange as string) || '7d',
           );
           return {
             content: [
               {
-                text: `Analytics for ${args.contentType} ${args.contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
+                text: `Analytics for ${contentType} ${contentId}:\n\n${JSON.stringify(analytics, null, 2)}`,
                 type: 'text',
               },
             ],
           };
         }
 
+        // Articles and images route through the canonical agent executor
+        // (`get_analytics`), which already owns content→published-post
+        // resolution, per-collection analytics rollups, and tenant scoping.
+        // Reusing it keeps the MCP and agent surfaces on one implementation
+        // rather than two that drift — this branch used to return a hardcoded
+        // "data is being compiled" string for exactly these two types.
+        const result = await this.clientService.executeAgentTool(
+          'get_analytics',
+          { contentId },
+        );
+
+        if (!result.success) {
+          throw new Error(
+            result.error ||
+              `Failed to get analytics for ${contentType} ${contentId}`,
+          );
+        }
+
+        // `getPostAnalyticsSummary` and `getArticleAnalyticsSummary` both roll
+        // up every recorded day, so this is a lifetime total; the declared
+        // `timeRange` argument does not narrow it. Say so rather than stamping
+        // a range the numbers do not honor.
         return {
           content: [
             {
-              text: `Analytics for ${args.contentType} ${args.contentId} (${args.timeRange || '7d'}):\n\nAnalytics data is being compiled. Please check the dashboard for detailed metrics.`,
+              text: `Analytics for ${contentType} ${contentId} (lifetime totals):\n\n${JSON.stringify(result.data, null, 2)}`,
               type: 'text',
             },
           ],

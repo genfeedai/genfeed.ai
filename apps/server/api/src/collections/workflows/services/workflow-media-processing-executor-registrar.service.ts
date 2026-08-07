@@ -238,12 +238,10 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       const music =
         (await musicsService.findOne({
           brandId: brandId,
-          isDeleted: false,
           organizationId: context.organizationId,
           status: IngredientStatus.GENERATED,
         })) ??
         (await musicsService.findOne({
-          isDeleted: false,
           organizationId: context.organizationId,
           status: IngredientStatus.GENERATED,
         }));

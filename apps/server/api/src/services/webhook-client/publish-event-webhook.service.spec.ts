@@ -9,6 +9,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { PublishEventWebhookService } from './publish-event-webhook.service';
+import { WebhookDispatchService } from './webhook-dispatch.service';
 
 vi.mock('@api/services/webhook-client/webhook-endpoint.validator', () => ({
   assertSafeWebhookEndpoint: vi.fn().mockResolvedValue(undefined),
@@ -52,6 +53,10 @@ describe('PublishEventWebhookService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PublishEventWebhookService,
+        // The dispatcher is exercised for real here: queue ids, the org event
+        // filter, and the recorded delivery status are shared behavior that a
+        // mocked dispatcher would stop covering for publish events.
+        WebhookDispatchService,
         {
           provide: getQueueToken(WEBHOOK_CLIENT_QUEUE),
           useValue: queue,
@@ -382,52 +387,5 @@ describe('PublishEventWebhookService', () => {
 
     expect(queue.add).not.toHaveBeenCalled();
     expect(settingsService.recordWebhookDeliveryStatus).not.toHaveBeenCalled();
-  });
-
-  it('queues a sample publish webhook test delivery and bypasses filters', async () => {
-    settingsService.findOne.mockResolvedValue({
-      isWebhookEnabled: true,
-      webhookEndpoint: 'https://example.com/webhook',
-      webhookEventTypes: ['release.failed'],
-      webhookSecret: 'secret',
-    });
-
-    const status = await service.sendTestDelivery({
-      event: 'target.published',
-      organizationId: 'org_123',
-    });
-
-    expect(status).toMatchObject({
-      attempt: 0,
-      event: 'target.published',
-      isTest: true,
-      status: 'queued',
-    });
-    expect(status.deliveryId).toContain('publish-test:org_123');
-    expect(queue.add).toHaveBeenCalledWith(
-      'send-webhook',
-      expect.objectContaining({
-        deliveryId: status.deliveryId,
-        isTest: true,
-        organizationId: 'org_123',
-        payload: expect.objectContaining({
-          event: 'target.published',
-          release: expect.objectContaining({ id: 'release_test' }),
-        }),
-      }),
-      {
-        jobId: expect.stringMatching(/^publish-webhook-[0-9a-f]{64}$/),
-      },
-    );
-    expect(queue.add.mock.calls[0][2]?.jobId).not.toContain(':');
-    expect(settingsService.recordWebhookDeliveryStatus).toHaveBeenCalledWith(
-      'org_123',
-      expect.objectContaining({
-        deliveryId: status.deliveryId,
-        event: 'target.published',
-        isTest: true,
-        status: 'queued',
-      }),
-    );
   });
 });

@@ -29,12 +29,6 @@ interface DesktopAuthorizeResponse {
   state: string;
 }
 
-interface CliTokenResponse {
-  apiKey?: string;
-  key?: string;
-  token?: string;
-}
-
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
@@ -173,19 +167,6 @@ function isDesktopCallbackTargetValid(value: string | null): boolean {
   }
 }
 
-/**
- * Generate a cryptographically random state token (hex string, 32 bytes).
- * Used to bind the page load to the eventual callback redirect so a malicious
- * process cannot hijack the flow by racing for the localhost listener.
- */
-function generateStateToken(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
 function CliAuthPageContent() {
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded, getToken } = useAuthIdentity();
@@ -196,10 +177,6 @@ function CliAuthPageContent() {
   });
   const [copied, setCopied] = useState(false);
   const tokenRequestedRef = useRef(false);
-  // State token generated once per page load and sent in the callback URL.
-  // The CLI listener must echo it back so we can verify the request originated
-  // from this page and not from a racing process on the same machine.
-  const stateTokenRef = useRef<string>(generateStateToken());
 
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
@@ -207,7 +184,6 @@ function CliAuthPageContent() {
   const desktopState = searchParams.get('state');
   const codeChallenge = searchParams.get('code_challenge');
   const codeChallengeMethod = searchParams.get('code_challenge_method');
-  const hasPkce = Boolean(codeChallenge && codeChallengeMethod);
   const hasValidDesktopReturnTarget =
     isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
@@ -375,69 +351,23 @@ function CliAuthPageContent() {
         }
 
         // --- CLI PKCE mode: code_challenge present, no desktop=1 ---
-        if (hasPkce && codeChallenge && codeChallengeMethod && desktopState) {
-          const response = await fetch(
-            `${EnvironmentService.apiEndpoint}/auth/desktop/authorize`,
-            {
-              body: JSON.stringify({
-                codeChallenge,
-                codeChallengeMethod,
-                state: desktopState,
-              }),
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-              method: 'POST',
-              signal,
-            },
-          );
-
-          if (signal.aborted) {
-            return;
-          }
-
-          if (!response.ok) {
-            const errorBody = await response
-              .text()
-              .catch(() => 'Unknown error');
-            setFlowState({
-              error: formatServerError(response.status, errorBody),
-              step: 'error',
-            });
-            return;
-          }
-
-          const data = (await response.json()) as DesktopAuthorizeResponse;
-
-          if (!data.code) {
-            setFlowState({
-              error:
-                'Server did not return an authorization code. Please try again.',
-              step: 'error',
-            });
-            return;
-          }
-
-          setFlowState({ apiKey: data.code, error: null, step: 'redirecting' });
-
-          const callbackUrl = `http://127.0.0.1:${port ?? 0}/callback?code=${encodeURIComponent(data.code)}&state=${encodeURIComponent(desktopState)}`;
-
-          redirectToCallback(callbackUrl);
-
-          setTimeout(() => {
-            if (!signal.aborted) {
-              setFlowState({ apiKey: data.code, error: null, step: 'success' });
-            }
-          }, 2000);
-
+        if (!codeChallenge || !codeChallengeMethod || !desktopState) {
+          setFlowState({
+            error:
+              'This CLI version is no longer supported. Update it (`bun add -g @genfeedai/cli`) and run `gf login` again.',
+            step: 'error',
+          });
           return;
         }
 
-        // --- Legacy CLI mode: no PKCE, use /auth/cli/token ---
         const response = await fetch(
-          `${EnvironmentService.apiEndpoint}/auth/cli/token`,
+          `${EnvironmentService.apiEndpoint}/auth/desktop/authorize`,
           {
+            body: JSON.stringify({
+              codeChallenge,
+              codeChallengeMethod,
+              state: desktopState,
+            }),
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -460,35 +390,26 @@ function CliAuthPageContent() {
           return;
         }
 
-        const legacyData = (await response.json()) as CliTokenResponse;
-        const credential =
-          legacyData.key ?? legacyData.apiKey ?? legacyData.token;
+        const data = (await response.json()) as DesktopAuthorizeResponse;
 
-        if (!credential) {
+        if (!data.code) {
           setFlowState({
-            error: 'Server did not return an API key. Please try again.',
+            error:
+              'Server did not return an authorization code. Please try again.',
             step: 'error',
           });
           return;
         }
 
-        setFlowState({ apiKey: credential, error: null, step: 'redirecting' });
+        setFlowState({ apiKey: data.code, error: null, step: 'redirecting' });
 
-        const state = stateTokenRef.current;
-        const callbackUrl = isDesktopMode
-          ? getDesktopCallbackUrl(
-              credential,
-              user ?? null,
-              desktopReturnTo,
-              state,
-            )
-          : `http://127.0.0.1:${port ?? 0}/callback?key=${encodeURIComponent(credential)}&state=${encodeURIComponent(state)}`;
+        const callbackUrl = `http://127.0.0.1:${port ?? 0}/callback?code=${encodeURIComponent(data.code)}&state=${encodeURIComponent(desktopState)}`;
 
         redirectToCallback(callbackUrl);
 
         setTimeout(() => {
           if (!signal.aborted) {
-            setFlowState({ apiKey: credential, error: null, step: 'success' });
+            setFlowState({ apiKey: data.code, error: null, step: 'success' });
           }
         }, 2000);
       } catch (err: unknown) {
@@ -507,7 +428,6 @@ function CliAuthPageContent() {
       desktopReturnTo,
       desktopState,
       getToken,
-      hasPkce,
       isDesktopMode,
       port,
       user,

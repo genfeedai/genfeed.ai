@@ -19,24 +19,10 @@ export class AuthError extends GenfeedError {
   }
 }
 
-export class AdminRequiredError extends GenfeedError {
-  constructor() {
-    super('This command requires admin access.', 'Contact your organization admin for access.');
-    this.name = 'AdminRequiredError';
-  }
-}
-
 export class NoBrandError extends GenfeedError {
   constructor() {
     super('No brand selected', 'Run `gf brands select` to choose a brand');
     this.name = 'NoBrandError';
-  }
-}
-
-export class FleetApiError extends GenfeedError {
-  constructor(message: string, suggestion?: string) {
-    super(message, suggestion ?? 'Check fleet connectivity with `gf fleet health`');
-    this.name = 'FleetApiError';
   }
 }
 

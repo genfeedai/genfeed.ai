@@ -1,6 +1,5 @@
 import type { Product } from '@data/products.data';
 import Card from '@ui/card/Card';
-import { VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { Check, X } from 'lucide-react';
@@ -15,7 +14,7 @@ export default function ProductBenefits({ benefits }: Props) {
       <Heading size="2xl" className="text-center mb-12">
         Problems We Solve
       </Heading>
-      <VStack gap={6}>
+      <div className="flex flex-col gap-6">
         {benefits.map((benefit) => (
           <Card key={benefit.problem}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -44,7 +43,7 @@ export default function ProductBenefits({ benefits }: Props) {
             </div>
           </Card>
         ))}
-      </VStack>
+      </div>
     </section>
   );
 }

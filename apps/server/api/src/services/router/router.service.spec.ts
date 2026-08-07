@@ -4,7 +4,10 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
-import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  DEFAULT_CONTEXT_EMBEDDING_MODEL,
+  MODEL_KEYS,
+} from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -702,7 +705,7 @@ describe('RouterService', () => {
 
         const defaultModel = createMockModel({
           category: ModelCategory.IMAGE,
-          key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+          key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
         });
 
         modelsService.findOne.mockResolvedValue(defaultModel);
@@ -715,7 +718,7 @@ describe('RouterService', () => {
         const result = await service.selectModel(options);
 
         expect(result.selectedModel).toBe(
-          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
         );
         expect(result.reason).toContain('Default model');
         expect(loggerService.warn).toHaveBeenCalled();
@@ -919,96 +922,294 @@ describe('RouterService', () => {
   });
 
   describe('getDefaultModel', () => {
-    it('should return default model from database when available', async () => {
+    it('should return the registry default when the category has one', async () => {
       const defaultModel = createMockModel({
         category: ModelCategory.IMAGE,
         isDefault: true,
         key: 'database-default',
       });
 
-      modelsService.findOne.mockResolvedValue(defaultModel);
+      modelsService.findAllActive.mockResolvedValue([defaultModel]);
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE);
 
       expect(result).toBe('database-default');
-      expect(modelsService.findOne).toHaveBeenCalledWith({
+      expect(modelsService.findAllActive).toHaveBeenCalledWith({
         category: ModelCategory.IMAGE,
-        isDefault: true,
-        isDeleted: false,
+        isLegacy: false,
       });
     });
 
-    it('should return fallback for IMAGE category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for IMAGE category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA);
-      expect(loggerService.warn).toHaveBeenCalled();
+      expect(loggerService.error).toHaveBeenCalled();
     });
 
-    it('should return fallback for VIDEO category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for VIDEO category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1);
     });
 
-    it('should return fallback for TEXT category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for TEXT category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.TEXT);
 
       expect(result).toBe(DEFAULT_TEXT_MODEL);
     });
 
-    it('should return fallback for IMAGE_EDIT category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for IMAGE_EDIT category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE_EDIT);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE);
     });
 
-    it('should return fallback for IMAGE_UPSCALE category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for IMAGE_UPSCALE category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE_UPSCALE);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE);
     });
 
-    it('should return fallback for VIDEO_EDIT category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for VIDEO_EDIT category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO_EDIT);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO);
     });
 
-    it('should return fallback for VIDEO_UPSCALE category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for VIDEO_UPSCALE category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO_UPSCALE);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE);
     });
 
-    it('should return fallback for MUSIC category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for MUSIC category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.MUSIC);
 
       expect(result).toBe(MODEL_KEYS.REPLICATE_META_MUSICGEN);
     });
 
-    it('should return fallback for VOICE category when no database default', async () => {
-      modelsService.findOne.mockResolvedValue(null);
+    it('should return fallback for VOICE category when the registry is empty', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
 
       const result = await service.getDefaultModel(ModelCategory.VOICE);
 
       expect(result).toBe('elevenlabs');
+    });
+
+    it('should return the fixed BGE model for EMBEDDING category', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const result = await service.getDefaultModel(ModelCategory.EMBEDDING);
+
+      expect(result).toBe(DEFAULT_CONTEXT_EMBEDDING_MODEL);
+    });
+
+    it('should ignore a legacy CLIP database default for embeddings', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          category: ModelCategory.EMBEDDING,
+          isDefault: true,
+          key: MODEL_KEYS.REPLICATE_OPENAI_CLIP,
+        }),
+      ]);
+
+      const result = await service.getDefaultModel(ModelCategory.EMBEDDING);
+
+      expect(result).toBe(DEFAULT_CONTEXT_EMBEDDING_MODEL);
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Ignoring embedding default'),
+      );
+    });
+  });
+
+  describe('resolveModelKey', () => {
+    it('should honour the first candidate the registry carries', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'brand-default' }),
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: [undefined, 'brand-default', 'organization-default'],
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({ key: 'brand-default', source: 'candidate' });
+    });
+
+    it('should skip a candidate the registry no longer carries', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ isDefault: true, key: 'registry-default' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['retired-model', null, ''],
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'registry-default',
+        source: 'registry-default',
+      });
+    });
+
+    it('should exclude legacy rows at the query level', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'active-model' }),
+      ]);
+
+      await service.resolveModelKey({ category: ModelCategory.VIDEO });
+
+      expect(modelsService.findAllActive).toHaveBeenCalledWith({
+        category: ModelCategory.VIDEO,
+        isLegacy: false,
+      });
+    });
+
+    it('should rank highlighted rows above the rest when no default exists', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({ key: 'plain-ultra', qualityTier: 'ultra' }),
+        createMockModel({
+          isHighlighted: true,
+          key: 'highlighted-basic',
+          qualityTier: 'basic',
+        }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'highlighted-basic',
+        source: 'registry-best',
+      });
+    });
+
+    it('should prefer higher quality, then lower cost, then a stable key order', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          costTier: 'high',
+          key: 'high-cost-high-quality',
+          qualityTier: 'high',
+        }),
+        createMockModel({
+          costTier: 'low',
+          key: 'b-cheap-high-quality',
+          qualityTier: 'high',
+        }),
+        createMockModel({
+          costTier: 'low',
+          key: 'a-cheap-high-quality',
+          qualityTier: 'high',
+        }),
+        createMockModel({
+          costTier: 'low',
+          key: 'cheap-basic-quality',
+          qualityTier: 'basic',
+        }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+      });
+
+      expect(result).toEqual({
+        key: 'a-cheap-high-quality',
+        source: 'registry-best',
+      });
+    });
+
+    it('should hide another organization private row from selection', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          isHighlighted: true,
+          key: 'foreign-training',
+          organizationId: 'org-other',
+        }),
+        createMockModel({ key: 'platform-model' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-mine',
+      });
+
+      expect(result).toEqual({
+        key: 'platform-model',
+        source: 'registry-best',
+      });
+    });
+
+    it('should allow an organization to select its own private row', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          key: 'my-training',
+          organizationId: 'org-mine',
+        }),
+        createMockModel({ key: 'platform-model' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['my-training'],
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-mine',
+      });
+
+      expect(result).toEqual({ key: 'my-training', source: 'candidate' });
+    });
+
+    it('should reject a candidate owned by another organization', async () => {
+      modelsService.findAllActive.mockResolvedValue([
+        createMockModel({
+          key: 'foreign-training',
+          organizationId: 'org-other',
+        }),
+        createMockModel({ isDefault: true, key: 'platform-model' }),
+      ]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['foreign-training'],
+        category: ModelCategory.IMAGE,
+        organizationId: 'org-mine',
+      });
+
+      expect(result).toEqual({
+        key: 'platform-model',
+        source: 'registry-default',
+      });
+    });
+
+    it('should log an error when it falls back to the constant', async () => {
+      modelsService.findAllActive.mockResolvedValue([]);
+
+      const result = await service.resolveModelKey({
+        candidates: ['retired-model'],
+        category: ModelCategory.MUSIC,
+      });
+
+      expect(result).toEqual({
+        key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+        source: 'fallback-constant',
+      });
+      expect(loggerService.error).toHaveBeenCalled();
     });
   });
 

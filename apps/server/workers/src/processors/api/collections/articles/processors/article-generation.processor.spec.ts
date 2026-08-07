@@ -21,6 +21,13 @@ function createMockArticlesService(
   } as unknown as ArticlesService;
 }
 
+function createMockGenerationWebhook() {
+  return {
+    emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
+    emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
 function createMockLogger(): LoggerService {
   return {
     debug: vi.fn(),
@@ -59,7 +66,12 @@ describe('ArticleGenerationProcessor', () => {
   it('should call generateFromTranscript with correct parameters', async () => {
     const articlesService = createMockArticlesService();
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await processor.process(job);
@@ -72,10 +84,63 @@ describe('ArticleGenerationProcessor', () => {
     );
   });
 
+  it('emits generation webhooks for both article outcomes', async () => {
+    const articlesService = createMockArticlesService();
+    const logger = createMockLogger();
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
+
+    await processor.process(createMockJob(defaultJobData));
+
+    expect(
+      generationEventWebhookService.emitGenerationCompleted,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      generationId: 'article-123',
+      kind: 'article',
+      organizationId: 'org-1',
+    });
+
+    const failingService = createMockArticlesService({
+      generateFromTranscript: vi
+        .fn()
+        .mockRejectedValue(new Error('AI service unavailable')),
+    } as unknown as Partial<ArticlesService>);
+    const failingProcessor = new ArticleGenerationProcessor(
+      failingService,
+      generationEventWebhookService as never,
+      logger,
+    );
+
+    await expect(
+      failingProcessor.process(createMockJob(defaultJobData)),
+    ).rejects.toThrow('AI service unavailable');
+
+    expect(
+      generationEventWebhookService.emitGenerationFailed,
+    ).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      errorMessage: 'AI service unavailable',
+      generationId: 'transcript-1',
+      kind: 'article',
+      organizationId: 'org-1',
+      retryable: true,
+    });
+  });
+
   it('should update progress to 10 before generation', async () => {
     const articlesService = createMockArticlesService();
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await processor.process(job);
@@ -86,7 +151,12 @@ describe('ArticleGenerationProcessor', () => {
   it('should update progress to 100 after successful generation', async () => {
     const articlesService = createMockArticlesService();
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await processor.process(job);
@@ -97,7 +167,12 @@ describe('ArticleGenerationProcessor', () => {
   it('should log transcript id at start', async () => {
     const articlesService = createMockArticlesService();
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await processor.process(job);
@@ -110,7 +185,12 @@ describe('ArticleGenerationProcessor', () => {
   it('should log article id on success', async () => {
     const articlesService = createMockArticlesService();
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await processor.process(job);
@@ -126,7 +206,12 @@ describe('ArticleGenerationProcessor', () => {
       generateFromTranscript: vi.fn().mockRejectedValue(error),
     } as unknown as Partial<ArticlesService>);
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await expect(processor.process(job)).rejects.toThrow(
@@ -143,7 +228,12 @@ describe('ArticleGenerationProcessor', () => {
       generateFromTranscript: vi.fn().mockRejectedValue(new Error('fail')),
     } as unknown as Partial<ArticlesService>);
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     await expect(processor.process(job)).rejects.toThrow();
@@ -158,7 +248,12 @@ describe('ArticleGenerationProcessor', () => {
       generateFromTranscript: vi.fn().mockRejectedValue(error),
     } as unknown as Partial<ArticlesService>);
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
 
     const rejection = processor.process(job);
@@ -168,7 +263,12 @@ describe('ArticleGenerationProcessor', () => {
   it('should handle different job data values correctly', async () => {
     const articlesService = createMockArticlesService();
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob({
       brandId: 'brand-xyz',
       organizationId: 'org-abc',
@@ -195,7 +295,12 @@ describe('ArticleGenerationProcessor', () => {
       }),
     } as unknown as Partial<ArticlesService>);
     const logger = createMockLogger();
-    const processor = new ArticleGenerationProcessor(articlesService, logger);
+    const generationEventWebhookService = createMockGenerationWebhook();
+    const processor = new ArticleGenerationProcessor(
+      articlesService,
+      generationEventWebhookService as never,
+      logger,
+    );
     const job = createMockJob(defaultJobData);
     (job.updateProgress as ReturnType<typeof vi.fn>).mockImplementation(
       async (progress: number) => {

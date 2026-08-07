@@ -74,6 +74,7 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -278,6 +279,13 @@ describe('ImagesOperationsController', () => {
           },
         },
         {
+          provide: GenerationEventWebhookService,
+          useValue: {
+            emitGenerationCompleted: vi.fn().mockResolvedValue(undefined),
+            emitGenerationFailed: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: FilesClientService,
           useValue: {
             splitImage: vi.fn().mockResolvedValue({
@@ -417,6 +425,33 @@ describe('ImagesOperationsController', () => {
           provide: RouterService,
           useValue: {
             getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.LEONARDOAI),
+            // Stands in for the registry policy: a key the registry does not
+            // carry falls through to the category default (#2422 Phase C).
+            resolveModelKey: vi
+              .fn()
+              .mockImplementation(
+                ({
+                  candidates,
+                }: {
+                  candidates?: Array<string | null | undefined>;
+                }) => {
+                  const registryKeys = Object.values(MODEL_KEYS) as string[];
+                  const key = candidates?.find(
+                    (candidate): candidate is string =>
+                      typeof candidate === 'string' &&
+                      registryKeys.includes(candidate),
+                  );
+
+                  return Promise.resolve(
+                    key
+                      ? { key, source: 'candidate' }
+                      : {
+                          key: MODEL_KEYS.LEONARDOAI,
+                          source: 'registry-default',
+                        },
+                  );
+                },
+              ),
             selectModel: vi.fn().mockResolvedValue({
               reason: 'Best model for image generation',
               selectedModel: MODEL_KEYS.LEONARDOAI,

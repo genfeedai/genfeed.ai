@@ -2,7 +2,6 @@
 
 import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import Badge from '@ui/display/badge/Badge';
-import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { Globe, Sparkles } from 'lucide-react';
@@ -24,10 +23,10 @@ function ReviewSection({
 }) {
   return (
     <div className="bg-secondary shadow-border p-4">
-      <HStack gap={2} className="mb-3">
+      <div className="flex flex-row items-center gap-2 mb-3">
         {Icon && <Icon className="size-5 text-primary" />}
         <Text weight="medium">{title}</Text>
-      </HStack>
+      </div>
       {children}
     </div>
   );
@@ -66,12 +65,12 @@ export default function OnboardingStepReview({
 
   return (
     <div className="py-4">
-      <VStack gap={2} className="text-center mb-6">
+      <div className="flex flex-col gap-2 text-center mb-6">
         <Heading size="2xl">Here&apos;s what we found</Heading>
         <Text color="muted">Review your brand information below</Text>
-      </VStack>
+      </div>
 
-      <VStack gap={6}>
+      <div className="flex flex-col gap-6">
         {/* Company Info */}
         <ReviewSection title="Company Information">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -98,9 +97,9 @@ export default function OnboardingStepReview({
         {/* Brand Colors */}
         {(data.primaryColor || data.secondaryColor) && (
           <ReviewSection title="Brand Colors">
-            <HStack gap={4}>
+            <div className="flex flex-row items-center gap-4">
               {data.primaryColor && (
-                <HStack gap={2}>
+                <div className="flex flex-row items-center gap-2">
                   <div
                     className="size-8 shadow-border"
                     style={{ backgroundColor: data.primaryColor }}
@@ -113,10 +112,10 @@ export default function OnboardingStepReview({
                       {data.primaryColor}
                     </Text>
                   </div>
-                </HStack>
+                </div>
               )}
               {data.secondaryColor && (
-                <HStack gap={2}>
+                <div className="flex flex-row items-center gap-2">
                   <div
                     className="size-8 shadow-border"
                     style={{ backgroundColor: data.secondaryColor }}
@@ -129,9 +128,9 @@ export default function OnboardingStepReview({
                       {data.secondaryColor}
                     </Text>
                   </div>
-                </HStack>
+                </div>
               )}
-            </HStack>
+            </div>
           </ReviewSection>
         )}
 
@@ -219,7 +218,7 @@ export default function OnboardingStepReview({
         <Text as="p" size="sm" color="muted" className="text-center">
           You can edit all of this later in your brand settings.
         </Text>
-      </VStack>
+      </div>
     </div>
   );
 }

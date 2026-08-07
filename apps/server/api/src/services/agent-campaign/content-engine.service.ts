@@ -145,7 +145,6 @@ export class ContentEngineService {
   ): Promise<ContentEngineCycleResult> {
     const campaign = await this.agentCampaignsService.findOne({
       id: campaignId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 

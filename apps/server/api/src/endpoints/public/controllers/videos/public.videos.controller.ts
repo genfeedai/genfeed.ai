@@ -114,7 +114,6 @@ export class PublicVideosController {
     this.logger.log(url, { params: { videoId } });
     const video = await this.videosService.findOne({
       id: videoId,
-      isDeleted: false,
       scope: AssetScope.PUBLIC,
       status: IngredientStatus.GENERATED,
     });
@@ -145,7 +144,6 @@ export class PublicVideosController {
 
     const video = await this.videosService.findOne({
       id: videoId,
-      isDeleted: false,
       scope: AssetScope.PUBLIC,
     });
 

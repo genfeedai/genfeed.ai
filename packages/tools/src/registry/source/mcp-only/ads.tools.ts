@@ -3,6 +3,118 @@ import type { SourceTool } from '../../../interfaces/source-tool.interface.js';
 export const MCP_ADS_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
+    description:
+      'Get performance insights for a single ad on any connected ads platform (Meta ad, Google Ads ad, or TikTok ad) through the platform-generic ads gateway',
+    name: 'get_ads_ad_insights',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description:
+            'Ad account ID: Meta act_ ID, Google Ads customer ID, or TikTok advertiser ID',
+          type: 'string',
+        },
+        adId: {
+          description: 'The ad ID',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected ads credential',
+          type: 'string',
+        },
+        datePreset: {
+          default: 'last_30d',
+          description: 'Predefined date range',
+          enum: [
+            'today',
+            'yesterday',
+            'last_7d',
+            'last_14d',
+            'last_30d',
+            'last_90d',
+          ],
+          type: 'string',
+        },
+        loginCustomerId: {
+          description: 'Google Ads manager account customer ID',
+          type: 'string',
+        },
+        platform: {
+          description: 'Ads platform to query',
+          enum: ['meta', 'google', 'tiktok'],
+          type: 'string',
+        },
+        since: {
+          description: 'Custom range start date (YYYY-MM-DD), used with until',
+          type: 'string',
+        },
+        until: {
+          description: 'Custom range end date (YYYY-MM-DD), used with since',
+          type: 'string',
+        },
+      },
+      required: ['platform', 'credentialId', 'adAccountId', 'adId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Get performance insights for one ad set on any connected ads platform (Meta ad set, Google Ads ad group, or TikTok ad group) through the platform-generic ads gateway',
+    name: 'get_ads_adset_insights',
+    parameters: {
+      properties: {
+        adAccountId: {
+          description:
+            'Ad account ID: Meta act_ ID, Google Ads customer ID, or TikTok advertiser ID',
+          type: 'string',
+        },
+        adSetId: {
+          description: 'Ad set ID (Meta) or ad group ID (Google Ads, TikTok)',
+          type: 'string',
+        },
+        credentialId: {
+          description: 'ID of the connected ads credential',
+          type: 'string',
+        },
+        datePreset: {
+          default: 'last_30d',
+          description: 'Predefined date range',
+          enum: [
+            'today',
+            'yesterday',
+            'last_7d',
+            'last_14d',
+            'last_30d',
+            'last_90d',
+          ],
+          type: 'string',
+        },
+        loginCustomerId: {
+          description: 'Google Ads manager account customer ID',
+          type: 'string',
+        },
+        platform: {
+          description: 'Ads platform to query',
+          enum: ['meta', 'google', 'tiktok'],
+          type: 'string',
+        },
+        since: {
+          description: 'Custom range start date (YYYY-MM-DD), used with until',
+          type: 'string',
+        },
+        until: {
+          description: 'Custom range end date (YYYY-MM-DD), used with since',
+          type: 'string',
+        },
+      },
+      required: ['platform', 'credentialId', 'adAccountId', 'adSetId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
     description: 'List accessible Google Ads customer accounts',
     name: 'list_google_ads_customers',
     parameters: {

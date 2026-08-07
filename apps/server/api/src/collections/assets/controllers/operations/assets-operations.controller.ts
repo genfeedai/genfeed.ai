@@ -164,7 +164,6 @@ export class AssetsOperationsController {
       try {
         brand = await this.brandsService.findOne({
           id: brandIdToUse,
-          isDeleted: false,
           organizationId: publicMetadata.organization,
         });
       } catch (error) {
@@ -317,7 +316,6 @@ export class AssetsOperationsController {
         await this.assetsService.patchAll(
           {
             category: uploadDto.category,
-            isDeleted: false,
             parentBrandId: entityData.parentId,
             parentType: AssetParent.BRAND,
           },
@@ -438,7 +436,6 @@ export class AssetsOperationsController {
     // Get ingredient with metadata
     const ingredient = await this.ingredientsService.findOne({
       id: validatedIngredientId,
-      isDeleted: false,
       userId: publicMetadata.user,
     });
 
@@ -456,7 +453,6 @@ export class AssetsOperationsController {
 
     const metadata = await this.metadataService.findOne({
       id: ingredient.metadataId,
-      isDeleted: false,
     });
 
     if (!metadata) {
@@ -470,7 +466,6 @@ export class AssetsOperationsController {
     await this.assetsService.patchAll(
       {
         category: validatedCategory,
-        isDeleted: false,
         parentBrandId: parentId,
         parentType: AssetParent.BRAND,
       },

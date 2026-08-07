@@ -311,7 +311,6 @@ export class SubscriptionsController {
       const organizations = organizationIds.length
         ? await this.organizationsService.find({
             id: { in: organizationIds },
-            isDeleted: false,
           })
         : [];
 

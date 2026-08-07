@@ -1,6 +1,10 @@
 import { WorkflowCoreExecutorRegistrarService } from '@api/collections/workflows/services/workflow-core-executor-registrar.service';
 import type { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import {
+  type INodeExecutor,
+  type NodeExecutor,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -51,5 +55,74 @@ describe('WorkflowCoreExecutorRegistrarService', () => {
     expect(registered).not.toContain('brand');
     expect(registered).not.toContain('brandAsset');
     expect(registered).not.toContain('brandContext');
+  });
+
+  it('resolves the full effective voice while retaining the legacy voice string', async () => {
+    const executionHelper = {
+      wrapEngineExecutor:
+        (executor: INodeExecutor) =>
+        async (...args: Parameters<NodeExecutor>) =>
+          (
+            await executor.execute({
+              context: args[2],
+              inputs: args[1],
+              node: args[0],
+            })
+          ).data,
+    } as unknown as WorkflowEngineExecutorHelperService;
+    const engine = new WorkflowEngine();
+    const brandsService = {
+      findOne: async () => ({
+        agentConfig: {
+          voice: {
+            audience: ['founders'],
+            bannedPhrases: ['game-changing'],
+            style: 'concise',
+            tone: 'direct',
+          },
+        },
+        backgroundColor: null,
+        fontFamily: null,
+        id: 'brand-1',
+        label: 'Acme',
+        primaryColor: null,
+        secondaryColor: null,
+        slug: 'acme',
+      }),
+      resolveBrandKitAssets: async () => null,
+    };
+    new WorkflowCoreExecutorRegistrarService(
+      executionHelper,
+      logger,
+      brandsService as never,
+    ).register(engine);
+
+    const executor = engine.getExecutor('brandContext');
+    const result = await executor?.(
+      {
+        config: { brandId: 'brand-1' },
+        id: 'node-1',
+        inputs: [],
+        label: 'Brand Context',
+        type: 'brandContext',
+      },
+      new Map(),
+      {
+        organizationId: 'org-1',
+        runId: 'run-1',
+        userId: 'user-1',
+        workflowId: 'workflow-1',
+      },
+    );
+
+    expect(result).toMatchObject({
+      voice: 'concise',
+      voiceConfig: {
+        audience: ['founders'],
+        bannedPhrases: ['game-changing'],
+        style: 'concise',
+        tone: 'direct',
+      },
+    });
   });
 });

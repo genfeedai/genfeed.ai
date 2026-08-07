@@ -7,6 +7,7 @@ import type {
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { WorkflowEventWebhookService } from '@api/services/webhook-client/workflow-event-webhook.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
@@ -76,7 +77,9 @@ type WorkflowExecutionRuntimeStateRow = WorkflowExecutionResultRow & {
 };
 
 type WorkflowExecutionCompletionRow = WorkflowExecutionResultRow & {
+  organizationId: string | null;
   startedAt: Date | null;
+  trigger: string | null;
   workflowId: string;
 };
 
@@ -106,6 +109,7 @@ export class WorkflowExecutionsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
+    private readonly workflowEventWebhookService: WorkflowEventWebhookService,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -308,7 +312,13 @@ export class WorkflowExecutionsService extends BaseService<
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
     const execution = (await this.prisma.workflowExecution.findUnique({
-      select: { result: true, startedAt: true, workflowId: true },
+      select: {
+        organizationId: true,
+        result: true,
+        startedAt: true,
+        trigger: true,
+        workflowId: true,
+      },
       where: { id: executionId },
     })) as WorkflowExecutionCompletionRow | null;
 
@@ -377,7 +387,35 @@ export class WorkflowExecutionsService extends BaseService<
       where: { id: executionId },
     });
 
-    return this.normalizeDocument(result);
+    const document = this.normalizeDocument(result);
+
+    // Terminal transitions funnel through here, so this is the only place an
+    // outbound `workflow.execution.*` event has to be emitted from.
+    await this.workflowEventWebhookService.emitExecutionOutcome({
+      completedAt,
+      creditsUsed:
+        typeof updatedResult.creditsUsed === 'number'
+          ? updatedResult.creditsUsed
+          : 0,
+      durationMs,
+      errorMessage: error ?? null,
+      executionId,
+      failedNodeId:
+        typeof updatedResult.failedNodeId === 'string'
+          ? updatedResult.failedNodeId
+          : null,
+      occurredAt: completedAt,
+      organizationId: execution.organizationId ?? '',
+      progress: 100,
+      startedAt: execution.startedAt,
+      status: error
+        ? SharedWorkflowExecutionStatus.FAILED
+        : SharedWorkflowExecutionStatus.COMPLETED,
+      trigger: execution.trigger,
+      workflowId: execution.workflowId,
+    });
+
+    return document;
   }
 
   @HandleErrors('cancel execution', 'workflow-executions')

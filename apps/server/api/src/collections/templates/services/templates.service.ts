@@ -184,7 +184,7 @@ export class TemplatesService {
       orderBy: { createdAt: 'desc' },
       take:
         filters?.sort === 'popular' ? (filters.limit ?? 10) : filters?.limit,
-      where: where as never,
+      where: where as Prisma.TemplateWhereInput,
     });
 
     const templates = results as unknown as Template[];
@@ -220,7 +220,10 @@ export class TemplatesService {
 
     const template = await findOrThrow(
       this.prisma.template,
-      { include: { metadata: true }, where: where as never },
+      {
+        include: { metadata: true },
+        where: where as Prisma.TemplateWhereInput,
+      },
       'Template',
       id,
     );
@@ -243,13 +246,13 @@ export class TemplatesService {
 
     await findOrThrow(
       this.prisma.template,
-      { where: where as never },
+      { where: where as Prisma.TemplateWhereInput },
       'Template',
       id,
     );
 
     const result = await this.prisma.template.update({
-      data: dto as never,
+      data: dto as Prisma.TemplateUpdateInput,
       where: { id },
     });
 
@@ -267,13 +270,13 @@ export class TemplatesService {
 
     await findOrThrow(
       this.prisma.template,
-      { where: where as never },
+      { where: where as Prisma.TemplateWhereInput },
       'Template',
       id,
     );
 
     await this.prisma.template.update({
-      data: { isDeleted: true } as never,
+      data: { isDeleted: true },
       where: { id },
     });
   }
@@ -670,7 +673,6 @@ Score 0-100. Include top 5 only.`;
     output: string,
   ): Promise<number> {
     const model = await this.modelsService.findOne({
-      isDeleted: false,
       key: baseModelKey(DEFAULT_TEXT_MODEL),
     });
 

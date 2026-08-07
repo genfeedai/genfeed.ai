@@ -9,10 +9,15 @@ import {
   cloneBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
+import {
+  fromPrismaBatchStatus,
+  toPrismaBatchStatus,
+} from '@api/services/batch-generation/batch-status-prisma.mapper';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -38,14 +43,14 @@ export class BatchGenerationProcessingService {
     orgId: string,
     options?: BatchProcessOptions,
   ): Promise<IBatchSummary> {
-    // Idempotency guard: atomically transition PENDING → GENERATING.
+    // Idempotency guard: atomically transition PENDING → PROCESSING.
     // If two concurrent calls race, exactly one updateMany will match (count=1);
     // the other gets count=0 and exits early, preventing duplicate processing.
     const claimed = await this.prisma.batch.updateMany({
-      data: { status: BatchStatus.GENERATING as never },
+      data: { status: toPrismaBatchStatus(BatchStatus.PROCESSING) },
       where: scopedWhere(orgId, {
         id: batchId,
-        status: BatchStatus.PENDING as never,
+        status: toPrismaBatchStatus(BatchStatus.PENDING),
       }),
     });
 
@@ -116,19 +121,22 @@ export class BatchGenerationProcessingService {
 
     const finalized = await this.prisma.batch.updateMany({
       data: {
-        config: updatedConfig as never,
-        items: batchItems as never,
-        status: finalStatus as never,
+        config: updatedConfig as Prisma.InputJsonValue,
+        items: batchItems as Prisma.InputJsonValue,
+        status: toPrismaBatchStatus(finalStatus),
       },
       where: scopedWhere(orgId, {
         id: batchId,
-        status: BatchStatus.GENERATING as never,
+        status: toPrismaBatchStatus(BatchStatus.PROCESSING),
       }),
     });
 
     if (finalized.count !== 1) {
       const currentBatch = await this.findScopedBatch(batchId, orgId);
-      if (String(currentBatch.status) === BatchStatus.CANCELLED) {
+      if (
+        fromPrismaBatchStatus(String(currentBatch.status)) ===
+        BatchStatus.CANCELLED
+      ) {
         return this.summaryService.toBatchSummary(currentBatch);
       }
       throw new BadRequestException(
@@ -181,7 +189,7 @@ export class BatchGenerationProcessingService {
       }
 
       try {
-        item.status = BatchItemStatus.GENERATING;
+        item.status = BatchItemStatus.PROCESSING;
 
         const topics = batchConfig.topics ?? [];
         const topic =
@@ -211,7 +219,7 @@ export class BatchGenerationProcessingService {
               ? [batchConfig.style]
               : undefined,
             brandId: batchRecord.brandId ?? undefined,
-            platform: item.platform as never,
+            platform: item.platform,
             topic,
             variationsCount: 1,
           },
@@ -224,18 +232,18 @@ export class BatchGenerationProcessingService {
         // Create a draft post as placeholder
         const post = await this.postsService.create({
           brandId: batchRecord.brandId,
-          credentialId: undefined as never,
+          credentialId: undefined,
           description: item.caption,
           ingredients: [],
           label: `Batch: ${topic}`,
           organizationId: orgId,
-          platform: item.platform as never,
+          platform: item.platform,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
           status: PostStatus.DRAFT,
           userId: batchRecord.userId,
-        } as never);
+        } as Prisma.PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
         item.postId = postId;
@@ -312,7 +320,7 @@ export class BatchGenerationProcessingService {
       select: { status: true },
       where: scopedWhere(orgId, { id: batchId }),
     });
-    return String(batch?.status) === BatchStatus.GENERATING;
+    return fromPrismaBatchStatus(batch?.status) === BatchStatus.PROCESSING;
   }
 
   private async invokeLifecycleCallback(

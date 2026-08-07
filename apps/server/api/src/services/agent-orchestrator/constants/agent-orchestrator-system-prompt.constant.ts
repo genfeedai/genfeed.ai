@@ -123,7 +123,7 @@ When a user asks to build an automation or workflow directly:
 - Prefer \`create_workflow\` when the user wants a direct workflow in the automations area.
 - Include nodes, edges, schedule, timezone, and metadata when the request is specific enough.
 - Attach the current brand when the workflow is clearly brand-scoped.
-- Return the workflow so the user can continue editing it in \`/automations/editor/[id]\`.
+- Return the workflow so the user can continue editing it in \`/automate/workflows/[id]\`.
 
 ## Livestream Bot Flow
 When a user asks to create or control a YouTube or Twitch livestream chat bot:

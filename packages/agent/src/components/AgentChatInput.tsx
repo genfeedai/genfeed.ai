@@ -1,7 +1,9 @@
 import { AgentChatInputAttachmentTray } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
 import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInputStyles';
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
+import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
@@ -55,6 +57,9 @@ interface AgentChatInputProps {
   clearAllAttachments?: () => void;
   density?: 'compact' | 'default' | 'inspector';
   selectedModel?: string;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
   creditsAvailable?: number | null;
   onBuyCredits?: () => void;
@@ -90,6 +95,8 @@ export function AgentChatInput({
   clearAllAttachments,
   density = 'default',
   selectedModel,
+  models,
+  isModelsLoading = false,
   onModelChange,
   creditsAvailable = null,
   onBuyCredits,
@@ -99,18 +106,25 @@ export function AgentChatInput({
   const {
     actionFeedback,
     canSendMessage,
+    contentLibraryItems,
     editor,
     handlePasteImages,
     handleRemoveAttachment,
+    handleRemoveReference,
     handleInsertReference,
     handleSelectAction,
+    handleSelectContentReference,
     handleSend,
     handleShellPointerDown,
     hasAttachments,
+    isContentLibraryLoading,
+    isContentPickerOpen,
     isDragActive,
     isListening,
     isTranscribing,
     references,
+    selectedContentIds,
+    setIsContentPickerOpen,
     shouldShowSendButton,
     shouldShowVoiceInput,
     startListening,
@@ -184,6 +198,7 @@ export function AgentChatInput({
             attachmentStatusById={attachmentStatusById}
             isDisabled={disabled}
             onRemoveAttachedAsset={handleRemoveAttachment}
+            onRemoveReference={handleRemoveReference}
             references={references}
           />
         )}
@@ -199,8 +214,10 @@ export function AgentChatInput({
             disabled={disabled}
             hasEditor={Boolean(editor)}
             isListening={isListening}
+            isModelsLoading={isModelsLoading}
             isTranscribing={isTranscribing}
             isUploading={isUploading}
+            models={models}
             onAddFiles={addFiles}
             onBuyCredits={onBuyCredits}
             onInsertReference={handleInsertReference}
@@ -213,12 +230,21 @@ export function AgentChatInput({
             selectedModel={selectedModel}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}
-            showStop={showStop}
+            showStop={Boolean(showStop)}
             // Inspector rail is narrow — use compact icon-only toolbar density.
             density={isCompact || isInspector ? 'compact' : 'default'}
           />
         </div>
       </PromptBarShell>
+
+      <ContentLibraryPicker
+        isLoading={isContentLibraryLoading}
+        isOpen={isContentPickerOpen}
+        items={contentLibraryItems}
+        onOpenChange={setIsContentPickerOpen}
+        onSelect={handleSelectContentReference}
+        selectedIds={selectedContentIds}
+      />
     </div>
   );
 }

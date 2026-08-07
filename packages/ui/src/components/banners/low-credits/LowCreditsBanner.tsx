@@ -1,12 +1,18 @@
 'use client';
 
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
+import {
+  hasOrganizationBillingHint,
+  shouldShowCreditsNav,
+} from '@genfeedai/config/license';
 import { APP_ROUTES } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { CreditsService } from '@genfeedai/services/billing/credits.service';
 import { Button } from '@ui/primitives/button';
 import { TriangleAlert, X } from 'lucide-react';
 import Link from 'next/link';
@@ -23,6 +29,10 @@ interface DismissState {
 
 interface LowCreditsBannerProps {
   variant?: 'inline' | 'shell';
+}
+
+function coerceFiniteBalance(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
 function getDismissState(): DismissState | null {
@@ -59,6 +69,7 @@ function shouldHideBanner(
     return false;
   }
 
+  // Re-show once balance hits empty even if a prior low balance was dismissed.
   if (balance !== null && dismissState.balance > 0 && balance === 0) {
     return false;
   }
@@ -69,15 +80,52 @@ function shouldHideBanner(
 export default function LowCreditsBanner({
   variant = 'shell',
 }: LowCreditsBannerProps) {
+  const { organizationId } = useBrand();
   const { creditsBreakdown } = useSubscription();
   const { orgHref } = useOrgUrl();
   const isBillingEnabled = hasOrganizationBillingHint();
-  const ctaHref = orgHref(
-    isBillingEnabled
-      ? APP_ROUTES.SETTINGS.BILLING
-      : APP_ROUTES.SETTINGS.CREDITS,
+  const showCreditsWallet = shouldShowCreditsNav();
+  const ctaHref = orgHref(APP_ROUTES.SETTINGS.CREDITS);
+  const getCreditsService = useAuthedService((token: string) =>
+    CreditsService.getInstance(token),
   );
-  const balance = creditsBreakdown?.total ?? null;
+  // Match TopbarCreditsBar: GEN wallet from topbar balances is the source of
+  // truth the operator already sees. creditsBreakdown can be null when the
+  // subscription query is still loading or was historically gated on ACTIVE.
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const breakdownBalance = coerceFiniteBalance(creditsBreakdown?.total);
+  const balance = walletBalance ?? breakdownBalance;
+
+  useEffect(() => {
+    if (!showCreditsWallet || !organizationId) {
+      setWalletBalance(null);
+      return;
+    }
+
+    let isCancelled = false;
+
+    void (async () => {
+      try {
+        const service = await getCreditsService();
+        const data = await service.getTopbarBalances();
+        const genfeedSegment = data.segments?.find(
+          (segment) => segment.provider === 'genfeed',
+        );
+        if (!isCancelled) {
+          setWalletBalance(coerceFiniteBalance(genfeedSegment?.balance));
+        }
+      } catch {
+        if (!isCancelled) {
+          setWalletBalance(null);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [getCreditsService, organizationId, showCreditsWallet]);
+
   const [isDismissed, setIsDismissed] = useState(() =>
     shouldHideBanner(getDismissState(), balance),
   );

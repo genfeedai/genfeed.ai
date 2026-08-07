@@ -1,4 +1,3 @@
-import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { TopPerformerPromptContextService } from '@api/collections/content-intelligence/services/top-performer-prompt-context.service';
 import {
   type PerformanceContentItem,
@@ -47,13 +46,9 @@ const makeSummary = (
 
 describe('TopPerformerPromptContextService', () => {
   let service: TopPerformerPromptContextService;
-  let brandMemoryService: { getInsights: ReturnType<typeof vi.fn> };
   let performanceSummaryService: { getWeeklySummary: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    brandMemoryService = {
-      getInsights: vi.fn().mockResolvedValue([]),
-    };
     performanceSummaryService = {
       getWeeklySummary: vi.fn().mockResolvedValue(makeSummary()),
     };
@@ -61,7 +56,6 @@ describe('TopPerformerPromptContextService', () => {
     const module = await Test.createTestingModule({
       providers: [
         TopPerformerPromptContextService,
-        { provide: BrandMemoryService, useValue: brandMemoryService },
         {
           provide: PerformanceSummaryService,
           useValue: performanceSummaryService,
@@ -84,10 +78,9 @@ describe('TopPerformerPromptContextService', () => {
 
     expect(result).toBeUndefined();
     expect(performanceSummaryService.getWeeklySummary).not.toHaveBeenCalled();
-    expect(brandMemoryService.getInsights).not.toHaveBeenCalled();
   });
 
-  it('assembles positive signals, anti-patterns, and brand memory insights', async () => {
+  it('assembles positive signals and anti-patterns', async () => {
     performanceSummaryService.getWeeklySummary.mockResolvedValue(
       makeSummary({
         avgEngagementByContentType: [
@@ -111,14 +104,6 @@ describe('TopPerformerPromptContextService', () => {
         ],
       }),
     );
-    brandMemoryService.getInsights.mockResolvedValue([
-      {
-        category: 'hook',
-        confidence: 0.8,
-        insight: 'Founder-led teardown posts outperform generic tips.',
-      },
-    ]);
-
     const result = await service.assembleContext({
       brandId: BRAND_ID,
       organizationId: ORG_ID,
@@ -130,18 +115,13 @@ describe('TopPerformerPromptContextService', () => {
     expect(result).toContain('thread formats');
     expect(result).toContain('9AM');
     expect(result).toContain('Contrarian hook that won');
-    expect(result).toContain('Brand memory: [hook]');
+    expect(result).not.toContain('Brand memory:');
     expect(result).toContain('## Historical Anti-Patterns');
     expect(result).toContain('Generic AI tips');
     expect(performanceSummaryService.getWeeklySummary).toHaveBeenCalledWith(
       ORG_ID,
       BRAND_ID,
       { topN: 5, worstN: 5 },
-    );
-    expect(brandMemoryService.getInsights).toHaveBeenCalledWith(
-      ORG_ID,
-      BRAND_ID,
-      8,
     );
   });
 

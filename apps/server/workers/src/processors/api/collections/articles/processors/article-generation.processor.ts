@@ -1,4 +1,5 @@
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { GenerationEventWebhookService } from '@api/services/webhook-client/generation-event-webhook.service';
 import { ARTICLE_GENERATION_QUEUE } from '@genfeedai/queue-contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -15,6 +16,7 @@ interface ArticleGenerationJobData {
 export class ArticleGenerationProcessor extends WorkerHost {
   constructor(
     private readonly articlesService: ArticlesService,
+    private readonly generationEventWebhookService: GenerationEventWebhookService,
     private readonly logger: LoggerService,
   ) {
     super();
@@ -42,11 +44,30 @@ export class ArticleGenerationProcessor extends WorkerHost {
       this.logger.log(
         `Article generated successfully: ${article.id} from transcript ${transcriptId}`,
       );
+
+      await this.generationEventWebhookService.emitGenerationCompleted({
+        brandId,
+        generationId: String(article.id ?? ''),
+        kind: 'article',
+        organizationId,
+      });
     } catch (error: unknown) {
       this.logger.error(
         `Failed to generate article from transcript ${transcriptId}`,
         (error as Error).stack,
       );
+
+      await this.generationEventWebhookService.emitGenerationFailed({
+        brandId,
+        errorMessage: (error as Error)?.message ?? null,
+        // No article row exists on failure, so the transcript is the stable
+        // identifier a subscriber can correlate the job by.
+        generationId: transcriptId,
+        kind: 'article',
+        organizationId,
+        retryable: true,
+      });
+
       throw error;
     }
   }

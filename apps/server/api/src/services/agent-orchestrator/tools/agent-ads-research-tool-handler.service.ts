@@ -10,6 +10,7 @@ import {
   readOptionalNumber,
   readOptionalString,
 } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { APP_ROUTES } from '@genfeedai/constants';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import type {
   AdsChannel,
@@ -225,11 +226,11 @@ export class AgentAdsResearchToolHandler {
         {
           ctas: [
             {
-              href: `/workflows/${workflow.workflowId}`,
+              href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${workflow.workflowId}`,
               label: 'Open workflow',
             },
             {
-              href: '/workflows',
+              href: APP_ROUTES.AUTOMATE.WORKFLOWS,
               label: 'Open workflows',
             },
           ],
@@ -336,7 +337,7 @@ export class AgentAdsResearchToolHandler {
             ...(launchPrep.workflowId
               ? [
                   {
-                    href: `/workflows/${launchPrep.workflowId}`,
+                    href: `${APP_ROUTES.AUTOMATE.WORKFLOWS}/${launchPrep.workflowId}`,
                     label: 'Open workflow',
                   },
                 ]
@@ -457,7 +458,6 @@ export class AgentAdsResearchToolHandler {
     if (typeof params.brandId === 'string') {
       const explicitBrand = await this.brandsService.findOne({
         id: params.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -467,7 +467,6 @@ export class AgentAdsResearchToolHandler {
     }
 
     const currentBrand = await this.brandsService.findOne({
-      isDeleted: false,
       isSelected: true,
       organizationId: ctx.organizationId,
       userId: ctx.userId,
@@ -480,7 +479,6 @@ export class AgentAdsResearchToolHandler {
     if (ctx.brandId) {
       const contextBrand = await this.brandsService.findOne({
         id: ctx.brandId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 
@@ -490,7 +488,6 @@ export class AgentAdsResearchToolHandler {
     }
 
     const firstOrgBrand = await this.brandsService.findOne({
-      isDeleted: false,
       organizationId: ctx.organizationId,
     });
 

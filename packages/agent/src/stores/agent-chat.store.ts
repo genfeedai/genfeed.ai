@@ -542,7 +542,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       ].filter((action, index, actions) => {
         // Prefer later copies so tool_complete pending + done metadata with the
         // same semantic key collapse to one card.
-        const firstWithKey = actions.findIndex((candidate) => {
+        const lastWithKey = actions.findLastIndex((candidate) => {
           if (candidate.id && action.id && candidate.id === action.id) {
             return true;
           }
@@ -557,10 +557,11 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
           }
           return false;
         });
-        return firstWithKey === index;
+        return lastWithKey === index;
       });
 
       return {
+        activeRunId: null,
         activeRunStatus: 'completed',
         latestProposedPlan:
           message.metadata?.proposedPlan ?? state.latestProposedPlan,
@@ -580,6 +581,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
         pendingInputRequest: null,
         // Clear tool lifecycle rows so sticky "Running get_analytics 15%" cannot
         // outlive the completed turn.
+        runStartedAt: null,
         stream: { ...DEFAULT_STREAM_STATE },
         workEvents: [],
       };
@@ -644,7 +646,21 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   setActiveThread: (id) => set({ activeThreadId: id }),
   setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
   setDraftPlanModeEnabled: (enabled) => set({ draftPlanModeEnabled: enabled }),
-  setError: (error) => set({ error }),
+  setError: (error) =>
+    set((state) => ({
+      error,
+      // Credit/limit failures should not leave the composer stuck on Stop.
+      ...(error
+        ? {
+            activeRunStatus:
+              state.activeRunStatus === 'running' ||
+              state.activeRunStatus === 'cancelling'
+                ? 'failed'
+                : state.activeRunStatus,
+            isGenerating: false,
+          }
+        : {}),
+    })),
   setIsGenerating: (generating) => set({ isGenerating: generating }),
   setIsOpen: (open) => {
     persistPanelPreference(open);

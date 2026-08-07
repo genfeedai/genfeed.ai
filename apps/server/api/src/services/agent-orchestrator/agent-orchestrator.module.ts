@@ -5,6 +5,7 @@ import { AgentMessagesModule } from '@api/collections/agent-messages/agent-messa
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
+import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
@@ -107,6 +108,7 @@ import { forwardRef, Module } from '@nestjs/common';
     AdsResearchModule,
     forwardRef(() => AgentStreamPublisherModule),
     forwardRef(() => AnalyticsModule),
+    forwardRef(() => ArticlesModule),
     forwardRef(() => BatchGenerationModule),
     forwardRef(() => BrandInterviewModule),
     forwardRef(() => BrandsModule),

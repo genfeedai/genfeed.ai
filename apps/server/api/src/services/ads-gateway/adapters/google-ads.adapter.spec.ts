@@ -9,6 +9,8 @@ describe('GoogleAdsAdapter', () => {
   let googleAdsService: {
     createAdGroup: ReturnType<typeof vi.fn>;
     createResponsiveSearchAd: ReturnType<typeof vi.fn>;
+    getAdGroupInsights: ReturnType<typeof vi.fn>;
+    getAdInsights: ReturnType<typeof vi.fn>;
     getCampaign: ReturnType<typeof vi.fn>;
     getCampaignMetrics: ReturnType<typeof vi.fn>;
     listAdGroups: ReturnType<typeof vi.fn>;
@@ -33,6 +35,8 @@ describe('GoogleAdsAdapter', () => {
     googleAdsService = {
       createAdGroup: vi.fn(),
       createResponsiveSearchAd: vi.fn(),
+      getAdGroupInsights: vi.fn(),
+      getAdInsights: vi.fn(),
       getCampaign: vi.fn(),
       getCampaignMetrics: vi.fn(),
       listAdGroups: vi.fn(),
@@ -258,6 +262,95 @@ describe('GoogleAdsAdapter', () => {
       platform: 'google',
       status: 'PAUSED',
     });
+  });
+
+  it('maps ad group insights and derives cpm from spend over impressions', async () => {
+    googleAdsService.getAdGroupInsights.mockResolvedValue([
+      {
+        adGroupId: '100',
+        adGroupName: 'Ad Group A',
+        averageCpc: 500000,
+        campaignName: 'Campaign One',
+        clicks: 20,
+        conversions: 4,
+        costMicros: 10000000,
+        ctr: 2,
+        impressions: 1000,
+      },
+    ]);
+
+    const result = await adapter.getAdSetInsights(ctx, '100', {
+      timeRange: { since: '2026-03-01', until: '2026-03-07' },
+    });
+
+    expect(googleAdsService.getAdGroupInsights).toHaveBeenCalledWith(
+      'token',
+      '1234567890',
+      '100',
+      { dateRange: { endDate: '2026-03-07', startDate: '2026-03-01' } },
+      '1112223334',
+    );
+    expect(result).toEqual({
+      clicks: 20,
+      conversions: 4,
+      cpa: 2.5,
+      cpc: 0.5,
+      // 10 spend over 1000 impressions × 1000 = 10.
+      cpm: 10,
+      ctr: 2,
+      dateStart: '2026-03-01',
+      dateStop: '2026-03-07',
+      impressions: 1000,
+      platform: 'google',
+      spend: 10,
+    });
+  });
+
+  it('maps ad insights and returns empty insights when the report has no rows', async () => {
+    googleAdsService.getAdInsights.mockResolvedValue([
+      {
+        adGroupName: 'Ad Group A',
+        adId: 'ad-1',
+        adName: 'Ad One',
+        averageCpc: 250000,
+        campaignName: 'Campaign One',
+        clicks: 8,
+        conversions: 0,
+        costMicros: 2000000,
+        ctr: 1.6,
+        impressions: 500,
+      },
+    ]);
+
+    const result = await adapter.getAdInsights(ctx, 'ad-1');
+
+    expect(googleAdsService.getAdInsights).toHaveBeenCalledWith(
+      'token',
+      '1234567890',
+      'ad-1',
+      undefined,
+      '1112223334',
+    );
+    expect(result).toEqual(
+      expect.objectContaining({
+        clicks: 8,
+        // No conversions means no meaningful cost-per-acquisition.
+        cpa: undefined,
+        cpc: 0.25,
+        cpm: 4,
+        dateStart: '',
+        dateStop: '',
+        impressions: 500,
+        platform: 'google',
+        spend: 2,
+      }),
+    );
+
+    googleAdsService.getAdInsights.mockResolvedValue([]);
+
+    expect(await adapter.getAdInsights(ctx, 'ad-1')).toEqual(
+      expect.objectContaining({ clicks: 0, impressions: 0, spend: 0 }),
+    );
   });
 
   it('returns top performers sorted by metric and limit', async () => {

@@ -212,7 +212,7 @@ export class OrganizationsService extends BaseService<
       const prefix = updateDto.prefix.toUpperCase();
 
       // Prefix is immutable once set — reject if the org already has one.
-      const org = await this.findOne({ id: id, isDeleted: false });
+      const org = await this.findOne({ id: id });
       if (!org) {
         throw new NotFoundException('Organization');
       }
@@ -250,7 +250,6 @@ export class OrganizationsService extends BaseService<
    */
   findByPrefix(prefix: string): Promise<OrganizationDocument | null> {
     return this.findOne({
-      isDeleted: false,
       prefix: prefix.toUpperCase(),
     });
   }
@@ -281,7 +280,7 @@ export class OrganizationsService extends BaseService<
    * Find an organization by its slug
    */
   async findBySlug(slug: string): Promise<OrganizationDocument | null> {
-    return this.findOne({ isDeleted: false, slug });
+    return this.findOne({ slug });
   }
 
   /**
@@ -323,7 +322,6 @@ export class OrganizationsService extends BaseService<
    */
   getGetShareableOrganization(): Promise<OrganizationDocument | null> {
     return this.findOne({
-      isDeleted: false,
       label: 'GetShareable',
     });
   }

@@ -1,19 +1,26 @@
-# Review signal for the curated action catalog.
+# Reviewer-facing diff report for the curated Agent/MCP action catalog.
 #
-# packages/tools/src/registry/curated-action-catalog.ts is the only source of
-# truth for which product actions the in-app Agent and the MCP server expose.
-# Adding an action, removing one, or moving one between surfaces is a product
-# decision, not a refactor — so every such change is annotated inline on the PR
-# diff and summarized in the job summary, where a reviewer cannot miss it.
+# packages/tools/src/registry/curated-action-catalog.ts is the single source of
+# truth for whether a product action is exposed on the in-app Agent surface, the
+# MCP surface, or both (.agents/memory/curated_agent_mcp_actions.md). Additions,
+# removals, and surface transitions must be intentional, but a sorted 200-line
+# array reviews poorly by eye — a one-word `surfaces` edit buried mid-file looks
+# identical to a rename.
 #
-# This reports; it does not gate. The hard failures live in CI ("Executable
-# Contracts"): check:agent-tool-dispatch for agent coverage, and the module-load
-# throw in packages/tools/src/registry/tool-registry.ts for catalog/definition
-# mismatch.
+# packages/tools/scripts/report-curated-action-catalog.ts parses the catalog on
+# both sides of the pull request and emits `::warning` annotations (inline, on
+# the changed lines) plus a step-summary table. It shipped with unit coverage and
+# a `catalog:changes` package script, but nothing ever invoked it, so every
+# surface transition landed with no automated report.
+#
+# The script depends only on node: builtins, so this needs no `bun install` and
+# no monorepo build — checkout, extract the base copy, run.
 name: Curated action catalog
 
 on:
   pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
     paths:
       - "packages/tools/src/registry/curated-action-catalog.ts"
       - "packages/tools/scripts/report-curated-action-catalog.ts"
@@ -31,29 +38,45 @@ jobs:
     name: Report catalog changes
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      CATALOG_PATH: packages/tools/src/registry/curated-action-catalog.ts
     steps:
+      # Full history: the base commit has to be present locally for `git show`
+      # to read the pre-change catalog out of it.
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Setup Bun environment
-        uses: ./.github/actions/setup-bun-env
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: "1.3.14"
-          cache-turbo: "false"
 
-      # The base catalog is read out of git rather than checked out, so the
-      # working tree stays on the PR head for the report script itself.
-      - name: Extract base catalog
+      # The reporter diffs two catalog FILES, not two git refs, so the base copy
+      # is materialized here. Either side may legitimately be absent — the
+      # catalog being added, or deleted — and the parser treats empty input as an
+      # empty catalog, which reports every action as added or removed rather than
+      # crashing the report.
+      - name: Materialize base and head catalogs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          git show "${{ github.event.pull_request.base.sha }}:packages/tools/src/registry/curated-action-catalog.ts" \
-            > "${RUNNER_TEMP}/base-curated-action-catalog.ts" \
-            || printf '' > "${RUNNER_TEMP}/base-curated-action-catalog.ts"
+          git show "$BASE_SHA:$CATALOG_PATH" > "$RUNNER_TEMP/base-catalog.ts" \
+            || : > "$RUNNER_TEMP/base-catalog.ts"
+          cp "$CATALOG_PATH" "$RUNNER_TEMP/head-catalog.ts" \
+            || : > "$RUNNER_TEMP/head-catalog.ts"
 
-      - name: Report catalog changes
-        working-directory: packages/tools
+      # `bun run --filter` executes with the package directory as its cwd, so the
+      # paths passed here are absolute.
+      #
+      # This step fails when an entry is not in the canonical single-line form the
+      # parser accepts. That is deliberate: the catalog's review value depends on
+      # entries staying greppable and diff-legible, and a shape the reporter
+      # cannot read is a shape reviewers cannot skim either.
+      - name: Report curated action catalog changes
         run: |
-          bun run catalog:changes \
-            --before="${RUNNER_TEMP}/base-curated-action-catalog.ts" \
-            --after="${GITHUB_WORKSPACE}/packages/tools/src/registry/curated-action-catalog.ts" \
-            --summary="${GITHUB_STEP_SUMMARY}"
+          bun run --filter=@genfeedai/tools catalog:changes \
+            --before="$RUNNER_TEMP/base-catalog.ts" \
+            --after="$RUNNER_TEMP/head-catalog.ts" \
+            --summary="$GITHUB_STEP_SUMMARY"

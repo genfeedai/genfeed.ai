@@ -96,7 +96,7 @@ export class ClipResultsService extends BaseService<
     updateDto: Partial<UpdateClipResultDto> | Record<string, unknown>,
     populate: PopulateInput = [],
   ): Promise<ClipResultDocument> {
-    const existing = await this.findOne({ id: id, isDeleted: false });
+    const existing = await this.findOne({ id: id });
     const existingData = this.readRecord(
       (existing as Record<string, unknown> | null)?.data,
     );

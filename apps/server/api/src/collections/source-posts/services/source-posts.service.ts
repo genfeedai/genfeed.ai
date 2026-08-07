@@ -279,7 +279,6 @@ export class SourcePostsService {
     const credential = await this.credentialsService.findOne({
       brandId: context.brandId,
       isConnected: true,
-      isDeleted: false,
       organizationId: context.organizationId,
       platform,
     });

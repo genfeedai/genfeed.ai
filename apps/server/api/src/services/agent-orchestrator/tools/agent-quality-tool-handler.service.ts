@@ -200,7 +200,6 @@ export class AgentQualityToolHandler {
       // Toggle: if an active vote exists, remove it; otherwise create one
       const existing = await this.votesService.findOne({
         entityId: ingredientId,
-        isDeleted: false,
         userId: ctx.userId,
       });
 
@@ -332,7 +331,6 @@ export class AgentQualityToolHandler {
 
       const ingredient = await this.ingredientsService.findOne({
         id: ingredientId,
-        isDeleted: false,
         organizationId: ctx.organizationId,
       });
 

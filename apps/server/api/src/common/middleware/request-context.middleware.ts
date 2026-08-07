@@ -85,7 +85,6 @@ export class RequestContextMiddleware implements NestMiddleware {
           organizationId: organizationId,
         }),
         this.subscriptionsService.findOne({
-          isDeleted: false,
           organizationId: organizationId,
         }),
       ]);

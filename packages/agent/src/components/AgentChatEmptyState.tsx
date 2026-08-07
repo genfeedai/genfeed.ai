@@ -2,6 +2,7 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
+import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type {
@@ -43,6 +44,9 @@ type AgentChatEmptyStateProps = {
   promptBarSuggestions: ReactNode;
   removeAttachment: (id: string) => void;
   selectedModel?: string;
+  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
+  models?: readonly AgentModelOption[];
+  isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
 };
 
@@ -69,6 +73,8 @@ export function AgentChatEmptyState({
   promptBarSuggestions,
   removeAttachment,
   selectedModel,
+  models,
+  isModelsLoading = false,
   onModelChange,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
@@ -132,7 +138,9 @@ export function AgentChatEmptyState({
                 dragHandlers={dragHandlers}
                 dragState={dragState}
                 getCompletedAttachments={getCompletedAttachments}
+                isModelsLoading={isModelsLoading}
                 isUploading={isAttachmentUploading}
+                models={models}
                 onSend={onSend}
                 onStop={onStop}
                 placeholder={placeholder}

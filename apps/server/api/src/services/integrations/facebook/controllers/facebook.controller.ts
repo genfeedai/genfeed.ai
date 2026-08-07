@@ -56,7 +56,6 @@ export class FacebookController {
     const publicMetadata = getPublicMetadata(user);
     const brand = await this.brandsService.findOne({
       id: createCredentialDto.brandId,
-      isDeleted: false,
       organizationId: publicMetadata.organization,
     });
 

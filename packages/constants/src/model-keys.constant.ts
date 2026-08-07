@@ -23,6 +23,7 @@ export const MODEL_KEYS = {
     'ideogram-ai/ideogram-v3-balanced',
   REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY: 'ideogram-ai/ideogram-v3-quality',
   REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO: 'ideogram-ai/ideogram-v3-turbo',
+  REPLICATE_NATERAW_BGE_LARGE_EN_V1_5: 'nateraw/bge-large-en-v1.5',
   REPLICATE_OPENAI_CLIP: 'openai/clip',
   REPLICATE_OPENAI_GPT_5_2: 'openai/gpt-5.2',
   REPLICATE_OPENAI_GPT_IMAGE_1_5: 'openai/gpt-image-1.5',

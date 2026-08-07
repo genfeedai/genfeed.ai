@@ -11,6 +11,8 @@ describe('TikTokAdsAdapter', () => {
     createAdGroup: ReturnType<typeof vi.fn>;
     createCampaign: ReturnType<typeof vi.fn>;
     getAdAccounts: ReturnType<typeof vi.fn>;
+    getAdGroupInsights: ReturnType<typeof vi.fn>;
+    getAdInsights: ReturnType<typeof vi.fn>;
     getCampaignInsights: ReturnType<typeof vi.fn>;
     getReporting: ReturnType<typeof vi.fn>;
     listAdGroups: ReturnType<typeof vi.fn>;
@@ -36,6 +38,8 @@ describe('TikTokAdsAdapter', () => {
       createAdGroup: vi.fn(),
       createCampaign: vi.fn(),
       getAdAccounts: vi.fn(),
+      getAdGroupInsights: vi.fn(),
+      getAdInsights: vi.fn(),
       getCampaignInsights: vi.fn(),
       getReporting: vi.fn(),
       listAdGroups: vi.fn(),
@@ -153,6 +157,90 @@ describe('TikTokAdsAdapter', () => {
 
       expect(result.spend).toBe(0);
       expect(result.impressions).toBe(0);
+      expect(result.platform).toBe('tiktok');
+    });
+  });
+
+  describe('getAdSetInsights', () => {
+    it('should aggregate ad group rows and recompute ratio metrics from totals', async () => {
+      tiktokAdsService.getAdGroupInsights.mockResolvedValue([
+        { clicks: 50, conversions: 5, impressions: 1000, spend: 10 },
+        { clicks: 150, conversions: 5, impressions: 3000, spend: 30 },
+      ]);
+
+      const result = await adapter.getAdSetInsights(mockCtx, 'ag-1', {
+        timeRange: { since: '2026-03-01', until: '2026-03-07' },
+      });
+
+      expect(tiktokAdsService.getAdGroupInsights).toHaveBeenCalledWith(
+        'tk-token',
+        'acct-123',
+        'ag-1',
+        { endDate: '2026-03-07', startDate: '2026-03-01' },
+      );
+      expect(result).toMatchObject({
+        clicks: 200,
+        conversions: 10,
+        cpa: 4,
+        cpc: 0.2,
+        cpm: 10,
+        ctr: 5,
+        dateStart: '2026-03-01',
+        dateStop: '2026-03-07',
+        impressions: 4000,
+        platform: 'tiktok',
+        spend: 40,
+      });
+    });
+
+    it('should return empty insights when no data', async () => {
+      tiktokAdsService.getAdGroupInsights.mockResolvedValue([]);
+
+      const result = await adapter.getAdSetInsights(mockCtx, 'ag-empty');
+
+      expect(result.spend).toBe(0);
+      expect(result.impressions).toBe(0);
+      expect(result.platform).toBe('tiktok');
+    });
+  });
+
+  describe('getAdInsights', () => {
+    it('should aggregate ad rows into a single window total', async () => {
+      tiktokAdsService.getAdInsights.mockResolvedValue([
+        { clicks: 10, conversions: 0, impressions: 500, spend: 5 },
+      ]);
+
+      const result = await adapter.getAdInsights(mockCtx, 'ad-1');
+
+      expect(tiktokAdsService.getAdInsights).toHaveBeenCalledWith(
+        'tk-token',
+        'acct-123',
+        'ad-1',
+        expect.objectContaining({
+          endDate: expect.any(String),
+          startDate: expect.any(String),
+        }),
+      );
+      expect(result).toMatchObject({
+        clicks: 10,
+        cpc: 0.5,
+        cpm: 10,
+        ctr: 2,
+        impressions: 500,
+        platform: 'tiktok',
+        spend: 5,
+      });
+      // No conversions reported means no conversion-derived metrics.
+      expect(result.conversions).toBeUndefined();
+      expect(result.cpa).toBeUndefined();
+    });
+
+    it('should return empty insights when no data', async () => {
+      tiktokAdsService.getAdInsights.mockResolvedValue([]);
+
+      const result = await adapter.getAdInsights(mockCtx, 'ad-empty');
+
+      expect(result.spend).toBe(0);
       expect(result.platform).toBe('tiktok');
     });
   });

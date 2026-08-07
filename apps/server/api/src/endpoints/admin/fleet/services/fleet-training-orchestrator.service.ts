@@ -67,7 +67,6 @@ export class AdminFleetTrainingOrchestratorService {
 
     const training = await this.trainingsService.findOne({
       id: trainingId,
-      isDeleted: false,
       organizationId: organizationId,
     });
 
