@@ -1,19 +1,33 @@
+// @vitest-environment jsdom
+
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./notifications.service');
+const notificationsStub = vi.hoisted(() => ({
+  error: vi.fn(),
+  success: vi.fn(),
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => notificationsStub,
+  },
+}));
 vi.mock('./logger.service');
 
 describe('ClipboardService', () => {
   let clipboardService: ClipboardService;
-  let notificationsService: NotificationsService;
+  const notificationsService = notificationsStub;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn().mockReturnValue(false),
+      writable: true,
+    });
     clipboardService = ClipboardService.getInstance();
-    notificationsService = NotificationsService.getInstance();
   });
 
   afterEach(() => {
