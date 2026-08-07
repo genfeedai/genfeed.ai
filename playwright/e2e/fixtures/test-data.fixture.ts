@@ -7,6 +7,8 @@
  * @module test-data.fixture
  */
 
+import { PostStatus } from '@genfeedai/enums';
+
 // ----------------------------------------------------------------------------
 // Type Definitions
 // ----------------------------------------------------------------------------
@@ -840,7 +842,7 @@ interface TestPost {
   label: string;
   description: string;
   platform: string;
-  status: string;
+  status: PostStatus;
   scheduledDate: string | null;
   category: string;
   totalViews: number;
@@ -856,7 +858,7 @@ export const testPosts: TestPost[] = [
     label: 'Product Update Tweet',
     platform: 'twitter',
     scheduledDate: null,
-    status: 'DRAFT',
+    status: PostStatus.DRAFT,
     totalComments: 0,
     totalLikes: 0,
     totalViews: 0,
@@ -868,7 +870,7 @@ export const testPosts: TestPost[] = [
     label: 'BTS Instagram Post',
     platform: 'instagram',
     scheduledDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'SCHEDULED',
+    status: PostStatus.SCHEDULED,
     totalComments: 0,
     totalLikes: 0,
     totalViews: 0,
@@ -880,7 +882,7 @@ export const testPosts: TestPost[] = [
     label: 'Demo Video Post',
     platform: 'youtube',
     scheduledDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'PUBLIC',
+    status: PostStatus.PUBLIC,
     totalComments: 23,
     totalLikes: 89,
     totalViews: 1200,
@@ -894,7 +896,7 @@ export const testPosts: TestPost[] = [
     scheduledDate: new Date(
       Date.now() + 14 * 24 * 60 * 60 * 1000,
     ).toISOString(),
-    status: 'SCHEDULED',
+    status: PostStatus.SCHEDULED,
     totalComments: 0,
     totalLikes: 0,
     totalViews: 0,
@@ -906,7 +908,7 @@ export const testPosts: TestPost[] = [
     label: 'Quick Tip Draft',
     platform: 'twitter',
     scheduledDate: null,
-    status: 'DRAFT',
+    status: PostStatus.DRAFT,
     totalComments: 0,
     totalLikes: 0,
     totalViews: 0,
@@ -918,7 +920,7 @@ export function createTestPost(overrides: Partial<TestPost> = {}): TestPost {
   return { ...base, ...overrides };
 }
 
-export function getTestPostsByStatus(status: string): TestPost[] {
+export function getTestPostsByStatus(status: PostStatus): TestPost[] {
   return testPosts.filter((p) => p.status === status);
 }
 
