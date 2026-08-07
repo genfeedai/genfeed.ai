@@ -572,7 +572,6 @@ export function useWorkspacePageContent({
   const sectionCopy = SECTION_COPY[section];
   const shouldShowComposer = false;
   const shouldShowInbox = section === 'overview' || section === 'inbox';
-  const shouldShowHistory = section === 'activity';
   const shouldShowSectionSnapshot = section === 'inbox';
 
   return {
@@ -606,7 +605,6 @@ export function useWorkspacePageContent({
     setTaskComposerOpen,
     setWorkspaceTasks,
     shouldShowComposer,
-    shouldShowHistory,
     shouldShowInbox,
     shouldShowSectionSnapshot,
     summaryItems,
