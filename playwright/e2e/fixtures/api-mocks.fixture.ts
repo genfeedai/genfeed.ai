@@ -1,3 +1,4 @@
+import { PostStatus } from '@genfeedai/enums';
 import type { Page, Route } from '@playwright/test';
 import { playwrightApiEndpoint } from '../config/environment';
 import {
@@ -3683,7 +3684,7 @@ export function generateMockPost(
     platform: 'twitter',
     platformUrl: null,
     scheduledDate: null,
-    status: 'DRAFT',
+    status: PostStatus.DRAFT,
     totalComments: 0,
     totalLikes: 0,
     totalViews: 0,
@@ -3706,13 +3707,13 @@ export async function mockPostsList(
       description: 'First draft post content',
       id: 'post-draft-001',
       label: 'Draft Post 1',
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     }),
     generateMockPost({
       description: 'Second draft post content',
       id: 'post-draft-002',
       label: 'Draft Post 2',
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     }),
     generateMockPost({
       description: 'Scheduled for next week',
@@ -3721,14 +3722,14 @@ export async function mockPostsList(
       scheduledDate: new Date(
         Date.now() + 7 * 24 * 60 * 60 * 1000,
       ).toISOString(),
-      status: 'SCHEDULED',
+      status: PostStatus.SCHEDULED,
     }),
     generateMockPost({
       description: 'Already published post',
       id: 'post-pub-001',
       label: 'Published Post 1',
       platformUrl: 'https://twitter.com/mock/status/123',
-      status: 'PUBLIC',
+      status: PostStatus.PUBLIC,
       totalComments: 12,
       totalLikes: 45,
       totalViews: 230,
@@ -3793,7 +3794,7 @@ export async function mockPostDetail(
       description: 'Detailed post content for testing',
       id: 'post-detail-001',
       label: 'Detailed Post',
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     });
 
   await routeApiPattern(page, '/posts/*', async (route) => {
@@ -3856,7 +3857,7 @@ export async function mockCalendarPosts(
         9,
         0,
       ).toISOString(),
-      status: 'SCHEDULED',
+      status: PostStatus.SCHEDULED,
     }),
     generateMockPost({
       description: 'Midweek content',
@@ -3870,7 +3871,7 @@ export async function mockCalendarPosts(
         14,
         0,
       ).toISOString(),
-      status: 'SCHEDULED',
+      status: PostStatus.SCHEDULED,
     }),
     generateMockPost({
       description: 'Published last week',
@@ -3884,7 +3885,7 @@ export async function mockCalendarPosts(
         12,
         0,
       ).toISOString(),
-      status: 'PUBLIC',
+      status: PostStatus.PUBLIC,
     }),
     generateMockPost({
       description: 'Draft with no schedule',
@@ -3898,7 +3899,7 @@ export async function mockCalendarPosts(
         10,
         0,
       ).toISOString(),
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     }),
   ];
 
@@ -3953,7 +3954,7 @@ export async function mockPostPublishing(
     await route.fulfill({
       body: JSON.stringify({
         ...generateMockPost({
-          status: 'SCHEDULED',
+          status: PostStatus.SCHEDULED,
         }),
         updatedAt: new Date().toISOString(),
       }),
@@ -3973,7 +3974,7 @@ export async function mockPostPublishing(
           scheduledDate: new Date(
             Date.now() + 24 * 60 * 60 * 1000,
           ).toISOString(),
-          status: 'SCHEDULED',
+          status: PostStatus.SCHEDULED,
         }),
         updatedAt: new Date().toISOString(),
       }),
@@ -3991,7 +3992,7 @@ export async function mockPostPublishing(
       body: JSON.stringify([
         generateMockPost({
           id: 'generated-post-001',
-          status: 'PROCESSING',
+          status: PostStatus.PROCESSING,
         }),
       ]),
       contentType: 'application/json',

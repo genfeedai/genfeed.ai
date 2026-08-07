@@ -1,3 +1,4 @@
+import { PostStatus } from '@genfeedai/enums';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -47,7 +48,7 @@ test.describe('Calendar — Scheduling', () => {
           9,
           0,
         ).toISOString(),
-        status: 'SCHEDULED',
+        status: PostStatus.SCHEDULED,
       }),
       generateMockPost({
         description: 'Afternoon update',
@@ -61,7 +62,7 @@ test.describe('Calendar — Scheduling', () => {
           14,
           0,
         ).toISOString(),
-        status: 'SCHEDULED',
+        status: PostStatus.SCHEDULED,
       }),
     ];
 
@@ -115,7 +116,7 @@ test.describe('Calendar — Scheduling', () => {
         label: 'Date-specific Post',
         platform: 'twitter',
         scheduledDate: targetDate.toISOString(),
-        status: 'SCHEDULED',
+        status: PostStatus.SCHEDULED,
       }),
     ]);
 

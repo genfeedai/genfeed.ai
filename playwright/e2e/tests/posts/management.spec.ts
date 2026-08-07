@@ -1,3 +1,4 @@
+import { PostStatus } from '@genfeedai/enums';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -42,13 +43,13 @@ test.describe('Posts — Management', () => {
         description: 'My first draft',
         id: 'draft-001',
         label: 'Draft A',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
       generateMockPost({
         description: 'My second draft',
         id: 'draft-002',
         label: 'Draft B',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
     ];
 
@@ -90,14 +91,14 @@ test.describe('Posts — Management', () => {
         id: 'content-001',
         label: 'Product Launch',
         platform: 'twitter',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
       generateMockPost({
         description: 'Behind the scenes of our latest photoshoot.',
         id: 'content-002',
         label: 'BTS Content',
         platform: 'instagram',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
     ];
 
@@ -120,13 +121,13 @@ test.describe('Posts — Management', () => {
         description: 'Searchable unique content here',
         id: 'filter-001',
         label: 'Unique Label Alpha',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
       generateMockPost({
         description: 'Other content',
         id: 'filter-002',
         label: 'Different Post',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
     ];
 
@@ -152,7 +153,7 @@ test.describe('Posts — Management', () => {
         description: 'Click me to see details',
         id: 'detail-nav-001',
         label: 'Detail Nav Post',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
     ];
 
@@ -216,7 +217,7 @@ test.describe('Posts — Management', () => {
         scheduledDate: new Date(
           Date.now() + 7 * 24 * 60 * 60 * 1000,
         ).toISOString(),
-        status: 'SCHEDULED',
+        status: PostStatus.SCHEDULED,
       }),
     ];
 

@@ -1,3 +1,4 @@
+import { PostStatus } from '@genfeedai/enums';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -33,7 +34,7 @@ test.describe('Posts — Publishing', () => {
       id: 'pub-draft-001',
       label: 'Publishable Draft',
       platform: 'twitter',
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     });
 
     await mockPostsList(authenticatedPage, [draftPost]);
@@ -67,7 +68,7 @@ test.describe('Posts — Publishing', () => {
       id: 'pub-platform-001',
       label: 'Platform Selection Post',
       platform: 'twitter',
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     });
 
     await mockPostsList(authenticatedPage, [draftPost]);
@@ -105,7 +106,7 @@ test.describe('Posts — Publishing', () => {
       id: 'pub-sched-001',
       label: 'To Be Scheduled',
       platform: 'twitter',
-      status: 'DRAFT',
+      status: PostStatus.DRAFT,
     });
 
     await mockPostsList(authenticatedPage, [draftPost]);
@@ -143,7 +144,7 @@ test.describe('Posts — Publishing', () => {
         description: 'Draft content',
         id: 'status-draft',
         label: 'Draft Post',
-        status: 'DRAFT',
+        status: PostStatus.DRAFT,
       }),
       generateMockPost({
         description: 'Scheduled content',
@@ -152,14 +153,14 @@ test.describe('Posts — Publishing', () => {
         scheduledDate: new Date(
           Date.now() + 7 * 24 * 60 * 60 * 1000,
         ).toISOString(),
-        status: 'SCHEDULED',
+        status: PostStatus.SCHEDULED,
       }),
       generateMockPost({
         description: 'Published content',
         id: 'status-pub',
         label: 'Published Post',
         platformUrl: 'https://twitter.com/mock/status/456',
-        status: 'PUBLIC',
+        status: PostStatus.PUBLIC,
         totalLikes: 42,
         totalViews: 500,
       }),
@@ -167,7 +168,7 @@ test.describe('Posts — Publishing', () => {
         description: 'Currently processing',
         id: 'status-proc',
         label: 'Processing Post',
-        status: 'PROCESSING',
+        status: PostStatus.PROCESSING,
       }),
     ];
 
@@ -199,7 +200,7 @@ test.describe('Posts — Publishing', () => {
       scheduledDate: new Date(
         Date.now() + 2 * 24 * 60 * 60 * 1000,
       ).toISOString(),
-      status: 'SCHEDULED',
+      status: PostStatus.SCHEDULED,
     });
 
     await mockPostDetail(authenticatedPage, post);

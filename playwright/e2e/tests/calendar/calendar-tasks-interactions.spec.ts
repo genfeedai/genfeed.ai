@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import { PostStatus } from '@genfeedai/enums';
 import {
   generateMockPost,
   mockActiveSubscription,
@@ -40,7 +41,7 @@ function buildScheduledPosts() {
         9,
         0,
       ).toISOString(),
-      status: 'SCHEDULED',
+      status: PostStatus.SCHEDULED,
     }),
     generateMockPost({
       description: 'Midweek reel',
@@ -54,7 +55,7 @@ function buildScheduledPosts() {
         14,
         0,
       ).toISOString(),
-      status: 'SCHEDULED',
+      status: PostStatus.SCHEDULED,
     }),
   ];
 }
