@@ -58,7 +58,7 @@ function splitContributionIntoSections(contribution: string): BudgetSection[] {
   const lines = contribution.trim().split('\n');
   const sections: BudgetSection[] = [];
   let currentLines: string[] = [];
-  let currentPriority = TRUNCATION_PRIORITY.general;
+  let currentPriority: number = TRUNCATION_PRIORITY.general;
 
   const flush = (): void => {
     const content = currentLines.join('\n').trim();
