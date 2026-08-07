@@ -1,4 +1,4 @@
-export type McpApprovalStatus = 'PENDING' | 'APPROVED' | 'DECLINED';
+import type { McpApprovalStatus } from '@genfeedai/enums';
 
 export interface McpApprovalResource {
   id: string;
