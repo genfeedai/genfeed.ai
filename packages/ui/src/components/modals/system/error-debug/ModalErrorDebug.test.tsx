@@ -222,15 +222,16 @@ describe('ModalErrorDebug', () => {
       throw new Error('Response button not found');
     }
 
-    // Initially collapsed
-    expect(screen.queryByText('"error": "Test error"')).not.toBeInTheDocument();
-
-    // Click to expand
-    fireEvent.click(expandButton);
+    // Initially expanded
     expect(screen.getByText(/"error":/)).toBeInTheDocument();
 
     // Click to collapse
     fireEvent.click(expandButton);
+    expect(screen.queryByText(/"error":/)).not.toBeInTheDocument();
+
+    // Click to expand
+    fireEvent.click(expandButton);
+    expect(screen.getByText(/"error":/)).toBeInTheDocument();
   });
 
   it('should display stack trace when available', () => {
