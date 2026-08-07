@@ -414,7 +414,6 @@ describe('AssetsOperationsController', () => {
       );
       expect(metadataService.findOne).toHaveBeenCalledWith({
         id: mockMetadataId,
-        isDeleted: false,
       });
       expect(filesClientService.copyInS3).toHaveBeenCalledWith(
         mockIngredientId.toString(),

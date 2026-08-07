@@ -127,7 +127,6 @@ describe('VideoProvenanceService', () => {
     });
     expect(captionsService.find).toHaveBeenCalledWith({
       ingredientId: 'video-1',
-      isDeleted: false,
     });
   });
 

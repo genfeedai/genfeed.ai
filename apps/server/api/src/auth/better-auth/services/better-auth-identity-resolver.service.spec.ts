@@ -68,10 +68,7 @@ describe('BetterAuthIdentityResolverService', () => {
     expect(organizationsService.findOne).toHaveBeenCalledWith({
       userId: 'user_1',
     });
-    expect(usersService.findOne).toHaveBeenCalledWith(
-      { id: 'user_1', isDeleted: false },
-      [],
-    );
+    expect(usersService.findOne).toHaveBeenCalledWith({ id: 'user_1' }, []);
   });
 
   it('does not treat organization admins as platform superadmins', async () => {

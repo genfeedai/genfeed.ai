@@ -502,7 +502,6 @@ describe('UsersController', () => {
       );
       expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
         id: 'user_canonical_1',
-        isDeleted: false,
       });
       expect(result).toBeDefined();
     });

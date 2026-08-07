@@ -694,7 +694,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       });
       expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
         email,
-        isDeleted: false,
       });
       expect(eventEmitter.emitAsync).not.toHaveBeenCalled();
       expect(supportService.addPurchasedCredits).toHaveBeenCalled();
@@ -718,7 +717,6 @@ describe('StripeCheckoutWebhookHandler', () => {
       });
       expect(usersService.findOne).toHaveBeenNthCalledWith(2, {
         email,
-        isDeleted: false,
       });
       expect(usersService.patch).not.toHaveBeenCalledWith(
         expect.any(String),
