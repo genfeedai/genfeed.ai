@@ -96,7 +96,7 @@ export class ClipResultsController {
       });
     }
 
-    const data = await this.clipResultsService.findAllByOrganization(
+    const data = await this.clipResultsService.findRecentByOrganization(
       publicMetadata.organization,
       CLIP_RESULTS_LIST_LIMIT,
     );

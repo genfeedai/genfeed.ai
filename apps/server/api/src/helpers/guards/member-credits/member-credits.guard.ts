@@ -42,10 +42,15 @@ export class MemberCreditsGuard implements CanActivate {
     }
 
     const publicMetadata = user.publicMetadata as IAuthPublicMetadata;
-    const organizationId =
+    const organizationIdParam =
       request.params.organizationId ||
       request.params.id ||
       publicMetadata.organization;
+    // Route params are typed string | string[]; the typed Prisma count below
+    // requires a single id.
+    const organizationId = Array.isArray(organizationIdParam)
+      ? organizationIdParam[0]
+      : organizationIdParam;
 
     const settings = await this.organizationSettingsService.findOne({
       organizationId: organizationId,
