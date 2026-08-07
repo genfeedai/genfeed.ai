@@ -71,7 +71,7 @@ describe('AnalyticsSnapshotCard', () => {
     expect(screen.getByText('10')).toBeTruthy();
   });
 
-  it('collapses metrics behind the header chevron', () => {
+  it('collapses the metric grid into a compact preview strip', () => {
     const action: AgentUiAction = {
       id: 'analytics-card-2',
       metrics: {
@@ -87,8 +87,19 @@ describe('AnalyticsSnapshotCard', () => {
     render(<AnalyticsSnapshotCard action={action} />);
 
     expect(screen.getByText('Replies / hour')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Open analytics' })).toBeTruthy();
+
     fireEvent.click(screen.getByRole('button', { name: 'Collapse analytics' }));
-    expect(screen.queryByText('Replies / hour')).toBeNull();
+
+    // Collapsing swaps the detail grid for a label + value preview strip — the
+    // metrics stay readable, only the expanded card body goes away.
+    expect(screen.queryByRole('link', { name: 'Open analytics' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Expand analytics' }),
+    ).toBeTruthy();
+    expect(screen.getByText('Replies / hour')).toBeTruthy();
     expect(screen.getByText('3.4')).toBeTruthy();
+    expect(screen.getByText('Success rate')).toBeTruthy();
+    expect(screen.getByText('48.9%')).toBeTruthy();
   });
 });
