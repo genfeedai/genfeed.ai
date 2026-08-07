@@ -1,3 +1,4 @@
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -92,7 +93,7 @@ describe('WorkflowSurfaceInspector', () => {
       },
       nodeResults: [],
       progress: 60,
-      status: 'waiting_approval',
+      status: WorkflowExecutionStatus.RUNNING,
       trigger: 'agent',
       updatedAt: '2026-07-13T08:01:00.000Z',
       workflowId: 'workflow-1',
@@ -101,7 +102,7 @@ describe('WorkflowSurfaceInspector', () => {
     service.resumeExecution.mockResolvedValue({
       message: 'Partial execution started',
       runId: 'run-2',
-      status: 'pending',
+      status: WorkflowExecutionStatus.PENDING,
     });
   });
 
@@ -144,7 +145,7 @@ describe('WorkflowSurfaceInspector', () => {
       metadata: { source: 'conversation' },
       nodeResults: [],
       progress: 100,
-      status: 'failed',
+      status: WorkflowExecutionStatus.FAILED,
       trigger: 'agent',
       updatedAt: '2026-07-13T08:01:00.000Z',
       workflowId: 'workflow-1',

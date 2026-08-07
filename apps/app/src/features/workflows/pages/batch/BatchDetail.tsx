@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  BatchStatus,
+  ButtonSize,
+  ButtonVariant,
+  type WorkflowBatchItemStatus,
+} from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import Card from '@ui/card/Card';
@@ -15,6 +20,7 @@ import type {
   BatchJobStatus,
   WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
+import { isTerminalBatchStatus } from '@/features/workflows/utils/batch-status';
 import { canOptimizeImageSource } from '@/lib/images/can-optimize-image-source';
 
 type OutputEntry = {
@@ -40,13 +46,22 @@ type Props = {
   onOpenPostModal: (ingredient: IIngredient | IIngredient[]) => void;
 };
 
-function getStatusClasses(status: string): string {
-  switch (status) {
-    case 'completed':
+/**
+ * Serves both the job status (Prisma `BatchStatus`, SCREAMING_SNAKE) and the
+ * per-item status (`items` JSON payload, lowercase), so the input is upper-cased
+ * before it is matched.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+function getStatusClasses(
+  status: BatchStatus | WorkflowBatchItemStatus,
+): string {
+  switch (status.toUpperCase()) {
+    case BatchStatus.COMPLETED:
       return 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300';
-    case 'processing':
+    case BatchStatus.PROCESSING:
       return 'border-blue-500/30 bg-blue-500/15 text-blue-300';
-    case 'failed':
+    case BatchStatus.FAILED:
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
       return 'border-white/15 bg-muted/50 text-white/70';
@@ -61,10 +76,6 @@ function getProgressPercent(batchJob: BatchJobStatus): number {
     ((batchJob.completedCount + batchJob.failedCount) / batchJob.totalCount) *
       100,
   );
-}
-
-function isTerminalBatchStatus(status: string): boolean {
-  return status === 'completed' || status === 'failed';
 }
 
 function getLibraryPathForCategory(category?: string): string | null {
@@ -335,7 +346,7 @@ export default function BatchDetail({
 
                   {!item.error &&
                     !item.outputSummary &&
-                    item.status === 'completed' && (
+                    item.status === WorkflowBatchItemStatus.COMPLETED && (
                       <p className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
                         Output metadata is unavailable for this completed item.
                       </p>

@@ -1,3 +1,4 @@
+import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import {
   formatEtaDuration,
   formatEtaRange,
@@ -26,13 +27,26 @@ function getElapsedMs(startedAt?: string): number | null {
   return Math.max(0, Date.now() - startedAtMs);
 }
 
+/**
+ * A settled execution has no ETA left to show — `workflow_executions.status` is
+ * Prisma-backed, so these are the SCREAMING_SNAKE wire values. `CANCELLED` is
+ * settled too: the run stopped, so any remaining estimate is meaningless.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+const SETTLED_STATUSES: ReadonlySet<WorkflowExecutionStatus> = new Set([
+  WorkflowExecutionStatus.CANCELLED,
+  WorkflowExecutionStatus.COMPLETED,
+  WorkflowExecutionStatus.FAILED,
+]);
+
 export function getExecutionEtaDisplayState(params: {
   eta?: ExecutionEtaMetadata;
-  status: string;
+  status: WorkflowExecutionStatus;
   durationMs?: number;
 }): ExecutionEtaDisplayState {
   const { eta, status, durationMs } = params;
-  const normalizedStatus = status.toLowerCase();
+  const isSettled = SETTLED_STATUSES.has(status);
   const actualDurationMs = eta?.actualDurationMs ?? durationMs;
   const etaVisible = shouldDisplayEta(eta);
   const estimatedDurationMs = eta?.estimatedDurationMs;
@@ -41,12 +55,7 @@ export function getExecutionEtaDisplayState(params: {
   const elapsedMs = getElapsedMs(eta?.startedAt);
 
   let etaLabel: string | null = null;
-  if (
-    normalizedStatus !== 'completed' &&
-    normalizedStatus !== 'failed' &&
-    etaVisible &&
-    estimatedDurationMs
-  ) {
+  if (!isSettled && etaVisible && estimatedDurationMs) {
     etaLabel =
       confidence === 'low'
         ? `Usually takes ${formatEtaRange(estimatedDurationMs)}`
@@ -65,9 +74,7 @@ export function getExecutionEtaDisplayState(params: {
     etaLabel,
     phaseLabel: eta?.currentPhase ?? null,
     reassuranceLabel:
-      normalizedStatus !== 'completed' &&
-      normalizedStatus !== 'failed' &&
-      (remainingDurationMs ?? estimatedDurationMs ?? 0) >= 60_000
+      !isSettled && (remainingDurationMs ?? estimatedDurationMs ?? 0) >= 60_000
         ? 'You can keep working. We’ll notify you when it’s ready.'
         : null,
   };
