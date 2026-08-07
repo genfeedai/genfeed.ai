@@ -28,11 +28,16 @@ import { BETTER_AUTH_BASE_PATH, getApiOrigin } from './config';
  * Better Auth's React client is provider-less (nanostores-backed), so no
  * `<Provider>` is required for `useSession()` to work anywhere in the tree.
  */
+type DefaultAdminClientOptions = {
+  ac?: undefined;
+  roles?: undefined;
+};
+
 type GenfeedAuthClientOptions = {
   basePath: string;
   baseURL: string;
   plugins: [
-    ReturnType<typeof adminClient>,
+    ReturnType<typeof adminClient<DefaultAdminClientOptions>>,
     ReturnType<typeof magicLinkClient>,
     ReturnType<typeof jwtClient>,
   ];
@@ -43,7 +48,11 @@ type GenfeedAuthClient = ReactAuthClient<GenfeedAuthClientOptions>;
 const authClientOptions: GenfeedAuthClientOptions = {
   basePath: BETTER_AUTH_BASE_PATH,
   baseURL: getApiOrigin(),
-  plugins: [adminClient(), magicLinkClient(), jwtClient()],
+  plugins: [
+    adminClient<DefaultAdminClientOptions>(),
+    magicLinkClient(),
+    jwtClient(),
+  ],
 };
 
 export const authClient: GenfeedAuthClient =
