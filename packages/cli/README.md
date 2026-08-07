@@ -124,7 +124,6 @@ The same values are settable outside login via `genfeed config set api-url <url>
 `genfeed config set app-url <url>`, or the `GENFEED_API_URL` / `GENFEED_APP_URL` env vars.
 `genfeed config show` prints the resolved app URL and marks it `(derived)` when it was inferred.
 
->>>>>>> origin/master
 Check current user:
 
 ```bash
