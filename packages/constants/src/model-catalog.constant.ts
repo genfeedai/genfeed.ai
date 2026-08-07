@@ -209,18 +209,26 @@ function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
  * Full catalog seed list, deduped by key. Live agent rows win over a media key
  * of the same name (they carry the chat billing metadata), and a retired key
  * never displaces a row that is still live.
+ *
+ * "Still live" means a live *agent* row — not merely a key the media
+ * capability map also lists. `x-ai/grok-4-fast` is both a retired chat key and
+ * a TEXT entry in `MODEL_OUTPUT_CAPABILITIES`, and an uncurated media row seeds
+ * at cost 0 with no `succeededBy`. Letting that win would leave a stale chat
+ * binding billing at zero — the exact failure the retired rows exist to stop.
  */
 export const UNIFIED_MODEL_CATALOG: readonly ModelCatalogSeedEntry[] = (() => {
   const byKey = new Map<string, ModelCatalogSeedEntry>();
+  const liveAgentKeys = new Set<string>();
 
   for (const entry of buildMediaCatalogEntries()) {
     byKey.set(entry.key, entry);
   }
   for (const entry of buildAgentCatalogEntries()) {
     byKey.set(entry.key, entry);
+    liveAgentKeys.add(entry.key);
   }
   for (const entry of buildRetiredAgentCatalogEntries()) {
-    if (!byKey.has(entry.key)) {
+    if (!liveAgentKeys.has(entry.key)) {
       byKey.set(entry.key, entry);
     }
   }
