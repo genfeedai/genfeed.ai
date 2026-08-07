@@ -44,7 +44,7 @@ describe('AgentThreadsController', () => {
       organization: 'org_current',
       user: 'u07f1f77bcf86cd799439011',
     },
-  } as unknown as User;
+  };
 
   beforeEach(() => {
     service = {
