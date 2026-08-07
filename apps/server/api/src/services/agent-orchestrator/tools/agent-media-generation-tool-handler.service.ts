@@ -25,11 +25,15 @@ import { BatchGenerationCreditsService } from '@api/services/batch-generation/ba
 import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import {
-  type BatchEstimateInput,
   chargeBatchGenerationCredits,
   estimateBatchGenerationCredits,
 } from '@genfeedai/constants';
-import { ActivitySource, formatPlatformLabel, Status } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  ContentFormat,
+  formatPlatformLabel,
+  Status,
+} from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -42,6 +46,85 @@ interface AgentBrandsServiceLike {
     params: Record<string, unknown>,
     context?: string,
   ) => Promise<Record<string, unknown> | null>;
+}
+
+/**
+ * `contentMix` as the `generate_content_batch` tool schema advertises it, and
+ * as `CreateBatchDto`'s nested `ContentMixDto` consumes it.
+ */
+interface ContentMixPercents {
+  imagePercent: number;
+  videoPercent: number;
+  carouselPercent: number;
+  reelPercent: number;
+  storyPercent: number;
+}
+
+/**
+ * The batch credit estimator keys its mix by {@link ContentFormat} (`image`,
+ * `video`, …), not by the DTO's `*Percent` names. The two shapes were bridged
+ * by `as never`, so the estimator only ever saw unknown keys and silently fell
+ * back to `DEFAULT_BATCH_CONTENT_MIX` — a video-heavy batch was pre-flighted at
+ * the default 60/25/10/5 mix and under-quoted.
+ */
+const CONTENT_MIX_PERCENT_KEYS: Readonly<
+  Record<ContentFormat, keyof ContentMixPercents>
+> = {
+  [ContentFormat.IMAGE]: 'imagePercent',
+  [ContentFormat.VIDEO]: 'videoPercent',
+  [ContentFormat.CAROUSEL]: 'carouselPercent',
+  [ContentFormat.REEL]: 'reelPercent',
+  [ContentFormat.STORY]: 'storyPercent',
+};
+
+/** Read a tool-call `contentMix` argument; `undefined` when absent or unusable. */
+function parseContentMixPercents(
+  input: unknown,
+): ContentMixPercents | undefined {
+  if (!input || typeof input !== 'object') {
+    return undefined;
+  }
+
+  const raw = input as Record<string, unknown>;
+  const readPercent = (key: keyof ContentMixPercents): number => {
+    const value = raw[key];
+
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0
+      ? value
+      : 0;
+  };
+
+  const percents: ContentMixPercents = {
+    carouselPercent: readPercent('carouselPercent'),
+    imagePercent: readPercent('imagePercent'),
+    reelPercent: readPercent('reelPercent'),
+    storyPercent: readPercent('storyPercent'),
+    videoPercent: readPercent('videoPercent'),
+  };
+
+  const total = Object.values(percents).reduce(
+    (sum, percent) => sum + percent,
+    0,
+  );
+
+  return total > 0 ? percents : undefined;
+}
+
+/** Re-key a DTO-shaped mix onto {@link ContentFormat} for the credit estimator. */
+function toContentFormatMix(
+  percents: ContentMixPercents | undefined,
+): Partial<Record<ContentFormat, number>> | undefined {
+  if (!percents) {
+    return undefined;
+  }
+
+  const mix: Partial<Record<ContentFormat, number>> = {};
+
+  for (const format of Object.values(ContentFormat)) {
+    mix[format] = percents[CONTENT_MIX_PERCENT_KEYS[format]];
+  }
+
+  return mix;
 }
 
 function splitThreadSegments(content: string): string[] {
@@ -914,9 +997,10 @@ export class AgentMediaGenerationToolHandler {
     const count = (params.count as number) || 10;
     const platforms = (params.platforms as string[]) || ['instagram'];
     const pricingOptions = this.resolveBatchPricingOptions(ctx);
+    const contentMix = parseContentMixPercents(params.contentMix);
     const estimatedCredits = estimateBatchGenerationCredits(
       {
-        contentMix: params.contentMix as BatchEstimateInput['contentMix'],
+        contentMix: toContentFormatMix(contentMix),
         count,
         platforms,
       },
@@ -945,7 +1029,7 @@ export class AgentMediaGenerationToolHandler {
     const batch = await this.batchGenerationService.createBatch(
       {
         brandId,
-        contentMix: params.contentMix as never,
+        contentMix,
         count,
         dateRange: {
           end: dateRange.end,
