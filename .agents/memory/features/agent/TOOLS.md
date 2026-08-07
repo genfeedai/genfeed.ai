@@ -27,8 +27,9 @@ toAgentTools(tools): AgentToolDefinition[]  // adapter to agent format
 `packages/tools/src/registry/curated-action-catalog.spec.ts` verifies unique,
 sorted catalog entries, a complete definition bijection, and exact runtime
 surface derivation. Agent and MCP suites separately verify real executor paths.
-There is no catalog-diff CI workflow on `master`; one is in flight in #2452 —
-do not assume the check exists, and do not write a second one.
+`.github/workflows/curated-action-catalog.yml` runs on pull requests that touch
+the catalog or its reporter, and reports additions, removals, and surface
+transitions as warning annotations plus a step-summary table.
 
 **CanonicalToolDefinition:**
 ```typescript
