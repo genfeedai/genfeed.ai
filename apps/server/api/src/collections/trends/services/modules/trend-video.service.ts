@@ -9,6 +9,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -197,12 +198,15 @@ export class TrendVideoService {
 
           if (matchId) {
             await this.prisma.trendingVideo.update({
-              data: { data: dataPayload as never },
+              data: { data: dataPayload as Prisma.InputJsonValue },
               where: { id: matchId },
             });
           } else {
             const created = await this.prisma.trendingVideo.create({
-              data: { data: dataPayload as never, isDeleted: false },
+              data: {
+                data: dataPayload as Prisma.InputJsonValue,
+                isDeleted: false,
+              },
             });
             // Keep the index authoritative so a key repeated inside this batch
             // updates the row we just created instead of duplicating it.
@@ -219,7 +223,7 @@ export class TrendVideoService {
                 isCurrent: true,
                 isDeleted: false,
                 lastSeenAt: new Date(),
-              } as never,
+              } as Prisma.InputJsonValue,
               isDeleted: false,
             },
           });
@@ -350,12 +354,15 @@ export class TrendVideoService {
 
         if (matchId) {
           await this.prisma.trendingHashtag.update({
-            data: { data: dataPayload as never },
+            data: { data: dataPayload as Prisma.InputJsonValue },
             where: { id: matchId },
           });
         } else {
           const created = await this.prisma.trendingHashtag.create({
-            data: { data: dataPayload as never, isDeleted: false },
+            data: {
+              data: dataPayload as Prisma.InputJsonValue,
+              isDeleted: false,
+            },
           });
           // Keep the index authoritative for keys repeated inside this batch.
           if (indexKey && created.id) {
@@ -472,12 +479,15 @@ export class TrendVideoService {
 
         if (matchId) {
           await this.prisma.trendingSound.update({
-            data: { data: dataPayload as never },
+            data: { data: dataPayload as Prisma.InputJsonValue },
             where: { id: matchId },
           });
         } else {
           const created = await this.prisma.trendingSound.create({
-            data: { data: dataPayload as never, isDeleted: false },
+            data: {
+              data: dataPayload as Prisma.InputJsonValue,
+              isDeleted: false,
+            },
           });
           // Keep the index authoritative for ids repeated inside this batch.
           if (soundId && created.id) {
@@ -610,17 +620,17 @@ export class TrendVideoService {
 
       if (modelType === 'video') {
         await this.prisma.trendingVideo.update({
-          data: { data: updatedData as never },
+          data: { data: updatedData as Prisma.InputJsonValue },
           where: { id: doc.id },
         });
       } else if (modelType === 'hashtag') {
         await this.prisma.trendingHashtag.update({
-          data: { data: updatedData as never },
+          data: { data: updatedData as Prisma.InputJsonValue },
           where: { id: doc.id },
         });
       } else {
         await this.prisma.trendingSound.update({
-          data: { data: updatedData as never },
+          data: { data: updatedData as Prisma.InputJsonValue },
           where: { id: doc.id },
         });
       }

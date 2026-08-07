@@ -17,7 +17,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -219,7 +219,7 @@ export class BatchGenerationProcessingService {
               ? [batchConfig.style]
               : undefined,
             brandId: batchRecord.brandId ?? undefined,
-            platform: item.platform as never,
+            platform: item.platform,
             topic,
             variationsCount: 1,
           },
@@ -232,18 +232,18 @@ export class BatchGenerationProcessingService {
         // Create a draft post as placeholder
         const post = await this.postsService.create({
           brandId: batchRecord.brandId,
-          credentialId: undefined as never,
+          credentialId: undefined,
           description: item.caption,
           ingredients: [],
           label: `Batch: ${topic}`,
           organizationId: orgId,
-          platform: item.platform as never,
+          platform: item.platform,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
           status: PostStatus.DRAFT,
           userId: batchRecord.userId,
-        } as never);
+        } as Prisma.PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
         item.postId = postId;

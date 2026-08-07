@@ -34,11 +34,12 @@ export interface BatchWorkflowJobDocument
   [key: string]: unknown;
 }
 
+/** Matches Prisma BatchStatus labels used on batch_workflow_jobs.status. */
 export enum BatchWorkflowJobStatus {
-  PENDING = 'pending',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
 }
 
 export enum BatchWorkflowItemStatus {

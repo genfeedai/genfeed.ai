@@ -14,7 +14,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { BatchItemStatus, BatchStatus, PostStatus } from '@genfeedai/enums';
 import type { IBatchSummary, IPublishApproval } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -128,9 +128,9 @@ export class BatchGenerationReviewService {
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
-        where: where as never,
+        where: where as Prisma.BatchWhereInput,
       }),
-      this.prisma.batch.count({ where: where as never }),
+      this.prisma.batch.count({ where: where as Prisma.BatchWhereInput }),
     ]);
 
     return {
@@ -235,7 +235,7 @@ export class BatchGenerationReviewService {
         selectedPostIds.map((postId) =>
           transaction.post.updateMany({
             data: {
-              reviewDecision: 'APPROVED' as never,
+              reviewDecision: 'APPROVED',
               reviewVersionPinId: versionPinIds.get(postId),
               reviewedAt: new Date(reviewedAt),
             },
@@ -251,7 +251,7 @@ export class BatchGenerationReviewService {
 
       if (postIdsToSchedule.length > 0) {
         await transaction.post.updateMany({
-          data: { status: PostStatus.SCHEDULED as never },
+          data: { status: PostStatus.SCHEDULED },
           where: scopedWhere(orgId, { id: { in: postIdsToSchedule } }),
         });
       }
@@ -364,7 +364,7 @@ export class BatchGenerationReviewService {
       await this.prisma.post.updateMany({
         data: {
           isDeleted: true,
-          reviewDecision: 'REJECTED' as never,
+          reviewDecision: 'REJECTED',
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
         },
@@ -447,10 +447,10 @@ export class BatchGenerationReviewService {
     if (postIdsToKeepAsDraft.length > 0) {
       await this.prisma.post.updateMany({
         data: {
-          reviewDecision: 'REQUEST_CHANGES' as never,
+          reviewDecision: 'REQUEST_CHANGES',
           reviewedAt: new Date(reviewedAt),
           reviewFeedback: feedback,
-          status: PostStatus.DRAFT as never,
+          status: PostStatus.DRAFT,
         },
         where: scopedWhere(orgId, { id: { in: postIdsToKeepAsDraft } }),
       });

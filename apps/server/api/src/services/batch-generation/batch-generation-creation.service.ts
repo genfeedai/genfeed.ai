@@ -21,7 +21,7 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -255,7 +255,7 @@ export class BatchGenerationCreationService {
           ingredients: reviewItem.ingredientId ? [reviewItem.ingredientId] : [],
           label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
           organizationId: orgId,
-          platform: reviewItem.platform as never,
+          platform: reviewItem.platform,
           publishIntent: reviewItem.publishIntent,
           promptUsed: reviewItem.prompt,
           scheduleSlot: reviewItem.scheduleSlot,
@@ -265,7 +265,7 @@ export class BatchGenerationCreationService {
           status: PostStatus.DRAFT,
           userId: userId,
           variantId: reviewItem.variantId,
-        } as never);
+        } as Prisma.PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);
 
