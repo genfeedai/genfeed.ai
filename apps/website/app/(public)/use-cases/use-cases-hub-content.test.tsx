@@ -1,3 +1,4 @@
+import { useCases } from '@data/use-cases.data';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -40,12 +41,11 @@ describe('UseCasesHubContent headings', () => {
     // which skips H2 for screen-reader navigation and heading audits.
     render(<UseCasesHubContent />);
 
-    expect(screen.queryAllByRole('heading', { level: 3 })).toHaveLength(0);
-    expect(
-      screen.getByRole('heading', {
-        level: 2,
-        name: 'AI-Powered Virtual Influencers',
-      }),
-    ).toBeInTheDocument();
+    const cardHeadings = screen.getAllByRole('heading', { level: 2 });
+
+    expect(cardHeadings).toHaveLength(useCases.length);
+    expect(cardHeadings.map((heading) => heading.textContent)).toEqual(
+      useCases.map((useCase) => useCase.subtitle),
+    );
   });
 });

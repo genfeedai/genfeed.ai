@@ -348,7 +348,7 @@ export function checkStructuredData(input: PageInput): Finding[] {
   const { facts, path } = input;
   const findings: Finding[] = [];
 
-  for (const block of facts.jsonLd) {
+  for (const [blockIndex, block] of facts.jsonLd.entries()) {
     if (block.parseError !== null) {
       findings.push(
         finding(
@@ -361,7 +361,7 @@ export function checkStructuredData(input: PageInput): Finding[] {
       continue;
     }
 
-    for (const node of collectTypedNodes(block.value)) {
+    for (const [nodeIndex, node] of collectTypedNodes(block.value).entries()) {
       for (const type of typesOf(node)) {
         const isPresent = (field: string): boolean => {
           const value = node[field];
@@ -389,10 +389,9 @@ export function checkStructuredData(input: PageInput): Finding[] {
               'error',
               path,
               `${type} is missing ${missing.join(', ')} — not eligible for a rich result.`,
-              // One page can report this rule several times: once per typed
-              // node with missing fields, and once per type on a multi-type
-              // node. The type keeps those apart in the baseline.
-              type,
+              // The block/node coordinates distinguish repeated nodes of the
+              // same schema type; the type distinguishes multi-type nodes.
+              `${type} block-${blockIndex}.node-${nodeIndex}`,
             ),
           );
         }

@@ -30,43 +30,47 @@ const OFFER_DESCRIPTIONS: Record<PlanTier, string> = {
   scale: `For teams: unlimited seats, a shared pool of ${PLAN_COPY.scale.includedCredits}, multi-organization workflows, approvals, and managed billing.`,
 };
 
-const saasJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebPage',
-  description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} includes ${PLAN_COPY.pro.includedCredits} at a better rate. ${PLAN_COPY.scale.nameWithPrice} adds unlimited seats, a shared credit pool, and multi-organization workflows.`,
-  mainEntity: {
-    '@type': 'Product',
-    brand: { '@type': 'Organization', name: 'Genfeed' },
-    description:
-      'The AI studio for creating, approving, publishing, and tracking videos, images, voice, and marketing content.',
-    image: metadata.cards.default,
-    name: 'Genfeed',
-    // Enterprise is quote-only. A schema.org Offer needs a price or a
-    // priceSpecification, and inventing one would misstate the deal, so
-    // quote-only tiers are left out of the offer list entirely.
-    offers: websitePlans
-      .filter((plan) => plan.price != null)
-      .map((plan) => ({
-        '@type': 'Offer',
-        description: OFFER_DESCRIPTIONS[plan.tier],
-        name: plan.label,
-        price: String(plan.price),
-        priceCurrency: 'USD',
-        priceSpecification:
-          plan.type === 'subscription'
-            ? { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }
-            : undefined,
-        url: 'https://genfeed.ai/pricing',
-      })),
-  },
-  name: 'Genfeed Pricing',
-  url: 'https://genfeed.ai/pricing',
-};
+export function buildPricingJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    description: `Genfeed is free to join with pay-per-output credits. ${PLAN_COPY.pro.nameWithPrice} includes ${PLAN_COPY.pro.includedCredits} at a better rate, and all paid tiers include unlimited seats. ${PLAN_COPY.scale.nameWithPrice} adds a shared credit pool and multi-organization workflows.`,
+    mainEntity: {
+      '@type': 'Product',
+      brand: { '@type': 'Organization', name: 'Genfeed' },
+      description:
+        'The AI studio for creating, approving, publishing, and tracking videos, images, voice, and marketing content.',
+      image: metadata.cards.default,
+      name: 'Genfeed',
+      // Enterprise is quote-only. A schema.org Offer needs a price or a
+      // priceSpecification, and inventing one would misstate the deal, so
+      // quote-only tiers are left out of the offer list entirely.
+      offers: websitePlans
+        .filter((plan) => plan.price != null)
+        .map((plan) => ({
+          '@type': 'Offer',
+          description: OFFER_DESCRIPTIONS[plan.tier],
+          name: plan.label,
+          price: String(plan.price),
+          priceCurrency: 'USD',
+          priceSpecification:
+            plan.type === 'subscription'
+              ? { '@type': 'UnitPriceSpecification', billingDuration: 'P1M' }
+              : undefined,
+          url: 'https://genfeed.ai/pricing',
+        })),
+    },
+    name: 'Genfeed Pricing',
+    url: 'https://genfeed.ai/pricing',
+  };
+}
 
 export default function Pricing() {
   return (
     <>
-      <script type="application/ld+json">{stringifyJsonLd(saasJsonLd)}</script>
+      <script type="application/ld+json">
+        {stringifyJsonLd(buildPricingJsonLd())}
+      </script>
       <PricingContent />
     </>
   );

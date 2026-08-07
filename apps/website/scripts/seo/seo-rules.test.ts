@@ -312,8 +312,35 @@ describe('structured data', () => {
 
     expect(findings).toHaveLength(2);
     expect(findings.map(findingKey).sort()).toEqual([
-      'structured-data-incomplete /vs/jasper Offer',
-      'structured-data-incomplete /vs/jasper Product',
+      'structured-data-incomplete /vs/jasper Offer block-0.node-2',
+      'structured-data-incomplete /vs/jasper Product block-0.node-1',
+    ]);
+  });
+
+  it('gives repeated nodes of the same type distinct baseline keys', () => {
+    const findings = checkStructuredData(
+      withJsonLd({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        mainEntity: [
+          {
+            '@type': 'Product',
+            name: 'Genfeed Pro',
+            offers: { '@type': 'Offer', price: '49', priceCurrency: 'USD' },
+          },
+          {
+            '@type': 'Product',
+            name: 'Genfeed Scale',
+            offers: { '@type': 'Offer', price: '149', priceCurrency: 'USD' },
+          },
+        ],
+      }),
+    );
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map(findingKey)).toEqual([
+      'structured-data-incomplete /vs/jasper Product block-0.node-1',
+      'structured-data-incomplete /vs/jasper Product block-0.node-3',
     ]);
   });
 
