@@ -244,38 +244,38 @@ function normalizeExecution(
     createdAt: execution.startedAt,
     durationMs,
     error:
-      execution.status === 'failed'
+      execution.status === 'FAILED'
         ? String(execution.results.error || 'Execution failed')
         : undefined,
     id: execution.id,
     metadata: {
-      creditsUsed: execution.status === 'completed' ? 18 : 7,
+      creditsUsed: execution.status === 'COMPLETED' ? 18 : 7,
       logs: execution.logs,
     },
     nodeResults: execution.logs.map((_log, index) => ({
       completedAt:
-        index < execution.logs.length - 1 || execution.status !== 'running'
+        index < execution.logs.length - 1 || execution.status !== 'RUNNING'
           ? execution.completedAt || new Date().toISOString()
           : undefined,
       error:
-        execution.status === 'failed' && index === execution.logs.length - 1
+        execution.status === 'FAILED' && index === execution.logs.length - 1
           ? String(execution.results.error || execution.logs[index])
           : undefined,
       nodeId: `node-${index + 1}`,
       nodeType: index === execution.logs.length - 1 ? 'publish' : 'generate',
       output: index === execution.logs.length - 1 ? execution.results : {},
       progress:
-        execution.status === 'running' && index === execution.logs.length - 1
+        execution.status === 'RUNNING' && index === execution.logs.length - 1
           ? 42
           : 100,
       startedAt: execution.startedAt,
       status:
-        execution.status === 'failed' && index === execution.logs.length - 1
-          ? 'failed'
-          : execution.status === 'running' &&
+        execution.status === 'FAILED' && index === execution.logs.length - 1
+          ? 'FAILED'
+          : execution.status === 'RUNNING' &&
               index === execution.logs.length - 1
-            ? 'running'
-            : 'completed',
+            ? 'RUNNING'
+            : 'COMPLETED',
     })),
     progress: progressByStatus[execution.status] ?? 0,
     startedAt: execution.startedAt,

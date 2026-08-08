@@ -28,7 +28,7 @@ export function useContentMentions(
     runAgentApiEffect(apiService.getContentMentionsEffect(controller.signal))
       .then((data) => {
         if (!controller.signal.aborted) {
-          setMentions(data);
+          setMentions(data ?? []);
         }
       })
       .catch(() => {
