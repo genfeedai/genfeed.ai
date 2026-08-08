@@ -1,5 +1,9 @@
 import '@testing-library/jest-dom/vitest';
-import { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
+import {
+  AssetCategory,
+  AssetScope,
+  CredentialPlatform,
+} from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -333,7 +337,10 @@ describe('BrandDetail', () => {
       'https://genfeed.test/u/brand-handle',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Disable Public' }));
-    expect(mocks.handleUpdateAccount).toHaveBeenCalledWith('scope', 'brand');
+    expect(mocks.handleUpdateAccount).toHaveBeenCalledWith(
+      'scope',
+      AssetScope.BRAND,
+    );
     expect(
       screen.getByText('Manage social: /org-one/brand-handle/settings/social'),
     ).toBeInTheDocument();

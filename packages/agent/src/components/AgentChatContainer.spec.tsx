@@ -508,7 +508,18 @@ describe('AgentChatContainer', () => {
     });
     storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
 
-    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+    // Production always mounts the container under the workspace shell's
+    // composer provider; input requests render in the composer status stack.
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:1"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
 
     fireEvent.click(screen.getByText('Submit requested input'));
 
@@ -545,7 +556,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="fixed"][data-max-width="full"]',
+      '[data-layout-mode="fixed"][data-max-width="4xl"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
@@ -602,7 +613,7 @@ describe('AgentChatContainer', () => {
     );
 
     const promptBarContainers = container.querySelectorAll(
-      '[data-layout-mode="surface-fixed"][data-max-width="full"]',
+      '[data-layout-mode="surface-fixed"][data-max-width="4xl"]',
     );
 
     expect(promptBarContainers.length).toBe(1);
@@ -663,7 +674,7 @@ describe('AgentChatContainer', () => {
       </ConversationComposerShellProvider>,
     );
 
-    expect(container.querySelector('.pb-36')).not.toBeNull();
+    expect(container.querySelector('.pb-32')).not.toBeNull();
     expect(
       portalTarget.querySelector(
         '[data-layout-mode="inflow"][data-show-top-fade="false"]',
@@ -699,8 +710,8 @@ describe('AgentChatContainer', () => {
       screen.getByText(/The agent hit an error while running/i),
     ).toBeInTheDocument();
     expect(screen.getByText('Submit requested input')).toBeInTheDocument();
-    expect(container.querySelector('.pb-6')).not.toBeNull();
-    expect(container.querySelector('.pb-36')).toBeNull();
+    expect(container.querySelector('.pb-5')).not.toBeNull();
+    expect(container.querySelector('.pb-32')).toBeNull();
   });
 
   it('uses an inflow prompt bar layout on the empty state even when a surface layout is requested', () => {

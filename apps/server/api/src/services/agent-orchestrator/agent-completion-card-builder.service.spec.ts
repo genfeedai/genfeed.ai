@@ -159,7 +159,8 @@ describe('AgentCompletionCardBuilderService', () => {
           },
         ],
         primaryCta: {
-          href: '/publish/drafts',
+          // Retired route normalized by the builder (normalize-agent-app-href).
+          href: '/publish/review',
           label: 'Review Draft',
         },
         summaryText: 'Generated content for this request.',

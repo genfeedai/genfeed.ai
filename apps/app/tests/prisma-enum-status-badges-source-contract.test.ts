@@ -23,7 +23,9 @@ describe('Prisma-enum status badge source contracts', () => {
       'app/(protected)/admin/automation/bots/bots-page.tsx',
     );
 
-    expect(source).toContain("import { BotStatus } from '@genfeedai/enums'");
+    expect(source).toMatch(
+      /import \{[^}]*BotStatus[^}]*\} from '@genfeedai\/enums'/,
+    );
     expect(source).toContain('case BotStatus.ACTIVE:');
     expect(source).toContain('case BotStatus.PAUSED:');
     expect(source).not.toContain("case 'active':");
@@ -42,17 +44,19 @@ describe('Prisma-enum status badge source contracts', () => {
     expect(source).not.toContain('budget_exhausted:');
   });
 
-  it('keys run content off both vocabularies — ingredients SCREAMING, posts lowercase', () => {
+  it('normalizes run content statuses across both vocabularies', () => {
     const source = readAppSource(
       'app/(protected)/[orgSlug]/[brandSlug]/automate/[agentId]/AgentRunContentGrid.tsx',
     );
 
-    expect(source).toContain('[IngredientStatus.GENERATED]:');
-    expect(source).toContain('[IngredientStatus.FAILED]:');
-    expect(source).toContain('[PostStatus.PUBLIC]:');
-    expect(source).toContain('[PostStatus.SCHEDULED]:');
-    // `approved` / `review` matched neither vocabulary — they were dead keys.
-    expect(source).not.toContain('approved:');
-    expect(source).not.toContain('review:');
+    // A run mixes posts (lowercase String column) with ingredients (SCREAMING
+    // Prisma enum). The landed design keys one lowercase map and normalizes
+    // the lookup — without the toLowerCase() every ingredient status silently
+    // falls through to the default variant.
+    expect(source).toContain('status.toLowerCase()');
+    expect(source).toContain("failed: 'error'");
+    expect(source).toContain("generated: 'success'");
+    expect(source).toContain("published: 'success'");
+    expect(source).toContain("scheduled: 'warning'");
   });
 });

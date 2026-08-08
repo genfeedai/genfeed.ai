@@ -248,10 +248,12 @@ describe('useAgentChatStream', () => {
 
     expect(apiService.chatStream).not.toHaveBeenCalled();
     expect(apiService.chat).toHaveBeenCalledTimes(1);
+    // No client-side default: the hook sends model: undefined and the
+    // server resolves the registry default (agent-runtime-model.constant).
     expect(apiService.chat).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Show me the analytics',
-        model: 'openai/gpt-5.6-terra',
+        model: undefined,
       }),
       undefined,
     );
@@ -267,7 +269,7 @@ describe('useAgentChatStream', () => {
     );
   });
 
-  it('uses the runtime default model for streaming sends when no override is supplied', async () => {
+  it('leaves the model unset for streaming sends so the server resolves the runtime default', async () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({
       chatStream: vi.fn().mockResolvedValue({
@@ -290,7 +292,7 @@ describe('useAgentChatStream', () => {
     expect(apiService.chatStream).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Start with Kimi',
-        model: 'openai/gpt-5.6-terra',
+        model: undefined,
       }),
       expect.any(AbortSignal),
     );

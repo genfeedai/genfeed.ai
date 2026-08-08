@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { IngredientStatus } from '@genfeedai/enums';
+import { ContentRating, IngredientStatus } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
@@ -140,7 +140,7 @@ export default function MasonryImage({
   const isFleetNsfwSensitive =
     selectedBrand?.isFleetEnabled &&
     !!image.personaSlug &&
-    image.contentRating !== 'sfw';
+    image.contentRating !== ContentRating.SFW;
   const isFleetNsfwLocked =
     Boolean(isFleetNsfwSensitive) && !settings?.isFleetNsfwVisible;
 

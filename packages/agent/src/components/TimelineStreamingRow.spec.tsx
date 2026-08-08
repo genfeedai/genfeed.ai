@@ -69,7 +69,9 @@ describe('TimelineStreamingRow', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Researching')).toBeTruthy();
+    // T3 density: a running tool paints the turn as a work entry, so the
+    // status header is suppressed and raw reasoning text never renders.
+    expect(screen.getByText('get_sources')).toBeTruthy();
     expect(
       screen.queryByText('Then comparing results line by line.'),
     ).toBeNull();
@@ -99,8 +101,10 @@ describe('TimelineStreamingRow', () => {
       />,
     );
 
-    expect(screen.getByLabelText('Waiting for input')).toBeTruthy();
-    expect(screen.getAllByText('Choose the export format.')).toHaveLength(2);
+    // The input request renders once as a work entry; the status header is
+    // suppressed when a meaningful event already paints the turn.
+    expect(screen.getByText('Input Required')).toBeTruthy();
+    expect(screen.getAllByText('Choose the export format.')).toHaveLength(1);
   });
 
   it('reveals streaming answer text progressively', () => {
@@ -168,8 +172,9 @@ describe('TimelineStreamingRow', () => {
       />,
     );
 
-    expect(screen.getAllByText('Running check_onboarding_status')).toHaveLength(
-      1,
-    );
+    // The active tool call owns the entry; its mirrored work event (same
+    // toolCallId) is dropped instead of rendering the turn twice.
+    expect(screen.getAllByText('Check Onboarding')).toHaveLength(1);
+    expect(screen.queryByText('Running check_onboarding_status')).toBeNull();
   });
 });

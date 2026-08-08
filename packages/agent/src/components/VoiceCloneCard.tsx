@@ -63,14 +63,13 @@ export function VoiceCloneCard({
         return;
       }
 
-      const nextStatus = payload.status?.toLowerCase();
-      if (nextStatus === VoiceCloneStatus.READY || nextStatus === 'ready') {
+      // cloneStatus is a Prisma enum (SCREAMING labels); normalize the
+      // socket payload once and compare with enum members only.
+      const nextStatus = payload.status?.toUpperCase();
+      if (nextStatus === VoiceCloneStatus.READY) {
         setProgress(100);
         setStatus('done');
-      } else if (
-        nextStatus === VoiceCloneStatus.FAILED ||
-        nextStatus === 'failed'
-      ) {
+      } else if (nextStatus === VoiceCloneStatus.FAILED) {
         setStatus('error');
         setError('Voice clone failed. Please try again.');
       } else if (nextStatus === VoiceCloneStatus.CLONING) {
@@ -203,10 +202,7 @@ export function VoiceCloneCard({
         );
       }
 
-      if (
-        voice.cloneStatus === VoiceCloneStatus.READY ||
-        voice.cloneStatus === 'ready'
-      ) {
+      if (voice.cloneStatus === VoiceCloneStatus.READY) {
         setProgress(100);
         setStatus('done');
         return;
