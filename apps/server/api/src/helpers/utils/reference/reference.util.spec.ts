@@ -4,6 +4,7 @@ import {
   buildReferenceImageUrl,
   buildReferenceImageUrls,
 } from '@api/helpers/utils/reference/reference.util';
+import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -74,7 +75,7 @@ describe('buildReferenceImageUrl', () => {
     const ingredientQuery = (ingredientsService.findOne as vi.Mock).mock
       .calls[0][0];
     expect(ingredientQuery.id).toBe(referenceId);
-    expect(ingredientQuery.category).toBe('image');
+    expect(ingredientQuery.category).toBe(IngredientCategory.IMAGE);
     expect(assetsService.findOne).not.toHaveBeenCalled();
   });
 
@@ -98,7 +99,7 @@ describe('buildReferenceImageUrl', () => {
     expect(url).toBe(`${BASE_URL}/ingredients/thumbnails/${referenceId}`);
     expect(ingredientsService.findOne).toHaveBeenCalledTimes(2);
     const videoQuery = (ingredientsService.findOne as vi.Mock).mock.calls[1][0];
-    expect(videoQuery.category).toBe('video');
+    expect(videoQuery.category).toBe(IngredientCategory.VIDEO);
     expect(assetsService.findOne).not.toHaveBeenCalled();
   });
 
