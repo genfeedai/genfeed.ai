@@ -244,7 +244,7 @@ jobs:
       - name: Package Release Scripts
         run: bunx vitest run --config scripts/package-release/vitest.config.ts
       - name: CI Workflow Contracts
-        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/daily-deploy-orchestration.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
+        run: node --test scripts/ci/changed-code-coverage.test.mjs scripts/ci/daily-deploy-orchestration.test.mjs scripts/ci/master-ci-failure-reporter.test.mjs scripts/ci/pr-test-plan.test.mjs scripts/ci/pr-validation-workflows.test.mjs scripts/ci/release-e2e-failure-reporter.test.mjs scripts/ci/setup-bun-env.test.mjs scripts/ci/tests-gate.test.mjs
       - name: Coverage Workspace Contract
         run: bunx vitest run --config scripts/ci/vitest.config.ts coverage-workspaces.test.ts
       # Fail the build if the committed Prisma model metadata (enum-field-map)
@@ -365,11 +365,12 @@ jobs:
             echo "::endgroup::"
           done
 
-  # Heavy test jobs run only on the on-demand full-suite path. full-suite.yml
-  # invokes this workflow via `uses:` (workflow_call), so the gate must check for
-  # 'workflow_call' — NOT 'workflow_dispatch' (which this workflow never
-  # registers as a trigger; a dispatch gate left every test job permanently
-  # unreachable, including on the full-suite run). Fast PR/master-push checks
+  # Heavy test jobs key off this planner's outputs on every event: on pull
+  # requests the diff base is the PR base, on master pushes it is
+  # `github.event.before` (the previous trunk tip), and the full-suite release
+  # path escalates everything via the explicit `run_heavy_tests` input —
+  # workflow_call inherits the CALLER's originating event, so an event-name
+  # gate can never stand in for that input. Fast PR/master-push checks
   # (format, lint, typecheck, design, build) stay ungated above.
   test-scope:
     name: Test Plan
@@ -766,11 +767,18 @@ jobs:
             bun run build
           fi
 
-  # Stable aggregate for the test/build portion of pull-request CI. Every
-  # upstream job is declared explicitly so an expression error that leaves an
-  # applicable job skipped cannot produce a false-green gate. Full-suite and
-  # changed-test jobs are mutually exclusive; plan-filtered skips are accepted
-  # only when the exact test plan marked them non-applicable.
+  # Stable aggregate for the test/build portion of CI. Every upstream job is
+  # declared explicitly so an expression error that leaves an applicable job
+  # skipped cannot produce a false-green gate. Full-suite and changed-test jobs
+  # are mutually exclusive; plan-filtered skips are accepted only when the
+  # exact test plan marked them non-applicable.
+  #
+  # Runs on pull requests AND master pushes (#2510): the push event only fires
+  # for `branches: [master]`, so the second arm is exactly the trunk. Without
+  # it a merge train could go red with no conclusive aggregate — eight green
+  # shard jobs made run 31200491364 look complete while the heavy tier was
+  # absent. The release path (workflow_call inherits the caller's originating
+  # event, e.g. workflow_dispatch) stays gated by its own callers, unchanged.
   tests-gate:
     name: Tests Gate
     runs-on: ubuntu-latest
@@ -787,7 +795,7 @@ jobs:
       - test-api-changed
       - openapi-drift
       - build
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'push') }}
     steps:
       - uses: actions/checkout@v5
 
@@ -1015,3 +1023,136 @@ jobs:
           # Observation evidence: the first ratchet is derived by aggregating
           # these artifacts, so they outlive the usual 7-day CI retention.
           retention-days: 90
+
+  # ── Master push failure tracker (#2510) ─────────────────────────────────────
+  #
+  # A red trunk must not depend on someone opening the Actions tab. When the
+  # Tests Gate fails on a master push, file (or update) ONE `master-ci-failure`
+  # tracking issue at Project Priority P0; when the next push is green, close
+  # every open tracker automatically — same contract as the self-hosted release
+  # E2E tracker. Push-only by construction: pull requests surface a red gate on
+  # the PR itself, and the release path never fires these (workflow_call
+  # inherits the caller's originating event, which is not `push`).
+  #
+  # `!cancelled()` is load-bearing on the failure arm twice over: an `if:`
+  # without a status function implicitly ANDs `success()`, which is false the
+  # moment tests-gate fails — and `always()` would fire on a cancelled run,
+  # filing a phantom tracker for jobs that never got to report.
+  master-failure-report:
+    name: Report master CI failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [tests-gate]
+    if: >-
+      !cancelled()
+      && github.event_name == 'push'
+      && needs.tests-gate.result == 'failure'
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout failure reporter
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Open or update tracking issue (Priority P0)
+        uses: actions/github-script@v8
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const {
+              buildMasterCiFailureBody,
+              reportMasterCiFailure,
+            } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/master-ci-failure-reporter.mjs',
+                ),
+              ).href,
+            );
+
+            const date = new Date().toISOString().slice(0, 10);
+            const headline =
+              (process.env.HEAD_COMMIT_MESSAGE || '').split('\n')[0] ||
+              'unresolved';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = buildMasterCiFailureBody({
+              date,
+              sha: context.sha,
+              headline,
+              runUrl,
+            });
+
+            const result = await reportMasterCiFailure({
+              github,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+              date,
+              core,
+            });
+            core.info(JSON.stringify(result));
+
+  # Auto-close open master-ci-failure trackers when a master push is green so a
+  # recovered trunk cannot keep a stale P0 on the board.
+  master-failure-resolve:
+    name: Resolve master CI failure
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [tests-gate]
+    if: >-
+      github.event_name == 'push'
+      && needs.tests-gate.result == 'success'
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout failure reporter
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Close open master-ci-failure trackers
+        uses: actions/github-script@v8
+        env:
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        with:
+          script: |
+            const path = require('node:path');
+            const { pathToFileURL } = require('node:url');
+            const { resolveMasterCiFailure } = await import(
+              pathToFileURL(
+                path.join(
+                  process.env.GITHUB_WORKSPACE,
+                  'scripts/ci/master-ci-failure-reporter.mjs',
+                ),
+              ).href,
+            );
+
+            const date = new Date().toISOString().slice(0, 10);
+            const headline =
+              (process.env.HEAD_COMMIT_MESSAGE || '').split('\n')[0] ||
+              'unresolved';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `**Tests Gate is green on \`master\`** on \`${date}\`.`,
+              ``,
+              `- Commit: \`${context.sha}\` — ${headline}`,
+              `- Green run: ${runUrl}`,
+              ``,
+              `Closing automatically. A future red master push will file a new tracker at Priority P0.`,
+            ].join('\n');
+
+            const result = await resolveMasterCiFailure({
+              github,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+              core,
+            });
+            core.info(JSON.stringify(result));

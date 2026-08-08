@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import {
   AREA_INFRA,
@@ -9,11 +11,11 @@ import {
   WORK_TYPE_BUG,
 } from './genfeed-project-board.mjs';
 import {
-  buildReleaseE2eFailureBody,
-  RELEASE_E2E_FAILURE_LABEL,
-  reportReleaseE2eFailure,
-  resolveReleaseE2eFailure,
-} from './release-e2e-failure-reporter.mjs';
+  buildMasterCiFailureBody,
+  MASTER_CI_FAILURE_LABEL,
+  reportMasterCiFailure,
+  resolveMasterCiFailure,
+} from './master-ci-failure-reporter.mjs';
 
 function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
   const comments = [];
@@ -31,7 +33,7 @@ function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
     rest: {
       issues: {
         listForRepo: async () => ({ data: openIssues }),
-        getLabel: async () => ({ data: { name: RELEASE_E2E_FAILURE_LABEL } }),
+        getLabel: async () => ({ data: { name: MASTER_CI_FAILURE_LABEL } }),
         createLabel: async () => {
           throw new Error('createLabel should not run when getLabel succeeds');
         },
@@ -78,40 +80,39 @@ function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {
   return { github, comments, created, updates, graphqlCalls };
 }
 
-test('buildReleaseE2eFailureBody names Priority as a project field', () => {
-  const body = buildReleaseE2eFailureBody({
-    date: '2026-07-28',
-    releaseTag: 'v0.1.3',
-    imageTag: '0.1.3',
+test('buildMasterCiFailureBody names the commit, run, and auto-close contract', () => {
+  const body = buildMasterCiFailureBody({
+    date: '2026-08-08',
+    sha: 'a6758fb6c',
+    headline: 'fix(agent): mentions endpoints',
     runUrl: 'https://example.test/run/1',
-    failureClass: 'missing-install-assets',
   });
 
-  assert.match(body, /v0\.1\.3/);
-  assert.match(body, /missing-install-assets/);
+  assert.match(body, /a6758fb6c/);
+  assert.match(body, /fix\(agent\): mentions endpoints/);
+  assert.match(body, /https:\/\/example\.test\/run\/1/);
   assert.match(body, /Priority = P0/);
-  assert.doesNotMatch(body, /P0 status/);
+  assert.match(body, /closes automatically/);
 });
 
-test('reportReleaseE2eFailure comments existing open tracker and re-asserts P0', async () => {
+test('reportMasterCiFailure comments existing open tracker and re-asserts P0', async () => {
   const { github, comments, created, graphqlCalls } = createGithubMock({
-    openIssues: [{ number: 2079, pull_request: undefined }],
+    openIssues: [{ number: 2600, pull_request: undefined }],
   });
-  const logs = [];
 
-  const result = await reportReleaseE2eFailure({
+  const result = await reportMasterCiFailure({
     github,
     owner: 'genfeedai',
     repo: 'genfeed.ai',
-    body: 'failed again',
-    date: '2026-07-28',
-    core: { info: (m) => logs.push(m), warning: (m) => logs.push(m) },
+    body: 'still red',
+    date: '2026-08-08',
+    core: { info: () => {}, warning: () => {} },
   });
 
   assert.equal(result.action, 'commented');
-  assert.equal(result.issueNumber, 2079);
+  assert.equal(result.issueNumber, 2600);
   assert.equal(created.length, 0);
-  assert.equal(comments[0].issue_number, 2079);
+  assert.equal(comments[0].issue_number, 2600);
   assert.ok(graphqlCalls.some((c) => c.query.includes('addProjectV2ItemById')));
   assert.ok(
     graphqlCalls.some(
@@ -122,24 +123,24 @@ test('reportReleaseE2eFailure comments existing open tracker and re-asserts P0',
   );
 });
 
-test('reportReleaseE2eFailure creates tracker and triages project fields', async () => {
+test('reportMasterCiFailure creates tracker and triages project fields', async () => {
   const { github, created, graphqlCalls } = createGithubMock({
     openIssues: [],
   });
 
-  const result = await reportReleaseE2eFailure({
+  const result = await reportMasterCiFailure({
     github,
     owner: 'genfeedai',
     repo: 'genfeed.ai',
-    body: 'first failure',
-    date: '2026-07-26',
+    body: 'first red push',
+    date: '2026-08-08',
     core: { info: () => {}, warning: () => {} },
   });
 
   assert.equal(result.action, 'created');
   assert.equal(result.issueNumber, 99);
-  assert.equal(created[0].labels[0], RELEASE_E2E_FAILURE_LABEL);
-  assert.match(created[0].title, /2026-07-26/);
+  assert.equal(created[0].labels[0], MASTER_CI_FAILURE_LABEL);
+  assert.match(created[0].title, /2026-08-08/);
 
   const optionIds = graphqlCalls.map((c) => c.vars?.optionId).filter(Boolean);
   assert.ok(optionIds.includes(PRIORITY_P0));
@@ -148,19 +149,19 @@ test('reportReleaseE2eFailure creates tracker and triages project fields', async
   assert.ok(optionIds.includes(BLAST_RADIUS_INFRA));
 });
 
-test('reportReleaseE2eFailure still succeeds when project GraphQL is denied', async () => {
+test('reportMasterCiFailure still succeeds when project GraphQL is denied', async () => {
   const { github, created } = createGithubMock({ openIssues: [] });
   github.graphql = async () => {
     throw new Error('Resource not accessible by integration');
   };
   const warnings = [];
 
-  const result = await reportReleaseE2eFailure({
+  const result = await reportMasterCiFailure({
     github,
     owner: 'genfeedai',
     repo: 'genfeed.ai',
-    body: 'first failure',
-    date: '2026-07-26',
+    body: 'first red push',
+    date: '2026-08-08',
     core: {
       info: () => {},
       warning: (m) => warnings.push(m),
@@ -172,35 +173,35 @@ test('reportReleaseE2eFailure still succeeds when project GraphQL is denied', as
   assert.ok(warnings.some((w) => w.includes('Could not triage')));
 });
 
-test('resolveReleaseE2eFailure closes all open trackers', async () => {
+test('resolveMasterCiFailure closes all open trackers', async () => {
   const { github, comments, updates } = createGithubMock({
-    openIssues: [{ number: 2079 }, { number: 2100 }],
+    openIssues: [{ number: 2600 }, { number: 2601 }],
   });
 
-  const result = await resolveReleaseE2eFailure({
+  const result = await resolveMasterCiFailure({
     github,
     owner: 'genfeedai',
     repo: 'genfeed.ai',
-    body: 'green',
+    body: 'green again',
     core: { info: () => {}, warning: () => {} },
   });
 
   assert.equal(result.action, 'closed');
-  assert.deepEqual(result.closed, [2079, 2100]);
+  assert.deepEqual(result.closed, [2600, 2601]);
   assert.equal(comments.length, 2);
   assert.equal(updates.length, 2);
   assert.equal(updates[0].state, 'closed');
   assert.equal(updates[0].state_reason, 'completed');
 });
 
-test('resolveReleaseE2eFailure is a noop when nothing is open', async () => {
+test('resolveMasterCiFailure is a noop when nothing is open', async () => {
   const { github, comments, updates } = createGithubMock({ openIssues: [] });
 
-  const result = await resolveReleaseE2eFailure({
+  const result = await resolveMasterCiFailure({
     github,
     owner: 'genfeedai',
     repo: 'genfeed.ai',
-    body: 'green',
+    body: 'green again',
     core: { info: () => {}, warning: () => {} },
   });
 
@@ -208,4 +209,49 @@ test('resolveReleaseE2eFailure is a noop when nothing is open', async () => {
   assert.deepEqual(result.closed, []);
   assert.equal(comments.length, 0);
   assert.equal(updates.length, 0);
+});
+
+// ── Workflow contract (#2510) ───────────────────────────────────────────────
+//
+// Master pushes must reach a conclusive Tests Gate, and a red gate must file
+// the tracker. These pins fail the build if either half regresses to PR-only.
+
+const CI_WORKFLOW = readFileSync(
+  fileURLToPath(new URL('../../.github/workflows/ci.yml', import.meta.url)),
+  'utf8',
+);
+
+/** Slice one job out of ci.yml, ending at the next job key at the same indent. */
+function ciJob(name) {
+  const start = CI_WORKFLOW.indexOf(`\n  ${name}:\n`);
+  assert.notEqual(start, -1, `ci.yml must define ${name}`);
+  const rest = CI_WORKFLOW.slice(start + 1);
+  const end = rest.search(/\n {2}[a-z][a-z0-9-]*:\n/);
+  return end === -1 ? rest : rest.slice(0, end);
+}
+
+test('tests-gate runs on master pushes as well as pull requests', () => {
+  const gate = ciJob('tests-gate');
+  assert.match(
+    gate,
+    /if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'push'\) \}\}/,
+    'tests-gate must produce a conclusive result on push events (#2510)',
+  );
+});
+
+test('a red master gate files the tracker and a green one resolves it', () => {
+  const report = ciJob('master-failure-report');
+  assert.match(report, /needs: \[tests-gate\]/);
+  assert.match(report, /!cancelled\(\)/);
+  assert.match(report, /github\.event_name == 'push'/);
+  assert.match(report, /needs\.tests-gate\.result == 'failure'/);
+  assert.match(report, /issues: write/);
+  assert.match(report, /master-ci-failure-reporter\.mjs/);
+
+  const resolve = ciJob('master-failure-resolve');
+  assert.match(resolve, /needs: \[tests-gate\]/);
+  assert.match(resolve, /github\.event_name == 'push'/);
+  assert.match(resolve, /needs\.tests-gate\.result == 'success'/);
+  assert.match(resolve, /issues: write/);
+  assert.match(resolve, /master-ci-failure-reporter\.mjs/);
 });

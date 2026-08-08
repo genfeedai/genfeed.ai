@@ -1,38 +1,39 @@
 /**
- * Self-hosted release E2E tracker.
+ * Master push Tests Gate tracker (#2510).
  *
- * Failure path: one open `release-e2e` issue, Project #12 Priority P0, Area Infra.
- * Success path: close every open `release-e2e` tracker with a green comment so the
- * board cannot look tidy while CI is red, and cannot stay red forever after green.
+ * A red `master` used to be visible only in the Actions tab: the heavy tier
+ * and the Tests Gate were skipped on push events entirely, and once they ran
+ * there was still nothing pointing at a failure. This reporter mirrors the
+ * release E2E tracker contract:
  *
- * Project field writes are best-effort. Issues still file when Projects GraphQL
- * is denied; the Actions log records the miss. Board ids and the triage
- * mutation live in `genfeed-project-board.mjs`, shared with the master push
- * CI failure reporter.
+ * Failure path: one open `master-ci-failure` issue (comment on repeat reds),
+ * Project #12 Priority P0 via the shared board triage.
+ * Success path: close every open tracker with a green comment so a recovered
+ * trunk cannot keep a stale P0 on the board.
  */
 
 import { triageCiFailureOnProject } from './genfeed-project-board.mjs';
 
-export const RELEASE_E2E_FAILURE_LABEL = 'release-e2e';
+export const MASTER_CI_FAILURE_LABEL = 'master-ci-failure';
 
 async function listTrackerIssues(github, { owner, repo, state }) {
   return github.paginate(github.rest.issues.listForRepo, {
     owner,
     repo,
     state,
-    labels: RELEASE_E2E_FAILURE_LABEL,
+    labels: MASTER_CI_FAILURE_LABEL,
     sort: 'updated',
     direction: 'desc',
     per_page: 100,
   });
 }
 
-export async function ensureReleaseE2eLabel(github, { owner, repo }) {
+export async function ensureMasterCiFailureLabel(github, { owner, repo }) {
   try {
     await github.rest.issues.getLabel({
       owner,
       repo,
-      name: RELEASE_E2E_FAILURE_LABEL,
+      name: MASTER_CI_FAILURE_LABEL,
     });
   } catch (error) {
     if (error.status !== 404) {
@@ -41,39 +42,32 @@ export async function ensureReleaseE2eLabel(github, { owner, repo }) {
     await github.rest.issues.createLabel({
       owner,
       repo,
-      name: RELEASE_E2E_FAILURE_LABEL,
+      name: MASTER_CI_FAILURE_LABEL,
       color: 'b60205',
-      description: 'Self-hosted release E2E failures',
+      description: 'Tests Gate is failing on master push CI',
     });
   }
 }
 
 /**
- * Build the issue / comment body for a red release E2E run.
- * @param {{ date: string, releaseTag: string, imageTag: string, runUrl: string, failureClass?: string }} input
+ * Build the issue / comment body for a red master push.
+ * @param {{ date: string, sha: string, headline: string, runUrl: string }} input
  */
-export function buildReleaseE2eFailureBody({
-  date,
-  releaseTag,
-  imageTag,
-  runUrl,
-  failureClass = 'unknown',
-}) {
+export function buildMasterCiFailureBody({ date, sha, headline, runUrl }) {
   return [
-    `**Self-hosted release E2E failed** on \`${date}\`.`,
+    `**Tests Gate failed on a \`master\` push** on \`${date}\`.`,
     ``,
-    `- GitHub release: \`${releaseTag}\``,
-    `- Image tag under test: \`ghcr.io/genfeedai/genfeed.ai:${imageTag}\``,
-    `- Failure class: \`${failureClass}\``,
+    `- Commit: \`${sha}\` — ${headline}`,
     `- Failed run: ${runUrl}`,
-    `- Diagnostic artifacts (when produced): \`release-e2e-playwright-report\`, \`release-e2e-compose-logs\``,
+    `- The run's Tests Gate step summary names the exact job(s) that went red.`,
     ``,
-    `The public release bundle, anonymous image pull, boot path, or LOCAL-mode E2E failed.`,
+    `The trunk is red: every branch cut from \`master\` inherits this failure.`,
     `Automation sets Project **Priority = P0** (Priority is a project field, not a label).`,
+    `This tracker closes automatically on the next green master push.`,
   ].join('\n');
 }
 
-export async function reportReleaseE2eFailure({
+export async function reportMasterCiFailure({
   github,
   owner,
   repo,
@@ -81,7 +75,7 @@ export async function reportReleaseE2eFailure({
   date,
   core = console,
 }) {
-  await ensureReleaseE2eLabel(github, { owner, repo });
+  await ensureMasterCiFailureLabel(github, { owner, repo });
 
   const openTrackers = (
     await listTrackerIssues(github, {
@@ -99,38 +93,38 @@ export async function reportReleaseE2eFailure({
       issue_number: number,
       body,
     });
-    // Re-assert P0 every red run so backlog drift cannot deprioritize it.
+    // Re-assert P0 every red push so backlog drift cannot deprioritize it.
     await triageCiFailureOnProject(github, {
       owner,
       repo,
       issueNumber: number,
-      trackerName: RELEASE_E2E_FAILURE_LABEL,
+      trackerName: MASTER_CI_FAILURE_LABEL,
       core,
     });
-    core.info?.(`Commented on existing release-e2e issue #${number}`);
+    core.info?.(`Commented on existing master-ci-failure issue #${number}`);
     return { action: 'commented', issueNumber: number };
   }
 
   const created = await github.rest.issues.create({
     owner,
     repo,
-    title: `🚦 Self-hosted release E2E failed — ${date}`,
+    title: `🚨 Tests Gate failed on master push — ${date}`,
     body,
-    labels: [RELEASE_E2E_FAILURE_LABEL],
+    labels: [MASTER_CI_FAILURE_LABEL],
   });
 
   await triageCiFailureOnProject(github, {
     owner,
     repo,
     issueNumber: created.data.number,
-    trackerName: RELEASE_E2E_FAILURE_LABEL,
+    trackerName: MASTER_CI_FAILURE_LABEL,
     core,
   });
-  core.info?.(`Created release-e2e issue #${created.data.number}`);
+  core.info?.(`Created master-ci-failure issue #${created.data.number}`);
   return { action: 'created', issueNumber: created.data.number };
 }
 
-export async function resolveReleaseE2eFailure({
+export async function resolveMasterCiFailure({
   github,
   owner,
   repo,
@@ -146,7 +140,7 @@ export async function resolveReleaseE2eFailure({
   ).filter((issue) => !issue.pull_request);
 
   if (openTrackers.length === 0) {
-    core.info?.('No open release-e2e trackers to close');
+    core.info?.('No open master-ci-failure trackers to close');
     return { action: 'noop', closed: [] };
   }
 
@@ -166,7 +160,9 @@ export async function resolveReleaseE2eFailure({
       state_reason: 'completed',
     });
     closed.push(tracker.number);
-    core.info?.(`Closed release-e2e issue #${tracker.number} after green run`);
+    core.info?.(
+      `Closed master-ci-failure issue #${tracker.number} after green push`,
+    );
   }
 
   return { action: 'closed', closed };
