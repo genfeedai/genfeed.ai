@@ -65,18 +65,27 @@ describe('ReviewGrid', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('should display empty state when no items', () => {
+  it('renders the table-owned empty state once when filters hide every item', () => {
+    const visibleItems = getVisibleReviewItems(mockItems, ['failed']);
+
+    expect(visibleItems).toHaveLength(0);
+
     render(
       <ReviewGrid
         activeItem={null}
         isActioning={false}
-        items={[]}
+        items={visibleItems}
         selectedIds={new Set()}
         {...baseHandlers}
       />,
     );
 
-    expect(screen.getByText('No items in this view')).toBeInTheDocument();
+    expect(screen.getByTestId('table-empty')).toBeInTheDocument();
+    expect(screen.getAllByText('No items match these filters')).toHaveLength(1);
+    expect(
+      screen.getByText('Try All statuses, or pick another batch.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No items in this view')).not.toBeInTheDocument();
   });
 
   it('should show bulk actions when items are selected', () => {
