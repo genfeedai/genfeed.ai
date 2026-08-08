@@ -244,8 +244,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       groupedByBrand.set(option.brandSlug, brandFamilies);
     }
 
+    // 'favorites' and 'legacy' are virtual rail filters, not real brand slugs —
+    // groupedByBrand is keyed by the option's actual brandSlug (e.g. 'google'),
+    // so treating either sentinel as a literal brand slug here always misses
+    // every group and renders an empty Legacy/Favorites list.
     const brandSlugs =
-      activeBrand && activeBrand !== 'favorites'
+      activeBrand && activeBrand !== 'favorites' && activeBrand !== 'legacy'
         ? [activeBrand]
         : brands.map((brand) => brand.slug);
 
@@ -459,7 +463,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         // Focus search (not the brand-rail icon). Rail tooltips are hover-only
         // too, but autofocus on "All providers" still felt wrong.
         onOpenAutoFocus={(event) => {
-          const searchInput = event.currentTarget.querySelector('input');
+          const content = event.currentTarget;
+          if (!(content instanceof HTMLElement)) {
+            return;
+          }
+          const searchInput = content.querySelector('input');
           if (searchInput instanceof HTMLElement) {
             event.preventDefault();
             searchInput.focus();
