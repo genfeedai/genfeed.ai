@@ -309,6 +309,7 @@ export interface ModalPostPlatformsTabProps {
   form: UseFormReturn<MultiPostSchema>;
   platformConfigs: IPostPlatformConfig[];
   isLoading: boolean;
+  ingredient?: IIngredient | null;
   togglePlatform: (credentialId: string) => void;
   updatePlatformConfig: (
     credentialId: string,
