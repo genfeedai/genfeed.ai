@@ -90,7 +90,9 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    expect(
+      screen.getByText((_, element) => element?.textContent === '1 selected'),
+    ).toBeInTheDocument();
   });
 
   it('routes item, selection, and bulk actions', () => {
@@ -112,8 +114,8 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview post' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Deselect item/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
 

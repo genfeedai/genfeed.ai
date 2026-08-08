@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     info: vi.fn(),
   },
   replace: vi.fn(),
+  setFiltersNode: vi.fn(),
   useQuery: vi.fn(),
 }));
 const searchParamsState = new URLSearchParams();
@@ -46,14 +47,10 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('./components/ReviewGrid', () => ({
   default: ({
-    activeItem,
     isActioning,
     items,
     onBulkApprove,
     onBulkReject,
-    onApprove,
-    onReject,
-    onRequestChanges,
     onSelectItem,
     onToggleSelect,
     selectedIds,
@@ -63,9 +60,6 @@ vi.mock('./components/ReviewGrid', () => ({
     items: Array<{ id: string }>;
     onBulkApprove: () => void;
     onBulkReject: () => void;
-    onApprove: (itemId: string) => void;
-    onReject: (itemId: string, feedback?: string) => void;
-    onRequestChanges: (itemId: string, feedback?: string) => void;
     onSelectItem: (itemId: string) => void;
     onToggleSelect: (itemId: string) => void;
     selectedIds: Set<string>;
@@ -92,17 +86,40 @@ vi.mock('./components/ReviewGrid', () => ({
           Toggle {item.id}
         </button>
       ))}
-      <button
-        type="button"
-        onClick={() => activeItem && onApprove(activeItem.id)}
-      >
-        Approve Active Item
-      </button>
       <button type="button" onClick={() => onBulkApprove()}>
         Bulk Approve
       </button>
       <button type="button" onClick={() => onBulkReject()}>
         Bulk Reject
+      </button>
+    </div>
+  ),
+}));
+
+// Single-item decision actions (approve / request changes / reject) moved to
+// the agent Context rail via ReviewWorkspaceSurfaceAdapter — ReviewGrid is a
+// table-only queue now (see ReviewQueueView.tsx).
+vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
+  default: ({
+    activeItem,
+    onApprove,
+    onReject,
+    onRequestChanges,
+  }: {
+    activeItem: { id: string } | null;
+    isActioning: boolean;
+    isSelected: boolean;
+    onApprove: (itemId: string) => void;
+    onReject: (itemId: string, feedback?: string) => void;
+    onRequestChanges: (itemId: string, feedback?: string) => void;
+    onToggleSelect: (itemId: string) => void;
+  }) => (
+    <div>
+      <button
+        type="button"
+        onClick={() => activeItem && onApprove(activeItem.id)}
+      >
+        Approve Active Item
       </button>
       <button
         type="button"
@@ -215,7 +232,7 @@ vi.mock('@ui/loading/default/Loading', () => ({
 vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
     setExportNode: vi.fn(),
-    setFiltersNode: vi.fn(),
+    setFiltersNode: mocks.setFiltersNode,
     setIsRefreshing: vi.fn(),
     setRefresh: vi.fn(),
     setScheduleActionsNode: vi.fn(),
@@ -446,8 +463,11 @@ describe('ReviewQueueContent', () => {
     render(<ReviewQueueContent />);
 
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();
-    // Batch picker lives in publish layout action rail (filtersNode), not body.
+    // Batch picker + status filters live in the publish layout action rail
+    // (filtersNode), not the page body — render what was portaled to assert on it.
     expect(screen.queryByText('Review Stats Header')).not.toBeInTheDocument();
+    const filtersNode = mocks.setFiltersNode.mock.calls.at(-1)?.[0];
+    render(filtersNode);
     expect(screen.getByText('Ready count: 2')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -464,8 +484,11 @@ describe('ReviewQueueContent', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+    // Show All clears the filter (serializes to "all"). getNextActiveItemId
+    // keeps the current active item when it remains visible, and item-2 is
+    // visible under "all", so the active item does not move.
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publish/review?batch=batch-1&filter=all&item=item-1',
+      '/publish/review?batch=batch-1&filter=all&item=item-2',
       { scroll: false },
     );
   });
