@@ -77,6 +77,8 @@ export interface UsePostsListParams {
   publicationState?: PostsPublicationState | null;
   scope: ContentProps['scope'];
   status?: PostStatus;
+  onRewriteWithAgent?: (post: IPost) => void;
+  onSuggestScheduleWithAgent?: (post: IPost) => void;
 }
 
 export function usePostsList({
@@ -87,6 +89,8 @@ export function usePostsList({
   publicationState: publicationStateProp,
   scope,
   status: statusProp,
+  onRewriteWithAgent,
+  onSuggestScheduleWithAgent,
 }: UsePostsListParams) {
   const hydratedPostPresets = initialPostPresets ?? [];
   const hydratedPosts = initialPosts ?? [];
@@ -560,7 +564,9 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRewriteWithAgent,
         onRetry: handleRetryPost,
+        onSuggestScheduleWithAgent,
         onViewIngredient: handleViewIngredient,
         scope,
       }),
@@ -570,7 +576,9 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      onRewriteWithAgent,
       handleRetryPost,
+      onSuggestScheduleWithAgent,
       handleViewIngredient,
     ],
   );
@@ -593,7 +601,9 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRewriteWithAgent,
         onRetry: handleRetryPost,
+        onSuggestScheduleWithAgent,
         onViewIngredient: handleViewIngredient,
         scope,
       }),
@@ -603,7 +613,9 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      onRewriteWithAgent,
       handleRetryPost,
+      onSuggestScheduleWithAgent,
       handleViewIngredient,
       scope,
     ],

@@ -15,6 +15,7 @@ interface ReviewGridProps {
   selectedIds: Set<string>;
   onBulkApprove: () => void;
   onBulkReject: () => void;
+  onBulkRewriteWithAgent: () => void;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
 }
@@ -30,6 +31,7 @@ export default function ReviewGrid({
   selectedIds,
   onBulkApprove,
   onBulkReject,
+  onBulkRewriteWithAgent,
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
@@ -50,6 +52,17 @@ export default function ReviewGrid({
           </p>
           {/* ModalConfirm grammar: primary first, destructive last (right). */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <Button
+              className="h-7 gap-1 px-2 text-xs"
+              isDisabled={isActioning}
+              onClick={onBulkRewriteWithAgent}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.SECONDARY}
+              withWrapper={false}
+            >
+              <Sparkles className="size-3.5" />
+              Rewrite with agent
+            </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"
               isDisabled={isActioning}

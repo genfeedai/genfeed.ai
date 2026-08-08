@@ -5,6 +5,7 @@ import ReviewQueueContent from './review-queue-content';
 const mocks = vi.hoisted(() => ({
   getBatchesService: vi.fn(),
   loggerError: vi.fn(),
+  openAgentComposer: vi.fn(),
   replace: vi.fn(),
   useQuery: vi.fn(),
 }));
@@ -27,6 +28,10 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
+vi.mock('@/hooks/use-open-agent-composer', () => ({
+  useOpenAgentComposer: () => mocks.openAgentComposer,
+}));
+
 vi.mock('./components/ReviewGrid', () => ({
   default: ({
     activeItem,
@@ -34,6 +39,7 @@ vi.mock('./components/ReviewGrid', () => ({
     items,
     onBulkApprove,
     onBulkReject,
+    onBulkRewriteWithAgent,
     onApprove,
     onReject,
     onRequestChanges,
@@ -46,6 +52,7 @@ vi.mock('./components/ReviewGrid', () => ({
     items: Array<{ id: string }>;
     onBulkApprove: () => void;
     onBulkReject: () => void;
+    onBulkRewriteWithAgent: () => void;
     onApprove: (itemId: string) => void;
     onReject: (itemId: string, feedback?: string) => void;
     onRequestChanges: (itemId: string, feedback?: string) => void;
@@ -86,6 +93,9 @@ vi.mock('./components/ReviewGrid', () => ({
       </button>
       <button type="button" onClick={() => onBulkReject()}>
         Bulk Reject
+      </button>
+      <button type="button" onClick={() => onBulkRewriteWithAgent()}>
+        Rewrite selected with agent
       </button>
       <button
         type="button"
@@ -504,6 +514,26 @@ describe('ReviewQueueContent', () => {
         itemIds: ['item-2'],
       });
     });
+  });
+
+  it('seeds a selected-item rewrite with the batch and review item IDs', async () => {
+    mockReviewQueries();
+    mocks.getBatchesService.mockResolvedValue({ itemAction: vi.fn() });
+
+    render(<ReviewQueueContent />);
+    expect(await screen.findByText('Review Grid')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-1' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle item-2' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Rewrite selected with agent' }),
+    );
+
+    expect(mocks.openAgentComposer).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /batch ID batch-1.*Review item IDs: item-1, item-2.*without approving or scheduling/i,
+      ),
+    );
   });
 
   it('renders loading, empty, selected-batch error, and unresolved detail states', () => {
