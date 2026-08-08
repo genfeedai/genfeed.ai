@@ -23,9 +23,14 @@ export default function PostSidebarScheduleCard({
   onScheduleSave,
 }: PostSidebarScheduleCardProps) {
   return (
-    <Card>
-      <div className="flex items-center gap-2 mb-2">
-        <h3 className="font-semibold text-lg">Scheduled Time</h3>
+    <Card bodyClassName="space-y-3 p-4">
+      <div className="space-y-0.5">
+        <h3 className="text-sm font-semibold text-foreground">
+          Scheduled time
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          {browserTimezone || 'Local timezone'}
+        </p>
       </div>
 
       <FormDateTimePicker
@@ -40,6 +45,7 @@ export default function PostSidebarScheduleCard({
         label={isSavingSchedule ? 'Saving…' : 'Schedule'}
         variant={ButtonVariant.DEFAULT}
         className="w-full"
+        withWrapper={false}
         isLoading={isSavingSchedule}
         isDisabled={!isScheduleDirty || !scheduleDraft || isSavingSchedule}
         onClick={onScheduleSave}

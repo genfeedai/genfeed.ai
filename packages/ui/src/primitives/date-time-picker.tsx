@@ -1,6 +1,14 @@
-import { Calendar, Clock } from 'lucide-react';
-import type { ChangeEvent } from 'react';
+import { Clock } from 'lucide-react';
 import { useMemo, useState } from 'react';
+
+import Datepicker from './datepicker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './select';
 
 interface DateTimeResult {
   date: string;
@@ -286,12 +294,27 @@ export default function DateTimePicker({
     return `${String(hours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
   };
 
-  const generateTimeOptions = () => {
-    const options = [];
-    const minTime = getMinTime();
-    const [minHour, minMinute] = minTime.split(':').map(Number);
-    const minTotalMinutes = minHour * 60 + minMinute;
-    const isToday = selectedDate === getMinDateString();
+  const timeOptions = useMemo(() => {
+    const options: Array<{ label: string; value: string }> = [];
+    const bound = minDate || new Date();
+    const year = bound.getFullYear();
+    const month = String(bound.getMonth() + 1).padStart(2, '0');
+    const day = String(bound.getDate()).padStart(2, '0');
+    const todayString = `${year}-${month}-${day}`;
+    const isToday = selectedDate === todayString;
+
+    let minTotalMinutes = 0;
+    if (isToday) {
+      const minutes = bound.getMinutes();
+      const roundedMinutes = Math.ceil(minutes / 15) * 15;
+      let hours = bound.getHours();
+      let finalMinutes = roundedMinutes;
+      if (roundedMinutes === 60) {
+        hours = (hours + 1) % 24;
+        finalMinutes = 0;
+      }
+      minTotalMinutes = hours * 60 + finalMinutes;
+    }
 
     let selectedTimeMinutes = -1;
     if (selectedTime) {
@@ -314,16 +337,15 @@ export default function DateTimePicker({
         }
 
         const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        options.push(
-          <option key={timeString} value={timeString}>
-            {formatTimeDisplay(hour, minute)}
-          </option>,
-        );
+        options.push({
+          label: formatTimeDisplay(hour, minute),
+          value: timeString,
+        });
       }
     }
 
     return options;
-  };
+  }, [selectedDate, selectedTime, minDate]);
 
   const updateDateTime = (dateString: string, timeString: string) => {
     if (!dateString || !timeString) {
@@ -347,8 +369,17 @@ export default function DateTimePicker({
     onChange(utcDate);
   };
 
-  const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const nextDate = event.target.value;
+  const handleDateChange = (next: Date | null) => {
+    if (!next) {
+      setDraft({ date: '', sourceKey, time: selectedTime });
+      onChange(null);
+      return;
+    }
+
+    const year = next.getFullYear();
+    const month = String(next.getMonth() + 1).padStart(2, '0');
+    const day = String(next.getDate()).padStart(2, '0');
+    const nextDate = `${year}-${month}-${day}`;
     setDraft({ date: nextDate, sourceKey, time: selectedTime });
 
     if (!selectedTime) {
@@ -368,8 +399,7 @@ export default function DateTimePicker({
     updateDateTime(nextDate, selectedTime);
   };
 
-  const handleTimeChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    const nextTime = event.target.value;
+  const handleTimeChange = (nextTime: string) => {
     setDraft({ date: selectedDate, sourceKey, time: nextTime });
 
     if (selectedDate && nextTime) {
@@ -382,51 +412,60 @@ export default function DateTimePicker({
     }
   };
 
+  const dateValue = selectedDate ? new Date(`${selectedDate}T12:00:00`) : null;
+
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
-      {label && (
-        <label className="text-sm font-medium mb-1 block">
+    <div className={`flex flex-col gap-2 ${className}`}>
+      {label ? (
+        <label className="block text-sm font-medium">
           {label}
-          {timezone && (
-            <span className="text-foreground/50 ml-2">({timezone})</span>
-          )}
-          {isRequired && <span className="text-error ml-1">*</span>}
+          {timezone ? (
+            <span className="ml-2 text-muted-foreground">({timezone})</span>
+          ) : null}
+          {isRequired ? <span className="ml-1 text-destructive">*</span> : null}
         </label>
-      )}
+      ) : null}
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <input
-            aria-label="Date"
-            type="date"
-            value={selectedDate}
-            onChange={handleDateChange}
-            min={getMinDateString()}
-            disabled={isDisabled}
-            required={isRequired}
-            className="h-10 border border-input px-3 w-full pr-10"
-          />
-          <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
-        </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <Datepicker
+          aria-label="Date"
+          dateFormat="MMM d, yyyy"
+          isDisabled={isDisabled}
+          isRequired={isRequired}
+          minDate={minDate}
+          onChange={handleDateChange}
+          placeholderText="Select date"
+          value={dateValue}
+        />
 
-        <div className="relative flex-1">
-          <select
-            value={selectedTime || ''}
-            onChange={handleTimeChange}
+        <div className="flex min-w-0 flex-col gap-1">
+          <Select
             disabled={isDisabled || !selectedDate}
-            required={isRequired}
-            className="h-10 border border-input px-3 w-full pr-10 bg-background"
+            onValueChange={handleTimeChange}
+            value={selectedTime || undefined}
           >
-            <option value="">Select time</option>
-            {selectedDate && generateTimeOptions()}
-          </select>
-          <Clock className="absolute right-8 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
+            <SelectTrigger
+              aria-label="Time"
+              className="h-10 w-full"
+              disabled={isDisabled || !selectedDate}
+            >
+              <Clock className="mr-2 size-4 shrink-0 text-muted-foreground" />
+              <SelectValue placeholder="Select time" />
+            </SelectTrigger>
+            <SelectContent>
+              {timeOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {helpText && (
-        <p className="text-xs text-foreground/70 mt-1">{helpText}</p>
-      )}
+      {helpText ? (
+        <p className="text-xs text-muted-foreground">{helpText}</p>
+      ) : null}
     </div>
   );
 }

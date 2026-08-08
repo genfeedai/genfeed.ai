@@ -14,18 +14,27 @@ import Alert from '@ui/feedback/alert/Alert';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useState } from 'react';
 
 export interface PostDetailProps {
   postId: string;
   scope: PageScope;
   presentation?: 'page' | 'overlay';
+  /**
+   * When set, sidebar meta (schedule, quality, SEO, …) is handed to the host
+   * (e.g. workspace Context rail) instead of rendering inline beside content.
+   */
+  renderContextSidebar?: (
+    sidebar: ReactNode,
+    contextLabel: string,
+  ) => ReactNode;
 }
 
 export default function PostDetail({
   postId,
   scope,
   presentation = 'page',
+  renderContextSidebar,
 }: PostDetailProps) {
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -228,104 +237,119 @@ export default function PostDetail({
     );
   }
 
-  return (
-    <div className={wrapperClassName}>
-      {/* Failed post warning banner */}
-      {post.status === PostStatus.FAILED && (
-        <Alert type={AlertCategory.ERROR} className="mb-6">
-          <p className="font-semibold">Publication Failed</p>
-          <p>
-            This post failed to publish. You can edit and reschedule it below.
-          </p>
-        </Alert>
-      )}
-
-      <PostDetailHeader
+  const sidebar = (
+    <div className="space-y-3">
+      <PostDetailSidebar
         post={post}
-        scope={scope}
-        isPublished={isPublished}
-        hasChildren={hasChildren}
-        viewMode={viewMode}
-        isExpandingToThread={isExpandingToThread}
-        onViewModeChange={setViewMode}
-        onDelete={handleDeletePost}
-        onCreateRemix={handleCreateRemix}
-        onDuplicate={handleDuplicate}
-        onExpandToThread={handleExpandToThread}
+        credential={credential}
+        scheduleDraft={scheduleDraft}
+        isSavingSchedule={isSavingSchedule}
+        isScheduleDirty={isScheduleDirty}
+        isScoringSeo={isScoringSeo}
+        isSeoDirty={isContentDirty}
+        analyticsStats={analyticsStats}
+        reviewSummary={reviewSummary}
+        onScheduleChange={(value) => setScheduleDraft(value)}
+        onScheduleSave={handleScheduleSave}
+        onScoreSeo={handleScoreSeo}
       />
+      {!isPublished ? <EngagementPreview post={post} /> : null}
+    </div>
+  );
+  const usesContextSidebar = Boolean(renderContextSidebar);
+  const contextLabel =
+    labelDraft?.trim() || post.label?.trim() || 'Untitled post';
 
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <PostDetailContent
+  return (
+    <>
+      {usesContextSidebar
+        ? renderContextSidebar?.(sidebar, contextLabel)
+        : null}
+      <div className={wrapperClassName}>
+        {post.status === PostStatus.FAILED ? (
+          <Alert type={AlertCategory.ERROR} className="mb-6">
+            <p className="font-semibold">Publication Failed</p>
+            <p>
+              This post failed to publish. You can edit and reschedule it below.
+            </p>
+          </Alert>
+        ) : null}
+
+        <PostDetailHeader
           post={post}
-          sortedChildren={sortedChildren}
           scope={scope}
-          viewMode={viewMode}
-          descriptionDraft={descriptionDraft}
-          labelDraft={labelDraft}
-          childDescriptions={childDescriptions}
-          selectedIngredients={selectedIngredients}
-          focusedPostId={focusedPostId}
-          draggedPostId={draggedPostId}
-          dragOverDividerIndex={dragOverDividerIndex}
-          enhancingPostId={enhancingPostId}
-          enhancingAction={enhancingAction}
-          isSavingIngredients={isSavingIngredients}
-          isSavingDescription={isSavingDescription}
-          isTogglingGrok={isTogglingGrok}
-          isTogglingFirstComment={isTogglingFirstComment}
-          carouselValidation={carouselValidation}
-          publishedDisplay={publishedDisplay}
-          isContentDirty={isContentDirty}
-          canAddThread={canAddThread}
-          canAddFirstComment={canAddFirstComment}
-          hasFirstComment={hasFirstComment}
-          firstCommentPost={firstCommentPost}
-          isLastChildGrokTweet={isLastChildGrokTweet}
+          isPublished={isPublished}
           hasChildren={hasChildren}
-          setDescriptionDraft={setDescriptionDraft}
-          setLabelDraft={setLabelDraft}
-          setChildDescription={setChildDescription}
-          setFocusedPostId={setFocusedPostId}
-          setDragOverDividerIndex={setDragOverDividerIndex}
-          handleContentSave={handleContentSave}
-          handleAddToThread={handleAddToThread}
-          handleDeleteChild={handleDeleteChild}
-          handleSelectMedia={handleSelectMedia}
-          handleGenerateIllustration={handleGenerateIllustration}
-          handleQuickAction={handleQuickAction}
-          handlePerTweetEnhance={handlePerTweetEnhance}
-          handleDragStart={handleDragStart}
-          handleDragEnd={handleDragEnd}
-          handleDrop={handleDrop}
-          handleToggleGrokFeedback={handleToggleGrokFeedback}
-          handleToggleFirstComment={handleToggleFirstComment}
-          handleUpdateChild={handleUpdateChild}
-          autoSaveRefs={autoSaveRefs}
-          performAutoSaveForPost={performAutoSaveForPost}
-          getPostsService={getPostsService}
-          notificationsService={notificationsService}
+          viewMode={viewMode}
+          isExpandingToThread={isExpandingToThread}
+          onViewModeChange={setViewMode}
+          onDelete={handleDeletePost}
+          onCreateRemix={handleCreateRemix}
+          onDuplicate={handleDuplicate}
+          onExpandToThread={handleExpandToThread}
         />
 
-        <div className="space-y-4">
-          <PostDetailSidebar
+        <div
+          className={
+            usesContextSidebar ? 'min-w-0' : 'grid gap-4 lg:grid-cols-[2fr_1fr]'
+          }
+        >
+          <PostDetailContent
             post={post}
-            credential={credential}
-            scheduleDraft={scheduleDraft}
-            isSavingSchedule={isSavingSchedule}
-            isScheduleDirty={isScheduleDirty}
-            isScoringSeo={isScoringSeo}
-            isSeoDirty={isContentDirty}
-            analyticsStats={analyticsStats}
-            reviewSummary={reviewSummary}
-            onScheduleChange={(value) => setScheduleDraft(value)}
-            onScheduleSave={handleScheduleSave}
-            onScoreSeo={handleScoreSeo}
+            sortedChildren={sortedChildren}
+            scope={scope}
+            viewMode={viewMode}
+            descriptionDraft={descriptionDraft}
+            labelDraft={labelDraft}
+            childDescriptions={childDescriptions}
+            selectedIngredients={selectedIngredients}
+            focusedPostId={focusedPostId}
+            draggedPostId={draggedPostId}
+            dragOverDividerIndex={dragOverDividerIndex}
+            enhancingPostId={enhancingPostId}
+            enhancingAction={enhancingAction}
+            isSavingIngredients={isSavingIngredients}
+            isSavingDescription={isSavingDescription}
+            isTogglingGrok={isTogglingGrok}
+            isTogglingFirstComment={isTogglingFirstComment}
+            carouselValidation={carouselValidation}
+            publishedDisplay={publishedDisplay}
+            isContentDirty={isContentDirty}
+            canAddThread={canAddThread}
+            canAddFirstComment={canAddFirstComment}
+            hasFirstComment={hasFirstComment}
+            firstCommentPost={firstCommentPost}
+            isLastChildGrokTweet={isLastChildGrokTweet}
+            hasChildren={hasChildren}
+            setDescriptionDraft={setDescriptionDraft}
+            setLabelDraft={setLabelDraft}
+            setChildDescription={setChildDescription}
+            setFocusedPostId={setFocusedPostId}
+            setDragOverDividerIndex={setDragOverDividerIndex}
+            handleContentSave={handleContentSave}
+            handleAddToThread={handleAddToThread}
+            handleDeleteChild={handleDeleteChild}
+            handleSelectMedia={handleSelectMedia}
+            handleGenerateIllustration={handleGenerateIllustration}
+            handleQuickAction={handleQuickAction}
+            handlePerTweetEnhance={handlePerTweetEnhance}
+            handleDragStart={handleDragStart}
+            handleDragEnd={handleDragEnd}
+            handleDrop={handleDrop}
+            handleToggleGrokFeedback={handleToggleGrokFeedback}
+            handleToggleFirstComment={handleToggleFirstComment}
+            handleUpdateChild={handleUpdateChild}
+            autoSaveRefs={autoSaveRefs}
+            performAutoSaveForPost={performAutoSaveForPost}
+            getPostsService={getPostsService}
+            notificationsService={notificationsService}
           />
 
-          {/* Engagement Preview - shown for unpublished posts */}
-          {!isPublished && <EngagementPreview post={post} />}
+          {!usesContextSidebar ? (
+            <div className="space-y-4">{sidebar}</div>
+          ) : null}
         </div>
       </div>
-    </div>
+    </>
   );
 }

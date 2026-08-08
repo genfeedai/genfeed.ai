@@ -1,9 +1,9 @@
-import { PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import PostDetail from '@pages/posts/detail/post-detail';
 import type { DetailPageProps } from '@props/pages/page.props';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+
+import PublishPostDetailPage from './PublishPostDetailPage';
 
 export const generateMetadata = createPageMetadata('Post Details');
 
@@ -12,7 +12,7 @@ export default async function PostDetailPage({ params }: DetailPageProps) {
 
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <PostDetail postId={id} scope={PageScope.PUBLISHER} />
+      <PublishPostDetailPage postId={id} />
     </Suspense>
   );
 }
