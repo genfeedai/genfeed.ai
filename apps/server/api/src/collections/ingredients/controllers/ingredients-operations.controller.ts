@@ -11,6 +11,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -191,11 +192,11 @@ export class IngredientsOperationsController {
       });
 
       // Upload file from original ingredient URL
-      const uploadUrl = `${this.configService.ingredientsEndpoint}/${category}s/${originalIngredientId}`;
+      const uploadUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${originalIngredientId}`;
 
       const uploadMeta = await this.getFilesClientService().uploadToS3(
         newIngredientId,
-        `${category}s`,
+        categoryToPlural(category),
         {
           type: FileInputType.URL,
           url: uploadUrl,
@@ -290,7 +291,7 @@ export class IngredientsOperationsController {
       );
     }
 
-    const ingredientUrl = `${this.configService.ingredientsEndpoint}/${ingredient.category}s/${ingredientId}`;
+    const ingredientUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
 
     try {
       // Extract metadata from the file URL without re-uploading

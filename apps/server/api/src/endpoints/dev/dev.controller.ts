@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -86,7 +87,7 @@ export class DevController {
       }
 
       const category = ingredient.category as IngredientCategory;
-      const cdnUrl = `${this.configService.ingredientsEndpoint}/${category}s/${ingredient.id}`;
+      const cdnUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${ingredient.id}`;
 
       // Send via Redis pub/sub to notifications service
       await this.notificationsService.sendNotification({
