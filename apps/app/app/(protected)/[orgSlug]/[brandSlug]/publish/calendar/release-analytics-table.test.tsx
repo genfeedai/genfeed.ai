@@ -80,7 +80,7 @@ describe('ReleaseAnalyticsTable', () => {
 
       expect(
         screen.getByRole('table', {
-          name: 'Normalized analytics metrics by release target',
+          name: 'Normalized analytics metrics by channel target',
         }),
       ).toBeInTheDocument();
       expect(screen.getByText('100')).toBeInTheDocument();

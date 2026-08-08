@@ -148,18 +148,18 @@ export default function ReleaseDetailDrawer({
         <div className="border-b border-border bg-background/95 px-6 pb-5 pt-6 backdrop-blur">
           <SheetHeader className="space-y-3 text-left">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">Release</Badge>
+              <Badge variant="outline">Post</Badge>
               {statusBadge ? (
                 <Badge variant={badgeVariantForTone(statusBadge.tone)}>
                   {statusBadge.label}
                 </Badge>
               ) : null}
             </div>
-            <SheetTitle>{release?.title ?? 'Release detail'}</SheetTitle>
+            <SheetTitle>{release?.title ?? 'Post detail'}</SheetTitle>
             <SheetDescription>
               {release
                 ? `${targets.length} channel target${targets.length === 1 ? '' : 's'} · ${release.timezone}`
-                : 'Select a release to inspect its targets.'}
+                : 'Select a post to inspect its targets.'}
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -181,18 +181,18 @@ export default function ReleaseDetailDrawer({
                 <Input
                   className="max-w-xs"
                   isDisabled={!canRescheduleRelease || isPending}
-                  label="Release time"
+                  label="Publish time"
                   onChange={(event) => setReleaseDate(event.target.value)}
                   type="datetime-local"
                   value={releaseDate}
                 />
                 <Button
-                  ariaLabel="Reschedule release"
+                  ariaLabel="Reschedule post"
                   isDisabled={
                     !canRescheduleRelease || isPending || !releaseDate
                   }
                   isLoading={pendingAction === RELEASE_RESCHEDULE_ACTION}
-                  label="Reschedule release"
+                  label="Reschedule post"
                   onClick={() => {
                     const isoString = fromDateTimeLocalInput(
                       releaseDate,
@@ -206,7 +206,7 @@ export default function ReleaseDetailDrawer({
               </div>
               {!canRescheduleRelease ? (
                 <p className="text-xs text-muted-foreground">
-                  This release can no longer be moved — one or more targets have
+                  This post can no longer be moved — one or more targets have
                   already published or been cancelled.
                 </p>
               ) : null}
@@ -217,7 +217,7 @@ export default function ReleaseDetailDrawer({
             <h3 className="font-medium text-foreground">Targets</h3>
             {targets.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                This release has no channel targets.
+                This post has no channel targets.
               </p>
             ) : (
               targets.map((target) => {

@@ -56,7 +56,7 @@ interface ReviewQueueViewProps {
 }
 
 /**
- * Review queue body only — publish layout owns Container / New release / refresh.
+ * Review queue body only — publish layout owns Container / New post / refresh.
  * Batch picker registers into the layout action rail via PostsLayoutContext.
  */
 export default function ReviewQueueView({

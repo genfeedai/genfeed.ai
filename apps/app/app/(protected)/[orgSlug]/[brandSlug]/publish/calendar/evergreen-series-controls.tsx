@@ -207,9 +207,9 @@ export default function EvergreenSeriesControls({
         aria-label="Evergreen series controls"
         className="fixed right-4 bottom-4 z-50 w-80 border border-border bg-background p-4 shadow-xl"
       >
-        <p className="font-medium">One-off release</p>
+        <p className="font-medium">One-off post</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          This release has no evergreen recurrence rule.
+          This post has no evergreen recurrence rule.
         </p>
       </aside>
     );
