@@ -14,39 +14,51 @@ export function getMentionsEffect(
   api: AgentBaseApiService,
   signal?: AbortSignal,
 ): Effect.Effect<CredentialMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<{ mentions: CredentialMentionItem[] }>(
-      `${api.config.baseUrl}/credentials/mentions`,
-      { signal },
-      'Failed to fetch mentions',
-    )
-    .pipe(Effect.map((json) => json.mentions));
+  return (
+    api
+      .fetchJsonEffect<{ mentions: CredentialMentionItem[] }>(
+        `${api.config.baseUrl}/credentials/mentions`,
+        { signal },
+        'Failed to fetch mentions',
+      )
+      // A response without a mentions array (proxy, mock, or older API)
+      // must degrade to empty — an undefined here reaches .length in render.
+      .pipe(Effect.map((json) => json.mentions ?? []))
+  );
 }
 
 export function getTeamMentionsEffect(
   api: AgentBaseApiService,
   signal?: AbortSignal,
 ): Effect.Effect<TeamMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<AgentTeamMentionsResponse>(
-      `${api.config.baseUrl}/team/mentions`,
-      { signal },
-      'Failed to fetch team mentions',
-    )
-    .pipe(Effect.map((json) => json.mentions));
+  return (
+    api
+      .fetchJsonEffect<AgentTeamMentionsResponse>(
+        `${api.config.baseUrl}/team/mentions`,
+        { signal },
+        'Failed to fetch team mentions',
+      )
+      // A response without a mentions array (proxy, mock, or older API)
+      // must degrade to empty — an undefined here reaches .length in render.
+      .pipe(Effect.map((json) => json.mentions ?? []))
+  );
 }
 
 export function getContentMentionsEffect(
   api: AgentBaseApiService,
   signal?: AbortSignal,
 ): Effect.Effect<ContentMentionItem[], AgentApiError> {
-  return api
-    .fetchJsonEffect<AgentContentMentionsResponse>(
-      `${api.config.baseUrl}/content/mentions`,
-      { signal },
-      'Failed to fetch content mentions',
-    )
-    .pipe(Effect.map((json) => json.mentions));
+  return (
+    api
+      .fetchJsonEffect<AgentContentMentionsResponse>(
+        `${api.config.baseUrl}/content/mentions`,
+        { signal },
+        'Failed to fetch content mentions',
+      )
+      // A response without a mentions array (proxy, mock, or older API)
+      // must degrade to empty — an undefined here reaches .length in render.
+      .pipe(Effect.map((json) => json.mentions ?? []))
+  );
 }
 
 export function listMemoriesEffect(

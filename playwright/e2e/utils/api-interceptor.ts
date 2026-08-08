@@ -1803,6 +1803,18 @@ export async function setupApiMocks(
       return;
     }
 
+    // Mention endpoints speak { mentions: [] }, not JSON:API — the generic
+    // { data: [] } fallback made json.mentions undefined, which crashed the
+    // composer's ContentLibraryPicker at render.
+    if (url.includes('/mentions')) {
+      await r.fulfill({
+        body: JSON.stringify({ mentions: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+
     // Default to a VALID empty JSON:API collection. The old
     // `{ mock: true }` body had no `data` key, so every service that
     // deserializes a collection threw 'Invalid JSON:API document' — five of
