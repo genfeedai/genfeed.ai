@@ -16,6 +16,7 @@ import {
   MockBetterAuthGuard,
   TestDatabaseHelper,
 } from '@api-test/e2e-test.module';
+import { IntegrationPlatform } from '@genfeedai/enums';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
@@ -87,12 +88,12 @@ describe('Integrations E2E Tests', () => {
         .send({
           botToken: 'test-telegram-bot-token',
           config: { defaultWorkflow: 'wf-test' },
-          platform: 'telegram',
+          platform: IntegrationPlatform.TELEGRAM,
         })
         .expect(201);
 
       const integration = unwrapResource(response.body);
-      expect(integration.platform).toBe('telegram');
+      expect(integration.platform).toBe(IntegrationPlatform.TELEGRAM);
       expect(
         (integration.config as { defaultWorkflow?: string }).defaultWorkflow,
       ).toBe('wf-test');
@@ -104,12 +105,12 @@ describe('Integrations E2E Tests', () => {
         .send({
           botToken: 'test-slack-bot-token',
           config: { appToken: 'test-app-token-placeholder' },
-          platform: 'slack',
+          platform: IntegrationPlatform.SLACK,
         })
         .expect(201);
 
       const integration = unwrapResource(response.body);
-      expect(integration.platform).toBe('slack');
+      expect(integration.platform).toBe(IntegrationPlatform.SLACK);
       expect((integration.config as { appToken?: string }).appToken).toBe(
         'test-app-token-placeholder',
       );
@@ -121,12 +122,12 @@ describe('Integrations E2E Tests', () => {
         .send({
           botToken: 'test-discord-bot-token',
           config: { allowedUserIds: ['user1', 'user2'] },
-          platform: 'discord',
+          platform: IntegrationPlatform.DISCORD,
         })
         .expect(201);
 
       const integration = unwrapResource(response.body);
-      expect(integration.platform).toBe('discord');
+      expect(integration.platform).toBe(IntegrationPlatform.DISCORD);
       expect(
         (integration.config as { allowedUserIds?: string[] }).allowedUserIds,
       ).toEqual(['user1', 'user2']);
@@ -138,7 +139,7 @@ describe('Integrations E2E Tests', () => {
         .post(orgPath())
         .send({
           botToken: 'test-token-1',
-          platform: 'telegram',
+          platform: IntegrationPlatform.TELEGRAM,
         })
         .expect(201);
 
@@ -147,7 +148,7 @@ describe('Integrations E2E Tests', () => {
         .post(orgPath())
         .send({
           botToken: 'test-token-2',
-          platform: 'telegram',
+          platform: IntegrationPlatform.TELEGRAM,
         })
         .expect(400);
     });
@@ -166,7 +167,7 @@ describe('Integrations E2E Tests', () => {
       await request(app.getHttpServer())
         .post(orgPath())
         .send({
-          platform: 'telegram',
+          platform: IntegrationPlatform.TELEGRAM,
         })
         .expect(400);
     });
@@ -177,11 +178,11 @@ describe('Integrations E2E Tests', () => {
       // Seed integrations directly
       const telegramIntegration = createTestIntegration({
         organizationId: testOrganization.id,
-        platform: 'TELEGRAM',
+        platform: IntegrationPlatform.TELEGRAM,
       });
       const discordIntegration = createTestIntegration({
         organizationId: testOrganization.id,
-        platform: 'DISCORD',
+        platform: IntegrationPlatform.DISCORD,
       });
 
       await dbHelper.seedCollection('orgintegrations', [
@@ -197,7 +198,10 @@ describe('Integrations E2E Tests', () => {
       expect(integrations).toHaveLength(2);
       const platforms = integrations.map((item) => item.platform);
       expect(platforms).toEqual(
-        expect.arrayContaining(['telegram', 'discord']),
+        expect.arrayContaining([
+          IntegrationPlatform.TELEGRAM,
+          IntegrationPlatform.DISCORD,
+        ]),
       );
     });
 
@@ -205,12 +209,12 @@ describe('Integrations E2E Tests', () => {
       const activeIntegration = createTestIntegration({
         isDeleted: false,
         organizationId: testOrganization.id,
-        platform: 'TELEGRAM',
+        platform: IntegrationPlatform.TELEGRAM,
       });
       const deletedIntegration = createTestIntegration({
         isDeleted: true,
         organizationId: testOrganization.id,
-        platform: 'DISCORD',
+        platform: IntegrationPlatform.DISCORD,
       });
 
       await dbHelper.seedCollection('orgintegrations', [
@@ -224,7 +228,7 @@ describe('Integrations E2E Tests', () => {
 
       const integrations = unwrapCollection(response.body);
       expect(integrations).toHaveLength(1);
-      expect(integrations[0].platform).toBe('telegram');
+      expect(integrations[0].platform).toBe(IntegrationPlatform.TELEGRAM);
     });
 
     it('should return empty array when no integrations exist', async () => {
@@ -241,7 +245,7 @@ describe('Integrations E2E Tests', () => {
     it('should update integration config', async () => {
       const integration = createTestIntegration({
         organizationId: testOrganization.id,
-        platform: 'TELEGRAM',
+        platform: IntegrationPlatform.TELEGRAM,
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
@@ -275,7 +279,7 @@ describe('Integrations E2E Tests', () => {
     it('should soft delete an integration', async () => {
       const integration = createTestIntegration({
         organizationId: testOrganization.id,
-        platform: 'TELEGRAM',
+        platform: IntegrationPlatform.TELEGRAM,
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
@@ -304,7 +308,7 @@ describe('Integrations E2E Tests', () => {
     it('should return 404 on re-delete of already deleted integration', async () => {
       const integration = createTestIntegration({
         organizationId: testOrganization.id,
-        platform: 'TELEGRAM',
+        platform: IntegrationPlatform.TELEGRAM,
       });
 
       await dbHelper.seedCollection('orgintegrations', [integration]);
