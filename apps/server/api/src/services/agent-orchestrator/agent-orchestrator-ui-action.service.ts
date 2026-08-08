@@ -128,11 +128,14 @@ export class AgentOrchestratorUiActionService {
 
     const threadRecord = await this.agentThreadsService.findOne({
       id: threadId,
-      isDeleted: false,
       organizationId: context.organizationId,
     });
+    // A soft-deleted thread must not trip the archived gate — treat it like a
+    // missing record, exactly as the previous isDeleted filter did.
+    const activeThreadRecord =
+      threadRecord && !threadRecord.isDeleted ? threadRecord : null;
     const threadStatus = String(
-      (threadRecord as { status?: string | null } | null)?.status ?? '',
+      (activeThreadRecord as { status?: string | null } | null)?.status ?? '',
     ).toLowerCase();
     if (
       threadStatus === AgentThreadStatus.ARCHIVED ||

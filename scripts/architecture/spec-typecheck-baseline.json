@@ -4497,14 +4497,6 @@
       "workspace": "api"
     },
     {
-      "code": 2739,
-      "count": 3,
-      "file": "apps/server/api/src/services/sync/desktop-sync.service.spec.ts",
-      "fingerprint": "8a9f5a23fe58729c9599",
-      "message": "Type '{ displayName: string; id: string; kind: string; mimeType: string; origin: string; originalFileName: string; residency: string; sha256: string; sizeBytes: number; uploadPolicy: string; }' is missing the following properties from type 'DesktopAssetDto': createdAt, organizationId, updatedAt",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 8,
       "file": "apps/server/api/src/services/task-queue-client/task-queue-client.service.spec.ts",

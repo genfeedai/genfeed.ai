@@ -647,11 +647,12 @@ export class AgentOrchestratorService {
 
     const thread = await this.agentThreadsService.findOne({
       id: threadId,
-      isDeleted: false,
       organizationId,
     });
 
-    if (!thread) {
+    // Soft-deleted threads bypass the archived gate the same way missing ones
+    // do — matching the semantics of the previous isDeleted filter.
+    if (!thread || thread.isDeleted) {
       return;
     }
 
