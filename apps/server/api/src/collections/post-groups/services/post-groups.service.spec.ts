@@ -292,10 +292,12 @@ describe('PostGroupsService', () => {
         where: expect.objectContaining({
           brandId: 'brand-1',
           organizationId: 'org-1',
-          status: { in: [ReleaseStatus.SCHEDULED] },
         }),
       }),
     );
+    expect(
+      prisma.postGroup.findMany.mock.calls[0]?.[0]?.where,
+    ).not.toHaveProperty('status');
   });
 
   it('forwards the target-scoped calendar filters to persistence', async () => {
