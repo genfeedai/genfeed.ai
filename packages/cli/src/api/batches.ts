@@ -44,7 +44,7 @@ export interface BatchDetail extends Batch {
 export interface CreateBatchRequest {
   count: number;
   platforms: string[];
-  brand: string;
+  brandId: string;
   topics?: string[];
   style?: string;
   startDate?: string;
