@@ -1,6 +1,10 @@
 import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registry-models';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { AGENT_CHAT_CAPABILITY, REASONING_FEATURE } from '@genfeedai/constants';
+import {
+  AGENT_CHAT_CAPABILITY,
+  REASONING_FEATURE,
+  RETIRED_AGENT_CHAT_MODELS,
+} from '@genfeedai/constants';
 import { CostTier, ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { renderHook, waitFor } from '@testing-library/react';
@@ -36,6 +40,82 @@ function apiServiceStub(): AgentApiService {
   } as unknown as AgentApiService;
 }
 
+const retiredFixtureKey = Object.keys(RETIRED_AGENT_CHAT_MODELS)[0];
+
+if (!retiredFixtureKey) {
+  throw new Error('Registry filter fixtures require a retired model key');
+}
+
+const registryFilterFixtures = [
+  registryModel({
+    cost: 10,
+    id: 'capability-model',
+    key: 'fixture/capability-model',
+    label: 'Capability model',
+    provider: ModelProvider.GENFEED_AI,
+  }),
+  registryModel({
+    capabilities: [],
+    cost: 20,
+    id: 'recommended-model',
+    key: 'fixture/recommended-model',
+    label: 'Recommended model',
+    provider: ModelProvider.GENFEED_AI,
+    recommendedFor: [AGENT_CHAT_CAPABILITY],
+  }),
+  registryModel({
+    capabilities: [],
+    cost: 30,
+    id: 'openrouter-model',
+    key: 'fixture/openrouter-model',
+    label: 'OpenRouter model',
+    provider: ModelProvider.OPENROUTER,
+    recommendedFor: [],
+  }),
+  registryModel({
+    capabilities: [],
+    cost: 40,
+    id: 'legacy-model',
+    isLegacy: true,
+    key: 'fixture/legacy-model',
+    label: 'Legacy model',
+    provider: ModelProvider.GENFEED_AI,
+    recommendedFor: [],
+  }),
+  registryModel({
+    capabilities: [],
+    id: 'untagged-model',
+    key: 'fixture/untagged-model',
+    label: 'Untagged model',
+    provider: ModelProvider.GENFEED_AI,
+    recommendedFor: [],
+  }),
+  registryModel({
+    id: 'inactive-model',
+    isActive: false,
+    key: 'fixture/inactive-model',
+    label: 'Inactive model',
+  }),
+  registryModel({
+    category: ModelCategory.IMAGE,
+    id: 'image-model',
+    key: 'fixture/image-model',
+    label: 'Image model',
+  }),
+  registryModel({
+    id: 'retired-model',
+    key: retiredFixtureKey,
+    label: 'Retired model',
+  }),
+];
+
+const expectedRegistryFilterKeys = [
+  'fixture/capability-model',
+  'fixture/recommended-model',
+  'fixture/openrouter-model',
+  'fixture/legacy-model',
+];
+
 describe('useAgentRegistryModels', () => {
   beforeEach(() => {
     findAll.mockReset();
@@ -70,35 +150,19 @@ describe('useAgentRegistryModels', () => {
     );
   });
 
-  it('drops registry rows that are not agent chat models', async () => {
-    findAll.mockResolvedValue([
-      registryModel(),
-      // No agent-chat capability and not an OpenRouter / legacy row.
-      registryModel({
-        capabilities: [],
-        id: 'model-2',
-        isLegacy: false,
-        key: 'local/qwen-32b',
-        provider: ModelProvider.GENFEED_AI,
-        recommendedFor: [],
-      }),
-      registryModel({ id: 'model-3', isLegacy: true, key: 'openai/retired' }),
-      registryModel({ id: 'model-4', key: 'openrouter/auto' }),
-    ]);
+  it('returns the exact eligible current and legacy registry rows', async () => {
+    findAll.mockResolvedValue(registryFilterFixtures);
 
     const { result } = renderHook(() =>
       useAgentRegistryModels(apiServiceStub()),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    // OpenRouter rows stay eligible; retired keys may still pass the filter
-    // depending on isRetiredAgentChatModel. Assert the primary chat model is in.
-    expect(result.current.models.map((model) => model.key)).toContain(
-      'anthropic/claude-opus-5',
-    );
-    expect(result.current.models.map((model) => model.key)).not.toContain(
-      'local/qwen-32b',
-    );
+    const modelKeys = result.current.models.map((model) => model.key);
+
+    expect(modelKeys).toEqual(expectedRegistryFilterKeys);
+    // Active legacy rows feed the Legacy rail; fully retired aliases never do.
+    expect(modelKeys).not.toContain(retiredFixtureKey);
   });
 
   it('keeps self-hosted Genfeed registry rows when tagged for agent chat', async () => {
