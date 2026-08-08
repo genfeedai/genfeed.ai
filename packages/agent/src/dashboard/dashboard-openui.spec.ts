@@ -94,6 +94,24 @@ describe('dashboard OpenUI validation', () => {
     });
   });
 
+  it('rejects an oversized OpenUI document before parsing its components', () => {
+    const result = parseDashboardOpenUIDocument({
+      components: [
+        {
+          component: 'Dashboard.Text',
+          props: { id: 'oversized', text: 'x'.repeat(70_000) },
+        },
+      ],
+      version: 'genfeed.dashboard.openui.v1',
+    });
+
+    expect(result.isValid).toBe(false);
+    expect(result.issues[0]).toMatchObject({
+      code: 'document_too_large',
+      path: 'document',
+    });
+  });
+
   it('rejects renderer-unsupported chart variants', () => {
     const result = parseAgentDashboardBlocks([
       {
