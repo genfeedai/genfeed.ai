@@ -3,6 +3,7 @@ import { SocialInboxModule } from '@api/collections/social-inbox/social-inbox.mo
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
+import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaModule } from '@libs/prisma/prisma.module';
 import { PrismaService } from '@libs/prisma/prisma.service';
@@ -29,10 +30,14 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     CronYoutubeStatusService,
     SystemWorkflowProvenanceService,
     {
-      inject: [PrismaService, LoggerService],
+      inject: [PrismaService, LoggerService, PostLifecycleService],
       provide: SchedulerPublishStateService,
-      useFactory: (prisma: PrismaService, logger: LoggerService) =>
-        new SchedulerPublishStateService(prisma, logger),
+      useFactory: (
+        prisma: PrismaService,
+        logger: LoggerService,
+        postLifecycleService: PostLifecycleService,
+      ) =>
+        new SchedulerPublishStateService(prisma, logger, postLifecycleService),
     },
   ],
 })

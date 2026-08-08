@@ -15,12 +15,16 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import {
   BatchItemStatus,
   BatchStatus,
-  PostStatus,
   ReviewDecision,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IBatchSummary, IPublishApproval } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import { AgentArtifactReferenceService, scopedWhere } from '@genfeedai/server';
+import {
+  AgentArtifactReferenceService,
+  PostLifecycleService,
+  scopedWhere,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -30,6 +34,7 @@ export class BatchGenerationReviewService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly agentArtifactReferenceService: AgentArtifactReferenceService,
+    private readonly postLifecycleService: PostLifecycleService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly summaryService: BatchGenerationSummaryService,
   ) {}
@@ -236,17 +241,20 @@ export class BatchGenerationReviewService {
         }
       }
 
+      const postIdsToScheduleSet = new Set(postIdsToSchedule);
       const approvalUpdates = await Promise.all(
-        selectedPostIds.map((postId) =>
-          transaction.post.updateMany({
-            data: {
-              reviewDecision: ReviewDecision.APPROVED,
-              reviewVersionPinId: versionPinIds.get(postId),
-              reviewedAt: new Date(reviewedAt),
-            },
-            where: scopedWhere(orgId, { id: postId }),
-          }),
-        ),
+        selectedPostIds
+          .filter((postId) => !postIdsToScheduleSet.has(postId))
+          .map((postId) =>
+            transaction.post.updateMany({
+              data: {
+                reviewDecision: ReviewDecision.APPROVED,
+                reviewVersionPinId: versionPinIds.get(postId),
+                reviewedAt: new Date(reviewedAt),
+              },
+              where: scopedWhere(orgId, { id: postId }),
+            }),
+          ),
       );
       if (approvalUpdates.some((result) => result.count !== 1)) {
         throw new NotFoundException({
@@ -254,11 +262,22 @@ export class BatchGenerationReviewService {
         });
       }
 
-      if (postIdsToSchedule.length > 0) {
-        await transaction.post.updateMany({
-          data: { status: PostStatus.SCHEDULED },
-          where: scopedWhere(orgId, { id: { in: postIdsToSchedule } }),
-        });
+      for (const postId of postIdsToSchedule) {
+        await this.postLifecycleService.transition(
+          {
+            actorId: createdByUserId,
+            mutation: {
+              reviewDecision: ReviewDecision.APPROVED,
+              reviewVersionPinId: versionPinIds.get(postId),
+              reviewedAt: new Date(reviewedAt),
+            },
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId: orgId,
+            postId,
+            reason: 'Review item approved for scheduling',
+          },
+          transaction,
+        );
       }
 
       const batchUpdate = await transaction.batch.updateMany({
@@ -365,16 +384,21 @@ export class BatchGenerationReviewService {
     }
 
     if (postIdsToReject.length > 0) {
-      // Soft-delete rejected posts
-      await this.prisma.post.updateMany({
-        data: {
-          isDeleted: true,
-          reviewDecision: ReviewDecision.REJECTED,
-          reviewedAt: new Date(reviewedAt),
-          reviewFeedback: feedback,
-        },
-        where: scopedWhere(orgId, { id: { in: postIdsToReject } }),
-      });
+      for (const postId of postIdsToReject) {
+        await this.postLifecycleService.transition({
+          actorId: actorUserId,
+          mutation: {
+            isDeleted: true,
+            reviewDecision: ReviewDecision.REJECTED,
+            reviewedAt: new Date(reviewedAt),
+            reviewFeedback: feedback,
+          },
+          nextState: TargetExecutionState.CANCELLED,
+          organizationId: orgId,
+          postId,
+          reason: feedback || 'Review item rejected',
+        });
+      }
       await Promise.all(
         postIdsToReject.map((postId) =>
           this.publishApprovalsService.invalidatePost(
@@ -450,15 +474,20 @@ export class BatchGenerationReviewService {
     }
 
     if (postIdsToKeepAsDraft.length > 0) {
-      await this.prisma.post.updateMany({
-        data: {
-          reviewDecision: ReviewDecision.REQUEST_CHANGES,
-          reviewedAt: new Date(reviewedAt),
-          reviewFeedback: feedback,
-          status: PostStatus.DRAFT,
-        },
-        where: scopedWhere(orgId, { id: { in: postIdsToKeepAsDraft } }),
-      });
+      for (const postId of postIdsToKeepAsDraft) {
+        await this.postLifecycleService.transition({
+          actorId: actorUserId,
+          mutation: {
+            reviewDecision: ReviewDecision.REQUEST_CHANGES,
+            reviewedAt: new Date(reviewedAt),
+            reviewFeedback: feedback,
+          },
+          nextState: TargetExecutionState.DRAFT,
+          organizationId: orgId,
+          postId,
+          reason: feedback || 'Changes requested during review',
+        });
+      }
       await Promise.all(
         postIdsToKeepAsDraft.map((postId) =>
           this.publishApprovalsService.invalidatePost(

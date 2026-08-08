@@ -88,6 +88,16 @@ export type {
   ServerModelRecord,
 } from './collections/models/model-record.types';
 export {
+  canTransitionPostLifecycle,
+  POST_LIFECYCLE_TRANSITIONS,
+  type PostLifecycleMutation,
+  PostLifecycleService,
+  type PostLifecycleTransaction,
+  type PostLifecycleTransitionGuard,
+  type PostLifecycleTransitionInput,
+  type PostLifecycleTransitionResult,
+} from './post-lifecycle/post-lifecycle.service';
+export {
   type ClaimPublishExecutionParams,
   type CompletePublishExecutionParams,
   type CreateCurrentPostPublishApprovalParams,
