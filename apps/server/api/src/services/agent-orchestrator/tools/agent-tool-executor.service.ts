@@ -267,6 +267,9 @@ export class AgentToolExecutorService {
       case AgentToolName.SCHEDULE_POST:
         return this.publishHandler.schedulePost(params, ctx);
 
+      case AgentToolName.REPURPOSE_POST:
+        return this.publishHandler.repurposePost(params, ctx);
+
       case AgentToolName.INSTALL_OFFICIAL_WORKFLOW:
         return this.workflowHandler.installOfficialWorkflow(params, ctx);
 

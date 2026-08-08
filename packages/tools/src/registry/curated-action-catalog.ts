@@ -171,6 +171,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'reject_social_draft', surfaces: ['mcp'] },
   { name: 'render_dashboard', surfaces: ['agent'] },
   { name: 'replicate_top_ingredient', surfaces: ['agent'] },
+  { name: 'repurpose_post', surfaces: ['agent', 'mcp'] },
   { name: 'request_asset', surfaces: ['agent'] },
   { name: 'resolve_approval', surfaces: ['mcp'] },
   { name: 'resolve_handle', surfaces: ['agent'] },

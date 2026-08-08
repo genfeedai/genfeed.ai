@@ -42,6 +42,7 @@ export const TOOL_LABELS: Record<string, string> = {
   score_seo: 'Score SEO',
   rate_ingredient: 'Rate Ingredient',
   reframe_image: 'Reframe Image',
+  repurpose_post: 'Repurpose Post',
   resolve_handle: 'Resolve Handle',
   save_brand_voice_profile: 'Save Brand Voice',
   save_dashboard_layout: 'Save Dashboard Layout',

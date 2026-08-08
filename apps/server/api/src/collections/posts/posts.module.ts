@@ -56,6 +56,7 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     AnalyticsAggregationService,
     PostAnalyticsCollectionStateService,
     PostAnalyticsService,
+    PostRepurposeService,
     PostsService,
   ],
   imports: [
