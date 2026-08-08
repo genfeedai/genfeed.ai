@@ -295,6 +295,32 @@ describe('EditorRenderService', () => {
     );
   });
 
+  it('uses the canonical underscore path for VIDEO_EDIT source assets', async () => {
+    ingredientsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          brandId: 'brand-123',
+          category: IngredientCategory.VIDEO_EDIT,
+          id: videoIngredientId,
+        },
+      ],
+    });
+
+    await service.render(projectId, organizationId, user);
+
+    expect(fileQueueService.processVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        params: expect.objectContaining({
+          assetManifest: [
+            expect.objectContaining({
+              ingredientUrl: 'https://cdn.genfeed.ai/video_edits/video-123',
+            }),
+          ],
+        }),
+      }),
+    );
+  });
+
   it('rejects malformed export settings before render side effects', async () => {
     editorProjectsService.findForRender.mockResolvedValue(
       makeProject([makeTrack(EditorTrackType.VIDEO)], {

@@ -17,6 +17,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
+  categoryToPlural,
   EditorProjectStatus,
   EditorTrackType,
   IngredientCategory,
@@ -39,14 +40,6 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 
-type RenderIngredientCategory =
-  | IngredientCategory.AUDIO
-  | IngredientCategory.AVATAR
-  | IngredientCategory.MUSIC
-  | IngredientCategory.VIDEO
-  | IngredientCategory.VIDEO_EDIT
-  | IngredientCategory.VOICE;
-
 interface RenderResult {
   jobId: string;
   projectId: string;
@@ -66,7 +59,7 @@ interface TrustedRenderContract {
 
 const ALLOWED_ASSET_CATEGORIES: Record<
   Exclude<EditorTrackType, EditorTrackType.TEXT>,
-  ReadonlySet<RenderIngredientCategory>
+  ReadonlySet<IngredientCategory>
 > = {
   [EditorTrackType.AUDIO]: new Set([
     IngredientCategory.AUDIO,
@@ -79,23 +72,6 @@ const ALLOWED_ASSET_CATEGORIES: Record<
     IngredientCategory.VIDEO_EDIT,
   ]),
 };
-
-const INGREDIENT_CATEGORY_PATHS: Readonly<
-  Record<RenderIngredientCategory, string>
-> = {
-  [IngredientCategory.AUDIO]: 'audios',
-  [IngredientCategory.AVATAR]: 'avatars',
-  [IngredientCategory.MUSIC]: 'musics',
-  [IngredientCategory.VIDEO]: 'videos',
-  [IngredientCategory.VIDEO_EDIT]: 'video-edits',
-  [IngredientCategory.VOICE]: 'voices',
-};
-
-function isRenderIngredientCategory(
-  category: IngredientCategory,
-): category is RenderIngredientCategory {
-  return category in INGREDIENT_CATEGORY_PATHS;
-}
 
 @Injectable()
 export class EditorRenderService {
@@ -338,10 +314,7 @@ export class EditorRenderService {
       const category = String(
         ingredient.category,
       ).toUpperCase() as IngredientCategory;
-      if (
-        !isRenderIngredientCategory(category) ||
-        !ALLOWED_ASSET_CATEGORIES[asset.type].has(category)
-      ) {
+      if (!ALLOWED_ASSET_CATEGORIES[asset.type].has(category)) {
         throw new UnprocessableEntityException(
           `Asset ${asset.ingredientId} is not valid for a ${asset.type} track.`,
         );
@@ -349,7 +322,7 @@ export class EditorRenderService {
 
       trustedUrlByClipId.set(
         asset.clipId,
-        `${this.configService.ingredientsEndpoint}/${INGREDIENT_CATEGORY_PATHS[category]}/${asset.ingredientId}`,
+        `${this.configService.ingredientsEndpoint}/${categoryToPlural(category)}/${asset.ingredientId}`,
       );
 
       if (asset.type === EditorTrackType.VIDEO && !brandId) {

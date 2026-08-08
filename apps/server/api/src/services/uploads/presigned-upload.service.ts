@@ -7,9 +7,11 @@ import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
+  categoryToPlural,
   FileInputType,
   IngredientCategory,
   IngredientStatus,
+  normalizeCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -49,7 +51,9 @@ export class PresignedUploadService {
     const lastPart = filenameParts[filenameParts.length - 1];
     const fileExtension =
       filenameParts.length > 1 && lastPart ? lastPart : 'jpg';
-    const category = body.category?.toLowerCase() || 'image';
+    const category = normalizeCategory(
+      body.category ?? IngredientCategory.IMAGE,
+    );
 
     // Pre-create the ingredient document with pending status
     const { ingredientData } = await this.sharedService.createMediaDocuments(
@@ -78,7 +82,7 @@ export class PresignedUploadService {
     const { uploadUrl, publicUrl, s3Key } =
       await this.filesClientService.getPresignedUploadUrl(
         key,
-        `${category}s`,
+        categoryToPlural(category),
         body.contentType,
         3600, // 1 hour expiry
       );
@@ -123,10 +127,10 @@ export class PresignedUploadService {
     // Use the same workflow as AI-generated content
     // ingredient.category is Prisma SCREAMING_SNAKE (e.g. 'VIDEO'); the S3
     // folder convention is lowercase plural (e.g. 'videos').
-    const category = (
-      ingredient.category || IngredientCategory.IMAGE
-    ).toLowerCase();
-    const s3Type = `${category}s`;
+    const category = normalizeCategory(
+      ingredient.category || IngredientCategory.IMAGE,
+    );
+    const s3Type = categoryToPlural(category);
 
     try {
       // Get presigned download URL
