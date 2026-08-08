@@ -74,8 +74,11 @@ describe('useElements', () => {
     expect(Array.isArray(result.current.filteredCameras)).toBe(true);
   });
 
-  it('returns an empty models array when the prompt-bar context omits models', () => {
-    vi.mocked(usePromptBarContext).mockReturnValueOnce({
+  it('returns an empty models array when the prompt-bar context omits models', async () => {
+    const promptBarContext = await import(
+      '@providers/promptbar/promptbar.context'
+    );
+    vi.mocked(promptBarContext.usePromptBarContext).mockReturnValueOnce({
       isLoading: false,
       tags: [],
       trainings: [],
