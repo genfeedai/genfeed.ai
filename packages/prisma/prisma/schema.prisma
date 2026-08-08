@@ -542,7 +542,6 @@ model User {
   userSubscription         UserSubscription?
   subscriptionAttributions SubscriptionAttribution[]
   distributions            Distribution[]
-  repurposingJobs          RepurposingJob[]
   contentDrafts            ContentDraft[]            @relation("content_draft_approved_by")
   creatorAnalyses          CreatorAnalysis[]
   profiles                 Profile[]
@@ -647,7 +646,6 @@ model Organization {
   schedules                     Schedule[]
   contentSchedules              ContentSchedule[]
   distributions                 Distribution[]
-  repurposingJobs               RepurposingJob[]
   votes                         Vote[]
   watchlists                    Watchlist[]
   goals                         Goal[]
@@ -2225,26 +2223,6 @@ model Distribution {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, platform, isDeleted, createdAt(sort: Desc)])
   @@map("distributions")
-}
-
-model RepurposingJob {
-  id                String       @id @default(cuid())
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  userId            String
-  user              User         @relation(fields: [userId], references: [id])
-  config            Json         @default("{}")
-  status            String?
-  sourceContentId   String?
-  sourceContentType String?
-  targetFormats     Json?
-  results           Json?
-  settings          Json?
-  isDeleted         Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  @@map("repurposing_jobs")
 }
 
 // ═══════════════════════════════════════════════════════════════

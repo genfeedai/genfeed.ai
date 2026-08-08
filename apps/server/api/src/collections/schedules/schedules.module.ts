@@ -1,7 +1,7 @@
 /**
  * Schedules Module
  * AI-powered scheduling: optimal posting time calculation, bulk content scheduling,
- * content repurposing (video → shorts, stories, GIFs), and performance tracking.
+ * and performance tracking.
  */
 
 import { CreditsModule } from '@api/collections/credits/credits.module';

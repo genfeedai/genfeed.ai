@@ -1,10 +1,5 @@
 import { get, post } from './client';
-import {
-  flattenCollection,
-  flattenSingle,
-  type JsonApiCollectionResponse,
-  type JsonApiSingleResponse,
-} from './json-api';
+import { flattenCollection, type JsonApiCollectionResponse } from './json-api';
 
 export interface ScheduleEntry {
   id: string;
@@ -27,13 +22,6 @@ export interface OptimalTime {
   hour: number;
   timezone: string;
   score: number;
-}
-
-export interface RepurposeResult {
-  id: string;
-  status: string;
-  platforms?: string[];
-  createdItems?: number;
 }
 
 export async function getCalendar(start?: string, end?: string): Promise<ScheduleEntry[]> {
@@ -62,20 +50,4 @@ export async function getOptimalTimes(
   if (timezone) body.timezone = timezone;
   const response = await post<JsonApiCollectionResponse>('/schedules/optimal', body);
   return flattenCollection<OptimalTime>(response);
-}
-
-export async function repurposeContent(
-  contentId: string,
-  platforms: string[]
-): Promise<RepurposeResult> {
-  const response = await post<JsonApiSingleResponse>('/schedules/repurpose', {
-    contentId,
-    platforms,
-  });
-  return flattenSingle<RepurposeResult>(response);
-}
-
-export async function getRepurposeStatus(id: string): Promise<RepurposeResult> {
-  const response = await get<JsonApiSingleResponse>(`/schedules/repurpose/${id}`);
-  return flattenSingle<RepurposeResult>(response);
 }

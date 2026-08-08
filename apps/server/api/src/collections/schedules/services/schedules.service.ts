@@ -2,8 +2,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
-import { RepurposeContentDto } from '@api/collections/schedules/dto/repurpose.dto';
-import type { RepurposingJobDocument } from '@api/collections/schedules/schemas/repurposing-job.schema';
 import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -11,7 +9,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import type {
   ChannelCapability,
   ChannelCapabilityListOptions,
@@ -23,14 +20,12 @@ import {
   getChannelCapability as resolveChannelCapability,
   validateChannelTargetSettings as resolveChannelTargetValidation,
 } from '@api-types/contracts/channel-capabilities.contract';
-import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
 type Schedule = ScheduleDocument;
-type RepurposingJob = RepurposingJobDocument;
 
 @Injectable()
 export class SchedulesService {
@@ -237,64 +232,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
     });
 
     return results as unknown as Schedule[];
-  }
-
-  /**
-   * Repurpose content
-   */
-  async repurposeContent(
-    dto: RepurposeContentDto,
-    organizationId: string,
-    userId: string,
-  ): Promise<RepurposingJob> {
-    try {
-      this.logger.debug('Starting content repurposing', {
-        contentId: dto.contentId,
-        organizationId,
-        targetFormats: dto.targetFormats,
-      });
-
-      const job = await this.prisma.repurposingJob.create({
-        data: {
-          organizationId,
-          results: dto.targetFormats.map((format) => ({
-            format,
-            status: 'pending',
-          })) as Prisma.InputJsonValue,
-          settings: dto.settings as Prisma.InputJsonValue,
-          sourceContentId: dto.contentId,
-          sourceContentType: 'video',
-          status: 'pending',
-          targetFormats: dto.targetFormats,
-          userId,
-        },
-      });
-
-      this.logger.debug('Repurposing job created', {
-        jobId: job.id,
-      });
-
-      return job as unknown as RepurposingJob;
-    } catch (error: unknown) {
-      this.logger.error('Failed to create repurposing job', { error });
-      throw error;
-    }
-  }
-
-  /**
-   * Get repurposing status
-   */
-  async getRepurposingStatus(
-    jobId: string,
-    organizationId: string,
-  ): Promise<RepurposingJob> {
-    const job = await findOrThrow(
-      this.prisma.repurposingJob,
-      { where: scopedWhere(organizationId, { id: jobId }) },
-      'Repurposing job',
-    );
-
-    return job as unknown as RepurposingJob;
   }
 
   /**

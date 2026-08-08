@@ -34,15 +34,6 @@ describe('SchedulesService', () => {
       findUnique: vi.fn().mockResolvedValue(null),
       update: vi.fn().mockResolvedValue(null),
     },
-    repurposingJob: {
-      count: vi.fn().mockResolvedValue(0),
-      create: vi.fn().mockResolvedValue(null),
-      delete: vi.fn().mockResolvedValue(null),
-      findFirst: vi.fn().mockResolvedValue(null),
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      update: vi.fn().mockResolvedValue(null),
-    },
   };
 
   const mockConfigService = {

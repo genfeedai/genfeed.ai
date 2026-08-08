@@ -2,14 +2,7 @@ import chalk from 'chalk';
 import { Command } from 'commander';
 import ora from 'ora';
 import { requireAuth } from '@/api/client';
-import {
-  type BulkScheduleItem,
-  bulkSchedule,
-  getCalendar,
-  getOptimalTimes,
-  getRepurposeStatus,
-  repurposeContent,
-} from '@/api/schedules';
+import { type BulkScheduleItem, bulkSchedule, getCalendar, getOptimalTimes } from '@/api/schedules';
 import { formatHeader, formatLabel, formatSuccess, print, printJson } from '@/ui/theme';
 import { handleError } from '@/utils/errors';
 
@@ -125,69 +118,6 @@ scheduleCommand
         print(
           `  ${chalk.blue(t.platform.padEnd(12))} ${t.day.padEnd(10)} ${String(t.hour).padStart(2, '0')}:00 ${t.timezone}  ${bar}`
         );
-      }
-    } catch (error) {
-      handleError(error);
-    }
-  });
-
-scheduleCommand
-  .command('repurpose')
-  .description('Repurpose content for other platforms')
-  .argument('<id>', 'Content ID to repurpose')
-  .requiredOption('--platforms <list>', 'Target platforms (comma-separated)')
-  .option('--json', 'Output as JSON')
-  .action(async (id, options) => {
-    try {
-      await requireAuth();
-
-      const platforms = options.platforms.split(',').map((p: string) => p.trim());
-
-      const spinner = ora('Repurposing content...').start();
-      const result = await repurposeContent(id, platforms);
-      spinner.succeed('Repurpose job started');
-
-      if (options.json) {
-        printJson(result);
-      } else {
-        print(formatLabel('Job ID', result.id));
-        print(formatLabel('Status', result.status));
-        if (result.platforms?.length) {
-          print(formatLabel('Platforms', result.platforms.join(', ')));
-        }
-        print();
-        print(chalk.dim(`Check status with: gf schedule repurpose-status ${result.id}`));
-      }
-    } catch (error) {
-      handleError(error);
-    }
-  });
-
-scheduleCommand
-  .command('repurpose-status')
-  .description('Check repurpose job status')
-  .argument('<id>', 'Repurpose job ID')
-  .option('--json', 'Output as JSON')
-  .action(async (id, options) => {
-    try {
-      await requireAuth();
-
-      const spinner = ora('Checking repurpose status...').start();
-      const result = await getRepurposeStatus(id);
-      spinner.stop();
-
-      if (options.json) {
-        printJson(result);
-        return;
-      }
-
-      print(formatLabel('Job ID', result.id));
-      print(formatLabel('Status', result.status));
-      if (result.createdItems !== undefined) {
-        print(formatLabel('Created Items', String(result.createdItems)));
-      }
-      if (result.platforms?.length) {
-        print(formatLabel('Platforms', result.platforms.join(', ')));
       }
     } catch (error) {
       handleError(error);
