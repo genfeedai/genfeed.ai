@@ -30,6 +30,7 @@ import { AgentThreadEngineService } from '@api/services/agent-threading/services
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
+  APP_ROUTES,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   getAgentChatModelRoundCredits,
 } from '@genfeedai/constants';
@@ -3006,8 +3007,10 @@ describe('AgentOrchestratorService', () => {
               textContent: 'Hook one',
             }),
           ]),
+          // The tool hands back the retired `/publish/drafts` path; the card
+          // builder normalizes it onto the canonical Review route.
           primaryCta: expect.objectContaining({
-            href: '/publish/drafts',
+            href: APP_ROUTES.PUBLISH.REVIEW,
             label: 'Review Draft',
           }),
           summaryText: 'Generated content for this request.',
