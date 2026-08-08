@@ -6,8 +6,14 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { ModelSelectorProviderSidebarProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Button } from '@ui/primitives/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@ui/primitives/tooltip';
 import { History, LayoutGrid, Star } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 /**
  * Left brand rail — filter by favorites / all / provider / legacy.
@@ -33,7 +39,8 @@ const ModelSelectorProviderSidebar = memo(
         aria-label="Filter by model provider"
         className={cn(
           'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
-          'border-r border-border bg-background-secondary py-1',
+          // Same surface as the picker body — never a gray secondary strip.
+          'border-r border-border bg-card py-1',
         )}
       >
         {hasFavorites ? (
@@ -98,6 +105,11 @@ const ModelSelectorProviderSidebar = memo(
   },
 );
 
+/**
+ * Hover-only tooltips. Button's built-in tooltip also opens on focus, and the
+ * popover's open autofocus used to land on "All providers" — so the label
+ * appeared the moment the picker opened. Pointer enter/leave only.
+ */
 function SidebarButton({
   children,
   isActive,
@@ -111,33 +123,45 @@ function SidebarButton({
   tooltip: string;
   accentColor?: string;
 }) {
+  const [isHovering, setIsHovering] = useState(false);
+
   return (
-    <Button
-      ariaLabel={tooltip}
-      variant={ButtonVariant.UNSTYLED}
-      withWrapper={false}
-      onClick={onClick}
-      // Rail sits on the left edge of the popover — open tooltips outward.
-      tooltip={tooltip}
-      tooltipPosition="left"
-      className={cn(
-        'relative flex size-7 shrink-0 items-center justify-center rounded-md',
-        'transition-colors',
-        isActive
-          ? 'bg-accent text-accent-foreground'
-          : 'text-foreground/55 hover:bg-accent/70 hover:text-foreground',
-      )}
-      style={isActive && accentColor ? { color: accentColor } : undefined}
-    >
-      {isActive ? (
-        <span
-          className="absolute inset-y-1 left-0 w-0.5 rounded-r-full bg-primary"
-          style={accentColor ? { backgroundColor: accentColor } : undefined}
-          aria-hidden
-        />
-      ) : null}
-      {children}
-    </Button>
+    <TooltipProvider delayDuration={250} disableHoverableContent>
+      <Tooltip open={isHovering}>
+        <TooltipTrigger asChild>
+          <Button
+            ariaLabel={tooltip}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            onClick={onClick}
+            onPointerEnter={() => setIsHovering(true)}
+            onPointerLeave={() => setIsHovering(false)}
+            className={cn(
+              'relative flex size-7 shrink-0 items-center justify-center rounded-md',
+              'transition-colors',
+              isActive
+                ? 'bg-accent text-accent-foreground'
+                : 'text-foreground/55 hover:bg-accent/70 hover:text-foreground',
+            )}
+            style={isActive && accentColor ? { color: accentColor } : undefined}
+          >
+            {isActive ? (
+              <span
+                className="absolute inset-y-1 left-0 w-0.5 rounded-r-full bg-primary"
+                style={
+                  accentColor ? { backgroundColor: accentColor } : undefined
+                }
+                aria-hidden
+              />
+            ) : null}
+            {children}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="left" sideOffset={8}>
+          {tooltip}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 

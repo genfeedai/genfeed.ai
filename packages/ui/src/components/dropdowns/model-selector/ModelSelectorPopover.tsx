@@ -456,18 +456,26 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         // Prefer the open side that still fits; empty shell used to fill 500px
         // and clip the top of the list against the browser chrome.
         avoidCollisions
+        // Focus search (not the brand-rail icon). Rail tooltips are hover-only
+        // too, but autofocus on "All providers" still felt wrong.
+        onOpenAutoFocus={(event) => {
+          const searchInput = event.currentTarget.querySelector('input');
+          if (searchInput instanceof HTMLElement) {
+            event.preventDefault();
+            searchInput.focus();
+          }
+        }}
         className={cn(
-          // Solid surface — ship default popover can look washed/transparent
-          // against the agent canvas and leave search text unreadable.
+          // Solid card surface — never washed gray secondary against the agent canvas.
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border p-0',
-          'bg-background text-foreground shadow-dropdown',
+          'bg-card text-card-foreground shadow-dropdown',
           'sm:w-[340px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
-        <div className="flex max-h-[inherit] min-h-0 w-full bg-background">
+        <div className="flex max-h-[inherit] min-h-0 w-full bg-card">
           {shouldShowProviderRail ? (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -478,10 +486,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             />
           ) : null}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="shrink-0 overflow-x-auto border-b border-border bg-background px-1.5 py-1">
-                <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-0.5">
+              <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-1.5 py-1">
+                <div className="inline-flex min-w-max rounded border border-border bg-card p-0.5">
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
                     label="All"
@@ -501,7 +509,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-background text-foreground"
+              className="flex min-h-0 flex-col bg-card text-card-foreground"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -512,9 +520,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   className={cn(
                     // Ship CommandInput defaults to muted-on-muted and reads as
                     // empty grey chrome on dark agent surfaces — force tokens.
-                    'h-8 border-0 border-b border-border bg-background px-2 text-foreground',
+                    'h-8 border-0 border-b border-border bg-card px-2 text-card-foreground',
                     'placeholder:text-muted-foreground',
-                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-foreground',
+                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-card-foreground',
                     '[&_input]:placeholder:!text-muted-foreground',
                   )}
                 />
