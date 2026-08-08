@@ -10,7 +10,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { MemberRole, TargetExecutionState } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -4,7 +4,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

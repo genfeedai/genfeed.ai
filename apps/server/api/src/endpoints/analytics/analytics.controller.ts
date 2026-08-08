@@ -42,7 +42,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
-import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import {
   BotStatus,
   CredentialPlatform,
