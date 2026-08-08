@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { IngredientCategory, PageScope } from '@genfeedai/enums';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -94,7 +94,7 @@ describe('useIngredientsLoading', () => {
     query: { category: '', format: '', search: '' },
     scope: PageScope.BRAND,
     setIsRefreshing: vi.fn(),
-    singularType: 'video',
+    singularType: IngredientCategory.VIDEO,
     type: 'videos',
   };
 

@@ -247,11 +247,14 @@ export function useEnhanceUpscale({
       if (!data) {
         return '';
       }
-      const category =
+      // Spelled out rather than interpolating the enum: IngredientCategory
+      // carries Prisma's SCREAMING_SNAKE labels (#2473), which read as
+      // "Upscale IMAGE with Topaz AI?" in a dialog shown to the user.
+      const noun =
         data.ingredient?.category === IngredientCategory.VIDEO
-          ? IngredientCategory.VIDEO
-          : IngredientCategory.IMAGE;
-      return `${action} ${category} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(data.cost)} credits.`;
+          ? 'video'
+          : 'image';
+      return `${action} ${noun} with Topaz AI?\n\nThis will cost ${formatNumberWithCommas(data.cost)} credits.`;
     },
     [],
   );

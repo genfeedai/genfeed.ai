@@ -42,6 +42,16 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => children,
+  useCurrentUser: () => ({ currentUser: null }),
+}));
+
+// LocaleCookieSync is mounted for real inside GlobalModalsProvider, so its
+// dependencies have to resolve here even though this file asserts the provider
+// stack rather than the sync itself. With no stored preference,
+// resolvePreferredLocale() returns undefined and the sync is a no-op — its own
+// behaviour is covered by providers/locale-sync/locale-cookie-sync.test.tsx.
+vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
+  useOrganization: () => ({ settings: null }),
 }));
 
 vi.mock('@providers/access-state/access-state.provider', () => ({
@@ -64,6 +74,10 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 
 vi.mock('@providers/promptbar/promptbar.provider', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({

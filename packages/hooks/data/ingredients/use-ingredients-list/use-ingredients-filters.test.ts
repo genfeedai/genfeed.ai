@@ -1,4 +1,8 @@
-import { IngredientFormat, PageScope } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientFormat,
+  PageScope,
+} from '@genfeedai/enums';
 import {
   isIngredientFormat,
   useIngredientsFilters,
@@ -89,11 +93,18 @@ describe('useIngredientsFilters', () => {
     expect(result.current).toHaveProperty('form');
   });
 
-  it('singularType removes last char from type', () => {
+  it('singularType normalizes the route plural to an IngredientCategory', () => {
     const { result } = renderHook(() =>
       useIngredientsFilters({ scope: PageScope.BRAND, type: 'videos' }),
     );
-    expect(result.current.singularType).toBe('video');
+    expect(result.current.singularType).toBe(IngredientCategory.VIDEO);
+  });
+
+  it('singularType keeps the raw singular for unknown route plurals', () => {
+    const { result } = renderHook(() =>
+      useIngredientsFilters({ scope: PageScope.BRAND, type: 'widgets' }),
+    );
+    expect(result.current.singularType).toBe('widget');
   });
 
   it('isActionsEnabled is false for SUPERADMIN scope', () => {

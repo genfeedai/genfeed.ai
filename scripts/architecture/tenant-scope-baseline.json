@@ -2418,22 +2418,6 @@
     },
     {
       "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-prelaunch-corpus.service.ts",
-      "fingerprint": "0fe9213c93be5c5193df",
-      "method": "update",
-      "model": "Trend",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-prelaunch-corpus.service.ts",
-      "fingerprint": "2888137c856c9637acbb",
-      "method": "update",
-      "model": "Trend",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "trend",
       "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
       "fingerprint": "fd3f70ba9e9572100833",
       "method": "findFirst",

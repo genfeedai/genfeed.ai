@@ -174,14 +174,19 @@ export class BatchGenerationReconcileService {
       (item) => item.status === BatchItemStatus.COMPLETED,
     ).length;
 
+    // Name the shape before the cast. An inline literal widens the optional
+    // nested config objects, and the spec tsconfig then rejects the direct
+    // `as Prisma.InputJsonValue` conversion as non-overlapping.
+    const completedConfig: BatchConfig = {
+      ...config,
+      completedAt: new Date().toISOString(),
+      completedCount,
+      failedCount: items.length - completedCount,
+    };
+
     await this.prisma.batch.updateMany({
       data: {
-        config: {
-          ...config,
-          completedAt: new Date().toISOString(),
-          completedCount,
-          failedCount: items.length - completedCount,
-        } as Prisma.InputJsonValue,
+        config: completedConfig as Prisma.InputJsonValue,
         items: items as unknown as Prisma.InputJsonValue,
         status: toPrismaBatchStatus(BatchStatus.FAILED),
       },

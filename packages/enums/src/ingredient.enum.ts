@@ -55,9 +55,9 @@ export const QualityStatus = {
 export type QualityStatus = (typeof QualityStatus)[keyof typeof QualityStatus];
 
 /**
- * Transformation category. Values match Prisma `TransformationCategory`
- * (orphan type today — no column yet). Keep SCREAMING so a future column
- * write needs no cast.
+ * Transformation category. Values match Prisma `TransformationCategory`,
+ * which backs the `ingredients.transformations` array column — so these
+ * labels are load-bearing, not decorative. Keep SCREAMING.
  * @see packages/prisma/prisma/schema.prisma `enum TransformationCategory`
  */
 export enum TransformationCategory {
