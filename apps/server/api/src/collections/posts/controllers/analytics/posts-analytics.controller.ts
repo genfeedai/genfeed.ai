@@ -10,7 +10,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
-import { MemberRole, PostStatus, PublishStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { MemberRole, TargetExecutionState } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -275,14 +276,7 @@ export class PostsAnalyticsController {
             externalId: { not: null },
             isDeleted: false,
             organizationId: publicMetadata.organization,
-            status: {
-              in: [
-                PublishStatus.PUBLISHED,
-                PostStatus.PUBLIC,
-                PostStatus.UNLISTED,
-                PostStatus.PRIVATE,
-              ],
-            },
+            ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
           },
         },
         { customLabels, pagination: false },

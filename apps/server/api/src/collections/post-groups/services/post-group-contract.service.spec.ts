@@ -7,6 +7,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import {
   CredentialPlatform,
   PostStatus,
+  PostVisibility,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
@@ -417,6 +418,7 @@ function makeTarget(
     timezone: 'UTC',
     updatedAt: new Date('2026-07-19T10:00:00.000Z'),
     url: null,
+    visibility: PostVisibility.PUBLIC,
     workflowExecutionId: null,
     ...overrides,
   };

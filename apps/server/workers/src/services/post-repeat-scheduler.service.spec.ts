@@ -1,6 +1,12 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -204,7 +210,8 @@ describe('PostRepeatSchedulerService', () => {
       expect.objectContaining({
         isRepeat: true,
         repeatCount: 2,
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        visibility: PostVisibility.PUBLIC,
       }),
     );
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({

@@ -238,9 +238,11 @@ describe('Serializer Configurations', () => {
       expect(postAttributes).toContain('parentId');
       expect(postAttributes).toContain('personaId');
       expect(postAttributes).toContain('status');
+      expect(postAttributes).toContain('targetExecutionState');
       expect(postAttributes).toContain('tags');
       expect(postAttributes).toContain('platform');
       expect(postAttributes).toContain('userId');
+      expect(postAttributes).toContain('visibility');
       expect(postAttributes).toContain('brand');
       expect(postAttributes).toContain('credential');
       expect(postAttributes).toContain('organization');

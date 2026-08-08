@@ -4,7 +4,8 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { type OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -102,9 +103,7 @@ export class QuotaService {
         },
         credentialId: credential.id.toString(),
         platform: credential.platform,
-        status: {
-          in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-        },
+        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
       },
     );
 

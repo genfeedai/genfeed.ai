@@ -150,7 +150,6 @@ export class PostGroupPersistenceService {
           scheduledDate:
             this.contractService.toDate(target.scheduledDate) ??
             group.scheduledAt,
-          status: this.contractService.toPostStatus(params.status),
           targetAttachments: this.contractService.toJson(
             target.attachments ?? [],
           ),
@@ -162,6 +161,7 @@ export class PostGroupPersistenceService {
               validation.readiness,
           ),
           targetSettings: this.contractService.toJson(target.settings ?? {}),
+          visibility: target.visibility,
           targetValidationIssues:
             this.contractService.validationIssues(validation),
           targetValidationState: validation.validationState,
@@ -510,8 +510,8 @@ export class PostGroupPersistenceService {
           parentId: params.parent.id,
           platform: params.target.platform,
           scheduledDate: params.parent.scheduledDate,
-          status: params.parent.status,
           targetExecutionState: params.parent.targetExecutionState,
+          visibility: params.parent.visibility,
           timezone: params.parent.timezone,
           userId: params.userId,
         },

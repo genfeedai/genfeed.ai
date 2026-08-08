@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto';
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   buildLifecycleSystemEmailAction,
   getLifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/constants';
-import { PostStatus, SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { LifecycleEmailJobData } from '@genfeedai/queue-contracts';
 import {
   buildSystemEmailHtml,
@@ -256,7 +257,7 @@ export class LifecycleEmailDeliveryService {
       select: { id: true },
       where: {
         isDeleted: false,
-        status: PostStatus.PUBLIC,
+        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
         userId,
       },
     });

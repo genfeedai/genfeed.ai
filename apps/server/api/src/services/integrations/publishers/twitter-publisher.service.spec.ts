@@ -29,7 +29,12 @@ import type {
 import { TwitterPublisherService } from '@api/services/integrations/publishers/twitter-publisher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -281,7 +286,7 @@ describe('TwitterPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockTweetId);
         expect(result.platform).toBe(CredentialPlatform.TWITTER);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toContain(mockTweetId);
       });
 
@@ -535,7 +540,7 @@ describe('TwitterPublisherService', () => {
         const result = await service.publish(context);
 
         expect(result.success).toBe(false);
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
 
       it('should throw error when publishing fails', async () => {
@@ -632,7 +637,7 @@ describe('TwitterPublisherService', () => {
         mockChildren[0].id.toString(),
         expect.objectContaining({
           externalId: expect.any(String),
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         }),
       );
     });
@@ -683,7 +688,7 @@ describe('TwitterPublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -880,10 +885,10 @@ describe('TwitterPublisherService', () => {
       );
 
       expect(result).toEqual({
+        executionState: TargetExecutionState.PUBLISHED,
         externalId: 'tweet-123',
         externalShortcode: undefined,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.PUBLIC,
         success: true,
         url: 'https://x.com/user/status/tweet-123',
       });
@@ -897,9 +902,9 @@ describe('TwitterPublisherService', () => {
 
       expect(result).toEqual({
         error: 'Publishing failed',
+        executionState: TargetExecutionState.FAILED,
         externalId: null,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.FAILED,
         success: false,
         url: '',
       });

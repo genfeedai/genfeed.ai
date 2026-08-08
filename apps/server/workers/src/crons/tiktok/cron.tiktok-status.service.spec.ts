@@ -6,7 +6,7 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
-import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTiktokStatusService } from '@workers/crons/tiktok/cron.tiktok-status.service';
@@ -155,7 +155,8 @@ describe('CronTiktokStatusService', () => {
       post,
       expect.objectContaining({
         externalId: 'tiktok-post-1',
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
       }),
       expect.stringContaining('moderation completed'),
       expect.any(Object),
@@ -201,7 +202,9 @@ describe('CronTiktokStatusService', () => {
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
-      expect.objectContaining({ status: PostStatus.FAILED }),
+      expect.objectContaining({
+        executionState: TargetExecutionState.FAILED,
+      }),
       'TikTok moderation timeout - exceeded 24 hours',
       expect.any(Object),
     );
@@ -298,7 +301,8 @@ describe('CronTiktokStatusService', () => {
       post,
       expect.objectContaining({
         externalId: 'tiktok-post-4',
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
         workflowExecutionId: 'execution-1',
       }),
       expect.stringContaining('moderation completed'),

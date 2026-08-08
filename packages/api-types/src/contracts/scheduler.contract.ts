@@ -32,6 +32,7 @@ import {
   CredentialPlatform,
   PostFrequency,
   PostStatus,
+  PostVisibility,
   ReleaseAttachmentKind,
   ReleaseStatus,
   TargetExecutionState,
@@ -153,6 +154,7 @@ export const channelTargetInputSchema = z.object({
   scheduledDate: dateStringSchema.optional(),
   settings: channelTargetSettingsSchema.optional(),
   timezone: timezoneSchema.optional(),
+  visibility: z.nativeEnum(PostVisibility).default(PostVisibility.PUBLIC),
 });
 
 /** Create a release group and its channel targets in one call. */
@@ -227,6 +229,7 @@ export const updateChannelTargetSchema = z.object({
   url: optionalStringSchema,
   validationIssues: z.array(z.string()).optional(),
   validationState: z.nativeEnum(TargetValidationState).optional(),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 });
 
 // ============================================================================
@@ -534,4 +537,136 @@ export function mapLegacyPostStatusToTargetExecutionState(
     default:
       return TargetExecutionState.DRAFT;
   }
+}
+
+/** Map a legacy visibility-like status into the independent audience axis. */
+export function mapLegacyPostStatusToVisibility(
+  status: string,
+): PostVisibility {
+  switch (status) {
+    case PostStatus.PRIVATE:
+      return PostVisibility.PRIVATE;
+    case PostStatus.UNLISTED:
+      return PostVisibility.UNLISTED;
+    default:
+      return PostVisibility.PUBLIC;
+  }
+}
+
+/**
+ * Resolve an expand-phase nullable visibility value with a legacy fallback.
+ * Unknown stored values fail closed to public instead of leaking provider data.
+ */
+export function resolvePostVisibility(
+  visibility: string | null | undefined,
+  legacyStatus: string,
+): PostVisibility {
+  const parsed = z.nativeEnum(PostVisibility).safeParse(visibility);
+  return parsed.success
+    ? parsed.data
+    : mapLegacyPostStatusToVisibility(legacyStatus);
+}
+
+/**
+ * Compatibility projection for classic Post consumers. Canonical writes never
+ * persist this value; #2642 owns retiring the projection after rollout.
+ */
+export function projectLegacyPostStatus(
+  executionState: TargetExecutionState,
+  visibility: PostVisibility,
+): PostStatus {
+  switch (executionState) {
+    case TargetExecutionState.DRAFT:
+      return PostStatus.DRAFT;
+    case TargetExecutionState.PUBLISHING:
+      return PostStatus.PROCESSING;
+    case TargetExecutionState.PUBLISHED:
+      switch (visibility) {
+        case PostVisibility.PRIVATE:
+          return PostStatus.PRIVATE;
+        case PostVisibility.UNLISTED:
+          return PostStatus.UNLISTED;
+        case PostVisibility.PUBLIC:
+          return PostStatus.PUBLIC;
+      }
+      return PostStatus.PUBLIC;
+    case TargetExecutionState.FAILED:
+      return PostStatus.FAILED;
+    case TargetExecutionState.CANCELLED:
+    case TargetExecutionState.PAUSED:
+    case TargetExecutionState.SCHEDULED:
+    case TargetExecutionState.SKIPPED:
+      return PostStatus.SCHEDULED;
+  }
+}
+
+const LEGACY_STATUSES_BY_EXECUTION_STATE: Readonly<
+  Record<TargetExecutionState, readonly PostStatus[]>
+> = {
+  [TargetExecutionState.CANCELLED]: [],
+  [TargetExecutionState.DRAFT]: [PostStatus.DRAFT],
+  [TargetExecutionState.FAILED]: [PostStatus.FAILED],
+  [TargetExecutionState.PAUSED]: [],
+  [TargetExecutionState.PUBLISHED]: [
+    PostStatus.PUBLIC,
+    PostStatus.PRIVATE,
+    PostStatus.UNLISTED,
+  ],
+  [TargetExecutionState.PUBLISHING]: [
+    PostStatus.PENDING,
+    PostStatus.PROCESSING,
+  ],
+  [TargetExecutionState.SCHEDULED]: [PostStatus.SCHEDULED],
+  [TargetExecutionState.SKIPPED]: [],
+};
+
+/**
+ * Expand-phase read filter for canonical lifecycle plus unclassified legacy
+ * rows. A NULL visibility is the migration marker; once classified, stale
+ * legacy status can no longer affect the result.
+ */
+export function postExecutionStateReadFilter(
+  states: TargetExecutionState | readonly TargetExecutionState[],
+): Record<string, unknown> {
+  const requested: readonly TargetExecutionState[] =
+    typeof states === 'string' ? [states] : states;
+  const nonDraftStates = requested.filter(
+    (state) => state !== TargetExecutionState.DRAFT,
+  );
+  const legacyStatuses = [
+    ...new Set(
+      requested.flatMap((state) => LEGACY_STATUSES_BY_EXECUTION_STATE[state]),
+    ),
+  ];
+  const clauses: Record<string, unknown>[] = [];
+
+  if (nonDraftStates.length > 0) {
+    clauses.push({ targetExecutionState: { in: nonDraftStates } });
+  }
+  if (requested.includes(TargetExecutionState.DRAFT)) {
+    clauses.push({
+      OR: [{ visibility: { not: null } }, { status: PostStatus.DRAFT }],
+      targetExecutionState: TargetExecutionState.DRAFT,
+    });
+  }
+  if (legacyStatuses.length > 0) {
+    clauses.push({
+      status: { in: legacyStatuses },
+      visibility: null,
+    });
+  }
+
+  return { OR: clauses };
+}
+
+/** Compatibility read filter for the nullable expand-phase visibility axis. */
+export function postVisibilityReadFilter(
+  visibility: PostVisibility,
+): Record<string, unknown> {
+  const legacyStatuses = Object.values(PostStatus).filter(
+    (status) => mapLegacyPostStatusToVisibility(status) === visibility,
+  );
+  return {
+    OR: [{ visibility }, { status: { in: legacyStatuses }, visibility: null }],
+  };
 }

@@ -1,7 +1,10 @@
 'use client';
 
 import { AlertCategory, Platform } from '@genfeedai/enums';
-import { getPostStatusOptions } from '@helpers/content/posts.helper';
+import {
+  getPostLifecycleOptions,
+  getPostVisibilityOptions,
+} from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
@@ -88,13 +91,26 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
           />
         </FormControl>
 
+        <FormControl
+          label="Lifecycle"
+          error={form.formState.errors.targetExecutionState?.message}
+        >
+          <SelectField name="targetExecutionState" control={form.control}>
+            {getPostLifecycleOptions().map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </SelectField>
+        </FormControl>
+
         {isYouTube && (
           <FormControl
-            label="Status"
-            error={form.formState.errors.status?.message}
+            label="Visibility"
+            error={form.formState.errors.visibility?.message}
           >
-            <SelectField name="status" control={form.control}>
-              {getPostStatusOptions().map((option) => (
+            <SelectField name="visibility" control={form.control}>
+              {getPostVisibilityOptions().map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

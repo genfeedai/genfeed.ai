@@ -1,5 +1,11 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostFrequency,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -69,12 +75,38 @@ export class CreatePostDto {
 
   @ApiProperty({
     default: PostStatus.SCHEDULED,
-    description: 'The current status of the post',
+    deprecated: true,
+    description:
+      'Legacy combined status. Use targetExecutionState and visibility.',
     enum: PostStatus,
     enumName: 'PostStatus',
+    required: false,
   })
+  @IsOptional()
   @IsEnum(PostStatus)
-  readonly status!: PostStatus;
+  readonly status?: PostStatus;
+
+  @ApiProperty({
+    description:
+      'Canonical channel-target publish lifecycle. New clients should use this instead of status.',
+    enum: TargetExecutionState,
+    enumName: 'TargetExecutionState',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(TargetExecutionState)
+  readonly targetExecutionState?: TargetExecutionState;
+
+  @ApiProperty({
+    default: PostVisibility.PUBLIC,
+    description: 'Audience visibility, independent from publish lifecycle',
+    enum: PostVisibility,
+    enumName: 'PostVisibility',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PostVisibility)
+  readonly visibility?: PostVisibility;
 
   @ApiProperty({
     description: 'Optional tags/hashtags to include with the post',
