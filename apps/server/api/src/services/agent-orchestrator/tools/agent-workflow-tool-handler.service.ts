@@ -3,7 +3,9 @@ import type { SystemWorkflowCatalogListItem } from '@api/collections/workflows/s
 import { SystemWorkflowCatalogService } from '@api/collections/workflows/services/system-workflow-catalog.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
+import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -59,6 +61,7 @@ export class AgentWorkflowToolHandler {
     private readonly configService: ConfigService,
     private readonly workflowsService: WorkflowsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
+    private readonly workflowSchedulerService: WorkflowSchedulerService,
     private readonly internalApi: AgentToolInternalApiService,
     @Inject('AGENT_BRANDS_SERVICE')
     private readonly brandsService: AgentBrandsServiceLike,
@@ -757,33 +760,44 @@ export class AgentWorkflowToolHandler {
       };
     }
 
-    const response =
-      enabled === false && !schedule
-        ? await this.internalApi.callInternalApi(
-            'DELETE',
-            `/v1/workflows/${encodeURIComponent(workflowId)}/schedule`,
-            undefined,
-            ctx,
-          )
-        : await this.internalApi.callInternalApi(
-            'POST',
-            `/v1/workflows/${encodeURIComponent(workflowId)}/schedule`,
-            {
-              enabled,
-              schedule,
-              timezone,
-            },
-            ctx,
-          );
+    const workflow = await this.workflowsService.findOne({
+      id: workflowId,
+      isDeleted: false,
+      organizationId: ctx.organizationId,
+    });
+
+    if (!workflow) {
+      throw new NotFoundException('Workflow');
+    }
+
+    if (schedule) {
+      try {
+        computeNextRunAtOrThrow(schedule, timezone);
+      } catch {
+        throw new BadRequestException(
+          `Invalid cron expression "${schedule}" for timezone "${timezone}". Use a valid cron expression such as "0 9 * * 1-5".`,
+        );
+      }
+    }
+
+    const updatedWorkflow = await this.workflowSchedulerService.updateSchedule(
+      workflowId,
+      schedule ?? null,
+      timezone,
+      enabled,
+    );
+
+    if (!updatedWorkflow) {
+      throw new NotFoundException('Workflow');
+    }
 
     return {
       creditsUsed: 0,
       data: {
-        enabled,
-        response,
-        schedule: schedule ?? null,
-        timezone,
-        workflowId,
+        enabled: updatedWorkflow.isScheduleEnabled ?? false,
+        schedule: updatedWorkflow.schedule ?? null,
+        timezone: updatedWorkflow.timezone ?? timezone,
+        workflowId: String(updatedWorkflow.id),
       },
       success: true,
     };
