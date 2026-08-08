@@ -14,7 +14,9 @@ function isAgentChatRegistryModel(model: IModel): boolean {
   if (model.category !== ModelCategory.TEXT) {
     return false;
   }
-  if (model.isLegacy || model.isActive === false) {
+  // Keep inactive and fully retired keys out. Legacy/active-but-deprecated
+  // rows still load so the picker can offer a Legacy rail filter.
+  if (model.isActive === false) {
     return false;
   }
   if (isRetiredAgentChatModel(model.key)) {
@@ -27,7 +29,9 @@ function isAgentChatRegistryModel(model: IModel): boolean {
   return (
     capabilities.includes(AGENT_CHAT_CAPABILITY) ||
     recommended.includes(AGENT_CHAT_CAPABILITY) ||
-    model.provider === 'openrouter'
+    model.provider === 'openrouter' ||
+    // Legacy catalogue rows may lack modern capability tags.
+    model.isLegacy === true
   );
 }
 

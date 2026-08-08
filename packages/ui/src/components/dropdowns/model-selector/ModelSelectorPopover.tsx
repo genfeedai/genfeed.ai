@@ -134,6 +134,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   }, [allOptions, sourceGroupLabels]);
 
   const hasFavorites = favoriteModelKeys.length > 0;
+  const hasLegacy = allOptions.some((option) => option.isDeprecated);
   const shouldShowSourceTabs = sourceGroups.length > 1;
 
   const visibleOptions = useMemo(() => {
@@ -145,15 +146,22 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       );
     }
 
-    // Brand rail filter only applies when the rail is shown (multi / studio).
-    if (!isSingleSelect) {
-      if (activeBrand === 'favorites') {
-        filtered = filtered.filter((option) => option.isFavorite);
-      } else if (activeBrand) {
-        filtered = filtered.filter(
-          (option) => option.brandSlug === activeBrand,
-        );
-      }
+    if (activeBrand === 'favorites') {
+      filtered = filtered.filter((option) => option.isFavorite);
+    } else if (activeBrand === 'legacy') {
+      filtered = filtered.filter((option) => option.isDeprecated);
+    } else if (activeBrand) {
+      filtered = filtered.filter((option) => option.brandSlug === activeBrand);
+    }
+
+    // Default catalog (All / provider): hide legacy rows unless searching so
+    // the main list stays current — Legacy rail is the subcategory entry.
+    if (
+      activeBrand !== 'legacy' &&
+      activeBrand !== 'favorites' &&
+      !normalizedSearchTerm
+    ) {
+      filtered = filtered.filter((option) => !option.isDeprecated);
     }
 
     if (!normalizedSearchTerm) {
@@ -201,13 +209,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return searched;
-  }, [
-    activeBrand,
-    activeSourceGroup,
-    allOptions,
-    isSingleSelect,
-    normalizedSearchTerm,
-  ]);
+  }, [activeBrand, activeSourceGroup, allOptions, normalizedSearchTerm]);
 
   const groupedOptions = useMemo((): GroupedFamilies => {
     const groupedByBrand = new Map<
@@ -330,13 +332,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   // it (`!isAutoSelected`), which left a tall empty popover of priority-only
   // rows and made it impossible to pick a concrete model once Auto was on.
   const shouldShowManualCatalog = allOptions.length > 0;
-  // Agent chat (single) already groups by provider in the list — the left
-  // brand icon rail steals width and fights the search row. Studio multi keeps it.
-  const shouldShowProviderRail = shouldShowManualCatalog && !isSingleSelect;
+  // Brand rail is the filter for both agent single and studio multi.
+  const shouldShowProviderRail = shouldShowManualCatalog;
 
   const shouldShowAuto = useMemo(() => {
-    // Favorites filter (multi rail only) hides Auto cards.
-    if (shouldShowProviderRail && activeBrand === 'favorites') {
+    // Favorites / Legacy filters are catalog subsets — hide Auto cards there.
+    if (activeBrand === 'favorites' || activeBrand === 'legacy') {
       return false;
     }
 
@@ -355,13 +356,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
-  }, [
-    activeBrand,
-    activeSourceGroup,
-    autoSourceGroups,
-    shouldShowProviderRail,
-    sourceGroups,
-  ]);
+  }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
 
   // Single-select chat pickers never show Auto priority cards unless a host
   // explicitly opts in with autoLabel (studio generation keeps the full surface).
@@ -464,10 +459,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         className={cn(
           // Solid surface — ship default popover can look washed/transparent
           // against the agent canvas and leave search text unreadable.
-          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border',
+          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border p-0',
           'bg-background text-foreground shadow-dropdown',
-          // Single (agent): no rail → tighter panel. Multi (studio): room for rail.
-          isSingleSelect ? 'sm:w-[320px]' : 'sm:w-[380px]',
+          'sm:w-[340px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
@@ -480,14 +474,14 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
               activeBrand={activeBrand}
               onBrandSelect={setActiveBrand}
               hasFavorites={hasFavorites}
+              hasLegacy={hasLegacy}
             />
           ) : null}
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="shrink-0 overflow-x-auto border-b border-border bg-background px-3 py-2">
-                <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-1">
-                  {' '}
+              <div className="shrink-0 overflow-x-auto border-b border-border bg-background px-1.5 py-1">
+                <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-0.5">
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
                     label="All"
@@ -518,23 +512,24 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   className={cn(
                     // Ship CommandInput defaults to muted-on-muted and reads as
                     // empty grey chrome on dark agent surfaces — force tokens.
-                    'border-border bg-background text-foreground',
+                    'h-8 border-0 border-b border-border bg-background px-2 text-foreground',
                     'placeholder:text-muted-foreground',
-                    '[&_input]:!text-foreground [&_input]:placeholder:!text-muted-foreground',
+                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-foreground',
+                    '[&_input]:placeholder:!text-muted-foreground',
                   )}
                 />
               )}
 
               <CommandList
                 className={cn(
-                  'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-1 py-1',
+                  'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-0.5 py-0.5',
                   // Override command.tsx `max-h-dropdown` (300px) with viewport-aware cap.
                   // Height stays content-sized below the cap — no empty filler.
-                  'max-h-[min(360px,calc(var(--radix-popover-content-available-height,70vh)-6rem))]',
+                  'max-h-[min(360px,calc(var(--radix-popover-content-available-height,70vh)-5rem))]',
                 )}
               >
                 {shouldShowAutoCard && (
-                  <CommandGroup heading="Auto">
+                  <CommandGroup heading="Auto" className="p-0.5">
                     {AUTO_PRIORITY_OPTIONS.map((priorityOption) => (
                       <CommandItem
                         key={priorityOption}
@@ -551,7 +546,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                           handleAutoSelect(priorityOption);
                         }}
                         className={cn(
-                          'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
+                          'flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
                           isAutoSelected &&
                             priorityOption === prioritize &&
                             'bg-background-tertiary',
@@ -685,7 +680,7 @@ function SourceTabButton({
       withWrapper={false}
       onClick={onClick}
       className={cn(
-        'min-h-11 rounded px-2.5 py-1.5 text-xs font-medium transition-colors lg:min-h-0',
+        'min-h-7 rounded px-2 py-1 text-xs font-medium transition-colors',
         isActive
           ? 'bg-accent text-accent-foreground'
           : 'text-foreground/55 hover:bg-accent hover:text-accent-foreground',

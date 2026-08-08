@@ -135,7 +135,9 @@ export function transformModelsToOptions(
       costTier: model.costTier as CostTier | undefined,
       familyKey: family.familyKey,
       familyLabel: family.familyLabel,
-      isDeprecated: (model as ModelWithLifecycle).isDeprecated === true,
+      isDeprecated:
+        model.isLegacy === true ||
+        (model as ModelWithLifecycle).isDeprecated === true,
       isFavorite: favoritesSet.has(model.key),
       model,
       sourceGroup: sourceGroupResolver?.(model),

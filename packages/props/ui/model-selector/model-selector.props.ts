@@ -62,6 +62,8 @@ export interface ModelSelectorProviderSidebarProps {
   activeBrand: string | null;
   onBrandSelect: (brand: string | null) => void;
   hasFavorites: boolean;
+  /** When true, show a Legacy filter after brand icons. */
+  hasLegacy?: boolean;
 }
 
 export interface ModelSelectorModelItemProps {

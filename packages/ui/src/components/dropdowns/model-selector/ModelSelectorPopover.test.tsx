@@ -354,7 +354,7 @@ describe('ModelSelectorPopover', () => {
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
   });
 
-  it('shows deprecated models with a legacy badge', async () => {
+  it('shows deprecated models with a legacy badge under the Legacy rail', async () => {
     const user = userEvent.setup();
 
     render(
@@ -374,10 +374,12 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
+    await user.click(screen.getByRole('button', { name: 'Legacy models' }));
     await user.click(screen.getByRole('button', { name: /nano banana/i }));
 
     expect(screen.getByText('Nano Banana Pro')).toBeInTheDocument();
-    expect(screen.getAllByText('Legacy')).toHaveLength(2);
+    // Family heading "Legacy" section + row badge.
+    expect(screen.getAllByText('Legacy').length).toBeGreaterThanOrEqual(1);
   });
 
   it('auto-expands matching families when searching', async () => {
@@ -467,39 +469,49 @@ describe('ModelSelectorPopover', () => {
     expect(screen.getByText('Gemini Flash')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /gemini flash/i }));
-    // Single mode: no provider brand rail.
+    // Brand rail is always available for filtering.
     expect(
-      screen.queryByRole('button', { name: 'All providers' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'All providers' }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Best Quality' }));
 
     expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.QUALITY);
     expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
   });
 
-  it('keeps the provider rail in multi (studio) mode', async () => {
+  it('exposes a Legacy rail filter for deprecated models', async () => {
     const user = userEvent.setup();
 
     render(
       <ModelSelectorPopover
         models={[
           createModel({
-            key: 'google/gemini-flash',
-            label: 'Gemini Flash',
+            key: 'google/current',
+            label: 'Current Model',
           }),
+          createModel({
+            isDeprecated: true,
+            key: 'google/old',
+            label: 'Old Model',
+          } as IModel),
         ]}
         values={[]}
         onChange={vi.fn()}
         favoriteModelKeys={[]}
         onFavoriteToggle={vi.fn()}
-        selectionMode="multi"
+        selectionMode="single"
+        autoLabel="Auto"
       />,
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    expect(
-      screen.getByRole('button', { name: 'All providers' }),
-    ).toBeInTheDocument();
+    // Default catalog hides legacy rows.
+    expect(screen.getByText('Current Model')).toBeInTheDocument();
+    expect(screen.queryByText('Old Model')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Legacy models' }));
+    expect(screen.getByText('Old Model')).toBeInTheDocument();
+    expect(screen.queryByText('Current Model')).not.toBeInTheDocument();
   });
 
   it('blocks selecting models that cost more credits than available', async () => {

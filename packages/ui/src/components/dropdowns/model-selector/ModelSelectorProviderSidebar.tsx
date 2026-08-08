@@ -6,12 +6,12 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { getModelBrandIcon } from '@genfeedai/helpers/ui/icons/model-brand-icon';
 import type { ModelSelectorProviderSidebarProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Button } from '@ui/primitives/button';
-import { LayoutGrid, Star } from 'lucide-react';
+import { History, LayoutGrid, Star } from 'lucide-react';
 import { memo, useCallback } from 'react';
 
 /**
- * Studio multi-select only. Agent single mode hides this rail — providers are
- * already section headings in the list.
+ * Left brand rail — filter by favorites / all / provider / legacy.
+ * Shown in both agent single and studio multi pickers.
  */
 const ModelSelectorProviderSidebar = memo(
   function ModelSelectorProviderSidebar({
@@ -19,6 +19,7 @@ const ModelSelectorProviderSidebar = memo(
     activeBrand,
     onBrandSelect,
     hasFavorites,
+    hasLegacy = false,
   }: ModelSelectorProviderSidebarProps) {
     const handleBrandClick = useCallback(
       (slug: string | null) => {
@@ -31,8 +32,8 @@ const ModelSelectorProviderSidebar = memo(
       <nav
         aria-label="Filter by model provider"
         className={cn(
-          'flex w-11 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
-          'border-r border-border bg-background-secondary py-1.5',
+          'flex w-10 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
+          'border-r border-border bg-background-secondary py-1',
         )}
       >
         {hasFavorites ? (
@@ -54,7 +55,7 @@ const ModelSelectorProviderSidebar = memo(
         </SidebarButton>
 
         {brands.length > 0 ? (
-          <div className="my-1 h-px w-5 shrink-0 bg-border" aria-hidden />
+          <div className="my-0.5 h-px w-4 shrink-0 bg-border" aria-hidden />
         ) : null}
 
         {brands.map((brand) => {
@@ -79,6 +80,19 @@ const ModelSelectorProviderSidebar = memo(
             </SidebarButton>
           );
         })}
+
+        {hasLegacy ? (
+          <>
+            <div className="my-0.5 h-px w-4 shrink-0 bg-border" aria-hidden />
+            <SidebarButton
+              isActive={activeBrand === 'legacy'}
+              onClick={() => handleBrandClick('legacy')}
+              tooltip="Legacy models"
+            >
+              <History className="size-3.5" />
+            </SidebarButton>
+          </>
+        ) : null}
       </nav>
     );
   },
@@ -105,7 +119,7 @@ function SidebarButton({
       onClick={onClick}
       tooltip={tooltip}
       className={cn(
-        'relative flex size-8 shrink-0 items-center justify-center rounded-md',
+        'relative flex size-7 shrink-0 items-center justify-center rounded-md',
         'transition-colors',
         isActive
           ? 'bg-accent text-accent-foreground'
@@ -115,7 +129,7 @@ function SidebarButton({
     >
       {isActive ? (
         <span
-          className="absolute inset-y-1.5 left-0 w-0.5 rounded-r-full bg-primary"
+          className="absolute inset-y-1 left-0 w-0.5 rounded-r-full bg-primary"
           style={accentColor ? { backgroundColor: accentColor } : undefined}
           aria-hidden
         />
