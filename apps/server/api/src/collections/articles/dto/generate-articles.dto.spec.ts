@@ -34,14 +34,14 @@ describe('GenerateArticlesDto', () => {
 
     it('keeps an optional brandId through whitelist stripping', async () => {
       const dto = plainToInstance(GenerateArticlesDto, {
-        brandId: '507f1f77bcf86cd799439099',
+        brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
         prompt: 'AI infrastructure trends',
       });
 
       const errors = await validate(dto, { whitelist: true });
 
       expect(errors).toHaveLength(0);
-      expect(dto.brandId).toBe('507f1f77bcf86cd799439099');
+      expect(dto.brandId).toBe('clz1a2b3c4d5e6f7g8h9i0j1k');
     });
 
     it('strips keys the DTO does not declare', async () => {
