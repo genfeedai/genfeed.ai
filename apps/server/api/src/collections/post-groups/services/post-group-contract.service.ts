@@ -287,17 +287,24 @@ export class PostGroupContractService {
     }
   }
 
-  toPostStatus(status: string): string {
-    if (status === ReleaseStatus.DRAFT) {
-      return PostStatus.DRAFT;
+  toPostStatus(status: string): PostStatus {
+    switch (status) {
+      case ReleaseStatus.DRAFT:
+      // The legacy vocabulary has no paused/cancelled members: draft keeps
+      // these targets out of the publish sweep, while targetExecutionState
+      // preserves the precise state.
+      case ReleaseStatus.PAUSED:
+      case ReleaseStatus.CANCELLED:
+        return PostStatus.DRAFT;
+      case ReleaseStatus.PUBLISHING:
+        return PostStatus.PROCESSING;
+      case ReleaseStatus.PUBLISHED:
+        return PostStatus.PUBLIC;
+      case ReleaseStatus.FAILED:
+        return PostStatus.FAILED;
+      default:
+        return PostStatus.SCHEDULED;
     }
-    if (status === ReleaseStatus.FAILED) {
-      return PostStatus.FAILED;
-    }
-    if (status === ReleaseStatus.PUBLISHED) {
-      return PostStatus.PUBLIC;
-    }
-    return status;
   }
 
   parseCredentialPlatform(value: string): CredentialPlatform {

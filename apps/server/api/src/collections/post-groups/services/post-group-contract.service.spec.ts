@@ -6,6 +6,7 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import {
   CredentialPlatform,
+  PostStatus,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
@@ -27,6 +28,26 @@ describe('PostGroupContractService', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  it('maps every release status onto a valid legacy PostStatus member', () => {
+    const legacyStatuses = Object.values(PostStatus) as string[];
+    for (const status of Object.values(ReleaseStatus)) {
+      expect(legacyStatuses).toContain(service.toPostStatus(status));
+    }
+  });
+
+  it('keeps paused and cancelled targets out of the publish sweep vocabulary', () => {
+    expect(service.toPostStatus(ReleaseStatus.PAUSED)).toBe(PostStatus.DRAFT);
+    expect(service.toPostStatus(ReleaseStatus.CANCELLED)).toBe(
+      PostStatus.DRAFT,
+    );
+    expect(service.toPostStatus(ReleaseStatus.PUBLISHING)).toBe(
+      PostStatus.PROCESSING,
+    );
+    expect(service.toPostStatus(ReleaseStatus.PARTIALLY_PUBLISHED)).toBe(
+      PostStatus.SCHEDULED,
+    );
   });
 
   it('parses the shared create contract and lets the header own idempotency', () => {
