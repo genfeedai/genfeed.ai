@@ -9,6 +9,7 @@ export type {
   AgentRunToolCallSummary,
   AgentThread,
   AgentToolCall,
+  AgentUiActionHandler,
   CreateThreadPayload,
   SendMessagePayload,
 } from '@genfeedai/agent/models/agent-chat.model';
