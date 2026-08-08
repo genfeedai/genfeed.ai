@@ -6,13 +6,17 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { captureWorkspaceShellApproval } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import {
+  areReviewFiltersEqual,
   getNextActiveItemId,
   getReviewFilterCounts,
   getVisibleReviewItems,
-  parseReviewFilter,
-  type ReviewFilter,
+  parseReviewFilters,
+  type ReviewStatusFilter,
+  serializeReviewFilters,
 } from './components/review-grid.helpers';
 import { isReadyToReview } from './components/review-state';
+
+const DEFAULT_STATUS_FILTERS: ReviewStatusFilter[] = ['ready'];
 
 export function useReviewQueueContent() {
   const getBatchesService = useAuthedService((token: string) =>
@@ -23,14 +27,14 @@ export function useReviewQueueContent() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const requestedBatchId = searchParams.get('batch');
-  const requestedFilter = parseReviewFilter(searchParams.get('filter'));
+  const requestedFilters = parseReviewFilters(searchParams.get('filter'));
   const requestedItemId = searchParams.get('item');
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(
     requestedBatchId,
   );
-  const [activeFilter, setActiveFilter] = useState<ReviewFilter>(
-    requestedFilter ?? 'ready',
+  const [activeFilters, setActiveFilters] = useState<ReviewStatusFilter[]>(
+    () => requestedFilters ?? DEFAULT_STATUS_FILTERS,
   );
   const [activeItemId, setActiveItemId] = useState<string | null>(
     requestedItemId,
@@ -64,12 +68,12 @@ export function useReviewQueueContent() {
   const syncReviewLocation = useCallback(
     (input: {
       batchId?: string | null;
-      filter?: ReviewFilter;
+      filters?: readonly ReviewStatusFilter[];
       itemId?: string | null;
     }) => {
       const params = new URLSearchParams(searchParamsString);
       const nextBatchId = input.batchId ?? activeBatchId;
-      const nextFilter = input.filter ?? activeFilter;
+      const nextFilters = input.filters ?? activeFilters;
       const nextItemId =
         input.itemId === undefined ? activeItemId : (input.itemId ?? null);
 
@@ -79,7 +83,7 @@ export function useReviewQueueContent() {
         params.delete('batch');
       }
 
-      params.set('filter', nextFilter);
+      params.set('filter', serializeReviewFilters(nextFilters));
 
       if (nextItemId) {
         params.set('item', nextItemId);
@@ -93,7 +97,7 @@ export function useReviewQueueContent() {
     },
     [
       activeBatchId,
-      activeFilter,
+      activeFilters,
       activeItemId,
       pathname,
       replace,
@@ -138,8 +142,8 @@ export function useReviewQueueContent() {
   );
 
   const visibleItems = useMemo(
-    () => getVisibleReviewItems(activeBatch?.items ?? [], activeFilter),
-    [activeBatch?.items, activeFilter],
+    () => getVisibleReviewItems(activeBatch?.items ?? [], activeFilters),
+    [activeBatch?.items, activeFilters],
   );
 
   const activeItem = useMemo(
@@ -158,10 +162,13 @@ export function useReviewQueueContent() {
   }, [batchList, requestedBatchId, selectedBatchId]);
 
   useEffect(() => {
-    if (requestedFilter && requestedFilter !== activeFilter) {
-      setActiveFilter(requestedFilter);
+    if (
+      requestedFilters &&
+      !areReviewFiltersEqual(requestedFilters, activeFilters)
+    ) {
+      setActiveFilters(requestedFilters);
     }
-  }, [activeFilter, requestedFilter]);
+  }, [activeFilters, requestedFilters]);
 
   useEffect(() => {
     if (requestedItemId && requestedItemId !== activeItemId) {
@@ -176,18 +183,20 @@ export function useReviewQueueContent() {
   }, [activeBatchId, requestedBatchId, syncReviewLocation]);
 
   useEffect(() => {
+    // Default ready-only view is empty but the batch has other work — open all.
     if (
       activeBatch &&
-      activeFilter === 'ready' &&
+      activeFilters.length === 1 &&
+      activeFilters[0] === 'ready' &&
       filterCounts.ready === 0 &&
       filterCounts.all > 0
     ) {
-      setActiveFilter('all');
-      syncReviewLocation({ filter: 'all', itemId: activeItemId });
+      setActiveFilters([]);
+      syncReviewLocation({ filters: [], itemId: activeItemId });
     }
   }, [
     activeBatch,
-    activeFilter,
+    activeFilters,
     activeItemId,
     filterCounts,
     syncReviewLocation,
@@ -263,16 +272,16 @@ export function useReviewQueueContent() {
   );
 
   const handleFilterChange = useCallback(
-    (filter: ReviewFilter) => {
+    (filters: ReviewStatusFilter[]) => {
       const nextVisibleItems = getVisibleReviewItems(
         activeBatch?.items ?? [],
-        filter,
+        filters,
       );
       const nextItemId = getNextActiveItemId(nextVisibleItems, null);
 
-      setActiveFilter(filter);
+      setActiveFilters(filters);
       setActiveItemId(nextItemId);
-      syncReviewLocation({ filter, itemId: nextItemId });
+      syncReviewLocation({ filters, itemId: nextItemId });
     },
     [activeBatch?.items, syncReviewLocation],
   );
@@ -502,14 +511,18 @@ export function useReviewQueueContent() {
       setSelectedBatchId(value);
       setActiveItemId(null);
       setSelectedIds(new Set());
-      setActiveFilter('ready');
-      syncReviewLocation({ batchId: value, filter: 'ready', itemId: null });
+      setActiveFilters(DEFAULT_STATUS_FILTERS);
+      syncReviewLocation({
+        batchId: value,
+        filters: DEFAULT_STATUS_FILTERS,
+        itemId: null,
+      });
     },
     [syncReviewLocation],
   );
 
   return {
-    activeFilter,
+    activeFilters,
     activeItem,
     activeBatch,
     activeBatchError,

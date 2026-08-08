@@ -14,7 +14,10 @@ import ReviewGrid from './ReviewGrid';
 import ReviewStatusFilters, {
   PUBLISH_HEADER_DROPDOWN_CLASS,
 } from './ReviewStatusFilters';
-import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
+import type {
+  ReviewFilterCounts,
+  ReviewStatusFilter,
+} from './review-grid.helpers';
 
 export function getBatchOptionLabel(batch: IBatchSummary): string {
   const shortId = batch.id.slice(-6);
@@ -26,7 +29,7 @@ export function getBatchOptionLabel(batch: IBatchSummary): string {
 }
 
 interface ReviewQueueViewProps {
-  activeFilter: ReviewFilter;
+  activeFilters: readonly ReviewStatusFilter[];
   activeItem: IBatchItem | null;
   activeBatch: IBatchSummary | null;
   activeBatchError: Error | null;
@@ -46,7 +49,7 @@ interface ReviewQueueViewProps {
   onBulkApprove: () => void;
   onBulkReject: () => void;
   onClosePostDetail: () => void;
-  onFilterChange: (filter: ReviewFilter) => void;
+  onFilterChange: (filters: ReviewStatusFilter[]) => void;
   onRefresh: () => void | Promise<void>;
   onRequestChanges: (itemId: string, feedback?: string) => Promise<void>;
   onReject: (itemId: string, feedback?: string) => Promise<void>;
@@ -60,7 +63,7 @@ interface ReviewQueueViewProps {
  * level topbar) via PostsLayoutContext.setFiltersNode.
  */
 export default function ReviewQueueView({
-  activeFilter,
+  activeFilters,
   activeItem,
   activeBatch,
   activeBatchError,
@@ -122,7 +125,7 @@ export default function ReviewQueueView({
     setFiltersNode(
       <div className="flex min-w-0 items-center gap-2">
         <ReviewStatusFilters
-          activeFilter={activeFilter}
+          activeFilters={activeFilters}
           filterCounts={filterCounts}
           onFilterChange={onFilterChange}
         />
@@ -145,7 +148,7 @@ export default function ReviewQueueView({
     };
   }, [
     activeBatchId,
-    activeFilter,
+    activeFilters,
     batchOptions,
     filterCounts,
     onBatchChange,

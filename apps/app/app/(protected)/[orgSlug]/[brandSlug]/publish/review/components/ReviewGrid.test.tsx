@@ -201,15 +201,18 @@ describe('ReviewGrid', () => {
       { id: 'skipped', status: BatchItemStatus.SKIPPED },
     ];
 
-    expect(getVisibleReviewItems(items as never, 'all')).toHaveLength(6);
-    expect(getVisibleReviewItems(items as never, 'ready')).toHaveLength(1);
-    expect(getVisibleReviewItems(items as never, 'approved')).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, [])).toHaveLength(6);
+    expect(getVisibleReviewItems(items as never, ['ready'])).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, ['approved'])).toHaveLength(1);
     expect(
-      getVisibleReviewItems(items as never, 'changes_requested'),
+      getVisibleReviewItems(items as never, ['changes_requested']),
     ).toHaveLength(1);
-    expect(getVisibleReviewItems(items as never, 'failed')).toHaveLength(1);
-    expect(getVisibleReviewItems(items as never, 'pending')).toHaveLength(1);
-    expect(getVisibleReviewItems(items as never, 'skipped')).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, ['failed'])).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, ['pending'])).toHaveLength(1);
+    expect(getVisibleReviewItems(items as never, ['skipped'])).toHaveLength(1);
+    expect(
+      getVisibleReviewItems(items as never, ['ready', 'approved']),
+    ).toHaveLength(2);
   });
 
   it('routes item, selection, and bulk actions', () => {

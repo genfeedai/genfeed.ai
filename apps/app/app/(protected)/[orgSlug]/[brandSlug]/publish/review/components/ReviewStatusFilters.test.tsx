@@ -4,74 +4,72 @@ import '@testing-library/jest-dom/vitest';
 
 import ReviewStatusFilters from './ReviewStatusFilters';
 
-const onChangeMock = vi.fn();
-
-vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
+vi.mock('@ui/dropdowns/multiselect/DropdownMultiSelect', () => ({
   default: ({
     onChange,
     options,
-    value,
+    values,
   }: {
-    onChange: (name: string, value: string) => void;
+    onChange: (name: string, values: string[]) => void;
     options: Array<{ label: string; value: string }>;
-    value: string;
-  }) => {
-    onChangeMock.mockImplementation(onChange);
-    return (
-      <div>
-        <div data-testid="active-status">{value}</div>
-        <ul>
-          {options.map((option) => (
-            <li key={option.value}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange('review-status', option.value);
-                }}
-              >
-                {option.label}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  },
+    values: string[];
+  }) => (
+    <div>
+      <div data-testid="active-statuses">{values.join(',')}</div>
+      <ul>
+        {options.map((option) => (
+          <li key={option.value}>
+            <button
+              type="button"
+              onClick={() => {
+                const next = values.includes(option.value)
+                  ? values.filter((value) => value !== option.value)
+                  : [...values, option.value];
+                onChange('review-status', next);
+              }}
+            >
+              {option.label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ),
 }));
 
 describe('ReviewStatusFilters', () => {
   beforeEach(() => {
-    onChangeMock.mockReset();
+    vi.clearAllMocks();
   });
 
-  it('renders a status dropdown with counts and reports filter changes', () => {
+  it('renders multi-select options with counts and toggles statuses', () => {
     const onFilterChange = vi.fn();
 
     render(
       <ReviewStatusFilters
-        activeFilter="ready"
+        activeFilters={['ready']}
         filterCounts={{
           all: 20,
-          approved: 0,
+          approved: 2,
           changes_requested: 0,
           failed: 0,
           pending: 0,
-          ready: 20,
+          ready: 18,
           skipped: 0,
         }}
         onFilterChange={onFilterChange}
       />,
     );
 
-    expect(screen.getByTestId('active-status')).toHaveTextContent('ready');
+    expect(screen.getByTestId('active-statuses')).toHaveTextContent('ready');
     expect(
-      screen.getByRole('button', { name: 'Ready · 20' }),
+      screen.getByRole('button', { name: 'Ready · 18' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Approved · 0' }),
+      screen.getByRole('button', { name: 'Approved · 2' }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Approved · 0' }));
-    expect(onFilterChange).toHaveBeenCalledWith('approved');
+    fireEvent.click(screen.getByRole('button', { name: 'Approved · 2' }));
+    expect(onFilterChange).toHaveBeenCalledWith(['ready', 'approved']);
   });
 });

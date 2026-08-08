@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewQueueContent from './review-queue-content';
 
@@ -30,30 +29,24 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('./components/ReviewGrid', () => ({
   default: ({
-    activeFilter,
     activeItem,
-    filterCounts,
     isActioning,
     items,
     onBulkApprove,
     onBulkReject,
     onApprove,
-    onFilterChange,
     onReject,
     onRequestChanges,
     onSelectItem,
     onToggleSelect,
     selectedIds,
   }: {
-    activeFilter: string;
     activeItem: { id: string } | null;
-    filterCounts: Record<string, number>;
     isActioning: boolean;
     items: Array<{ id: string }>;
     onBulkApprove: () => void;
     onBulkReject: () => void;
     onApprove: (itemId: string) => void;
-    onFilterChange: (filter: string) => void;
     onReject: (itemId: string, feedback?: string) => void;
     onRequestChanges: (itemId: string, feedback?: string) => void;
     onSelectItem: (itemId: string) => void;
@@ -62,8 +55,6 @@ vi.mock('./components/ReviewGrid', () => ({
   }) => (
     <div>
       <div>Review Grid</div>
-      <div>Active filter: {activeFilter}</div>
-      <div>Ready count: {filterCounts.ready}</div>
       <div>Actioning: {String(isActioning)}</div>
       <div>Selected count: {selectedIds.size}</div>
       {items.map((item) => (
@@ -110,14 +101,41 @@ vi.mock('./components/ReviewGrid', () => ({
       >
         Reject Active Item
       </button>
-      <button type="button" onClick={() => onFilterChange('all')}>
+    </div>
+  ),
+}));
+
+vi.mock('./components/ReviewStatusFilters', () => ({
+  PUBLISH_HEADER_DROPDOWN_CLASS: '',
+  default: ({
+    activeFilters,
+    filterCounts,
+    onFilterChange,
+  }: {
+    activeFilters: string[];
+    filterCounts: Record<string, number>;
+    onFilterChange: (filters: string[]) => void;
+  }) => (
+    <div>
+      <div>Active filters: {activeFilters.join(',') || 'all'}</div>
+      <div>Ready count: {filterCounts.ready}</div>
+      <button type="button" onClick={() => onFilterChange([])}>
         Show All
+      </button>
+      <button
+        type="button"
+        onClick={() => onFilterChange(['ready', 'approved'])}
+      >
+        Select Ready And Approved
       </button>
     </div>
   ),
 }));
 
 vi.mock('./components/review-grid.helpers', () => ({
+  areReviewFiltersEqual: (left: string[], right: string[]) =>
+    left.length === right.length &&
+    left.every((value, index) => value === right[index]),
   getReviewFilterCounts: (items: Array<{ id: string; status?: string }>) => ({
     all: items.length,
     approved: items.filter((item) => item.status === 'approved').length,
@@ -131,9 +149,9 @@ vi.mock('./components/review-grid.helpers', () => ({
   }),
   getVisibleReviewItems: (
     items: Array<{ id: string; status?: string }>,
-    filter: string,
+    filters: string[],
   ) =>
-    filter === 'all'
+    !filters || filters.length === 0
       ? items
       : items.filter((item) => item.status === 'COMPLETED'),
   getNextActiveItemId: (
@@ -156,16 +174,17 @@ vi.mock('./components/review-grid.helpers', () => ({
 
     return items[currentIndex + 1]?.id ?? items[currentIndex - 1]?.id ?? null;
   },
-  parseReviewFilter: (value: string | null) =>
-    value === 'ready' ||
-    value === 'approved' ||
-    value === 'changes_requested' ||
-    value === 'failed' ||
-    value === 'pending' ||
-    value === 'skipped' ||
-    value === 'all'
-      ? value
-      : null,
+  parseReviewFilters: (value: string | null) => {
+    if (value == null || value === '') {
+      return null;
+    }
+    if (value === 'all') {
+      return [];
+    }
+    return value.split(',').filter(Boolean);
+  },
+  serializeReviewFilters: (filters: string[]) =>
+    filters.length === 0 ? 'all' : filters.join(','),
 }));
 
 vi.mock('./components/review-state', () => ({
