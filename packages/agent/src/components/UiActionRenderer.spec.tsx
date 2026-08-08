@@ -3,94 +3,384 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-const brandCreateProps = vi.fn();
-const generationActionProps = vi.fn();
+const cardPropsSpies = vi.hoisted(() => ({
+  aiTextAction: vi.fn(),
+  brandCreate: vi.fn(),
+  brandInterviewOffer: vi.fn(),
+  brandVoiceProfile: vi.fn(),
+  clipWorkflowRun: vi.fn(),
+  completionSummary: vi.fn(),
+  contentPreview: vi.fn(),
+  generationAction: vi.fn(),
+  ingredientAlternatives: vi.fn(),
+  ingredientPicker: vi.fn(),
+  livestreamBot: vi.fn(),
+  oauthConnect: vi.fn(),
+  paymentCta: vi.fn(),
+  publishPost: vi.fn(),
+  voiceClone: vi.fn(),
+  workflowCreated: vi.fn(),
+  workflowExecute: vi.fn(),
+  workflowTrigger: vi.fn(),
+}));
 
-// Capture the props BrandCreateCard receives so we can assert the onCreate
-// handler is threaded all the way to the card (previously a dead wire).
+vi.mock('@genfeedai/agent/components/AgentCompletionSummaryCard', () => ({
+  AgentCompletionSummaryCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.completionSummary(props);
+    return <div data-testid="completion-summary-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/AgentChatMessageCards', () => ({
+  ContentPreviewCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.contentPreview(props);
+    return <div data-testid="content-preview-card" />;
+  },
+  OAuthConnectCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.oauthConnect(props);
+    return <div data-testid="oauth-connect-card" />;
+  },
+  PaymentCtaCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.paymentCta(props);
+    return <div data-testid="payment-cta-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/AiTextActionCard', () => ({
+  AiTextActionCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.aiTextAction(props);
+    return <div data-testid="ai-text-action-card" />;
+  },
+}));
+
 vi.mock('@genfeedai/agent/components/BrandCreateCard', () => ({
-  BrandCreateCard: (props: { onCreate?: unknown }) => {
-    brandCreateProps(props);
+  BrandCreateCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.brandCreate(props);
     return <div data-testid="brand-create-card" />;
   },
 }));
 
+vi.mock('@genfeedai/agent/components/BrandInterviewOfferCard', () => ({
+  BrandInterviewOfferCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.brandInterviewOffer(props);
+    return <div data-testid="brand-interview-offer-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/BrandVoiceProfileCard', () => ({
+  BrandVoiceProfileCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.brandVoiceProfile(props);
+    return <div data-testid="brand-voice-profile-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/ClipWorkflowRunCard', () => ({
+  ClipWorkflowRunCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.clipWorkflowRun(props);
+    return <div data-testid="clip-workflow-run-card" />;
+  },
+}));
+
 vi.mock('@genfeedai/agent/components/GenerationActionCard', () => ({
-  GenerationActionCard: (props: { apiService?: unknown }) => {
-    generationActionProps(props);
+  GenerationActionCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.generationAction(props);
     return <div data-testid="generation-action-card" />;
   },
 }));
 
+vi.mock('@genfeedai/agent/components/IngredientAlternativesCard', () => ({
+  IngredientAlternativesCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.ingredientAlternatives(props);
+    return <div data-testid="ingredient-alternatives-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/IngredientPickerCard', () => ({
+  IngredientPickerCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.ingredientPicker(props);
+    return <div data-testid="ingredient-picker-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/LivestreamBotCard', () => ({
+  LivestreamBotCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.livestreamBot(props);
+    return <div data-testid="livestream-bot-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/PublishPostCard', () => ({
+  PublishPostCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.publishPost(props);
+    return <div data-testid="publish-post-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/VoiceCloneCard', () => ({
+  VoiceCloneCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.voiceClone(props);
+    return <div data-testid="voice-clone-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/WorkflowCreatedCard', () => ({
+  WorkflowCreatedCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.workflowCreated(props);
+    return <div data-testid="workflow-created-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/WorkflowExecuteCard', () => ({
+  WorkflowExecuteCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.workflowExecute(props);
+    return <div data-testid="workflow-execute-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/WorkflowTriggerCard', () => ({
+  WorkflowTriggerCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.workflowTrigger(props);
+    return <div data-testid="workflow-trigger-card" />;
+  },
+}));
+
+type RendererHandlerName =
+  | 'onBrandCreate'
+  | 'onCopy'
+  | 'onOAuthConnect'
+  | 'onRetry'
+  | 'onSelectCreditPack'
+  | 'onSelectIngredient'
+  | 'onUiAction';
+
+type HandlerExpectation = {
+  cardProp: string;
+  rendererHandler: RendererHandlerName;
+  wrapsHandler?: boolean;
+};
+
+const handlerDrivenCases = [
+  {
+    actionType: 'completion_summary_card',
+    expectations: [
+      { cardProp: 'onCopy', rendererHandler: 'onCopy' },
+      { cardProp: 'onRetry', rendererHandler: 'onRetry' },
+      { cardProp: 'onUiAction', rendererHandler: 'onUiAction' },
+    ],
+    spy: cardPropsSpies.completionSummary,
+    testId: 'completion-summary-card',
+  },
+  {
+    actionType: 'oauth_connect_card',
+    expectations: [
+      { cardProp: 'onConnect', rendererHandler: 'onOAuthConnect' },
+    ],
+    spy: cardPropsSpies.oauthConnect,
+    testId: 'oauth-connect-card',
+  },
+  {
+    actionType: 'content_preview_card',
+    expectations: [{ cardProp: 'onCopy', rendererHandler: 'onCopy' }],
+    spy: cardPropsSpies.contentPreview,
+    testId: 'content-preview-card',
+  },
+  {
+    actionType: 'payment_cta_card',
+    expectations: [
+      { cardProp: 'onSelect', rendererHandler: 'onSelectCreditPack' },
+    ],
+    spy: cardPropsSpies.paymentCta,
+    testId: 'payment-cta-card',
+  },
+  {
+    actionType: 'publish_post_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.publishPost,
+    testId: 'publish-post-card',
+  },
+  {
+    actionType: 'ingredient_picker_card',
+    expectations: [
+      { cardProp: 'onSelect', rendererHandler: 'onSelectIngredient' },
+    ],
+    spy: cardPropsSpies.ingredientPicker,
+    testId: 'ingredient-picker-card',
+  },
+  {
+    actionType: 'brand_create_card',
+    expectations: [{ cardProp: 'onCreate', rendererHandler: 'onBrandCreate' }],
+    spy: cardPropsSpies.brandCreate,
+    testId: 'brand-create-card',
+  },
+  {
+    actionType: 'brand_voice_profile_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.brandVoiceProfile,
+    testId: 'brand-voice-profile-card',
+  },
+  {
+    actionType: 'workflow_created_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.workflowCreated,
+    testId: 'workflow-created-card',
+  },
+  {
+    actionType: 'bot_created_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.livestreamBot,
+    testId: 'livestream-bot-card',
+  },
+  {
+    actionType: 'livestream_bot_status_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.livestreamBot,
+    testId: 'livestream-bot-card',
+  },
+  {
+    actionType: 'brand_interview_offer_card',
+    expectations: [{ cardProp: 'onUiAction', rendererHandler: 'onUiAction' }],
+    spy: cardPropsSpies.brandInterviewOffer,
+    testId: 'brand-interview-offer-card',
+  },
+  {
+    actionType: 'ai_text_action_card',
+    expectations: [
+      {
+        cardProp: 'onApply',
+        rendererHandler: 'onUiAction',
+        wrapsHandler: true,
+      },
+    ],
+    spy: cardPropsSpies.aiTextAction,
+    testId: 'ai-text-action-card',
+  },
+] satisfies Array<{
+  actionType: AgentUiAction['type'];
+  expectations: HandlerExpectation[];
+  spy: ReturnType<typeof vi.fn>;
+  testId: string;
+}>;
+
+const apiServiceCases = [
+  {
+    actionType: 'generation_action_card',
+    spy: cardPropsSpies.generationAction,
+    testId: 'generation-action-card',
+  },
+  {
+    actionType: 'workflow_trigger_card',
+    spy: cardPropsSpies.workflowTrigger,
+    testId: 'workflow-trigger-card',
+  },
+  {
+    actionType: 'clip_workflow_run_card',
+    spy: cardPropsSpies.clipWorkflowRun,
+    testId: 'clip-workflow-run-card',
+  },
+  {
+    actionType: 'ingredient_alternatives_card',
+    spy: cardPropsSpies.ingredientAlternatives,
+    testId: 'ingredient-alternatives-card',
+  },
+  {
+    actionType: 'workflow_execute_card',
+    spy: cardPropsSpies.workflowExecute,
+    testId: 'workflow-execute-card',
+  },
+  {
+    actionType: 'voice_clone_card',
+    spy: cardPropsSpies.voiceClone,
+    testId: 'voice-clone-card',
+  },
+] satisfies Array<{
+  actionType: AgentUiAction['type'];
+  spy: ReturnType<typeof vi.fn>;
+  testId: string;
+}>;
+
+const rendererHandlers = {
+  onBrandCreate: vi.fn(),
+  onCopy: vi.fn(),
+  onOAuthConnect: vi.fn(),
+  onRetry: vi.fn(),
+  onSelectCreditPack: vi.fn(),
+  onSelectIngredient: vi.fn(),
+  onUiAction: vi.fn(),
+};
+
 describe('UiActionRenderer', () => {
-  it('forwards onBrandCreate to BrandCreateCard.onCreate for brand_create_card', () => {
-    const onBrandCreate = vi.fn();
-    const action = {
-      id: 'brand-create-1',
-      type: 'brand_create_card',
-    } as AgentUiAction;
+  it.each(handlerDrivenCases)(
+    'strips handlers and makes archived $actionType inert',
+    ({ actionType, expectations, spy, testId }) => {
+      const action = {
+        id: `${actionType}-1`,
+        type: actionType,
+      } as AgentUiAction;
+      spy.mockClear();
 
-    render(<UiActionRenderer action={action} onBrandCreate={onBrandCreate} />);
+      const { rerender } = render(
+        <UiActionRenderer action={action} {...rendererHandlers} />,
+      );
 
-    expect(screen.getByTestId('brand-create-card')).toBeInTheDocument();
-    expect(brandCreateProps).toHaveBeenCalledTimes(1);
-    expect(brandCreateProps.mock.calls[0][0].onCreate).toBe(onBrandCreate);
-  });
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
+      const liveProps = spy.mock.calls.at(-1)?.[0] as Record<string, unknown>;
+      for (const expectation of expectations) {
+        if (expectation.wrapsHandler) {
+          expect(liveProps[expectation.cardProp]).toEqual(expect.any(Function));
+        } else {
+          expect(liveProps[expectation.cardProp]).toBe(
+            rendererHandlers[expectation.rendererHandler],
+          );
+        }
+      }
 
-  it('makes archived cards inert and drops onCreate handlers', () => {
-    const onBrandCreate = vi.fn();
-    const action = {
-      id: 'brand-create-archived',
-      type: 'brand_create_card',
-    } as AgentUiAction;
+      spy.mockClear();
+      rerender(
+        <UiActionRenderer action={action} isReadOnly {...rendererHandlers} />,
+      );
 
-    render(
-      <UiActionRenderer
-        action={action}
-        isReadOnly
-        onBrandCreate={onBrandCreate}
-      />,
-    );
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
+      expect(screen.getByTestId('ui-action-archived-readonly')).toHaveAttribute(
+        'inert',
+      );
+      const archivedProps = spy.mock.calls.at(-1)?.[0] as Record<
+        string,
+        unknown
+      >;
+      for (const expectation of expectations) {
+        expect(archivedProps[expectation.cardProp]).toBeUndefined();
+      }
+    },
+  );
 
-    const shell = screen.getByTestId('ui-action-archived-readonly');
-    expect(shell).toBeInTheDocument();
-    expect(shell).toHaveAttribute('inert');
-    expect(brandCreateProps.mock.calls.at(-1)?.[0].onCreate).toBeUndefined();
-  });
+  it.each(apiServiceCases)(
+    'does not mount archived $actionType apiService mutation cards',
+    ({ actionType, spy, testId }) => {
+      const apiService = { marker: actionType };
+      const action = {
+        id: `${actionType}-1`,
+        type: actionType,
+      } as AgentUiAction;
+      spy.mockClear();
 
-  it('does not mount apiService mutation cards while the thread is archived', () => {
-    const apiService = { createGeneration: vi.fn() };
-    const action = {
-      id: 'gen-1',
-      type: 'generation_action_card',
-    } as AgentUiAction;
+      const { rerender } = render(
+        <UiActionRenderer action={action} apiService={apiService as never} />,
+      );
 
-    const { rerender } = render(
-      <UiActionRenderer
-        action={action}
-        apiService={apiService as never}
-        isReadOnly={false}
-      />,
-    );
+      expect(screen.getByTestId(testId)).toBeInTheDocument();
+      expect(spy.mock.calls.at(-1)?.[0].apiService).toBe(apiService);
 
-    expect(screen.getByTestId('generation-action-card')).toBeInTheDocument();
-    expect(generationActionProps.mock.calls.at(-1)?.[0].apiService).toBe(
-      apiService,
-    );
+      spy.mockClear();
+      rerender(
+        <UiActionRenderer
+          action={action}
+          apiService={apiService as never}
+          isReadOnly
+        />,
+      );
 
-    generationActionProps.mockClear();
-    rerender(
-      <UiActionRenderer
-        action={action}
-        apiService={apiService as never}
-        isReadOnly
-      />,
-    );
-
-    // No liveApiService → card returns null (no mutation surface).
-    expect(
-      screen.queryByTestId('generation-action-card'),
-    ).not.toBeInTheDocument();
-    expect(generationActionProps).not.toHaveBeenCalled();
-  });
+      expect(screen.queryByTestId(testId)).not.toBeInTheDocument();
+      expect(spy).not.toHaveBeenCalled();
+    },
+  );
 });
