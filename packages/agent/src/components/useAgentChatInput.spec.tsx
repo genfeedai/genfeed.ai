@@ -41,6 +41,12 @@ vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    settings: { isVoiceControlEnabled: false },
+  }),
+}));
+
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(storeState),

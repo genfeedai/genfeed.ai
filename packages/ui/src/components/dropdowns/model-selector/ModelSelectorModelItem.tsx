@@ -7,7 +7,7 @@ import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCo
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { CommandItem } from '@ui/primitives/command';
-import { Star } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { memo, useCallback } from 'react';
 
 const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
@@ -15,8 +15,10 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   isSelected,
   onToggle,
   onFavoriteToggle,
+  selectionMode = 'multi',
 }: ModelSelectorModelItemProps) {
   const { model, brandLabel, costTier, isFavorite, variantLabel } = option;
+  const isSingleSelect = selectionMode === 'single';
 
   const handleSelect = useCallback(() => {
     onToggle(model.key);
@@ -42,12 +44,20 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       <span className="size-3.5 shrink-0" aria-hidden="true" />
 
       <div className="pointer-events-none flex size-5 shrink-0 items-center justify-center">
-        <Checkbox
-          name={`model-${model.key}`}
-          isChecked={isSelected}
-          onChange={() => {}}
-          className="size-3.5 !border-border data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background"
-        />
+        {isSingleSelect ? (
+          isSelected ? (
+            <Check className="size-3.5 text-foreground" aria-hidden />
+          ) : (
+            <span className="size-3.5" aria-hidden />
+          )
+        ) : (
+          <Checkbox
+            name={`model-${model.key}`}
+            isChecked={isSelected}
+            onChange={() => {}}
+            className="size-3.5 !border-border data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background"
+          />
+        )}
       </div>
 
       <div className="flex flex-col flex-1 min-w-0">

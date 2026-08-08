@@ -1,11 +1,11 @@
 import type { CostTier } from '@genfeedai/enums';
 
 /**
- * Picker row shape for agent chat / media model selectors.
+ * Legacy lightweight picker row shape.
  *
- * Runtime lists come from the Model registry (`useAgentRegistryModels`).
- * Do not reintroduce a hard-coded AGENT_MODELS array here — that dual-sourced
- * the picker against seed constants.
+ * Agent chat / generation UI now feed the shared `ModelSelectorPopover` with
+ * full `IModel` rows from the registry. Prefer `IModel` for new code; this type
+ * remains only for transitional call sites.
  */
 export interface AgentModelOption {
   key: string;

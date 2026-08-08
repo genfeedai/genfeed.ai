@@ -43,6 +43,7 @@ export function writePreferredAgentChatModel(modelKey: string): void {
   }
 
   try {
+    // Concrete model keys and Auto (`__auto_model__`) are both durable prefs.
     storage.setItem(STORAGE_KEY, trimmed);
   } catch {
     // Quota / private mode — preference is best-effort.

@@ -24,9 +24,7 @@ export function AgentThreadListHeaderActions({
   onToggleView,
 }: AgentThreadListHeaderActionsProps): ReactElement {
   const isArchivedView = viewStatus === AgentThreadStatus.ARCHIVED;
-  const toggleButtonLabel = isArchivedView
-    ? 'Show recent threads'
-    : 'Show archived threads';
+  const toggleButtonLabel = isArchivedView ? 'Recent' : 'Archived';
 
   return (
     <DropdownMenu>
@@ -42,7 +40,7 @@ export function AgentThreadListHeaderActions({
           <Ellipsis className="size-3.5" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="min-w-36">
         {!isArchivedView ? (
           <DropdownMenuItem
             onSelect={() => {
@@ -52,7 +50,7 @@ export function AgentThreadListHeaderActions({
             }}
           >
             <RefreshCw className="size-4" />
-            Refresh conversations
+            Refresh
           </DropdownMenuItem>
         ) : null}
         {!isArchivedView && threadCount > 0 ? (
@@ -62,7 +60,7 @@ export function AgentThreadListHeaderActions({
             }}
           >
             <ArchiveX className="size-4" />
-            Archive all threads
+            Archive all
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem

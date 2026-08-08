@@ -58,6 +58,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   models,
   values,
   onChange,
+  selectionMode = 'multi',
   autoLabel,
   prioritize = RouterPriority.BALANCED,
   onPrioritizeChange,
@@ -71,7 +72,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   sourceGroupResolver,
   sourceGroupLabels,
   autoSourceGroups,
+  isDisabled = false,
 }: ModelSelectorPopoverProps) {
+  const isSingleSelect = selectionMode === 'single';
   const [isOpen, setIsOpen] = useState(false);
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -322,13 +325,24 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
   }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
 
-  const shouldShowAutoCard = isAutoSelected || shouldShowAuto;
+  // Single-select chat pickers never show Auto priority cards unless a host
+  // explicitly opts in with autoLabel (studio generation keeps the full surface).
+  const shouldShowAutoCard =
+    (!isSingleSelect || Boolean(autoLabel)) &&
+    (isAutoSelected || shouldShowAuto);
 
   const handleToggle = useCallback(
     (modelKey: string) => {
       const currentValues = values.filter(
         (value) => value !== AUTO_MODEL_OPTION_VALUE,
       );
+
+      if (isSingleSelect) {
+        onChange(name, [modelKey]);
+        setIsOpen(false);
+        setSearchTerm('');
+        return;
+      }
 
       if (currentValues.includes(modelKey)) {
         onChange(
@@ -339,7 +353,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         onChange(name, [...currentValues, modelKey]);
       }
     },
-    [name, onChange, values],
+    [isSingleSelect, name, onChange, values],
   );
 
   const handleAutoSelect = useCallback(
@@ -367,8 +381,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   return (
     <Popover
-      open={isOpen}
+      open={isDisabled ? false : isOpen}
       onOpenChange={(open) => {
+        if (isDisabled) {
+          return;
+        }
         setIsOpen(open);
         if (!open) {
           setSearchTerm('');
@@ -385,6 +402,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           shouldFlash={shouldFlash}
           className={className}
           autoLabel={autoLabel}
+          disabled={isDisabled}
+          aria-disabled={isDisabled || undefined}
         />
       </PopoverTrigger>
 
@@ -518,6 +537,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 : false;
 
                               const isExpanded =
+                                isSingleSelect ||
                                 familySearchMatch ||
                                 expandedFamilyKeys.includes(family.familyKey);
 
@@ -548,6 +568,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                           )}
                                           onToggle={handleToggle}
                                           onFavoriteToggle={onFavoriteToggle}
+                                          selectionMode={selectionMode}
                                         />
                                       ))}
                                     </div>

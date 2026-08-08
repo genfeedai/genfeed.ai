@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
@@ -187,6 +188,11 @@ export function useAgentChatInput({
   clearAllAttachments,
 }: UseAgentChatInputParams) {
   const composerShell = useConversationComposerShell();
+  // Org "Voice Control" (admin setting, default false). Matches studio PromptBar
+  // gating so in-app STT is opt-in; Wispr / OS dictation still types into the field.
+  const { settings: organizationSettings } = useBrand();
+  const isVoiceControlEnabled =
+    organizationSettings?.isVoiceControlEnabled === true;
   const surfaceArtifactReferences =
     composerShell?.artifactReferences ?? EMPTY_SURFACE_ARTIFACT_REFERENCES;
   const draftScopeKey = composerShell?.draftScopeKey ?? null;
@@ -784,13 +790,14 @@ export function useAgentChatInput({
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
-  // Empty composer → voice; once there is content (or attachments) → send.
+  // Empty composer → voice (when org Voice Control is on); content → send.
   // Never both: mic next to an empty disabled send is noise.
   const shouldShowSendButton =
     !showStop &&
     !isTranscribing &&
     (!isEmpty || hasCompletedAttachments || isListening);
   const shouldShowVoiceInput =
+    isVoiceControlEnabled &&
     !showStop &&
     !isListening &&
     !isTranscribing &&

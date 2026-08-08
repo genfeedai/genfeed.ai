@@ -1,9 +1,18 @@
-import { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
-import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  type RouterPriority,
+} from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
+import {
+  AUTO_MODEL_OPTION_VALUE,
+  getAutoModelLabel,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
+import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -35,17 +44,20 @@ export interface AgentChatInputToolbarProps {
   isModelsLoading?: boolean;
   isTranscribing: boolean;
   isUploading: boolean;
-  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
-  models?: readonly AgentModelOption[];
+  /** Registry-backed chat catalogue (shared ModelSelectorPopover). */
+  models?: readonly IModel[];
   onAddFiles?: (files: File[]) => void;
   onBuyCredits?: () => void;
   onInsertReference: () => void;
   onModelChange?: (model: string) => void;
+  /** Session Auto routing priority (maps from settings.generationPriority). */
+  onPrioritizeChange?: (priority: RouterPriority) => void;
   onSelectAction: (actionName: ConversationComposerActionName) => void;
   onSend: () => void;
   onStartListening: () => void;
   onStop: (() => void | Promise<void>) | undefined;
   onStopListening: () => void;
+  prioritize?: RouterPriority;
   selectedModel?: string;
   shouldShowSendButton: boolean;
   shouldShowVoiceInput: boolean;
@@ -55,7 +67,6 @@ export interface AgentChatInputToolbarProps {
 
 function AgentChatInputToolbarInner({
   canSendMessage,
-  creditsAvailable = null,
   disabled,
   hasEditor,
   isListening,
@@ -64,14 +75,15 @@ function AgentChatInputToolbarInner({
   isUploading,
   models = [],
   onAddFiles,
-  onBuyCredits,
   onInsertReference,
   onModelChange,
+  onPrioritizeChange,
   onSelectAction,
   onSend,
   onStartListening,
   onStop,
   onStopListening,
+  prioritize,
   selectedModel,
   shouldShowSendButton,
   shouldShowVoiceInput,
@@ -80,20 +92,46 @@ function AgentChatInputToolbarInner({
 }: AgentChatInputToolbarProps): ReactElement {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isCompact = density === 'compact';
+  const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
+  const isAutoSelected =
+    !selectedModel || selectedModel === AUTO_MODEL_OPTION_VALUE;
+  const autoLabel = prioritize ? getAutoModelLabel(prioritize) : 'Auto';
+  // One shared picker for agent chat + studio/generation (selectionMode=single).
+  // autoLabel opts single mode into Auto + priority cards (user settings:
+  // empty defaultAgentModel + generationPriority).
   const modelSelector =
-    selectedModel && onModelChange ? (
-      <AgentModelSelector
-        ariaLabel="Select model"
-        creditsAvailable={creditsAvailable}
-        density={isCompact ? 'compact' : 'default'}
-        // Model pick stays available while reconnecting / send is paused —
-        // only block during an active run or attachment/mic work.
-        isDisabled={Boolean(showStop || isUploading || isTranscribing)}
-        isLoading={isModelsLoading}
-        models={models}
-        onBuyCredits={onBuyCredits}
-        onModelChange={onModelChange}
-        selectedModel={selectedModel}
+    onModelChange && (selectedModel || models.length > 0 || isModelsLoading) ? (
+      <ModelSelectorPopover
+        autoLabel={autoLabel}
+        className={cn(
+          'max-w-[12rem] text-muted-foreground hover:text-foreground',
+          isCompact ? 'h-8 px-1.5' : 'h-9 px-2',
+        )}
+        favoriteModelKeys={favoriteModelKeys}
+        // Model pick stays available while reconnecting — only block during an
+        // active run or attachment/mic work.
+        isDisabled={Boolean(
+          showStop || isUploading || isTranscribing || isModelsLoading,
+        )}
+        models={[...models]}
+        name="agent-chat-model"
+        onChange={(_name, values) => {
+          const next = values[0]?.trim();
+          if (next) {
+            onModelChange(next);
+          }
+        }}
+        onFavoriteToggle={onFavoriteToggle}
+        onPrioritizeChange={onPrioritizeChange}
+        prioritize={prioritize}
+        selectionMode="single"
+        values={
+          isAutoSelected
+            ? [AUTO_MODEL_OPTION_VALUE]
+            : selectedModel
+              ? [selectedModel]
+              : []
+        }
       />
     ) : null;
 
@@ -105,27 +143,67 @@ function AgentChatInputToolbarInner({
     event.target.value = '';
   }
 
-  // One toolbar control height so model chip + send share a single baseline.
+  // Icon tools stay square; model chip is a tight text control of matching height.
   const controlSize = isCompact ? 'size-8' : 'size-9';
-  // Cancel outer padding at the row edges so the first glyph lines up with the
-  // editor text above it.
-  const leadingEdgeOffset = isCompact ? '-ml-2' : '-ml-2.5';
-  const trailingEdgeOffset = isCompact ? '-mr-2' : '-mr-2.5';
+  // Pull only the far-right send into the shell padding — leading model chip
+  // keeps natural shell inset so it doesn't hug the border or fight icon gap.
+  const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
+
+  const voiceControl = isTranscribing ? (
+    <Button
+      ariaLabel="Transcribing"
+      className={cn('shrink-0', controlSize)}
+      icon={
+        <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
+      }
+      isDisabled
+      size={ButtonSize.ICON}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+    />
+  ) : isListening ? (
+    <Button
+      ariaLabel="Stop listening"
+      className={cn(
+        'relative shrink-0 bg-destructive/15 text-destructive',
+        controlSize,
+      )}
+      onClick={onStopListening}
+      size={ButtonSize.ICON}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+    >
+      <Mic className="size-4" />
+      <span
+        aria-hidden="true"
+        className="absolute right-0 top-0 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
+      />
+    </Button>
+  ) : shouldShowVoiceInput ? (
+    <Button
+      ariaLabel="Start voice input"
+      className={cn('shrink-0', controlSize)}
+      icon={<Mic className="size-4" />}
+      isDisabled={disabled}
+      onClick={onStartListening}
+      size={ButtonSize.ICON}
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+    />
+  ) : null;
 
   return (
     <div
       className={cn(
         // min-w-0 + wrap: narrow inspector rails must not stack labels on icons.
-        'mt-1 flex min-w-0 items-center justify-between gap-1',
-        isCompact ? 'min-h-9 flex-wrap pt-1' : 'min-h-10 pt-1.5',
+        'mt-0.5 flex min-w-0 items-center justify-between gap-2',
+        isCompact ? 'min-h-8 flex-wrap pt-0.5' : 'min-h-9 pt-1',
       )}
     >
-      <div
-        className={cn(
-          'flex min-w-0 shrink items-center gap-1',
-          leadingEdgeOffset,
-        )}
-      >
+      {/* Leading: model first, then tools tight to the chip (no inflated gap). */}
+      <div className="flex min-w-0 shrink items-center gap-0.5">
+        {modelSelector}
+
         {onAddFiles ? (
           <>
             <Input
@@ -206,60 +284,16 @@ function AgentChatInputToolbarInner({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Voice lives with leading tools — far right is model + send only. */}
-        {isTranscribing ? (
-          <Button
-            ariaLabel="Transcribing"
-            className={cn('shrink-0', controlSize)}
-            icon={
-              <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
-            }
-            isDisabled
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        ) : isListening ? (
-          <Button
-            ariaLabel="Stop listening"
-            className={cn(
-              'relative shrink-0 bg-destructive/15 text-destructive',
-              controlSize,
-            )}
-            onClick={onStopListening}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            <Mic className="size-4" />
-            <span
-              aria-hidden="true"
-              className="absolute right-0 top-0 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
-            />
-          </Button>
-        ) : shouldShowVoiceInput ? (
-          <Button
-            ariaLabel="Start voice input"
-            className={cn('shrink-0', controlSize)}
-            icon={<Mic className="size-4" />}
-            isDisabled={disabled}
-            onClick={onStartListening}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          />
-        ) : null}
+        {voiceControl}
       </div>
 
-      {/* T3-style trailing cluster: model immediately left of send/stop. */}
+      {/* Trailing: send / stop only — primary action stays far right. */}
       <div
         className={cn(
-          'flex min-w-0 shrink items-center justify-end gap-1.5',
+          'flex min-w-0 shrink items-center justify-end',
           trailingEdgeOffset,
         )}
       >
-        {modelSelector}
-
         {showStop && onStop ? (
           <Button
             ariaLabel="Stop agent"

@@ -7,7 +7,6 @@ export { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 export { AgentFullPage } from '@genfeedai/agent/components/AgentFullPage';
 export { AgentIconStrip } from '@genfeedai/agent/components/AgentIconStrip';
 export { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
-export { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
 export { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';

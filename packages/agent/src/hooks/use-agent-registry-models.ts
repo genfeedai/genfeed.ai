@@ -1,9 +1,7 @@
-import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   AGENT_CHAT_CAPABILITY,
   isRetiredAgentChatModel,
-  REASONING_FEATURE,
 } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
@@ -11,37 +9,6 @@ import { ModelsService } from '@services/ai/models.service';
 import { useEffect, useState } from 'react';
 
 const REGISTRY_PAGE_LIMIT = 100;
-
-/**
- * Logo slug for the model's vendor.
- *
- * Registry keys are OpenRouter-shaped (`anthropic/claude-opus-5`), so the
- * prefix is the vendor. Self-hosted keys (`local/…`) name no vendor — their
- * provider (`genfeed-ai`) is the slug instead.
- */
-function brandSlugFromModel(model: IModel): string {
-  const [prefix] = model.key.split('/');
-
-  return prefix && prefix !== 'local' ? prefix : model.provider;
-}
-
-function mapRegistryModelToOption(model: IModel): AgentModelOption {
-  const isReasoning = (model.supportsFeatures ?? []).includes(
-    REASONING_FEATURE,
-  );
-
-  return {
-    brandSlug: brandSlugFromModel(model),
-    description: model.description || model.label,
-    key: model.key,
-    label: model.label,
-    ...(typeof model.cost === 'number' && model.cost > 0
-      ? { creditCost: Math.max(1, Math.round(model.cost)) }
-      : {}),
-    ...(model.costTier ? { costTier: model.costTier } : {}),
-    ...(isReasoning ? { isReasoning: true } : {}),
-  };
-}
 
 function isAgentChatRegistryModel(model: IModel): boolean {
   if (model.category !== ModelCategory.TEXT) {
@@ -66,14 +33,15 @@ function isAgentChatRegistryModel(model: IModel): boolean {
 
 /**
  * Loads agent chat models from the Model registry only (Phase D / #2422).
- * No silent constants fallback — empty list means seed/API is incomplete.
+ * Returns full `IModel` rows so the shared `ModelSelectorPopover` can render
+ * them — no parallel AgentModelSelector catalog.
  */
 export function useAgentRegistryModels(apiService: AgentApiService | null): {
   defaultModelKey: string | null;
   isLoading: boolean;
-  models: readonly AgentModelOption[];
+  models: readonly IModel[];
 } {
-  const [models, setModels] = useState<readonly AgentModelOption[]>([]);
+  const [models, setModels] = useState<readonly IModel[]>([]);
   const [defaultModelKey, setDefaultModelKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(apiService));
 
@@ -111,12 +79,17 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
           return;
         }
 
-        const agentRows = rows.filter(isAgentChatRegistryModel);
-        const options = agentRows
-          .map(mapRegistryModelToOption)
+        const agentRows = rows
+          .filter(isAgentChatRegistryModel)
           .toSorted((left, right) => {
-            const leftCost = left.creditCost ?? Number.POSITIVE_INFINITY;
-            const rightCost = right.creditCost ?? Number.POSITIVE_INFINITY;
+            const leftCost =
+              typeof left.cost === 'number'
+                ? left.cost
+                : Number.POSITIVE_INFINITY;
+            const rightCost =
+              typeof right.cost === 'number'
+                ? right.cost
+                : Number.POSITIVE_INFINITY;
             if (leftCost !== rightCost) {
               return leftCost - rightCost;
             }
@@ -128,7 +101,7 @@ export function useAgentRegistryModels(apiService: AgentApiService | null): {
           agentRows.find((row) => row.isHighlighted) ??
           agentRows[0];
 
-        setModels(options);
+        setModels(agentRows);
         setDefaultModelKey(defaultRow?.key ?? null);
       } catch {
         if (!isCancelled) {

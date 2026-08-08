@@ -21,6 +21,12 @@ export interface ModelSelectorPopoverProps {
   models: IModel[];
   values: string[];
   onChange: (name: string, values: string[]) => void;
+  /**
+   * `multi` (default) — studio/generation multi-pick with checkboxes.
+   * `single` — chat/composer single pick; selecting a row replaces the value
+   * and closes the popover. Hides Auto priority cards unless `autoLabel` is set.
+   */
+  selectionMode?: 'multi' | 'single';
   autoLabel?: string;
   prioritize?: RouterPriority;
   onPrioritizeChange?: (prioritize: RouterPriority) => void;
@@ -37,6 +43,8 @@ export interface ModelSelectorPopoverProps {
   sourceGroupResolver?: (model: IModel) => string | undefined;
   sourceGroupLabels?: Record<string, string>;
   autoSourceGroups?: string[];
+  /** When true, trigger/open are blocked (busy composer, etc.). */
+  isDisabled?: boolean;
 }
 
 export interface ModelSelectorProviderSidebarProps {
@@ -56,6 +64,8 @@ export interface ModelSelectorModelItemProps {
   isSelected: boolean;
   onToggle: (modelKey: string) => void;
   onFavoriteToggle: (modelKey: string) => void;
+  /** `single` uses a check mark instead of multi-select checkboxes. */
+  selectionMode?: 'multi' | 'single';
 }
 
 export interface ModelSelectorFamilyItemProps {

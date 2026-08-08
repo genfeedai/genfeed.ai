@@ -15,6 +15,7 @@ import {
   SWITCHER_AVATAR_CLASSNAME,
   SWITCHER_CHEVRON_CLASSNAME,
   SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
+  SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME,
   SWITCHER_COMPOSITE_SHELL_CLASSNAME,
   SWITCHER_COMPOSITE_TRIGGER_CLASSNAME,
   SWITCHER_LABEL_CLASSNAME,
@@ -245,7 +246,10 @@ export default function MenuBrandSwitcher({
               withWrapper={false}
               isDisabled={isUpdating}
               onClick={handleClearButtonClick}
-              className={SWITCHER_COMPOSITE_CLEAR_CLASSNAME}
+              className={cn(
+                SWITCHER_COMPOSITE_CLEAR_CLASSNAME,
+                isOpen && SWITCHER_COMPOSITE_CLEAR_VISIBLE_CLASSNAME,
+              )}
             >
               <X className="size-3.5" />
             </Button>

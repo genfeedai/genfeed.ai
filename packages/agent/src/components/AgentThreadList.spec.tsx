@@ -349,9 +349,7 @@ describe('AgentThreadList', () => {
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
-    fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'Show archived threads' }),
-    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Archived' }));
 
     await waitFor(() => {
       expect(screen.getByText('Archived thread')).toBeInTheDocument();
@@ -361,7 +359,7 @@ describe('AgentThreadList', () => {
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     expect(
-      await screen.findByRole('menuitem', { name: 'Show recent threads' }),
+      await screen.findByRole('menuitem', { name: 'Recent' }),
     ).toBeInTheDocument();
     expect(apiService.getThreads).toHaveBeenNthCalledWith(
       2,
@@ -485,9 +483,7 @@ describe('AgentThreadList', () => {
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
-    fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'Show archived threads' }),
-    );
+    fireEvent.click(await screen.findByRole('menuitem', { name: 'Archived' }));
 
     expect(await screen.findByText('Restore me')).toBeInTheDocument();
 
@@ -641,7 +637,7 @@ describe('AgentThreadList', () => {
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     expect(
-      await screen.findByRole('menuitem', { name: 'Archive all threads' }),
+      await screen.findByRole('menuitem', { name: 'Archive all' }),
     ).toBeInTheDocument();
   });
 
@@ -742,7 +738,7 @@ describe('AgentThreadList', () => {
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );
     fireEvent.click(
-      await screen.findByRole('menuitem', { name: 'Archive all threads' }),
+      await screen.findByRole('menuitem', { name: 'Archive all' }),
     );
 
     await waitFor(() => {
