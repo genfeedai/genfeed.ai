@@ -119,12 +119,17 @@ export class BatchGenerationQueueService {
 
     const config = (batch.config ?? {}) as BatchConfig;
 
+    // Name the shape before the cast. An inline literal widens the optional
+    // nested config objects, and the stricter tsconfigs then reject the direct
+    // `as Prisma.InputJsonValue` conversion as non-overlapping.
+    const queuedConfig: BatchConfig = {
+      ...config,
+      queuedAt: new Date().toISOString(),
+    };
+
     await this.prisma.batch.updateMany({
       data: {
-        config: {
-          ...config,
-          queuedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
+        config: queuedConfig as Prisma.InputJsonValue,
       },
       where: scopedWhere(organizationId, { id: batchId }),
     });
