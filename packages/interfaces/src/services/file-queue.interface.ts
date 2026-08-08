@@ -97,7 +97,7 @@ export interface IYoutubeUploadData {
   title: string;
   description: string;
   tags?: string[];
-  status: string;
+  visibility: PostVisibility;
   scheduledDate?: Date;
   websocketUrl?: string;
 }
