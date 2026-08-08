@@ -18,6 +18,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 
+const MOCK_ORGANIZATION_ID = '507f1f77bcf86cd799439012';
+const MOCK_USER_ID = '507f1f77bcf86cd799439011';
+
 describe('SchedulesController', () => {
   let controller: SchedulesController;
   let service: SchedulesService;
@@ -26,8 +29,8 @@ describe('SchedulesController', () => {
   const mockUser: User = {
     id: 'user_123',
     publicMetadata: {
-      organization: '507f1f77bcf86cd799439012',
-      user: '507f1f77bcf86cd799439011',
+      organization: MOCK_ORGANIZATION_ID,
+      user: MOCK_USER_ID,
     },
   } as unknown as User;
 
@@ -168,7 +171,7 @@ describe('SchedulesController', () => {
 
       expect(service.getOptimalTime).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        MOCK_ORGANIZATION_ID,
         expect.any(Function),
       );
       expect(result).toEqual(optimalTime);
@@ -199,7 +202,7 @@ describe('SchedulesController', () => {
 
       expect(service.bulkSchedule).toHaveBeenCalledWith(
         dto,
-        mockUser.publicMetadata.organization,
+        MOCK_ORGANIZATION_ID,
         mockUser.id,
       );
       expect(result).toEqual(scheduled);
@@ -220,7 +223,7 @@ describe('SchedulesController', () => {
       const result = await controller.getCalendar(mockReq, mockUser);
 
       expect(service.getCalendar).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        MOCK_ORGANIZATION_ID,
         expect.any(String),
         expect.any(String),
       );
@@ -237,7 +240,7 @@ describe('SchedulesController', () => {
       await controller.getCalendar(mockReq, mockUser, start, end);
 
       expect(service.getCalendar).toHaveBeenCalledWith(
-        mockUser.publicMetadata.organization,
+        MOCK_ORGANIZATION_ID,
         start,
         end,
       );
