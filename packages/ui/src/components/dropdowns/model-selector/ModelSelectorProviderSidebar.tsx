@@ -24,7 +24,7 @@ const ModelSelectorProviderSidebar = memo(
     );
 
     return (
-      <div className="flex w-14 flex-col items-center gap-1 overflow-y-auto border-r border-border py-2 sm:w-12">
+      <div className="flex w-14 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-background-secondary py-2 sm:w-12">
         {hasFavorites && (
           <SidebarButton
             isActive={activeBrand === 'favorites'}

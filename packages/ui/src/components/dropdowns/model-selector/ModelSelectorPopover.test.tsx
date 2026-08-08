@@ -439,6 +439,40 @@ describe('ModelSelectorPopover', () => {
     ).toBeInTheDocument();
   });
 
+  it('always emits the Auto sentinel when a priority card is chosen', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const onPrioritizeChange = vi.fn();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/gemini-flash',
+            label: 'Gemini Flash',
+          }),
+        ]}
+        values={['google/gemini-flash']}
+        onChange={onChange}
+        onPrioritizeChange={onPrioritizeChange}
+        autoLabel="Auto · Balanced"
+        prioritize={RouterPriority.BALANCED}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+
+    // Trigger currently shows the concrete model.
+    expect(screen.getByText('Gemini Flash')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /gemini flash/i }));
+    await user.click(screen.getByRole('button', { name: 'Best Quality' }));
+
+    expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.QUALITY);
+    expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
+  });
+
   it('blocks selecting models that cost more credits than available', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

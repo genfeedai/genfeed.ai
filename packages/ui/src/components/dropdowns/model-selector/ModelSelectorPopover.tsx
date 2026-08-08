@@ -380,13 +380,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const handleAutoSelect = useCallback(
     (priority: RouterPriority) => {
+      // Always emit Auto + priority. Skipping onChange when already Auto left
+      // hosts that only listen to one of the two callbacks stuck on a concrete
+      // model label in the trigger.
       onPrioritizeChange?.(priority);
-      if (!isAutoSelected) {
-        onChange(name, [AUTO_MODEL_OPTION_VALUE]);
-      }
+      onChange(name, [AUTO_MODEL_OPTION_VALUE]);
       setIsOpen(false);
+      setSearchTerm('');
     },
-    [isAutoSelected, name, onChange, onPrioritizeChange],
+    [name, onChange, onPrioritizeChange],
   );
 
   const handleFamilyToggle = useCallback((familyKey: string) => {
@@ -438,14 +440,17 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         // and clip the top of the list against the browser chrome.
         avoidCollisions
         className={cn(
-          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
+          // Solid surface — ship default popover can look washed/transparent
+          // against the agent canvas and leave search text unreadable.
+          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border',
+          'bg-background text-foreground shadow-dropdown',
           'sm:w-[380px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
-        <div className="flex max-h-[inherit] min-h-0 w-full">
+        <div className="flex max-h-[inherit] min-h-0 w-full bg-background">
           {shouldShowManualCatalog && (
             <ModelSelectorProviderSidebar
               brands={brands}
@@ -455,10 +460,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
             />
           )}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="shrink-0 overflow-x-auto border-b border-border px-3 py-2">
+              <div className="shrink-0 overflow-x-auto border-b border-border bg-background px-3 py-2">
                 <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-1">
+                  {' '}
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
                     label="All"
@@ -478,7 +484,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-transparent"
+              className="flex min-h-0 flex-col bg-background text-foreground"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -486,6 +492,13 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   placeholder="Search models…"
                   value={searchTerm}
                   onValueChange={setSearchTerm}
+                  className={cn(
+                    // Ship CommandInput defaults to muted-on-muted and reads as
+                    // empty grey chrome on dark agent surfaces — force tokens.
+                    'border-border bg-background text-foreground',
+                    'placeholder:text-muted-foreground',
+                    '[&_input]:!text-foreground [&_input]:placeholder:!text-muted-foreground',
+                  )}
                 />
               )}
 
@@ -502,8 +515,18 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                     {AUTO_PRIORITY_OPTIONS.map((priorityOption) => (
                       <CommandItem
                         key={priorityOption}
-                        value={AUTO_PRIORITY_LABELS[priorityOption]}
+                        value={`auto ${AUTO_PRIORITY_LABELS[priorityOption]}`}
+                        // cmdk onSelect + pointer — some nested group layouts
+                        // drop keyboard-only select for the first click.
                         onSelect={() => handleAutoSelect(priorityOption)}
+                        onPointerDown={(event) => {
+                          // Prevent cmdk from eating the click without selecting.
+                          if (event.button !== 0) {
+                            return;
+                          }
+                          event.preventDefault();
+                          handleAutoSelect(priorityOption);
+                        }}
                         className={cn(
                           'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
                           isAutoSelected &&

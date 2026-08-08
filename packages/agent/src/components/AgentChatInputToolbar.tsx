@@ -118,12 +118,19 @@ function AgentChatInputToolbarInner({
         name="agent-chat-model"
         onChange={(_name, values) => {
           const next = values[0]?.trim();
-          if (next) {
-            onModelChange(next);
+          if (!next) {
+            return;
           }
+          // Auto or a concrete key — never leave the previous model in values.
+          onModelChange(next);
         }}
         onFavoriteToggle={onFavoriteToggle}
-        onPrioritizeChange={onPrioritizeChange}
+        onPrioritizeChange={(priority) => {
+          // Priority pick is Auto mode even if the host only implements this
+          // callback — force the parent off a pinned model.
+          onModelChange(AUTO_MODEL_OPTION_VALUE);
+          onPrioritizeChange?.(priority);
+        }}
         prioritize={prioritize}
         creditsAvailable={creditsAvailable}
         selectionMode="single"
