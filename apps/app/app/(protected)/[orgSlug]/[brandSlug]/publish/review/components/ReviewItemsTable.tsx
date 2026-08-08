@@ -170,7 +170,7 @@ export default function ReviewItemsTable({
         },
       },
       {
-        className: 'w-28',
+        className: 'w-32',
         header: 'Schedule',
         key: 'scheduledDate',
         render: (item) => (
@@ -179,7 +179,7 @@ export default function ReviewItemsTable({
               ? formatDateInTimezone(
                   item.scheduledDate,
                   browserTimezone,
-                  'MMM d',
+                  'short',
                 )
               : '—'}
           </span>

@@ -196,7 +196,7 @@ export default function AppTable<T>({
                 <th
                   key={String(column.key)}
                   className={cn(
-                    'h-12 select-none px-4 text-left align-middle font-semibold uppercase text-[10px] tracking-[0.18em] text-foreground/28',
+                    'h-10 select-none px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground',
                     column.className,
                   )}
                 >
@@ -207,7 +207,7 @@ export default function AppTable<T>({
               {actions.length > 0 && (
                 <th
                   aria-label="Actions"
-                  className="h-12 px-4 text-right align-middle font-medium text-muted-foreground"
+                  className="h-10 px-4 text-right align-middle font-medium text-muted-foreground"
                 ></th>
               )}
             </tr>
