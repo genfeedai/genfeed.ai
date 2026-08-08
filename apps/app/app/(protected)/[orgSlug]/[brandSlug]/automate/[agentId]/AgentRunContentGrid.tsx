@@ -1,5 +1,6 @@
 'use client';
 
+import { IngredientStatus, PostStatus } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   IAgentRunContent,
@@ -14,19 +15,32 @@ import { FileText, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 
+/**
+ * Run content mixes two vocabularies on purpose: `posts.status` is a String
+ * column carrying lowercase product language, while `ingredients.status` is a
+ * Prisma enum column carrying SCREAMING_SNAKE labels. Both spellings are keyed
+ * from their own enum so neither silently falls through to the default.
+ */
 const STATUS_VARIANTS: Record<
   string,
   'success' | 'warning' | 'error' | 'secondary'
 > = {
-  approved: 'success',
-  draft: 'secondary',
-  generated: 'success',
-  pending: 'warning',
-  processing: 'warning',
-  published: 'success',
-  rejected: 'error',
-  review: 'warning',
-  scheduled: 'warning',
+  [IngredientStatus.ARCHIVED]: 'secondary',
+  [IngredientStatus.DRAFT]: 'secondary',
+  [IngredientStatus.FAILED]: 'error',
+  [IngredientStatus.GENERATED]: 'success',
+  [IngredientStatus.PROCESSING]: 'warning',
+  [IngredientStatus.REJECTED]: 'error',
+  [IngredientStatus.UPLOADED]: 'success',
+  [IngredientStatus.VALIDATED]: 'success',
+  [PostStatus.DRAFT]: 'secondary',
+  [PostStatus.FAILED]: 'error',
+  [PostStatus.PENDING]: 'warning',
+  [PostStatus.PRIVATE]: 'secondary',
+  [PostStatus.PROCESSING]: 'warning',
+  [PostStatus.PUBLIC]: 'success',
+  [PostStatus.SCHEDULED]: 'warning',
+  [PostStatus.UNLISTED]: 'secondary',
 };
 
 export default function AgentRunContentGrid({
@@ -121,8 +135,11 @@ function ContentCard({ item }: { item: IAgentRunContentItem }) {
           {icon}
           <span className="capitalize">{item.type}</span>
         </span>
-        <Badge variant={STATUS_VARIANTS[item.status] ?? 'secondary'}>
-          {item.status}
+        <Badge
+          variant={STATUS_VARIANTS[item.status] ?? 'secondary'}
+          className="capitalize"
+        >
+          {item.status.toLowerCase()}
         </Badge>
       </div>
 

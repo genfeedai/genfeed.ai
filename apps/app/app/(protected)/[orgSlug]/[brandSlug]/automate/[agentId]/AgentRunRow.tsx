@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentRunStatus } from '@genfeedai/enums';
 import type { AgentRunRowProps } from '@props/automation/agent-strategy.props';
 import Badge from '@ui/display/badge/Badge';
 import { TableCell, TableRow } from '@ui/primitives/table';
@@ -8,15 +9,21 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AgentRunContentGrid from './AgentRunContentGrid';
 
+/**
+ * `agent_runs.status` is a Prisma enum column — the wire format is the
+ * SCREAMING_SNAKE label verbatim. `BUDGET_EXHAUSTED` is domain-only (strategy
+ * history), so it appears here but never in the column.
+ */
 const RUN_STATUS_VARIANTS: Record<
   string,
   'success' | 'warning' | 'error' | 'secondary'
 > = {
-  budget_exhausted: 'warning',
-  completed: 'success',
-  failed: 'error',
-  pending: 'secondary',
-  running: 'warning',
+  [AgentRunStatus.BUDGET_EXHAUSTED]: 'warning',
+  [AgentRunStatus.CANCELLED]: 'secondary',
+  [AgentRunStatus.COMPLETED]: 'success',
+  [AgentRunStatus.FAILED]: 'error',
+  [AgentRunStatus.PENDING]: 'secondary',
+  [AgentRunStatus.RUNNING]: 'warning',
 };
 
 function getRunMetadataString(
@@ -59,8 +66,11 @@ export default function AgentRunRow({
           )}
         </TableCell>
         <TableCell className="p-4 align-middle">
-          <Badge variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}>
-            {run.status}
+          <Badge
+            variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}
+            className="capitalize"
+          >
+            {run.status.toLowerCase().replace(/_/g, ' ')}
           </Badge>
         </TableCell>
         <TableCell className="p-4 align-middle text-sm">

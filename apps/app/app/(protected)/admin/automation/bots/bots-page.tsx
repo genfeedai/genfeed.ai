@@ -1,6 +1,7 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import { BotStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
@@ -22,11 +23,17 @@ const BOT_SKELETON_KEYS = [
   'bot-skeleton-4',
 ] as const;
 
-function getBotStatusVariant(status: string): 'success' | 'warning' | 'error' {
+/**
+ * `bots.status` is a Prisma enum column, so the wire format is the
+ * SCREAMING_SNAKE label verbatim — never lowercase product language.
+ */
+function getBotStatusVariant(
+  status: BotStatus,
+): 'success' | 'warning' | 'error' {
   switch (status) {
-    case 'active':
+    case BotStatus.ACTIVE:
       return 'success';
-    case 'paused':
+    case BotStatus.PAUSED:
       return 'warning';
     default:
       return 'error';
@@ -119,8 +126,11 @@ export default function BotsPage() {
                         <h3 className="card-label text-sm font-semibold">
                           {bot.label}
                         </h3>
-                        <Badge variant={getBotStatusVariant(bot.status)}>
-                          {bot.status}
+                        <Badge
+                          variant={getBotStatusVariant(bot.status)}
+                          className="capitalize"
+                        >
+                          {bot.status.toLowerCase()}
                         </Badge>
 
                         <Badge variant="outline" className="capitalize">

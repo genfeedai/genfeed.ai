@@ -1,3 +1,4 @@
+import { IntegrationPlatform, type IntegrationStatus } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -6,13 +7,18 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
+/**
+ * `orgIntegration.platform` / `.status` are Prisma enum columns, so both the
+ * request DTO (`@IsEnum(IntegrationPlatform)`) and the response payload speak
+ * the SCREAMING_SNAKE labels verbatim. This client types against the canonical
+ * `@genfeedai/enums` members rather than carrying a second lowercase vocabulary
+ * that the API would reject on write and never match on read.
+ */
 export const ORG_INTEGRATION_PLATFORMS = [
-  'discord',
-  'slack',
-  'telegram',
+  IntegrationPlatform.DISCORD,
+  IntegrationPlatform.SLACK,
+  IntegrationPlatform.TELEGRAM,
 ] as const;
-export type IntegrationPlatform = (typeof ORG_INTEGRATION_PLATFORMS)[number];
-export type IntegrationStatus = 'active' | 'error' | 'paused';
 
 export interface IOrgIntegrationConfig {
   allowedUserIds?: string[];
