@@ -165,7 +165,7 @@ export class CreditTransactionsService extends BaseService<
         skip,
         take: limit,
         where: {
-          isDeleted: { not: true },
+          isDeleted: false,
           organizationId,
           ...(category ? { category } : {}),
           ...(source ? { source } : {}),
@@ -206,7 +206,7 @@ export class CreditTransactionsService extends BaseService<
         orderBy: { createdAt: 'desc' },
         where: {
           createdAt: { lt: before },
-          isDeleted: { not: true },
+          isDeleted: false,
           organizationId,
         },
       });
@@ -234,7 +234,7 @@ export class CreditTransactionsService extends BaseService<
         orderBy: { createdAt: 'asc' },
         where: {
           createdAt: { gte: startDate, lte: endDate },
-          isDeleted: { not: true },
+          isDeleted: false,
           organizationId,
         },
       });
@@ -263,7 +263,7 @@ export class CreditTransactionsService extends BaseService<
         orderBy: { createdAt: 'desc' },
         take: limit,
         where: {
-          isDeleted: { not: true },
+          isDeleted: false,
           organizationId,
           // Stage 4: the transaction-type column is `source` (Prisma); `type`
           // was a Mongo-era name that silently matched nothing.
@@ -322,7 +322,7 @@ export class CreditTransactionsService extends BaseService<
           where: {
             category: CreditTransactionCategory.DEDUCT,
             createdAt: { gte: yearAgo },
-            isDeleted: { not: true },
+            isDeleted: false,
             organizationId,
           },
         })) as unknown[],
@@ -498,7 +498,7 @@ export class CreditTransactionsService extends BaseService<
         },
         where: {
           category: CreditTransactionCategory.ADD,
-          isDeleted: { not: true },
+          isDeleted: false,
           organizationId,
         },
       });
