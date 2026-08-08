@@ -217,7 +217,7 @@ export function AgentThreadList({
         ) : (
           <div
             data-testid="agent-thread-list-content"
-            className="flex flex-col gap-2 pb-3"
+            className="flex flex-col gap-1 px-0.5 pb-3"
           >
             {isArchivedView ? (
               <ConversationSidebarSection

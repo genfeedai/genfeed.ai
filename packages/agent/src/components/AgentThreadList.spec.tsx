@@ -600,8 +600,9 @@ describe('AgentThreadList', () => {
       'Needs input status for Needs your reply',
     );
 
-    expect(statusDot).toHaveClass('bg-amber-300');
-    expect(screen.getByText('Needs input')).toBeInTheDocument();
+    expect(statusDot.querySelector('.bg-amber-300')).not.toBeNull();
+    // Status is disc-only — no text chip in the dense finalist row.
+    expect(screen.queryByText('Needs input')).not.toBeInTheDocument();
   });
 
   it('pins a conversation and moves it to the top of the list', async () => {
