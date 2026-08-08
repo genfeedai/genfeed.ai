@@ -36,6 +36,7 @@ export default function ModalPostContent({
       form={form}
       platformConfigs={platformConfigs}
       isLoading={isLoading}
+      ingredient={ingredient}
       togglePlatform={togglePlatform}
       updatePlatformConfig={updatePlatformConfig}
       getMinDateTime={getMinDateTime}
