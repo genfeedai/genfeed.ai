@@ -105,6 +105,7 @@ export class ArticlesOperationsController {
     @CurrentUser() user: User,
   ) {
     const publicMetadata = getPublicMetadata(user);
+    const brandId = dto.brandId || publicMetadata.brand;
     const generationType = dto.type || ArticleGenerationType.STANDARD;
     const isXArticle = generationType === ArticleGenerationType.X_ARTICLE;
 
@@ -144,7 +145,7 @@ export class ArticlesOperationsController {
     // Create activity for article generation start
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brandId: publicMetadata.brand,
+        brandId,
         key: ActivityKey.ARTICLE_PROCESSING,
         organizationId: publicMetadata.organization,
         source: ActivitySource.ARTICLE_GENERATION,
@@ -173,7 +174,7 @@ export class ArticlesOperationsController {
         dto,
         publicMetadata.user,
         publicMetadata.organization,
-        publicMetadata.brand,
+        brandId,
         (amount) => {
           billedCredits += amount;
         },
@@ -185,7 +186,7 @@ export class ArticlesOperationsController {
       for (const article of articles) {
         await this.activitiesService.create(
           new ActivityEntity({
-            brandId: publicMetadata.brand,
+            brandId,
             entityId: article.id,
             entityModel: ActivityEntityModel.ARTICLE,
             key: ActivityKey.ARTICLE_GENERATED,

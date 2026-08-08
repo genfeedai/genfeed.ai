@@ -1,6 +1,6 @@
 import { PersistedArticleStatus } from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { generateArticles, generateXArticle, getArticle } from '../../src/api/articles';
+import { generateArticle, getArticle } from '../../src/api/articles';
 
 const mockApiKey = vi.fn<[], string | undefined>();
 const mockApiUrl = vi.fn<[], string>();
@@ -24,7 +24,7 @@ describe('api/articles', () => {
     mockApiKey.mockReturnValue(undefined);
   });
 
-  describe('generateArticles', () => {
+  describe('generateArticle', () => {
     it('posts to /articles/generations with type standard and flattens the collection', async () => {
       mockFetch.mockResolvedValue({
         data: [
@@ -52,10 +52,16 @@ describe('api/articles', () => {
         ],
       });
 
-      const result = await generateArticles({ count: 2, prompt: 'AI in healthcare' });
+      const result = await generateArticle({
+        brandId: 'brand-1',
+        count: 2,
+        prompt: 'AI in healthcare',
+        type: 'standard',
+      });
 
       expect(mockFetch).toHaveBeenCalledWith('/articles/generations', {
         body: {
+          brandId: 'brand-1',
           count: 2,
           prompt: 'AI in healthcare',
           type: 'standard',
@@ -66,19 +72,26 @@ describe('api/articles', () => {
       expect(result[0]?.id).toBe('art-1');
       expect(result[0]?.label).toBe('AI in Healthcare');
       expect(result[1]?.slug).toBe('ai-in-radiology');
+
+      const body = mockFetch.mock.calls[0][1].body as Record<string, unknown>;
+      expect(body).toHaveProperty('brandId', 'brand-1');
+      expect(body).not.toHaveProperty('brand');
     });
 
     it('passes optional category and keywords through', async () => {
       mockFetch.mockResolvedValue({ data: [] });
 
-      await generateArticles({
+      await generateArticle({
+        brandId: 'brand-1',
         category: 'guide',
         keywords: ['climate', 'renewable'],
         prompt: 'Climate solutions',
+        type: 'standard',
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/articles/generations', {
         body: {
+          brandId: 'brand-1',
           category: 'guide',
           keywords: ['climate', 'renewable'],
           prompt: 'Climate solutions',
@@ -89,7 +102,7 @@ describe('api/articles', () => {
     });
   });
 
-  describe('generateXArticle', () => {
+  describe('generateArticle with type x-article', () => {
     it('posts to /articles/generations with type x-article and flattens the single resource', async () => {
       mockFetch.mockResolvedValue({
         data: {
@@ -107,15 +120,18 @@ describe('api/articles', () => {
         },
       });
 
-      const result = await generateXArticle({
+      const result = await generateArticle({
+        brandId: 'brand-2',
         generateHeaderImage: true,
         prompt: 'Why agent evaluation is hard',
         targetWordCount: 3000,
         tone: 'analytical',
+        type: 'x-article',
       });
 
       expect(mockFetch).toHaveBeenCalledWith('/articles/generations', {
         body: {
+          brandId: 'brand-2',
           generateHeaderImage: true,
           prompt: 'Why agent evaluation is hard',
           targetWordCount: 3000,
@@ -127,14 +143,18 @@ describe('api/articles', () => {
       expect(result.id).toBe('art-x');
       expect(result.label).toBe('Why agent evaluation is hard');
       expect(result.xArticleMetadata?.wordCount).toBe(3120);
+
+      const body = mockFetch.mock.calls[0][1].body as Record<string, unknown>;
+      expect(body).toHaveProperty('brandId', 'brand-2');
+      expect(body).not.toHaveProperty('brand');
     });
 
     it('propagates errors', async () => {
       mockFetch.mockRejectedValue(new Error('Insufficient credits'));
 
-      await expect(generateXArticle({ prompt: 'anything' })).rejects.toThrow(
-        'Insufficient credits'
-      );
+      await expect(
+        generateArticle({ brandId: 'brand-1', prompt: 'anything', type: 'x-article' })
+      ).rejects.toThrow('Insufficient credits');
     });
   });
 
