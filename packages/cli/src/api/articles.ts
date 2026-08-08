@@ -47,11 +47,12 @@ export interface Article {
 /**
  * Body accepted by `POST /articles/generations` for `type: 'standard'`.
  * Mirrors the whitelisted fields on `GenerateArticlesDto`; anything else is
- * stripped by the API's validation pipe. The brand and organization come from
- * the API key's own context — they are not client-supplied.
+ * stripped by the API's validation pipe.
  */
 export interface GenerateArticlesRequest {
+  brandId: string;
   prompt: string;
+  type: 'standard';
   count?: number;
   category?: string;
   keywords?: string[];
@@ -59,7 +60,9 @@ export interface GenerateArticlesRequest {
 
 /** Body accepted by `POST /articles/generations` for `type: 'x-article'`. */
 export interface GenerateXArticleRequest {
+  brandId: string;
   prompt: string;
+  type: 'x-article';
   keywords?: string[];
   tone?: string;
   targetWordCount?: number;
@@ -69,31 +72,23 @@ export interface GenerateXArticleRequest {
 const GENERATIONS_PATH = '/articles/generations';
 
 /**
- * Generate one or more standard articles.
+ * Generate one or more standard articles, or one long-form X article.
  *
  * The route runs the full generation cycle inline and answers with a JSON:API
- * *collection* of finished articles, so there is nothing to poll afterwards.
+ * collection for standard articles and a single resource for X articles.
  */
-export async function generateArticles(request: GenerateArticlesRequest): Promise<Article[]> {
-  const response = await post<JsonApiCollectionResponse>(GENERATIONS_PATH, {
+export function generateArticle(request: GenerateArticlesRequest): Promise<Article[]>;
+export function generateArticle(request: GenerateXArticleRequest): Promise<Article>;
+export async function generateArticle(
+  request: GenerateArticlesRequest | GenerateXArticleRequest
+): Promise<Article | Article[]> {
+  const response = await post<JsonApiCollectionResponse | JsonApiSingleResponse>(GENERATIONS_PATH, {
     ...request,
-    type: 'standard' satisfies ArticleGenerationType,
   });
-  return flattenCollection<Article>(response);
-}
 
-/**
- * Generate a single long-form X article.
- *
- * Same route as {@link generateArticles}, but `type: 'x-article'` makes the API
- * answer with a JSON:API *single* resource rather than a collection.
- */
-export async function generateXArticle(request: GenerateXArticleRequest): Promise<Article> {
-  const response = await post<JsonApiSingleResponse>(GENERATIONS_PATH, {
-    ...request,
-    type: 'x-article' satisfies ArticleGenerationType,
-  });
-  return flattenSingle<Article>(response);
+  return request.type === 'x-article'
+    ? flattenSingle<Article>(response as JsonApiSingleResponse)
+    : flattenCollection<Article>(response as JsonApiCollectionResponse);
 }
 
 export async function getArticle(id: string): Promise<Article> {

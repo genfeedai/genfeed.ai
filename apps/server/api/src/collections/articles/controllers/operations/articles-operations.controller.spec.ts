@@ -186,6 +186,46 @@ describe('ArticlesOperationsController', () => {
       expect(result).toBeDefined();
     });
 
+    it('uses the requested brandId throughout article generation', async () => {
+      const requestedBrandId = '507f1f77bcf86cd799439099';
+      const dto: GenerateArticlesDto = {
+        brandId: requestedBrandId,
+        prompt: 'AI Technology',
+      };
+
+      mockArticlesService.generateArticles.mockResolvedValue([mockArticle]);
+      mockArticlesService.resolveArticleCycleModelConfig.mockResolvedValue({
+        generationModel: 'default-text-model',
+        reviewModel: 'default-text-model',
+        updateModel: 'default-text-model',
+      });
+      mockOrganizationSettingsService.findOne.mockResolvedValue(null);
+      mockActivitiesService.create.mockResolvedValue({
+        id: '507f191e810c19729de860ee',
+      });
+      mockWebsocketService.publishBackgroundTaskUpdate.mockResolvedValue(
+        undefined,
+      );
+
+      await controller.generateArticles(mockRequest, dto, mockUser);
+
+      expect(service.generateArticles).toHaveBeenCalledWith(
+        dto,
+        mockPublicMetadata.user,
+        mockPublicMetadata.organization,
+        requestedBrandId,
+        expect.any(Function),
+      );
+      expect(mockActivitiesService.create).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ brandId: requestedBrandId }),
+      );
+      expect(mockActivitiesService.create).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ brandId: requestedBrandId }),
+      );
+    });
+
     it('resolves the credit pre-flight against the per-request model', async () => {
       const dto: GenerateArticlesDto = {
         model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,

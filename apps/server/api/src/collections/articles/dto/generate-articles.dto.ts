@@ -21,6 +21,10 @@ export class GenerateArticlesDto {
   @MaxLength(500)
   prompt!: string;
 
+  @IsEntityId()
+  @IsOptional()
+  brandId?: string;
+
   @IsOptional()
   @IsInt()
   @Min(1)

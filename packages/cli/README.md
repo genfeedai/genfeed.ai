@@ -374,11 +374,12 @@ genfeed posts list --platform twitter --status published
 
 ### Article-specific Options
 
-Articles resolve their brand from the API key's own context, and generation is
-synchronous — neither `--brand` nor `--no-wait` applies.
+Article generation is synchronous, so `--no-wait` does not apply. By default,
+articles use the active brand; pass `--brand <id>` to override it.
 
 | Option | Description |
 |--------|-------------|
+| `-b, --brand <id>` | Override active brand |
 | `-c, --count <n>` | Number of standard articles (1-4) |
 | `--category <cat>` | Article category |
 | `--keywords <list>` | Comma-separated keywords |

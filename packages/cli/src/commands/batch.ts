@@ -63,7 +63,7 @@ batchCommand
       const spinner = ora('Creating batch...').start();
 
       const batch = await createBatch({
-        brand: brandId,
+        brandId,
         count: options.count,
         endDate: options.end,
         platforms,
