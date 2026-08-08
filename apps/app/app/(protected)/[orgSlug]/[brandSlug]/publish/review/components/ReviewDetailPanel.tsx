@@ -7,19 +7,18 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
+import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { ImageIcon } from 'lucide-react';
-import Image from 'next/image';
 import { useMemo } from 'react';
 
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
 import ReviewDetailPanelHeader from './ReviewDetailPanelHeader';
-import { formatReviewItemStatus } from './review-item.helpers';
 import {
-  isApproved,
-  isChangesRequested,
-  isReadyToReview,
-} from './review-state';
+  buildReviewItemPreviewTarget,
+  formatReviewItemStatus,
+} from './review-item.helpers';
+import { isReadyToReview } from './review-state';
 
 type ReviewPanelItem = IBatchItem & {
   gateOverallScore?: number;
@@ -88,31 +87,19 @@ export default function ReviewDetailPanel({
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="space-y-3 border-b border-border px-4 py-4">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            Caption
+            Preview
           </p>
-          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
-            {caption}
-          </p>
+          <PlatformPreview target={buildReviewItemPreviewTarget(item)} />
           {item.status === BatchItemStatus.FAILED && item.error ? (
             <p className="text-xs leading-5 text-destructive">{item.error}</p>
           ) : null}
 
-          {item.mediaUrl ? (
-            <div className="relative mt-1 aspect-[16/10] max-h-56 overflow-hidden rounded-md bg-background-secondary">
-              <Image
-                src={item.mediaUrl}
-                alt={item.caption ?? 'Review item preview'}
-                fill
-                className="object-cover"
-                sizes="(max-width: 1280px) 100vw, 24rem"
-              />
-            </div>
-          ) : (
+          {!item.mediaUrl ? (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
               <ImageIcon className="size-3.5 shrink-0" />
               No media on this draft yet
             </p>
-          )}
+          ) : null}
 
           {item.prompt?.trim() && item.prompt.trim() !== caption ? (
             <div className="pt-2">
