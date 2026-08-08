@@ -152,7 +152,12 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' && element.textContent === '1 selected',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows publishing context in the detail panel when metadata is present', () => {
@@ -306,7 +311,7 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Approved\s*0/i }));
+    fireEvent.click(screen.getByRole('tab', { name: /Approved\s*0/i }));
     fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
     fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
