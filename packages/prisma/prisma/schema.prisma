@@ -855,6 +855,7 @@ model Brand {
   @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
+  @@index([organizationId, updatedAt, id], map: "brands_org_updated_at_id_idx")
   @@map("brands")
 }
 
@@ -1554,6 +1555,7 @@ model Ingredient {
   @@index([isDeleted, createdAt(sort: Desc)], map: "ingredients_deleted_created_at_idx")
   @@index([isDeleted, category, createdAt(sort: Desc)], map: "ingredients_deleted_category_created_at_idx")
   @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
+  @@index([organizationId, updatedAt, id], map: "ingredients_org_updated_at_id_idx")
   @@map("ingredients")
 }
 
@@ -1787,6 +1789,7 @@ model Asset {
   updatedAt          DateTime      @updatedAt
 
   @@index([parentOrgId, parentBrandId, updatedAt(sort: Desc)])
+  @@index([parentOrgId, updatedAt, id], map: "assets_parent_org_updated_at_id_idx")
   @@index([sha256, sizeBytes])
   @@index([localAssetId])
   @@map("assets")
@@ -5118,6 +5121,7 @@ model DesktopThread {
   @@index([userId, updatedAt(sort: Desc)])
   @@index([organizationId, updatedAt(sort: Desc)])
   @@index([organizationId, userId, updatedAt(sort: Desc)])
+  @@index([organizationId, userId, updatedAt, id], map: "desktop_threads_org_user_updated_at_id_idx")
   @@map("desktop_threads")
 }
 

@@ -3545,22 +3545,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "brand",
-      "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
-      "fingerprint": "81720ea62c0648655faa",
-      "method": "findMany",
-      "model": "Brand",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "ingredient",
-      "file": "apps/server/api/src/services/sync/desktop-sync.service.ts",
-      "fingerprint": "e14d164145e6ec4cc0cc",
-      "method": "findMany",
-      "model": "Ingredient",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "agentWorkflow",
       "file": "apps/server/api/src/workflows/agent-workflows.service.ts",
       "fingerprint": "04ac12d0bcc81d34c0cb",
