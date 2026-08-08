@@ -2,7 +2,7 @@
 name: enum_source_of_truth
 description: Canonical status enums live as Prisma SCREAMING_SNAKE; domain packages mirror those values; ban as never for enum writes; Platform/CredentialPlatform uses mandatory mapper
 type: project
-last_verified: 2026-08-07
+last_verified: 2026-08-08
 ---
 
 # Enum + assertion source of truth
@@ -64,7 +64,7 @@ New casts fail CI. Cleanups must prune the baseline in the same PR.
 | **Status Prisma enums** (BatchStatus, AgentRunStatus, IngredientStatus, WorkflowExecutionStatus, ArticleStatus, BotStatus, BrandInterviewStatus, PersonaStatus, …) | Prisma enum | SCREAMING_SNAKE = Prisma labels | Use enum members. Never `as never`. Guard: `prisma-parity.enum.test.ts`. TrainingStage / SubscriptionStatus / ByokBillingStatus land via #2506. |
 | **`PostStatus`, `TaskStatus`, and similar product statuses** | **String** column | **lowercase product language** | Keep as-is. Do **not** re-harmonize into SCREAMING or invent dual maps. |
 | **`WorkflowStatus`** | **String** column | product lowercase | Keep as-is. Orphan Prisma enum dropped in #2492 — do not reintroduce. |
-| **`ContentDraftStatus`, `CampaignTargetStatus`** | **String** column (`content_drafts.status`, `campaign_targets.status`) | SCREAMING domain vocabulary | Domain-only. Orphan Prisma enums dropped in `20260807160000_drop_orphan_enums` — do not reintroduce. Not in the parity ratchet. Columns still carry lowercase defaults + legacy rows from `20260609150437_reconcile_prod_schema`. |
+| **`ContentDraftStatus`, `CampaignTargetStatus`** | **String** column (`content_drafts.status`, `campaign_targets.status`) | SCREAMING domain vocabulary | Domain-only. Orphan Prisma enums dropped in `20260807160000_drop_orphan_enums` — do not reintroduce. Not in the parity ratchet. Casing is canonical: `20260808120000_canonicalize_draft_target_status_casing` (#2543) uppercased the legacy rows and set defaults to `'DRAFT'` / `'PENDING'`. Guard: `packages/prisma/prisma/status-casing-migration.test.ts`. |
 | **`ReferenceImageCategory`, `AgentAutonomyMode`** | no column | SCREAMING domain vocabulary | Domain-only. Orphan Prisma enums dropped in `20260807160000_drop_orphan_enums` — never had a column. Not in the parity ratchet. |
 | **`AgentQualityTier`, `AgentGoalProfile`, `OutreachCampaignStatus`** | no column, no domain enum | n/a | Fully removed in `20260807160000_drop_orphan_enums`. Nothing in the repo referenced them. |
 | **`Platform` (domain)** | posts / UI / OAuth free text | **lowercase** (`instagram`, `devto`) | Product language. Posts store lowercase `String`. |
