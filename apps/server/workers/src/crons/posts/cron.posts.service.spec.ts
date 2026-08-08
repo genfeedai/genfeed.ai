@@ -1001,6 +1001,85 @@ describe('CronPostsService', () => {
     );
   });
 
+  it('records a publisher validation failure as terminally failed without retry', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      groupId: 'group-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
+      retryCount: 0,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    // The message deliberately contains "5000", which the message-pattern
+    // retry classifier would misread as an HTTP 500 — the publisher-supplied
+    // errorCode must win and keep the failure terminal.
+    const validationError =
+      'YouTube caption is 5001 characters; the limit is 5000 characters.';
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        error: validationError,
+        errorCode: 'caption_too_long',
+        externalId: null,
+        platform: CredentialPlatform.TWITTER,
+        status: PostStatus.FAILED,
+        success: false,
+        url: '',
+      }),
+      supportsThreads: false,
+    });
+
+    const result = await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({ status: PostStatus.FAILED, success: false }),
+    );
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'caption_too_long',
+          isRetryable: false,
+        }),
+        executionState: TargetExecutionState.FAILED,
+        status: PostStatus.FAILED,
+        workflowExecutionId: 'execution-1',
+      }),
+      validationError,
+      {
+        expectedWorkflowExecutionId: 'execution-1',
+        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+      },
+    );
+  });
+
   it('skips queued publish jobs that are no longer eligible', async () => {
     postsService.findAll.mockResolvedValueOnce({
       docs: [],
