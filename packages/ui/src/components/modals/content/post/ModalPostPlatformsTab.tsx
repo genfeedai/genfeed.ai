@@ -3,14 +3,19 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
+import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import type { ModalPostPlatformsTabProps } from '@genfeedai/props/modals/modal.props';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import PlatformPreview, {
+  buildPlatformPreviewMedia,
+  type PlatformPreviewTarget,
+} from '@ui/posts/platform-preview/PlatformPreview';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
 import ModalPostPlatformGrid from './ModalPostPlatformGrid';
 import {
@@ -21,6 +26,7 @@ import {
 
 export default function ModalPostPlatformsTab({
   form,
+  ingredients,
   platformConfigs,
   isLoading,
   togglePlatform,
@@ -34,6 +40,10 @@ export default function ModalPostPlatformsTab({
   );
   const [generatingDescFor, setGeneratingDescFor] = useState<string | null>(
     null,
+  );
+  const previewTargets = useMemo(
+    () => buildComposerPreviewTargets(platformConfigs, ingredients),
+    [ingredients, platformConfigs],
   );
 
   const getPromptsService = useAuthedService((token) =>
@@ -160,6 +170,20 @@ export default function ModalPostPlatformsTab({
         togglePlatform={togglePlatform}
       />
 
+      <section className="space-y-3 border-t pt-4">
+        <div>
+          <h4 className="font-medium">Channel previews</h4>
+          <p className="mt-1 text-sm text-foreground/70">
+            Review every selected channel before publishing. Edits below update
+            these previews immediately.
+          </p>
+        </div>
+        <PlatformPreview
+          emptyMessage="Select at least one connected channel to preview it."
+          targets={previewTargets}
+        />
+      </section>
+
       {/* Platform-specific customization */}
       <div className="border-t pt-4 space-y-4">
         <h4 className="font-medium">Platform-Specific Settings</h4>
@@ -213,4 +237,26 @@ export default function ModalPostPlatformsTab({
       </div>
     </>
   );
+}
+
+export function buildComposerPreviewTargets(
+  platformConfigs: IPostPlatformConfig[],
+  ingredients: IIngredient[] | undefined,
+): PlatformPreviewTarget[] {
+  const media = buildPlatformPreviewMedia(ingredients);
+
+  return platformConfigs
+    .filter(
+      (config) =>
+        config.enabled &&
+        config.isCredentialValid !== false &&
+        config.credentialId.trim().length > 0,
+    )
+    .map((config) => ({
+      author: { handle: config.handle },
+      caption: config.description,
+      media,
+      platform: config.platform,
+      title: config.label,
+    }));
 }

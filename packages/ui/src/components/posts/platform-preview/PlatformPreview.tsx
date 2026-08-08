@@ -387,7 +387,7 @@ function formatDuration(seconds?: number): string | undefined {
   return `${minutes}:${remainder}`;
 }
 
-function buildMediaFromIngredients(
+export function buildPlatformPreviewMedia(
   ingredients: IIngredient[] | undefined,
 ): PlatformPreviewMedia[] {
   return (ingredients ?? []).map((ingredient, index) => ({
@@ -412,7 +412,7 @@ function buildPostTargets(
   const platforms = post.platform
     ? [post.platform]
     : [...PRODUCTIZED_SCHEDULER_PLATFORMS];
-  const media = buildMediaFromIngredients(post.ingredients);
+  const media = buildPlatformPreviewMedia(post.ingredients);
   const children = post.children ?? [];
 
   return platforms.map((platform) => ({
