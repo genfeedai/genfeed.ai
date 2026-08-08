@@ -86,7 +86,11 @@ export default function PostsList({
     status: statusProp,
   });
   const publisherView: PublisherPostsView | undefined =
-    statusProp === PostStatus.FAILED ? 'failed' : publicationState;
+    statusProp === PostStatus.FAILED ||
+    statusProp === PostStatus.PENDING ||
+    statusProp === PostStatus.PROCESSING
+      ? statusProp
+      : publicationState;
 
   // Keep latest filter bag for toolbar handlers without re-portaling on every
   // object identity change (that looped: setFiltersNode → layout dispatch →
@@ -176,20 +180,28 @@ export default function PostsList({
           <h2 className="text-base font-semibold text-foreground">
             {publisherView === 'posted'
               ? 'Posted'
-              : publisherView === 'failed'
+              : publisherView === PostStatus.FAILED
                 ? 'Failed'
-                : publisherView === 'not-posted'
-                  ? 'Not posted'
-                  : 'All posts'}
+                : publisherView === PostStatus.PENDING
+                  ? 'Pending'
+                  : publisherView === PostStatus.PROCESSING
+                    ? 'Publishing'
+                    : publisherView === 'not-posted'
+                      ? 'Not posted'
+                      : 'All posts'}
           </h2>
           <p className="mt-1 text-sm text-foreground/55">
             {publisherView === 'posted'
               ? 'Posts already live on their destination platforms.'
-              : publisherView === 'failed'
+              : publisherView === PostStatus.FAILED
                 ? 'Posts that could not be published. Fix the issue and retry.'
-                : publisherView === 'not-posted'
-                  ? 'Drafts, scheduled posts, and publishing work in progress.'
-                  : 'Posts across every publishing state.'}
+                : publisherView === PostStatus.PENDING
+                  ? 'Posts queued to enter the publishing pipeline.'
+                  : publisherView === PostStatus.PROCESSING
+                    ? 'Posts currently being sent to destination platforms.'
+                    : publisherView === 'not-posted'
+                      ? 'Drafts, scheduled posts, and publishing work in progress.'
+                      : 'Posts across every publishing state.'}
           </p>
         </div>
         <p className="text-sm tabular-nums text-foreground/55">

@@ -21,6 +21,7 @@ import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import {
   getPublisherPostHref,
+  getPublisherPostsStatusPath,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
@@ -798,11 +799,11 @@ export function usePostsList({
       params.delete('status');
       const queryString = params.toString();
       const basePath =
-        nextView === 'failed'
-          ? APP_ROUTES.PUBLISH.FAILED
-          : nextView === 'posted'
-            ? APP_ROUTES.PUBLISH.PUBLISHED
-            : APP_ROUTES.PUBLISH.SCHEDULED;
+        nextView === 'posted'
+          ? APP_ROUTES.PUBLISH.PUBLISHED
+          : nextView === 'not-posted'
+            ? APP_ROUTES.PUBLISH.SCHEDULED
+            : getPublisherPostsStatusPath(nextView);
 
       router.replace(
         href(queryString ? `${basePath}?${queryString}` : basePath),
