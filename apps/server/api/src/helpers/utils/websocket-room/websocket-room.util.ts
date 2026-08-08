@@ -1,5 +1,4 @@
-import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
-import { IngredientCategory } from '@genfeedai/enums';
+import { categoryToPlural, IngredientCategory } from '@genfeedai/enums';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 
 /**

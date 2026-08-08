@@ -334,6 +334,42 @@ describe('CronIngredientsService', () => {
       );
     });
 
+    // Regression: IngredientCategory labels are SCREAMING_SNAKE, but every
+    // upload writes to a lower-cased plural folder. The raw `${category}s`
+    // interpolation asked the files service for `VIDEOs/<id>`, a key that
+    // never exists, so this cron could never backfill real dimensions.
+    it('lower-cases a SCREAMING_SNAKE category when building the ingredient URL', async () => {
+      const videoIngredient = {
+        docs: [
+          {
+            category: IngredientCategory.VIDEO,
+            id: 'ingredient-id-7',
+            metadata: 'metadata-id-7',
+            metadataDoc: {
+              _id: 'metadata-doc-id-7',
+            },
+          },
+        ],
+      };
+
+      ingredientsService.findAll.mockResolvedValue(
+        videoIngredient as unknown as AggregatePaginateResult<IngredientEntity>,
+      );
+      filesClientService.extractMetadataFromUrl.mockResolvedValue({
+        duration: 45,
+        hasAudio: true,
+        height: 1080,
+        size: 1024000,
+        width: 1920,
+      });
+
+      await service.refreshMissingMetadataDimensions();
+
+      expect(filesClientService.extractMetadataFromUrl).toHaveBeenCalledWith(
+        'https://test-ingredients/videos/ingredient-id-7',
+      );
+    });
+
     it('should not update duration and hasAudio for images', async () => {
       const imageIngredient = {
         docs: [

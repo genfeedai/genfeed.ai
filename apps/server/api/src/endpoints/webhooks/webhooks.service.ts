@@ -7,20 +7,18 @@ import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.se
 import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
 import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
-import {
-  categoryToMediaType,
-  categoryToPlural,
-  normalizeCategory,
-} from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { extractUserIds } from '@api/helpers/utils/user-extraction/user-extraction.util';
 import { validateRoomMatch } from '@api/helpers/utils/websocket-room/websocket-room.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
+  categoryToMediaType,
+  categoryToPlural,
   FileInputType,
   IngredientCategory,
   IngredientStatus,
+  normalizeCategory,
 } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';

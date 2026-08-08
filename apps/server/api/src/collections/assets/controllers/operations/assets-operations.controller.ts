@@ -27,7 +27,6 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import {
@@ -43,6 +42,7 @@ import {
   ActivitySource,
   AssetCategory,
   AssetParent,
+  categoryToPlural,
   FileInputType,
   IngredientCategory,
   ModelCategory,

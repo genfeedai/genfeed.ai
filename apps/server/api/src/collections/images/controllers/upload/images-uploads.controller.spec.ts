@@ -164,6 +164,42 @@ describe('ImagesUploadsController', () => {
       expect(result).toBeDefined();
     });
 
+    // Regression: this is the write path, so a raw `${category}s` did not just
+    // read a missing key — it stored the object under `IMAGEs/`, where every
+    // lowercase-folder reader would then fail to find it. The existing test
+    // above passes a SCREAMING_SNAKE category but never asserts the folder.
+    it('lower-cases a SCREAMING_SNAKE category for the S3 upload folder', async () => {
+      const mockFile = {
+        buffer: Buffer.from('test'),
+        mimetype: 'video/mp4',
+        originalname: 'test.mp4',
+        size: 1024,
+      } as Express.Multer.File;
+
+      mockServices.validationConfigService.getAllowedVideoMimeTypes.mockReturnValue(
+        ['video/mp4'],
+      );
+      mockServices.validationConfigService.getAllowedVideoExtensions.mockReturnValue(
+        ['mp4'],
+      );
+      mockServices.sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: mockIngredient,
+      });
+      mockServices.filesClientService.uploadToS3.mockResolvedValue({
+        url: 'https://s3.example.com/video.mp4',
+      });
+
+      await controller.upload(mockRequest, mockUser, mockFile, {
+        category: IngredientCategory.VIDEO,
+      });
+
+      expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
+        mockIngredient.id,
+        'videos',
+        expect.anything(),
+      );
+    });
+
     it('should reject invalid file uploads', async () => {
       mockServices.validationConfigService.getAllowedImageMimeTypes.mockReturnValue(
         ['image/jpeg'],
