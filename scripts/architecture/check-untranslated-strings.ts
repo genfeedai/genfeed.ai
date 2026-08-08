@@ -142,6 +142,7 @@ export function findUntranslatedStrings(
     } else if (
       ts.isJsxExpression(node) &&
       node.expression &&
+      (ts.isJsxElement(node.parent) || ts.isJsxFragment(node.parent)) &&
       ts.isStringLiteralLike(node.expression)
     ) {
       record(node, node.expression.text);
