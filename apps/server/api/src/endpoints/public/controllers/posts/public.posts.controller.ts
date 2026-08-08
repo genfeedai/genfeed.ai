@@ -14,7 +14,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
-} from '@genfeedai/api-types';
+} from '@api-types/contracts/scheduler.contract';
 import {
   AssetScope,
   IngredientCategory,
