@@ -704,11 +704,38 @@ describe('UniversalWorkspaceShell', () => {
       </UniversalWorkspaceShell>,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open full conversation' }),
+    // Brand-scoped agent route so the expanded conversation keeps topbar brand
+    // context (not org `~/agent` which drops brand selection).
+    expect(
+      screen.getByRole('link', { name: 'Open full conversation' }),
+    ).toHaveAttribute('href', '/acme/moonrise/agent/thread-1');
+  });
+
+  it('binds the topbar brand on product routes without a surface adapter', async () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+    agentState.threads[0].brandId = null;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
     );
 
-    expect(router.push).toHaveBeenCalledWith('/acme/~/agent/thread-1');
+    expect(
+      screen.getByText('Publish overview').closest('[data-composer-brand]'),
+    ).toHaveAttribute('data-composer-brand', 'brand-1');
+
+    await waitFor(() =>
+      expect(updateThreadContextEffect).toHaveBeenCalledWith(
+        'thread-1',
+        {
+          brandId: 'brand-1',
+          expectedContextVersion: 3,
+        },
+        expect.any(AbortSignal),
+      ),
+    );
   });
 
   it('hands the single conversation to the mobile drawer while it is open', () => {
