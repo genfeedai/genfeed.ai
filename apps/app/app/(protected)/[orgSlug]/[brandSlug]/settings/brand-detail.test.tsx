@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -303,9 +303,13 @@ describe('BrandDetail', () => {
     ).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Upload Banner' }));
-    expect(mocks.handleOpenUploadModal).toHaveBeenCalledWith('banner');
+    expect(mocks.handleOpenUploadModal).toHaveBeenCalledWith(
+      AssetCategory.BANNER,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Upload Logo' }));
-    expect(mocks.handleOpenUploadModal).toHaveBeenCalledWith('logo');
+    expect(mocks.handleOpenUploadModal).toHaveBeenCalledWith(
+      AssetCategory.LOGO,
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Generate Banner' }));
     expect(mocks.handleGenerateBanner).toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Generate Logo' }));

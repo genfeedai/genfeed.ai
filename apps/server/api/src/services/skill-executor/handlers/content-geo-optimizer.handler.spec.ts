@@ -1,3 +1,4 @@
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,6 +16,11 @@ describe('ContentGeoOptimizerHandler', () => {
     warn: vi.fn(),
   };
 
+  const mockAgentChatModelRegistryService = {
+    getCheapestSelectableKey: vi.fn(() => 'gpt-5.4-mini'),
+    isTrustedSelectableKey: vi.fn(async () => true),
+  };
+
   const baseContext = {
     brandId: 'brand-id',
     brandVoice: 'Evidence-led and plainspoken',
@@ -30,6 +36,10 @@ describe('ContentGeoOptimizerHandler', () => {
         ContentGeoOptimizerHandler,
         { provide: LlmDispatcherService, useValue: mockLlmDispatcherService },
         { provide: LoggerService, useValue: mockLoggerService },
+        {
+          provide: AgentChatModelRegistryService,
+          useValue: mockAgentChatModelRegistryService,
+        },
       ],
     }).compile();
 

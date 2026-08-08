@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { VoiceProvider } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { Voice } from '@models/ingredients/voice.model';
@@ -386,7 +387,7 @@ describe('LibraryVoicesPage', () => {
         limit: 12,
         page: 2,
         pagination: true,
-        providers: ['elevenlabs'],
+        providers: [VoiceProvider.ELEVENLABS],
         search: 'rachel',
         status: ['ready', 'pending'],
       }),

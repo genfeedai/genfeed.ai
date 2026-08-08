@@ -1,7 +1,10 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { AgentAutonomyMode } from '@genfeedai/enums';
+import {
+  AgentAutonomyMode,
+  normalizeAgentAutonomyMode,
+} from '@genfeedai/enums';
 import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
@@ -153,9 +156,9 @@ export default function SettingsAgentsPage() {
         agentDailyCreditCap:
           agentPolicy?.creditGovernance?.agentDailyCreditCap?.toString() ?? '',
         allowAdvancedOverrides: agentPolicy?.allowAdvancedOverrides ?? false,
-        autonomyDefault:
-          (agentPolicy?.autonomyDefault as AgentAutonomyMode | undefined) ??
-          AgentAutonomyMode.SUPERVISED,
+        autonomyDefault: normalizeAgentAutonomyMode(
+          agentPolicy?.autonomyDefault,
+        ),
         brandDailyCreditCap:
           agentPolicy?.creditGovernance?.brandDailyCreditCap?.toString() ?? '',
         generationModelOverride: agentPolicy?.generationModelOverride ?? '',

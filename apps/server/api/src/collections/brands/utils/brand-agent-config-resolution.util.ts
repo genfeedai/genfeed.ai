@@ -14,7 +14,7 @@ import type {
   ResolvedAgentExecutionPolicy,
 } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
-import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
+import { normalizeAgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
 
 type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =
@@ -154,10 +154,6 @@ const mergeIdentityDefaults = (
     brandDefaults.defaultVoiceRef ?? organizationDefaults.defaultVoiceRef,
 });
 
-const normalizeAutonomyMode = (value: unknown): AgentAutonomyMode =>
-  Object.values(AgentAutonomyMode).find((mode) => mode === value) ??
-  AgentAutonomyMode.SUPERVISED;
-
 const normalizeQualityTier = (value: unknown): AgentQualityTier =>
   AGENT_QUALITY_TIERS.find((tier) => tier === value) ?? 'balanced';
 
@@ -247,7 +243,7 @@ export const resolveEffectiveAgentExecutionConfig = ({
     policy: {
       allowAdvancedOverrides:
         organizationSettings?.agentPolicy?.allowAdvancedOverrides ?? false,
-      autonomyMode: normalizeAutonomyMode(
+      autonomyMode: normalizeAgentAutonomyMode(
         strategy?.autonomyMode ??
           organizationSettings?.agentPolicy?.autonomyDefault,
       ),

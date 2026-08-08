@@ -9,13 +9,15 @@ import { Button } from '@ui/primitives/button';
 import { Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 
+// The API now returns SCREAMING_SNAKE VoiceProvider labels, while older rows and
+// links still carry the lower-cased product spelling — normalize before matching.
 function getProviderLabel(provider?: string): string {
-  switch (provider) {
-    case 'elevenlabs':
+  switch (provider?.toUpperCase().replace(/-/g, '_')) {
+    case 'ELEVENLABS':
       return 'ElevenLabs';
-    case 'heygen':
+    case 'HEYGEN':
       return 'HeyGen';
-    case 'genfeed-ai':
+    case 'GENFEED_AI':
       return 'Genfeed';
     default:
       return provider ?? 'Unknown';
