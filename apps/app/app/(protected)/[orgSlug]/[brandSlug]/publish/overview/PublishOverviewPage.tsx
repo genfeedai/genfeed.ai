@@ -190,14 +190,13 @@ export default function PublishOverviewPage() {
     <OverviewLayout
       actionsTitle="Go to work"
       cards={cards}
-      description="Pulse across review, drafts, calendar, and live posts — not a raw post grid."
+      description="Review queue, drafts, calendar, and published posts."
       header={
         <div className="space-y-6">
           <KPISection
             gridCols={{ desktop: 4, mobile: 2, tablet: 2 }}
             isLoading={isMetricsLoading}
             items={kpiItems}
-            title="Publish pulse"
           />
           <Card
             bodyClassName="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
@@ -250,24 +249,6 @@ export default function PublishOverviewPage() {
       }
       icon={LayoutDashboard}
       label="Publish"
-    >
-      <section className="max-w-6xl space-y-3">
-        <div className="space-y-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
-            What this home is for
-          </p>
-          <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
-            Command center, not the post library
-          </h2>
-          <p
-            className={cn('max-w-2xl text-sm leading-6 text-muted-foreground')}
-          >
-            Use Review to approve generated work, Scheduled for drafts still in
-            motion, Calendar for timing, and Published for live posts. Deep
-            performance charts live in the Analytics app when you need them.
-          </p>
-        </div>
-      </section>
-    </OverviewLayout>
+    />
   );
 }
