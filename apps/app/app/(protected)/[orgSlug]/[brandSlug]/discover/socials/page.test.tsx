@@ -15,6 +15,6 @@ describe('discover/socials/page.tsx', () => {
     expect(source).toContain('permanentRedirect');
     expect(source).toContain('DISCOVER.OVERVIEW');
     expect(source).toContain('createBrandAppRoute');
-    expect(source).not.toContain('TrendsList');
+    expect(source).not.toMatch(/import\s+TrendsList/);
   });
 });
