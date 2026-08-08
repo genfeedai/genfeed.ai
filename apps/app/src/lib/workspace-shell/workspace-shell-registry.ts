@@ -757,6 +757,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publish/campaigns',
       '/:orgSlug/:brandSlug/publish/campaigns/new',
       '/:orgSlug/:brandSlug/publish/campaigns/:id',
+      '/:orgSlug/:brandSlug/publish/failed',
       '/:orgSlug/:brandSlug/publish/newsletters',
       '/:orgSlug/:brandSlug/publish/outreach-campaigns',
       '/:orgSlug/:brandSlug/publish/outreach-campaigns/new',
