@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { WorkflowExecutionStatus } from '@genfeedai/enums';
+import { formatEnumLabel, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ExecutionHistoryPanel from '@ui/workflow-builder/panels/ExecutionHistoryPanel';
 import { describe, expect, it, vi } from 'vitest';
@@ -115,8 +115,12 @@ describe('ExecutionHistoryPanel', () => {
 
     render(<ExecutionHistoryPanel {...defaultProps} />);
 
+    // The panel renders the human label via formatEnumLabel, not the raw
+    // SCREAMING wire status.
     expect(
-      await screen.findByText(WorkflowExecutionStatus.COMPLETED),
+      await screen.findByText(
+        formatEnumLabel(WorkflowExecutionStatus.COMPLETED) ?? '',
+      ),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /cancel/i }),
