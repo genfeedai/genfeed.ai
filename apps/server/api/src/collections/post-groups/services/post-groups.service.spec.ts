@@ -664,7 +664,11 @@ describe('PostGroupsService', () => {
       }),
     );
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: 'existing-group', id: 'target-1' }),
+      makeTarget({
+        groupId: 'existing-group',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
     ]);
 
     await expect(
@@ -703,6 +707,9 @@ describe('PostGroupsService', () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
     );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ targetExecutionState: TargetExecutionState.SCHEDULED }),
+    ]);
 
     await expect(
       service.update(

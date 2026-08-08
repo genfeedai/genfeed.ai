@@ -104,7 +104,7 @@ export type SchedulerPostAnalytics = {
 };
 
 /**
- * Calendar read-model query. `statuses` narrows the release itself; the
+ * Calendar read-model query. `statuses` narrows the derived release status; the
  * remaining filters are target-scoped — a release matches when **at least one**
  * of its channel targets satisfies them.
  */

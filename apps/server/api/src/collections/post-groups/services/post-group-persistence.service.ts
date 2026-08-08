@@ -12,15 +12,11 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  type ChannelTargetInput,
-  deriveReleaseStatusFromTargets,
-} from '@api-types/contracts/scheduler.contract';
+import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import {
   ReleaseAttachmentKind,
   ReleaseStatus,
   ReleaseTargetSource,
-  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
@@ -267,7 +263,6 @@ export class PostGroupPersistenceService {
         ...(query.brandId ? { brandId: query.brandId } : {}),
         OR: scheduleFilters,
         ...(matchedGroupIds ? { id: { in: matchedGroupIds } } : {}),
-        ...(query.statuses?.length ? { status: { in: query.statuses } } : {}),
       }),
     })) as SchedulerPostGroup[];
 
@@ -303,13 +298,18 @@ export class PostGroupPersistenceService {
       targets,
     );
 
-    return groups
-      .map((group) =>
-        this.contractService.toReleaseGroup(
-          group,
-          targetsByGroup.get(group.id) ?? [],
-          analyticsByTarget,
-        ),
+    const releases = groups.map((group) =>
+      this.contractService.toReleaseGroup(
+        group,
+        targetsByGroup.get(group.id) ?? [],
+        analyticsByTarget,
+      ),
+    );
+
+    return releases
+      .filter(
+        (release) =>
+          !query.statuses?.length || query.statuses.includes(release.status),
       )
       .sort((left, right) => {
         const scheduleOrder =
@@ -643,11 +643,10 @@ export class PostGroupPersistenceService {
     return schedules.length > 0 ? Math.min(...schedules) : Number.MAX_VALUE;
   }
 
-  async recalculateAndHydrate(
+  async hydrateWithDerivedStatus(
     tx: Pick<SchedulerTx, '$queryRaw' | 'post' | 'postGroup'>,
     organizationId: string,
     groupId: string,
-    userId: string,
   ): Promise<IReleaseGroup> {
     const group = await this.getGroupOrThrow(tx, organizationId, groupId);
     const targets = await this.getTargets(tx, organizationId, group.id);
@@ -656,31 +655,8 @@ export class PostGroupPersistenceService {
       organizationId,
       targets,
     );
-    const status = deriveReleaseStatusFromTargets(
-      targets.map(
-        (target) => target.targetExecutionState as TargetExecutionState,
-      ),
-    );
-    const transitions =
-      status !== group.status
-        ? this.contractService.appendTransition(
-            group.statusTransitions,
-            group.status,
-            status,
-            userId,
-          )
-        : undefined;
-
-    const updated = (await tx.postGroup.update({
-      data: {
-        status,
-        ...(transitions !== undefined && { statusTransitions: transitions }),
-      },
-      where: { id: group.id },
-    })) as SchedulerPostGroup;
-
     return this.contractService.toReleaseGroup(
-      updated,
+      group,
       targets,
       analyticsByTarget,
     );
