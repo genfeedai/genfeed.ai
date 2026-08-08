@@ -1,6 +1,6 @@
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import ModalPostPlatformsTab from '@ui/modals/content/post/ModalPostPlatformsTab';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
@@ -101,6 +101,103 @@ describe('ModalPostPlatformsTab', () => {
     expect(screen.getAllByText('@twitter-handle').length).toBeGreaterThan(0);
     expect(screen.getByText('Title')).toBeInTheDocument();
     expect(screen.getByText('Description')).toBeInTheDocument();
+  });
+
+  it('renders a live platform preview bound to the enabled configs', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        platformConfigs={[
+          {
+            credentialId: 'cred-2',
+            customScheduledDate: '',
+            description: 'Hello from the live preview',
+            enabled: true,
+            handle: 'twitter-handle',
+            label: '',
+            overrideSchedule: false,
+            platform: CredentialPlatform.TWITTER,
+            status: 'scheduled',
+          },
+        ]}
+        selectedPlatformId="cred-2"
+        setSelectedPlatformId={vi.fn()}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    expect(screen.getByText('Live preview')).toBeInTheDocument();
+    // The settings textarea holds the same string, so scope to the preview.
+    const preview = screen.getByLabelText('Platform preview');
+    expect(
+      within(preview).getByText('Hello from the live preview'),
+    ).toBeInTheDocument();
+  });
+
+  it('hides and restores the preview via the toggle', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        platformConfigs={[
+          {
+            credentialId: 'cred-2',
+            customScheduledDate: '',
+            description: 'Toggle me',
+            enabled: true,
+            handle: 'twitter-handle',
+            label: '',
+            overrideSchedule: false,
+            platform: CredentialPlatform.TWITTER,
+            status: 'scheduled',
+          },
+        ]}
+        selectedPlatformId="cred-2"
+        setSelectedPlatformId={vi.fn()}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /hide preview/i }));
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /show preview/i }));
+    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
+  });
+
+  it('renders no preview section while every platform is disabled', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        platformConfigs={[
+          {
+            credentialId: 'cred-1',
+            customScheduledDate: '',
+            description: '',
+            enabled: false,
+            handle: 'genfeed',
+            label: '',
+            overrideSchedule: false,
+            platform: CredentialPlatform.INSTAGRAM,
+            status: 'scheduled',
+          },
+        ]}
+        selectedPlatformId="cred-1"
+        setSelectedPlatformId={vi.fn()}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    expect(screen.queryByText('Live preview')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
   });
 
   it.skip('calls setSelectedPlatformId when choosing a different platform', () => {
