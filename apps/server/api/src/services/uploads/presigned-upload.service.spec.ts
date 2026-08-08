@@ -366,7 +366,7 @@ describe('PresignedUploadService', () => {
         {
           id: mockIngredientId,
           organizationId: mockOrganizationId,
-          status: 'processing',
+          status: IngredientStatus.PROCESSING,
           userId: mockUserId,
         },
         [{ path: 'metadata' }],

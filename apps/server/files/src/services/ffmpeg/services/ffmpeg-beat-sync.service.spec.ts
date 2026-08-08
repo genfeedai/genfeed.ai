@@ -6,20 +6,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/enums', () => ({
-  BeatSyncCutStrategy: {
-    CUSTOM: 'custom',
-    DOWNBEATS_ONLY: 'downbeats_only',
-    EVERY_BEAT: 'every_beat',
-    EVERY_OTHER_BEAT: 'every_other_beat',
-  },
-  BeatSyncTransitionType: {
-    CROSSFADE: 'crossfade',
-    CUT: 'cut',
-    FLASH: 'flash',
-    ZOOM: 'zoom',
-  },
-}));
+// `@genfeedai/enums` is used as-is: a partial factory mock shadows every other
+// export, and `@genfeedai/pricing` (pulled in transitively) throws on the
+// missing `SubscriptionTier` before a single test runs.
 
 vi.mock('@files/helpers/utils/security/security.util', () => ({
   SecurityUtil: {

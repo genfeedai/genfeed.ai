@@ -345,6 +345,8 @@ describe('BatchGenerationProcessingService resume', () => {
     batchDelegate = {
       findFirst: vi.fn().mockResolvedValue({
         ...strandedBatch,
+        // `config` is mutated in place on resume, so each test needs its own
+        // copy — a shared reference makes resumeCount accumulate across tests.
         config: { ...strandedBatch.config },
         items: strandedItems.map((item) => ({ ...item })),
       }),

@@ -991,10 +991,12 @@ describe('TrendsService', () => {
       },
     );
 
-    it('should return bootstrap trends when cache is missing and live fetch also returns nothing', async () => {
+    it('should return no synthetic seed when cache is missing and live fetch also returns nothing', async () => {
       prisma.trend.findMany.mockResolvedValue([]);
 
-      vi.spyOn(service, 'fetchAndCacheTrends').mockResolvedValue([]);
+      const fetchAndCacheTrendsSpy = vi
+        .spyOn(service, 'fetchAndCacheTrends')
+        .mockResolvedValue([]);
 
       const result = await service.getTrends(
         mockOrganizationId,
@@ -1005,9 +1007,10 @@ describe('TrendsService', () => {
         },
       );
 
-      // Bootstrap is served only after a real live-fetch attempt also yields nothing
-      expect(result.length).toBeGreaterThan(0);
-      expect(result[0]?.id).toMatch(/^bootstrap-trend-/);
+      // The prelaunch/bootstrap corpus is hard-cut: a real live-fetch attempt
+      // that yields nothing surfaces an empty feed, never synthetic rows.
+      expect(fetchAndCacheTrendsSpy).toHaveBeenCalled();
+      expect(result).toEqual([]);
     });
 
     it('should fall back to global cached trends when tenant-scoped trends are missing', async () => {
