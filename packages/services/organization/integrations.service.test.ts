@@ -1,3 +1,4 @@
+import { IntegrationPlatform } from '@genfeedai/enums';
 import {
   IntegrationsService,
   ORG_INTEGRATION_PLATFORMS,
@@ -16,7 +17,15 @@ describe('IntegrationsService', () => {
   });
 
   it('keeps the org integration platform list explicit and stable', () => {
-    expect(ORG_INTEGRATION_PLATFORMS).toEqual(['discord', 'slack', 'telegram']);
+    expect(ORG_INTEGRATION_PLATFORMS).toEqual([
+      IntegrationPlatform.DISCORD,
+      IntegrationPlatform.SLACK,
+      IntegrationPlatform.TELEGRAM,
+    ]);
+  });
+
+  it('speaks the SCREAMING_SNAKE labels the API enum column emits', () => {
+    expect(ORG_INTEGRATION_PLATFORMS).toEqual(['DISCORD', 'SLACK', 'TELEGRAM']);
   });
 
   it('initializes correctly', () => {
