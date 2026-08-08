@@ -2,9 +2,11 @@ import '@testing-library/jest-dom/vitest';
 import { ArticleCategory, Platform, PostStatus } from '@genfeedai/enums';
 import PublishContentLibrary from '@pages/posts/library/publish-content-library';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  queryData: null as unknown,
   push: vi.fn(),
   replace: vi.fn(),
   search: '',
@@ -73,7 +75,7 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: () => ({
-    data: collections,
+    data: mocks.queryData,
     error: null,
     isFetching: false,
     isLoading: false,
@@ -92,54 +94,61 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@ui/display/table/Table', () => ({
   default: ({
+    emptyState,
     items,
     onRowClick,
   }: {
+    emptyState?: ReactNode;
     items: Array<{ id: string; title: string; type: string }>;
     onRowClick: (item: { id: string; title: string; type: string }) => void;
-  }) => (
-    <div>
-      {items.map((item) => (
-        <button
-          key={`${item.type}:${item.id}`}
-          type="button"
-          onClick={() => onRowClick(item)}
-        >
-          {item.title}
-        </button>
-      ))}
-    </div>
-  ),
+  }) =>
+    items.length === 0 ? (
+      emptyState
+    ) : (
+      <div>
+        {items.map((item) => (
+          <button
+            key={`${item.type}:${item.id}`}
+            type="button"
+            onClick={() => onRowClick(item)}
+          >
+            {item.title}
+          </button>
+        ))}
+      </div>
+    ),
 }));
 
 describe('PublishContentLibrary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.queryData = collections;
     mocks.search = '';
   });
 
   it('renders the federated rows and registers the filter toolbar', async () => {
     render(<PublishContentLibrary />);
 
-    expect(screen.getByRole('button', { name: 'Social launch copy' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Social launch copy' }),
+    ).toBeVisible();
     expect(screen.getByRole('button', { name: 'Launch guide' })).toBeVisible();
-    expect(screen.getByRole('button', { name: 'Founder weekly' })).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Founder weekly' }),
+    ).toBeVisible();
     expect(screen.getByText('3 items')).toBeVisible();
 
     await waitFor(() => expect(mocks.setFiltersNode).toHaveBeenCalled());
   });
 
   it.each([
-    ['post-1', 'post', '/publish/posts/post-1'],
-    ['article-1', 'article', '/edit/article/article-1'],
-    ['newsletter-1', 'newsletter', '/edit/newsletter/newsletter-1'],
-  ])('opens %s through the canonical %s editor route', (id, _type, route) => {
+    ['Social launch copy', '/publish/posts/post-1'],
+    ['Launch guide', '/edit/article/article-1'],
+    ['Founder weekly', '/edit/newsletter/newsletter-1'],
+  ])('opens %s through its canonical editor route', (title, route) => {
     render(<PublishContentLibrary />);
 
-    const item = Object.values(collections)
-      .flat()
-      .find((candidate) => candidate.id === id);
-    fireEvent.click(screen.getByRole('button', { name: item?.label || item?.description }));
+    fireEvent.click(screen.getByRole('button', { name: title }));
 
     expect(mocks.push).toHaveBeenCalledWith(
       `/acme/main${route}?returnTo=%2Facme%2Fmain%2Fpublish%2Fposts`,
@@ -152,5 +161,28 @@ describe('PublishContentLibrary', () => {
     render(<PublishContentLibrary />);
 
     expect(screen.getByText('0 items')).toBeVisible();
+    expect(screen.getByText('No matching content')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Try a different type, channel, lifecycle status, or search.',
+      ),
+    ).toBeVisible();
+  });
+
+  it('shows a distinct empty state when the library has no content', () => {
+    mocks.queryData = {
+      articles: [],
+      newsletters: [],
+      posts: [],
+    };
+
+    render(<PublishContentLibrary />);
+
+    expect(screen.getByText('No content yet')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Posts, articles, and newsletters will appear here as you create them.',
+      ),
+    ).toBeVisible();
   });
 });

@@ -20,8 +20,8 @@ import {
   formatPublishContentChannel,
   formatPublishContentStatus,
   formatPublishContentType,
-  parsePublishContentType,
   type PublishContentLibraryItem,
+  parsePublishContentType,
 } from '@pages/posts/library/publish-content-library.helpers';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { ArticlesService } from '@services/content/articles.service';
@@ -200,7 +200,10 @@ export default function PublishContentLibrary() {
     type !== 'all' || channel !== 'all' || status !== 'all' || Boolean(search);
 
   const replaceQueryParam = useCallback(
-    (key: 'page' | 'platform' | 'search' | 'status' | 'type', value: string) => {
+    (
+      key: 'page' | 'platform' | 'search' | 'status' | 'type',
+      value: string,
+    ) => {
       const params = new URLSearchParams(searchParamsString);
       if (!value || value === 'all' || (key === 'page' && value === '1')) {
         params.delete(key);
@@ -227,9 +230,7 @@ export default function PublishContentLibrary() {
         ? `${pathname}?${searchParamsString}`
         : pathname;
 
-      router.push(
-        withArtifactEditorReturn(href(editorRoute), returnTo),
-      );
+      router.push(withArtifactEditorReturn(href(editorRoute), returnTo));
     },
     [href, pathname, router, searchParamsString],
   );

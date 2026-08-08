@@ -7,11 +7,7 @@ import type { IPost } from '@genfeedai/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { Newsletter } from '@models/content/newsletter.model';
 
-export const PUBLISH_CONTENT_TYPES = [
-  'post',
-  'article',
-  'newsletter',
-] as const;
+export const PUBLISH_CONTENT_TYPES = ['post', 'article', 'newsletter'] as const;
 
 export type PublishContentType = (typeof PUBLISH_CONTENT_TYPES)[number];
 export type PublishContentTypeFilter = PublishContentType | 'all';
@@ -79,7 +75,9 @@ export function formatPublishContentChannel(channel: string): string {
     case 'web':
       return 'Website';
     default:
-      return formatPlatformLabel(channel) ?? formatPublishContentStatus(channel);
+      return (
+        formatPlatformLabel(channel) ?? formatPublishContentStatus(channel)
+      );
   }
 }
 
@@ -104,9 +102,7 @@ export function createPublishContentLibraryItems({
 
   const articleItems: PublishContentLibraryItem[] = articles.map((article) => ({
     channel:
-      article.category === ArticleCategory.X_ARTICLE
-        ? Platform.TWITTER
-        : 'web',
+      article.category === ArticleCategory.X_ARTICLE ? Platform.TWITTER : 'web',
     createdAt: article.createdAt,
     id: article.id,
     status: normalizedStatus(article.status),

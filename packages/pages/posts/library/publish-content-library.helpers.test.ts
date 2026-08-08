@@ -52,12 +52,14 @@ describe('publish content library federation', () => {
   it('normalizes all three canonical content types and sorts them newest first', () => {
     const items = createPublishContentLibraryItems(collections);
 
-    expect(items.map(({ channel, id, status, type }) => ({
-      channel,
-      id,
-      status,
-      type,
-    }))).toEqual([
+    expect(
+      items.map(({ channel, id, status, type }) => ({
+        channel,
+        id,
+        status,
+        type,
+      })),
+    ).toEqual([
       {
         channel: Platform.INSTAGRAM,
         id: 'post-1',
