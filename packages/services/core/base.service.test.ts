@@ -436,12 +436,14 @@ describe('BaseService', () => {
   });
 
   describe('findAllPages', () => {
-    function mockPages(pages: { id: string }[][]) {
+    // An `{ id }`-only object is a relationship reference to the JSON:API
+    // extractor mock, so rows carry a second attribute to stay resources.
+    function mockPages(pages: string[][]) {
       const get = service.getInstanceForTest().get;
-      pages.forEach((items) => {
+      pages.forEach((ids) => {
         get.mockResolvedValueOnce({
           data: {
-            data: items,
+            data: ids.map((id) => ({ id, name: `row-${id}` })),
             links: { pagination: { pages: pages.length } },
           },
         });
@@ -450,7 +452,7 @@ describe('BaseService', () => {
     }
 
     it('walks every server page and returns the flattened rows', async () => {
-      const get = mockPages([[{ id: '1' }, { id: '2' }], [{ id: '3' }]]);
+      const get = mockPages([['1', '2'], ['3']]);
 
       const result = await service.findAllPages({ isActive: true });
 
@@ -467,7 +469,7 @@ describe('BaseService', () => {
     });
 
     it('issues a single request when the collection fits one page', async () => {
-      const get = mockPages([[{ id: '1' }]]);
+      const get = mockPages([['1']]);
 
       const result = await service.findAllPages();
 
@@ -476,7 +478,7 @@ describe('BaseService', () => {
     });
 
     it('clamps a caller limit above the API maximum', async () => {
-      const get = mockPages([[{ id: '1' }]]);
+      const get = mockPages([['1']]);
 
       await service.findAllPages({ limit: 5000 });
 
@@ -487,7 +489,7 @@ describe('BaseService', () => {
     });
 
     it('keeps a caller limit below the API maximum', async () => {
-      const get = mockPages([[{ id: '1' }]]);
+      const get = mockPages([['1']]);
 
       await service.findAllPages({ limit: 25 });
 
@@ -498,7 +500,7 @@ describe('BaseService', () => {
     });
 
     it('forwards the AbortSignal to every page request', async () => {
-      const get = mockPages([[{ id: '1' }], [{ id: '2' }]]);
+      const get = mockPages([['1'], ['2']]);
       const controller = new AbortController();
 
       await service.findAllPages({}, controller.signal);
@@ -516,7 +518,7 @@ describe('BaseService', () => {
     it('stops at the page ceiling and warns instead of walking forever', async () => {
       service.getInstanceForTest().get.mockResolvedValue({
         data: {
-          data: [{ id: 'row' }],
+          data: [{ id: 'row', name: 'row' }],
           links: { pagination: { pages: 500 } },
         },
       });
