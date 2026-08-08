@@ -42,7 +42,7 @@ describe('prompt.enum', () => {
       expect(PromptCategory.MODELS_PROMPT_VIDEO).toBe('MODELS_PROMPT_VIDEO');
       expect(PromptCategory.MODELS_PROMPT_MUSIC).toBe('MODELS_PROMPT_MUSIC');
       expect(PromptCategory.MODELS_PROMPT_TRAINING).toBe(
-        'models-prompt-genfeedai',
+        'MODELS_PROMPT_TRAINING',
       );
       expect(PromptCategory.ARTICLE).toBe('ARTICLE');
     });
