@@ -160,7 +160,7 @@ export function AgentChatContainer({
             // Do not drop the patch — re-queue so a later call can flush it.
             pendingSettingsPatch.current = {
               ...nextPatch,
-              ...pendingSettingsPatch.current,
+              ...(pendingSettingsPatch.current ?? {}),
             };
             return;
           }

@@ -264,15 +264,18 @@ describe('DesktopSyncService', () => {
     const result = await service.pushAssets(makeUser(), {
       assets: [
         {
+          createdAt: '2026-05-01T10:00:00.000Z',
           displayName: 'logo.png',
           id: 'asset-local',
           kind: 'image',
           mimeType: 'image/png',
+          organizationId,
           origin: 'local-import',
           originalFileName: 'logo.png',
           residency: 'local-only',
           sha256: 'hash',
           sizeBytes: 128,
+          updatedAt: '2026-05-01T11:00:00.000Z',
           uploadPolicy: 'full',
         },
       ],
@@ -307,15 +310,18 @@ describe('DesktopSyncService', () => {
     const result = await service.pushAssets(makeUser(), {
       assets: [
         {
+          createdAt: '2026-05-01T10:00:00.000Z',
           displayName: 'large.png',
           id: 'asset-local',
           kind: 'image',
           mimeType: 'image/png',
+          organizationId,
           origin: 'local-import',
           originalFileName: 'large.png',
           residency: 'local-only',
           sha256: 'hash',
           sizeBytes: 128,
+          updatedAt: '2026-05-01T11:00:00.000Z',
           uploadPolicy: 'full',
         },
       ],
@@ -364,15 +370,18 @@ describe('DesktopSyncService', () => {
     const result = await service.pushAssets(makeUser(), {
       assets: [
         {
+          createdAt: '2026-05-01T10:00:00.000Z',
           displayName: 'logo.png',
           id: 'asset-local',
           kind: 'image',
           mimeType: 'image/png',
+          organizationId,
           origin: 'local-import',
           originalFileName: 'logo.png',
           residency: 'local-only',
           sha256: 'hash',
           sizeBytes: 128,
+          updatedAt: '2026-05-01T11:00:00.000Z',
           uploadPolicy: 'full',
         },
       ],
