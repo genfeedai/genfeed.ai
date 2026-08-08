@@ -8,6 +8,7 @@ import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingBoolean,
+  readChannelSettingString,
 } from '@api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import { PostVisibility } from '@genfeedai/enums';
