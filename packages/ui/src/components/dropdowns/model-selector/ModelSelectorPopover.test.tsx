@@ -536,8 +536,12 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
+    // "Expensive Model" is a single-variant family — the credit-lock badge
+    // and the selectable row live inside the collapsed family item, so it
+    // must be expanded first (same two-step flow as the multi-variant case).
+    await user.click(screen.getByRole('button', { name: /expensive model/i }));
     expect(screen.getByText('Credits')).toBeInTheDocument();
-    await user.click(screen.getByText('Expensive Model'));
+    await user.click(screen.getByText('Base'));
 
     expect(onChange).not.toHaveBeenCalled();
   });

@@ -467,8 +467,11 @@ describe('ReviewQueueContent', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+    // Show All clears the filter (serializes to "all") and hands the active
+    // item forward via getNextActiveItemId — from item-2 in the now-unfiltered
+    // [item-1, item-2, item-3] list, that's item-3, not item-1.
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publish/review?batch=batch-1&filter=all&item=item-1',
+      '/publish/review?batch=batch-1&filter=all&item=item-3',
       { scroll: false },
     );
   });
