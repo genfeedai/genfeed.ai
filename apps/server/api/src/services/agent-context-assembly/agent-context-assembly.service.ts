@@ -4,6 +4,7 @@ import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { SCOPED_CACHE_TAGS } from '@api/common/constants/cache-patterns.constants';
 import type {
   AssembleContextParams,
   AssembledBrandContext,
@@ -87,7 +88,12 @@ export class AgentContextAssemblyService {
         }
         return this.brandsService.findOne(filter);
       },
-      { ttl: CACHE_TTL_BRAND },
+      // The scoped tag lets brand-kit writes bust every brand-ctx variant for
+      // the org (per-brand + 'selected') without a keyspace SCAN.
+      {
+        tags: [SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId)],
+        ttl: CACHE_TTL_BRAND,
+      },
     );
 
     if (!brand) {

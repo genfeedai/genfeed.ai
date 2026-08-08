@@ -166,7 +166,6 @@ export const BRAND_SERVICE_E2E_MOCK_PROVIDERS = [
     useValue: {
       invalidate: () => Promise.resolve(),
       invalidateByTags: () => Promise.resolve(0),
-      invalidatePattern: () => Promise.resolve(),
     },
   },
   {

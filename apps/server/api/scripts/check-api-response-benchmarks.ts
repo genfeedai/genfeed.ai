@@ -471,7 +471,7 @@ async function createBenchmarkHarness(): Promise<ApiBenchmarkHarness> {
         provide: CacheInvalidationService,
         useValue: {
           invalidate: async () => undefined,
-          invalidatePattern: async () => undefined,
+          invalidateByTags: async () => 0,
         },
       },
     ],
