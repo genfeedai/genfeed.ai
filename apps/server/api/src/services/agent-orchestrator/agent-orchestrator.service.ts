@@ -58,6 +58,7 @@ import {
 import {
   AgentScopeContextService,
   type PreparedAgentScope,
+  scopedWhere,
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -645,11 +646,9 @@ export class AgentOrchestratorService {
       return;
     }
 
-    const thread = await this.agentThreadsService.findOne({
-      id: threadId,
-      isDeleted: false,
-      organizationId,
-    } as never);
+    const thread = await this.agentThreadsService.findOne(
+      scopedWhere(organizationId, { id: threadId }),
+    );
 
     if (!thread) {
       return;

@@ -48,7 +48,7 @@ import {
   AgentToolName,
   type AgentUiAction,
 } from '@genfeedai/interfaces';
-import { AgentScopeContextService } from '@genfeedai/server';
+import { AgentScopeContextService, scopedWhere } from '@genfeedai/server';
 import {
   BadRequestException,
   Injectable,
@@ -126,11 +126,9 @@ export class AgentOrchestratorUiActionService {
       throw new BadRequestException('Thread not found or inaccessible.');
     }
 
-    const threadRecord = await this.agentThreadsService.findOne({
-      id: threadId,
-      isDeleted: false,
-      organizationId: context.organizationId,
-    } as never);
+    const threadRecord = await this.agentThreadsService.findOne(
+      scopedWhere(context.organizationId, { id: threadId }),
+    );
     const threadStatus = String(
       (threadRecord as { status?: string | null } | null)?.status ?? '',
     ).toLowerCase();
