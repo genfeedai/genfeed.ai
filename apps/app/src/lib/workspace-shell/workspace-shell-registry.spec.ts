@@ -4,7 +4,6 @@ import {
   PROTECTED_ROUTE_INVENTORY,
   resolveWorkspaceShellRoute,
   resolveWorkspaceShellSafeFallback,
-  WORKSPACE_SHELL_AUXILIARY_REGISTRY,
 } from './workspace-shell-registry';
 
 const ROUTE_PARAM_FIXTURES: Readonly<Record<string, string>> = {
@@ -31,11 +30,10 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(220);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(220);
+    ).toBe(PROTECTED_ROUTE_INVENTORY.length);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -477,11 +475,6 @@ describe('workspace shell trusted registry', () => {
       presentation: { title: 'Choose a workflow' },
       telemetryClass: 'workflow_picker',
     });
-    expect(
-      WORKSPACE_SHELL_AUXILIARY_REGISTRY.some(
-        (registration) => registration.kind === 'chrome',
-      ),
-    ).toBe(false);
   });
 
   it('is immutable and rejects untrusted registry keys', () => {

@@ -152,7 +152,6 @@ export interface AnalyticsEventProperties {
     readonly durationMs: number;
     readonly metric: 'first_useful_paint';
     readonly routeClass: 'agent' | 'management' | 'product';
-    readonly shellMode: 'conversation';
   } & ConversationShellTelemetryContext;
   [ANALYTICS_EVENTS.CONVERSATION_SHELL_ERROR]: {
     readonly code:
