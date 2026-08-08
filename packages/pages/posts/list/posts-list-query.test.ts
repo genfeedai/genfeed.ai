@@ -3,6 +3,8 @@ import { fetchPosts } from '@pages/posts/list/components/posts-query.helpers';
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
+  parsePostsPublicationState,
+  parsePostsStatus,
 } from '@pages/posts/list/posts-list-query';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +46,20 @@ describe('posts list query helpers', () => {
     expect(getDefaultPostsSort(PostStatus.SCHEDULED)).toBe('scheduledDate: 1');
     expect(getDefaultPostsSort(PostStatus.PUBLIC)).toBe('scheduledDate: -1');
     expect(getDefaultPostsSort()).toBe('createdAt: -1');
+  });
+
+  it('accepts only canonical URL-backed publication facets', () => {
+    expect(parsePostsPublicationState('not-posted')).toBe('not-posted');
+    expect(parsePostsPublicationState('posted')).toBe('posted');
+    expect(parsePostsPublicationState('published')).toBeUndefined();
+    expect(parsePostsPublicationState()).toBeUndefined();
+  });
+
+  it('accepts only canonical PostStatus query values', () => {
+    expect(parsePostsStatus(PostStatus.DRAFT)).toBe(PostStatus.DRAFT);
+    expect(parsePostsStatus(PostStatus.PROCESSING)).toBe(PostStatus.PROCESSING);
+    expect(parsePostsStatus('ready_for_review')).toBeUndefined();
+    expect(parsePostsStatus()).toBeUndefined();
   });
 
   it('uses canonical tenant filters for superadmin post queries', async () => {
