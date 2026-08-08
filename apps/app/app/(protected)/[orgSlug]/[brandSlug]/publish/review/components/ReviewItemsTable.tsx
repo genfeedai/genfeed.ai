@@ -7,12 +7,15 @@ import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
-import type { TableColumn } from '@props/ui/display/table.props';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { ArrowUpRight, ExternalLink, PanelRightOpen } from 'lucide-react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import ReviewPostHoverPreview from './ReviewPostHoverPreview';
 import {
@@ -42,6 +45,46 @@ export default function ReviewItemsTable({
   onToggleSelect,
 }: ReviewItemsTableProps) {
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
+  const router = useRouter();
+  const { href } = useOrgUrl();
+
+  const rowActions = useMemo<TableAction<IBatchItem>[]>(
+    () => [
+      {
+        icon: <PanelRightOpen className="size-3.5" />,
+        onClick: (item) => {
+          onSelectItem(item.id);
+        },
+        tooltip: 'Open in Context',
+        tooltipPosition: 'left',
+      },
+      {
+        icon: <ArrowUpRight className="size-3.5" />,
+        isVisible: (item) => Boolean(item.postId),
+        onClick: (item) => {
+          if (!item.postId) {
+            return;
+          }
+          router.push(href(`/publish/${item.postId}`));
+        },
+        tooltip: 'Open post detail',
+        tooltipPosition: 'left',
+      },
+      {
+        icon: <ExternalLink className="size-3.5" />,
+        isVisible: (item) => Boolean(item.postUrl),
+        onClick: (item) => {
+          if (!item.postUrl) {
+            return;
+          }
+          window.open(item.postUrl, '_blank', 'noopener,noreferrer');
+        },
+        tooltip: 'Open published URL',
+        tooltipPosition: 'left',
+      },
+    ],
+    [href, onSelectItem, router],
+  );
 
   const columns = useMemo<TableColumn<IBatchItem>[]>(
     () => [
@@ -191,6 +234,7 @@ export default function ReviewItemsTable({
 
   return (
     <AppTable<IBatchItem>
+      actions={rowActions}
       columns={columns}
       emptyDescription="Switch filters or pick another batch."
       emptyLabel="No items in this view"

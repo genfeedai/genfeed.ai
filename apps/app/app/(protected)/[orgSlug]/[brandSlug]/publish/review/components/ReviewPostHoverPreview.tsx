@@ -1,9 +1,10 @@
 'use client';
 
 import type { ChannelMediaKind } from '@api-types/contracts';
-import { ButtonVariant, ContentFormat } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, ContentFormat } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
 import {
@@ -11,6 +12,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { ArrowUpRight, PanelRightOpen } from 'lucide-react';
+import NextLink from 'next/link';
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 
@@ -20,7 +23,7 @@ interface ReviewPostHoverPreviewProps {
   children: ReactNode;
   className?: string;
   item: IBatchItem;
-  /** Table rows ignore nested button clicks — open detail from here. */
+  /** Select row / open Context rail. */
   onOpenDetail?: () => void;
 }
 
@@ -47,11 +50,13 @@ export default function ReviewPostHoverPreview({
   const [isOpen, setIsOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { href } = useOrgUrl();
 
   const title = getReviewItemTitle(item);
   const caption = item.caption?.trim() || item.prompt?.trim() || title;
   const platform = item.platform || 'twitter';
   const mediaKind = resolveMediaKind(item);
+  const postDetailHref = item.postId ? href(`/publish/${item.postId}`) : null;
 
   function clearTimers() {
     if (openTimerRef.current) {
@@ -134,6 +139,41 @@ export default function ReviewPostHoverPreview({
             title,
           }}
         />
+        <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
+          <Button
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => {
+              setIsOpen(false);
+              onOpenDetail?.();
+            }}
+            size={ButtonSize.SM}
+            type="button"
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
+          >
+            <PanelRightOpen className="size-3.5" />
+            Context
+          </Button>
+          {postDetailHref ? (
+            <Button
+              asChild
+              className="h-7 gap-1 px-2 text-xs"
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            >
+              <NextLink
+                href={postDetailHref}
+                onClick={() => {
+                  setIsOpen(false);
+                }}
+              >
+                <ArrowUpRight className="size-3.5" />
+                Open post
+              </NextLink>
+            </Button>
+          ) : null}
+        </div>
       </PopoverContent>
     </Popover>
   );
