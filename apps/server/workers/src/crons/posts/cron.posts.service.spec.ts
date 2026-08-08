@@ -5,6 +5,7 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
+import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
@@ -711,7 +712,7 @@ describe('CronPostsService', () => {
       id: 'post-1',
       ingredients: [],
       organization: 'org-1',
-      platform: CredentialPlatform.TWITTER,
+      platform: CredentialPlatform.BEEHIIV,
       reviewVersionPinId: 'pin-1',
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
@@ -723,7 +724,7 @@ describe('CronPostsService', () => {
     } as never);
     credentialsService.findOne.mockResolvedValue({
       id: 'cred-1',
-      platform: CredentialPlatform.TWITTER,
+      platform: CredentialPlatform.BEEHIIV,
     });
     quotaService.checkQuota.mockResolvedValue({
       allowed: true,
@@ -731,12 +732,11 @@ describe('CronPostsService', () => {
       dailyLimit: 10,
     });
     const publish = vi.fn().mockResolvedValue({
-      externalId: 'tweet-1',
-      externalShortcode: 'tweet-short',
-      platform: CredentialPlatform.TWITTER,
+      externalId: 'beehiiv-post-1',
+      platform: CredentialPlatform.BEEHIIV,
       status: PostStatus.PUBLIC,
       success: true,
-      url: 'https://x.com/example/status/tweet-1',
+      url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
     });
     publisherFactory.getPublisher.mockReturnValue({
       publish,
@@ -755,15 +755,19 @@ describe('CronPostsService', () => {
       publishEventWebhookService.emitLegacyPostPublished,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
-        externalProviderId: 'tweet-1',
-        externalShortcode: 'tweet-short',
-        platform: CredentialPlatform.TWITTER,
+        externalProviderId: 'beehiiv-post-1',
+        platform: CredentialPlatform.BEEHIIV,
         post,
-        url: 'https://x.com/example/status/tweet-1',
+        url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
       }),
     );
     expect(publish).toHaveBeenCalledWith(
-      expect.objectContaining({ scheduledAt: post.scheduledDate }),
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+            post.scheduledDate.toISOString(),
+        }),
+      }),
     );
     expect(publishApprovalsService.completeExecution).toHaveBeenCalledWith({
       approvalId: 'approval-1',
@@ -825,7 +829,11 @@ describe('CronPostsService', () => {
     });
 
     expect(publish).toHaveBeenCalledWith(
-      expect.not.objectContaining({ scheduledAt: expect.any(Date) }),
+      expect.objectContaining({
+        settings: expect.not.objectContaining({
+          [WORKFLOW_APPROVED_SCHEDULE_SETTING]: expect.any(String),
+        }),
+      }),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,

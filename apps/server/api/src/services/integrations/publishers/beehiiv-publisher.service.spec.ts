@@ -1,5 +1,8 @@
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
-import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import {
+  type PublishContext,
+  WORKFLOW_APPROVED_SCHEDULE_SETTING,
+} from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -156,7 +159,12 @@ describe('BeehiivPublisherService', () => {
     it('passes the workflow-approved schedule only with confirmed status', async () => {
       const scheduledAt = new Date('2026-08-10T09:30:00.000Z');
 
-      await service.publish({ ...baseContext, scheduledAt });
+      await service.publish({
+        ...baseContext,
+        settings: {
+          [WORKFLOW_APPROVED_SCHEDULE_SETTING]: scheduledAt.toISOString(),
+        },
+      });
 
       expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
         expect.anything(),

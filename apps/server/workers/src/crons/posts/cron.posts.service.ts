@@ -14,6 +14,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
@@ -557,6 +558,20 @@ export class CronPostsService {
       // Build publish context. Settings are re-resolved against the catalog
       // here rather than trusted as stored: the release was validated when it
       // was scheduled, and the catalog may have changed since.
+      const resolvedSettings = resolveChannelTargetSettings(
+        platform,
+        post.targetSettings,
+      );
+      const settings =
+        platform === CredentialPlatform.BEEHIIV &&
+        source !== 'publish_now' &&
+        post.scheduledDate instanceof Date
+          ? {
+              ...resolvedSettings,
+              [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+                post.scheduledDate.toISOString(),
+            }
+          : resolvedSettings;
       const context: PublishContext = {
         brandId: postBrandId ?? '',
         credential,
@@ -564,10 +579,7 @@ export class CronPostsService {
         organizationId: postOrganizationId ?? '',
         post,
         postId: post.id.toString(),
-        ...(source !== 'publish_now' && post.scheduledDate instanceof Date
-          ? { scheduledAt: post.scheduledDate }
-          : {}),
-        settings: resolveChannelTargetSettings(platform, post.targetSettings),
+        settings,
       };
 
       // Publish using the platform publisher, with a durable workflow execution

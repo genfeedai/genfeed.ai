@@ -5,6 +5,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -59,14 +60,18 @@ export class BeehiivPublisherService extends BasePublisherService {
       );
       const status =
         context.isDraft || configuredStatus === 'draft' ? 'draft' : 'confirmed';
+      const approvedScheduledAt = readChannelSettingString(
+        context.settings,
+        WORKFLOW_APPROVED_SCHEDULE_SETTING,
+      );
 
       const result = await this.beehiivService.createPost(
         apiKey,
         publicationId,
         {
           contentHtml,
-          ...(status === 'confirmed' && context.scheduledAt
-            ? { scheduledAt: context.scheduledAt }
+          ...(status === 'confirmed' && approvedScheduledAt
+            ? { scheduledAt: new Date(approvedScheduledAt) }
             : {}),
           status,
           title,
