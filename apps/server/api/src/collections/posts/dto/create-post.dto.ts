@@ -1,5 +1,10 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostFormat,
+  PostFrequency,
+  PostStatus,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -55,6 +60,18 @@ export class CreatePostDto {
   })
   @IsString()
   readonly description!: string;
+
+  @ApiProperty({
+    default: PostFormat.STANDARD,
+    description:
+      'Editorial shape of the post. Thread segment bodies are linked Post records.',
+    enum: PostFormat,
+    enumName: 'PostFormat',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PostFormat)
+  readonly format?: PostFormat;
 
   @ApiProperty({
     description:

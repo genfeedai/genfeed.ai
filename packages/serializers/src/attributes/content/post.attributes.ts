@@ -3,6 +3,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const publicPostAttributes = [
   'label',
   'description',
+  'format',
   'category',
   'publicationDate',
   'uploadedAt',
@@ -36,6 +37,7 @@ export const postAttributes = createEntityAttributes([
   'userId',
   'label',
   'description',
+  'format',
   'category',
   'scheduledDate',
   'publicationDate',
