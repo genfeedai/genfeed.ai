@@ -222,6 +222,7 @@ export const APP_ROUTES = {
     /** Agent-driven content campaigns (Publish surface). */
     CAMPAIGNS: '/publish/campaigns',
     CAMPAIGNS_NEW: '/publish/campaigns/new',
+    FAILED: '/publish/failed',
     NEWSLETTERS: '/publish/newsletters',
     /** Outreach / growth campaigns (Publish surface). */
     OUTREACH_CAMPAIGNS: '/publish/outreach-campaigns',

@@ -1190,6 +1190,114 @@ Tweet 3: Tech innovation is changing the world.`,
   });
 
   // ==========================================================================
+  // POST /posts/:postId/retry - retryPost
+  // ==========================================================================
+  describe('retryPost', () => {
+    const targetError = {
+      code: 'PUBLISH_FAILED',
+      failedAt: '2026-08-08T09:00:00.000Z',
+      isRetryable: true,
+      message: 'Provider request failed',
+    };
+
+    it('should re-arm a failed post and return the serialized response', async () => {
+      const scheduledDate = new Date('2026-08-07T09:00:00.000Z');
+      const failedPost = {
+        ...mockPost,
+        retryCount: 3,
+        scheduledDate,
+        status: PostStatus.FAILED,
+        targetError,
+      };
+      const updatedPost = {
+        ...failedPost,
+        retryCount: 0,
+        scheduledDate: new Date(),
+        status: PostStatus.SCHEDULED,
+      };
+      mockPostsService.findOne.mockResolvedValueOnce(failedPost);
+      mockPostsService.patch.mockResolvedValueOnce(updatedPost);
+
+      const beforeRetry = Date.now();
+      const result = await controller.retryPost(mockRequest, postId, mockUser);
+      const afterRetry = Date.now();
+
+      expect(mockPostsService.findOne).toHaveBeenCalledWith({
+        id: postId,
+        isDeleted: false,
+      });
+      expect(mockPostsService.patch).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({
+          retryCount: 0,
+          scheduledDate: expect.any(Date),
+          status: PostStatus.SCHEDULED,
+        }),
+      );
+      const updatePayload = mockPostsService.patch.mock.calls[0]?.[1];
+      expect(updatePayload?.scheduledDate?.getTime()).toBeGreaterThanOrEqual(
+        beforeRetry,
+      );
+      expect(updatePayload?.scheduledDate?.getTime()).toBeLessThanOrEqual(
+        afterRetry,
+      );
+      expect(updatePayload).not.toHaveProperty('targetError');
+      expect(result).toEqual({ data: updatedPost });
+    });
+
+    it('should reject a post that is not failed', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        status: PostStatus.SCHEDULED,
+      });
+
+      await expect(
+        controller.retryPost(mockRequest, postId, mockUser),
+      ).rejects.toMatchObject({
+        response: {
+          detail: 'Only failed posts can be retried',
+          title: 'Post is not failed',
+        },
+        status: HttpStatus.BAD_REQUEST,
+      });
+      expect(mockPostsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('rejects API-key retry without the schedule scope before reads or writes', async () => {
+      await expect(
+        controller.retryPost(mockRequest, postId, apiKeyUser([])),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+          requiredScopes: [ApiKeyScope.POSTS_SCHEDULE],
+        }),
+      });
+      expect(mockPostsService.findOne).not.toHaveBeenCalled();
+      expect(mockPostsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('should reject a failed post from another organization', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        organizationId: '507f191e810c19729de860ee',
+        status: PostStatus.FAILED,
+        targetError,
+      });
+
+      await expect(
+        controller.retryPost(mockRequest, postId, mockUser),
+      ).rejects.toMatchObject({
+        response: {
+          detail: 'You do not have access to this post',
+          title: 'Access denied',
+        },
+        status: HttpStatus.FORBIDDEN,
+      });
+      expect(mockPostsService.patch).not.toHaveBeenCalled();
+    });
+  });
+
+  // ==========================================================================
   // POST /posts/:postId/enhance - enhancePost
   // ==========================================================================
   describe('enhancePost', () => {

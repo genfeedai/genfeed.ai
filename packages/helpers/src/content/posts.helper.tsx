@@ -118,8 +118,10 @@ export function getPostsPlatformLabel(
   return 'Post';
 }
 
+// Publisher navigation has three destinations: not posted, posted, and failed.
 const PUBLISHER_POST_STATUSES = [
   PostStatus.DRAFT,
+  PostStatus.FAILED,
   PostStatus.SCHEDULED,
   PostStatus.PUBLIC,
 ] as const;
@@ -138,6 +140,10 @@ export function getPublisherPostsStatusPath(
 
   if (normalizedStatus === PostStatus.PUBLIC) {
     return APP_ROUTES.PUBLISH.PUBLISHED;
+  }
+
+  if (normalizedStatus === PostStatus.FAILED) {
+    return APP_ROUTES.PUBLISH.FAILED;
   }
 
   return APP_ROUTES.PUBLISH.ROOT;
@@ -162,6 +168,10 @@ export function getPublisherPostsStatusFromPathname(
     return PostStatus.PUBLIC;
   }
 
+  if (statusSegment === 'failed') {
+    return PostStatus.FAILED;
+  }
+
   return null;
 }
 
@@ -173,6 +183,7 @@ export function normalizePublisherPostsStatus(
   if (
     status === PostStatus.SCHEDULED ||
     status === PostStatus.PUBLIC ||
+    status === PostStatus.FAILED ||
     status === PostStatus.DRAFT
   ) {
     return status;

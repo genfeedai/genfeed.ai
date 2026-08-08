@@ -6,6 +6,7 @@ import {
   ButtonVariant,
   ComponentSize,
   Platform,
+  PostStatus,
 } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
@@ -110,15 +111,17 @@ function getStatusPresentation(status: string): {
   variant: 'success' | 'info' | 'warning' | 'destructive' | 'ghost';
 } {
   switch (status.toLowerCase()) {
-    case 'public':
+    case PostStatus.PUBLIC:
       return { label: 'Posted', variant: 'success' };
-    case 'scheduled':
+    case PostStatus.SCHEDULED:
       return { label: 'Scheduled', variant: 'info' };
-    case 'processing':
+    case PostStatus.PROCESSING:
       return { label: 'Publishing', variant: 'info' };
-    case 'failed':
+    case PostStatus.PENDING:
+      return { label: 'Pending', variant: 'warning' };
+    case PostStatus.FAILED:
       return { label: 'Failed', variant: 'destructive' };
-    case 'draft':
+    case PostStatus.DRAFT:
       return { label: 'Draft', variant: 'warning' };
     default:
       return { label: status, variant: 'ghost' };
@@ -347,6 +350,16 @@ const PostsGrid = memo(
               <p className="mt-4 line-clamp-4 min-h-[5rem] text-sm leading-6 text-foreground/72">
                 {preview}
               </p>
+
+              {post.status === PostStatus.FAILED &&
+                post.targetError?.message && (
+                  <p
+                    className="mt-3 truncate text-xs text-destructive"
+                    title={post.targetError.message}
+                  >
+                    {post.targetError.message}
+                  </p>
+                )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-4">
                 <Badge

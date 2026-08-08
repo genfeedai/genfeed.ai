@@ -3,6 +3,7 @@
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
+  APP_ROUTES,
   createArtifactEditorRoute,
   createBrandAppRoute,
   ITEMS_PER_PAGE,
@@ -39,6 +40,7 @@ import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
   type PostsPublicationState,
+  type PublisherPostsView,
 } from '@pages/posts/list/posts-list-query';
 import type { ContentProps } from '@props/layout/content.props';
 import {
@@ -92,7 +94,7 @@ export function usePostsList({
   };
   const publicationState =
     publicationStateProp ??
-    (scope === PageScope.PUBLISHER ? 'not-posted' : undefined);
+    (scope === PageScope.PUBLISHER && !statusProp ? 'not-posted' : undefined);
 
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform !== 'all' ? platform : undefined;
@@ -504,6 +506,22 @@ export function usePostsList({
     [getPostsService, notificationsService, openPostRemixModal, router, href],
   );
 
+  const handleRetryPost = useCallback(
+    async (post: IPost) => {
+      try {
+        const postsService = await getPostsService();
+        await postsService.retry(post.id);
+        notificationsService.success('Post queued for retry');
+      } catch (error) {
+        notificationsService.error('Failed to retry post. Please try again.');
+        logger.error('Failed to retry post', error);
+      } finally {
+        await findAllPosts();
+      }
+    },
+    [findAllPosts, getPostsService, notificationsService],
+  );
+
   const columns = useMemo(
     () =>
       buildPostsTableColumns({
@@ -532,6 +550,7 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRetry: handleRetryPost,
         onViewIngredient: handleViewIngredient,
         scope,
       }),
@@ -541,6 +560,7 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      handleRetryPost,
       handleViewIngredient,
     ],
   );
@@ -563,6 +583,7 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRetry: handleRetryPost,
         onViewIngredient: handleViewIngredient,
         scope,
       }),
@@ -572,6 +593,7 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      handleRetryPost,
       handleViewIngredient,
       scope,
     ],
@@ -760,13 +782,17 @@ export function usePostsList({
   );
 
   const handlePublicationStateChange = useCallback(
-    (nextState: PostsPublicationState) => {
+    (nextView: PublisherPostsView) => {
       const params = new URLSearchParams(searchParamsString);
       params.delete('page');
       params.delete('status');
       const queryString = params.toString();
       const basePath =
-        nextState === 'posted' ? '/publish/published' : '/publish';
+        nextView === 'failed'
+          ? APP_ROUTES.PUBLISH.FAILED
+          : nextView === 'posted'
+            ? APP_ROUTES.PUBLISH.PUBLISHED
+            : APP_ROUTES.PUBLISH.ROOT;
 
       router.replace(
         href(queryString ? `${basePath}?${queryString}` : basePath),

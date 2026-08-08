@@ -23,15 +23,17 @@ export default async function PublishOverviewPage({
 }) {
   const resolvedSearchParams = await searchParams;
 
-  // Collapse legacy status links into the two publishing-state destinations:
-  // live posts use /publish/published; every pre-publication state uses overview.
+  // Collapse legacy status links into the three publishing destinations:
+  // failed and live posts have dedicated views; other pre-publication states use overview.
   const legacyStatus = normalizePublisherPostsStatus(
     resolvedSearchParams.status,
   );
-  const statusPath =
-    legacyStatus === PostStatus.PUBLIC
-      ? APP_ROUTES.PUBLISH.PUBLISHED
-      : APP_ROUTES.PUBLISH.OVERVIEW;
+  let statusPath = APP_ROUTES.PUBLISH.OVERVIEW;
+  if (legacyStatus === PostStatus.FAILED) {
+    statusPath = APP_ROUTES.PUBLISH.FAILED;
+  } else if (legacyStatus === PostStatus.PUBLIC) {
+    statusPath = APP_ROUTES.PUBLISH.PUBLISHED;
+  }
   if (resolvedSearchParams.status) {
     const { orgSlug, brandSlug } = await params;
     const preservedFilters = new URLSearchParams();

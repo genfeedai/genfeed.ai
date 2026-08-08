@@ -35,9 +35,8 @@ export async function renderPostsListPage({
   statusOverride?: PublisherPostsStatus;
 }) {
   const { page, platform, search, sort } = await searchParams;
-  // Publisher navigation is intentionally two-state: work that is not posted
-  // yet and work that is already live. Individual draft/scheduled/processing
-  // states remain visible on each card instead of becoming route-level tabs.
+  // Publisher navigation has three destinations: not posted, posted, and
+  // failed. Draft/scheduled/processing states remain visible on each card.
   const normalizedStatus = statusOverride;
   const publicationState =
     publicationStateOverride ??

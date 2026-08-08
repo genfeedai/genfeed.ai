@@ -197,13 +197,23 @@ export function buildPostsTableColumns({
           );
         }
 
-        // Use static Badge for non-editable statuses (PROCESSING, FAILED)
+        // Use static Badge for non-editable statuses (PENDING, PROCESSING, FAILED)
         const displayStatus =
           post.status === PostStatus.UNLISTED ? 'UNLISTED' : post.status;
         return (
-          <Badge status={post.status} className="text-xs">
-            {displayStatus}
-          </Badge>
+          <div className="max-w-48">
+            <Badge status={post.status} className="text-xs">
+              {displayStatus}
+            </Badge>
+            {post.status === PostStatus.FAILED && post.targetError?.message && (
+              <p
+                className="mt-1 truncate text-xs text-destructive"
+                title={post.targetError.message}
+              >
+                {post.targetError.message}
+              </p>
+            )}
+          </div>
         );
       },
     },

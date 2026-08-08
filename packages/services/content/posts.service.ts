@@ -238,6 +238,13 @@ export class PostsService extends BaseService<
     return this.mapOne(response.data);
   }
 
+  public async retry(id: string): Promise<Post> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/retry`,
+    );
+    return this.mapOne(response.data);
+  }
+
   /**
    * Generate hook variations for a given topic and platform
    */

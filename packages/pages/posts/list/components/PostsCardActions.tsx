@@ -11,6 +11,7 @@ export type BuildPostsCardActionsParams = {
   onEdit: (post: IPost) => void;
   onDelete: (post: IPost) => void;
   onRemix: (post: IPost) => void;
+  onRetry: (post: IPost) => void;
   onViewIngredient: (post: IPost) => void;
   onOpenPlatformUrl: (post: IPost) => void;
 };
@@ -26,6 +27,7 @@ export function buildPostsCardActions({
   onEdit,
   onDelete,
   onRemix,
+  onRetry,
   onViewIngredient,
   onOpenPlatformUrl,
 }: BuildPostsCardActionsParams): PostsCardActions {
@@ -44,6 +46,13 @@ export function buildPostsCardActions({
   const secondaryCardActions: PostCardAction[] =
     scope !== PageScope.SUPERADMIN
       ? [
+          {
+            icon: postCardIcons.retry,
+            isVisible: (post: IPost) => post.status === PostStatus.FAILED,
+            key: 'retry',
+            label: 'Retry publishing',
+            onClick: onRetry,
+          },
           {
             icon: postCardIcons.viewIngredient,
             isVisible: (post: IPost) =>
