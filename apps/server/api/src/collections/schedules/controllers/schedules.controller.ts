@@ -4,7 +4,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
-import { RepurposeContentDto } from '@api/collections/schedules/dto/repurpose.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import {
@@ -144,36 +143,6 @@ export class SchedulesController {
     );
 
     return serializeCollection(req, ScheduleSerializer, { docs: schedules });
-  }
-
-  /**
-   * Repurpose content
-   */
-  @Post('repurpose')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async repurposeContent(
-    @Body() dto: RepurposeContentDto,
-    @CurrentUser() user: User,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    return await this.schedulesService.repurposeContent(
-      dto,
-      organization,
-      user.id,
-    );
-  }
-
-  /**
-   * Get repurposing status
-   */
-  @Get('repurpose/:id')
-  @LogMethod({ logEnd: false, logError: true, logStart: true })
-  async getRepurposingStatus(
-    @Param('id') id: string,
-    @CurrentUser() user: User,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    return await this.schedulesService.getRepurposingStatus(id, organization);
   }
 
   private async assertOrganizationCreditsAvailable(

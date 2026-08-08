@@ -9,7 +9,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { SchedulesController } from '@api/collections/schedules/controllers/schedules.controller';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
-import { RepurposeContentDto } from '@api/collections/schedules/dto/repurpose.dto';
 import { SchedulesService } from '@api/collections/schedules/services/schedules.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -38,8 +37,6 @@ describe('SchedulesController', () => {
     getChannelCapability: vi.fn(),
     listChannelCapabilities: vi.fn(),
     getOptimalTime: vi.fn(),
-    getRepurposingStatus: vi.fn(),
-    repurposeContent: vi.fn(),
     validateChannelTargetSettings: vi.fn(),
   };
 
@@ -244,56 +241,6 @@ describe('SchedulesController', () => {
         start,
         end,
       );
-    });
-  });
-
-  describe('repurposeContent', () => {
-    it('should repurpose content', async () => {
-      const dto: RepurposeContentDto = {
-        contentId: 'content123',
-        targetPlatforms: ['twitter', 'linkedin'],
-      };
-
-      const repurposed = {
-        id: 'repurpose123',
-        status: 'processing',
-        variants: 2,
-      };
-
-      mockSchedulesService.repurposeContent.mockResolvedValue(repurposed);
-
-      const result = await controller.repurposeContent(dto, mockUser);
-
-      expect(service.repurposeContent).toHaveBeenCalledWith(
-        dto,
-        mockUser.publicMetadata.organization,
-        mockUser.id,
-      );
-      expect(result).toEqual(repurposed);
-    });
-  });
-
-  describe('getRepurposingStatus', () => {
-    it('should return repurposing status', async () => {
-      const id = 'repurpose123';
-      const status = {
-        id,
-        status: 'completed',
-        variants: [
-          { content: 'Tweet version', platform: 'twitter' },
-          { content: 'LinkedIn version', platform: 'linkedin' },
-        ],
-      };
-
-      mockSchedulesService.getRepurposingStatus.mockResolvedValue(status);
-
-      const result = await controller.getRepurposingStatus(id, mockUser);
-
-      expect(service.getRepurposingStatus).toHaveBeenCalledWith(
-        id,
-        mockUser.publicMetadata.organization,
-      );
-      expect(result).toEqual(status);
     });
   });
 });

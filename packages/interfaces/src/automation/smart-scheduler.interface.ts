@@ -59,54 +59,6 @@ export interface IScheduleOptimizationRequest {
   };
 }
 
-export interface IContentRepurposing {
-  id: string;
-  organizationId: string;
-  sourceContentId: string;
-  sourceType: 'video' | 'image' | 'article';
-  targetFormats: RepurposeFormat[];
-  settings: IRepurposeSettings;
-  results: IRepurposeResult[];
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  createdAt: Date;
-  completedAt?: Date;
-}
-
-export type RepurposeFormat =
-  | 'short-video'
-  | 'story'
-  | 'carousel'
-  | 'blog-post'
-  | 'social-post'
-  | 'quote-card'
-  | 'thumbnail'
-  | 'gif'
-  | 'audiogram'
-  | 'infographic';
-
-export interface IRepurposeSettings {
-  preserveBranding: boolean;
-  toneProfileId?: string;
-  customizations?: Record<string, unknown>;
-  platforms?: string[];
-  qualityLevel: 'fast' | 'balanced' | 'high';
-}
-
-export interface IRepurposeResult {
-  id: string;
-  format: RepurposeFormat;
-  contentId: string;
-  url: string;
-  thumbnail?: string;
-  metadata: {
-    duration?: number;
-    dimensions?: { width: number; height: number };
-    size: number;
-  };
-  qualityScore?: number;
-  createdAt: Date;
-}
-
 export interface IMultiPlatformWorkflow {
   id: string;
   organizationId: string;
@@ -150,7 +102,6 @@ export interface IWorkflowStep {
 export type WorkflowStepType =
   | 'generate'
   | 'optimize'
-  | 'repurpose'
   | 'schedule'
   | 'publish'
   | 'notify'
@@ -237,7 +188,6 @@ export interface IAutoPostingActions {
   brandIds: string[];
   useAIScheduling: boolean;
   applyOptimization: boolean;
-  repurposeFormats?: RepurposeFormat[];
 }
 
 export interface IAutoPostingLimits {
@@ -274,7 +224,6 @@ export interface IBulkScheduleRequest {
   options?: {
     useAIOptimization?: boolean;
     applyOptimization?: boolean;
-    repurposeFormats?: RepurposeFormat[];
     staggerMinutes?: number;
   };
 }

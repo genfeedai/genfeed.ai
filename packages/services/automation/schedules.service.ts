@@ -8,12 +8,10 @@ import type {
   IAutoPostingRule,
   IBulkScheduleRequest,
   IBulkScheduleResult,
-  IContentRepurposing,
   IMultiPlatformWorkflow,
   IScheduleOptimizationRequest,
   ISmartSchedule,
   IWorkflowExecution,
-  RepurposeFormat,
 } from '@genfeedai/interfaces/automation/smart-scheduler.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
@@ -149,33 +147,6 @@ class SmartSchedulerServiceClass {
       scheduled: result.scheduled,
     });
     return result;
-  }
-
-  async repurposeContent(params: {
-    contentId: string;
-    targetFormats: RepurposeFormat[];
-    settings?: Partial<IContentRepurposing['settings']>;
-  }): Promise<IContentRepurposing> {
-    const repurpose = await this.request<IContentRepurposing>(
-      '/automation/repurpose',
-      'POST',
-      params,
-      'Failed to repurpose content',
-    );
-    logger.info('Content repurpose job created', {
-      formats: params.targetFormats.length,
-      id: repurpose.id,
-    });
-    return repurpose;
-  }
-
-  async getRepurposingStatus(id: string): Promise<IContentRepurposing> {
-    return this.request(
-      `/automation/repurpose/${id}`,
-      'GET',
-      undefined,
-      'Failed to get repurposing status',
-    );
   }
 
   async createWorkflow(

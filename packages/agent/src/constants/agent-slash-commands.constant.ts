@@ -68,13 +68,6 @@ export const AGENT_SLASH_COMMANDS: AgentSlashCommand[] = [
     promptPrefix: 'Generate content ideas for ',
   },
   {
-    description: 'Adapt for another platform',
-    kind: 'prompt',
-    label: 'Repurpose',
-    name: 'repurpose',
-    promptPrefix: 'Repurpose this content: ',
-  },
-  {
     description: 'Find trending topics',
     kind: 'prompt',
     label: 'Trends',
