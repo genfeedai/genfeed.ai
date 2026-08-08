@@ -10,6 +10,8 @@ import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceIns
 import {
   type ProductWorkspaceSurfaceAdapter,
   useRegisterWorkspaceSurfaceAdapter,
+  useRegisterWorkspaceSurfacePresentationAdapter,
+  type WorkspaceSurfacePresentationAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
 
 import ReviewDetailPanel from './ReviewDetailPanel';
@@ -45,9 +47,14 @@ export default function ReviewWorkspaceSurfaceAdapter({
   const inspector = useWorkspaceInspector();
 
   useEffect(() => {
-    if (activeItem && inspector && !inspector.isOpen) {
+    if (!activeItem || !inspector) {
+      return;
+    }
+    if (!inspector.isOpen) {
       inspector.setIsOpen(true);
     }
+    // Ask the shell to show Context when a row is selected (product details).
+    window.dispatchEvent(new CustomEvent('workspace:open-context-tab'));
   }, [activeItem, inspector]);
 
   useEffect(() => {
@@ -138,9 +145,12 @@ export default function ReviewWorkspaceSurfaceAdapter({
     };
   }, [activeItem, pathname, setPageContext]);
 
-  const renderInspector = useCallback(
+  const inspectorNode = useMemo(
     () => (
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
+      <div
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+        data-testid="review-surface-inspector"
+      >
         <ReviewDetailPanel
           isActioning={isActioning}
           isSelected={isSelected}
@@ -163,6 +173,8 @@ export default function ReviewWorkspaceSurfaceAdapter({
     ],
   );
 
+  const renderInspector = useCallback(() => inspectorNode, [inspectorNode]);
+
   const contextLabel = activeItem
     ? `Review · ${getReviewItemTitle(activeItem)}`
     : 'Review · Queue';
@@ -181,6 +193,18 @@ export default function ReviewWorkspaceSurfaceAdapter({
     [brandId, contextLabel, organizationId, renderInspector],
   );
 
+  // Presentation adapter is a second registration path used by some shell
+  // branches — keep both so Context never falls through empty on review.
+  const presentation = useMemo<WorkspaceSurfacePresentationAdapter>(
+    () => ({
+      contextLabel,
+      inspector: inspectorNode,
+      surfaceKey: 'publish',
+    }),
+    [contextLabel, inspectorNode],
+  );
+
   useRegisterWorkspaceSurfaceAdapter(registration);
+  useRegisterWorkspaceSurfacePresentationAdapter(presentation);
   return null;
 }

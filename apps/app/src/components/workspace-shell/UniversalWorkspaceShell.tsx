@@ -199,6 +199,18 @@ function UniversalWorkspaceShellContent({
   // whole point of it no longer being a shell state you navigate away to.
   const [inspectorTab, setInspectorTab] =
     useState<WorkspaceInspectorTab>('conversation');
+
+  // Product surfaces (review, studio, …) ask for the Context tab when the
+  // operator selects an entity on the canvas.
+  useEffect(() => {
+    const openContextTab = () => {
+      setInspectorTab('context');
+    };
+    window.addEventListener('workspace:open-context-tab', openContextTab);
+    return () => {
+      window.removeEventListener('workspace:open-context-tab', openContextTab);
+    };
+  }, []);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
     readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
     readonly token: symbol;
@@ -964,22 +976,30 @@ function UniversalWorkspaceShellContent({
         <TabsContent
           className={cn(
             'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
-            !isAgentOwned && 'gap-4 p-4',
+            // Product inspectors own the context tab; keep padding for them.
+            (productSurfaceAdapter || !isAgentOwned) && 'gap-3 p-3',
           )}
           forceMount
           value="context"
         >
-          {agentPanelSlot}
-          {isAgentOwned ? null : isAgentRoute ? (
+          {/* Agent-projected panels only on /agent/* — never blank out product
+              surface context (review, studio, etc.) when the portal target exists. */}
+          {isAgentOwned && isAgentRoute ? agentPanelSlot : null}
+          {productSurfaceAdapter ? (
+            <div
+              className="flex min-h-0 min-w-0 flex-1 flex-col"
+              data-testid="product-surface-inspector"
+            >
+              {productSurfaceAdapter.renderInspector()}
+            </div>
+          ) : isAgentOwned && isAgentRoute ? null : isAgentRoute ? (
             <p className="px-1 text-xs leading-5 text-muted-foreground">
               {WORKSPACE_INSPECTOR_CHROME.emptyAgentBody}
             </p>
           ) : (
             <>
               {conversationScope.inspectorScope}
-              {productSurfaceAdapter ? (
-                productSurfaceAdapter.renderInspector()
-              ) : isWorkflowInspectorSurface ? (
+              {isWorkflowInspectorSurface ? (
                 <WorkflowSurfaceInspector
                   contextVersion={activeThread?.contextVersion}
                   pathname={rawPathname}
