@@ -101,7 +101,7 @@ export function AgentChatInputAttachmentTray({
                 onClick={() => onRemoveAttachedAsset(asset.id)}
                 isDisabled={isDisabled}
                 ariaLabel={`Remove ${assetName}`}
-                className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
               >
                 <X className="size-3.5" />
               </Button>
@@ -156,7 +156,7 @@ export function AgentChatInputAttachmentTray({
                 onClick={() => onRemoveReference(reference)}
                 isDisabled={isDisabled}
                 ariaLabel={`Remove reference ${reference.label}`}
-                className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+                className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-md border border-border bg-background/88 text-foreground/70 opacity-0 shadow-sm transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
               >
                 <X className="size-3.5" />
               </Button>

@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
+import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
@@ -17,9 +18,6 @@ import MenuSharedGroupedItems from './MenuSharedGroupedItems';
 import MenuSharedPrimaryAction from './MenuSharedPrimaryAction';
 import SidebarUserProfile from './SidebarUserProfile';
 import { useMenuShared } from './useMenuShared';
-
-/** Single-column sidebar width */
-const SIDEBAR_WIDTH = 240;
 
 export default function MenuShared({
   config,
@@ -39,6 +37,7 @@ export default function MenuShared({
   renderFooterSlot,
   showUserProfile = true,
   orgSwitcherSlot,
+  sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -157,22 +156,27 @@ export default function MenuShared({
     />
   ) : null;
 
-  /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ── */
+  /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
+     Fill the DesktopSidebar rail (CSS-var width). Do not pin a React pixel
+     width here — drag updates `--desktop-sidebar-width` without re-cloning
+     this tree. `sidebarWidth` remains for mobile drawer / story hosts. */
   return (
     <div
       data-testid="sidebar-shell"
       data-shell-current-app={currentApp ?? 'workspace'}
       data-shell-section-label={sectionLabel ?? ''}
       className={cn(
-        'flex h-full min-h-0 flex-1 flex-shrink-0',
+        'flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
           : 'bg-background',
       )}
-      style={{
-        minWidth: SIDEBAR_WIDTH,
-        width: SIDEBAR_WIDTH,
-      }}
+      style={
+        // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
+        sidebarWidth
+          ? { maxWidth: '100%', width: '100%' }
+          : { width: SIDEBAR_DEFAULT_WIDTH }
+      }
     >
       <div className="flex min-w-0 flex-1 flex-col">
         <div

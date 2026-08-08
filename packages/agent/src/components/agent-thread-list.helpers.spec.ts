@@ -91,6 +91,7 @@ describe('getThreadStatusMeta', () => {
       }),
     ).toEqual({
       label: 'Running',
+      shouldPulse: true,
       tone: 'running',
     });
   });
@@ -110,9 +111,16 @@ describe('getThreadStatusMeta', () => {
 });
 
 describe('getThreadStatusDotClass', () => {
-  it('uses a distinct color for running attention', () => {
+  it('uses a violet activity disc for running attention', () => {
     expect(getThreadStatusDotClass({ attentionState: 'running' })).toBe(
-      'bg-sky-400',
+      'bg-violet-400',
     );
+  });
+
+  it('uses amber for needs-input and red for failed', () => {
+    expect(getThreadStatusDotClass({ attentionState: 'needs-input' })).toBe(
+      'bg-amber-300',
+    );
+    expect(getThreadStatusDotClass({ tone: 'failed' })).toBe('bg-red-400');
   });
 });

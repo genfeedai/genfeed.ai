@@ -5,7 +5,6 @@ import {
 import { AgentComposerStatusStack } from '@genfeedai/agent/components/AgentComposerStatusStack';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
-import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type {
   AgentInputRequest,
   AgentProposedPlan,
@@ -15,7 +14,8 @@ import type {
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
-import type { AgentUiActionHandler } from '@genfeedai/interfaces';
+import type { RouterPriority } from '@genfeedai/enums';
+import type { AgentUiActionHandler, IModel } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -62,12 +62,13 @@ type AgentChatPromptBarProps = {
   pendingInputRequest: AgentInputRequest | null;
   socketConnectionState: AgentSocketConnectionState;
   selectedModel?: string;
-  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
-  models?: readonly AgentModelOption[];
+  /** Registry-backed chat catalogue for the shared ModelSelectorPopover. */
+  models?: readonly IModel[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
+  onPrioritizeChange?: (priority: RouterPriority) => void;
+  prioritize?: RouterPriority;
   creditsAvailable?: number | null;
-  onBuyCredits?: () => void;
 };
 
 export function AgentChatPromptBar({
@@ -103,8 +104,9 @@ export function AgentChatPromptBar({
   models,
   isModelsLoading = false,
   onModelChange,
+  onPrioritizeChange,
+  prioritize,
   creditsAvailable = null,
-  onBuyCredits,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isInspectorComposer = composerShell?.placement === 'inspector';
@@ -188,8 +190,9 @@ export function AgentChatPromptBar({
         models={models}
         isModelsLoading={isModelsLoading}
         onModelChange={onModelChange}
+        onPrioritizeChange={onPrioritizeChange}
+        prioritize={prioritize}
         creditsAvailable={creditsAvailable}
-        onBuyCredits={onBuyCredits}
       />
     </PromptBarContainer>
   );

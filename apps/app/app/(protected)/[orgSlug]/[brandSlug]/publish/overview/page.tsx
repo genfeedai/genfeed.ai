@@ -2,19 +2,20 @@ import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
 import { PostStatus } from '@genfeedai/enums';
 import { normalizePublisherPostsStatus } from '@helpers/content/posts.helper';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { redirect } from 'next/navigation';
-import {
-  type PostsListSearchParams,
-  renderPostsListPage,
-} from '../publish-list-page';
+import { Suspense } from 'react';
+import type { PostsListSearchParams } from '../publish-list-page';
+import PublishOverviewPage from './PublishOverviewPage';
 
 export const generateMetadata = createPageMetadata('Publish Overview');
 
 /**
- * Canonical Publish home — posts list. Bare `/publish` permanently redirects
- * here (page + next.config), matching Workspace/Discover/Library overview.
+ * Publish home — module dashboard (pulse + launch cards).
+ * Draft/post libraries live on Scheduled + Published; calendar on Calendar.
+ * Legacy `?status=` list filters still redirect to the right list surface.
  */
-export default async function PublishOverviewPage({
+export default async function PublishOverviewRoute({
   params,
   searchParams,
 }: {
@@ -23,18 +24,16 @@ export default async function PublishOverviewPage({
 }) {
   const resolvedSearchParams = await searchParams;
 
-  // Collapse legacy status links into the three publishing destinations:
-  // failed and live posts have dedicated views; other pre-publication states use overview.
   const legacyStatus = normalizePublisherPostsStatus(
     resolvedSearchParams.status,
   );
-  const statusPath =
-    legacyStatus === PostStatus.FAILED
-      ? APP_ROUTES.PUBLISH.FAILED
-      : legacyStatus === PostStatus.PUBLIC
-        ? APP_ROUTES.PUBLISH.PUBLISHED
-        : APP_ROUTES.PUBLISH.OVERVIEW;
   if (resolvedSearchParams.status) {
+    const statusPath =
+      legacyStatus === PostStatus.FAILED
+        ? APP_ROUTES.PUBLISH.FAILED
+        : legacyStatus === PostStatus.PUBLIC
+          ? APP_ROUTES.PUBLISH.PUBLISHED
+          : APP_ROUTES.PUBLISH.SCHEDULED;
     const { orgSlug, brandSlug } = await params;
     const preservedFilters = new URLSearchParams();
     for (const key of ['platform', 'search', 'sort', 'page'] as const) {
@@ -53,5 +52,9 @@ export default async function PublishOverviewPage({
     );
   }
 
-  return renderPostsListPage({ searchParams });
+  return (
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+      <PublishOverviewPage />
+    </Suspense>
+  );
 }

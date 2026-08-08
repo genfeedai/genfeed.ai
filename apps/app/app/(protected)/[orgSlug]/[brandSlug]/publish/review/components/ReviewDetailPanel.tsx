@@ -2,18 +2,19 @@
 
 import { BatchItemStatus } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
 } from '@helpers/formatting/timezone/timezone.helper';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { Clock, ImageIcon, Sparkles } from 'lucide-react';
+import { ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo } from 'react';
 
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
 import ReviewDetailPanelHeader from './ReviewDetailPanelHeader';
+import { formatReviewItemStatus } from './review-item.helpers';
 import {
   isApproved,
   isChangesRequested,
@@ -38,32 +39,8 @@ interface ReviewDetailPanelProps {
 }
 
 function buildStatusLabel(item: ReviewPanelItem): string {
-  if (isApproved(item)) {
-    return 'Approved';
-  }
-
-  if (isChangesRequested(item)) {
-    return 'Changes requested';
-  }
-
-  if (item.reviewDecision === 'rejected') {
-    return 'Rejected';
-  }
-
-  switch (item.status) {
-    case BatchItemStatus.COMPLETED:
-      return 'Ready to review';
-    case BatchItemStatus.FAILED:
-      return 'Generation failed';
-    case BatchItemStatus.PROCESSING:
-      return 'Generating';
-    case BatchItemStatus.PENDING:
-      return 'Pending';
-    case BatchItemStatus.SKIPPED:
-      return 'Rejected';
-    default:
-      return item.status;
-  }
+  // Single source of truth with the table badge label.
+  return formatReviewItemStatus(item);
 }
 
 export default function ReviewDetailPanel({
@@ -85,13 +62,13 @@ export default function ReviewDetailPanel({
     ? formatDateInTimezone(
         item.scheduledDate,
         browserTimezone,
-        'MMM d, yyyy h:mm a',
+        DATE_FORMATS.DISPLAY_DATETIME,
       )
     : null;
   const formattedCreatedDate = formatDateInTimezone(
     item.createdAt,
     browserTimezone,
-    'MMM d, yyyy h:mm a',
+    DATE_FORMATS.DISPLAY_DATETIME,
   );
   const isReady = isReadyToReview(item);
   const statusLabel = buildStatusLabel(item);
@@ -104,54 +81,48 @@ export default function ReviewDetailPanel({
     'No caption generated for this item yet.';
 
   return (
-    <section className="rounded-card bg-card shadow-border">
+    // Flat inspector surface — no outer card wrapping nested cards.
+    <section className="flex min-h-0 flex-col">
       <ReviewDetailPanelHeader item={item} statusLabel={statusLabel} />
 
-      <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
-        <div className="min-w-0 space-y-3">
-          {/* Post-first: caption is primary. Media only when present. */}
-          <InsetSurface className="p-4" tone="contrast">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Sparkles className="size-4 text-muted-foreground" />
-              Caption
-            </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground/90">
-              {caption}
-            </p>
-            {item.status === BatchItemStatus.FAILED && item.error ? (
-              <p className="mt-3 rounded-card border border-destructive/20 bg-destructive/10 px-2.5 py-2 text-xs text-destructive">
-                {item.error}
-              </p>
-            ) : null}
-          </InsetSurface>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="space-y-3 border-b border-border px-4 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            Caption
+          </p>
+          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
+            {caption}
+          </p>
+          {item.status === BatchItemStatus.FAILED && item.error ? (
+            <p className="text-xs leading-5 text-destructive">{item.error}</p>
+          ) : null}
 
           {item.mediaUrl ? (
-            <div className="relative aspect-[16/10] max-h-72 overflow-hidden rounded-card bg-background shadow-border">
+            <div className="relative mt-1 aspect-[16/10] max-h-56 overflow-hidden rounded-md bg-background-secondary">
               <Image
                 src={item.mediaUrl}
                 alt={item.caption ?? 'Review item preview'}
                 fill
                 className="object-cover"
-                sizes="(max-width: 1280px) 100vw, 50vw"
+                sizes="(max-width: 1280px) 100vw, 24rem"
               />
             </div>
           ) : (
-            <div className="flex items-center gap-2 rounded-card bg-background px-3 py-2.5 text-xs text-muted-foreground shadow-border">
-              <ImageIcon className="size-4 shrink-0" />
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <ImageIcon className="size-3.5 shrink-0" />
               No media on this draft yet
-            </div>
+            </p>
           )}
 
           {item.prompt?.trim() && item.prompt.trim() !== caption ? (
-            <InsetSurface className="p-4" tone="contrast">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Clock className="size-4 text-muted-foreground" />
+            <div className="pt-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                 Prompt
-              </div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+              </p>
+              <p className="mt-1.5 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                 {item.prompt}
               </p>
-            </InsetSurface>
+            </div>
           ) : null}
         </div>
 

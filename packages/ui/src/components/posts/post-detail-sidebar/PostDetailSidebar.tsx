@@ -73,7 +73,7 @@ export default function PostDetailSidebar({
     Boolean(reviewSummary?.generationId);
 
   return (
-    <div className={`space-y-4 lg:sticky lg:top-4 lg:self-start ${className}`}>
+    <div className={`space-y-3 ${className}`}>
       <PostSidebarPlatformCard post={post} credential={credential} />
 
       {isPublished && analyticsStats.length > 0 && (

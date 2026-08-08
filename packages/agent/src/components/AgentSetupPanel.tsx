@@ -203,7 +203,9 @@ export function AgentSetupPanel({
               <div className="flex flex-wrap gap-1.5">
                 {unconnectedPlatforms.map((item) => (
                   <Button
-                    key={item.platform}
+                    // Meta Ads + Facebook (and YT Ads + Google Ads) share a
+                    // CredentialPlatform — connectId is the unique tile key.
+                    key={item.connectId ?? item.platform}
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
                     onClick={() => handleConnect(item.platform)}

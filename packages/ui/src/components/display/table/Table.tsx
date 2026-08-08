@@ -105,24 +105,48 @@ export default function AppTable<T>({
     [getItemId, selectedIds],
   );
 
+  const isInteractiveTarget = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) {
+      return false;
+    }
+    return Boolean(
+      target.closest('button') ||
+        target.closest('a') ||
+        target.closest('input') ||
+        target.closest('textarea') ||
+        target.closest('select') ||
+        target.closest('[role="checkbox"]') ||
+        target.closest('.join'),
+    );
+  }, []);
+
   const handleRowClick = useCallback(
     (item: T, event: React.MouseEvent<HTMLTableRowElement>) => {
-      if (!onRowClick) {
-        return;
-      }
-
-      const target = event.target as HTMLElement;
-      if (
-        target.closest('button') ||
-        target.closest('input[type="checkbox"]') ||
-        target.closest('.join')
-      ) {
+      if (!onRowClick || isInteractiveTarget(event.target)) {
         return;
       }
 
       onRowClick(item);
     },
-    [onRowClick],
+    [isInteractiveTarget, onRowClick],
+  );
+
+  const handleRowKeyDown = useCallback(
+    (item: T, event: React.KeyboardEvent<HTMLTableRowElement>) => {
+      if (!onRowClick) {
+        return;
+      }
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      if (isInteractiveTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      onRowClick(item);
+    },
+    [isInteractiveTarget, onRowClick],
   );
 
   const handleActionClick = useCallback(
@@ -196,7 +220,7 @@ export default function AppTable<T>({
                 <th
                   key={String(column.key)}
                   className={cn(
-                    'h-12 select-none px-4 text-left align-middle font-semibold uppercase text-[10px] tracking-[0.18em] text-foreground/28',
+                    'h-10 select-none px-4 text-left align-middle text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground',
                     column.className,
                   )}
                 >
@@ -207,7 +231,7 @@ export default function AppTable<T>({
               {actions.length > 0 && (
                 <th
                   aria-label="Actions"
-                  className="h-12 px-4 text-right align-middle font-medium text-muted-foreground"
+                  className="h-10 px-4 text-right align-middle font-medium text-muted-foreground"
                 ></th>
               )}
             </tr>
@@ -224,10 +248,17 @@ export default function AppTable<T>({
                   className={cn(
                     'group border-b border-border transition-colors duration-200 odd:bg-background-secondary/50 hover:bg-accent/60',
                     isSelected && 'bg-accent',
-                    onRowClick && 'cursor-pointer',
+                    onRowClick &&
+                      'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
                     getRowClassName?.(item),
                   )}
                   onClick={(event) => handleRowClick(item, event)}
+                  onKeyDown={
+                    onRowClick
+                      ? (event) => handleRowKeyDown(item, event)
+                      : undefined
+                  }
+                  tabIndex={onRowClick ? 0 : undefined}
                 >
                   {selectable && (
                     <td className="p-4 w-12 align-middle">

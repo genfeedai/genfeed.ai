@@ -1,13 +1,6 @@
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
-import {
-  AgentThreadStatus,
-  ButtonSize,
-  ButtonVariant,
-  ComponentSize,
-} from '@genfeedai/enums';
-import { conversationSidebarRowClassName } from '@genfeedai/ui';
+import { AgentThreadStatus, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
@@ -72,6 +65,62 @@ interface AgentThreadListRowProps {
   onUnarchive: (thread: AgentThread) => void;
 }
 
+/**
+ * Finalist 1 row chrome: dense title+preview+time, square active border,
+ * activity disc only when running/waiting/failed (Claude-style pulse).
+ * Archived rows use a clearer dim (opacity alone + muted title).
+ */
+function agentThreadListRowClassName(options: {
+  isMuted?: boolean;
+  isSelected?: boolean;
+}): string {
+  return cn(
+    'group relative w-full text-left transition-colors',
+    // Square active — no purple left rail, no soft pill.
+    'rounded border border-transparent',
+    options.isSelected
+      ? 'border-border bg-foreground/[0.06]'
+      : 'hover:bg-foreground/[0.045]',
+    // Stronger than 0.55 — archived list was hard to tell from Recent.
+    options.isMuted && 'opacity-40',
+  );
+}
+
+function ThreadActivityIndicator({
+  statusMeta,
+  a11yLabel,
+}: {
+  statusMeta: NonNullable<ReturnType<typeof getThreadStatusMeta>>;
+  a11yLabel: string;
+}): ReactElement {
+  const dotClass = getThreadStatusDotClass({
+    tone: statusMeta.tone,
+  });
+
+  return (
+    <span
+      className="relative mt-1.5 flex size-2 shrink-0 items-center justify-center"
+      role="img"
+      aria-label={a11yLabel}
+      title={statusMeta.label}
+    >
+      {statusMeta.shouldPulse ? (
+        <span
+          className={cn(
+            'absolute inline-flex size-full animate-ping rounded-full opacity-40',
+            dotClass,
+          )}
+          aria-hidden
+        />
+      ) : null}
+      <span
+        className={cn('relative size-2 rounded-full', dotClass)}
+        aria-hidden
+      />
+    </span>
+  );
+}
+
 export function AgentThreadListRow({
   conv,
   activeThreadId,
@@ -98,35 +147,30 @@ export function AgentThreadListRow({
   onUnarchive,
 }: AgentThreadListRowProps): ReactElement {
   const isActiveConversation = conv.id === activeThreadId;
-  const isConversationWorking =
-    conv.id === activeThreadId &&
-    (isStreaming ||
-      activeRunStatus === 'running' ||
-      activeRunStatus === 'cancelling');
-  // Background runs use attentionState from stream/API — bare runStatus alone
-  // can be stale and must not spin forever after you leave a thread.
-  const isBackgroundRunning = conv.attentionState === 'running';
-  const isThreadMarkedRunning =
-    isActiveConversation &&
-    (conv.runStatus === 'queued' || conv.runStatus === 'running');
-  const isThreadUiBusy =
-    isActiveConversation && threadUiBusyById[conv.id] === true;
-  const statusMeta = getThreadStatusMeta(conv, {
+  // Treat local streaming/busy as running so the disc stays live on the open thread.
+  const statusMetaBase = getThreadStatusMeta(conv, {
     activeRunStatus: activeRunStatus ?? undefined,
     activeThreadId,
   });
+  const isLocallyWorking =
+    isActiveConversation &&
+    (isStreaming ||
+      activeRunStatus === 'running' ||
+      activeRunStatus === 'cancelling' ||
+      threadUiBusyById[conv.id] === true);
+  const statusMeta =
+    statusMetaBase ??
+    (isLocallyWorking
+      ? {
+          label: 'Running',
+          shouldPulse: true,
+          tone: 'running' as const,
+        }
+      : null);
+
   const relativeTime = formatRelativeTime(
     conv.lastActivityAt ?? conv.updatedAt ?? conv.createdAt,
   );
-  const isLoadingStatus =
-    isConversationWorking ||
-    isBackgroundRunning ||
-    isThreadMarkedRunning ||
-    isThreadUiBusy;
-  const statusDotClass = getThreadStatusDotClass({
-    attentionState: conv.attentionState,
-    pendingInputCount: conv.pendingInputCount,
-  });
   const statusA11yLabel = getThreadStatusA11yLabel(conv, statusMeta);
   const preview =
     conv.lastAssistantPreview ||
@@ -134,40 +178,36 @@ export function AgentThreadListRow({
     conv.source ||
     conv.platform ||
     'Agent conversation';
-  const statusIndicator = isLoadingStatus ? (
-    <Spinner
-      size={ComponentSize.XS}
-      className="shrink-0 text-foreground/45"
-      ariaLabel={statusA11yLabel}
-      title={statusMeta?.label ?? `${conv.title || 'Conversation'} status`}
-    />
+
+  const activitySlot = statusMeta ? (
+    <SimpleTooltip label={statusMeta.label} position="top">
+      <ThreadActivityIndicator
+        statusMeta={statusMeta}
+        a11yLabel={statusA11yLabel}
+      />
+    </SimpleTooltip>
   ) : (
-    <span
-      className={cn(
-        'size-2.5 shrink-0 rounded-full border border-foreground/15',
-        statusDotClass,
-      )}
-      role="img"
-      aria-label={statusA11yLabel}
-      title={statusMeta?.label ?? `${conv.title || 'Conversation'} status`}
-    />
+    // Keep columns aligned when idle — empty slot, no disc.
+    <span className="mt-1.5 size-2 shrink-0" aria-hidden />
   );
 
   return (
     <div
       key={conv.id}
       className={cn(
-        'flex min-h-14 items-stretch',
-        conversationSidebarRowClassName({
-          isMuted: conv.status === AgentThreadStatus.ARCHIVED,
+        'flex min-h-0 items-stretch',
+        agentThreadListRowClassName({
+          // Archived view lists only archived threads — always mute there too
+          // so a missing/stale status still reads as archived.
+          isMuted: isArchivedView || conv.status === AgentThreadStatus.ARCHIVED,
           isSelected: isActiveConversation,
         }),
       )}
       onContextMenu={(event) => onContextMenu(event, conv.id)}
     >
       {renamingThreadId === conv.id ? (
-        <div className="flex min-h-14 flex-1 items-center gap-2 px-3">
-          {statusIndicator}
+        <div className="flex min-h-10 flex-1 items-center gap-2 px-2.5 py-1.5">
+          {activitySlot}
           <Input
             ref={renameInputRef}
             aria-label={`Rename ${conv.title || 'thread'}`}
@@ -198,20 +238,12 @@ export function AgentThreadListRow({
       ) : (
         <Link
           href={getThreadHref(conv.id)}
-          className="flex min-w-0 flex-1 gap-2.5 rounded-md px-3 py-2 pr-9 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
+          className="flex min-w-0 flex-1 gap-2 rounded px-2.5 py-1.5 pr-8 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/60"
           onClick={() => {
             onSelect(conv);
           }}
         >
-          <span className="mt-1">
-            {statusMeta ? (
-              <SimpleTooltip label={statusMeta.label} position="top">
-                {statusIndicator}
-              </SimpleTooltip>
-            ) : (
-              statusIndicator
-            )}
-          </span>
+          {activitySlot}
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
               {conv.isPinned ? (
@@ -220,39 +252,23 @@ export function AgentThreadListRow({
                   aria-label="Pinned conversation"
                 />
               ) : null}
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground/90">
+              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground/90">
                 {conv.title || 'Untitled'}
               </span>
               {relativeTime ? (
-                <span className="shrink-0 text-[11px] text-foreground/36">
+                <span className="shrink-0 text-[11px] tabular-nums text-foreground/36">
                   {relativeTime}
                 </span>
               ) : null}
             </div>
-            <div className="mt-0.5 flex min-w-0 items-center gap-2">
-              <span className="min-w-0 flex-1 truncate text-[11px] text-foreground/38">
-                {preview}
-              </span>
-              {statusMeta ? (
-                <span
-                  className={cn(
-                    'shrink-0 text-[10px] font-medium',
-                    statusMeta.tone === 'warning'
-                      ? 'text-warning'
-                      : statusMeta.tone === 'running'
-                        ? 'text-info'
-                        : 'text-foreground/44',
-                  )}
-                >
-                  {statusMeta.label}
-                </span>
-              ) : null}
+            <div className="mt-0.5 min-w-0 truncate text-[11px] text-foreground/38">
+              {preview}
             </div>
           </div>
         </Link>
       )}
 
-      <div className="absolute right-1.5 top-1.5 shrink-0">
+      <div className="absolute right-1 top-1 shrink-0">
         <DropdownMenu
           open={openMenuThreadId === conv.id}
           onOpenChange={(open) => {

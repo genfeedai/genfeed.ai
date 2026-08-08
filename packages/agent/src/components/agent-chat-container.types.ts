@@ -4,6 +4,10 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 
 export interface AgentChatContainerProps {
   apiService: AgentApiService;
+  /**
+   * When set (archived thread), the prompt bar is replaced by an alert +
+   * Unarchive control. Cleared after a successful unarchive.
+   */
   archivedNotice?: string | null;
   isLoadingThread?: boolean;
   isReadOnly?: boolean;
@@ -28,6 +32,8 @@ export interface AgentChatContainerProps {
     credits: number;
   }) => void;
   onSelectIngredient?: (ingredient: { id: string; title?: string }) => void;
+  /** Restore an archived thread so the prompt bar returns. */
+  onUnarchive?: () => void | Promise<void>;
   isStreaming?: boolean;
   promptBarLayoutMode?: 'fixed' | 'surface-fixed';
   onboardingMode?: boolean;

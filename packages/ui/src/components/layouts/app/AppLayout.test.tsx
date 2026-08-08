@@ -199,14 +199,113 @@ describe('AppLayout', () => {
     fireEvent.click(expandToggle);
 
     await waitFor(() => {
+      // Expanded width is a CSS var so drag can update without React re-renders.
       expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
-        minWidth: '240px',
-        width: '240px',
+        minWidth: 'var(--desktop-sidebar-width)',
+        width: 'var(--desktop-sidebar-width)',
       });
     });
     expect(
       screen.queryByRole('button', { name: 'Expand sidebar' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('restores a persisted expanded sidebar width on first paint', async () => {
+    window.localStorage.setItem('genfeed:sidebar:width', '340');
+
+    render(
+      <AppLayout menuComponent={<MenuComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle(
+        {
+          '--desktop-sidebar-width': '340px',
+        },
+      );
+    });
+
+    const resizeHandle = screen.getByRole('separator', {
+      name: 'Resize navigation sidebar',
+    });
+    expect(resizeHandle).toHaveAttribute('aria-valuenow', '340');
+    expect(resizeHandle).toHaveAttribute('aria-valuemin', '220');
+    expect(resizeHandle).toHaveAttribute('aria-valuemax', '420');
+  });
+
+  it('resizes the sidebar with keyboard arrows and clamps at Home/End', async () => {
+    window.localStorage.setItem('genfeed:sidebar:width', '280');
+
+    render(
+      <AppLayout menuComponent={<MenuComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const resizeHandle = await screen.findByRole('separator', {
+      name: 'Resize navigation sidebar',
+    });
+
+    fireEvent.keyDown(resizeHandle, { key: 'ArrowRight' });
+    await waitFor(() => {
+      expect(resizeHandle).toHaveAttribute('aria-valuenow', '296');
+    });
+
+    fireEvent.keyDown(resizeHandle, { key: 'ArrowLeft', shiftKey: true });
+    await waitFor(() => {
+      expect(resizeHandle).toHaveAttribute('aria-valuenow', '264');
+    });
+
+    fireEvent.keyDown(resizeHandle, { key: 'Home' });
+    await waitFor(() => {
+      expect(resizeHandle).toHaveAttribute('aria-valuenow', '220');
+    });
+
+    fireEvent.keyDown(resizeHandle, { key: 'End' });
+    await waitFor(() => {
+      expect(resizeHandle).toHaveAttribute('aria-valuenow', '420');
+    });
+  });
+
+  it('updates the CSS var while dragging the resize handle', async () => {
+    window.localStorage.setItem('genfeed:sidebar:width', '280');
+    // jsdom lacks PointerEvent capture; drag path still attaches window listeners.
+    HTMLElement.prototype.setPointerCapture = vi.fn();
+    HTMLElement.prototype.releasePointerCapture = vi.fn();
+
+    render(
+      <AppLayout menuComponent={<MenuComponent />}>
+        <div>Content</div>
+      </AppLayout>,
+    );
+
+    const resizeHandle = await screen.findByRole('separator', {
+      name: 'Resize navigation sidebar',
+    });
+    const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
+
+    fireEvent.pointerDown(resizeHandle, {
+      clientX: 280,
+      pointerId: 1,
+    });
+    fireEvent(
+      window,
+      new PointerEvent('pointermove', { clientX: 320, bubbles: true }),
+    );
+
+    await waitFor(() => {
+      expect(layoutRoot).toHaveStyle({
+        '--desktop-sidebar-width': '320px',
+      });
+    });
+
+    fireEvent(window, new PointerEvent('pointerup', { bubbles: true }));
+
+    await waitFor(() => {
+      expect(resizeHandle).toHaveAttribute('aria-valuenow', '320');
+    });
   });
 
   it('renders agent dock and fixed-height shell when agent panel is provided', () => {

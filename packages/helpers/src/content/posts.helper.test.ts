@@ -41,12 +41,13 @@ describe('PostsHelper', () => {
   });
 
   it('should build canonical publisher post hrefs', () => {
-    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish');
+    // No status → Posts library. Draft/scheduled → Drafts pipeline list.
+    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish/posts');
     expect(
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
-    ).toBe('/publish');
+    ).toBe('/publish/scheduled');
     expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/publish',
+      '/publish/scheduled',
     );
     expect(
       PostsHelper.getPublisherPostsHref({
@@ -57,6 +58,9 @@ describe('PostsHelper', () => {
     expect(
       PostsHelper.getPublisherPostsHref({ status: PostStatus.FAILED }),
     ).toBe('/publish/failed');
+    expect(PostsHelper.getPublisherPostHref('post-1')).toBe(
+      '/publish/posts/post-1',
+    );
   });
 
   it('should infer publisher status from canonical post paths', () => {
@@ -70,6 +74,9 @@ describe('PostsHelper', () => {
     ).toBe('public');
     expect(
       PostsHelper.getPublisherPostsStatusFromPathname('/publish'),
+    ).toBeNull();
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish/posts'),
     ).toBeNull();
     expect(
       PostsHelper.getPublisherPostsStatusFromPathname('/publish/failed'),

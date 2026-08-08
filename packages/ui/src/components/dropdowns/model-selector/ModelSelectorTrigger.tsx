@@ -13,9 +13,9 @@ import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCo
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronDown, ChevronUp, Cpu, Sparkles } from 'lucide-react';
-import type { ButtonHTMLAttributes, Ref } from 'react';
+import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
 
-function ModelSelectorTrigger({
+const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
   ref,
   selectedModels,
   isAutoSelected,
@@ -39,27 +39,27 @@ function ModelSelectorTrigger({
     className,
   );
 
-  if (selectedModels.length === 0) {
-    // Auto carries no IModel row, so an empty selection with Auto active is a
-    // real selection — label it instead of falling through to the empty state.
-    if (isAutoSelected) {
-      return (
-        <Button
-          ref={ref}
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          className={cn(triggerClassName, 'text-foreground')}
-          {...buttonProps}
-        >
-          <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
-          <span className="text-xs font-medium truncate max-w-[148px]">
-            {autoLabel ?? 'Auto'}
-          </span>
-          <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
-        </Button>
-      );
-    }
+  // Auto wins over any residual concrete model list — otherwise a stale
+  // values[] entry keeps the last model label after the user picks Auto.
+  if (isAutoSelected) {
+    return (
+      <Button
+        ref={ref}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+        className={cn(triggerClassName, 'text-foreground')}
+        {...buttonProps}
+      >
+        <Sparkles className={cn(SHELL_ICON_CLASS, 'text-primary')} />
+        <span className="text-xs font-medium truncate max-w-[148px]">
+          {autoLabel ?? 'Auto'}
+        </span>
+        <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
+      </Button>
+    );
+  }
 
+  if (selectedModels.length === 0) {
     return (
       <Button
         ref={ref}
@@ -131,6 +131,6 @@ function ModelSelectorTrigger({
       <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
     </Button>
   );
-}
+});
 
 export default ModelSelectorTrigger;

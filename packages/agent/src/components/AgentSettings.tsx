@@ -1,10 +1,10 @@
-import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
-import { COST_TIER_DISPLAY } from '@genfeedai/constants';
+import { COST_TIER_DISPLAY, REASONING_FEATURE } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
   GenerationPriority,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
@@ -26,7 +26,7 @@ interface AgentSettingsProps {
   initialSettings: AgentSettingsValues;
   isDefaultState?: boolean;
   /** Registry models for the default-model picker (required). */
-  models: readonly AgentModelOption[];
+  models: readonly IModel[];
   isModelsLoading?: boolean;
   onSave: (settings: AgentSettingsValues) => Promise<void>;
 }
@@ -200,49 +200,54 @@ export function AgentSettings({
               No agent models in the registry. Seed the model catalog.
             </p>
           ) : null}
-          {models.map((model) => (
-            <Button
-              key={model.key}
-              aria-pressed={selectedModel === model.key}
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-              onClick={() => handleModelChange(model.key)}
-              className={cn(
-                'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
-                selectedModel === model.key
-                  ? 'border-primary/40 bg-primary/5'
-                  : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
-              )}
-            >
-              <div className="flex flex-1 flex-col gap-0.5">
-                <div className="flex items-center gap-1.5">
-                  {model.isReasoning && (
-                    <Sparkles className="size-3.5 text-purple-400" />
-                  )}
-                  <span className="text-sm font-medium text-foreground">
-                    {model.label}
+          {models.map((model) => {
+            const isReasoning = (model.supportsFeatures ?? []).includes(
+              REASONING_FEATURE,
+            );
+            return (
+              <Button
+                key={model.key}
+                aria-pressed={selectedModel === model.key}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={() => handleModelChange(model.key)}
+                className={cn(
+                  'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
+                  selectedModel === model.key
+                    ? 'border-primary/40 bg-primary/5'
+                    : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
+                )}
+              >
+                <div className="flex flex-1 flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    {isReasoning ? (
+                      <Sparkles className="size-3.5 text-purple-400" />
+                    ) : null}
+                    <span className="text-sm font-medium text-foreground">
+                      {model.label}
+                    </span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {model.description || model.label}
                   </span>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {model.description}
-                </span>
-              </div>
-              {model.costTier && COST_TIER_DISPLAY[model.costTier] ? (
-                <span
-                  className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                    COST_TIER_DISPLAY[model.costTier].colorClass,
-                  )}
-                  title={`Cost tier ${COST_TIER_DISPLAY[model.costTier].symbol}`}
-                >
-                  {COST_TIER_DISPLAY[model.costTier].symbol}
-                </span>
-              ) : null}
-              {selectedModel === model.key && (
-                <Check className="size-4 text-primary" />
-              )}
-            </Button>
-          ))}
+                {model.costTier && COST_TIER_DISPLAY[model.costTier] ? (
+                  <span
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                      COST_TIER_DISPLAY[model.costTier].colorClass,
+                    )}
+                    title={`Cost tier ${COST_TIER_DISPLAY[model.costTier].symbol}`}
+                  >
+                    {COST_TIER_DISPLAY[model.costTier].symbol}
+                  </span>
+                ) : null}
+                {selectedModel === model.key ? (
+                  <Check className="size-4 text-primary" />
+                ) : null}
+              </Button>
+            );
+          })}
         </div>
       </section>
 

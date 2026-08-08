@@ -249,7 +249,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 size-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                  className="absolute left-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20"
                 >
                   <ChevronLeft className="size-5" />
                 </Button>
@@ -260,7 +260,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => navigateLightbox('next')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 size-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
+                  className="absolute right-4 top-1/2 size-10 -translate-y-1/2 rounded-md bg-white/10 text-white hover:bg-white/20"
                 >
                   <ChevronRight className="size-5" />
                 </Button>

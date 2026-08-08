@@ -27,14 +27,15 @@
     "dev": {
       "cache": false,
       "dependsOn": ["//#env:check"],
+      "passThroughEnv": ["PORTLESS_URL"],
       "persistent": true
     },
-    "dev:direct": {
+    "dev:debug": {
       "cache": false,
       "dependsOn": ["//#env:check"],
       "persistent": true
     },
-    "dev:portless": {
+    "dev:process": {
       "cache": false,
       "dependsOn": ["//#env:check"],
       "passThroughEnv": ["PORTLESS_URL"],

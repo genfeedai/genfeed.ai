@@ -21,6 +21,7 @@ import type {
   SidebarNavPanel,
 } from '@genfeedai/props/navigation/menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
@@ -50,6 +51,12 @@ type Props = {
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
+  /**
+   * Live rail width from AppLayout (resize + localStorage). Must be accepted
+   * here — cloneElement injects it; hardcoding 280 leaves MenuShared stuck
+   * while DesktopSidebar and --desktop-sidebar-width track the drag.
+   */
+  sidebarWidth?: MenuSharedProps['sidebarWidth'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isConversationRoute: boolean;
@@ -90,6 +97,7 @@ export default function AppProtectedLayoutSidebar({
   currentApp,
   isCollapsed,
   onToggleCollapse,
+  sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
   isConversationRoute,
@@ -259,6 +267,7 @@ export default function AppProtectedLayoutSidebar({
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
         showUserProfile={surface.showUserProfile ?? true}
+        sidebarWidth={sidebarWidth}
         {...navPanelProps}
       />
     );
@@ -293,7 +302,7 @@ export default function AppProtectedLayoutSidebar({
       shellMode="workspace"
       showPrimaryItems
       showUserProfile
-      sidebarWidth={304}
+      sidebarWidth={sidebarWidth}
       shellChromeVariant={shellChromeVariant}
     />
   );

@@ -19,7 +19,10 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
-import { normalizePostsPlatform } from '@helpers/content/posts.helper';
+import {
+  getPublisherPostHref,
+  normalizePostsPlatform,
+} from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -70,7 +73,8 @@ export interface UsePostsListParams {
   initialPagination?: PostsListResult['pagination'];
   initialPosts?: IPost[];
   platform?: string;
-  publicationState?: PostsPublicationState;
+  /** `null` = all lifecycle states; omit for scope default (not-posted on publisher). */
+  publicationState?: PostsPublicationState | null;
   scope: ContentProps['scope'];
   status?: PostStatus;
 }
@@ -92,9 +96,15 @@ export function usePostsList({
     total: hydratedPosts.length,
     totalPages: 1,
   };
+  // Explicit `null` means the Posts library (every lifecycle state). Undefined
+  // keeps the historical publisher default (not posted yet).
   const publicationState =
-    publicationStateProp ??
-    (scope === PageScope.PUBLISHER && !statusProp ? 'not-posted' : undefined);
+    publicationStateProp === null
+      ? undefined
+      : (publicationStateProp ??
+        (scope === PageScope.PUBLISHER && !statusProp
+          ? 'not-posted'
+          : undefined));
 
   const platform = normalizePostsPlatform(platformParam);
   const platformFilter = platform !== 'all' ? platform : undefined;
@@ -434,8 +444,8 @@ export function usePostsList({
   );
 
   /**
-   * Editing belongs to the artifact, so a draft opens its own editor page and
-   * carries the current list URL back with it.
+   * Editing lives under Publish at `/publish/posts/:id` (type-aware content
+   * desk). Carry the current list URL back for return navigation.
    */
   const handleEditPost = useCallback(
     (post: IPost) => {
@@ -500,7 +510,7 @@ export function usePostsList({
           label,
         );
         notificationsService.success('Remix post created as draft');
-        router.push(href(`/publish/${remixPost.id}`));
+        router.push(href(getPublisherPostHref(remixPost.id)));
       });
     },
     [getPostsService, notificationsService, openPostRemixModal, router, href],
@@ -792,7 +802,7 @@ export function usePostsList({
           ? APP_ROUTES.PUBLISH.FAILED
           : nextView === 'posted'
             ? APP_ROUTES.PUBLISH.PUBLISHED
-            : APP_ROUTES.PUBLISH.ROOT;
+            : APP_ROUTES.PUBLISH.SCHEDULED;
 
       router.replace(
         href(queryString ? `${basePath}?${queryString}` : basePath),

@@ -4,37 +4,25 @@ import {
   PostsLayoutContext,
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
 import { Newspaper, Plus } from 'lucide-react';
 
-import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
+import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
-// Named sub-route segments that exist under /publish/ (not post-detail pages)
-const KNOWN_SUB_ROUTES = [
-  'analytics',
-  'calendar',
-  'campaigns',
-  'failed',
-  'newsletters',
-  'outreach-campaigns',
-  'overview',
-  'published',
-  'remix',
-  'review',
-  'scheduled',
-];
+function buildNewPostAgentPrompt(brandLabel?: string | null): string {
+  const brandClause = brandLabel?.trim()
+    ? `my brand "${brandLabel.trim()}" (already selected in the workspace — do not ask which brand to use)`
+    : 'my currently selected brand (do not ask which brand to use)';
 
-const NEW_RELEASE_AGENT_HREF = buildAgentPromptHref(
-  'Help me put together a new post — draft the content and pick the channels to publish it on.',
-);
+  return `Help me generate a new post for ${brandClause} — draft the content, pick the best channels, and prepare it for review or scheduling.`;
+}
 
 type PublishLayoutState = {
   refreshFn: RefreshFunction | (() => RefreshFunction) | null;
@@ -109,7 +97,8 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PublishLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
-  const { href } = useOrgUrl();
+  const { selectedBrand } = useBrand();
+  const openAgentComposer = useOpenAgentComposer();
 
   const [state, dispatch] = useReducer(
     publishLayoutReducer,
@@ -130,9 +119,8 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
     publishSegmentIndex === -1
       ? []
       : pathSegments.slice(publishSegmentIndex + 1);
-  const lastSegment = routeSuffix[0];
-  const isDetailRoute =
-    routeSuffix.length === 1 && !KNOWN_SUB_ROUTES.includes(lastSegment ?? '');
+  // Content desk (`/publish/posts/:id`) skips list chrome.
+  const isDetailRoute = routeSuffix[0] === 'posts' && routeSuffix.length === 2;
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {
@@ -141,6 +129,10 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
       refresh();
     }
   }, [refreshFn, refresh]);
+
+  const handleNewPost = useCallback(() => {
+    openAgentComposer(buildNewPostAgentPrompt(selectedBrand?.label));
+  }, [openAgentComposer, selectedBrand?.label]);
 
   const setExportNode = useCallback(
     (node: ReactNode) => dispatch({ type: 'SET_EXPORT_NODE', payload: node }),
@@ -213,16 +205,13 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
             {exportNode}
             {scheduleActionsNode}
             <Button
-              asChild
               size={ButtonSize.SM}
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
-            >
-              <Link href={href(NEW_RELEASE_AGENT_HREF)}>
-                <Plus className="size-4" />
-                New post
-              </Link>
-            </Button>
+              icon={<Plus className="size-4" />}
+              label="New post"
+              onClick={handleNewPost}
+            />
             <ButtonRefresh
               onClick={handleRefresh}
               isRefreshing={isRefreshing}

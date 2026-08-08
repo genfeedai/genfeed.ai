@@ -73,7 +73,7 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
         onClick={handleReject}
         className={cn(
           'absolute top-3 right-3 z-10',
-          'p-1 rounded-full',
+          'rounded-md p-1',
           'text-white/30 hover:text-white/70',
           'bg-white/[0.04] hover:bg-white/[0.1]',
           'transition-all duration-200',

@@ -56,6 +56,7 @@ export function AgentFullPage({
     activeThreadStatus,
     agentSetup,
     currentStepId,
+    handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
     mobileChecklistOpen,
@@ -151,7 +152,7 @@ export function AgentFullPage({
             <AgentChatContainer
               archivedNotice={
                 activeThreadStatus === AgentThreadStatus.ARCHIVED
-                  ? 'This thread is archived. It is visible for reference but cannot be edited.'
+                  ? 'This thread is archived. Unarchive it to continue the conversation.'
                   : null
               }
               apiService={apiService}
@@ -176,6 +177,7 @@ export function AgentFullPage({
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
               onSelectCreditPack={onSelectCreditPack}
+              onUnarchive={handleUnarchiveActiveThread}
               onboardingMode={onboardingMode}
               isWideLayout={!hasInlineContextPanel}
               promptBarLayoutMode="surface-fixed"

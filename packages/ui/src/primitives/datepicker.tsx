@@ -26,6 +26,8 @@ export interface DatepickerProps {
   showYearDropdown?: boolean;
   showMonthDropdown?: boolean;
   dropdownMode?: 'scroll' | 'select';
+  /** Accessible name when no visible `label` is rendered. */
+  'aria-label'?: string;
 }
 
 function parseDate(value: string | Date | null | undefined): Date | undefined {
@@ -50,6 +52,7 @@ export default function Datepicker({
   dateFormat = 'PPP',
   showYearDropdown = true,
   showMonthDropdown = true,
+  'aria-label': ariaLabel,
 }: DatepickerProps) {
   const [open, setOpen] = useState(false);
   const selectedDate = parseDate(value);
@@ -72,6 +75,7 @@ export default function Datepicker({
           <Button
             variant={ButtonVariant.SECONDARY}
             disabled={isDisabled}
+            ariaLabel={ariaLabel}
             className={cn(
               'w-full justify-start text-left font-normal',
               !selectedDate && 'text-muted-foreground',

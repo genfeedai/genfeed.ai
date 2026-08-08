@@ -2,30 +2,27 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "website (direct)",
+      "name": "website",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bun run dev:direct:website"],
+      "runtimeArgs": ["-c", "bun run --cwd apps/website dev"],
       "port": 3002
     },
     {
-      "name": "app (direct)",
+      "name": "app",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bun run dev:direct:app"],
+      "runtimeArgs": ["-c", "bun run --cwd apps/app dev"],
       "port": 3000
     },
     {
-      "name": "api (direct)",
+      "name": "api",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "bun run --cwd apps/server/api dev:direct"],
+      "runtimeArgs": ["-c", "bun run --cwd apps/server/api dev"],
       "port": 3010
     },
     {
-      "name": "notifications (direct)",
+      "name": "notifications",
       "runtimeExecutable": "bash",
-      "runtimeArgs": [
-        "-c",
-        "bun run --cwd apps/server/notifications dev:direct"
-      ],
+      "runtimeArgs": ["-c", "bun run --cwd apps/server/notifications dev"],
       "port": 3111
     }
   ]

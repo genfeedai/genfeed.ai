@@ -2,6 +2,7 @@
 
 import type { PageScope, ReviewDecision } from '@genfeedai/enums';
 import { AlertCategory, PostStatus } from '@genfeedai/enums';
+import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
@@ -14,18 +15,27 @@ import Alert from '@ui/feedback/alert/Alert';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 export interface PostDetailProps {
   postId: string;
   scope: PageScope;
   presentation?: 'page' | 'overlay';
+  /**
+   * When set, sidebar meta (schedule, quality, SEO, …) is handed to the host
+   * (e.g. workspace Context rail) instead of rendering inline beside content.
+   */
+  renderContextSidebar?: (
+    sidebar: ReactNode,
+    contextLabel: string,
+  ) => ReactNode;
 }
 
 export default function PostDetail({
   postId,
   scope,
   presentation = 'page',
+  renderContextSidebar,
 }: PostDetailProps) {
   const router = useRouter();
   const { href } = useOrgUrl();
@@ -140,7 +150,7 @@ export default function PostDetail({
         );
         notificationsService.success('Remix post created as draft');
         // Navigate to the new post
-        router.push(href(`/publish/${remixPost.id}`));
+        router.push(href(getPublisherPostHref(remixPost.id)));
       } catch (error) {
         notificationsService.error('Failed to create remix post');
         throw error;
@@ -164,7 +174,7 @@ export default function PostDetail({
       const service = await getPostsService();
       const duplicated = await service.duplicate(post.id);
       notificationsService.success('Post duplicated as draft');
-      router.push(href(`/publish/${duplicated.id}`));
+      router.push(href(getPublisherPostHref(duplicated.id)));
     } catch {
       notificationsService.error('Failed to duplicate post');
     }
@@ -199,6 +209,57 @@ export default function PostDetail({
   const isPagePresentation = presentation === 'page';
   const wrapperClassName = isPagePresentation ? 'container mx-auto p-6' : '';
 
+  const handleScheduleChange = useCallback(
+    (value: typeof scheduleDraft) => {
+      setScheduleDraft(value);
+    },
+    [setScheduleDraft],
+  );
+
+  // Stable node for workspace Context adapter registration — rebuilding this
+  // JSX every keystroke was thrashing parent memos. Hooks stay above early returns.
+  const sidebar = useMemo(() => {
+    if (!post) {
+      return null;
+    }
+    return (
+      <div className="space-y-3">
+        <PostDetailSidebar
+          post={post}
+          credential={credential}
+          scheduleDraft={scheduleDraft}
+          isSavingSchedule={isSavingSchedule}
+          isScheduleDirty={isScheduleDirty}
+          isScoringSeo={isScoringSeo}
+          isSeoDirty={isContentDirty}
+          analyticsStats={analyticsStats}
+          reviewSummary={reviewSummary}
+          onScheduleChange={handleScheduleChange}
+          onScheduleSave={handleScheduleSave}
+          onScoreSeo={handleScoreSeo}
+        />
+        {!isPublished ? <EngagementPreview post={post} /> : null}
+      </div>
+    );
+  }, [
+    analyticsStats,
+    credential,
+    handleScheduleChange,
+    handleScheduleSave,
+    handleScoreSeo,
+    isContentDirty,
+    isPublished,
+    isSavingSchedule,
+    isScheduleDirty,
+    isScoringSeo,
+    post,
+    reviewSummary,
+    scheduleDraft,
+  ]);
+  const usesContextSidebar = Boolean(renderContextSidebar);
+  const contextLabel =
+    labelDraft?.trim() || post?.label?.trim() || 'Untitled post';
+
   // Loading state
   if (isLoading) {
     return (
@@ -229,103 +290,95 @@ export default function PostDetail({
   }
 
   return (
-    <div className={wrapperClassName}>
-      {/* Failed post warning banner */}
-      {post.status === PostStatus.FAILED && (
-        <Alert type={AlertCategory.ERROR} className="mb-6">
-          <p className="font-semibold">Publication Failed</p>
-          <p>
-            This post failed to publish. You can edit and reschedule it below.
-          </p>
-        </Alert>
-      )}
+    <>
+      {usesContextSidebar && sidebar
+        ? renderContextSidebar?.(sidebar, contextLabel)
+        : null}
+      <div className={wrapperClassName}>
+        {post.status === PostStatus.FAILED ? (
+          <Alert type={AlertCategory.ERROR} className="mb-6">
+            <p className="font-semibold">Publication Failed</p>
+            <p>
+              This post failed to publish. You can edit and reschedule it below.
+            </p>
+          </Alert>
+        ) : null}
 
-      <PostDetailHeader
-        post={post}
-        scope={scope}
-        isPublished={isPublished}
-        hasChildren={hasChildren}
-        viewMode={viewMode}
-        isExpandingToThread={isExpandingToThread}
-        onViewModeChange={setViewMode}
-        onDelete={handleDeletePost}
-        onCreateRemix={handleCreateRemix}
-        onDuplicate={handleDuplicate}
-        onExpandToThread={handleExpandToThread}
-      />
-
-      <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <PostDetailContent
+        <PostDetailHeader
           post={post}
-          sortedChildren={sortedChildren}
           scope={scope}
-          viewMode={viewMode}
-          descriptionDraft={descriptionDraft}
-          labelDraft={labelDraft}
-          childDescriptions={childDescriptions}
-          selectedIngredients={selectedIngredients}
-          focusedPostId={focusedPostId}
-          draggedPostId={draggedPostId}
-          dragOverDividerIndex={dragOverDividerIndex}
-          enhancingPostId={enhancingPostId}
-          enhancingAction={enhancingAction}
-          isSavingIngredients={isSavingIngredients}
-          isSavingDescription={isSavingDescription}
-          isTogglingGrok={isTogglingGrok}
-          isTogglingFirstComment={isTogglingFirstComment}
-          carouselValidation={carouselValidation}
-          publishedDisplay={publishedDisplay}
-          isContentDirty={isContentDirty}
-          canAddThread={canAddThread}
-          canAddFirstComment={canAddFirstComment}
-          hasFirstComment={hasFirstComment}
-          firstCommentPost={firstCommentPost}
-          isLastChildGrokTweet={isLastChildGrokTweet}
+          isPublished={isPublished}
           hasChildren={hasChildren}
-          setDescriptionDraft={setDescriptionDraft}
-          setLabelDraft={setLabelDraft}
-          setChildDescription={setChildDescription}
-          setFocusedPostId={setFocusedPostId}
-          setDragOverDividerIndex={setDragOverDividerIndex}
-          handleContentSave={handleContentSave}
-          handleAddToThread={handleAddToThread}
-          handleDeleteChild={handleDeleteChild}
-          handleSelectMedia={handleSelectMedia}
-          handleGenerateIllustration={handleGenerateIllustration}
-          handleQuickAction={handleQuickAction}
-          handlePerTweetEnhance={handlePerTweetEnhance}
-          handleDragStart={handleDragStart}
-          handleDragEnd={handleDragEnd}
-          handleDrop={handleDrop}
-          handleToggleGrokFeedback={handleToggleGrokFeedback}
-          handleToggleFirstComment={handleToggleFirstComment}
-          handleUpdateChild={handleUpdateChild}
-          autoSaveRefs={autoSaveRefs}
-          performAutoSaveForPost={performAutoSaveForPost}
-          getPostsService={getPostsService}
-          notificationsService={notificationsService}
+          viewMode={viewMode}
+          isExpandingToThread={isExpandingToThread}
+          onViewModeChange={setViewMode}
+          onDelete={handleDeletePost}
+          onCreateRemix={handleCreateRemix}
+          onDuplicate={handleDuplicate}
+          onExpandToThread={handleExpandToThread}
         />
 
-        <div className="space-y-4">
-          <PostDetailSidebar
+        <div
+          className={
+            usesContextSidebar ? 'min-w-0' : 'grid gap-4 lg:grid-cols-[2fr_1fr]'
+          }
+        >
+          <PostDetailContent
             post={post}
-            credential={credential}
-            scheduleDraft={scheduleDraft}
-            isSavingSchedule={isSavingSchedule}
-            isScheduleDirty={isScheduleDirty}
-            isScoringSeo={isScoringSeo}
-            isSeoDirty={isContentDirty}
-            analyticsStats={analyticsStats}
-            reviewSummary={reviewSummary}
-            onScheduleChange={(value) => setScheduleDraft(value)}
-            onScheduleSave={handleScheduleSave}
-            onScoreSeo={handleScoreSeo}
+            sortedChildren={sortedChildren}
+            scope={scope}
+            viewMode={viewMode}
+            descriptionDraft={descriptionDraft}
+            labelDraft={labelDraft}
+            childDescriptions={childDescriptions}
+            selectedIngredients={selectedIngredients}
+            focusedPostId={focusedPostId}
+            draggedPostId={draggedPostId}
+            dragOverDividerIndex={dragOverDividerIndex}
+            enhancingPostId={enhancingPostId}
+            enhancingAction={enhancingAction}
+            isSavingIngredients={isSavingIngredients}
+            isSavingDescription={isSavingDescription}
+            isTogglingGrok={isTogglingGrok}
+            isTogglingFirstComment={isTogglingFirstComment}
+            carouselValidation={carouselValidation}
+            publishedDisplay={publishedDisplay}
+            isContentDirty={isContentDirty}
+            canAddThread={canAddThread}
+            canAddFirstComment={canAddFirstComment}
+            hasFirstComment={hasFirstComment}
+            firstCommentPost={firstCommentPost}
+            isLastChildGrokTweet={isLastChildGrokTweet}
+            hasChildren={hasChildren}
+            setDescriptionDraft={setDescriptionDraft}
+            setLabelDraft={setLabelDraft}
+            setChildDescription={setChildDescription}
+            setFocusedPostId={setFocusedPostId}
+            setDragOverDividerIndex={setDragOverDividerIndex}
+            handleContentSave={handleContentSave}
+            handleAddToThread={handleAddToThread}
+            handleDeleteChild={handleDeleteChild}
+            handleSelectMedia={handleSelectMedia}
+            handleGenerateIllustration={handleGenerateIllustration}
+            handleQuickAction={handleQuickAction}
+            handlePerTweetEnhance={handlePerTweetEnhance}
+            handleDragStart={handleDragStart}
+            handleDragEnd={handleDragEnd}
+            handleDrop={handleDrop}
+            handleToggleGrokFeedback={handleToggleGrokFeedback}
+            handleToggleFirstComment={handleToggleFirstComment}
+            handleUpdateChild={handleUpdateChild}
+            autoSaveRefs={autoSaveRefs}
+            performAutoSaveForPost={performAutoSaveForPost}
+            getPostsService={getPostsService}
+            notificationsService={notificationsService}
           />
 
-          {/* Engagement Preview - shown for unpublished posts */}
-          {!isPublished && <EngagementPreview post={post} />}
+          {!usesContextSidebar ? (
+            <div className="space-y-4">{sidebar}</div>
+          ) : null}
         </div>
       </div>
-    </div>
+    </>
   );
 }

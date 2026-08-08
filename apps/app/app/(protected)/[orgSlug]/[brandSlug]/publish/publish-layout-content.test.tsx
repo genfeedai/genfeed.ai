@@ -1,14 +1,18 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PublishLayoutContent from './publish-layout-content';
 
 const usePathnameMock = vi.fn();
 const useRouterMock = vi.fn();
 const useSearchParamsMock = vi.fn();
+const openAgentComposerMock = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: vi.fn(() => ({ selectedBrand: null })),
+  useBrand: vi.fn(() => ({
+    brandId: 'brand-1',
+    selectedBrand: { id: 'brand-1', label: 'Acme Creator' },
+  })),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -16,6 +20,10 @@ vi.mock('next/navigation', () => ({
   usePathname: () => usePathnameMock(),
   useRouter: () => useRouterMock(),
   useSearchParams: () => useSearchParamsMock(),
+}));
+
+vi.mock('@/hooks/use-open-agent-composer', () => ({
+  useOpenAgentComposer: () => openAgentComposerMock,
 }));
 
 class MockIntersectionObserver {
@@ -28,6 +36,7 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 describe('PublishLayoutContent', () => {
   beforeEach(() => {
+    openAgentComposerMock.mockReset();
     usePathnameMock.mockReturnValue('/publish/scheduled');
     useRouterMock.mockReturnValue({ refresh: vi.fn() });
     useSearchParamsMock.mockReturnValue(
@@ -44,8 +53,11 @@ describe('PublishLayoutContent', () => {
 
     expect(screen.getByText('child content')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /new post/i }).getAttribute('href'),
-    ).toContain('/acme-org/acme-creator/agent/new?prompt=');
+      screen.getByRole('button', { name: /new post/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /new post/i }),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /drafts/i }),
     ).not.toBeInTheDocument();
@@ -57,8 +69,27 @@ describe('PublishLayoutContent', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('seeds the agent composer without leaving Publish', () => {
+    render(
+      <PublishLayoutContent>
+        <div>child content</div>
+      </PublishLayoutContent>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /new post/i }));
+
+    expect(openAgentComposerMock).toHaveBeenCalledTimes(1);
+    expect(openAgentComposerMock).toHaveBeenCalledWith(
+      expect.stringMatching(
+        /generate a new post for my brand "Acme Creator".*do not ask which brand/i,
+      ),
+    );
+  });
+
   it('skips the container chrome for organization-and-brand-scoped detail routes', () => {
-    usePathnameMock.mockReturnValue('/acme-org/acme-creator/publish/post-123');
+    usePathnameMock.mockReturnValue(
+      '/acme-org/acme-creator/publish/posts/post-123',
+    );
     useSearchParamsMock.mockReturnValue(new URLSearchParams(''));
 
     render(
@@ -69,7 +100,7 @@ describe('PublishLayoutContent', () => {
 
     expect(screen.getByText('detail content')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: /new post/i }),
+      screen.queryByRole('button', { name: /new post/i }),
     ).not.toBeInTheDocument();
   });
 });

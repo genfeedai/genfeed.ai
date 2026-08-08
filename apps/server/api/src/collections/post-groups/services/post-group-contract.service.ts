@@ -287,9 +287,18 @@ export class PostGroupContractService {
     }
   }
 
+  /**
+   * Map a release-group status onto the legacy `posts.status` String column
+   * (`PostStatus` lowercase product language).
+   *
+   * Never passthrough: `ReleaseStatus` values like `paused` / `cancelled` /
+   * `publishing` are not in `PostStatus` and must not land on `posts.status`.
+   * Target-level truth stays on `targetExecutionState` via {@link toTargetState}.
+   */
   toPostStatus(status: string): PostStatus {
     switch (status) {
       case ReleaseStatus.DRAFT:
+      case PostStatus.DRAFT:
       // The legacy vocabulary has no paused/cancelled members: draft keeps
       // these targets out of the publish sweep, while targetExecutionState
       // preserves the precise state.
@@ -297,12 +306,22 @@ export class PostGroupContractService {
       case ReleaseStatus.CANCELLED:
         return PostStatus.DRAFT;
       case ReleaseStatus.PUBLISHING:
+      case PostStatus.PENDING:
+      case PostStatus.PROCESSING:
         return PostStatus.PROCESSING;
       case ReleaseStatus.PUBLISHED:
+      case PostStatus.PUBLIC:
         return PostStatus.PUBLIC;
       case ReleaseStatus.FAILED:
+      case PostStatus.FAILED:
         return PostStatus.FAILED;
+      case PostStatus.PRIVATE:
+        return PostStatus.PRIVATE;
+      case PostStatus.UNLISTED:
+        return PostStatus.UNLISTED;
       default:
+        // Scheduled, aggregate-only, and unknown release values stay in the
+        // legacy scheduled bucket; targetExecutionState retains exact state.
         return PostStatus.SCHEDULED;
     }
   }

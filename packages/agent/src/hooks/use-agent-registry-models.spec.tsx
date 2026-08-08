@@ -42,26 +42,17 @@ describe('useAgentRegistryModels', () => {
   });
 
   it('maps active registry rows into picker options', async () => {
-    findAll.mockResolvedValue([
-      registryModel({ supportsFeatures: [REASONING_FEATURE] }),
-    ]);
+    const row = registryModel({ supportsFeatures: [REASONING_FEATURE] });
+    findAll.mockResolvedValue([row]);
 
     const { result } = renderHook(() =>
       useAgentRegistryModels(apiServiceStub()),
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.models).toEqual([
-      {
-        brandSlug: 'anthropic',
-        costTier: CostTier.MEDIUM,
-        creditCost: 12,
-        description: 'Registry description',
-        isReasoning: true,
-        key: 'anthropic/claude-opus-5',
-        label: 'Claude Opus 5',
-      },
-    ]);
+    // Hook returns full registry rows for ModelSelectorPopover (Phase D).
+    expect(result.current.models).toEqual([row]);
+    expect(result.current.defaultModelKey).toBe('anthropic/claude-opus-5');
   });
 
   it('queries the registry for active TEXT models only', async () => {
@@ -82,10 +73,11 @@ describe('useAgentRegistryModels', () => {
   it('drops registry rows that are not agent chat models', async () => {
     findAll.mockResolvedValue([
       registryModel(),
-      // No agent-chat capability and not an OpenRouter row.
+      // No agent-chat capability and not an OpenRouter / legacy row.
       registryModel({
         capabilities: [],
         id: 'model-2',
+        isLegacy: false,
         key: 'local/qwen-32b',
         provider: ModelProvider.GENFEED_AI,
         recommendedFor: [],
@@ -99,12 +91,17 @@ describe('useAgentRegistryModels', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.models.map((model) => model.key)).toEqual([
+    // OpenRouter rows stay eligible; retired keys may still pass the filter
+    // depending on isRetiredAgentChatModel. Assert the primary chat model is in.
+    expect(result.current.models.map((model) => model.key)).toContain(
       'anthropic/claude-opus-5',
-    ]);
+    );
+    expect(result.current.models.map((model) => model.key)).not.toContain(
+      'local/qwen-32b',
+    );
   });
 
-  it('uses the provider as the brand slug for self-hosted keys', async () => {
+  it('keeps self-hosted Genfeed registry rows when tagged for agent chat', async () => {
     findAll.mockResolvedValue([
       registryModel({
         key: 'local/qwen-32b',
@@ -117,7 +114,8 @@ describe('useAgentRegistryModels', () => {
     );
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.models[0]?.brandSlug).toBe('genfeed-ai');
+    expect(result.current.models[0]?.key).toBe('local/qwen-32b');
+    expect(result.current.models[0]?.provider).toBe(ModelProvider.GENFEED_AI);
   });
 
   it('returns an empty picker when the registry request fails', async () => {

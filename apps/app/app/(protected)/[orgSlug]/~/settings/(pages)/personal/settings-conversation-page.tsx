@@ -2,18 +2,33 @@
 
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
+  AGENT_CHAT_CAPABILITY,
+  isRetiredAgentChatModel,
+} from '@genfeedai/constants';
+import {
   AgentReplyStyle,
+  fromRouterPriority,
   GenerationPriority,
-  toGenerationPriority,
+  ModelCategory,
+  ModelProvider,
+  RouterPriority,
+  toRouterPriority,
 } from '@genfeedai/enums';
-import type { ISetting } from '@genfeedai/interfaces';
+import type { IModel, ISetting } from '@genfeedai/interfaces';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { User } from '@models/auth/user.model';
+import { ModelsService } from '@services/ai/models.service';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
+import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
+import {
+  AUTO_MODEL_OPTION_VALUE,
+  getAutoModelLabel,
+} from '@ui/dropdowns/model-selector/model-selector.constants';
+import { useModelFavorites } from '@ui/dropdowns/model-selector/useModelFavorites';
 import {
   Select,
   SelectContent,
@@ -22,9 +37,8 @@ import {
   SelectValue,
 } from '@ui/primitives';
 import { Button } from '@ui/primitives/button';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const AUTO_MODEL_SELECT_VALUE = '__auto__';
 const REPLY_STYLE_OPTIONS: Array<{ label: string; value: AgentReplyStyle }> = [
   { label: 'Concise', value: AgentReplyStyle.CONCISE },
   { label: 'Detailed', value: AgentReplyStyle.DETAILED },
@@ -62,6 +76,27 @@ interface SettingsConversationPageProps {
   showReplyStyle?: boolean;
 }
 
+function isAgentChatRegistryModel(model: IModel): boolean {
+  if (model.category !== ModelCategory.TEXT) {
+    return false;
+  }
+  if (model.isLegacy || model.isActive === false) {
+    return false;
+  }
+  if (isRetiredAgentChatModel(model.key)) {
+    return false;
+  }
+
+  const capabilities = model.capabilities ?? [];
+  const recommended = model.recommendedFor ?? [];
+
+  return (
+    capabilities.includes(AGENT_CHAT_CAPABILITY) ||
+    recommended.includes(AGENT_CHAT_CAPABILITY) ||
+    model.provider === ModelProvider.OPENROUTER
+  );
+}
+
 export default function SettingsConversationPage({
   showReplyStyle = true,
 }: SettingsConversationPageProps) {
@@ -73,9 +108,15 @@ export default function SettingsConversationPage({
   const [defaultAgentModel, setDefaultAgentModel] = useState('');
   const [isSavingConversation, setIsSavingConversation] = useState(false);
   const [isSavingReplyStyle, setIsSavingReplyStyle] = useState(false);
+  const [registryModels, setRegistryModels] = useState<IModel[]>([]);
+  const [isModelsLoading, setIsModelsLoading] = useState(true);
+  const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
+  );
+  const getModelsService = useAuthedService((token: string) =>
+    ModelsService.getInstance(token),
   );
 
   useEffect(() => {
@@ -87,6 +128,45 @@ export default function SettingsConversationPage({
     currentUser?.settings?.defaultAgentModel,
     currentUser?.settings?.generationPriority,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    void (async () => {
+      setIsModelsLoading(true);
+      try {
+        const service = await getModelsService();
+        const rows = await service.findAll(
+          {
+            category: ModelCategory.TEXT,
+            isActive: true,
+            limit: 100,
+            sort: 'label: 1',
+          },
+          controller.signal,
+        );
+        if (cancelled) {
+          return;
+        }
+        setRegistryModels(rows.filter(isAgentChatRegistryModel));
+      } catch (error) {
+        if (!cancelled) {
+          logger.error('Failed to load chat models for settings', error);
+          setRegistryModels([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsModelsLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [getModelsService]);
 
   const handleReplyStyleChange = useCallback(
     async (value: string) => {
@@ -128,6 +208,8 @@ export default function SettingsConversationPage({
           settings: {
             ...currentUser.settings,
             ...patch,
+            // Persist empty string so Auto is explicit after save.
+            defaultAgentModel: defaultAgentModel || '',
           },
         }),
       );
@@ -146,6 +228,44 @@ export default function SettingsConversationPage({
     refresh,
   ]);
 
+  const routerPriority =
+    toRouterPriority(generationPriority) ?? RouterPriority.BALANCED;
+  const isAutoSelected = !defaultAgentModel.trim();
+  const pickerValues = useMemo(
+    () =>
+      isAutoSelected
+        ? [AUTO_MODEL_OPTION_VALUE]
+        : defaultAgentModel
+          ? [defaultAgentModel]
+          : [],
+    [defaultAgentModel, isAutoSelected],
+  );
+
+  // Prefer registry catalogue; fall back to org enabled keys as stub IModels.
+  const enabledModelIds = settings?.enabledModelIds ?? [];
+  const pickerModels = useMemo(() => {
+    if (registryModels.length > 0) {
+      if (enabledModelIds.length === 0) {
+        return registryModels;
+      }
+      const enabled = new Set(enabledModelIds);
+      const filtered = registryModels.filter((model) => enabled.has(model.key));
+      return filtered.length > 0 ? filtered : registryModels;
+    }
+    return enabledModelIds.map(
+      (key) =>
+        ({
+          cost: 0,
+          isActive: true,
+          isDefault: false,
+          key,
+          label: key,
+          category: ModelCategory.TEXT,
+          provider: ModelProvider.OPENROUTER,
+        }) as IModel,
+    );
+  }, [enabledModelIds, registryModels]);
+
   if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-form">
@@ -153,9 +273,6 @@ export default function SettingsConversationPage({
       </div>
     );
   }
-
-  const enabledModelIds = settings?.enabledModelIds ?? [];
-  const selectedModel = defaultAgentModel || AUTO_MODEL_SELECT_VALUE;
 
   return (
     <div className="space-y-4">
@@ -197,64 +314,43 @@ export default function SettingsConversationPage({
       <Card label="Chat Defaults" bodyClassName="gap-3 p-4">
         <div className="space-y-3">
           <div>
-            <p className="text-sm font-medium">Generation Priority</p>
-            <Select
-              value={generationPriority}
-              disabled={isSavingConversation}
-              onValueChange={(value) =>
-                setGenerationPriority(
-                  toGenerationPriority(value) ?? GenerationPriority.BALANCED,
-                )
-              }
-            >
-              <SelectTrigger className="w-full mt-2 rounded">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {GENERATION_PRIORITY_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <p className="text-sm font-medium">Default chat model</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Auto routes by generation priority. Pick a model to pin every new
+              chat.
+            </p>
+            <div className="mt-2">
+              <ModelSelectorPopover
+                autoLabel={getAutoModelLabel(routerPriority)}
+                className="w-full max-w-md justify-start border border-border bg-background"
+                favoriteModelKeys={favoriteModelKeys}
+                isDisabled={isSavingConversation || isModelsLoading}
+                models={pickerModels}
+                name="default-agent-model"
+                onChange={(_name, values) => {
+                  const next = values[0]?.trim() ?? '';
+                  if (!next || next === AUTO_MODEL_OPTION_VALUE) {
+                    setDefaultAgentModel('');
+                    return;
+                  }
+                  setDefaultAgentModel(next);
+                }}
+                onFavoriteToggle={onFavoriteToggle}
+                onPrioritizeChange={(priority) => {
+                  setGenerationPriority(fromRouterPriority(priority));
+                  setDefaultAgentModel('');
+                }}
+                prioritize={routerPriority}
+                selectionMode="single"
+                values={pickerValues}
+              />
+            </div>
             <p className="mt-2 text-xs text-muted-foreground">
               {
                 GENERATION_PRIORITY_OPTIONS.find(
                   (option) => option.value === generationPriority,
                 )?.description
               }
-            </p>
-          </div>
-
-          <div>
-            <p className="text-sm font-medium">Chat Model Override</p>
-            <Select
-              value={selectedModel}
-              disabled={isSavingConversation}
-              onValueChange={(value) =>
-                setDefaultAgentModel(
-                  value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                )
-              }
-            >
-              <SelectTrigger className="w-full mt-2 rounded">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                  OpenRouter Auto (default)
-                </SelectItem>
-                {enabledModelIds.map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Leave this on OpenRouter Auto unless you need to pin a specific
-              model for chat.
             </p>
           </div>
 

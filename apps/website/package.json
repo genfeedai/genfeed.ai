@@ -38,9 +38,7 @@
     "check:orphans": "bun run scripts/check-orphans.ts",
     "check:seo": "bun run scripts/check-seo.ts",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' next dev --turbopack",
-    "dev:direct": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' bun run ../../scripts/dev/run-direct.ts website -- next dev --turbopack",
-    "dev:portless": "bun run ../../scripts/dev/run-portless.ts website -- bun run dev:direct",
+    "dev": "bun run ../../scripts/dev/run-portless.ts website -- bun run dev:process",
     "generate:llms": "bun run scripts/generate-llms-txt.ts",
     "lint": "biome check app src packages scripts instrumentation.ts instrumentation-client.ts next.config.ts postcss.config.mjs tailwind.config.ts package.json tsconfig.json vercel.json sentry.edge.config.ts sentry.server.config.ts README.md",
     "prebuild": "bun run scripts/generate-llms-txt.ts",
@@ -48,7 +46,9 @@
     "test": "vitest run --config ../vitest.config.mts",
     "test:cov": "vitest run --coverage --config ../vitest.config.mts",
     "test:watch": "vitest --config ../vitest.config.mts",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "dev:process": "NODE_OPTIONS='--max-old-space-size=4096 --disable-warning=DEP0169' bun run ../../scripts/dev/run-service.ts website -- next dev --turbopack",
+    "dev:debug": "bun run dev:process"
   },
   "version": "1.0.0",
   "devDependencies": {

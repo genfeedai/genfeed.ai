@@ -40,7 +40,7 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
-    expect(APP_ROUTES.EDIT.POST).toBe('/edit/post');
+    expect(APP_ROUTES.PUBLISH.POSTS).toBe('/publish/posts');
     expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
   });
 
@@ -52,7 +52,7 @@ describe('routes.constant', () => {
       '/edit/newsletter/newsletter-1',
     );
     expect(createArtifactEditorRoute('post', 'post-1')).toBe(
-      '/edit/post/post-1',
+      '/publish/posts/post-1',
     );
     expect(
       createBrandAppRoute(
@@ -60,17 +60,17 @@ describe('routes.constant', () => {
         'paperclip',
         createArtifactEditorRoute('post', 'post-1'),
       ),
-    ).toBe('/genfeed-ai/paperclip/edit/post/post-1');
+    ).toBe('/genfeed-ai/paperclip/publish/posts/post-1');
   });
 
   it('round-trips the originating list through the return parameter', () => {
     expect(
       withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/edit/post/post-1',
-        '/genfeed-ai/paperclip/publish?status=draft',
+        '/genfeed-ai/paperclip/publish/posts/post-1',
+        '/genfeed-ai/paperclip/publish/posts?status=draft',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%3Fstatus%3Ddraft',
+      '/genfeed-ai/paperclip/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts%3Fstatus%3Ddraft',
     );
     expect(
       resolveArtifactEditorBackHref(
@@ -81,11 +81,11 @@ describe('routes.constant', () => {
 
     expect(
       withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/edit/post/post-1?mode=focus',
-        '/genfeed-ai/paperclip/publish',
+        '/genfeed-ai/paperclip/publish/posts/post-1?mode=focus',
+        '/genfeed-ai/paperclip/publish/posts',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/edit/post/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
+      '/genfeed-ai/paperclip/publish/posts/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts',
     );
   });
 

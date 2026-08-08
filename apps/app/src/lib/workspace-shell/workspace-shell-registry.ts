@@ -147,7 +147,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/analytics': 'Overview',
   '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
-  '/:orgSlug/:brandSlug/edit/post/:id': 'Post',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/avatars': 'Assets',
   '/:orgSlug/:brandSlug/library/captions': 'Assets',
@@ -163,14 +162,15 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automate/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automate/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automate/library/:type': ':type',
-  '/:orgSlug/:brandSlug/publish/:id': 'Post',
-  '/:orgSlug/:brandSlug/publish/campaigns': 'Campaigns',
-  '/:orgSlug/:brandSlug/publish/campaigns/new': 'New Campaign',
-  '/:orgSlug/:brandSlug/publish/campaigns/:id': 'Campaign',
-  '/:orgSlug/:brandSlug/publish/outreach-campaigns': 'Outreach',
-  '/:orgSlug/:brandSlug/publish/outreach-campaigns/new':
+  '/:orgSlug/:brandSlug/publish/posts': 'Posts',
+  '/:orgSlug/:brandSlug/publish/posts/:id': 'Post',
+  '/:orgSlug/:brandSlug/automate/campaigns': 'Campaigns',
+  '/:orgSlug/:brandSlug/automate/campaigns/new': 'New Campaign',
+  '/:orgSlug/:brandSlug/automate/campaigns/:id': 'Campaign',
+  '/:orgSlug/:brandSlug/automate/outreach-campaigns': 'Outreach',
+  '/:orgSlug/:brandSlug/automate/outreach-campaigns/new':
     'New Outreach Campaign',
-  '/:orgSlug/:brandSlug/publish/outreach-campaigns/:id': 'Outreach Campaign',
+  '/:orgSlug/:brandSlug/automate/outreach-campaigns/:id': 'Outreach Campaign',
   '/:orgSlug/:brandSlug/discover/:platform': ':platform',
   '/:orgSlug/~/discover/:platform': ':platform',
   '/:orgSlug/:brandSlug/settings': 'General',
@@ -223,6 +223,16 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/~/discover/ads/google': 'Ads',
   '/:orgSlug/~/discover/ads/meta': 'Ads',
   '/:orgSlug/~/discover/ads/tiktok': 'Ads',
+  // Content desk lives under Posts, not Overview.
+  '/:orgSlug/:brandSlug/publish/posts/:id': 'Posts',
+} as const satisfies Readonly<Record<string, string>>);
+
+const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publish/posts/:id': '/publish/overview',
+} as const satisfies Readonly<Record<string, string>>);
+
+const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publish/posts/:id': '/publish/posts',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -288,11 +298,21 @@ function getRouteBreadcrumbMetadata(
     BREADCRUMB_PARENT_OVERRIDES[
       canonicalUrl as keyof typeof BREADCRUMB_PARENT_OVERRIDES
     ];
+  const rootHref =
+    BREADCRUMB_ROOT_HREF_OVERRIDES[
+      canonicalUrl as keyof typeof BREADCRUMB_ROOT_HREF_OVERRIDES
+    ];
+  const parentHref =
+    BREADCRUMB_PARENT_HREF_OVERRIDES[
+      canonicalUrl as keyof typeof BREADCRUMB_PARENT_HREF_OVERRIDES
+    ];
 
   return Object.freeze({
     leafLabel,
     ...(parentLabel ? { parentLabel } : {}),
+    ...(parentHref ? { parentHref } : {}),
     rootLabel,
+    ...(rootHref ? { rootHref } : {}),
   });
 }
 
@@ -697,10 +717,9 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/edit/article/:id',
       '/:orgSlug/:brandSlug/edit/newsletter/:id',
-      '/:orgSlug/:brandSlug/edit/post/:id',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/publish/overview',
+      fallback: '/:orgSlug/:brandSlug/publish/posts',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -752,16 +771,11 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/publish',
       '/:orgSlug/:brandSlug/publish/overview',
-      '/:orgSlug/:brandSlug/publish/:id',
+      '/:orgSlug/:brandSlug/publish/posts',
+      '/:orgSlug/:brandSlug/publish/posts/:id',
       '/:orgSlug/:brandSlug/publish/calendar',
-      '/:orgSlug/:brandSlug/publish/campaigns',
-      '/:orgSlug/:brandSlug/publish/campaigns/new',
-      '/:orgSlug/:brandSlug/publish/campaigns/:id',
       '/:orgSlug/:brandSlug/publish/failed',
       '/:orgSlug/:brandSlug/publish/newsletters',
-      '/:orgSlug/:brandSlug/publish/outreach-campaigns',
-      '/:orgSlug/:brandSlug/publish/outreach-campaigns/new',
-      '/:orgSlug/:brandSlug/publish/outreach-campaigns/:id',
       '/:orgSlug/:brandSlug/publish/published',
       '/:orgSlug/:brandSlug/publish/review',
       '/:orgSlug/:brandSlug/publish/scheduled',
@@ -776,13 +790,14 @@ const BRAND_ROUTE_REGISTRATIONS = [
       telemetryClass: 'product',
     },
   ),
+  // Remix is a Discover/Library action deep-link, not a Publish nav surface.
   ...registerRoutes(['/:orgSlug/:brandSlug/publish/remix'], {
-    fallback: '/:orgSlug/:brandSlug/publish',
+    fallback: '/:orgSlug/:brandSlug/discover/overview',
     mode: 'canvas',
     productClass: 'contextual-action',
     scope: 'brand',
     surfaceKey: 'publish',
-    switcherItems: ['publish'],
+    switcherItems: ['discover', 'publish'],
     telemetryClass: 'product',
   }),
   ...registerRoutes(
@@ -826,6 +841,12 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/automate/autopilot',
       '/:orgSlug/:brandSlug/automate/runs',
       '/:orgSlug/:brandSlug/automate/skills',
+      '/:orgSlug/:brandSlug/automate/campaigns',
+      '/:orgSlug/:brandSlug/automate/campaigns/new',
+      '/:orgSlug/:brandSlug/automate/campaigns/:id',
+      '/:orgSlug/:brandSlug/automate/outreach-campaigns',
+      '/:orgSlug/:brandSlug/automate/outreach-campaigns/new',
+      '/:orgSlug/:brandSlug/automate/outreach-campaigns/:id',
       '/:orgSlug/:brandSlug/automate/reply-campaigns',
       '/:orgSlug/:brandSlug/automate/content-runs',
       '/:orgSlug/:brandSlug/automate/content-runs/:runId',

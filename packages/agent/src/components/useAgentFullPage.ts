@@ -13,7 +13,7 @@ import {
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import type { AgentThreadStatus, MemberRole } from '@genfeedai/enums';
+import { AgentThreadStatus, type MemberRole } from '@genfeedai/enums';
 import {
   Briefcase,
   Calendar,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import {
   createElement,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -152,6 +153,7 @@ export function useAgentFullPage({
     (s) => s.status === 'in-progress',
   )?.id;
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
+  const updateThread = useAgentChatStore((s) => s.updateThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
   const setError = useAgentChatStore((s) => s.setError);
   const setMessages = useAgentChatStore((s) => s.setMessages);
@@ -184,6 +186,13 @@ export function useAgentFullPage({
   const activeThreadBrandId = useAgentChatStore((s) =>
     threadId
       ? (s.threads.find((thread) => thread.id === threadId)?.brandId ?? null)
+      : null,
+  );
+  // Store status can land before getThread resolves (or after archive-from-menu).
+  // Prefer either source so isReadOnly does not lag open for regenerates.
+  const storeThreadStatus = useAgentChatStore((s) =>
+    threadId
+      ? (s.threads.find((thread) => thread.id === threadId)?.status ?? null)
       : null,
   );
   const activeThreadRef = useRef(activeStoreThreadId);
@@ -465,11 +474,30 @@ export function useAgentFullPage({
     resetActiveConversationState,
   ]);
 
+  const handleUnarchiveActiveThread = useCallback(async () => {
+    if (!threadId) {
+      return;
+    }
+
+    const restored = await runAgentApiEffect(
+      apiService.unarchiveThreadEffect(threadId),
+    );
+    const nextStatus = restored.status ?? AgentThreadStatus.ACTIVE;
+    setActiveThreadStatus(nextStatus);
+    updateThread(threadId, {
+      status: nextStatus,
+      updatedAt: restored.updatedAt ?? new Date().toISOString(),
+    });
+  }, [apiService, threadId, updateThread]);
+
+  const resolvedThreadStatus = activeThreadStatus ?? storeThreadStatus ?? null;
+
   return {
     activeThreadBrandId,
-    activeThreadStatus,
+    activeThreadStatus: resolvedThreadStatus,
     agentSetup,
     currentStepId,
+    handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
     mobileChecklistOpen,

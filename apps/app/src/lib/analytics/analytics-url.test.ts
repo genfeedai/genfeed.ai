@@ -9,8 +9,8 @@ const UUID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 describe('normalizeAnalyticsPathname', () => {
   it('templatizes tenant org/brand slugs', () => {
     expect(
-      normalizeAnalyticsPathname('/acme-inc/summer-brand/edit/post/post-1'),
-    ).toBe('/:org/:brand/edit/post/post-1');
+      normalizeAnalyticsPathname('/acme-inc/summer-brand/publish/posts/post-1'),
+    ).toBe('/:org/:brand/publish/posts/post-1');
   });
 
   it('keeps the org-level (~) marker and templatizes only the org slug', () => {

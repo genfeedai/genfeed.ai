@@ -13,12 +13,34 @@ describe('PUBLISH_MENU_ITEMS', () => {
     expect(PUBLISH_LOGO_HREF).toBe('/publish/overview');
   });
 
-  it('leads with Overview, not bare module root', () => {
-    expect(PUBLISH_MENU_ITEMS[0]?.label).toBe('Overview');
+  it('leads with Overview → Posts → Calendar, then Pipeline', () => {
+    expect(PUBLISH_MENU_ITEMS.map((item) => item.label)).toEqual([
+      'Overview',
+      'Posts',
+      'Calendar',
+      'Review',
+      'Drafts',
+      'Published',
+    ]);
     expect(PUBLISH_MENU_ITEMS[0]?.href).toBe('/publish/overview');
+    expect(PUBLISH_MENU_ITEMS[1]?.href).toBe('/publish/posts');
+    expect(PUBLISH_MENU_ITEMS[2]?.href).toBe('/publish/calendar');
     expect(PUBLISH_MENU_ITEMS.map((item) => item.href)).not.toContain(
       '/publish',
     );
+  });
+
+  it('groups pipeline status shortcuts under Pipeline', () => {
+    const pipeline = PUBLISH_MENU_ITEMS.filter(
+      (item) => item.group === 'Pipeline',
+    );
+    expect(pipeline.map((item) => item.label)).toEqual([
+      'Review',
+      'Drafts',
+      'Published',
+    ]);
+    expect(pipeline[0]?.hasDividerAbove).toBeFalsy();
+    expect(pipeline[0]?.isCollapsible).toBe(true);
   });
 
   it('has no duplicate hrefs', () => {
@@ -39,9 +61,6 @@ describe('PUBLISH_MENU_ITEMS', () => {
     }
   });
 
-  // The root list collapsed onto the surface root, so /publish is a valid href
-  // alongside the /publish/* leaves. No item may fall back to the retired
-  // /posts segment.
   it('all hrefs stay on the publish surface', () => {
     for (const item of PUBLISH_MENU_ITEMS) {
       expect(item.href).toMatch(/^\/publish(?:\/|$)/);
@@ -54,5 +73,20 @@ describe('PUBLISH_MENU_ITEMS', () => {
 
     expect(hrefs).not.toContain('/publish/analytics');
     expect(labels).not.toContain('Analytics');
+  });
+
+  it('does not host creation/automation destinations (Automate + actions own those)', () => {
+    const hrefs = PUBLISH_MENU_ITEMS.map((item) => item.href);
+    const labels = PUBLISH_MENU_ITEMS.map((item) => item.label);
+
+    expect(hrefs).not.toContain('/publish/campaigns');
+    expect(hrefs).not.toContain('/automate/campaigns');
+    expect(hrefs).not.toContain('/publish/outreach-campaigns');
+    expect(hrefs).not.toContain('/publish/newsletters');
+    expect(hrefs).not.toContain('/publish/remix');
+    expect(labels).not.toContain('Campaigns');
+    expect(labels).not.toContain('Outreach');
+    expect(labels).not.toContain('Newsletters');
+    expect(labels).not.toContain('Remix');
   });
 });

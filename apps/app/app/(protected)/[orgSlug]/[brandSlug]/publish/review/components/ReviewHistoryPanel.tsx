@@ -1,8 +1,8 @@
 'use client';
 
 import type { IBatchItem } from '@genfeedai/interfaces';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 
 type ReviewEvent = NonNullable<IBatchItem['reviewEvents']>[number];
@@ -32,13 +32,13 @@ export default function ReviewHistoryPanel({
   }
 
   return (
-    <InsetSurface className="p-5" tone="contrast">
+    <div className="space-y-3 border-b border-border px-4 py-4 last:border-b-0">
       <h3 className="text-sm font-medium text-foreground">Review history</h3>
-      <div className="mt-4 space-y-4">
+      <div className="space-y-4">
         {reviewEvents.map((event) => (
-          <InsetSurface
+          <div
             key={`${event.reviewedAt}-${event.decision}-${event.feedback ?? 'no-feedback'}`}
-            tone="default"
+            className="space-y-2"
           >
             <div className="flex items-start justify-between gap-4">
               <p className="text-sm font-medium capitalize text-foreground">
@@ -46,21 +46,21 @@ export default function ReviewHistoryPanel({
                   ? 'Changes requested'
                   : event.decision}
               </p>
-              <p className="text-xs text-foreground/45">
+              <p className="text-xs text-muted-foreground">
                 {formatDateInTimezone(
                   event.reviewedAt,
                   browserTimezone,
-                  'MMM d, yyyy h:mm a',
+                  DATE_FORMATS.DISPLAY_DATETIME,
                 )}
               </p>
             </div>
-            {event.feedback && (
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground/75">
+            {event.feedback ? (
+              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/75">
                 {event.feedback}
               </p>
-            )}
-            <div className="mt-3 flex items-center gap-2">
-              <Avatar className="size-7 bg-background shadow-border">
+            ) : null}
+            <div className="flex items-center gap-2">
+              <Avatar className="size-7 bg-background-secondary">
                 {event.reviewer?.avatar ? (
                   <AvatarImage
                     alt={`${event.reviewer.displayName} profile picture`}
@@ -68,15 +68,15 @@ export default function ReviewHistoryPanel({
                     src={event.reviewer.avatar}
                   />
                 ) : null}
-                <AvatarFallback className="text-[10px] font-semibold text-foreground/70">
+                <AvatarFallback className="text-[10px] font-semibold text-muted-foreground">
                   {event.reviewer
                     ? getReviewerInitials(event.reviewer.displayName)
                     : '?'}
                 </AvatarFallback>
               </Avatar>
               {event.reviewer ? (
-                <p className="min-w-0 text-xs text-foreground/55">
-                  <span className="font-medium text-foreground/75">
+                <p className="min-w-0 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground/80">
                     {event.reviewer.displayName}
                   </span>
                   {event.reviewer.handle ? (
@@ -86,14 +86,14 @@ export default function ReviewHistoryPanel({
                   ) : null}
                 </p>
               ) : (
-                <p className="text-xs text-foreground/45">
+                <p className="text-xs text-muted-foreground">
                   Reviewer unavailable
                 </p>
               )}
             </div>
-          </InsetSurface>
+          </div>
         ))}
       </div>
-    </InsetSurface>
+    </div>
   );
 }

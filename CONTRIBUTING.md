@@ -56,13 +56,30 @@ bun run env:sync local --prune-legacy
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
 ```
 
-Run only the workspaces needed for your change. Common entry points are:
+Run only the workspaces needed for your change. Canonical root scripts:
+
+| Command | Starts |
+| --- | --- |
+| `bun run dev:setup` | Once per machine — Portless HTTPS on `:443` |
+| `bun run dev:doctor` | Read-only Portless contract check |
+| `bun run dev:backend:min` | api + files + notifications (app minimum) |
+| `bun run dev:backend` | Full backend (+ mcp + workers) |
+| `bun run dev:app` | Product UI → `https://app.genfeed.localhost/` |
+| `bun run dev` | Full stack (Portless) |
+| `bun run dev:docs` | Docs site |
+| `bun run dev:website` | Marketing site |
+| `bun run dev:desktop` | Electron shell |
+| `bun run dev:debug*` | Fixed-port escape hatch only |
+
+Package model (routed services): package **`dev`** is the Portless entry;
+**`dev:process`** is the child process Portless runs (`run-service.ts`);
+**`dev:debug`** is fixed ports without Portless. The names `dev:direct` and
+`dev:portless` are retired. Thin aliases (`dev:essentials`, `dev:app:be`,
+`dev:all`, …) still point at the canonical names for one cycle.
 
 ```bash
+bun run dev:backend:min
 bun run dev:app
-bun run dev:essentials
-bun run dev:desktop
-bun run dev:docs
 ```
 
 The self-hosted distribution has a separate container-image path that does not
@@ -93,15 +110,16 @@ mix Portless routes with fixed-port values.
 Fixed ports remain available for explicit debugging:
 
 ```bash
-bun run dev:direct:app
-bun run dev:direct:essentials
-bun run dev:direct:frontend
+bun run dev:debug:app
+bun run dev:debug:backend:min
+bun run dev:debug:frontend
 ```
 
-Those commands inject their fixed bind ports at the direct-runtime boundary:
-app `3000`, API `3010`, and notifications/websocket `3111`. Canonical
-environment examples keep the clean HTTPS service origins. Container,
-self-hosted, and deployed notifications services continue to use port `3011`.
+Those commands inject fixed bind ports at the `dev:debug` / `run-service`
+boundary (no Portless): app `3000`, API `3010`, and notifications/websocket
+`3111`. Canonical environment examples keep the clean HTTPS service origins.
+Container, self-hosted, and deployed notifications services continue to use
+port `3011`.
 
 ## Branch and pull-request workflow
 

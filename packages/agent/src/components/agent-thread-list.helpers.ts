@@ -187,7 +187,9 @@ export function getThreadStatusMeta(
   },
 ): {
   label: string;
-  tone: 'neutral' | 'running' | 'warning';
+  /** running/waiting pulse; failed is solid; null = no disc */
+  tone: 'running' | 'warning' | 'failed';
+  shouldPulse: boolean;
 } | null {
   if (
     thread.attentionState === 'needs-input' ||
@@ -196,6 +198,7 @@ export function getThreadStatusMeta(
   ) {
     return {
       label: 'Needs input',
+      shouldPulse: true,
       tone: 'warning',
     };
   }
@@ -203,40 +206,46 @@ export function getThreadStatusMeta(
   if (isThreadActivelyRunning(thread, options)) {
     return {
       label: 'Running',
+      shouldPulse: true,
       tone: 'running',
     };
   }
 
-  if (thread.attentionState === 'updated') {
+  if (thread.runStatus === 'failed' || options?.activeRunStatus === 'failed') {
     return {
-      label: 'Updated',
-      tone: 'neutral',
+      label: 'Failed',
+      shouldPulse: false,
+      tone: 'failed',
     };
   }
 
+  // Idle / updated / completed: no activity disc (Claude-style).
   return null;
 }
 
 export function getThreadStatusDotClass(options: {
   attentionState?: AgentThread['attentionState'];
   pendingInputCount?: AgentThread['pendingInputCount'];
+  tone?: 'running' | 'warning' | 'failed' | null;
 }): string {
+  if (options.tone === 'failed') {
+    return 'bg-red-400';
+  }
+
   if (
+    options.tone === 'warning' ||
     options.attentionState === 'needs-input' ||
     (options.pendingInputCount ?? 0) > 0
   ) {
     return 'bg-amber-300';
   }
 
-  if (options.attentionState === 'running') {
-    return 'bg-sky-400';
+  if (options.tone === 'running' || options.attentionState === 'running') {
+    // Claude-like violet activity disc
+    return 'bg-violet-400';
   }
 
-  if (options.attentionState === 'updated') {
-    return 'bg-sky-300';
-  }
-
-  return 'bg-white/10';
+  return 'bg-transparent';
 }
 
 export function getThreadStatusA11yLabel(

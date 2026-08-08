@@ -9,7 +9,10 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
-import { getPostsPlatformLabel } from '@helpers/content/posts.helper';
+import {
+  getPostsPlatformLabel,
+  getPublisherPostHref,
+} from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   formatDateInTimezone,
@@ -192,7 +195,7 @@ const PostsGrid = memo(
         return;
       }
 
-      router.push(href(`/publish/${post.id}`));
+      router.push(href(getPublisherPostHref(post.id)));
     };
 
     if (posts.length === 0) {

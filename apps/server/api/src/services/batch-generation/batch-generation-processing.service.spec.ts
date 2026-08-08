@@ -216,6 +216,67 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     );
   });
 
+  it('expands empty topics into distinct angles and passes prior captions', async () => {
+    contentGeneratorService.generateContent
+      .mockResolvedValueOnce([{ content: 'First unique caption about A' }])
+      .mockResolvedValueOnce([{ content: 'Second unique caption about B' }]);
+
+    useBatchItems([
+      { ...baseItem, id: 'item-1', platform: 'twitter' },
+      {
+        ...baseItem,
+        format: ContentFormat.IMAGE,
+        id: 'item-2',
+        platform: 'twitter',
+        status: BatchItemStatus.PENDING,
+      },
+    ]);
+    batchDelegate.findFirst.mockImplementation(() =>
+      Promise.resolve({
+        ...batchRecord,
+        config: {
+          platforms: ['twitter'],
+          style: 'bold creator voice',
+          topics: [],
+          totalCount: 2,
+        },
+        items: [
+          {
+            format: ContentFormat.IMAGE,
+            id: 'item-1',
+            platform: 'twitter',
+            status: BatchItemStatus.PENDING,
+          },
+          {
+            format: ContentFormat.IMAGE,
+            id: 'item-2',
+            platform: 'twitter',
+            status: BatchItemStatus.PENDING,
+          },
+        ],
+        status: BatchStatus.PROCESSING,
+      }),
+    );
+
+    await service.processBatch('batch-1', 'org-1');
+
+    expect(contentGeneratorService.generateContent).toHaveBeenCalledTimes(2);
+
+    const firstCall =
+      contentGeneratorService.generateContent.mock.calls[0]?.[1];
+    const secondCall =
+      contentGeneratorService.generateContent.mock.calls[1]?.[1];
+
+    expect(firstCall.topic).toContain('bold creator voice');
+    expect(firstCall.topic).not.toBe(secondCall.topic);
+    expect(secondCall.additionalContext?.join('\n')).toContain(
+      'First unique caption about A',
+    );
+    expect(secondCall.additionalContext?.join('\n')).toContain(
+      'do not rewrite',
+    );
+  });
+
   it('skips the credential lookup when the item has a blank platform', async () => {
     useBatchItems([{ ...baseItem, platform: '   ' }]);
 

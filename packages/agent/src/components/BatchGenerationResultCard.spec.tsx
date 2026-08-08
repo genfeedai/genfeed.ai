@@ -1,5 +1,5 @@
 import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 describe('BatchGenerationResultCard', () => {
@@ -41,9 +41,50 @@ describe('BatchGenerationResultCard', () => {
       screen.getByRole('link', { name: 'Open review queue' }),
     ).toHaveAttribute('href', '/publish/review?batch=batch-123&filter=ready');
     expect(screen.queryByText('batch-123')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Collapse batch result' }),
+    ).toBeInTheDocument();
   });
 
-  it('renders server-limited preview items and a link to the rest', () => {
+  it('collapses previews and CTAs with a centered toggle', () => {
+    render(
+      <BatchGenerationResultCard
+        action={{
+          batchCount: 3,
+          completedCount: 3,
+          ctas: [
+            {
+              href: '/publish/review?batch=b1&filter=ready',
+              label: 'View all',
+            },
+          ],
+          description: 'Generated 3 X drafts.',
+          id: 'batch-collapse',
+          items: [
+            {
+              id: 'post-1',
+              platform: 'twitter',
+              title: 'Draft one',
+              type: 'post',
+            },
+          ],
+          title: 'Batch generation complete',
+          type: 'batch_generation_result_card',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Draft one')).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Collapse batch result' }),
+    );
+    expect(screen.queryByText('Draft one')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Expand batch result' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders server-limited platform previews and a link to the rest', () => {
     render(
       <BatchGenerationResultCard
         action={{
@@ -85,11 +126,16 @@ describe('BatchGenerationResultCard', () => {
       />,
     );
 
+    // Publish-style X feed previews, not plain text rows.
+    expect(screen.getAllByText('X feed preview')).toHaveLength(3);
     expect(
       screen.getByText('First draft about image content'),
     ).toBeInTheDocument();
     expect(screen.getByText('Second draft with a hook')).toBeInTheDocument();
     expect(screen.getByText('Third draft for the feed')).toBeInTheDocument();
+    expect(
+      screen.getAllByTestId('batch-generation-result-preview'),
+    ).toHaveLength(3);
     expect(
       screen.getByRole('link', { name: '+5 more posts in review' }),
     ).toHaveAttribute('href', '/publish/review?batch=batch-xyz&filter=ready');

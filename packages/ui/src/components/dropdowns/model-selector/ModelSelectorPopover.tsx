@@ -58,6 +58,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   models,
   values,
   onChange,
+  selectionMode = 'multi',
   autoLabel,
   prioritize = RouterPriority.BALANCED,
   onPrioritizeChange,
@@ -71,7 +72,10 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   sourceGroupResolver,
   sourceGroupLabels,
   autoSourceGroups,
+  isDisabled = false,
+  creditsAvailable = null,
 }: ModelSelectorPopoverProps) {
+  const isSingleSelect = selectionMode === 'single';
   const [isOpen, setIsOpen] = useState(false);
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,6 +84,22 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const hasCreditLock =
+    typeof creditsAvailable === 'number' && Number.isFinite(creditsAvailable);
+
+  const isModelCreditLocked = useCallback(
+    (model: { cost?: number | null; key: string }): boolean => {
+      if (!hasCreditLock) {
+        return false;
+      }
+      const cost =
+        typeof model.cost === 'number' && Number.isFinite(model.cost)
+          ? model.cost
+          : 0;
+      return cost > (creditsAvailable as number);
+    },
+    [creditsAvailable, hasCreditLock],
+  );
 
   const allOptions = useMemo(
     () =>
@@ -114,6 +134,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   }, [allOptions, sourceGroupLabels]);
 
   const hasFavorites = favoriteModelKeys.length > 0;
+  const hasLegacy = allOptions.some((option) => option.isDeprecated);
   const shouldShowSourceTabs = sourceGroups.length > 1;
 
   const visibleOptions = useMemo(() => {
@@ -127,8 +148,20 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
     if (activeBrand === 'favorites') {
       filtered = filtered.filter((option) => option.isFavorite);
+    } else if (activeBrand === 'legacy') {
+      filtered = filtered.filter((option) => option.isDeprecated);
     } else if (activeBrand) {
       filtered = filtered.filter((option) => option.brandSlug === activeBrand);
+    }
+
+    // Default catalog (All / provider): hide legacy rows unless searching so
+    // the main list stays current — Legacy rail is the subcategory entry.
+    if (
+      activeBrand !== 'legacy' &&
+      activeBrand !== 'favorites' &&
+      !normalizedSearchTerm
+    ) {
+      filtered = filtered.filter((option) => !option.isDeprecated);
     }
 
     if (!normalizedSearchTerm) {
@@ -299,9 +332,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   // it (`!isAutoSelected`), which left a tall empty popover of priority-only
   // rows and made it impossible to pick a concrete model once Auto was on.
   const shouldShowManualCatalog = allOptions.length > 0;
+  // Brand rail is the filter for both agent single and studio multi.
+  const shouldShowProviderRail = shouldShowManualCatalog;
 
   const shouldShowAuto = useMemo(() => {
-    if (activeBrand === 'favorites') {
+    // Favorites / Legacy filters are catalog subsets — hide Auto cards there.
+    if (activeBrand === 'favorites' || activeBrand === 'legacy') {
       return false;
     }
 
@@ -322,13 +358,29 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
   }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
 
-  const shouldShowAutoCard = isAutoSelected || shouldShowAuto;
+  // Single-select chat pickers never show Auto priority cards unless a host
+  // explicitly opts in with autoLabel (studio generation keeps the full surface).
+  const shouldShowAutoCard =
+    (!isSingleSelect || Boolean(autoLabel)) &&
+    (isAutoSelected || shouldShowAuto);
 
   const handleToggle = useCallback(
     (modelKey: string) => {
+      const lockedModel = models.find((entry) => entry.key === modelKey);
+      if (lockedModel && isModelCreditLocked(lockedModel)) {
+        return;
+      }
+
       const currentValues = values.filter(
         (value) => value !== AUTO_MODEL_OPTION_VALUE,
       );
+
+      if (isSingleSelect) {
+        onChange(name, [modelKey]);
+        setIsOpen(false);
+        setSearchTerm('');
+        return;
+      }
 
       if (currentValues.includes(modelKey)) {
         onChange(
@@ -339,18 +391,20 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         onChange(name, [...currentValues, modelKey]);
       }
     },
-    [name, onChange, values],
+    [isModelCreditLocked, isSingleSelect, models, name, onChange, values],
   );
 
   const handleAutoSelect = useCallback(
     (priority: RouterPriority) => {
+      // Always emit Auto + priority. Skipping onChange when already Auto left
+      // hosts that only listen to one of the two callbacks stuck on a concrete
+      // model label in the trigger.
       onPrioritizeChange?.(priority);
-      if (!isAutoSelected) {
-        onChange(name, [AUTO_MODEL_OPTION_VALUE]);
-      }
+      onChange(name, [AUTO_MODEL_OPTION_VALUE]);
       setIsOpen(false);
+      setSearchTerm('');
     },
-    [isAutoSelected, name, onChange, onPrioritizeChange],
+    [name, onChange, onPrioritizeChange],
   );
 
   const handleFamilyToggle = useCallback((familyKey: string) => {
@@ -367,12 +421,16 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   return (
     <Popover
-      open={isOpen}
+      open={isDisabled ? false : isOpen}
       onOpenChange={(open) => {
+        if (isDisabled) {
+          return;
+        }
         setIsOpen(open);
         if (!open) {
           setSearchTerm('');
           setActiveSourceGroup('all');
+          setActiveBrand(null);
         }
       }}
     >
@@ -385,6 +443,8 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           shouldFlash={shouldFlash}
           className={className}
           autoLabel={autoLabel}
+          disabled={isDisabled}
+          aria-disabled={isDisabled || undefined}
         />
       </PopoverTrigger>
 
@@ -396,28 +456,40 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         // Prefer the open side that still fits; empty shell used to fill 500px
         // and clip the top of the list against the browser chrome.
         avoidCollisions
+        // Focus search (not the brand-rail icon). Rail tooltips are hover-only
+        // too, but autofocus on "All providers" still felt wrong.
+        onOpenAutoFocus={(event) => {
+          const searchInput = event.currentTarget.querySelector('input');
+          if (searchInput instanceof HTMLElement) {
+            event.preventDefault();
+            searchInput.focus();
+          }
+        }}
         className={cn(
-          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-popover p-0 shadow-dropdown',
-          'sm:w-[380px]',
+          // Solid card surface — never washed gray secondary against the agent canvas.
+          'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border p-0',
+          'bg-card text-card-foreground shadow-dropdown',
+          'sm:w-[340px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
-        <div className="flex max-h-[inherit] min-h-0 w-full">
-          {shouldShowManualCatalog && (
+        <div className="flex max-h-[inherit] min-h-0 w-full bg-card">
+          {shouldShowProviderRail ? (
             <ModelSelectorProviderSidebar
               brands={brands}
               activeBrand={activeBrand}
               onBrandSelect={setActiveBrand}
               hasFavorites={hasFavorites}
+              hasLegacy={hasLegacy}
             />
-          )}
+          ) : null}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
-              <div className="shrink-0 overflow-x-auto border-b border-border px-3 py-2">
-                <div className="inline-flex min-w-max rounded border border-border bg-background-secondary p-1">
+              <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-1.5 py-1">
+                <div className="inline-flex min-w-max rounded border border-border bg-card p-0.5">
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
                     label="All"
@@ -437,7 +509,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
             {/* No flex-1 on Command — that forced the panel to the max-h shell. */}
             <Command
-              className="flex min-h-0 flex-col bg-transparent"
+              className="flex min-h-0 flex-col bg-card text-card-foreground"
               shouldFilter={false}
             >
               {shouldShowManualCatalog && (
@@ -445,26 +517,44 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                   placeholder="Search models…"
                   value={searchTerm}
                   onValueChange={setSearchTerm}
+                  className={cn(
+                    // Ship CommandInput defaults to muted-on-muted and reads as
+                    // empty grey chrome on dark agent surfaces — force tokens.
+                    'h-8 border-0 border-b border-border bg-card px-2 text-card-foreground',
+                    'placeholder:text-muted-foreground',
+                    '[&_input]:h-8 [&_input]:px-1.5 [&_input]:!text-card-foreground',
+                    '[&_input]:placeholder:!text-muted-foreground',
+                  )}
                 />
               )}
 
               <CommandList
                 className={cn(
-                  'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-1 py-1',
+                  'min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-0.5 py-0.5',
                   // Override command.tsx `max-h-dropdown` (300px) with viewport-aware cap.
                   // Height stays content-sized below the cap — no empty filler.
-                  'max-h-[min(360px,calc(var(--radix-popover-content-available-height,70vh)-6rem))]',
+                  'max-h-[min(360px,calc(var(--radix-popover-content-available-height,70vh)-5rem))]',
                 )}
               >
                 {shouldShowAutoCard && (
-                  <CommandGroup heading="Auto">
+                  <CommandGroup heading="Auto" className="p-0.5">
                     {AUTO_PRIORITY_OPTIONS.map((priorityOption) => (
                       <CommandItem
                         key={priorityOption}
-                        value={AUTO_PRIORITY_LABELS[priorityOption]}
+                        value={`auto ${AUTO_PRIORITY_LABELS[priorityOption]}`}
+                        // cmdk onSelect + pointer — some nested group layouts
+                        // drop keyboard-only select for the first click.
                         onSelect={() => handleAutoSelect(priorityOption)}
+                        onPointerDown={(event) => {
+                          // Prevent cmdk from eating the click without selecting.
+                          if (event.button !== 0) {
+                            return;
+                          }
+                          event.preventDefault();
+                          handleAutoSelect(priorityOption);
+                        }}
                         className={cn(
-                          'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
+                          'flex min-h-8 cursor-pointer items-center gap-2 rounded-sm px-1.5 py-1 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
                           isAutoSelected &&
                             priorityOption === prioritize &&
                             'bg-background-tertiary',
@@ -518,6 +608,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 : false;
 
                               const isExpanded =
+                                isSingleSelect ||
                                 familySearchMatch ||
                                 expandedFamilyKeys.includes(family.familyKey);
 
@@ -546,8 +637,17 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                           isSelected={values.includes(
                                             option.model.key,
                                           )}
+                                          isLocked={isModelCreditLocked(
+                                            option.model,
+                                          )}
+                                          lockReason={
+                                            isModelCreditLocked(option.model)
+                                              ? `Needs ${option.model.cost} credits (you have ${creditsAvailable})`
+                                              : undefined
+                                          }
                                           onToggle={handleToggle}
                                           onFavoriteToggle={onFavoriteToggle}
+                                          selectionMode={selectionMode}
                                         />
                                       ))}
                                     </div>
@@ -588,7 +688,7 @@ function SourceTabButton({
       withWrapper={false}
       onClick={onClick}
       className={cn(
-        'min-h-11 rounded px-2.5 py-1.5 text-xs font-medium transition-colors lg:min-h-0',
+        'min-h-7 rounded px-2 py-1 text-xs font-medium transition-colors',
         isActive
           ? 'bg-accent text-accent-foreground'
           : 'text-foreground/55 hover:bg-accent hover:text-accent-foreground',

@@ -197,7 +197,7 @@ export default function OutreachCampaignWizard() {
             variant={ButtonVariant.SECONDARY}
             onClick={
               currentStep === 1
-                ? () => router.push(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS)
+                ? () => router.push(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS)
                 : handleBack
             }
           />

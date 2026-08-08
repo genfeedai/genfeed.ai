@@ -30,24 +30,39 @@ describe('PostGroupContractService', () => {
     vi.useRealTimers();
   });
 
-  it('maps every release status onto a valid legacy PostStatus member', () => {
-    const legacyStatuses = Object.values(PostStatus) as string[];
-    for (const status of Object.values(ReleaseStatus)) {
-      expect(legacyStatuses).toContain(service.toPostStatus(status));
-    }
-  });
+  describe('toPostStatus', () => {
+    it('maps every release status onto a valid legacy PostStatus member', () => {
+      const legacyStatuses = Object.values(PostStatus) as string[];
+      for (const status of Object.values(ReleaseStatus)) {
+        expect(legacyStatuses).toContain(service.toPostStatus(status));
+      }
+    });
 
-  it('keeps paused and cancelled targets out of the publish sweep vocabulary', () => {
-    expect(service.toPostStatus(ReleaseStatus.PAUSED)).toBe(PostStatus.DRAFT);
-    expect(service.toPostStatus(ReleaseStatus.CANCELLED)).toBe(
-      PostStatus.DRAFT,
-    );
-    expect(service.toPostStatus(ReleaseStatus.PUBLISHING)).toBe(
-      PostStatus.PROCESSING,
-    );
-    expect(service.toPostStatus(ReleaseStatus.PARTIALLY_PUBLISHED)).toBe(
-      PostStatus.SCHEDULED,
-    );
+    it('keeps paused and cancelled targets out of the publish sweep vocabulary', () => {
+      expect(service.toPostStatus(ReleaseStatus.PAUSED)).toBe(PostStatus.DRAFT);
+      expect(service.toPostStatus(ReleaseStatus.CANCELLED)).toBe(
+        PostStatus.DRAFT,
+      );
+      expect(service.toPostStatus(ReleaseStatus.PUBLISHING)).toBe(
+        PostStatus.PROCESSING,
+      );
+      expect(service.toPostStatus(ReleaseStatus.PARTIALLY_PUBLISHED)).toBe(
+        PostStatus.SCHEDULED,
+      );
+    });
+
+    it('preserves already-valid non-release PostStatus values', () => {
+      expect(service.toPostStatus(PostStatus.PRIVATE)).toBe(PostStatus.PRIVATE);
+      expect(service.toPostStatus(PostStatus.UNLISTED)).toBe(
+        PostStatus.UNLISTED,
+      );
+      expect(service.toPostStatus(PostStatus.PENDING)).toBe(
+        PostStatus.PROCESSING,
+      );
+      expect(service.toPostStatus('not-a-real-status')).toBe(
+        PostStatus.SCHEDULED,
+      );
+    });
   });
 
   it('parses the shared create contract and lets the header own idempotency', () => {

@@ -15,7 +15,7 @@ import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
-import { AgentScopeContextService } from '@genfeedai/server';
+import { AgentScopeContextService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -289,6 +289,20 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
+      const thread = await this.agentThreadsService.findOne(
+        scopedWhere(organizationId, {
+          id: threadId,
+          isDeleted: false,
+        }),
+      );
+      const status = String(
+        (thread as { status?: string | null } | null)?.status ?? '',
+      ).toLowerCase();
+      if (status === AgentThreadStatus.ARCHIVED || status === 'archived') {
+        throw new BadRequestException(
+          'This thread is archived. Unarchive it before sending messages or running actions.',
+        );
+      }
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
         organizationId,

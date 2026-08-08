@@ -123,6 +123,18 @@ export const APP_ROUTES = {
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
     STRATEGIES: '/automate/strategies',
+    /**
+     * Agent-driven content campaigns (bulk production programs).
+     * Canonical home under Automate — not Publish.
+     */
+    CAMPAIGNS: '/automate/campaigns',
+    CAMPAIGNS_NEW: '/automate/campaigns/new',
+    /**
+     * Outreach / growth engagement campaigns (replies, DMs).
+     * Canonical home under Automate — not Publish.
+     */
+    OUTREACH_CAMPAIGNS: '/automate/outreach-campaigns',
+    OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
     /** Throttled social reply drip campaigns. */
     REPLY_CAMPAIGNS: '/automate/reply-campaigns',
     /** Pipeline canvas library (merged former /workflows surface). */
@@ -175,7 +187,6 @@ export const APP_ROUTES = {
   EDIT: {
     ARTICLE: '/edit/article',
     NEWSLETTER: '/edit/newsletter',
-    POST: '/edit/post',
     ROOT: '/edit',
   },
   LAB: {
@@ -219,24 +230,50 @@ export const APP_ROUTES = {
   },
   PUBLISH: {
     CALENDAR: '/publish/calendar',
-    /** Agent-driven content campaigns (Publish surface). */
-    CAMPAIGNS: '/publish/campaigns',
-    CAMPAIGNS_NEW: '/publish/campaigns/new',
+    /** Posts whose latest publication attempt failed. */
     FAILED: '/publish/failed',
-    NEWSLETTERS: '/publish/newsletters',
-    /** Outreach / growth campaigns (Publish surface). */
-    OUTREACH_CAMPAIGNS: '/publish/outreach-campaigns',
-    OUTREACH_CAMPAIGNS_NEW: '/publish/outreach-campaigns/new',
     /**
-     * Canonical Publish home (all-posts list). Bare ROOT permanently redirects
+     * @deprecated Canonical path is APP_ROUTES.AUTOMATE.CAMPAIGNS.
+     * Legacy `/publish/campaigns` permanently redirects there.
+     */
+    CAMPAIGNS: '/automate/campaigns',
+    /** @deprecated Use APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW. */
+    CAMPAIGNS_NEW: '/automate/campaigns/new',
+    /**
+     * @deprecated Newsletter is a creation surface, not Publish nav.
+     * Route retained for deep links until the long-form UX lands elsewhere.
+     */
+    NEWSLETTERS: '/publish/newsletters',
+    /**
+     * @deprecated Canonical path is APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS.
+     * Legacy `/publish/outreach-campaigns` permanently redirects there.
+     */
+    OUTREACH_CAMPAIGNS: '/automate/outreach-campaigns',
+    /** @deprecated Use APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW. */
+    OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
+    /**
+     * Canonical Publish home (dashboard). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /
-     * Scheduled / etc. (same pattern as workspace/discover/library).
+     * Posts / etc. (same pattern as workspace/discover/library).
      */
     OVERVIEW: '/publish/overview',
+    /**
+     * Canonical content library + type-aware editor.
+     * - List: `/publish/posts`
+     * - Editor: `/publish/posts/:id` (social post today; article/newsletter
+     *   can share this path once kind resolution is wired)
+     */
+    POSTS: '/publish/posts',
     PUBLISHED: '/publish/published',
+    /**
+     * Remix is a contextual **action** (Discover/Library button), not a module
+     * page. This path is the deep-link target for that action only — never a
+     * Publish nav item.
+     */
     REMIX: '/publish/remix',
     REVIEW: '/publish/review',
     ROOT: '/publish',
+    /** Pipeline shortcut: drafts + scheduled + in-progress (not live). */
     SCHEDULED: '/publish/scheduled',
   },
   SETTINGS: {
@@ -343,7 +380,8 @@ export const LEGACY_APP_ROUTES = {
 export const ARTIFACT_EDITOR_ROUTES = {
   article: APP_ROUTES.EDIT.ARTICLE,
   newsletter: APP_ROUTES.EDIT.NEWSLETTER,
-  post: APP_ROUTES.EDIT.POST,
+  /** Social posts edit under Publish: `/publish/posts/:id`. */
+  post: APP_ROUTES.PUBLISH.POSTS,
 } as const;
 
 export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;

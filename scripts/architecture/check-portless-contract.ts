@@ -29,20 +29,32 @@ const ROUTED_SERVICES = [
   { directory: 'apps/website', runnerPath: '../../', service: 'website' },
 ] as const;
 
+/**
+ * Root scripts humans should use. Values are exact command strings in package.json.
+ * Portless HTTPS is the only interactive default; fixed ports live under dev:debug*.
+ */
 const DEFAULT_SCRIPT_EXPECTATIONS = {
-  dev: 'bun run dev:portless:all',
   'dev:doctor': 'bun run scripts/dev/setup-portless.ts --check',
   'dev:setup': 'bun run scripts/dev/setup-portless.ts',
-  'dev:all': 'bun run dev:portless:all',
-  'dev:app': 'bun run dev:portless:app',
-  'dev:app:be': 'bun run dev:portless:essentials',
-  'dev:app:fe': 'bun run dev:portless:app',
-  'dev:backend': 'bun run dev:portless:backend',
-  'dev:direct:all': 'bunx turbo run dev:direct',
-  'dev:docs': 'bun run dev:portless:docs',
-  'dev:essentials': 'bun run dev:portless:essentials',
-  'dev:frontend': 'bun run dev:portless:frontend',
-  'dev:website:fe': 'bun run dev:portless:website',
+  'dev:app': 'bun run --cwd apps/app dev',
+  'dev:api': 'bun run --cwd apps/server/api dev',
+  'dev:backend':
+    'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers --concurrency=6',
+  'dev:backend:min':
+    'bunx turbo run dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --concurrency=4',
+  'dev:docs': 'bun run --cwd apps/docs dev',
+  'dev:frontend':
+    'bunx turbo run dev --filter=@genfeedai/app --filter=@genfeedai/website --concurrency=3',
+  'dev:website': 'bun run --cwd apps/website dev',
+  // Fixed-port escape hatch (explicit only)
+  'dev:debug:app': 'bunx turbo run dev:debug --filter=@genfeedai/app',
+  'dev:debug:backend:min':
+    'bunx turbo run dev:debug --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/notifications --concurrency=4',
+  // One-cycle aliases → canonical names
+  'dev:all': 'bun run dev',
+  'dev:essentials': 'bun run dev:backend:min',
+  'dev:app:be': 'bun run dev:backend:min',
+  'dev:app:fe': 'bun run dev:app',
 } as const;
 
 type PackageManifest = {
@@ -147,10 +159,11 @@ export function checkPortlessContract(
     });
   }
 
-  if (rootManifest.devDependencies?.portless !== '0.15.4') {
+  const portlessVersion = rootManifest.devDependencies?.portless;
+  if (portlessVersion !== '0.15.5' && portlessVersion !== '0.15.4') {
     violations.push({
       message:
-        'Portless must remain an exact, repository-owned development dependency at version 0.15.4',
+        'Portless must remain an exact, repository-owned development dependency at version 0.15.x (0.15.4 or 0.15.5)',
       path: 'package.json',
     });
   }
@@ -167,6 +180,41 @@ export function checkPortlessContract(
     });
   }
 
+  // Root `dev` must be Portless (turbo run package `dev`), never fixed-port only.
+  if (!rootScripts.dev?.includes('turbo run dev')) {
+    violations.push({
+      message:
+        'root `dev` must launch package `dev` (Portless HTTPS) via turbo',
+      path: 'package.json',
+    });
+  }
+  if (
+    rootScripts.dev?.includes('dev:debug') ||
+    rootScripts.dev?.includes('dev:process')
+  ) {
+    violations.push({
+      message: 'root `dev` must not target fixed-port debug/process scripts',
+      path: 'package.json',
+    });
+  }
+
+  // Forbidden legacy names at root — force the clean surface.
+  for (const forbidden of [
+    'dev:direct',
+    'dev:direct:all',
+    'dev:direct:app',
+    'dev:portless:all',
+    'dev:portless:app',
+    'dev:portless:essentials',
+  ] as const) {
+    if (rootScripts[forbidden] !== undefined) {
+      violations.push({
+        message: `${forbidden} is retired — use dev / dev:backend:min / dev:debug* instead`,
+        path: 'package.json',
+      });
+    }
+  }
+
   for (const [script, expected] of Object.entries(
     DEFAULT_SCRIPT_EXPECTATIONS,
   )) {
@@ -181,47 +229,65 @@ export function checkPortlessContract(
   for (const route of ROUTED_SERVICES) {
     const manifestPath = `${route.directory}/package.json`;
     const manifest = readJson<PackageManifest>(rootDir, manifestPath);
-    const expectedScript = `bun run ${route.runnerPath}scripts/dev/run-portless.ts ${route.service} -- bun run dev:direct`;
+    const expectedDev = `bun run ${route.runnerPath}scripts/dev/run-portless.ts ${route.service} -- bun run dev:process`;
     const configuredRoute = portlessConfig.apps?.[route.directory];
 
-    if (manifest.scripts?.['dev:portless'] !== expectedScript) {
+    if (manifest.scripts?.dev !== expectedDev) {
       violations.push({
-        message: `dev:portless must be "${expectedScript}"`,
+        message: `package \`dev\` must be the Portless entry: "${expectedDev}"`,
         path: manifestPath,
       });
     }
 
-    if (manifest.scripts?.['dev:direct'] === undefined) {
+    if (manifest.scripts?.['dev:process'] === undefined) {
       violations.push({
-        message: 'dev:direct is required as the explicit fixed-port fallback',
+        message:
+          'dev:process is required as the Portless child process (and fixed-port fallback via run-service.ts)',
         path: manifestPath,
       });
     }
 
-    const directRunner = `scripts/dev/run-direct.ts ${route.service} --`;
-    if (!manifest.scripts?.['dev:direct']?.includes(directRunner)) {
+    const serviceRunner = `scripts/dev/run-service.ts ${route.service} --`;
+    if (!manifest.scripts?.['dev:process']?.includes(serviceRunner)) {
       violations.push({
-        message: `dev:direct must inject the ${route.service} fixed-port environment through run-direct.ts`,
+        message: `dev:process must inject the ${route.service} environment through run-service.ts`,
         path: manifestPath,
       });
+    }
+
+    if (manifest.scripts?.['dev:debug'] !== 'bun run dev:process') {
+      violations.push({
+        message: 'dev:debug must alias to `bun run dev:process`',
+        path: manifestPath,
+      });
+    }
+
+    // Dead names must not return
+    for (const dead of ['dev:direct', 'dev:portless'] as const) {
+      if (manifest.scripts?.[dead] !== undefined) {
+        violations.push({
+          message: `${dead} is retired — use package \`dev\` (Portless) and \`dev:process\``,
+          path: manifestPath,
+        });
+      }
     }
 
     if (
       configuredRoute?.name !== `${route.service}.genfeed` ||
-      configuredRoute.script !== 'dev:direct'
+      configuredRoute.script !== 'dev:process'
     ) {
       violations.push({
-        message: `route must map ${route.service}.genfeed to dev:direct`,
+        message: `route must map ${route.service}.genfeed to dev:process`,
         path: 'portless.json',
       });
     }
   }
 
   const concurrencyExpectations = [
-    ['dev:portless:all', '--concurrency=9'],
-    ['dev:portless:backend', '--concurrency=6'],
-    ['dev:portless:essentials', '--concurrency=3'],
-    ['dev:portless:frontend', '--concurrency=3'],
+    ['dev', '--concurrency=9'],
+    ['dev:backend', '--concurrency=6'],
+    ['dev:backend:min', '--concurrency=4'],
+    ['dev:frontend', '--concurrency=3'],
   ] as const;
 
   for (const [script, concurrency] of concurrencyExpectations) {
@@ -245,7 +311,7 @@ export function checkPortlessContract(
   for (const key of ROUTED_PORT_ENV_KEYS) {
     if (rootEnvironment[key] !== undefined) {
       violations.push({
-        message: `${key} belongs to the direct/E2E/Docker boundary, not the canonical environment example`,
+        message: `${key} belongs to the fixed-port/E2E/Docker boundary, not the canonical environment example`,
         path: '.env.example',
       });
     }

@@ -42,6 +42,7 @@ import {
   MessageSquare,
   Zap,
 } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type KeyboardEvent as ReactKeyboardEvent,
@@ -72,6 +73,10 @@ import {
   appendSearchParamsToHref,
   normalizeProtectedPathname,
 } from '@/lib/navigation/operator-shell';
+import {
+  OPEN_CONTEXT_TAB_EVENT,
+  OPEN_CONVERSATION_TAB_EVENT,
+} from '@/lib/workspace/agent-composer-events';
 import { WORKSPACE_INSPECTOR_CHROME } from '@/lib/workspace-shell/workspace-inspector-chrome';
 import { resolveWorkspaceOverlayLaunch } from '@/lib/workspace-shell/workspace-overlay-launcher';
 import {
@@ -199,6 +204,27 @@ function UniversalWorkspaceShellContent({
   // whole point of it no longer being a shell state you navigate away to.
   const [inspectorTab, setInspectorTab] =
     useState<WorkspaceInspectorTab>('conversation');
+
+  // Product surfaces ask for a rail tab without navigating away:
+  // - Context: entity detail / product panels (review row, post detail, …)
+  // - Conversation: seed/open agent composer while keeping canvas page context
+  useEffect(() => {
+    const openContextTab = () => {
+      setInspectorTab('context');
+    };
+    const openConversationTab = () => {
+      setInspectorTab('conversation');
+    };
+    window.addEventListener(OPEN_CONTEXT_TAB_EVENT, openContextTab);
+    window.addEventListener(OPEN_CONVERSATION_TAB_EVENT, openConversationTab);
+    return () => {
+      window.removeEventListener(OPEN_CONTEXT_TAB_EVENT, openContextTab);
+      window.removeEventListener(
+        OPEN_CONVERSATION_TAB_EVENT,
+        openConversationTab,
+      );
+    };
+  }, []);
   const [researchSurfaceAdapter, setResearchSurfaceAdapter] = useState<{
     readonly registration: ResearchWorkspaceSurfaceAdapterRegistration;
     readonly token: symbol;
@@ -301,13 +327,33 @@ function UniversalWorkspaceShellContent({
     registeredSurfaceAdapter?.surfaceKey === surfaceKey
       ? registeredSurfaceAdapter
       : null;
+  // Brand binding priority for inspector conversations on product routes:
+  // 1) product surface adapter (studio/review scoped brand)
+  // 2) workspace surface adapter
+  // 3) topbar-selected brand — so Publish/Overview threads get a brand without
+  //    an adapter. Without this, chat runs brandless and the model asks "which
+  //    brand?" even though the brand switcher already has a selection.
   const surfaceBrandId = productSurfaceAdapter?.scope.brandId;
+  const topbarBrandId = brandId || null;
+  const bindingBrandId =
+    surfaceBrandId ?? resolvedWorkspaceSurfaceAdapter?.brandId ?? topbarBrandId;
   const isSurfaceScopeAligned = Boolean(
-    !activeThread || !surfaceBrandId || activeThread.brandId === surfaceBrandId,
+    !activeThread ||
+      !bindingBrandId ||
+      !activeThread.brandId ||
+      activeThread.brandId === bindingBrandId,
   );
+  // Sync when an explicit surface brand disagrees with the thread, or when the
+  // thread is unbound and the shell has a brand to attach (topbar / adapter).
+  const targetSyncBrandId =
+    surfaceBrandId ??
+    resolvedWorkspaceSurfaceAdapter?.brandId ??
+    (!activeThread?.brandId ? topbarBrandId : null);
   const surfaceScopeKey =
-    activeThread && surfaceBrandId && !isSurfaceScopeAligned
-      ? `${activeThread.id}:${activeThread.contextVersion}:${surfaceBrandId}`
+    activeThread &&
+    targetSyncBrandId &&
+    activeThread.brandId !== targetSyncBrandId
+      ? `${activeThread.id}:${activeThread.contextVersion}:${targetSyncBrandId}`
       : null;
   const surfaceReferences = isSurfaceScopeAligned
     ? productSurfaceAdapter?.references
@@ -387,7 +433,7 @@ function UniversalWorkspaceShellContent({
     if (
       !activeThreadIdForScope ||
       activeThreadContextVersion === undefined ||
-      !surfaceBrandId ||
+      !targetSyncBrandId ||
       !surfaceScopeKey
     ) {
       return;
@@ -398,7 +444,7 @@ function UniversalWorkspaceShellContent({
       agentApiService.updateThreadContextEffect(
         activeThreadIdForScope,
         {
-          brandId: surfaceBrandId,
+          brandId: targetSyncBrandId,
           expectedContextVersion: activeThreadContextVersion,
         },
         abortController.signal,
@@ -426,8 +472,8 @@ function UniversalWorkspaceShellContent({
     activeThreadContextVersion,
     activeThreadIdForScope,
     agentApiService,
-    surfaceBrandId,
     surfaceScopeKey,
+    targetSyncBrandId,
     updateThread,
   ]);
 
@@ -545,17 +591,21 @@ function UniversalWorkspaceShellContent({
     }
   }, [normalizedPathname, overlayRegistration, state]);
 
+  // Brand-scoped full agent surface — keeps the selected brand in the URL so
+  // the expanded conversation does not lose topbar/brand context.
+  const fullConversationHref = useMemo(() => {
+    const destinationThreadId = effectiveThreadId ?? activeThreadId;
+    return activeHref(
+      destinationThreadId
+        ? `${APP_ROUTES.AGENT.ROOT}/${destinationThreadId}`
+        : APP_ROUTES.AGENT.NEW,
+    );
+  }, [activeHref, activeThreadId, effectiveThreadId]);
+
   const handleReturnToConversation = useCallback(() => {
     pendingTransitionRef.current = 'conversation_return';
-    const destinationThreadId = effectiveThreadId ?? activeThreadId;
-    push(
-      orgHref(
-        destinationThreadId
-          ? `${APP_ROUTES.AGENT.ROOT}/${destinationThreadId}`
-          : APP_ROUTES.AGENT.ROOT,
-      ),
-    );
-  }, [activeThreadId, effectiveThreadId, orgHref, push]);
+    push(fullConversationHref);
+  }, [fullConversationHref, push]);
 
   const launchWorkspaceOverlay = useCallback(
     (overlayRequest: WorkspaceShellOverlayRequest): boolean => {
@@ -929,15 +979,25 @@ function UniversalWorkspaceShellContent({
             conversation panel. Collapse stays in the app topbar. */}
           {conversationSlot && !isAgentRoute ? (
             <Button
+              asChild
               ariaLabel={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
               className="size-8 shrink-0"
-              icon={<Maximize2 className="size-3.5" />}
-              onClick={handleReturnToConversation}
               size={ButtonSize.ICON}
               tooltip={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
-            />
+            >
+              <Link
+                href={fullConversationHref}
+                aria-label={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
+                title={WORKSPACE_INSPECTOR_CHROME.openFullConversation}
+                onClick={() => {
+                  pendingTransitionRef.current = 'conversation_return';
+                }}
+              >
+                <Maximize2 className="size-3.5" aria-hidden="true" />
+              </Link>
+            </Button>
           ) : null}
         </div>
 
@@ -964,22 +1024,31 @@ function UniversalWorkspaceShellContent({
         <TabsContent
           className={cn(
             'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
-            !isAgentOwned && 'gap-4 p-4',
+            // Product surface adapters render edge-to-edge (own section dividers).
+            // Non-product context keeps shell padding/gap chrome.
+            !productSurfaceAdapter && !isAgentOwned && 'gap-3 p-3',
           )}
           forceMount
           value="context"
         >
-          {agentPanelSlot}
-          {isAgentOwned ? null : isAgentRoute ? (
+          {/* Agent-projected panels only on /agent/* — never blank out product
+              surface context (review, studio, etc.) when the portal target exists. */}
+          {isAgentOwned && isAgentRoute ? agentPanelSlot : null}
+          {productSurfaceAdapter ? (
+            <div
+              className="flex min-h-0 min-w-0 flex-1 flex-col"
+              data-testid="product-surface-inspector"
+            >
+              {productSurfaceAdapter.renderInspector()}
+            </div>
+          ) : isAgentOwned && isAgentRoute ? null : isAgentRoute ? (
             <p className="px-1 text-xs leading-5 text-muted-foreground">
               {WORKSPACE_INSPECTOR_CHROME.emptyAgentBody}
             </p>
           ) : (
             <>
               {conversationScope.inspectorScope}
-              {productSurfaceAdapter ? (
-                productSurfaceAdapter.renderInspector()
-              ) : isWorkflowInspectorSurface ? (
+              {isWorkflowInspectorSurface ? (
                 <WorkflowSurfaceInspector
                   contextVersion={activeThread?.contextVersion}
                   pathname={rawPathname}
@@ -1066,11 +1135,7 @@ function UniversalWorkspaceShellContent({
           resolvedWorkspaceSurfaceAdapter?.artifactReferences
         }
         brandId={
-          isSurfaceScopeAligned
-            ? (surfaceBrandId ??
-              resolvedWorkspaceSurfaceAdapter?.brandId ??
-              (isUnthreadedConversation ? brandId || undefined : undefined))
-            : undefined
+          isSurfaceScopeAligned ? (bindingBrandId ?? undefined) : undefined
         }
         contextLabel={composerContextLabel}
         dispatchAction={handleComposerAction}

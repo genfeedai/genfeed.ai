@@ -26,7 +26,12 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: vi.fn(() =>
+    vi.fn(async () => ({
+      findAll: vi.fn().mockResolvedValue([]),
+      patchSettings: vi.fn(),
+    })),
+  ),
 }));
 
 vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
@@ -40,20 +45,42 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
   })),
 }));
 
+vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
+  default: function MockModelSelectorPopover(props: {
+    autoLabel?: string;
+    values?: string[];
+  }) {
+    return (
+      <div data-testid="shared-model-selector">
+        <span>{props.autoLabel ?? 'Auto'}</span>
+        <span>{props.values?.join(',')}</span>
+      </div>
+    );
+  },
+}));
+
+vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
+  useModelFavorites: () => ({
+    favoriteModelKeys: [],
+    onFavoriteToggle: vi.fn(),
+  }),
+}));
+
 describe('SettingsConversationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the OpenRouter auto-routing copy for chat defaults', () => {
+  it('renders the shared model picker for chat defaults with Auto', () => {
     render(<SettingsConversationPage />);
 
-    expect(screen.getByText('Chat Model Override')).toBeInTheDocument();
+    expect(screen.getByText('Default chat model')).toBeInTheDocument();
+    expect(screen.getByTestId('shared-model-selector')).toBeInTheDocument();
+    expect(screen.getByText('Auto · Balanced')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Leave this on OpenRouter Auto unless you need to pin a specific model for chat.',
+        'Auto routes by generation priority. Pick a model to pin every new chat.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText('Generation Priority')).toBeInTheDocument();
   });
 });

@@ -167,11 +167,11 @@ export function AgentChatContainerThreadView({
           {latestProposedPlan ? (
             <AgentPlanReviewSection
               plan={latestProposedPlan}
-              isBusy={isBusy}
+              isBusy={isBusy || isReadOnly}
               activeUiAction={activeUiAction}
               isCreatingFollowUpTasks={isCreatingFollowUpTasks}
               followUpTaskMessage={followUpTaskMessage}
-              showFollowUpButton={showFollowUpButton}
+              showFollowUpButton={showFollowUpButton && !isReadOnly}
               onApprove={onApprovePlan}
               onRequestChanges={onRequestPlanChanges}
               onCreateFollowUpTasks={onCreateFollowUpTasks}
@@ -195,6 +195,7 @@ export function AgentChatContainerThreadView({
             isGenerating={isGenerating}
             isStreamingActive={isStreamingActive}
             isBusy={isBusy}
+            isReadOnly={isReadOnly}
             highlightedMessageId={highlightedMessageId}
             apiService={apiService}
             messagesEndRef={messagesEndRef}
@@ -220,7 +221,7 @@ export function AgentChatContainerThreadView({
             size={ButtonSize.ICON}
             icon={<ArrowDown className="size-4" />}
             ariaLabel="Scroll to latest message"
-            className="rounded-full border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
+            className="rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
             withWrapper={false}
             onClick={scrollToBottom}
           />

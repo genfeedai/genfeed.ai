@@ -5,16 +5,19 @@ import {
   ClipboardCheck,
   LayoutDashboard,
   List,
-  Mail,
-  Megaphone,
-  Rocket,
+  Rows3,
   Send,
-  Sparkles,
 } from 'lucide-react';
 
-// No Analytics entry: the Analytics module owns every analytics surface, and
-// this module's former analytics page is retired in favor of
-// `/analytics/posts`.
+/**
+ * Publish owns the content desk + go-live lifecycle.
+ *
+ * Top: Overview · Posts · Calendar
+ * Pipeline: Review · Drafts · Published (status shortcuts into the desk)
+ *
+ * Campaigns / outreach → Automate. Remix → Discover/Library action only.
+ * Newsletter create UX is not nav here (legacy deep link only).
+ */
 export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
@@ -27,27 +30,11 @@ export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: '',
-    href: APP_ROUTES.PUBLISH.REVIEW,
-    label: 'Review',
-    matchPaths: [APP_ROUTES.PUBLISH.REVIEW],
-    outline: ClipboardCheck,
-    solid: ClipboardCheck,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.PUBLISH.SCHEDULED,
-    label: 'Scheduled',
-    matchPaths: [APP_ROUTES.PUBLISH.SCHEDULED],
-    outline: List,
-    solid: List,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.PUBLISH.PUBLISHED,
-    label: 'Published',
-    matchPaths: [APP_ROUTES.PUBLISH.PUBLISHED],
-    outline: Send,
-    solid: Send,
+    href: APP_ROUTES.PUBLISH.POSTS,
+    label: 'Posts',
+    matchPaths: [APP_ROUTES.PUBLISH.POSTS],
+    outline: Rows3,
+    solid: Rows3,
   },
   {
     group: '',
@@ -58,38 +45,29 @@ export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
     solid: Calendar,
   },
   {
-    group: '',
-    hasDividerAbove: true,
-    href: APP_ROUTES.PUBLISH.CAMPAIGNS,
-    label: 'Campaigns',
-    matchPaths: [APP_ROUTES.PUBLISH.CAMPAIGNS],
-    outline: Megaphone,
-    solid: Megaphone,
+    group: 'Pipeline',
+    href: APP_ROUTES.PUBLISH.REVIEW,
+    isCollapsible: true,
+    label: 'Review',
+    matchPaths: [APP_ROUTES.PUBLISH.REVIEW],
+    outline: ClipboardCheck,
+    solid: ClipboardCheck,
   },
   {
-    group: '',
-    href: APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
-    label: 'Outreach',
-    matchPaths: [APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS],
-    outline: Rocket,
-    solid: Rocket,
+    group: 'Pipeline',
+    href: APP_ROUTES.PUBLISH.SCHEDULED,
+    label: 'Drafts',
+    matchPaths: [APP_ROUTES.PUBLISH.SCHEDULED],
+    outline: List,
+    solid: List,
   },
   {
-    group: '',
-    hasDividerAbove: true,
-    href: APP_ROUTES.PUBLISH.NEWSLETTERS,
-    label: 'Newsletters',
-    matchPaths: [APP_ROUTES.PUBLISH.NEWSLETTERS],
-    outline: Mail,
-    solid: Mail,
-  },
-  {
-    group: '',
-    href: APP_ROUTES.PUBLISH.REMIX,
-    label: 'Remix',
-    matchPaths: [APP_ROUTES.PUBLISH.REMIX],
-    outline: Sparkles,
-    solid: Sparkles,
+    group: 'Pipeline',
+    href: APP_ROUTES.PUBLISH.PUBLISHED,
+    label: 'Published',
+    matchPaths: [APP_ROUTES.PUBLISH.PUBLISHED],
+    outline: Send,
+    solid: Send,
   },
 ];
 

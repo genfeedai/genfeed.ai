@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -48,7 +49,7 @@ const STATUS_DOT_CLASSES: Record<CampaignStatus, string> = {
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '—';
   try {
-    return format(new Date(dateStr), 'MMM d, yyyy');
+    return format(new Date(dateStr), DATE_FORMATS.DISPLAY_DATE);
   } catch {
     logger.warn('Invalid date in AgentCampaignsPage', { date: dateStr });
     return '—';
@@ -162,7 +163,7 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
           className="opacity-0 transition-opacity group-hover:opacity-100"
         >
           <Link
-            href={`${APP_ROUTES.PUBLISH.CAMPAIGNS}/${campaign.id}`}
+            href={`${APP_ROUTES.AUTOMATE.CAMPAIGNS}/${campaign.id}`}
             aria-label={`Open ${campaign.label}`}
           >
             <ArrowRight className="size-3.5" />
@@ -227,7 +228,7 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
           >
-            <Link href={APP_ROUTES.PUBLISH.CAMPAIGNS}>View All</Link>
+            <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS}>View All</Link>
           </Button>
         )}
       </div>
@@ -351,7 +352,7 @@ export default function AgentCampaignsPage() {
       icon={LayoutDashboard}
       right={
         <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-          <Link href={APP_ROUTES.PUBLISH.CAMPAIGNS_NEW}>
+          <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW}>
             <Plus /> New Campaign
           </Link>
         </Button>
@@ -395,7 +396,7 @@ export default function AgentCampaignsPage() {
             </p>
           </div>
           <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
-            <Link href={APP_ROUTES.PUBLISH.CAMPAIGNS_NEW}>
+            <Link href={APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW}>
               <Plus /> New Campaign
             </Link>
           </Button>

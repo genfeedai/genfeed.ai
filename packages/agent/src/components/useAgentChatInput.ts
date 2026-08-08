@@ -37,6 +37,7 @@ import {
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { normalizeComposerPasteText } from '@genfeedai/agent/utils/normalize-composer-paste.util';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { AgentArtifactReference } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
@@ -187,6 +188,11 @@ export function useAgentChatInput({
   clearAllAttachments,
 }: UseAgentChatInputParams) {
   const composerShell = useConversationComposerShell();
+  // Org "Voice Control" (admin setting, default false). Matches studio PromptBar
+  // gating so in-app STT is opt-in; Wispr / OS dictation still types into the field.
+  const { settings: organizationSettings } = useBrand();
+  const isVoiceControlEnabled =
+    organizationSettings?.isVoiceControlEnabled === true;
   const surfaceArtifactReferences =
     composerShell?.artifactReferences ?? EMPTY_SURFACE_ARTIFACT_REFERENCES;
   const draftScopeKey = composerShell?.draftScopeKey ?? null;
@@ -538,6 +544,11 @@ export function useAgentChatInput({
     if (!editor || disabled) {
       return;
     }
+    // Mic is exclusive with send: while listening, Enter must not post text
+    // with a missing send affordance (stop-listening owns the trailing slot).
+    if (isListening || isTranscribing) {
+      return;
+    }
     const text = editor.getText().trim();
     const canSend = Boolean(text) || hasCompletedAttachments;
     if (!canSend) {
@@ -603,6 +614,8 @@ export function useAgentChatInput({
     draftScopeKey,
     editor,
     disabled,
+    isListening,
+    isTranscribing,
     onSend,
     hasCompletedAttachments,
     getCompletedAttachments,
@@ -784,20 +797,20 @@ export function useAgentChatInput({
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
-  // Empty composer → voice; once there is content (or attachments) → send.
-  // Never both: mic next to an empty disabled send is noise.
+  // Empty composer = no text and no ready attachments.
+  const isEmptyComposer = isEmpty && !hasCompletedAttachments;
+
+  // Org Voice Control + browser MediaRecorder. When both are true and the
+  // field is empty, mic *replaces* the send button on the trailing edge.
+  const canUseVoiceInput =
+    isVoiceControlEnabled && isSupported && !showStop && !isTranscribing;
+
+  const shouldShowVoiceInput = canUseVoiceInput && isEmptyComposer;
+
+  // Send whenever we are not in the mic-replacement slot (and not Stop).
+  // Empty + voice off → disabled send stays visible.
   const shouldShowSendButton =
-    !showStop &&
-    !isTranscribing &&
-    (!isEmpty || hasCompletedAttachments || isListening);
-  const shouldShowVoiceInput =
-    !showStop &&
-    !isListening &&
-    !isTranscribing &&
-    isSupported &&
-    isEmpty &&
-    !hasAttachments &&
-    !shouldShowSendButton;
+    !showStop && !isTranscribing && !shouldShowVoiceInput;
 
   return {
     actionFeedback,

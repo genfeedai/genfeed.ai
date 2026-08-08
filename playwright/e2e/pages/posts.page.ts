@@ -265,7 +265,7 @@ export class PostsPage {
   }
 
   async gotoPostDetail(postId: string): Promise<void> {
-    await this.page.goto(`/publish/${postId}`);
+    await this.page.goto(`/publish/posts/${postId}`);
     await this.waitForPageLoad();
   }
 

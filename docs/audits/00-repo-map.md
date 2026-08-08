@@ -34,7 +34,7 @@ Docker image, and desktop/mobile/extension clients.
 **Core runtime stack (all versions read from manifests, not inferred):**
 
 - **Package manager:** Bun 1.3.14 (`package.json:36 "packageManager"`), Node engine `>=24 <25`, `bun.lock` only (no npm/yarn lockfiles). `bunfig.toml` enforces `minimumReleaseAge = 10800s` on installs.
-- **Orchestration:** Turborepo 2.10.0 (`turbo.json`, schema pinned v2-9-12). Tasks: `build`, `dev`, `dev:portless`, `lint`, `type-check`, `test`, `clean`, plus a root-only uncached `//#env:check` that gates build/type-check/test.
+- **Orchestration:** Turborepo 2.10.0 (`turbo.json`, schema pinned v2-9-12). Tasks: `build`, `dev` (Portless entry), `dev:debug` / `dev:process` (fixed-port / process child), `lint`, `type-check`, `test`, `clean`, plus a root-only uncached `//#env:check` that gates build/type-check/test.
 - **Backend:** NestJS 11.1.27 on Express 5.2.1, bundled with webpack 5.108 + swc-loader (es2022, decorators) via the `createWebpackConfig` factory (`webpack.base.config.js`).
 - **Frontend:** Next.js 16.2.9 / React 19.2.7 (Turbopack dev+build), Tailwind CSS 4.3.1 (v4 `@theme` blocks in `packages/styles/globals.css`).
 - **Language/tooling:** TypeScript 6.0.2, Biome 2.4.16 (format+lint), Vitest 4.1.9 (projects mode), Playwright 1.61.1, Knip (dead code), Secretlint 13 (custom Bun shim `scripts/run-secretlint.ts`).

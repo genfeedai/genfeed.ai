@@ -3,9 +3,10 @@ import { AgentChatInputStyles } from '@genfeedai/agent/components/AgentChatInput
 import { AgentChatInputToolbar } from '@genfeedai/agent/components/AgentChatInputToolbar';
 import { ContentLibraryPicker } from '@genfeedai/agent/components/ContentLibraryPicker';
 import { useAgentChatInput } from '@genfeedai/agent/components/useAgentChatInput';
-import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { RouterPriority } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   AttachmentItem,
@@ -57,12 +58,13 @@ interface AgentChatInputProps {
   clearAllAttachments?: () => void;
   density?: 'compact' | 'default' | 'inspector';
   selectedModel?: string;
-  /** Registry-backed chat catalogue; omitted falls back to the constants list. */
-  models?: readonly AgentModelOption[];
+  /** Registry-backed chat catalogue for the shared ModelSelectorPopover. */
+  models?: readonly IModel[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
+  onPrioritizeChange?: (priority: RouterPriority) => void;
+  prioritize?: RouterPriority;
   creditsAvailable?: number | null;
-  onBuyCredits?: () => void;
 }
 
 function mapAttachmentToTrayAsset(
@@ -98,8 +100,9 @@ export function AgentChatInput({
   models,
   isModelsLoading = false,
   onModelChange,
+  onPrioritizeChange,
+  prioritize,
   creditsAvailable = null,
-  onBuyCredits,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
@@ -219,14 +222,15 @@ export function AgentChatInput({
             isUploading={isUploading}
             models={models}
             onAddFiles={addFiles}
-            onBuyCredits={onBuyCredits}
             onInsertReference={handleInsertReference}
             onModelChange={onModelChange}
+            onPrioritizeChange={onPrioritizeChange}
             onSelectAction={handleSelectAction}
             onSend={handleToolbarSend}
             onStartListening={startListening}
             onStop={onStop}
             onStopListening={stopListening}
+            prioritize={prioritize}
             selectedModel={selectedModel}
             shouldShowSendButton={shouldShowSendButton}
             shouldShowVoiceInput={shouldShowVoiceInput}

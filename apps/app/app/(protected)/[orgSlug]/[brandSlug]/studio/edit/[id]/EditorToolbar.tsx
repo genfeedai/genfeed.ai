@@ -138,7 +138,7 @@ function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onPlayPause}
           tooltip={isPlaying ? 'Pause' : 'Play'}
-          className="size-10 rounded-full"
+          className="size-10"
           icon={
             isPlaying ? (
               <Pause className="size-5" />

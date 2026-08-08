@@ -2,31 +2,31 @@
   "apps": {
     "apps/app": {
       "name": "app.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     },
     "apps/docs": {
       "name": "docs.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     },
     "apps/server/api": {
       "name": "api.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     },
     "apps/server/files": {
       "name": "files.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     },
     "apps/server/mcp": {
       "name": "mcp.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     },
     "apps/server/notifications": {
       "name": "notifications.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     },
     "apps/website": {
       "name": "website.genfeed",
-      "script": "dev:direct"
+      "script": "dev:process"
     }
   }
 }

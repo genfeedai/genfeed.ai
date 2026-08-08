@@ -186,7 +186,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
             tooltip="Collapse"
             tooltipPosition="left"
             variant={ButtonVariant.GHOST}
-            className="absolute right-2 top-2 size-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
+            className="absolute right-2 top-2 size-8 rounded-md border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white"
             icon={<ChevronUp className="size-4" />}
             data-testid="collapse-button"
           />

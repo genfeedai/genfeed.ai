@@ -251,7 +251,7 @@ describe('PostsList', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/genfeed-ai/paperclip/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
+      '/genfeed-ai/paperclip/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 
@@ -275,7 +275,7 @@ describe('PostsList', () => {
     fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/owner-org/owner-brand/edit/post/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
+      '/owner-org/owner-brand/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 });

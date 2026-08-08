@@ -47,7 +47,7 @@ export default function TagBadge({
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           onClick={handleRemove}
-          className="flex-shrink-0 hover:bg-black/10 rounded-full p-0.5 transition-colors"
+          className="flex-shrink-0 rounded-md p-0.5 transition-colors hover:bg-black/10"
           ariaLabel={`Remove ${tag.label}`}
         >
           <X

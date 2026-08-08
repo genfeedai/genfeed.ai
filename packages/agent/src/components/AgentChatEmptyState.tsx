@@ -2,9 +2,10 @@ import {
   AgentChatInput,
   type ExtractedMention,
 } from '@genfeedai/agent/components/AgentChatInput';
-import type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import type { RouterPriority } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,
@@ -45,9 +46,12 @@ type AgentChatEmptyStateProps = {
   removeAttachment: (id: string) => void;
   selectedModel?: string;
   /** Registry-backed chat catalogue; omitted falls back to the constants list. */
-  models?: readonly AgentModelOption[];
+  models?: readonly IModel[];
   isModelsLoading?: boolean;
   onModelChange?: (model: string) => void;
+  onPrioritizeChange?: (priority: RouterPriority) => void;
+  prioritize?: RouterPriority;
+  creditsAvailable?: number | null;
 };
 
 export function AgentChatEmptyState({
@@ -76,6 +80,9 @@ export function AgentChatEmptyState({
   models,
   isModelsLoading = false,
   onModelChange,
+  onPrioritizeChange,
+  prioritize,
+  creditsAvailable = null,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
 
@@ -148,6 +155,9 @@ export function AgentChatEmptyState({
                 showStop={isRunActive}
                 selectedModel={selectedModel}
                 onModelChange={onModelChange}
+                onPrioritizeChange={onPrioritizeChange}
+                prioritize={prioritize}
+                creditsAvailable={creditsAvailable}
               />
             </PromptBarContainer>
           ) : null}

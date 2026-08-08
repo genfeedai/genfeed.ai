@@ -66,7 +66,7 @@ type Props = {
   onFollowed: () => Promise<void> | void;
 };
 
-function normalizeSearchQuery(value: string): string {
+export function normalizeSearchQuery(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) {
     return '';
@@ -83,9 +83,19 @@ function normalizeSearchQuery(value: string): string {
   return trimmed.replace(/^@/, '').replace(/^\/+/, '').toLowerCase();
 }
 
-function candidateKey(platform: string, handle: string): string {
+export function candidateKey(platform: string, handle: string): string {
   return `${platform}:${handle.toLowerCase()}`;
 }
+
+function isCandidateSelectable(candidate: {
+  isAlreadyFollowed: boolean;
+  isValid: boolean;
+}): boolean {
+  return candidate.isValid && !candidate.isAlreadyFollowed;
+}
+
+const CHECKBOX_CLASS_NAME =
+  'mt-1 size-4 shrink-0 !border-white/25 data-[state=checked]:!border-foreground data-[state=checked]:!bg-foreground data-[state=checked]:!text-background';
 
 export default function FollowSourceModal({
   brandId,
@@ -104,7 +114,8 @@ export default function FollowSourceModal({
   const [isFollowing, setIsFollowing] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [candidates, setCandidates] = useState<SourceCandidate[]>([]);
-  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  // string[] (not Set) so React state updates stay referentially obvious in tests/UI
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
   const followedKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -123,7 +134,7 @@ export default function FollowSourceModal({
     setIsFollowing(false);
     setHasSearched(false);
     setCandidates([]);
-    setSelectedKeys(new Set());
+    setSelectedKeys([]);
   }, []);
 
   useEffect(() => {
@@ -133,14 +144,17 @@ export default function FollowSourceModal({
   }, [open, resetState]);
 
   const selectableCandidates = useMemo(
-    () => candidates.filter((item) => item.isValid && !item.isAlreadyFollowed),
+    () => candidates.filter(isCandidateSelectable),
     [candidates],
   );
 
+  const selectedKeySet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
+
   const selectedCount = useMemo(
     () =>
-      selectableCandidates.filter((item) => selectedKeys.has(item.key)).length,
-    [selectableCandidates, selectedKeys],
+      selectableCandidates.filter((item) => selectedKeySet.has(item.key))
+        .length,
+    [selectableCandidates, selectedKeySet],
   );
 
   const runSearch = useCallback(async () => {
@@ -198,12 +212,9 @@ export default function FollowSourceModal({
       );
 
       setCandidates(nextCandidates);
+      // Auto-select every new match so a single hit is ready to follow immediately.
       setSelectedKeys(
-        new Set(
-          nextCandidates
-            .filter((item) => item.isValid && !item.isAlreadyFollowed)
-            .map((item) => item.key),
-        ),
+        nextCandidates.filter(isCandidateSelectable).map((item) => item.key),
       );
     } catch (error) {
       logger.error('Follow source search failed', error);
@@ -213,29 +224,25 @@ export default function FollowSourceModal({
     }
   }, [followedKeys, getSocialSourcesService, notifications, query]);
 
-  const toggleCandidate = useCallback((key: string, checked: boolean) => {
-    setSelectedKeys((current) => {
-      const next = new Set(current);
-      if (checked) {
-        next.add(key);
-      } else {
-        next.delete(key);
-      }
-      return next;
-    });
+  const toggleCandidate = useCallback((key: string) => {
+    setSelectedKeys((current) =>
+      current.includes(key)
+        ? current.filter((item) => item !== key)
+        : [...current, key],
+    );
   }, []);
 
   const selectAllSelectable = useCallback(() => {
-    setSelectedKeys(new Set(selectableCandidates.map((item) => item.key)));
+    setSelectedKeys(selectableCandidates.map((item) => item.key));
   }, [selectableCandidates]);
 
   const clearSelection = useCallback(() => {
-    setSelectedKeys(new Set());
+    setSelectedKeys([]);
   }, []);
 
   const followSelected = useCallback(async () => {
     const toFollow = selectableCandidates.filter((item) =>
-      selectedKeys.has(item.key),
+      selectedKeySet.has(item.key),
     );
     if (!toFollow.length) {
       notifications.error('Select at least one account to follow');
@@ -310,7 +317,7 @@ export default function FollowSourceModal({
     onFollowed,
     onOpenChange,
     selectableCandidates,
-    selectedKeys,
+    selectedKeySet,
   ]);
 
   const handleSubmitSearch = useCallback(
@@ -344,7 +351,7 @@ export default function FollowSourceModal({
                   setQuery('');
                   setCandidates([]);
                   setHasSearched(false);
-                  setSelectedKeys(new Set());
+                  setSelectedKeys([]);
                 }}
                 placeholder="Search handle (e.g. vincentshipsit)"
               />
@@ -387,15 +394,17 @@ export default function FollowSourceModal({
                     ? `${selectableCandidates.length} account${selectableCandidates.length === 1 ? '' : 's'} available`
                     : 'No new accounts to follow'}
                 </p>
-                {selectableCandidates.length > 1 ? (
+                {selectableCandidates.length > 0 ? (
                   <div className="flex gap-1">
-                    <Button
-                      label="Select all"
-                      onClick={selectAllSelectable}
-                      size={ButtonSize.SM}
-                      type="button"
-                      variant={ButtonVariant.GHOST}
-                    />
+                    {selectableCandidates.length > 1 ? (
+                      <Button
+                        label="Select all"
+                        onClick={selectAllSelectable}
+                        size={ButtonSize.SM}
+                        type="button"
+                        variant={ButtonVariant.GHOST}
+                      />
+                    ) : null}
                     <Button
                       label="Clear"
                       onClick={clearSelection}
@@ -407,82 +416,121 @@ export default function FollowSourceModal({
                 ) : null}
               </div>
 
-              <ul className="max-h-[42vh] space-y-2 overflow-y-auto pr-0.5">
+              <ul
+                aria-label="Source search results"
+                className="max-h-[42vh] space-y-2 overflow-y-auto pr-0.5"
+              >
                 {candidates.map((candidate) => {
                   const platformLabel =
                     PLATFORM_OPTIONS.find(
                       (option) => option.value === candidate.platform,
                     )?.label ?? candidate.platform;
-                  const canSelect =
-                    candidate.isValid && !candidate.isAlreadyFollowed;
-                  const isChecked = selectedKeys.has(candidate.key);
+                  const canSelect = isCandidateSelectable(candidate);
+                  const isChecked = selectedKeySet.has(candidate.key);
+                  const selectLabel = `Select ${platformLabel} @${candidate.handle}`;
+
+                  const rowBody = (
+                    <>
+                      {canSelect ? (
+                        // pointer-events-none: row owns the toggle (avoids double-toggle
+                        // from nested checkbox button + row click). Matches MultiSelect.
+                        <div className="pointer-events-none">
+                          <Checkbox
+                            aria-hidden
+                            className={CHECKBOX_CLASS_NAME}
+                            isChecked={isChecked}
+                            name={`follow-source-${candidate.key}`}
+                            onChange={() => {
+                              // Selection is owned by the row click/keyboard handler.
+                            }}
+                            tabIndex={-1}
+                          />
+                        </div>
+                      ) : (
+                        <div className="mt-1 size-4 shrink-0" />
+                      )}
+
+                      {candidate.avatarUrl ? (
+                        <Image
+                          alt=""
+                          className="size-10 shrink-0 rounded-full object-cover"
+                          height={40}
+                          src={candidate.avatarUrl}
+                          unoptimized
+                          width={40}
+                        />
+                      ) : (
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground/50">
+                          {getPlatformIcon(candidate.platform, 'h-4 w-4')}
+                        </div>
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {getPlatformIcon(candidate.platform, 'h-3.5 w-3.5')}
+                          <span className="text-sm font-medium text-foreground">
+                            @{candidate.handle}
+                          </span>
+                          <Badge variant="ghost">{platformLabel}</Badge>
+                          {candidate.isAlreadyFollowed ? (
+                            <Badge variant="secondary">Following</Badge>
+                          ) : null}
+                          {!candidate.isValid ? (
+                            <Badge variant="ghost">Not found</Badge>
+                          ) : null}
+                        </div>
+                        {candidate.displayName ? (
+                          <p className="mt-0.5 truncate text-xs text-foreground/60">
+                            {candidate.displayName}
+                            {typeof candidate.followersCount === 'number'
+                              ? ` · ${formatCompactNumber(candidate.followersCount)} followers`
+                              : ''}
+                          </p>
+                        ) : null}
+                        {!candidate.isValid && candidate.error ? (
+                          <p className="mt-1 text-xs text-foreground/50">
+                            {candidate.error}
+                          </p>
+                        ) : null}
+                      </div>
+                    </>
+                  );
 
                   return (
                     <li key={candidate.key}>
-                      <div
-                        className={`flex items-start gap-3 rounded-card border border-border px-3 py-3 ${
-                          canSelect
-                            ? 'bg-card'
-                            : 'bg-background-secondary/40 opacity-80'
-                        }`}
-                      >
-                        {canSelect ? (
-                          <Checkbox
-                            isChecked={isChecked}
-                            onCheckedChange={(checked) =>
-                              toggleCandidate(candidate.key, checked === true)
+                      {canSelect ? (
+                        <div
+                          aria-checked={isChecked}
+                          aria-label={selectLabel}
+                          className={`flex w-full items-start gap-3 rounded-card border px-3 py-3 text-left transition-colors ${
+                            isChecked
+                              ? 'cursor-pointer border-foreground/35 bg-foreground/[0.06]'
+                              : 'cursor-pointer border-border bg-card hover:bg-hover/40'
+                          }`}
+                          onClick={() => {
+                            toggleCandidate(candidate.key);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              toggleCandidate(candidate.key);
                             }
-                            aria-label={`Select ${platformLabel} @${candidate.handle}`}
-                            className="mt-1"
-                          />
-                        ) : (
-                          <div className="mt-1 size-4 shrink-0" />
-                        )}
-
-                        {candidate.avatarUrl ? (
-                          <Image
-                            alt=""
-                            className="size-10 shrink-0 rounded-full object-cover"
-                            height={40}
-                            src={candidate.avatarUrl}
-                            unoptimized
-                            width={40}
-                          />
-                        ) : (
-                          <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground/50">
-                            {getPlatformIcon(candidate.platform, 'h-4 w-4')}
-                          </div>
-                        )}
-
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {getPlatformIcon(candidate.platform, 'h-3.5 w-3.5')}
-                            <span className="text-sm font-medium text-foreground">
-                              @{candidate.handle}
-                            </span>
-                            <Badge variant="ghost">{platformLabel}</Badge>
-                            {candidate.isAlreadyFollowed ? (
-                              <Badge variant="secondary">Following</Badge>
-                            ) : null}
-                            {!candidate.isValid ? (
-                              <Badge variant="ghost">Not found</Badge>
-                            ) : null}
-                          </div>
-                          {candidate.displayName ? (
-                            <p className="mt-0.5 truncate text-xs text-foreground/60">
-                              {candidate.displayName}
-                              {typeof candidate.followersCount === 'number'
-                                ? ` · ${formatCompactNumber(candidate.followersCount)} followers`
-                                : ''}
-                            </p>
-                          ) : null}
-                          {!candidate.isValid && candidate.error ? (
-                            <p className="mt-1 text-xs text-foreground/50">
-                              {candidate.error}
-                            </p>
-                          ) : null}
+                          }}
+                          role="checkbox"
+                          tabIndex={0}
+                        >
+                          {rowBody}
                         </div>
-                      </div>
+                      ) : (
+                        <div
+                          className={[
+                            'flex w-full items-start gap-3 rounded-card border border-border px-3 py-3 text-left opacity-80',
+                            'bg-background-secondary/40',
+                          ].join(' ')}
+                        >
+                          {rowBody}
+                        </div>
+                      )}
                     </li>
                   );
                 })}

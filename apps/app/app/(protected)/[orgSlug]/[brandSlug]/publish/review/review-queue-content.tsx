@@ -7,7 +7,7 @@ import { useReviewQueueContent } from './useReviewQueueContent';
 
 function ReviewQueueContentContent() {
   const {
-    activeFilter,
+    activeFilters,
     activeItem,
     activeBatch,
     activeBatchError,
@@ -41,7 +41,7 @@ function ReviewQueueContentContent() {
 
   return (
     <ReviewQueueView
-      activeFilter={activeFilter}
+      activeFilters={activeFilters}
       activeItem={activeItem}
       activeBatch={activeBatch}
       activeBatchError={activeBatchError as Error | null}

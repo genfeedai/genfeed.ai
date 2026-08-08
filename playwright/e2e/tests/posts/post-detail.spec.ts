@@ -222,7 +222,7 @@ test.describe('Post Detail — Unauthenticated Access', () => {
   test('should redirect post detail page to login', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(`/publish/${testPosts[0].id}`, {
+    await unauthenticatedPage.goto(`/publish/posts/${testPosts[0].id}`, {
       timeout: 30000,
       waitUntil: 'domcontentloaded',
     });

@@ -67,6 +67,25 @@ vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    settings: { isVoiceControlEnabled: false },
+  }),
+}));
+
+vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
+  useModelFavorites: () => ({
+    favoriteModelKeys: [],
+    onFavoriteToggle: vi.fn(),
+  }),
+}));
+
+vi.mock('@ui/dropdowns/model-selector/ModelSelectorPopover', () => ({
+  default: function MockModelSelectorPopover() {
+    return <button type="button">Select model</button>;
+  },
+}));
+
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(storeState),

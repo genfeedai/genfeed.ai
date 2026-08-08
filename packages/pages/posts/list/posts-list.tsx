@@ -31,7 +31,8 @@ export interface PostsListProps extends ContentProps {
   initialPagination?: PostsListResult['pagination'];
   initialPosts?: IPost[];
   platform?: string;
-  publicationState?: PostsPublicationState;
+  /** `null` = all lifecycle states (canonical Posts library). */
+  publicationState?: PostsPublicationState | null;
   status?: PostStatus;
 }
 

@@ -9,7 +9,6 @@ export { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 export { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 export { AgentFullPage } from '@genfeedai/agent/components/AgentFullPage';
 export { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
-export { AgentModelSelector } from '@genfeedai/agent/components/AgentModelSelector';
 export { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 export { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 export { AgentPanel } from '@genfeedai/agent/components/AgentPanel';

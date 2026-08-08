@@ -59,7 +59,7 @@ import {
 
 ### Expected
 
-Local `dev:app:fe` should compile all protected routes. The webhooks page should not poison unrelated route testing.
+Local `dev:app` (formerly `dev:app:fe`) should compile all protected routes. The webhooks page should not poison unrelated route testing.
 
 ### Fix Applied
 
@@ -83,7 +83,7 @@ Focused verification after the change:
 
 Choose one local workspace resolution strategy and apply it consistently:
 
-- Build or watch `@genfeedai/api-types` before starting `dev:app:fe`.
+- Build or watch `@genfeedai/api-types` before starting `dev:app`.
 - Add a dev alias so `@genfeedai/api-types/contracts` resolves to `packages/api-types/src/contracts/index.ts`.
 - Move webhooks UI imports to an app-local/client package path that is already resolvable in dev.
 
@@ -388,8 +388,8 @@ Avoid generic `/overview` fallbacks for app-specific entries.
 
 ## Working Notes
 
-- `dev:app:be` is running locally on `http://genfeed.localhost:3010`.
-- `dev:app:fe` is running locally on `http://genfeed.localhost:3000`.
+- `dev:backend:min` (formerly `dev:app:be`) is running locally (Portless: `https://api.genfeed.localhost`).
+- `dev:app` (formerly `dev:app:fe`) is running locally (Portless: `https://app.genfeed.localhost`).
 - Magic-link auth was generated from the internal dev log and consumed into a local cookie jar. Session lookup confirms `vincent@genfeed.ai` is authenticated.
 - Spark CLI was available, but local Resend is skipped, so the email was not delivered to Spark. The internal log was the correct local source for the magic link.
 - Codex Preview was requested, but this session exposes no callable Preview/browser tool and the visible Codex side panel did not surface a Preview pane. Evidence uses local authenticated HTTP requests, dev logs, source inspection, and the user-provided production screenshots.

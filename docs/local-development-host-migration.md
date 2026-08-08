@@ -35,11 +35,26 @@ proxies those requests to the derived API route. This keeps Better Auth cookies
 scoped to the app/worktree host. Server-to-server calls use direct derived
 Portless service routes.
 
-Fixed ports remain available only through `bun run dev:direct:*`. The
-direct-runtime adapter injects app `3000`, API `3010`, and
-notifications/websockets `3111`; canonical environment files contain the clean
-HTTPS service origins and `bun run env:sync local` distributes those origins to
-app and service env files.
+Fixed ports remain available only through `bun run dev:debug:*`. The
+`run-service.ts` adapter injects app `3000`, API `3010`, and
+notifications/websockets `3111` when `PORTLESS_URL` is unset; canonical
+environment files contain the clean HTTPS service origins and
+`bun run env:sync local` distributes those origins to app and service env files.
+
+### Canonical root scripts (post-rename)
+
+| Command | Role |
+| --- | --- |
+| `bun run dev:setup` / `dev:doctor` | Machine Portless HTTPS contract |
+| `bun run dev:backend:min` | api + files + notifications |
+| `bun run dev:backend` | Full backend |
+| `bun run dev:app` | App → `https://app.genfeed.localhost/` |
+| `bun run dev` | Full stack |
+| `bun run dev:debug*` | Explicit fixed-port escape hatch |
+
+Package **`dev`** is Portless; **`dev:process`** is the Portless child (and
+fixed-port process without `PORTLESS_URL`). Retired: `dev:direct*`,
+`dev:portless*`.
 
 Plain `localhost` remains valid for Docker/self-hosted loopback, health checks,
 CI web servers, and tests where cookie/host isolation is irrelevant. Deployed

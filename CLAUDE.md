@@ -24,10 +24,12 @@
 
 ```bash
 bun install                                          # Install dependencies
-bun run dev:backend                                  # api, files, mcp, notifications, workers
-bun run dev:app:be                                   # API + notifications only
-bun run dev:app                                      # Main app (apps/app)
-bunx turbo run dev --filter=@genfeedai/[name]        # Any specific app/service
+bun run dev:setup                                    # once per machine (Portless HTTPS :443)
+bun run dev:backend:min                              # api + files + notifications (app minimum)
+bun run dev:backend                                  # full backend (+ mcp + workers)
+bun run dev:app                                      # Main app → https://app.genfeed.localhost/
+bun run dev                                          # full stack (Portless)
+# Fixed ports only when you mean it: bun run dev:debug / dev:debug:backend:min
 
 bunx turbo run build --filter=@genfeedai/[name]      # NEVER run `bun run build` at root
 bun type-check                                       # Type-check all packages

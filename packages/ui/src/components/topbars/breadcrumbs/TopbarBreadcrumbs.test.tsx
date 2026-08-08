@@ -25,7 +25,9 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
     breadcrumbPageLabel:
       mockNavigationState.breadcrumbPageLabel ??
       mockNavigationState.activePageLabel,
+    breadcrumbParentHref: '',
     breadcrumbParentLabel: mockNavigationState.breadcrumbParentLabel ?? '',
+    breadcrumbRootHref: '',
     breadcrumbRootLabel:
       mockNavigationState.breadcrumbRootLabel ??
       mockNavigationState.activeGroupId,
@@ -33,6 +35,12 @@ vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
     exitNestedGroup: mockNavigationState.exitNestedGroup,
     groups: [],
     nestedGroupId: mockNavigationState.nestedGroupId ?? null,
+  }),
+}));
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => path,
   }),
 }));
 

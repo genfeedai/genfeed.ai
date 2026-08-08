@@ -5,21 +5,30 @@ import {
   type CSSProperties,
   cloneElement,
   type ReactElement,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
   clampAgentPanelHeight,
+  clampSidebarWidth,
   persistAgentPanelHeight,
   persistSidebarCollapsed,
+  persistSidebarWidth,
   readPersistedAgentPanelHeight,
   readPersistedSidebarCollapsed,
+  readPersistedSidebarWidth,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
 } from './app-layout.utils';
 
-const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 0;
 const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
@@ -56,8 +65,33 @@ export function useAppLayout({
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] =
     useState(false);
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
+  // Seed from localStorage on the client so the first paint matches the
+  // persisted rail width (avoids 280 → stored width flash after mount).
+  const [sidebarExpandedWidth, setSidebarExpandedWidth] = useState(() => {
+    const persistedWidth = readPersistedSidebarWidth();
+    return persistedWidth !== null
+      ? clampSidebarWidth(persistedWidth)
+      : SIDEBAR_DEFAULT_WIDTH;
+  });
   const [agentPanelHeight, setAgentPanelHeight] =
     useState<number>(AGENT_PANEL_HEIGHT);
+  /** Layout root for CSS-var drag updates (no React re-render per pixel). */
+  const layoutRootRef = useRef<HTMLDivElement | null>(null);
+  const sidebarDragWidthRef = useRef(sidebarExpandedWidth);
+  const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    sidebarDragWidthRef.current = sidebarExpandedWidth;
+  }, [sidebarExpandedWidth]);
+
+  // Drop mid-drag listeners if the shell unmounts.
+  useEffect(() => {
+    return () => {
+      sidebarDragCleanupRef.current?.();
+      sidebarDragCleanupRef.current = null;
+    };
+  }, []);
 
   const handleCloseSidebar = useCallback(() => {
     setIsSidebarOpen(false);
@@ -76,7 +110,21 @@ export function useAppLayout({
     if (persistedValue !== null) {
       setIsDesktopCollapsed(persistedValue);
     }
+    const persistedWidth = readPersistedSidebarWidth();
+    if (persistedWidth !== null) {
+      setSidebarExpandedWidth(clampSidebarWidth(persistedWidth));
+    } else {
+      // Seed from host menu prop (e.g. AppProtectedLayout) once per session.
+      const hostWidth = (
+        menuComponent as ReactElement<{ sidebarWidth?: number }> | null
+      )?.props?.sidebarWidth;
+      if (typeof hostWidth === 'number') {
+        setSidebarExpandedWidth(clampSidebarWidth(hostWidth));
+      }
+    }
     setIsSidebarPreferenceLoaded(true);
+    // Intentionally run once on mount — resizing is owned by localStorage + state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- host width is a seed only
   }, []);
 
   useEffect(() => {
@@ -86,6 +134,14 @@ export function useAppLayout({
 
     persistSidebarCollapsed(isDesktopCollapsed);
   }, [isDesktopCollapsed, isSidebarPreferenceLoaded]);
+
+  useEffect(() => {
+    if (!isSidebarPreferenceLoaded) {
+      return;
+    }
+
+    persistSidebarWidth(sidebarExpandedWidth);
+  }, [isSidebarPreferenceLoaded, sidebarExpandedWidth]);
 
   useEffect(() => {
     const persistedHeight = readPersistedAgentPanelHeight();
@@ -172,6 +228,8 @@ export function useAppLayout({
         currentApp,
         isCollapsed:
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
+        // Width is for mobile drawer / stories; desktop MenuShared fills the rail.
+        sidebarWidth: sidebarExpandedWidth,
         onClose: (...args: unknown[]) => {
           if (extraOnClose) {
             extraOnClose(...args);
@@ -184,7 +242,15 @@ export function useAppLayout({
         onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
-    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed, currentApp],
+    // Intentionally omit sidebarExpandedWidth: desktop rail width is a CSS var
+    // updated during drag without re-cloning the menu tree every frame.
+    [
+      menuComponent,
+      handleToggleDesktopSidebar,
+      isDesktopCollapsed,
+      currentApp,
+      sidebarExpandedWidth,
+    ],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
@@ -224,8 +290,7 @@ export function useAppLayout({
     mobileSidebarWidth?: number;
     sidebarWidth?: number;
   }> | null;
-  const desktopSidebarExpandedWidth =
-    menuElement?.props?.sidebarWidth ?? SIDEBAR_WIDTH;
+  const desktopSidebarExpandedWidth = sidebarExpandedWidth;
   const desktopSidebarCollapsedWidth =
     menuElement?.props?.collapsedSidebarWidth ?? SIDEBAR_COLLAPSED_WIDTH;
   const mobileSidebarWidth =
@@ -245,6 +310,77 @@ export function useAppLayout({
       ? `${DESKTOP_TITLEBAR_HEIGHT}px`
       : '0px',
   } as CSSProperties;
+
+  const publishSidebarWidthVar = useCallback((nextWidth: number): void => {
+    const root = layoutRootRef.current;
+    if (!root) {
+      return;
+    }
+    root.style.setProperty('--desktop-sidebar-width', `${nextWidth}px`);
+  }, []);
+
+  const handleSidebarResizeStart = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (isDesktopCollapsed) {
+        return;
+      }
+
+      event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setIsSidebarResizing(true);
+      const startX = event.clientX;
+      const startWidth = sidebarDragWidthRef.current;
+
+      const handlePointerMove = (moveEvent: PointerEvent): void => {
+        const next = clampSidebarWidth(startWidth + moveEvent.clientX - startX);
+        sidebarDragWidthRef.current = next;
+        // CSS var only — DesktopSidebar + content offsets track without
+        // re-cloning MenuShared every frame.
+        publishSidebarWidthVar(next);
+      };
+
+      const handlePointerUp = (): void => {
+        setIsSidebarResizing(false);
+        setSidebarExpandedWidth(sidebarDragWidthRef.current);
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+        sidebarDragCleanupRef.current = null;
+      };
+
+      sidebarDragCleanupRef.current = () => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
+    },
+    [isDesktopCollapsed, publishSidebarWidthVar],
+  );
+
+  const handleSidebarResizeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      const step = event.shiftKey ? 32 : 16;
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setSidebarExpandedWidth((current) => clampSidebarWidth(current + step));
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setSidebarExpandedWidth((current) => clampSidebarWidth(current - step));
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        setSidebarExpandedWidth(SIDEBAR_MIN_WIDTH);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        setSidebarExpandedWidth(SIDEBAR_MAX_WIDTH);
+      }
+    },
+    [],
+  );
 
   const handleAgentPanelResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -293,7 +429,10 @@ export function useAppLayout({
   // consumer that offsets itself by that var must ease over the exact same
   // duration/easing as DesktopSidebar's own width animation. Otherwise the
   // content jumps to its final position a frame before the rail starts moving.
-  const sidebarOffsetTransition = `padding-left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, padding-right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
+  // While dragging the rail, offsets track live without transition lag.
+  const sidebarOffsetTransition = isSidebarResizing
+    ? 'none'
+    : `padding-left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, padding-right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
   const agentPanelTransition = `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, ${sidebarOffsetTransition}`;
 
   return {
@@ -304,9 +443,13 @@ export function useAppLayout({
     desktopSidebarExpandedWidth,
     handleAgentPanelResizeStart,
     handleCloseSidebar,
+    handleSidebarResizeKeyDown,
+    handleSidebarResizeStart,
     handleToggleDesktopSidebar,
     isDesktopCollapsed,
     isSidebarOpen,
+    isSidebarResizing,
+    layoutRootRef: layoutRootRef as RefObject<HTMLDivElement | null>,
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,

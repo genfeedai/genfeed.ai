@@ -1,3 +1,4 @@
+import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
 import {
   AGENT_CONVERSATION_INLINE_ROW_CLASS,
   AGENT_CONVERSATION_SURFACE_CLASS,
@@ -12,8 +13,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
-  ChevronDown,
-  ChevronUp,
   CircleCheck,
   Clipboard,
   Frown,
@@ -172,7 +171,7 @@ export function AgentCompletionSummaryCard({
     '';
 
   const header = (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div className="flex min-w-0 items-center gap-2">
       <CircleCheck className="size-3.5 shrink-0 text-emerald-500" />
       <div className="min-w-0 flex-1 basis-32">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -197,19 +196,14 @@ export function AgentCompletionSummaryCard({
       ) : null}
 
       {hasRichBody ? (
-        <Button
-          ariaLabel={isExpanded ? 'Collapse summary' : 'Expand summary'}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-          className="h-7 w-7 shrink-0 p-0 text-muted-foreground"
-          onClick={() => setIsExpanded((open) => !open)}
-        >
-          {isExpanded ? (
-            <ChevronUp className="size-3.5" />
-          ) : (
-            <ChevronDown className="size-3.5" />
-          )}
-        </Button>
+        <AgentCardCollapseToggle
+          isCollapsed={!isExpanded}
+          labelCollapse="Collapse summary"
+          labelExpand="Expand summary"
+          onToggle={() => {
+            setIsExpanded((open) => !open);
+          }}
+        />
       ) : null}
     </div>
   );

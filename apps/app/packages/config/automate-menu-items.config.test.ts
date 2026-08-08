@@ -44,6 +44,8 @@ describe('AUTOMATE_MENU_ITEMS', () => {
     ['Configuration', '/automate/configuration'],
     ['Team', '/automate/library'],
     ['Hire', '/automate/hire'],
+    ['Campaigns', '/automate/campaigns'],
+    ['Outreach', '/automate/outreach-campaigns'],
     ['Launch team', '/automate/orchestrator'],
     ['Reply Campaigns', '/automate/reply-campaigns'],
     ['Workflows', '/automate/workflows'],
@@ -79,6 +81,8 @@ describe('AUTOMATE_MENU_ITEMS', () => {
   });
 
   it.each([
+    '/automate/campaigns',
+    '/automate/outreach-campaigns',
     '/automate/content-runs',
     '/automate/hire',
     '/automate/orchestrator',
@@ -111,6 +115,8 @@ describe('AUTOMATE_MENU_ITEMS', () => {
       'Autopilot',
     ]);
     expect(byGroup.get('Campaigns')).toEqual([
+      'Campaigns',
+      'Outreach',
       'Reply Campaigns',
       'Launch team',
     ]);

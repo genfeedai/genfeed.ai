@@ -15,6 +15,10 @@ import {
   fromPrismaBatchStatus,
   toPrismaBatchStatus,
 } from '@api/services/batch-generation/batch-status-prisma.mapper';
+import {
+  buildBatchDiversityContext,
+  expandBatchTopics,
+} from '@api/services/batch-generation/batch-topic-angles.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
@@ -25,10 +29,7 @@ import {
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
-import {
-  type Prisma,
-  CredentialPlatform as PrismaCredentialPlatform,
-} from '@genfeedai/prisma';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -246,6 +247,29 @@ export class BatchGenerationProcessingService {
       (entry) => entry.status === BatchItemStatus.FAILED,
     ).length;
 
+    // Accumulate captions as items complete — O(1) push per item instead of
+    // re-scanning the full batch on every generation call.
+    const priorCaptions: string[] = batchItems
+      .filter(
+        (entry) =>
+          entry.status === BatchItemStatus.COMPLETED &&
+          Boolean(entry.caption?.trim()),
+      )
+      .map((entry) => entry.caption as string);
+
+    // Empty/short topics → every item used `${format} content` and the model
+    // rewrote the same brand hook N times. Expand once so each slot has a
+    // distinct creative brief (user-supplied topics are kept first).
+    const totalCount = batchConfig.totalCount ?? batchItems.length;
+    const topics = expandBatchTopics({
+      count: Math.max(totalCount, batchItems.length),
+      formats: batchItems.map((entry) => entry.format),
+      platforms: batchConfig.platforms ?? [],
+      style: batchConfig.style,
+      topics: batchConfig.topics,
+    });
+    batchConfig.topics = topics;
+
     for (let i = 0; i < batchItems.length; i++) {
       // Persist progress so far and renew the processing lease in one write.
       // A miss means the batch was cancelled or re-claimed elsewhere — this
@@ -272,11 +296,10 @@ export class BatchGenerationProcessingService {
       try {
         item.status = BatchItemStatus.PROCESSING;
 
-        const topics = batchConfig.topics ?? [];
         const topic =
-          topics.length > 0
-            ? topics[i % topics.length]
-            : `${item.format} content`;
+          topics[i] ??
+          topics[i % Math.max(topics.length, 1)] ??
+          `${item.format} content`;
 
         await this.invokeLifecycleCallback(
           'onItemStarted',
@@ -288,7 +311,7 @@ export class BatchGenerationProcessingService {
               index: i,
               item,
               topic,
-              totalCount: batchConfig.totalCount ?? batchItems.length,
+              totalCount,
             }),
           { batchId, itemId: item.id },
         );
@@ -296,9 +319,12 @@ export class BatchGenerationProcessingService {
         const generated = await this.contentGeneratorService.generateContent(
           orgId,
           {
-            additionalContext: batchConfig.style
-              ? [batchConfig.style]
-              : undefined,
+            additionalContext: buildBatchDiversityContext({
+              index: i,
+              priorCaptions,
+              style: batchConfig.style,
+              totalCount,
+            }),
             brandId: batchRecord.brandId ?? undefined,
             platform: item.platform as ContentIntelligencePlatform,
             topic,
@@ -371,6 +397,9 @@ export class BatchGenerationProcessingService {
         item.postId = postId;
         item.status = BatchItemStatus.COMPLETED;
         completedCount++;
+        if (item.caption?.trim()) {
+          priorCaptions.push(item.caption);
+        }
 
         await this.invokeLifecycleCallback(
           'onItemCompleted',
@@ -384,7 +413,7 @@ export class BatchGenerationProcessingService {
               postId,
               previewText: item.caption,
               topic,
-              totalCount: batchConfig.totalCount ?? batchItems.length,
+              totalCount,
             }),
           { batchId, itemId: item.id },
         );
@@ -399,7 +428,6 @@ export class BatchGenerationProcessingService {
           rawError: error instanceof Error ? error.message : error,
         });
 
-        const topics = batchConfig.topics ?? [];
         await this.invokeLifecycleCallback(
           'onItemFailed',
           () =>
@@ -411,10 +439,10 @@ export class BatchGenerationProcessingService {
               index: i,
               item,
               topic:
-                topics.length > 0
-                  ? topics[i % topics.length]
-                  : `${item.format} content`,
-              totalCount: batchConfig.totalCount ?? batchItems.length,
+                topics[i] ??
+                topics[i % Math.max(topics.length, 1)] ??
+                `${item.format} content`,
+              totalCount,
             }),
           { batchId, itemId: item.id },
         );

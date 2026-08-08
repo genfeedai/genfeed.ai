@@ -114,11 +114,11 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate', 'Automate', 'Overview'],
     ['/acme/moonrise/automate/content-runs', 'Automate', 'Content Runs'],
     ['/acme/moonrise/automate/content-runs/run-1', 'Automate', 'Content Run'],
-    ['/acme/moonrise/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
+    ['/acme/moonrise/automate/campaigns/campaign-1', 'Automate', 'Campaign'],
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
     ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
     ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
-    ['/acme/moonrise/edit/post/post-1', 'Edit', 'Post'],
+    ['/acme/moonrise/publish/posts/post-1', 'Posts', 'Post'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -162,7 +162,7 @@ describe('workspace shell trusted registry', () => {
   it.each([
     '/acme/moonrise/edit/article/article-1',
     '/acme/moonrise/edit/newsletter/newsletter-1',
-    '/acme/moonrise/edit/post/post-1',
+    '/acme/moonrise/publish/posts/post-1',
   ] as const)(
     'registers the dedicated artifact editor %s as a focused Publish surface',
     (pathname) => {
@@ -229,13 +229,13 @@ describe('workspace shell trusted registry', () => {
     expect(resolveWorkspaceShellRoute('/acme/~/editor')).toBeNull();
   });
 
-  it('keeps contextual Remix routes inside the Publish switcher module', () => {
+  it('keeps contextual Remix as an action deep-link (Discover + Publish switcher)', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/publish/remix'),
     ).toMatchObject({
       productClass: 'contextual-action',
       surfaceKey: 'publish',
-      switcherItems: ['publish'],
+      switcherItems: ['discover', 'publish'],
     });
   });
 
@@ -253,6 +253,7 @@ describe('workspace shell trusted registry', () => {
     for (const pathname of [
       '/acme/moonrise/library/images',
       '/acme/moonrise/publish/calendar',
+      '/acme/moonrise/publish/posts',
       '/acme/moonrise/publish/review',
       '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',

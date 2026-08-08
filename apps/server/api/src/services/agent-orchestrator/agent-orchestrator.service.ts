@@ -26,6 +26,7 @@ import type {
   ThreadResolutionResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import { applyPinnedDefaultAgentModel } from '@api/services/agent-orchestrator/utils/agent-pinned-default-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   recordAgentRunScope,
@@ -46,6 +47,7 @@ import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.s
 import {
   AgentExecutionTrigger,
   AgentMessageRole,
+  AgentThreadStatus,
   AgentType,
   toRouterPriority,
 } from '@genfeedai/enums';
@@ -59,12 +61,16 @@ import {
 } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   HttpException,
   Injectable,
   InternalServerErrorException,
   Optional,
 } from '@nestjs/common';
 import { Effect } from 'effect';
+
+const ARCHIVED_THREAD_WRITE_ERROR =
+  'This thread is archived. Unarchive it before sending messages or running actions.';
 
 @Injectable()
 export class AgentOrchestratorService {
@@ -108,6 +114,13 @@ export class AgentOrchestratorService {
       const userSettings = await this.settingsService.findOne({
         userId: context.userId,
       });
+      // Empty defaultAgentModel = Auto (leave request.model unset for registry
+      // / brand / subscription resolution). A non-empty pin is the user's
+      // durable chat override when the client omits model.
+      request = applyPinnedDefaultAgentModel(
+        request,
+        userSettings?.defaultAgentModel,
+      );
 
       const resolved = await this.contextService.resolveSystemPromptAndModel(
         request,
@@ -148,6 +161,11 @@ export class AgentOrchestratorService {
         resolved.preparedScope,
       );
       const { isCreated, seedTitle, threadId } = threadResolution;
+      await this.assertThreadWritable(
+        threadId,
+        context.organizationId,
+        isCreated,
+      );
       const scope = isCreated
         ? await this.agentScopeContextService.resolveCreatedThreadScope({
             brandId: resolved.preparedScope.initialBrandId,
@@ -312,10 +330,14 @@ export class AgentOrchestratorService {
     runId: string;
     startedAt: string;
   }> {
-    // Look up user's generation priority setting
+    // Look up user's generation priority + default chat model
     const userSettings = await this.settingsService.findOne({
       userId: context.userId,
     });
+    request = applyPinnedDefaultAgentModel(
+      request,
+      userSettings?.defaultAgentModel,
+    );
 
     const resolved = await this.contextService.resolveSystemPromptAndModel(
       request,
@@ -358,6 +380,11 @@ export class AgentOrchestratorService {
       resolved.preparedScope,
     );
     const { isCreated, seedTitle, threadId } = threadResolution;
+    await this.assertThreadWritable(
+      threadId,
+      context.organizationId,
+      isCreated,
+    );
     const scope = isCreated
       ? await this.agentScopeContextService.resolveCreatedThreadScope({
           brandId: resolved.preparedScope.initialBrandId,
@@ -603,6 +630,37 @@ export class AgentOrchestratorService {
       seedTitle,
       threadId: String(thread.id),
     };
+  }
+
+  /**
+   * Hard gate: archived threads cannot accept chat turns or mutating runs.
+   * Client read-only UI is not enough — regenerate must fail server-side too.
+   */
+  private async assertThreadWritable(
+    threadId: string,
+    organizationId: string,
+    isCreated: boolean,
+  ): Promise<void> {
+    if (isCreated) {
+      return;
+    }
+
+    const thread = await this.agentThreadsService.findOne({
+      id: threadId,
+      isDeleted: false,
+      organizationId,
+    } as never);
+
+    if (!thread) {
+      return;
+    }
+
+    const status = String(
+      (thread as { status?: string | null }).status ?? '',
+    ).toLowerCase();
+    if (status === AgentThreadStatus.ARCHIVED || status === 'archived') {
+      throw new BadRequestException(ARCHIVED_THREAD_WRITE_ERROR);
+    }
   }
 
   async resumeRecurringTaskDraftFromInput(params: {

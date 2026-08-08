@@ -28,21 +28,25 @@ export async function renderPostsListPage({
   scope = PageScope.PUBLISHER,
   publicationStateOverride,
   statusOverride,
+  showAllPublicationStates = false,
 }: {
   searchParams: PostsListSearchParams;
   scope?: PageScope;
   publicationStateOverride?: PostsPublicationState;
   statusOverride?: PublisherPostsStatus;
+  /** True for the canonical `/publish/posts` library (no lifecycle filter). */
+  showAllPublicationStates?: boolean;
 }) {
   const { page, platform, search, sort } = await searchParams;
-  // Publisher navigation has three destinations: not posted, posted, and
-  // failed. Draft/scheduled/processing states remain visible on each card.
+  // Pipeline shortcuts (Drafts / Published / Failed) pass a focused override.
+  // The Posts library shows every lifecycle state and filters in the table.
   const normalizedStatus = statusOverride;
-  const publicationState =
-    publicationStateOverride ??
-    (scope === PageScope.PUBLISHER && !normalizedStatus
-      ? 'not-posted'
-      : undefined);
+  const publicationState = showAllPublicationStates
+    ? undefined
+    : (publicationStateOverride ??
+      (scope === PageScope.PUBLISHER && !normalizedStatus
+        ? 'not-posted'
+        : undefined));
   const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
   const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const normalizedPlatform = normalizePostsPlatform(platform);
@@ -89,7 +93,7 @@ export async function renderPostsListPage({
         initialPosts={initialData.posts}
         initialPagination={initialData.pagination}
         platform={normalizedPlatform}
-        publicationState={publicationState}
+        publicationState={showAllPublicationStates ? null : publicationState}
         scope={scope}
         status={normalizedStatus}
       />
