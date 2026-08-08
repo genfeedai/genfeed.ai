@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory, MetadataExtension } from '@genfeedai/enums';
 import { useDominantColor } from '@genfeedai/hooks/ui/use-dominant-color/use-dominant-color';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
@@ -104,9 +104,9 @@ export default function MediaLightbox({
         item.category === IngredientCategory.VIDEO_EDIT;
 
       const isVideoExtension =
-        item.metadataExtension === 'mp4' ||
-        item.metadataExtension === 'mov' ||
-        item.metadataExtension === 'webm';
+        item.metadataExtension === MetadataExtension.MP4 ||
+        item.metadataExtension === MetadataExtension.MOV ||
+        item.metadataExtension === MetadataExtension.WEBM;
 
       const isVideo = isVideoCategory || isVideoExtension;
 
@@ -125,7 +125,7 @@ export default function MediaLightbox({
         slide.sources = [
           {
             src,
-            type: `video/${item.metadataExtension || 'mp4'}`,
+            type: `video/${String(item.metadataExtension || MetadataExtension.MP4).toLowerCase()}`,
           },
         ];
         slide.controls = true;

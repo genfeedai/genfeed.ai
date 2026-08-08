@@ -2,7 +2,7 @@
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, FleetReviewStatus } from '@genfeedai/enums';
 import type { IFleetAsset, IFleetCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import DatasetUploader from '@protected/fleet/_components/dataset-uploader';
@@ -22,10 +22,12 @@ import { useCallback, useMemo, useState } from 'react';
 
 type ReviewTab = 'selected' | 'review' | 'trash';
 
-const TABS: { key: ReviewTab; label: string; status: string }[] = [
-  { key: 'selected', label: 'Selected', status: 'approved' },
-  { key: 'review', label: 'Review', status: 'pending' },
-  { key: 'trash', label: 'Trash', status: 'rejected' },
+// Tab keys are UI vocabulary; the status they map to is the Prisma
+// FleetReviewStatus enum (SCREAMING labels) — never raw lowercase strings.
+const TABS: { key: ReviewTab; label: string; status: FleetReviewStatus }[] = [
+  { key: 'selected', label: 'Selected', status: FleetReviewStatus.APPROVED },
+  { key: 'review', label: 'Review', status: FleetReviewStatus.PENDING },
+  { key: 'trash', label: 'Trash', status: FleetReviewStatus.REJECTED },
 ];
 
 const LORA_STATUS_COLORS = {
@@ -96,7 +98,7 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
   const isRefreshing = isFetchingAssets && !isLoadingAssets;
 
   const activeStatus =
-    TABS.find((t) => t.key === activeTab)?.status ?? 'approved';
+    TABS.find((t) => t.key === activeTab)?.status ?? FleetReviewStatus.APPROVED;
 
   const filteredAssets = useMemo(
     () => (assets || []).filter((a) => a.reviewStatus === activeStatus),
@@ -110,7 +112,9 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
       try {
         const service = await getFleetService();
 
-        await Promise.all(ids.map((id) => service.reviewAsset(id, 'rejected')));
+        await Promise.all(
+          ids.map((id) => service.reviewAsset(id, FleetReviewStatus.REJECTED)),
+        );
 
         notificationsService.success(`${ids.length} image(s) moved to trash`);
         setSelectedIds(new Set());
