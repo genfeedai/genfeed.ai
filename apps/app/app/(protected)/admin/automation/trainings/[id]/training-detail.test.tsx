@@ -10,7 +10,9 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: vi.fn(() =>
+    vi.fn().mockResolvedValue({ findOne: vi.fn().mockResolvedValue(null) }),
+  ),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({

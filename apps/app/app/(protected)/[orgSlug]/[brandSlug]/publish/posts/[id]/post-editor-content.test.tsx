@@ -94,7 +94,7 @@ describe('PostEditorContent', () => {
     expect(await screen.findByText('Launch post')).toBeVisible();
     expect(
       screen.getByRole('link', { name: /back to posts/i }),
-    ).toHaveAttribute('href', '/acme/main/publish/overview');
+    ).toHaveAttribute('href', '/acme/main/publish/posts');
   });
 
   it('saves edited metadata back to the artifact', async () => {
