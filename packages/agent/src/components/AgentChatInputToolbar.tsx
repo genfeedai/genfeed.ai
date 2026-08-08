@@ -157,48 +157,109 @@ function AgentChatInputToolbarInner({
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
 
-  const voiceControl = isTranscribing ? (
-    <Button
-      ariaLabel="Transcribing"
-      className={cn('shrink-0', controlSize)}
-      icon={
-        <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
-      }
-      isDisabled
-      size={ButtonSize.ICON}
-      variant={ButtonVariant.GHOST}
-      withWrapper={false}
-    />
-  ) : isListening ? (
-    <Button
-      ariaLabel="Stop listening"
-      className={cn(
-        'relative shrink-0 bg-destructive/15 text-destructive',
-        controlSize,
-      )}
-      onClick={onStopListening}
-      size={ButtonSize.ICON}
-      variant={ButtonVariant.GHOST}
-      withWrapper={false}
-    >
-      <Mic className="size-4" />
-      <span
-        aria-hidden="true"
-        className="absolute right-0 top-0 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
+  // Trailing primary: Stop run | mic (voice-on + empty) | send (otherwise).
+  // Mic replaces send in the same slot — never both, never a blank corner
+  // when Voice Control is off (disabled send stays).
+  let trailingPrimary: ReactElement | null = null;
+
+  if (showStop && onStop) {
+    trailingPrimary = (
+      <Button
+        ariaLabel="Stop agent"
+        className={cn(
+          'shrink-0 rounded-full',
+          controlSize,
+          'min-h-0 min-w-0 p-0',
+        )}
+        icon={
+          <Square aria-hidden className="size-2.5 fill-current stroke-none" />
+        }
+        onClick={() => {
+          void onStop();
+        }}
+        size={ButtonSize.ICON}
+        tooltip="Stop"
+        variant={ButtonVariant.DESTRUCTIVE}
+        withWrapper={false}
       />
-    </Button>
-  ) : shouldShowVoiceInput ? (
-    <Button
-      ariaLabel="Start voice input"
-      className={cn('shrink-0', controlSize)}
-      icon={<Mic className="size-4" />}
-      isDisabled={disabled}
-      onClick={onStartListening}
-      size={ButtonSize.ICON}
-      variant={ButtonVariant.GHOST}
-      withWrapper={false}
-    />
-  ) : null;
+    );
+  } else if (isTranscribing) {
+    trailingPrimary = (
+      <Button
+        ariaLabel="Transcribing"
+        className={cn(
+          'shrink-0 rounded-full',
+          controlSize,
+          'min-h-0 min-w-0 p-0',
+        )}
+        icon={
+          <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
+        }
+        isDisabled
+        size={ButtonSize.ICON}
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      />
+    );
+  } else if (isListening) {
+    trailingPrimary = (
+      <Button
+        ariaLabel="Stop listening"
+        className={cn(
+          'relative shrink-0 rounded-full bg-destructive/15 text-destructive',
+          controlSize,
+          'min-h-0 min-w-0 p-0',
+        )}
+        onClick={onStopListening}
+        size={ButtonSize.ICON}
+        tooltip="Stop listening"
+        variant={ButtonVariant.GHOST}
+        withWrapper={false}
+      >
+        <Mic className="size-4" />
+        <span
+          aria-hidden="true"
+          className="absolute right-0.5 top-0.5 size-2 animate-pulse rounded-full bg-destructive motion-reduce:animate-none"
+        />
+      </Button>
+    );
+  } else if (shouldShowVoiceInput) {
+    trailingPrimary = (
+      <Button
+        ariaLabel="Start voice input"
+        className={cn(
+          'shrink-0 rounded-full',
+          controlSize,
+          'min-h-0 min-w-0 p-0',
+        )}
+        icon={<Mic className="size-4" />}
+        isDisabled={disabled}
+        onClick={onStartListening}
+        size={ButtonSize.ICON}
+        tooltip="Voice input"
+        variant={ButtonVariant.DEFAULT}
+        withWrapper={false}
+      />
+    );
+  } else if (shouldShowSendButton) {
+    trailingPrimary = (
+      <Button
+        ariaLabel="Send message"
+        className={cn(
+          'shrink-0 rounded-full',
+          controlSize,
+          'min-h-0 min-w-0 p-0',
+        )}
+        icon={<ArrowUp className="size-4" />}
+        isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
+        onClick={onSend}
+        size={ButtonSize.ICON}
+        tooltip="Send (Enter)"
+        variant={ButtonVariant.DEFAULT}
+        withWrapper={false}
+      />
+    );
+  }
 
   return (
     <div
@@ -291,58 +352,16 @@ function AgentChatInputToolbarInner({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {voiceControl}
       </div>
 
-      {/* Trailing: send / stop only — primary action stays far right. */}
+      {/* Trailing: stop | mic (voice-on + empty) | send */}
       <div
         className={cn(
           'flex min-w-0 shrink items-center justify-end',
           trailingEdgeOffset,
         )}
       >
-        {showStop && onStop ? (
-          <Button
-            ariaLabel="Stop agent"
-            className={cn(
-              'shrink-0 rounded-full',
-              controlSize,
-              'min-h-0 min-w-0 p-0',
-            )}
-            icon={
-              <Square
-                aria-hidden
-                className="size-2.5 fill-current stroke-none"
-              />
-            }
-            onClick={() => {
-              void onStop();
-            }}
-            size={ButtonSize.ICON}
-            tooltip="Stop"
-            variant={ButtonVariant.DESTRUCTIVE}
-            withWrapper={false}
-          />
-        ) : shouldShowSendButton ? (
-          <Button
-            ariaLabel="Send message"
-            className={cn(
-              'shrink-0 rounded-full',
-              controlSize,
-              'min-h-0 min-w-0 p-0',
-            )}
-            icon={<ArrowUp className="size-4" />}
-            isDisabled={
-              disabled || !hasEditor || !canSendMessage || isUploading
-            }
-            onClick={onSend}
-            size={ButtonSize.ICON}
-            tooltip="Send (Enter)"
-            variant={ButtonVariant.DEFAULT}
-            withWrapper={false}
-          />
-        ) : null}
+        {trailingPrimary}
       </div>
     </div>
   );
