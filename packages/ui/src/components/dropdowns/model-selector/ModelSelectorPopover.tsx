@@ -145,10 +145,15 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
       );
     }
 
-    if (activeBrand === 'favorites') {
-      filtered = filtered.filter((option) => option.isFavorite);
-    } else if (activeBrand) {
-      filtered = filtered.filter((option) => option.brandSlug === activeBrand);
+    // Brand rail filter only applies when the rail is shown (multi / studio).
+    if (!isSingleSelect) {
+      if (activeBrand === 'favorites') {
+        filtered = filtered.filter((option) => option.isFavorite);
+      } else if (activeBrand) {
+        filtered = filtered.filter(
+          (option) => option.brandSlug === activeBrand,
+        );
+      }
     }
 
     if (!normalizedSearchTerm) {
@@ -196,7 +201,13 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return searched;
-  }, [activeBrand, activeSourceGroup, allOptions, normalizedSearchTerm]);
+  }, [
+    activeBrand,
+    activeSourceGroup,
+    allOptions,
+    isSingleSelect,
+    normalizedSearchTerm,
+  ]);
 
   const groupedOptions = useMemo((): GroupedFamilies => {
     const groupedByBrand = new Map<
@@ -319,9 +330,13 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   // it (`!isAutoSelected`), which left a tall empty popover of priority-only
   // rows and made it impossible to pick a concrete model once Auto was on.
   const shouldShowManualCatalog = allOptions.length > 0;
+  // Agent chat (single) already groups by provider in the list — the left
+  // brand icon rail steals width and fights the search row. Studio multi keeps it.
+  const shouldShowProviderRail = shouldShowManualCatalog && !isSingleSelect;
 
   const shouldShowAuto = useMemo(() => {
-    if (activeBrand === 'favorites') {
+    // Favorites filter (multi rail only) hides Auto cards.
+    if (shouldShowProviderRail && activeBrand === 'favorites') {
       return false;
     }
 
@@ -340,7 +355,13 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
     }
 
     return (autoSourceGroups ?? []).includes(activeSourceGroup);
-  }, [activeBrand, activeSourceGroup, autoSourceGroups, sourceGroups]);
+  }, [
+    activeBrand,
+    activeSourceGroup,
+    autoSourceGroups,
+    shouldShowProviderRail,
+    sourceGroups,
+  ]);
 
   // Single-select chat pickers never show Auto priority cards unless a host
   // explicitly opts in with autoLabel (studio generation keeps the full surface).
@@ -414,6 +435,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         if (!open) {
           setSearchTerm('');
           setActiveSourceGroup('all');
+          setActiveBrand(null);
         }
       }}
     >
@@ -444,21 +466,22 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           // against the agent canvas and leave search text unreadable.
           'w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-border',
           'bg-background text-foreground shadow-dropdown',
-          'sm:w-[380px]',
+          // Single (agent): no rail → tighter panel. Multi (studio): room for rail.
+          isSingleSelect ? 'sm:w-[320px]' : 'sm:w-[380px]',
           // Radix measures free space above/below the trigger for this open.
           // Fall back to 70vh when the CSS var is missing (tests / non-Radix).
           'max-h-[min(480px,var(--radix-popover-content-available-height,70vh))]',
         )}
       >
         <div className="flex max-h-[inherit] min-h-0 w-full bg-background">
-          {shouldShowManualCatalog && (
+          {shouldShowProviderRail ? (
             <ModelSelectorProviderSidebar
               brands={brands}
               activeBrand={activeBrand}
               onBrandSelect={setActiveBrand}
               hasFavorites={hasFavorites}
             />
-          )}
+          ) : null}
 
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-background">
             {shouldShowManualCatalog && shouldShowSourceTabs && (

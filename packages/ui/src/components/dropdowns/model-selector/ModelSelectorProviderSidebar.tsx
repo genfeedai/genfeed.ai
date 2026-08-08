@@ -9,6 +9,10 @@ import { Button } from '@ui/primitives/button';
 import { LayoutGrid, Star } from 'lucide-react';
 import { memo, useCallback } from 'react';
 
+/**
+ * Studio multi-select only. Agent single mode hides this rail — providers are
+ * already section headings in the list.
+ */
 const ModelSelectorProviderSidebar = memo(
   function ModelSelectorProviderSidebar({
     brands,
@@ -24,28 +28,34 @@ const ModelSelectorProviderSidebar = memo(
     );
 
     return (
-      <div className="flex w-14 flex-col items-center gap-1 overflow-y-auto border-r border-border bg-background-secondary py-2 sm:w-12">
-        {hasFavorites && (
+      <nav
+        aria-label="Filter by model provider"
+        className={cn(
+          'flex w-11 shrink-0 flex-col items-center gap-0.5 overflow-y-auto',
+          'border-r border-border bg-background-secondary py-1.5',
+        )}
+      >
+        {hasFavorites ? (
           <SidebarButton
             isActive={activeBrand === 'favorites'}
             onClick={() => handleBrandClick('favorites')}
             tooltip="Favorites"
-            color="hsl(var(--foreground))"
           >
-            <Star className="size-4" />
+            <Star className="size-3.5" />
           </SidebarButton>
-        )}
+        ) : null}
 
         <SidebarButton
           isActive={activeBrand === null}
           onClick={() => handleBrandClick(null)}
-          tooltip="All"
-          color="hsl(var(--muted-foreground))"
+          tooltip="All providers"
         >
-          <LayoutGrid className="size-4" />
+          <LayoutGrid className="size-3.5" />
         </SidebarButton>
 
-        <div className="my-0.5 h-px w-6 bg-border" />
+        {brands.length > 0 ? (
+          <div className="my-1 h-px w-5 shrink-0 bg-border" aria-hidden />
+        ) : null}
 
         {brands.map((brand) => {
           const config = MODEL_BRANDS[brand.slug];
@@ -57,19 +67,19 @@ const ModelSelectorProviderSidebar = memo(
               isActive={activeBrand === brand.slug}
               onClick={() => handleBrandClick(brand.slug)}
               tooltip={brand.label}
-              color={brand.color}
+              accentColor={brand.color}
             >
               {BrandIcon ? (
                 <BrandIcon className="size-3.5" />
               ) : (
-                <span className="text-[10px] font-bold leading-none">
+                <span className="text-[10px] font-semibold leading-none">
                   {brand.label.charAt(0)}
                 </span>
               )}
             </SidebarButton>
           );
         })}
-      </div>
+      </nav>
     );
   },
 );
@@ -79,13 +89,13 @@ function SidebarButton({
   isActive,
   onClick,
   tooltip,
-  color,
+  accentColor,
 }: {
   children: React.ReactNode;
   isActive: boolean;
   onClick: () => void;
   tooltip: string;
-  color: string;
+  accentColor?: string;
 }) {
   return (
     <Button
@@ -95,19 +105,21 @@ function SidebarButton({
       onClick={onClick}
       tooltip={tooltip}
       className={cn(
-        'relative flex size-11 items-center justify-center rounded transition-[background-color,color] lg:size-8',
+        'relative flex size-8 shrink-0 items-center justify-center rounded-md',
+        'transition-colors',
         isActive
           ? 'bg-accent text-accent-foreground'
-          : 'text-foreground/50 hover:bg-accent hover:text-accent-foreground',
+          : 'text-foreground/55 hover:bg-accent/70 hover:text-foreground',
       )}
-      style={isActive ? { color } : undefined}
+      style={isActive && accentColor ? { color: accentColor } : undefined}
     >
-      {isActive && (
-        <div
-          className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r"
-          style={{ backgroundColor: color }}
+      {isActive ? (
+        <span
+          className="absolute inset-y-1.5 left-0 w-0.5 rounded-r-full bg-primary"
+          style={accentColor ? { backgroundColor: accentColor } : undefined}
+          aria-hidden
         />
-      )}
+      ) : null}
       {children}
     </Button>
   );

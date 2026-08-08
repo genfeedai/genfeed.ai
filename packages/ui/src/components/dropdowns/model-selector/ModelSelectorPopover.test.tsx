@@ -467,10 +467,39 @@ describe('ModelSelectorPopover', () => {
     expect(screen.getByText('Gemini Flash')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /gemini flash/i }));
+    // Single mode: no provider brand rail.
+    expect(
+      screen.queryByRole('button', { name: 'All providers' }),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Best Quality' }));
 
     expect(onPrioritizeChange).toHaveBeenCalledWith(RouterPriority.QUALITY);
     expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
+  });
+
+  it('keeps the provider rail in multi (studio) mode', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/gemini-flash',
+            label: 'Gemini Flash',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="multi"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+    expect(
+      screen.getByRole('button', { name: 'All providers' }),
+    ).toBeInTheDocument();
   });
 
   it('blocks selecting models that cost more credits than available', async () => {
