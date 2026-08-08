@@ -14,25 +14,25 @@ describe('prompt.enum', () => {
     it('should have correct values', () => {
       expect(PromptCategory.BRAND_DESCRIPTION).toBe('BRAND_DESCRIPTION');
       expect(PromptCategory.STORYBOARD_SCRIPT_DESCRIPTION).toBe(
-        'storyboard-script-description',
+        'STORYBOARD_SCRIPT_DESCRIPTION',
       );
       expect(PromptCategory.PRESET_DESCRIPTION_TEXT).toBe(
-        'presets-description-text',
+        'PRESET_DESCRIPTION_TEXT',
       );
       expect(PromptCategory.PRESET_DESCRIPTION_IMAGE).toBe(
-        'presets-description-image',
+        'PRESET_DESCRIPTION_IMAGE',
       );
       expect(PromptCategory.PRESET_DESCRIPTION_VIDEO).toBe(
-        'presets-description-video',
+        'PRESET_DESCRIPTION_VIDEO',
       );
       expect(PromptCategory.PRESET_DESCRIPTION_MUSIC).toBe(
-        'presets-description-music',
+        'PRESET_DESCRIPTION_MUSIC',
       );
       expect(PromptCategory.POST_CONTENT_TWITTER).toBe('POST_CONTENT_TWITTER');
       expect(PromptCategory.POST_CONTENT_YOUTUBE).toBe('POST_CONTENT_YOUTUBE');
       expect(PromptCategory.POST_CONTENT_TIKTOK).toBe('POST_CONTENT_TIKTOK');
       expect(PromptCategory.POST_CONTENT_INSTAGRAM).toBe(
-        'post-content-instagram',
+        'POST_CONTENT_INSTAGRAM',
       );
       expect(PromptCategory.POST_TITLE_TWITTER).toBe('POST_TITLE_TWITTER');
       expect(PromptCategory.POST_TITLE_YOUTUBE).toBe('POST_TITLE_YOUTUBE');
