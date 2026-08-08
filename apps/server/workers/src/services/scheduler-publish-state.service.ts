@@ -1,6 +1,6 @@
 import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
 import {
-  PostStatus,
+  PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -20,8 +20,8 @@ export type SchedulerPublishTargetUpdate = {
   publicationDate?: Date;
   publishedAt?: Date;
   retryCount?: number;
-  status: PostStatus;
   url?: string | null;
+  visibility?: PostVisibility;
   workflowExecutionId?: string;
 };
 
@@ -92,7 +92,6 @@ export class SchedulerPublishStateService {
                 error: input.update.error,
                 groupId: input.groupId,
                 guard: input.guard,
-                legacyStatus: input.update.status,
                 mutation: {
                   ...(input.update.externalId !== undefined && {
                     externalId: input.update.externalId,
@@ -123,6 +122,7 @@ export class SchedulerPublishStateService {
                 organizationId: input.organizationId,
                 postId: input.postId,
                 reason: input.reason,
+                visibility: input.update.visibility,
               },
               tx,
             );

@@ -37,7 +37,12 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { ApiKeyScope, PostStatus } from '@genfeedai/enums';
+import {
+  mapLegacyPostStatusToTargetExecutionState,
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@api-types/contracts/scheduler.contract';
+import { ApiKeyScope, TargetExecutionState } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -97,11 +102,16 @@ export class PostsController extends BaseCRUDController<
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
+    const executionState =
+      createPostDto.targetExecutionState ??
+      (createPostDto.status
+        ? mapLegacyPostStatusToTargetExecutionState(createPostDto.status)
+        : TargetExecutionState.SCHEDULED);
     assertApiKeyPublishingScope(
       publicMetadata,
-      createPostDto.status === PostStatus.DRAFT
+      executionState === TargetExecutionState.DRAFT
         ? 'draft'
-        : createPostDto.status === PostStatus.SCHEDULED
+        : executionState === TargetExecutionState.SCHEDULED
           ? 'schedule'
           : 'publish',
     );
@@ -141,15 +151,27 @@ export class PostsController extends BaseCRUDController<
     existing: PostDocument,
     updateDto: Partial<UpdatePostDto>,
   ): void {
-    const existingStatus = existing.status as PostStatus;
-    const nextStatus = updateDto.status ?? existingStatus;
+    const existingStatus = Object.values(TargetExecutionState).includes(
+      existing.targetExecutionState as TargetExecutionState,
+    )
+      ? (existing.targetExecutionState as TargetExecutionState)
+      : mapLegacyPostStatusToTargetExecutionState(existing.status);
+    const nextStatus =
+      updateDto.targetExecutionState ??
+      (updateDto.status
+        ? mapLegacyPostStatusToTargetExecutionState(updateDto.status)
+        : existingStatus);
     const changesPublishState =
-      ![PostStatus.DRAFT, PostStatus.SCHEDULED].includes(existingStatus) ||
-      ![PostStatus.DRAFT, PostStatus.SCHEDULED].includes(nextStatus);
+      ![TargetExecutionState.DRAFT, TargetExecutionState.SCHEDULED].includes(
+        existingStatus,
+      ) ||
+      ![TargetExecutionState.DRAFT, TargetExecutionState.SCHEDULED].includes(
+        nextStatus,
+      );
     const changesScheduleIntent =
       !changesPublishState &&
-      (existingStatus === PostStatus.SCHEDULED ||
-        nextStatus === PostStatus.SCHEDULED ||
+      (existingStatus === TargetExecutionState.SCHEDULED ||
+        nextStatus === TargetExecutionState.SCHEDULED ||
         updateDto.scheduledDate !== undefined);
     assertApiKeyPublishingScope(
       getPublicMetadata(user),
@@ -222,20 +244,30 @@ export class PostsController extends BaseCRUDController<
       matchFilter.platform = query.platform;
     }
 
-    if (query.status) {
-      matchFilter.status = query.status;
+    const executionState = query.executionState
+      ? query.executionState
+      : query.status
+        ? mapLegacyPostStatusToTargetExecutionState(query.status)
+        : undefined;
+    const axisFilters: Record<string, unknown>[] = [];
+    if (executionState) {
+      axisFilters.push(postExecutionStateReadFilter(executionState));
     } else if (query.publicationState) {
-      // 'posted' means live on the platform in any visibility — public,
-      // private, and unlisted are all post-publish visibility states.
-      const postedStatuses = [
-        PostStatus.PUBLIC,
-        PostStatus.PRIVATE,
-        PostStatus.UNLISTED,
-      ];
-      matchFilter.status =
+      const publishedFilter = postExecutionStateReadFilter(
+        TargetExecutionState.PUBLISHED,
+      );
+      axisFilters.push(
         query.publicationState === 'posted'
-          ? { in: postedStatuses }
-          : { notIn: postedStatuses };
+          ? publishedFilter
+          : { NOT: publishedFilter },
+      );
+    }
+
+    if (query.visibility) {
+      axisFilters.push(postVisibilityReadFilter(query.visibility));
+    }
+    if (axisFilters.length > 0) {
+      matchFilter.AND = axisFilters;
     }
 
     if (query.credentialId) {

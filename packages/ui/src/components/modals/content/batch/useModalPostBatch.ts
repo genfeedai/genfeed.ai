@@ -9,7 +9,8 @@ import {
   IngredientCategory,
   ModalEnum,
   PostCategory,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -249,7 +250,7 @@ export function useModalPostBatch(props: ModalPostProps) {
       globalLabel: '',
       platforms: [],
       scheduledDate: '',
-      youtubeStatus: PostStatus.UNLISTED,
+      visibility: PostVisibility.UNLISTED,
     },
     resolver: standardSchemaResolver(multiPostSchema),
   });
@@ -404,7 +405,8 @@ export function useModalPostBatch(props: ModalPostProps) {
             isShareToFeedSelected: config.isShareToFeedSelected,
             label: config.label,
             scheduledDate,
-            status: config.status,
+            targetExecutionState: config.targetExecutionState,
+            visibility: config.visibility,
           } as CreatePostRequest;
 
           await service.post(body);
@@ -538,8 +540,11 @@ export function useModalPostBatch(props: ModalPostProps) {
           label: '',
           overrideSchedule: false,
           platform,
-          status:
-            platform === CredentialPlatform.YOUTUBE ? 'unlisted' : 'scheduled',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          visibility:
+            platform === CredentialPlatform.YOUTUBE
+              ? PostVisibility.UNLISTED
+              : PostVisibility.PUBLIC,
         };
       },
     );
@@ -616,8 +621,11 @@ export function useModalPostBatch(props: ModalPostProps) {
           label: '',
           overrideSchedule: false,
           platform,
-          status:
-            platform === CredentialPlatform.YOUTUBE ? 'unlisted' : 'scheduled',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          visibility:
+            platform === CredentialPlatform.YOUTUBE
+              ? PostVisibility.UNLISTED
+              : PostVisibility.PUBLIC,
         };
       },
     );

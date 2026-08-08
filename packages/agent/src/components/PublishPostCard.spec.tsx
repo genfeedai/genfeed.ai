@@ -1,5 +1,6 @@
 import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { PostVisibility } from '@genfeedai/enums';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -35,6 +36,7 @@ describe('PublishPostCard', () => {
       platforms: ['linkedin', 'twitter'],
       scheduledAt: undefined,
       sourceActionId: 'publish-card-1',
+      visibility: PostVisibility.PUBLIC,
     });
   });
 
@@ -88,6 +90,7 @@ describe('PublishPostCard', () => {
       platforms: ['instagram'],
       scheduledAt: new Date(localSchedule).toISOString(),
       sourceActionId: 'publish-card-3',
+      visibility: PostVisibility.PUBLIC,
     });
   });
 

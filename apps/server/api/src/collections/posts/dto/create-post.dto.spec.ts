@@ -1,5 +1,9 @@
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
-import { PostStatus } from '@genfeedai/enums';
+import {
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { validate } from 'class-validator';
 
 describe('CreatePostDto', () => {
@@ -27,8 +31,9 @@ describe('CreatePostDto', () => {
         personaId: 'ckz1234567890abcdefgij',
         publishIntent: 'experiment',
         scheduleSlot: 'weekday-morning',
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
         variantId: 'trend-remix-post-thread',
+        visibility: PostVisibility.PRIVATE,
       });
 
       const errors = await validate(dto);

@@ -12,7 +12,11 @@ import type {
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
@@ -21,7 +25,7 @@ type TestCommentResult = { commentId?: string | null } | null | undefined;
 type TestThreadChildUpdate = {
   externalId?: string;
   publicationDate?: Date;
-  status: PostStatus;
+  targetExecutionState: TargetExecutionState;
 };
 
 // ─── Concrete subclass for testing abstract base ──────────────────────────────
@@ -281,13 +285,13 @@ describe('BasePublisherService', () => {
   // ─── createFailedResult() ──────────────────────────────────────────────────
 
   describe('createFailedResult()', () => {
-    it('should return a failed PublishResult with FAILED status', () => {
+    it('should return a failed PublishResult with FAILED lifecycle', () => {
       const result = publisher.testCreateFailedResult(
         CredentialPlatform.TWITTER,
         'something broke',
       );
       expect(result.success).toBe(false);
-      expect(result.status).toBe(PostStatus.FAILED);
+      expect(result.executionState).toBe(TargetExecutionState.FAILED);
       expect(result.platform).toBe(CredentialPlatform.TWITTER);
       expect(result.error).toBe('something broke');
     });
@@ -310,14 +314,14 @@ describe('BasePublisherService', () => {
   // ─── createSuccessResult() ─────────────────────────────────────────────────
 
   describe('createSuccessResult()', () => {
-    it('should return a successful PublishResult with PUBLIC status', () => {
+    it('should return a successful PublishResult with PUBLISHED lifecycle', () => {
       const result = publisher.testCreateSuccessResult(
         'ext-456',
         CredentialPlatform.TWITTER,
         'https://x.com/post/ext-456',
       );
       expect(result.success).toBe(true);
-      expect(result.status).toBe(PostStatus.PUBLIC);
+      expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
       expect(result.externalId).toBe('ext-456');
       expect(result.url).toBe('https://x.com/post/ext-456');
     });
@@ -420,12 +424,12 @@ describe('BasePublisherService', () => {
       expect(updateChild).toHaveBeenNthCalledWith(1, 'child-1', {
         externalId: 'comment-1',
         publicationDate: expect.any(Date),
-        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
       });
       expect(updateChild).toHaveBeenNthCalledWith(2, 'child-2', {
         externalId: 'comment-2',
         publicationDate: expect.any(Date),
-        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
       });
     });
 
@@ -458,15 +462,15 @@ describe('BasePublisherService', () => {
 
       expect(publishComment).toHaveBeenCalledTimes(3);
       expect(updateChild).toHaveBeenNthCalledWith(1, 'child-1', {
-        status: PostStatus.FAILED,
+        targetExecutionState: TargetExecutionState.FAILED,
       });
       expect(updateChild).toHaveBeenNthCalledWith(2, 'child-2', {
-        status: PostStatus.FAILED,
+        targetExecutionState: TargetExecutionState.FAILED,
       });
       expect(updateChild).toHaveBeenNthCalledWith(3, 'child-3', {
         externalId: 'comment-3',
         publicationDate: expect.any(Date),
-        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
       });
     });
   });

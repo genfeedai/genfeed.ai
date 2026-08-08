@@ -7,7 +7,8 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import {
   fromPrismaCredentialPlatform,
   PostCategory,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -99,10 +100,9 @@ export class PersonaPublisherService {
           personaId: input.personaId,
           platform: credentialPlatform,
           scheduledDate: input.scheduledDate ?? new Date(),
-          status: input.scheduledDate
-            ? PostStatus.SCHEDULED
-            : PostStatus.PENDING,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
           userId: input.userId,
+          visibility: PostVisibility.PUBLIC,
         } as Parameters<PostsService['create']>[0]);
 
         postIds.push(String(post.id));

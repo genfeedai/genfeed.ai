@@ -26,6 +26,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { mapLegacyPostStatusToTargetExecutionState } from '@genfeedai/api-types';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -36,6 +37,7 @@ import {
   PostCategory,
   PostStatus,
   parsePlatform,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
@@ -222,7 +224,15 @@ export class PostsOperationsController {
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    assertApiKeyPostStatusPublishingScope(publicMetadata, createPostDto.status);
+    const requestedExecutionState =
+      createPostDto.targetExecutionState ??
+      mapLegacyPostStatusToTargetExecutionState(
+        createPostDto.status ?? PostStatus.SCHEDULED,
+      );
+    assertApiKeyPostStatusPublishingScope(
+      publicMetadata,
+      requestedExecutionState,
+    );
     const parentId = postId;
     try {
       const parentPost = await this.postsService.findOne({ id: parentId });
@@ -281,7 +291,7 @@ export class PostsOperationsController {
 
       // Validate TEXT category only allowed for text-capable platforms when scheduling
       if (
-        createPostDto.status === PostStatus.SCHEDULED &&
+        requestedExecutionState === TargetExecutionState.SCHEDULED &&
         createPostDto.category === PostCategory.TEXT &&
         !isTextOnlyPlatform
       ) {
@@ -296,7 +306,7 @@ export class PostsOperationsController {
 
       // Validate ingredients required when scheduling for media-required platforms
       if (
-        createPostDto.status === PostStatus.SCHEDULED &&
+        requestedExecutionState === TargetExecutionState.SCHEDULED &&
         !isTextOnlyPlatform
       ) {
         if (
@@ -369,9 +379,10 @@ export class PostsOperationsController {
         platform: credentialPlatform,
         publicationDate: createPostDto.publicationDate,
         scheduledDate: createPostDto.scheduledDate,
-        status: createPostDto.status,
+        targetExecutionState: requestedExecutionState,
         tags: createPostDto.tags || [],
         userId: publicMetadata.user,
+        visibility: createPostDto.visibility,
       });
 
       return serializeSingle(request, this.serializer, data);
@@ -500,7 +511,11 @@ export class PostsOperationsController {
       );
     }
 
-    if (post.status !== PostStatus.FAILED) {
+    if (
+      (post.targetExecutionState ??
+        mapLegacyPostStatusToTargetExecutionState(post.status)) !==
+      TargetExecutionState.FAILED
+    ) {
       throw new HttpException(
         {
           detail: 'Only failed posts can be retried',
@@ -518,7 +533,7 @@ export class PostsOperationsController {
     const updatedPost = await this.postsService.patch(postId, {
       retryCount: 0,
       scheduledDate,
-      status: PostStatus.SCHEDULED,
+      targetExecutionState: TargetExecutionState.SCHEDULED,
     });
 
     return serializeSingle(request, this.serializer, updatedPost);

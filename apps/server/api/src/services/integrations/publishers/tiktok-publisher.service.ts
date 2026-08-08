@@ -6,7 +6,7 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -138,7 +138,7 @@ export class TikTokPublisherService extends BasePublisherService {
         return {
           externalId: publishId, // Store publish_id temporarily
           platform: this.platform,
-          status: PostStatus.PENDING,
+          executionState: TargetExecutionState.PUBLISHING,
           success: true,
           url: '', // URL not available until post_id is known
         };

@@ -1,7 +1,8 @@
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { PostStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@api-types/contracts';
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import {
   PostPublishQueueService,
@@ -112,7 +113,7 @@ export class ScheduledPostQueueService {
             },
             where: {
               isDeleted: false,
-              status: PostStatus.SCHEDULED,
+              ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
             },
           },
           ingredients: true,
@@ -136,6 +137,10 @@ export class ScheduledPostQueueService {
                 { lastAttemptAt: { lte: backoffThreshold } },
               ],
             },
+            postExecutionStateReadFilter([
+              TargetExecutionState.SCHEDULED,
+              TargetExecutionState.PUBLISHING,
+            ]),
           ],
           OR: [
             { scheduledDate: { lte: now } },
@@ -143,7 +148,6 @@ export class ScheduledPostQueueService {
           ],
           isDeleted: false,
           parentId: null,
-          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
         },
       },
       {
@@ -167,7 +171,7 @@ export class ScheduledPostQueueService {
             },
             where: {
               isDeleted: false,
-              status: PostStatus.SCHEDULED,
+              ...postExecutionStateReadFilter(TargetExecutionState.SCHEDULED),
             },
           },
           ingredients: true,
@@ -184,7 +188,10 @@ export class ScheduledPostQueueService {
           isDeleted: false,
           organizationId: data.organizationId,
           parentId: null,
-          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
+          ...postExecutionStateReadFilter([
+            TargetExecutionState.SCHEDULED,
+            TargetExecutionState.PUBLISHING,
+          ]),
         },
       },
       {

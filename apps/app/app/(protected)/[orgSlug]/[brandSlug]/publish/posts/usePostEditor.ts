@@ -1,6 +1,6 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/enums';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import type { PostEditorFormState } from '@props/content/artifact-editor.props';
@@ -23,7 +23,8 @@ const DEFAULT_POST_EDITOR_VALUES: PostEditorFormState = {
   description: '',
   label: '',
   scheduledDate: '',
-  status: PostStatus.SCHEDULED,
+  targetExecutionState: TargetExecutionState.SCHEDULED,
+  visibility: PostVisibility.PUBLIC,
 };
 
 function createFormState(post: Post): PostEditorFormState {
@@ -33,7 +34,9 @@ function createFormState(post: Post): PostEditorFormState {
     scheduledDate: post.scheduledDate
       ? new Date(post.scheduledDate).toISOString()
       : '',
-    status: (post.status as PostStatus) || PostStatus.SCHEDULED,
+    targetExecutionState:
+      post.targetExecutionState ?? TargetExecutionState.SCHEDULED,
+    visibility: post.visibility ?? PostVisibility.PUBLIC,
   };
 }
 
@@ -105,7 +108,8 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
           ...(values.scheduledDate
             ? { scheduledDate: values.scheduledDate }
             : {}),
-          status: values.status,
+          targetExecutionState: values.targetExecutionState,
+          visibility: values.visibility,
         });
 
         setPost(updated);

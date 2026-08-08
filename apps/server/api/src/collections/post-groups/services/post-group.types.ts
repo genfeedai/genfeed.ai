@@ -5,6 +5,7 @@ import type {
 } from '@api-types/contracts/scheduler.contract';
 import type {
   CredentialPlatform,
+  PostVisibility,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
@@ -79,6 +80,7 @@ export type SchedulerPostTarget = {
   targetIdempotencyKey: string | null;
   targetReadiness: Prisma.JsonValue | null;
   targetSettings: Prisma.JsonValue;
+  visibility: PostVisibility | null;
   targetValidationIssues: string[];
   targetValidationState: string;
   timezone: string;

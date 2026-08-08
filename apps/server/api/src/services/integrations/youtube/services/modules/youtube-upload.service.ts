@@ -8,9 +8,9 @@ import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import {
   type ChannelTargetSettings,
   readChannelSettingBoolean,
-  readChannelSettingString,
 } from '@api-types/contracts/channel-capabilities.contract';
-import { PostStatus } from '@genfeedai/enums';
+import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
+import { PostVisibility } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -90,10 +90,9 @@ export class YoutubeUploadService {
       const hasFutureScheduledDate =
         post.scheduledDate && new Date(post.scheduledDate) > new Date();
 
-      // The composer's explicit choice wins over the status-derived default.
-      const requestedPrivacy = readChannelSettingString(
-        settings,
-        'privacyStatus',
+      const requestedPrivacy = resolvePostVisibility(
+        post.visibility,
+        post.status,
       );
       const madeForKids = readChannelSettingBoolean(settings, 'madeForKids');
       // `selfDeclaredMadeForKids` is only accepted alongside the `status` part,
@@ -111,13 +110,12 @@ export class YoutubeUploadService {
         // YouTube will automatically make it public at the scheduled time.
         // `publishAt` always publishes publicly, so an explicit non-public
         // choice has to drop the timer rather than silently override it.
-        const honoursTimer =
-          requestedPrivacy === undefined || requestedPrivacy === 'public';
+        const honoursTimer = requestedPrivacy === PostVisibility.PUBLIC;
 
         statusConfig = honoursTimer
           ? {
               ...audienceConfig,
-              privacyStatus: PostStatus.PRIVATE,
+              privacyStatus: PostVisibility.PRIVATE,
               publishAt: new Date(post.scheduledDate).toISOString(),
             }
           : { ...audienceConfig, privacyStatus: requestedPrivacy };
@@ -127,28 +125,8 @@ export class YoutubeUploadService {
             ? `Scheduling video for future publication: ${post.scheduledDate.toISOString()}`
             : `Uploading video as ${requestedPrivacy}; YouTube's publish timer only supports public releases`,
         );
-      } else if (requestedPrivacy) {
-        privacyStatus = requestedPrivacy;
-        statusConfig = { ...audienceConfig, privacyStatus };
       } else {
-        // No future date or date has passed: use the post status
-        if (post.status === PostStatus.PUBLIC) {
-          privacyStatus = PostStatus.PUBLIC;
-        } else if (post.status === PostStatus.PRIVATE) {
-          privacyStatus = PostStatus.PRIVATE;
-        } else if (post.status === PostStatus.UNLISTED) {
-          privacyStatus = PostStatus.UNLISTED;
-        } else if (post.status === PostStatus.SCHEDULED) {
-          // SCHEDULED but no future date means cron picked it up (date passed)
-          privacyStatus = PostStatus.PUBLIC;
-        } else if (post.status === PostStatus.PROCESSING) {
-          // PROCESSING means we're in the middle of an upload
-          // This shouldn't happen, but default to PUBLIC for safety
-          privacyStatus = PostStatus.PUBLIC;
-        } else {
-          // Invalid status, default to PRIVATE for safety
-          privacyStatus = PostStatus.PRIVATE;
-        }
+        privacyStatus = requestedPrivacy;
         statusConfig = { ...audienceConfig, privacyStatus };
       }
 

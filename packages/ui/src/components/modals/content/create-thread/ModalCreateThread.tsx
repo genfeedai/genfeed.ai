@@ -6,7 +6,8 @@ import {
   AlertCategory,
   ButtonVariant,
   ModalEnum,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
@@ -61,7 +62,8 @@ export default function ModalCreateThread({
       ingredient: ingredient?.id,
       posts: [{ description: '' }, { description: '' }],
       scheduledDate: '',
-      status: PostStatus.SCHEDULED,
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+      visibility: PostVisibility.PUBLIC,
     },
     mode: 'onChange',
     resolver: standardSchemaResolver(threadModalSchema),
@@ -102,7 +104,8 @@ export default function ModalCreateThread({
         ingredients: data.ingredient ? [data.ingredient] : [],
         label: data.globalTitle || `Thread ${index + 1}/${data.posts.length}`,
         scheduledDate: data.scheduledDate,
-        status: data.status as PostStatus,
+        targetExecutionState: data.targetExecutionState,
+        visibility: data.visibility,
       }));
 
       await service.createThread({ posts: threadPosts });

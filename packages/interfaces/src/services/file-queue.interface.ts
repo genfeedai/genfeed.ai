@@ -3,7 +3,7 @@
  * Used by FileQueueService for type-safe job processing
  */
 
-import type { JobState } from '@genfeedai/enums';
+import type { JobState, PostVisibility } from '@genfeedai/enums';
 import type {
   IEditorRenderCorrelation,
   IEditorRenderJobParams,
@@ -54,7 +54,7 @@ export interface IFrameInput {
 
 export interface IJobResponse {
   jobId: string;
-  status: string;
+  visibility: PostVisibility;
   type: string;
   ingredientId: string;
 }
