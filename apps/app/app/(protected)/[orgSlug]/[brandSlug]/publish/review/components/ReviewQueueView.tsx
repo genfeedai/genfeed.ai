@@ -119,8 +119,8 @@ export default function ReviewQueueView({
       };
     }
 
-    // First-level topbar: status tabs + batch picker sit with New release /
-    // refresh (publish layout `right` rail), not a second nested page header.
+    // First-level topbar: two matching dropdowns (status + batch) beside
+    // New release / refresh — no chip rail.
     setFiltersNode(
       <div className="flex min-w-0 items-center gap-2">
         <ReviewStatusFilters

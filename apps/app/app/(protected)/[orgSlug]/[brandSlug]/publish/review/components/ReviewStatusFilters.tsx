@@ -1,8 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { Button } from '@ui/primitives/button';
+import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
+import { useMemo } from 'react';
 
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
 
@@ -19,6 +18,10 @@ export const REVIEW_STATUS_FILTERS: Array<{
   { filter: 'all', label: 'All' },
 ];
 
+/** Same shell chrome as the batch picker / publish list sort control. */
+export const PUBLISH_HEADER_DROPDOWN_CLASS =
+  'h-8 max-w-[16rem] rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/80 hover:bg-white/[0.06] hover:text-white';
+
 interface ReviewStatusFiltersProps {
   activeFilter: ReviewFilter;
   filterCounts: ReviewFilterCounts;
@@ -26,57 +29,34 @@ interface ReviewStatusFiltersProps {
 }
 
 /**
- * Compact status filters for the Publish action rail (same row as batch
- * picker / New release / refresh). Uses shell-height controls, not a second
- * page header.
+ * Status filter as a header dropdown (not a chip rail) so it matches batch
+ * picker + New release on the Publish action rail.
  */
 export default function ReviewStatusFilters({
   activeFilter,
   filterCounts,
   onFilterChange,
 }: ReviewStatusFiltersProps) {
-  return (
-    <nav
-      aria-label="Review status filters"
-      className="flex max-w-[min(100vw-12rem,28rem)] items-center gap-0.5 overflow-x-auto"
-    >
-      {REVIEW_STATUS_FILTERS.map((entry) => {
-        const count = filterCounts[entry.filter];
-        const isActive = activeFilter === entry.filter;
+  const options = useMemo(
+    () =>
+      REVIEW_STATUS_FILTERS.map((entry) => ({
+        label: `${entry.label} · ${filterCounts[entry.filter]}`,
+        value: entry.filter,
+      })),
+    [filterCounts],
+  );
 
-        return (
-          <Button
-            key={entry.filter}
-            aria-current={isActive ? 'page' : undefined}
-            className={cn(
-              'h-8 shrink-0 gap-1 rounded-md px-2.5 text-xs font-medium',
-              isActive
-                ? 'bg-white/[0.08] text-white'
-                : 'bg-transparent text-white/65 hover:bg-white/[0.04] hover:text-white/90',
-            )}
-            label={
-              <span className="inline-flex items-center gap-1">
-                <span>{entry.label}</span>
-                <span
-                  className={cn(
-                    'tabular-nums',
-                    isActive ? 'text-white/75' : 'text-white/40',
-                  )}
-                >
-                  {count}
-                </span>
-              </span>
-            }
-            onClick={() => {
-              onFilterChange(entry.filter);
-            }}
-            size={ButtonSize.SM}
-            type="button"
-            variant={ButtonVariant.UNSTYLED}
-            withWrapper={false}
-          />
-        );
-      })}
-    </nav>
+  return (
+    <ButtonDropdown
+      className={PUBLISH_HEADER_DROPDOWN_CLASS}
+      name="review-status"
+      onChange={(_name, value) => {
+        onFilterChange(value as ReviewFilter);
+      }}
+      options={options}
+      placeholder="Status"
+      tooltip="Filter by review status"
+      value={activeFilter}
+    />
   );
 }
