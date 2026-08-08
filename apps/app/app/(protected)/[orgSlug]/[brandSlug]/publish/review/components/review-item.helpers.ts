@@ -1,5 +1,7 @@
-import { BatchItemStatus } from '@genfeedai/enums';
+import type { ChannelMediaKind } from '@api-types/contracts';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
+import type { PlatformPreviewTarget } from '@ui/posts/platform-preview/PlatformPreview';
 
 import {
   isApproved,
@@ -67,4 +69,45 @@ export function getReviewItemTitle(item: IBatchItem): string {
 
 export function isReviewItemSelectable(item: IBatchItem): boolean {
   return isReadyToReview(item);
+}
+
+function resolveReviewItemMediaKind(item: IBatchItem): ChannelMediaKind {
+  const format = String(item.format ?? '').toLowerCase();
+  if (format === ContentFormat.REEL || format.includes('reel')) {
+    return 'short_video';
+  }
+  if (format === ContentFormat.VIDEO || format.includes('video')) {
+    return 'video';
+  }
+  if (format === ContentFormat.CAROUSEL || format.includes('carousel')) {
+    return 'carousel';
+  }
+  return 'image';
+}
+
+/**
+ * One preview contract for every review surface (hover card, Context rail).
+ * Prefer the stored platform and never invent one — PlatformPreview
+ * canonicalises aliases and falls back to its generic renderer.
+ */
+export function buildReviewItemPreviewTarget(
+  item: IBatchItem,
+): PlatformPreviewTarget {
+  const title = getReviewItemTitle(item);
+
+  return {
+    caption: item.caption?.trim() || item.prompt?.trim() || title,
+    media: item.mediaUrl
+      ? [
+          {
+            id: `${item.id}-media`,
+            kind: resolveReviewItemMediaKind(item),
+            thumbnailUrl: item.mediaUrl,
+            url: item.mediaUrl,
+          },
+        ]
+      : [],
+    platform: item.platform?.trim() || 'unknown',
+    title,
+  };
 }
