@@ -176,7 +176,6 @@ const POST_SCALAR_FIELDS = [
   'status',
   'targetAttachments',
   'targetError',
-  'targetExecutionState',
   'targetIdempotencyKey',
   'targetReadiness',
   'targetSettings',
