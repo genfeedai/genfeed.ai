@@ -9,6 +9,7 @@ import {
 import {
   ArticleStatus,
   formatPlatformLabel,
+  parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IArticle, IReleaseGroup } from '@genfeedai/interfaces';
@@ -19,6 +20,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type {
   CalendarEventBadge,
+  CalendarEventChannel,
   CalendarEventDrop,
   CalendarItem,
 } from '@props/components/calendar.props';
@@ -337,6 +339,32 @@ export default function ContentCalendarPage(): React.JSX.Element {
     [],
   );
 
+  /**
+   * One icon per distinct platform: a release with two Instagram accounts still
+   * reads as one Instagram destination on a dense week cell.
+   */
+  const getEventChannels = useCallback(
+    (item: ContentCalendarItem): CalendarEventChannel[] => {
+      if (item.itemType !== 'release') {
+        return [];
+      }
+
+      const seen = new Map<string, CalendarEventChannel>();
+      for (const target of item.release.targets ?? []) {
+        const platformId = parsePlatform(target.platform) ?? target.platform;
+        if (!seen.has(platformId)) {
+          seen.set(platformId, {
+            id: platformId,
+            label: formatPlatformLabel(target.platform) ?? target.platform,
+          });
+        }
+      }
+
+      return [...seen.values()];
+    },
+    [],
+  );
+
   const isItemDraggable = useCallback(
     (item: ContentCalendarItem): boolean =>
       item.itemType === 'release' && isReleaseReschedulable(item.release),
@@ -484,6 +512,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       onDatesChange={handleDatesChange}
       getEventColor={getEventColor}
       getEventBadge={getEventBadge}
+      getEventChannels={getEventChannels}
       isItemDraggable={isItemDraggable}
       onEventDrop={handleEventDrop}
       filterControls={filterControls}
