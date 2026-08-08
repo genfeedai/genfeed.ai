@@ -11,7 +11,6 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
-import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import {
   returnNotFound,
   serializeSingle,
@@ -19,7 +18,11 @@ import {
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { FileInputType, IngredientStatus } from '@genfeedai/enums';
+import {
+  categoryToPlural,
+  FileInputType,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
   IngredientSerializer,

@@ -1,5 +1,5 @@
-import type { AssetCategory } from '@genfeedai/enums';
-import { IngredientCategory } from '@genfeedai/enums';
+import type { AssetCategory } from './asset.enum';
+import { IngredientCategory } from './ingredient.enum';
 
 /**
  * Normalizes a category string or enum value to IngredientCategory,
@@ -33,7 +33,10 @@ export function categoryToString(
  *
  * The lower-casing is load-bearing: category enums are SCREAMING_SNAKE to match
  * their Prisma labels, while the storage/URL convention is lowercase plural.
- * Interpolating the raw enum value produces keys like "LOGOs".
+ * Interpolating a raw category into a key yields `IMAGEs/` or `LOGOs/`, which
+ * addresses nothing — always route S3 keys and CDN paths through this helper.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
  */
 export function categoryToPlural(
   category: AssetCategory | IngredientCategory | string,

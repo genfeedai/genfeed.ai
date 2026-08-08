@@ -1,10 +1,10 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import {
   ActivityKey,
+  categoryToPlural,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
