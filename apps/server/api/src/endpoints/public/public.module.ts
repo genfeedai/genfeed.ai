@@ -47,7 +47,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => LinksModule),
     forwardRef(() => ModelsModule),
     forwardRef(() => MusicsModule),
-    forwardRef(() => NewslettersModule),
+    NewslettersModule,
     forwardRef(() => PostsModule),
     forwardRef(() => VideosModule),
   ],
