@@ -28,4 +28,25 @@ describe('UiActionRenderer', () => {
     expect(brandCreateProps).toHaveBeenCalledTimes(1);
     expect(brandCreateProps.mock.calls[0][0].onCreate).toBe(onBrandCreate);
   });
+
+  it('makes archived cards inert and drops onCreate handlers', () => {
+    const onBrandCreate = vi.fn();
+    const action = {
+      id: 'brand-create-archived',
+      type: 'brand_create_card',
+    } as AgentUiAction;
+
+    render(
+      <UiActionRenderer
+        action={action}
+        isReadOnly
+        onBrandCreate={onBrandCreate}
+      />,
+    );
+
+    expect(
+      screen.getByTestId('ui-action-archived-readonly'),
+    ).toBeInTheDocument();
+    expect(brandCreateProps.mock.calls.at(-1)?.[0].onCreate).toBeUndefined();
+  });
 });
