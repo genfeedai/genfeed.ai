@@ -2,9 +2,12 @@ import { type IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { type MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import {
+  categoryToPlural,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';

@@ -1,6 +1,7 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { DevController } from '@api/endpoints/dev/dev.controller';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
+import { IngredientCategory } from '@genfeedai/enums';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -105,6 +106,27 @@ describe('DevController', () => {
     expect(result.data.cdnUrl).toBe(
       `https://cdn.example.com/videos/${ingredientId}`,
     );
+  });
+
+  // Regression: `ingredient.category` is a SCREAMING_SNAKE IngredientCategory
+  // in production, but the S3/CDN folder convention is lowercase plural. The
+  // raw `${category}s` interpolation produced `VIDEOs/`, addressing a key that
+  // never exists. The lowercase fixtures above are why this shipped green.
+  it('lower-cases a SCREAMING_SNAKE category when building the CDN URL', async () => {
+    const ingredientId = '507f191e810c19729de860ee'.toString();
+    ingredientsService.findOne.mockResolvedValue({
+      category: IngredientCategory.VIDEO,
+      id: ingredientId,
+      metadata: {},
+      prompt: 'a test',
+    });
+
+    const result = await controller.debugDiscordCard({ ingredientId });
+
+    expect(result.data.cdnUrl).toBe(
+      `https://cdn.example.com/videos/${ingredientId}`,
+    );
+    expect(result.data.cdnUrl).not.toContain('VIDEO');
   });
 
   it('logs start and completion', async () => {

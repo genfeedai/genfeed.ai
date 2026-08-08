@@ -5,6 +5,7 @@ import { categoryToPlural } from '@api/helpers/utils/category-conversion/categor
 import { CacheService } from '@api/services/cache/services/cache.service';
 import {
   ActivityKey,
+  categoryToPlural,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';

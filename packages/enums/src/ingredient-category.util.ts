@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory } from './ingredient.enum';
 
 /**
  * Normalizes a category string or enum value to IngredientCategory,
@@ -29,6 +29,13 @@ export function categoryToString(
  * Converts a category to its plural form used in URL paths, cache tags, and
  * S3 keys. e.g., IngredientCategory.VIDEO → "videos", IngredientCategory.IMAGE
  * → "images", IngredientCategory.MUSIC → "musics"
+ *
+ * `IngredientCategory` labels are SCREAMING_SNAKE (they mirror the Prisma enum),
+ * while every upload writes to a lower-cased plural folder. Interpolating a raw
+ * category into a key yields `IMAGEs/`, which addresses nothing — always route
+ * S3 keys and CDN paths through this helper.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
  */
 export function categoryToPlural(
   category: IngredientCategory | string,

@@ -23,6 +23,7 @@ import { PresignedUploadService } from '@api/services/uploads/presigned-upload.s
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
+  categoryToPlural,
   FileInputType,
   IngredientCategory,
   IngredientStatus,
