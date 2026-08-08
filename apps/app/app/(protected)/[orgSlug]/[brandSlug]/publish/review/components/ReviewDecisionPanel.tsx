@@ -93,9 +93,9 @@ export default function ReviewDecisionPanel({
             withWrapper={false}
             isDisabled={isActioning}
             onClick={() => onApprove(item.id)}
-            className="w-full gap-1.5"
+            className="w-full justify-start gap-2"
+            icon={<Check className="size-3.5" />}
           >
-            <Check className="size-3.5" />
             {getApproveLabel(item)}
           </Button>
           <Button
@@ -104,9 +104,9 @@ export default function ReviewDecisionPanel({
             withWrapper={false}
             isDisabled={isActioning}
             onClick={() => onRequestChanges(item.id, feedback)}
-            className="w-full gap-1.5"
+            className="w-full justify-start gap-2"
+            icon={<Sparkles className="size-3.5" />}
           >
-            <Sparkles className="size-3.5" />
             Request changes
           </Button>
           <Button
@@ -115,29 +115,30 @@ export default function ReviewDecisionPanel({
             withWrapper={false}
             isDisabled={isActioning}
             onClick={() => onReject(item.id, feedback)}
-            className="w-full gap-1.5"
+            className="w-full justify-start gap-2"
+            icon={<X className="size-3.5" />}
           >
-            <X className="size-3.5" />
             Reject
           </Button>
+          {isReadyToReview(item) ? (
+            <Button
+              size={ButtonSize.SM}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+              onClick={() => onToggleSelect(item.id)}
+              className="w-full justify-start"
+            >
+              {isSelected
+                ? 'Remove from bulk selection'
+                : 'Add to bulk selection'}
+            </Button>
+          ) : null}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">
           {getResolvedDecisionLabel(item)}
         </p>
       )}
-
-      {isReadyToReview(item) ? (
-        <Button
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-          onClick={() => onToggleSelect(item.id)}
-          className="w-full"
-        >
-          {isSelected ? 'Remove from bulk selection' : 'Add to bulk selection'}
-        </Button>
-      ) : null}
     </div>
   );
 }
