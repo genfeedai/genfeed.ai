@@ -101,7 +101,7 @@ export default function ReviewItemsTable({
           return (
             <Checkbox
               aria-label={isSelected ? 'Deselect item' : 'Select item'}
-              className="size-4"
+              className="size-4 border border-border bg-background shadow-sm data-[state=checked]:border-primary data-[state=checked]:bg-primary"
               isChecked={isSelected}
               name={`review-select-${item.id}`}
               onCheckedChange={() => {

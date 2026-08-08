@@ -1,7 +1,8 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
+import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { Check, Sparkles, X } from 'lucide-react';
 
@@ -35,43 +36,43 @@ export default function ReviewGrid({
   return (
     <div className="flex min-w-0 flex-col gap-3">
       {selectedIds.size > 0 ? (
-        <div
-          className={[
-            'flex flex-wrap items-center justify-between gap-2 rounded-card border border-border px-3 py-2 shadow-border',
-            'bg-card',
-          ].join(' ')}
+        <Card
+          bodyClassName="flex flex-wrap items-center justify-between gap-2 p-3"
+          className="bg-background-secondary"
+          variant={CardVariant.DEFAULT}
         >
-          <p className="text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">
+          <p className="text-xs text-foreground/70">
+            <span className="font-semibold text-foreground">
               {selectedIds.size}
             </span>{' '}
             selected
           </p>
+          {/* Reject left (destructive) · Approve right (primary) — same as Context. */}
           <div className="flex items-center gap-1.5">
-            <Button
-              className="h-7 gap-1 px-2 text-xs"
-              isDisabled={isActioning}
-              onClick={onBulkApprove}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-              withWrapper={false}
-            >
-              <Check className="size-3.5" />
-              Approve
-            </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"
               isDisabled={isActioning}
               onClick={onBulkReject}
               size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
+              variant={ButtonVariant.DESTRUCTIVE}
               withWrapper={false}
             >
               <X className="size-3.5" />
               Reject
             </Button>
+            <Button
+              className="h-7 gap-1 px-2 text-xs"
+              isDisabled={isActioning}
+              onClick={onBulkApprove}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+            >
+              <Check className="size-3.5" />
+              Approve
+            </Button>
           </div>
-        </div>
+        </Card>
       ) : null}
 
       {items.length === 0 ? (

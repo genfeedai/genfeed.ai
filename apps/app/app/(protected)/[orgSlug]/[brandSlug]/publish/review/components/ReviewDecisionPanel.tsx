@@ -87,16 +87,18 @@ export default function ReviewDecisionPanel({
 
       {isReady ? (
         <div className="flex flex-col gap-2">
+          {/* Same decision grammar as the bulk bar: Reject (red) first,
+              then secondary path, Approve (primary) last. */}
           <Button
             size={ButtonSize.SM}
-            variant={ButtonVariant.DEFAULT}
+            variant={ButtonVariant.DESTRUCTIVE}
             withWrapper={false}
             isDisabled={isActioning}
-            onClick={() => onApprove(item.id)}
+            onClick={() => onReject(item.id, feedback)}
             className="w-full justify-start gap-2"
-            icon={<Check className="size-3.5" />}
+            icon={<X className="size-3.5" />}
           >
-            {getApproveLabel(item)}
+            Reject
           </Button>
           <Button
             size={ButtonSize.SM}
@@ -111,14 +113,14 @@ export default function ReviewDecisionPanel({
           </Button>
           <Button
             size={ButtonSize.SM}
-            variant={ButtonVariant.DESTRUCTIVE}
+            variant={ButtonVariant.DEFAULT}
             withWrapper={false}
             isDisabled={isActioning}
-            onClick={() => onReject(item.id, feedback)}
+            onClick={() => onApprove(item.id)}
             className="w-full justify-start gap-2"
-            icon={<X className="size-3.5" />}
+            icon={<Check className="size-3.5" />}
           >
-            Reject
+            {getApproveLabel(item)}
           </Button>
           {isReadyToReview(item) ? (
             <Button
