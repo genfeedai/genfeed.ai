@@ -1,6 +1,7 @@
 'use client';
 
-import { CredentialPlatform } from '@genfeedai/enums';
+import { resolveChannelTargetSettings } from '@genfeedai/api-types';
+import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
@@ -252,11 +253,33 @@ export function buildComposerPreviewTargets(
         config.isCredentialValid !== false &&
         config.credentialId.trim().length > 0,
     )
-    .map((config) => ({
-      author: { handle: config.handle },
-      caption: config.description,
-      media,
-      platform: config.platform,
-      title: config.label,
-    }));
+    .map((config) => {
+      const overrides: Record<string, unknown> = {};
+
+      if (config.platform === CredentialPlatform.INSTAGRAM) {
+        const isVideo =
+          config.category === PostCategory.VIDEO ||
+          media.some((item) => ['short_video', 'video'].includes(item.kind));
+        overrides.placement = isVideo ? 'reel' : 'feed';
+      }
+
+      if (
+        config.platform === CredentialPlatform.YOUTUBE &&
+        [PostStatus.PRIVATE, PostStatus.PUBLIC, PostStatus.UNLISTED].includes(
+          config.status as PostStatus,
+        )
+      ) {
+        overrides.privacyStatus = config.status;
+      }
+
+      return {
+        author: { handle: config.handle },
+        caption: config.description,
+        media,
+        platform: config.platform,
+        publishMode: 'scheduled',
+        settings: resolveChannelTargetSettings(config.platform, overrides),
+        title: config.label,
+      };
+    });
 }

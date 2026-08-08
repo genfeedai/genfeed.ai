@@ -1,7 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
-import { CredentialPlatform, IngredientCategory } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalPostPlatformsTab, {
@@ -163,6 +168,30 @@ describe('ModalPostPlatformsTab', () => {
         }),
       ]);
     }
+    expect(targets[0]?.settings).toMatchObject({ placement: 'feed' });
+    expect(targets[0]?.publishMode).toBe('scheduled');
+  });
+
+  it('maps existing channel choices into canonical preview settings', () => {
+    const targets = buildComposerPreviewTargets(
+      [
+        platformConfig({
+          category: PostCategory.VIDEO,
+        }),
+        platformConfig({
+          credentialId: 'cred-youtube',
+          platform: CredentialPlatform.YOUTUBE,
+          status: PostStatus.UNLISTED,
+        }),
+      ],
+      [],
+    );
+
+    expect(targets[0]?.settings).toMatchObject({ placement: 'reel' });
+    expect(targets[1]?.settings).toMatchObject({
+      madeForKids: false,
+      privacyStatus: 'unlisted',
+    });
   });
 
   it('shows an explicit empty preview when no channel is selected', () => {
