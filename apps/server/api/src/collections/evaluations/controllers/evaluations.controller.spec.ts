@@ -7,7 +7,11 @@ import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluatio
 import { RecordEvaluationReviewDto } from '@api/collections/evaluations/dto/record-evaluation-review.dto';
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { EvaluationType, ExternalPlatform } from '@genfeedai/enums';
+import {
+  EvaluationType,
+  ExternalPlatform,
+  IngredientCategory,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -33,7 +37,7 @@ describe('EvaluationsController', () => {
   const mockEvaluation = {
     id: '507f1f77bcf86cd799439014',
     contentId: '507f1f77bcf86cd799439015',
-    contentType: 'video',
+    contentType: IngredientCategory.VIDEO,
     data: {
       brandId: '507f1f77bcf86cd799439013',
       evaluationType: EvaluationType.PRE_PUBLICATION,
@@ -223,7 +227,7 @@ describe('EvaluationsController', () => {
   describe('getTrends', () => {
     it('should return evaluation trends', async () => {
       const filters: EvaluationFiltersDto = {
-        contentType: 'video',
+        contentType: IngredientCategory.VIDEO,
         endDate: '2024-12-31',
         startDate: '2024-01-01',
       };

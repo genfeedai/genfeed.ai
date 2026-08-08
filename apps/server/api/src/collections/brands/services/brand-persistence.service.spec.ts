@@ -3,7 +3,7 @@ import type { LinksService } from '@api/collections/links/services/links.service
 import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
-import { LinkCategory } from '@genfeedai/enums';
+import { LinkCategory, ReferenceImageCategory } from '@genfeedai/enums';
 import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
@@ -384,31 +384,28 @@ describe('BrandPersistenceService', () => {
     it('appends new images to the existing reference images', async () => {
       brandsService.findOne.mockResolvedValue({
         id: 'brand_1',
-        referenceImages: [{ category: 'logo', url: 'https://old' }],
+        referenceImages: [
+          { category: ReferenceImageCategory.LOGO, url: 'https://old' },
+        ],
       });
+
+      const newImage: ReferenceImageDto = {
+        category: ReferenceImageCategory.FACE,
+        isDefault: true,
+        label: 'Face',
+        url: 'https://new',
+      };
 
       const result = await service.addReferenceImages(
         'brand_1',
-        [
-          {
-            category: 'face',
-            isDefault: true,
-            label: 'Face',
-            url: 'https://new',
-          },
-        ] as ReferenceImageDto[],
+        [newImage],
         'org_1',
       );
 
       expect(brandsService.patch).toHaveBeenCalledWith('brand_1', {
         referenceImages: [
-          { category: 'logo', url: 'https://old' },
-          {
-            category: 'face',
-            isDefault: true,
-            label: 'Face',
-            url: 'https://new',
-          },
+          { category: ReferenceImageCategory.LOGO, url: 'https://old' },
+          newImage,
         ],
       });
       expect(result).toEqual({ count: 1, success: true });

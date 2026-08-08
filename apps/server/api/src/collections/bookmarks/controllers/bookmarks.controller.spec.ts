@@ -5,7 +5,11 @@ import { BookmarksQueryDto } from '@api/collections/bookmarks/dto/bookmarks-quer
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
-import { BookmarkCategory } from '@genfeedai/enums';
+import {
+  BookmarkCategory,
+  BookmarkIntent,
+  BookmarkPlatform,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -25,14 +29,23 @@ describe('BookmarksController', () => {
     brandId: mockBrandId,
     category: BookmarkCategory.URL,
     content: 'Test content',
-    intent: 'reference',
+    intent: BookmarkIntent.REFERENCE,
     isDeleted: false,
     organizationId: mockOrgId,
-    platform: 'twitter',
+    platform: BookmarkPlatform.TWITTER,
     savedAt: new Date(),
     title: 'Test Bookmark',
     url: 'https://example.com/article',
     userId: mockUserId,
+  };
+
+  /** `BaseQueryDto` declares page/limit/pagination/isDeleted/sort as required. */
+  const baseQuery: BookmarksQueryDto = {
+    isDeleted: false,
+    limit: 10,
+    page: 1,
+    pagination: true,
+    sort: 'createdAt: -1',
   };
 
   const mockUser = {
@@ -97,10 +110,10 @@ describe('BookmarksController', () => {
   describe('create', () => {
     it('should create a bookmark', async () => {
       const createDto: CreateBookmarkDto = {
-        category: 'url',
+        category: BookmarkCategory.URL,
         content: 'Test content',
-        intent: 'reference',
-        platform: 'twitter',
+        intent: BookmarkIntent.REFERENCE,
+        platform: BookmarkPlatform.TWITTER,
         title: 'Test Bookmark',
         url: 'https://example.com/article',
       };
@@ -122,9 +135,10 @@ describe('BookmarksController', () => {
 
     it('should handle errors when creating bookmark', async () => {
       const createDto: CreateBookmarkDto = {
-        category: 'url',
-        intent: 'reference',
-        platform: 'twitter',
+        category: BookmarkCategory.URL,
+        content: 'Test content',
+        intent: BookmarkIntent.REFERENCE,
+        platform: BookmarkPlatform.TWITTER,
         title: 'Test Bookmark',
         url: 'https://example.com/article',
       };
@@ -142,8 +156,7 @@ describe('BookmarksController', () => {
   describe('findAll', () => {
     it('should return paginated bookmarks', async () => {
       const query: BookmarksQueryDto = {
-        limit: 10,
-        page: 1,
+        ...baseQuery,
       };
 
       const mockData = {
@@ -164,9 +177,8 @@ describe('BookmarksController', () => {
 
     it('should filter by category', async () => {
       const query: BookmarksQueryDto = {
-        category: 'tweet',
-        limit: 10,
-        page: 1,
+        ...baseQuery,
+        category: BookmarkCategory.TWEET,
       };
 
       mockBookmarksService.findAll.mockResolvedValue({
@@ -179,7 +191,7 @@ describe('BookmarksController', () => {
       expect(bookmarksService.findAll).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            category: 'tweet',
+            category: BookmarkCategory.TWEET,
           }),
         }),
         expect.objectContaining({ limit: 10, page: 1 }),
@@ -189,9 +201,8 @@ describe('BookmarksController', () => {
 
     it('should filter by platform', async () => {
       const query: BookmarksQueryDto = {
-        limit: 10,
-        page: 1,
-        platform: 'twitter',
+        ...baseQuery,
+        platform: BookmarkPlatform.TWITTER,
       };
 
       mockBookmarksService.findAll.mockResolvedValue({
@@ -206,8 +217,7 @@ describe('BookmarksController', () => {
 
     it('should search bookmarks', async () => {
       const query: BookmarksQueryDto = {
-        limit: 10,
-        page: 1,
+        ...baseQuery,
         search: 'test',
       };
 

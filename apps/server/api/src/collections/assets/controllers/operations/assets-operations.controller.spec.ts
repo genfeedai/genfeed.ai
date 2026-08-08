@@ -6,6 +6,7 @@ import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create
 import type { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
@@ -100,7 +101,7 @@ describe('AssetsOperationsController', () => {
     id: mockIngredientId,
     metadataId: mockMetadataId,
     userId: mockUserId,
-  };
+  } as unknown as IngredientDocument;
 
   const mockMetadata = {
     height: 1024,
