@@ -486,7 +486,7 @@ describe('AgentApiService', () => {
       ]);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/models?isActive=true&pagination=false',
+        'http://api.test/models?isActive=true&limit=100',
         expect.anything(),
       );
     });

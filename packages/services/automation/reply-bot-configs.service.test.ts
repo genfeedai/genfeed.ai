@@ -11,7 +11,7 @@ const mockInstance = {
   post: vi.fn(),
 };
 
-const mockFindAll = vi.fn();
+const mockFindAllPages = vi.fn();
 
 vi.mock('@services/core/base.service', () => {
   class MockBaseService {
@@ -20,7 +20,7 @@ vi.mock('@services/core/base.service', () => {
     public ModelClass: typeof ReplyBotConfig;
     public Serializer: typeof ReplyBotConfigSerializer;
     public instance = mockInstance;
-    public findAll = mockFindAll;
+    public findAllPages = mockFindAllPages;
 
     constructor(
       endpoint: string,
@@ -102,19 +102,18 @@ describe('ReplyBotConfigsService', () => {
   });
 
   describe('findAllByOrganization', () => {
-    it('should call findAll with organization filter', async () => {
-      mockFindAll.mockResolvedValue(mockConfigsList);
+    it('should call findAllPages with organization filter', async () => {
+      mockFindAllPages.mockResolvedValue(mockConfigsList);
 
       await service.findAllByOrganization('org-123');
 
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         organizationId: 'org-123',
-        pagination: false,
       });
     });
 
     it('should return array of ReplyBotConfigs', async () => {
-      mockFindAll.mockResolvedValue(mockConfigsList);
+      mockFindAllPages.mockResolvedValue(mockConfigsList);
 
       const result = await service.findAllByOrganization('org-123');
 
@@ -123,15 +122,14 @@ describe('ReplyBotConfigsService', () => {
   });
 
   describe('findActive', () => {
-    it('should call findAll with isActive filter', async () => {
-      mockFindAll.mockResolvedValue(mockConfigsList);
+    it('should call findAllPages with isActive filter', async () => {
+      mockFindAllPages.mockResolvedValue(mockConfigsList);
 
       await service.findActive('org-123');
 
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         isActive: true,
         organizationId: 'org-123',
-        pagination: false,
       });
     });
   });

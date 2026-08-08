@@ -18,9 +18,10 @@ const DEFAULT_VOICE_CATALOG_STATUS = [
 
 interface UseVoiceCatalogOptions {
   isActive?: boolean;
+  /** Serve one server page (paged UI) instead of the whole catalog. */
+  isPaginated?: boolean;
   limit?: number;
   page?: number;
-  pagination?: boolean;
   providers?: VoiceProvider[];
   search?: string;
   status?: string[];
@@ -28,9 +29,9 @@ interface UseVoiceCatalogOptions {
 
 export function useVoiceCatalog({
   isActive = true,
+  isPaginated = false,
   limit,
   page,
-  pagination = false,
   providers,
   search,
   status = DEFAULT_VOICE_CATALOG_STATUS,
@@ -49,15 +50,19 @@ export function useVoiceCatalog({
 
     try {
       const service = await getVoicesService();
-      const nextVoices = await service.findAll({
+      const query = {
         isActive,
         limit,
         page,
-        pagination,
         providers,
         search,
         status,
-      });
+      };
+      // The paged UI drives `page`/`limit` itself; every other caller renders
+      // the whole catalog and has to walk the server pages to get it.
+      const nextVoices = isPaginated
+        ? await service.findAll(query)
+        : await service.findAllPages(query);
       setVoices(nextVoices);
       setError(null);
     } catch (error) {
@@ -70,9 +75,9 @@ export function useVoiceCatalog({
   }, [
     getVoicesService,
     isActive,
+    isPaginated,
     limit,
     page,
-    pagination,
     providers,
     search,
     status,

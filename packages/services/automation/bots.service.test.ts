@@ -1,7 +1,7 @@
 import { BotsService } from '@services/automation/bots.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockFindAll = vi.fn().mockResolvedValue([]);
+const mockFindAllPages = vi.fn().mockResolvedValue([]);
 const mockGet = vi.fn();
 const mockPost = vi.fn();
 const mockPatch = vi.fn();
@@ -26,8 +26,11 @@ vi.mock('@services/core/base.service', () => {
       this.token = token;
     }
 
-    async findAll(params?: unknown) {
-      return mockFindAll(params);
+    async findAll(_params?: unknown) {
+      return [];
+    }
+    async findAllPages(params?: unknown) {
+      return mockFindAllPages(params);
     }
     async findOne(_id: string) {
       return {};
@@ -92,6 +95,7 @@ describe('BotsService', () => {
 
   it('has CRUD methods', () => {
     expect(service.findAll).toBeDefined();
+    expect(service.findAllPages).toBeDefined();
     expect(service.findOne).toBeDefined();
     expect(service.post).toBeDefined();
     expect(service.patch).toBeDefined();
@@ -99,18 +103,20 @@ describe('BotsService', () => {
   });
 
   describe('findAllByOrganization', () => {
-    it('calls findAll with organization scope', async () => {
+    it('calls findAllPages with organization scope', async () => {
       const orgId = 'org-123';
       await service.findAllByOrganization(orgId);
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         organization: orgId,
-        pagination: false,
         scope: 'organization',
       });
     });
 
     it('returns bots array', async () => {
-      mockFindAll.mockResolvedValueOnce([{ id: 'bot-1' }, { id: 'bot-2' }]);
+      mockFindAllPages.mockResolvedValueOnce([
+        { id: 'bot-1' },
+        { id: 'bot-2' },
+      ]);
       const result = await service.findAllByOrganization('org-123');
       expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(2);
@@ -118,23 +124,21 @@ describe('BotsService', () => {
   });
 
   describe('findAllByAccount', () => {
-    it('calls findAll with brand scope', async () => {
+    it('calls findAllPages with brand scope', async () => {
       const brandId = 'brand-456';
       await service.findAllByAccount(brandId);
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         brand: brandId,
-        pagination: false,
         scope: 'brand',
       });
     });
   });
 
   describe('findAllByUser', () => {
-    it('calls findAll with user scope', async () => {
+    it('calls findAllPages with user scope', async () => {
       const userId = 'user-789';
       await service.findAllByUser(userId);
-      expect(mockFindAll).toHaveBeenCalledWith({
-        pagination: false,
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         scope: 'user',
         user: userId,
       });

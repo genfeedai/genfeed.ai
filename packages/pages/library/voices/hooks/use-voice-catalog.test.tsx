@@ -4,6 +4,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindAll = vi.fn();
+const mockFindAllPages = vi.fn();
 const mockUseAuthedService = vi.fn();
 const mockLoggerError = vi.fn();
 
@@ -15,6 +16,7 @@ vi.mock('@services/ingredients/voices.service', () => ({
   VoicesService: {
     getInstance: vi.fn(() => ({
       findAll: mockFindAll,
+      findAllPages: mockFindAllPages,
     })),
   },
 }));
@@ -37,16 +39,16 @@ describe('useVoiceCatalog', () => {
     );
   });
 
-  it('fetches cloned/generated voices from the ingredients service with query options', async () => {
+  it('serves a single server page when the caller drives its own pagination', async () => {
     const voices = [{ id: 'voice-1', provider: VoiceProvider.ELEVENLABS }];
     mockFindAll.mockResolvedValue(voices);
 
     const { result } = renderHook(() =>
       useVoiceCatalog({
         isActive: true,
+        isPaginated: true,
         limit: 12,
         page: 2,
-        pagination: true,
         providers: [VoiceProvider.ELEVENLABS],
         search: 'rachel',
       }),
@@ -58,7 +60,6 @@ describe('useVoiceCatalog', () => {
       isActive: true,
       limit: 12,
       page: 2,
-      pagination: true,
       providers: [VoiceProvider.ELEVENLABS],
       search: 'rachel',
       status: [
@@ -74,7 +75,7 @@ describe('useVoiceCatalog', () => {
   });
 
   it('falls back to an empty list on fetch failure', async () => {
-    mockFindAll.mockRejectedValue(new Error('boom'));
+    mockFindAllPages.mockRejectedValue(new Error('boom'));
 
     const { result } = renderHook(() => useVoiceCatalog());
 
@@ -86,7 +87,7 @@ describe('useVoiceCatalog', () => {
   });
 
   it('clears the recoverable error after a successful retry', async () => {
-    mockFindAll
+    mockFindAllPages
       .mockRejectedValueOnce(new Error('boom'))
       .mockResolvedValueOnce([{ id: 'voice-1' }]);
 
@@ -104,7 +105,7 @@ describe('useVoiceCatalog', () => {
   });
 
   it('allows manual refresh to replace previously loaded voices', async () => {
-    mockFindAll
+    mockFindAllPages
       .mockResolvedValueOnce([{ id: 'voice-1' }])
       .mockResolvedValueOnce([{ id: 'voice-2' }, { id: 'voice-3' }]);
 
@@ -121,11 +122,10 @@ describe('useVoiceCatalog', () => {
       await result.current.refresh();
     });
 
-    expect(mockFindAll).toHaveBeenLastCalledWith({
+    expect(mockFindAllPages).toHaveBeenLastCalledWith({
       isActive: true,
       limit: undefined,
       page: undefined,
-      pagination: false,
       providers: undefined,
       search: undefined,
       status: ['completed'],
@@ -137,16 +137,16 @@ describe('useVoiceCatalog', () => {
   });
 
   it('does not refetch on rerender when using default status filters', async () => {
-    mockFindAll.mockResolvedValue([{ id: 'voice-1' }]);
+    mockFindAllPages.mockResolvedValue([{ id: 'voice-1' }]);
 
     const { result, rerender } = renderHook(() => useVoiceCatalog());
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mockFindAll).toHaveBeenCalledTimes(1);
+    expect(mockFindAllPages).toHaveBeenCalledTimes(1);
 
     rerender();
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(mockFindAll).toHaveBeenCalledTimes(1);
+    expect(mockFindAllPages).toHaveBeenCalledTimes(1);
   });
 });

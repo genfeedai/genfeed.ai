@@ -191,8 +191,7 @@ export function useBrandProviderState({
       }
 
       const service = await getUsersService();
-      const data = await service.findMeBrands({
-        pagination: false,
+      const data = await service.findAllMeBrands({
         sort: 'label: 1',
       });
 

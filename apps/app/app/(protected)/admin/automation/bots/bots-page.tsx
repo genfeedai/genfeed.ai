@@ -55,8 +55,7 @@ export default function BotsPage() {
 
       try {
         const service = await getBotsService();
-        const fetchedBots = await service.findAll({
-          pagination: false,
+        const fetchedBots = await service.findAllPages({
           sort: 'createdAt: -1',
         });
 

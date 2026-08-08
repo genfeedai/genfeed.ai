@@ -183,10 +183,9 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     organizationId: string,
     brandId?: string,
   ): Promise<OutreachCampaign[]> {
-    return this.findAll({
+    return this.findAllPages({
       ...(brandId ? { brandId } : {}),
       organizationId,
-      pagination: false,
     });
   }
 
@@ -197,9 +196,8 @@ export class OutreachCampaignsService extends BaseService<OutreachCampaign> {
     organizationId: string,
     status: CampaignStatus,
   ): Promise<OutreachCampaign[]> {
-    return this.findAll({
+    return this.findAllPages({
       organizationId,
-      pagination: false,
       status,
     });
   }

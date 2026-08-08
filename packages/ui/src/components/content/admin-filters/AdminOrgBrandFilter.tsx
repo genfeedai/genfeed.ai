@@ -1,5 +1,6 @@
 'use client';
 
+import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IBrand } from '@genfeedai/interfaces';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
@@ -39,8 +40,10 @@ export default function AdminOrgBrandFilter({
     queryKey: ['admin-org-brands', organization],
     queryFn: async () => {
       const service = await getOrganizationsService();
+      // One organization's brands fit inside the server's page cap, same as
+      // the organizations list above.
       return service.findOrganizationBrands(organization, {
-        pagination: false,
+        limit: MAX_PAGE_SIZE,
       });
     },
     enabled: !!organization,

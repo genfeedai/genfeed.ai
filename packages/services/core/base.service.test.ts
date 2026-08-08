@@ -435,6 +435,113 @@ describe('BaseService', () => {
     });
   });
 
+  describe('findAllPages', () => {
+    // An `{ id }`-only object is a relationship reference to the JSON:API
+    // extractor mock, so rows carry a second attribute to stay resources.
+    function mockPages(pages: string[][]) {
+      const get = service.getInstanceForTest().get;
+      pages.forEach((ids) => {
+        get.mockResolvedValueOnce({
+          data: {
+            data: ids.map((id) => ({ id, name: `row-${id}` })),
+            links: { pagination: { pages: pages.length } },
+          },
+        });
+      });
+      return get;
+    }
+
+    it('walks every server page and returns the flattened rows', async () => {
+      const get = mockPages([['1', '2'], ['3']]);
+
+      const result = await service.findAllPages({ isActive: true });
+
+      expect(get).toHaveBeenCalledTimes(2);
+      expect(get).toHaveBeenNthCalledWith(1, '', {
+        params: { isActive: true, limit: 100, page: 1 },
+        signal: undefined,
+      });
+      expect(get).toHaveBeenNthCalledWith(2, '', {
+        params: { isActive: true, limit: 100, page: 2 },
+        signal: undefined,
+      });
+      expect(result.map((row) => row.id)).toEqual(['1', '2', '3']);
+    });
+
+    it('issues a single request when the collection fits one page', async () => {
+      const get = mockPages([['1']]);
+
+      const result = await service.findAllPages();
+
+      expect(get).toHaveBeenCalledTimes(1);
+      expect(result.map((row) => row.id)).toEqual(['1']);
+    });
+
+    it('clamps a caller limit above the API maximum', async () => {
+      const get = mockPages([['1']]);
+
+      await service.findAllPages({ limit: 5000 });
+
+      expect(get).toHaveBeenCalledWith('', {
+        params: { limit: 100, page: 1 },
+        signal: undefined,
+      });
+    });
+
+    it('keeps a caller limit below the API maximum', async () => {
+      const get = mockPages([['1']]);
+
+      await service.findAllPages({ limit: 25 });
+
+      expect(get).toHaveBeenCalledWith('', {
+        params: { limit: 25, page: 1 },
+        signal: undefined,
+      });
+    });
+
+    it('forwards the AbortSignal to every page request', async () => {
+      const get = mockPages([['1'], ['2']]);
+      const controller = new AbortController();
+
+      await service.findAllPages({}, controller.signal);
+
+      expect(get).toHaveBeenNthCalledWith(1, '', {
+        params: { limit: 100, page: 1 },
+        signal: controller.signal,
+      });
+      expect(get).toHaveBeenNthCalledWith(2, '', {
+        params: { limit: 100, page: 2 },
+        signal: controller.signal,
+      });
+    });
+
+    it('stops at the page ceiling and warns instead of walking forever', async () => {
+      service.getInstanceForTest().get.mockResolvedValue({
+        data: {
+          data: [{ id: 'row', name: 'row' }],
+          links: { pagination: { pages: 500 } },
+        },
+      });
+
+      const result = await service.findAllPages();
+
+      expect(service.getInstanceForTest().get).toHaveBeenCalledTimes(50);
+      expect(result).toHaveLength(50);
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Fetch-all stopped at the page ceiling',
+        expect.objectContaining({ maxPages: 50, totalPages: 500 }),
+      );
+    });
+
+    it('should throw on error', async () => {
+      service
+        .getInstanceForTest()
+        .get.mockRejectedValue(new Error('Network error'));
+
+      await expect(service.findAllPages()).rejects.toThrow();
+    });
+  });
+
   describe('findOne', () => {
     it('should call GET with correct ID', async () => {
       const mockResponse = {

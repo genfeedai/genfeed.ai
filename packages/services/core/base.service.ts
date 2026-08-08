@@ -1,3 +1,4 @@
+import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import type { IPaginatedResponse } from '@genfeedai/interfaces';
 import type {
   IHttpError,
@@ -26,6 +27,13 @@ import {
 export type { JsonApiResponseDocument } from '@services/core/json-api';
 
 const serviceInstances = new ServiceInstanceManager<BaseService<unknown>>();
+
+/**
+ * Safety ceiling for {@link BaseService.collectAllPages}: 100 × 50 = 5000 rows.
+ * A surface that trips this wants real pagination, not a fetch-all — so it logs
+ * instead of walking forever.
+ */
+const MAX_COLLECTED_PAGES = 50;
 
 function isCancelledRequest(error: unknown): boolean {
   return (
@@ -315,6 +323,68 @@ export abstract class BaseService<
 
       return result.items;
     });
+  }
+
+  /**
+   * Walk every page of a list endpoint and return the flattened rows.
+   *
+   * HTTP list endpoints are always paginated server-side: `QueryDefaultsUtil`
+   * ignores a client `pagination=false` so no public endpoint can be talked
+   * into an unbounded `findMany`. A caller that genuinely needs the whole
+   * collection therefore has to ask for the pages, which is what this does.
+   *
+   * Subclasses whose collection lives on a custom path (`me/brands`, a
+   * relationship route, …) pass their own page fetcher; everything on the
+   * standard collection path should use {@link findAllPages} instead.
+   */
+  protected async collectAllPages<D>(
+    query: Record<string, unknown>,
+    fetchPage: (
+      pageQuery: Record<string, unknown>,
+    ) => Promise<{ items: D[]; totalPages: number }>,
+  ): Promise<D[]> {
+    const requestedLimit =
+      typeof query.limit === 'number' && query.limit > 0
+        ? query.limit
+        : MAX_PAGE_SIZE;
+    const limit = Math.min(requestedLimit, MAX_PAGE_SIZE);
+
+    const collected: D[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const result = await fetchPage({ ...query, limit, page });
+      collected.push(...result.items);
+      totalPages = Math.max(1, result.totalPages);
+      page += 1;
+    } while (page <= totalPages && page <= MAX_COLLECTED_PAGES);
+
+    if (totalPages > MAX_COLLECTED_PAGES) {
+      logger.warn('Fetch-all stopped at the page ceiling', {
+        maxPages: MAX_COLLECTED_PAGES,
+        totalPages,
+        url: this.baseURL,
+      });
+    }
+
+    return collected;
+  }
+
+  /**
+   * Every row of this collection, across all server pages.
+   *
+   * Use this instead of `findAll({ pagination: false })`: that flag is still
+   * accepted for backward compatibility but is ignored by the API, so
+   * `findAll` returns a single page of 10 rows.
+   */
+  public findAllPages(
+    query: Record<string, unknown> = {},
+    signal?: AbortSignal,
+  ): Promise<T[]> {
+    return this.collectAllPages<T>(query, (pageQuery) =>
+      this.findAllPage(pageQuery, signal),
+    );
   }
 
   public findAllPage(
