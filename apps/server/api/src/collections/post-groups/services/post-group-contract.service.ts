@@ -11,6 +11,7 @@ import {
   type ChannelTargetInput,
   type CreateReleaseGroupInput,
   createReleaseGroupSchema,
+  deriveReleaseStatusProjectionFromTargets,
   type ReleaseAttachmentInput,
   type ReleaseMediaReferenceInput,
   type UpdateChannelTargetInput,
@@ -48,6 +49,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { type ZodError, z } from 'zod';
 
@@ -70,6 +72,8 @@ const SCHEDULABLE_TARGET_STATES = new Set<string>([
 
 @Injectable()
 export class PostGroupContractService {
+  private readonly logger = new Logger(PostGroupContractService.name);
+
   parseCreateInput(
     body: unknown,
     headerIdempotencyKey?: string,
@@ -208,6 +212,10 @@ export class PostGroupContractService {
     const releaseTargets = targets.map((target) =>
       this.toChannelTarget(target, group, analyticsByTarget.get(target.id)),
     );
+    const status = this.deriveReleaseStatus(
+      group.id,
+      targets.map((target) => target.targetExecutionState),
+    );
 
     return {
       analyticsComparison: buildReleaseAnalyticsComparison(
@@ -227,7 +235,7 @@ export class PostGroupContractService {
       publishedAt: this.toIso(group.publishedAt),
       recurrence: this.asRecurrence(group.recurrence),
       scheduledAt: this.toIso(group.scheduledAt),
-      status: group.status as ReleaseStatus,
+      status,
       statusTransitions: this.asTransitions(group.statusTransitions),
       targetSummary: this.summarizeTargets(targets),
       targets: releaseTargets,
@@ -235,6 +243,20 @@ export class PostGroupContractService {
       title: group.title,
       updatedAt: group.updatedAt.toISOString(),
     };
+  }
+
+  deriveReleaseStatus(
+    releaseId: string,
+    targetStates: readonly unknown[],
+  ): ReleaseStatus {
+    const projection = deriveReleaseStatusProjectionFromTargets(targetStates);
+    for (const diagnostic of projection.diagnostics) {
+      this.logger.warn('Release status derivation failed closed', {
+        ...diagnostic,
+        releaseId,
+      });
+    }
+    return projection.status;
   }
 
   appendTransition(

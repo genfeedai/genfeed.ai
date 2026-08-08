@@ -1,4 +1,9 @@
-import { PostCategory, PostFrequency, ReleaseStatus } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostFrequency,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ReleaseRecurrenceMaterializerService } from '@workers/services/release-recurrence-materializer.service';
 
 describe('ReleaseRecurrenceMaterializerService', () => {
@@ -70,6 +75,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     sourceWorkflowId: 'workflow-source',
     sourceWorkflowName: 'Source workflow',
     targetAttachments: [],
+    targetExecutionState: TargetExecutionState.PUBLISHED,
     targetReadiness: { state: 'ready' },
     targetSettings: { audience: 'public' },
     targetValidationIssues: [],
@@ -109,6 +115,13 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     }
     const prisma = {
       $transaction: transaction,
+      post: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { targetExecutionState: TargetExecutionState.PUBLISHED },
+          ]),
+      },
       postGroup: {
         findFirst: vi.fn(),
       },
@@ -335,7 +348,6 @@ describe('ReleaseRecurrenceMaterializerService', () => {
       });
     prisma.postGroup.findFirst.mockResolvedValue({
       recurrence: sourceGroup.recurrence,
-      status: ReleaseStatus.PUBLISHED,
     });
 
     await expect(
@@ -360,7 +372,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
         organizationId: 'org-1',
       },
     });
-    expect(post.findMany).not.toHaveBeenCalled();
+    expect(post.findMany).toHaveBeenCalledTimes(1);
     expect(postGroup.create).not.toHaveBeenCalled();
     expect(post.create).not.toHaveBeenCalled();
     expect(postGroup.updateMany).not.toHaveBeenCalled();
@@ -371,7 +383,6 @@ describe('ReleaseRecurrenceMaterializerService', () => {
     const { prisma, service } = createHarness();
     prisma.postGroup.findFirst.mockResolvedValue({
       recurrence: sourceGroup.recurrence,
-      status: ReleaseStatus.PARTIALLY_PUBLISHED,
     });
 
     await expect(
@@ -381,7 +392,7 @@ describe('ReleaseRecurrenceMaterializerService', () => {
       }),
     ).resolves.toBe(true);
     expect(prisma.postGroup.findFirst).toHaveBeenCalledWith({
-      select: { recurrence: true, status: true },
+      select: { recurrence: true },
       where: {
         id: 'release-1',
         isDeleted: false,
@@ -391,7 +402,6 @@ describe('ReleaseRecurrenceMaterializerService', () => {
 
     prisma.postGroup.findFirst.mockResolvedValue({
       recurrence: { ...sourceGroup.recurrence, isExhausted: true },
-      status: ReleaseStatus.PUBLISHED,
     });
     await expect(
       service.shouldMaterialize({
@@ -402,7 +412,6 @@ describe('ReleaseRecurrenceMaterializerService', () => {
 
     prisma.postGroup.findFirst.mockResolvedValue({
       recurrence: { ...sourceGroup.recurrence, isPaused: true },
-      status: ReleaseStatus.PUBLISHED,
     });
     await expect(
       service.shouldMaterialize({

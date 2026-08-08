@@ -14,6 +14,7 @@ import {
   publishWebhookPayloadSchema,
   redactPublishWebhookText,
 } from '@api-types/contracts/publish-webhook-events.contract';
+import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
 import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { IWebhookDeliveryStatus } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -35,6 +36,7 @@ type PublishWebhookPostSnapshot = {
   publishedAt?: unknown;
   scheduledDate?: unknown;
   status?: unknown;
+  targetExecutionState?: unknown;
   url?: unknown;
   user?: unknown;
 };
@@ -165,8 +167,21 @@ export class PublishEventWebhookService {
       return;
     }
 
-    const releaseStatus = deriveReleaseStatus(targetResolution.targets);
-    if (!releaseStatus) {
+    const projection = deriveReleaseStatusProjectionFromTargets(
+      targetResolution.targets.map((target) => target.status),
+    );
+    for (const diagnostic of projection.diagnostics) {
+      this.logger.warn(
+        `${this.constructorName} release status derivation failed closed`,
+        { ...diagnostic, releaseId: input.releaseId },
+      );
+    }
+    const releaseStatus = projection.status;
+    if (
+      releaseStatus !== ReleaseStatus.PUBLISHED &&
+      releaseStatus !== ReleaseStatus.PARTIALLY_PUBLISHED &&
+      releaseStatus !== ReleaseStatus.FAILED
+    ) {
       return;
     }
 
@@ -223,7 +238,25 @@ export class PublishEventWebhookService {
           limit: 100,
           page: 1,
         },
-      )) as unknown as { docs?: PublishWebhookPostSnapshot[] };
+      )) as unknown as {
+        docs?: PublishWebhookPostSnapshot[];
+        total?: number;
+      };
+
+      if (
+        typeof result.total === 'number' &&
+        result.total !== (result.docs?.length ?? 0)
+      ) {
+        this.logger.warn(
+          `${this.constructorName} skipped incomplete release projection`,
+          {
+            groupId,
+            loadedTargetCount: result.docs?.length ?? 0,
+            totalTargetCount: result.total,
+          },
+        );
+        return { reason: 'non-terminal' };
+      }
 
       const targets = new Map<string, PublishWebhookTarget>();
       for (const groupPost of result.docs ?? []) {
@@ -237,9 +270,7 @@ export class PublishEventWebhookService {
           continue;
         }
 
-        const terminalState = mapPostStatusToTerminalTargetState(
-          readString(groupPost.status),
-        );
+        const terminalState = mapPostToTerminalTargetState(groupPost);
         if (!terminalState) {
           return { reason: 'non-terminal' };
         }
@@ -273,7 +304,7 @@ export class PublishEventWebhookService {
           targetId: currentTarget.id,
         },
       );
-      return { reason: 'terminal', targets: [currentTarget] };
+      return { reason: 'non-terminal' };
     }
   }
 
@@ -368,39 +399,18 @@ export class PublishEventWebhookService {
   }
 }
 
-function deriveReleaseStatus(
-  targets: PublishWebhookTarget[],
-):
-  | ReleaseStatus.PUBLISHED
-  | ReleaseStatus.PARTIALLY_PUBLISHED
-  | ReleaseStatus.FAILED
-  | null {
-  const published = targets.filter(
-    (target) => target.status === TargetExecutionState.PUBLISHED,
-  ).length;
-  const failed = targets.filter(
-    (target) => target.status === TargetExecutionState.FAILED,
-  ).length;
-
-  if (targets.length === 0 || published + failed !== targets.length) {
-    return null;
-  }
-
-  if (published === targets.length) {
-    return ReleaseStatus.PUBLISHED;
-  }
-
-  if (published > 0) {
-    return ReleaseStatus.PARTIALLY_PUBLISHED;
-  }
-
-  return ReleaseStatus.FAILED;
-}
-
-function mapPostStatusToTerminalTargetState(
-  status: string | null,
+function mapPostToTerminalTargetState(
+  post: PublishWebhookPostSnapshot,
 ): TargetExecutionState.PUBLISHED | TargetExecutionState.FAILED | null {
-  switch (status) {
+  const executionState = readString(post.targetExecutionState);
+  if (executionState === TargetExecutionState.PUBLISHED) {
+    return TargetExecutionState.PUBLISHED;
+  }
+  if (executionState === TargetExecutionState.FAILED) {
+    return TargetExecutionState.FAILED;
+  }
+
+  switch (readString(post.status)) {
     case 'public':
     case 'private':
     case 'unlisted':
