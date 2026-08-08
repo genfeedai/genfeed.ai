@@ -2,12 +2,14 @@ import {
   type ChannelCapability,
   getChannelCapability,
 } from '@api-types/contracts';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform, IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import PlatformPreview, {
+  buildMediaFromIngredients,
   countPreviewCharacters,
   getPlatformPreviewIcon,
   hasDedicatedPlatformPreviewRenderer,
@@ -238,5 +240,45 @@ describe('PlatformPreview', () => {
     );
     expect(getPlatformPreviewIcon('myspace')).not.toBe(twitterIcon);
     expect(getPlatformPreviewIcon('x')).toBe(twitterIcon);
+  });
+
+  it('maps ingredients onto preview media for composer surfaces', () => {
+    const media = buildMediaFromIngredients([
+      {
+        category: IngredientCategory.VIDEO,
+        id: 'ing-1',
+        ingredientUrl: 'https://cdn.example.com/video.mp4',
+        metadataDuration: 65,
+        metadataLabel: 'Launch teaser',
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+      } as IIngredient,
+      {
+        category: IngredientCategory.GIF,
+        id: 'ing-2',
+        ingredientUrl: 'https://cdn.example.com/loop.gif',
+      } as IIngredient,
+    ]);
+
+    expect(media).toEqual([
+      {
+        alt: 'Launch teaser',
+        durationLabel: '1:05',
+        id: 'ing-1',
+        isAnimated: false,
+        kind: 'video',
+        thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
+        url: 'https://cdn.example.com/video.mp4',
+      },
+      {
+        alt: 'Media 2',
+        durationLabel: undefined,
+        id: 'ing-2',
+        isAnimated: true,
+        kind: 'image',
+        thumbnailUrl: undefined,
+        url: 'https://cdn.example.com/loop.gif',
+      },
+    ]);
+    expect(buildMediaFromIngredients(undefined)).toEqual([]);
   });
 });
