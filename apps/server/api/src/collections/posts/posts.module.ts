@@ -15,6 +15,7 @@ import { ContentMentionsController } from '@api/collections/posts/controllers/co
 import { PostsGenerationController } from '@api/collections/posts/controllers/operations/posts-generation.controller';
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { PostsController } from '@api/collections/posts/controllers/posts.controller';
+import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
@@ -32,9 +33,9 @@ import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SERVER_TOKENS } from '@genfeedai/server';
 import { forwardRef, Module } from '@nestjs/common';
 import { PostAnalyticsCollectionStateService } from '@server/analytics/services/post-analytics-collection-state.service';
-import { SERVER_TOKENS } from '@server/server.dependencies';
 
 @Module({
   // PostsOperationsController must register before PostsController: its static
@@ -52,6 +53,7 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     AnalyticsAggregationService,
     PostAnalyticsCollectionStateService,
     PostAnalyticsService,
+    PostLifecycleModule,
     PostsService,
   ],
   imports: [
@@ -63,6 +65,7 @@ import { SERVER_TOKENS } from '@server/server.dependencies';
     forwardRef(() => ModelsModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => OrganizationSettingsModule),
+    PostLifecycleModule,
     forwardRef(() => PromptBuilderModule),
     PublishApprovalsModule,
     forwardRef(() => QuotaModule),

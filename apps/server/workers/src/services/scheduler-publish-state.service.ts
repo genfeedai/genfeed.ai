@@ -9,6 +9,7 @@ import type {
   IScheduleStatusTransition,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
+import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -61,6 +62,7 @@ export class SchedulerPublishStateService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly postLifecycleService: PostLifecycleService,
   ) {}
 
   async transitionPost(
@@ -91,61 +93,46 @@ export class SchedulerPublishStateService {
       try {
         const applied = await this.prisma.$transaction(
           async (tx) => {
-            const updated = await tx.post.updateMany({
-              data: {
-                ...(input.update.error !== undefined && {
-                  targetError: input.update.error
-                    ? this.toJson(input.update.error)
-                    : Prisma.JsonNull,
-                }),
-                ...(input.update.externalId !== undefined && {
-                  externalId: input.update.externalId,
-                }),
-                ...(input.update.externalShortcode !== undefined && {
-                  externalShortcode: input.update.externalShortcode,
-                }),
-                ...(input.update.lastAttemptAt !== undefined && {
-                  lastAttemptAt: input.update.lastAttemptAt,
-                }),
-                ...(input.update.publicationDate !== undefined && {
-                  publicationDate: input.update.publicationDate,
-                }),
-                ...(input.update.publishedAt !== undefined && {
-                  publishedAt: input.update.publishedAt,
-                }),
-                ...(input.update.retryCount !== undefined && {
-                  retryCount: input.update.retryCount,
-                }),
-                status: input.update.status,
-                targetExecutionState: input.update.executionState,
-                ...(input.update.url !== undefined && {
-                  url: input.update.url,
-                }),
-                ...(input.update.workflowExecutionId !== undefined && {
-                  workflowExecutionId: input.update.workflowExecutionId,
-                }),
-              },
-              where: {
-                ...(input.groupId ? { groupId: input.groupId } : {}),
-                id: input.postId,
-                isDeleted: false,
+            const transition = await this.postLifecycleService.transition(
+              {
+                error: input.update.error,
+                groupId: input.groupId,
+                guard: input.guard,
+                legacyStatus: input.update.status,
+                mutation: {
+                  ...(input.update.externalId !== undefined && {
+                    externalId: input.update.externalId,
+                  }),
+                  ...(input.update.externalShortcode !== undefined && {
+                    externalShortcode: input.update.externalShortcode,
+                  }),
+                  ...(input.update.lastAttemptAt !== undefined && {
+                    lastAttemptAt: input.update.lastAttemptAt,
+                  }),
+                  ...(input.update.publicationDate !== undefined && {
+                    publicationDate: input.update.publicationDate,
+                  }),
+                  ...(input.update.publishedAt !== undefined && {
+                    publishedAt: input.update.publishedAt,
+                  }),
+                  ...(input.update.retryCount !== undefined && {
+                    retryCount: input.update.retryCount,
+                  }),
+                  ...(input.update.url !== undefined && {
+                    url: input.update.url,
+                  }),
+                  ...(input.update.workflowExecutionId !== undefined && {
+                    workflowExecutionId: input.update.workflowExecutionId,
+                  }),
+                },
+                nextState: input.update.executionState,
                 organizationId: input.organizationId,
-                ...(input.guard?.expectedWorkflowExecutionId
-                  ? {
-                      workflowExecutionId:
-                        input.guard.expectedWorkflowExecutionId,
-                    }
-                  : {}),
-                ...(input.guard?.priorExecutionStates?.length
-                  ? {
-                      targetExecutionState: {
-                        in: [...input.guard.priorExecutionStates],
-                      },
-                    }
-                  : {}),
+                postId: input.postId,
+                reason: input.reason,
               },
-            });
-            if (updated.count !== 1) {
+              tx,
+            );
+            if (transition.kind === 'stale') {
               this.logger.warn(
                 `${this.logContext} ignored stale publish transition`,
                 {
