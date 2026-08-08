@@ -59,7 +59,7 @@ interface ReviewQueueViewProps {
 }
 
 /**
- * Review queue body only — publish layout owns Container / New release / refresh.
+ * Review queue body only — publish layout owns Container / New post / refresh.
  * Status filters + batch picker register into the layout action rail (first
  * level topbar) via PostsLayoutContext.setFiltersNode.
  */

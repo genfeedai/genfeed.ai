@@ -76,9 +76,7 @@ export class AgentStrategyAutopilotPerformanceService {
     const visits = clicks;
     const generatedCount = drafts.length;
     const publishedCount = drafts.filter(
-      (draft) =>
-        String(draft.status ?? '').toLowerCase() ===
-        ContentDraftStatus.PUBLISHED,
+      (draft) => draft.status === ContentDraftStatus.PUBLISHED,
     ).length;
     const creditsSpent = opportunities
       .filter((opportunity) => {

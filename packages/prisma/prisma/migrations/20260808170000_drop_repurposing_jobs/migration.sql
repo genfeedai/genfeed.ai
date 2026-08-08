@@ -1,0 +1,11 @@
+-- Drop the dead repurposing_jobs table.
+-- Same cleanup as 20260702113000_drop_unused_ad_insights: the content-repurposing
+-- pipeline was scaffolding only. POST /schedules/repurpose wrote a row with
+-- status 'pending', sourceContentType hardcoded to 'video', and per-format
+-- results all 'pending' — and no worker or processor anywhere consumed
+-- RepurposingJob rows, so every row created stayed 'pending' forever.
+--
+-- Any rows in production are inert stubs from that write-only endpoint; there
+-- is nothing to migrate. The endpoint, DTO, client methods, and CLI surface are
+-- removed in the same change, so nothing can write here again.
+DROP TABLE IF EXISTS "repurposing_jobs";

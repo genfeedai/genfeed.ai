@@ -257,9 +257,12 @@ test('keeps the workflow contract stable', () => {
 
   assert.match(workflow, /^ {2}tests-gate:\n/m);
   assert.match(workflow, /^ {4}name: Tests Gate\n/m);
+  // Pull requests AND master pushes reach a conclusive gate (#2510); the
+  // release path (workflow_call inherits the caller's originating event) does
+  // not match either arm and stays unchanged.
   assert.match(
     workflow,
-    /^ {4}if: \$\{\{ always\(\) && github\.event_name == 'pull_request' \}\}\n/m,
+    /^ {4}if: \$\{\{ always\(\) && \(github\.event_name == 'pull_request' \|\| github\.event_name == 'push'\) \}\}\n/m,
   );
 
   for (const job of [

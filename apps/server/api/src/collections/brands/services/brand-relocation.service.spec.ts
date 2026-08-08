@@ -58,7 +58,6 @@ describe('BrandRelocationService', () => {
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
-    invalidatePattern: ReturnType<typeof vi.fn>;
   };
   let prismaProxy: unknown;
   let service: BrandRelocationService;
@@ -83,7 +82,6 @@ describe('BrandRelocationService', () => {
     cacheInvalidationService = {
       invalidate: vi.fn(),
       invalidateByTags: vi.fn(),
-      invalidatePattern: vi.fn(),
     };
     prismaProxy = new Proxy(
       {},

@@ -11,6 +11,7 @@
 export const SYSTEM_SWEEPS_QUEUE = 'system-sweeps';
 
 export const SYSTEM_SWEEP_JOBS = {
+  BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile-sweep',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile-sweep',
   POSTS_PUBLISH: 'posts-publish-sweep',
   REVIEW_GATE_TIMEOUT: 'review-gate-timeout-sweep',
@@ -52,6 +53,13 @@ export const SYSTEM_SWEEP_DEFINITIONS: SystemSweepDefinition[] = [
   {
     jobName: SYSTEM_SWEEP_JOBS.REVIEW_GATE_TIMEOUT,
     pattern: '*/15 * * * *',
+    timezone: 'UTC',
+  },
+  {
+    // A settlement shortfall is durable and retry-safe, so collection can run
+    // frequently and becomes a no-op until the organization balance recovers.
+    jobName: SYSTEM_SWEEP_JOBS.BATCH_CREDIT_SETTLEMENT_RECONCILE,
+    pattern: '*/5 * * * *',
     timezone: 'UTC',
   },
   {

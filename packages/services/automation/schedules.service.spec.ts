@@ -162,22 +162,6 @@ describe('SmartSchedulerService', () => {
     );
   });
 
-  it('repurposeContent POSTs to /automation/repurpose', async () => {
-    const job = { id: 'repurpose-1', status: 'queued' };
-    mockFetch.mockResolvedValue(makeOkResponse(job));
-
-    const svc = SmartSchedulerService.getInstance(token);
-    await svc.repurposeContent({
-      contentId: 'cid-1',
-      targetFormats: ['instagram_reel'] as never[],
-    });
-
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining('/automation/repurpose'),
-      expect.objectContaining({ method: 'POST' }),
-    );
-  });
-
   it('createWorkflow POSTs to /automation/workflows', async () => {
     const wf = { id: 'wf-1', name: 'Post Flow' };
     mockFetch.mockResolvedValue(makeOkResponse(wf));

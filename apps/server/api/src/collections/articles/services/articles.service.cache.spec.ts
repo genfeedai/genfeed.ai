@@ -29,7 +29,8 @@ import { LoggerService } from '@libs/logger/logger.service';
 /**
  * Focused coverage for the canonical article cache-key invalidation added in
  * #860: every write must bust `articles:list:{orgId}` + `articles:single:{id}`
- * and the shared `articles:*` pattern so HTTP @Cache responses can't go stale.
+ * and the shared `articles` tag so HTTP @Cache responses can't go stale —
+ * without ever walking the keyspace with SCAN (#2518).
  */
 describe('ArticlesService cache invalidation', () => {
   const organizationId = 'org_1';
@@ -77,7 +78,7 @@ describe('ArticlesService cache invalidation', () => {
 
     const cacheInvalidationService = {
       invalidate: vi.fn().mockResolvedValue(undefined),
-      invalidatePattern: vi.fn().mockResolvedValue(undefined),
+      invalidateByTags: vi.fn().mockResolvedValue(0),
     } as unknown as CacheInvalidationService;
 
     const configService = {
@@ -104,7 +105,7 @@ describe('ArticlesService cache invalidation', () => {
     return { cacheInvalidationService, delegate, service };
   }
 
-  it('busts the org list key, the single key, and the articles:* pattern on create', async () => {
+  it('busts the org list key, the single key, and the articles tag on create', async () => {
     const { cacheInvalidationService, delegate, service } = buildService();
     delegate.create.mockResolvedValue({ id: 'article_1' });
 
@@ -121,12 +122,12 @@ describe('ArticlesService cache invalidation', () => {
       `articles:list:${organizationId}`,
       'articles:single:article_1',
     );
-    expect(cacheInvalidationService.invalidatePattern).toHaveBeenCalledWith(
-      'articles:*',
-    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      'articles',
+    ]);
   });
 
-  it('busts the org list key, the single key, and the articles:* pattern on delete', async () => {
+  it('busts the org list key, the single key, and the articles tag on delete', async () => {
     const { cacheInvalidationService, delegate, service } = buildService();
     delegate.findFirst.mockResolvedValue({ id: 'article_2' });
     delegate.update.mockResolvedValue({ id: 'article_2', isDeleted: true });
@@ -137,8 +138,8 @@ describe('ArticlesService cache invalidation', () => {
       `articles:list:${organizationId}`,
       'articles:single:article_2',
     );
-    expect(cacheInvalidationService.invalidatePattern).toHaveBeenCalledWith(
-      'articles:*',
-    );
+    expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+      'articles',
+    ]);
   });
 });

@@ -764,7 +764,6 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'pattern-playbook:PatternPlaybook': INTERNAL_MODEL_REASON,
   'post-analytics:PostAnalytics': ANALYTICS_MODEL_REASON,
   'processed-tweet:ProcessedTweet': OPERATIONAL_MODEL_REASON,
-  'repurposing-job:RepurposingJob': OPERATIONAL_MODEL_REASON,
   'skill-receipt:SkillReceipt': OPERATIONAL_MODEL_REASON,
   'streak:Streak': ANALYTICS_MODEL_REASON,
   'task-counter:TaskCounter': OPERATIONAL_MODEL_REASON,

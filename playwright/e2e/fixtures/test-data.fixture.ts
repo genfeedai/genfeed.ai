@@ -471,7 +471,7 @@ interface TestWorkflowEdge {
 interface TestWorkflowExecution {
   id: string;
   workflowId: string;
-  status: 'running' | 'completed' | 'failed' | 'cancelled';
+  status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
   startedAt: string;
   completedAt: string | null;
   logs: string[];
@@ -591,7 +591,7 @@ export const testWorkflowExecutions: TestWorkflowExecution[] = [
       outputUrl: 'https://cdn.genfeed.ai/mock/output.png',
     },
     startedAt: '2025-01-20T14:30:00Z',
-    status: 'completed',
+    status: 'COMPLETED',
     workflowId: 'workflow-001',
   },
   {
@@ -603,7 +603,7 @@ export const testWorkflowExecutions: TestWorkflowExecution[] = [
     ],
     results: {},
     startedAt: '2025-02-10T10:00:00Z',
-    status: 'running',
+    status: 'RUNNING',
     workflowId: 'workflow-002',
   },
   {
@@ -616,7 +616,7 @@ export const testWorkflowExecutions: TestWorkflowExecution[] = [
     ],
     results: { error: 'Rate limit exceeded' },
     startedAt: '2025-02-08T16:00:00Z',
-    status: 'failed',
+    status: 'FAILED',
     workflowId: 'workflow-001',
   },
 ];
@@ -630,7 +630,7 @@ export function createTestWorkflowExecution(
     logs: ['Execution started.', 'Execution completed.'],
     results: { success: true },
     startedAt: new Date(Date.now() - 60000).toISOString(),
-    status: 'completed',
+    status: 'COMPLETED',
     workflowId: 'workflow-001',
     ...overrides,
   };

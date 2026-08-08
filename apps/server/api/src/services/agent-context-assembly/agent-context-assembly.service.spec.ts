@@ -187,6 +187,24 @@ describe('AgentContextAssemblyService', () => {
     });
   });
 
+  it('registers the cached brand context under the org-scoped tag', async () => {
+    await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false },
+      organizationId: 'org-1',
+      platform: 'linkedin',
+    });
+
+    // Brand-kit writes invalidate `brand-ctx:{orgId}` via invalidateByTags, so
+    // every brand-ctx entry must carry the tag at set time — otherwise a fresh
+    // logo import would wait out the TTL before reaching prompts.
+    expect(cacheService.getOrSet).toHaveBeenCalledWith(
+      'brand-ctx:org-1:brand-1',
+      expect.any(Function),
+      expect.objectContaining({ tags: ['brand-ctx:org-1'] }),
+    );
+  });
+
   it('puts brand kit values into the generated system prompt', async () => {
     const context = (await service.assembleContext({
       brandId: 'brand-1',

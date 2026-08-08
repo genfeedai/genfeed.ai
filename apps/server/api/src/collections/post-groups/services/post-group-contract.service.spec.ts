@@ -31,34 +31,27 @@ describe('PostGroupContractService', () => {
   });
 
   describe('toPostStatus', () => {
-    it.each([
-      [ReleaseStatus.DRAFT, PostStatus.DRAFT],
-      [ReleaseStatus.SCHEDULED, PostStatus.SCHEDULED],
-      [ReleaseStatus.PAUSED, PostStatus.SCHEDULED],
-      [ReleaseStatus.CANCELLED, PostStatus.DRAFT],
-      [ReleaseStatus.PUBLISHING, PostStatus.PROCESSING],
-      [ReleaseStatus.PUBLISHED, PostStatus.PUBLIC],
-      [ReleaseStatus.PARTIALLY_PUBLISHED, PostStatus.PUBLIC],
-      [ReleaseStatus.FAILED, PostStatus.FAILED],
-    ] as const)(
-      'maps ReleaseStatus %s onto a valid PostStatus (%s)',
-      (releaseStatus, expected) => {
-        expect(service.toPostStatus(releaseStatus)).toBe(expected);
-      },
-    );
-
-    it('never passthroughs paused/cancelled/publishing as raw strings', () => {
-      for (const leaked of ['paused', 'cancelled', 'publishing'] as const) {
-        const mapped = service.toPostStatus(leaked);
-        expect(Object.values(PostStatus)).toContain(mapped);
-        expect(mapped).not.toBe(leaked);
+    it('maps every release status onto a valid legacy PostStatus member', () => {
+      const legacyStatuses = Object.values(PostStatus) as string[];
+      for (const status of Object.values(ReleaseStatus)) {
+        expect(legacyStatuses).toContain(service.toPostStatus(status));
       }
-      expect(service.toPostStatus('paused')).toBe(PostStatus.SCHEDULED);
-      expect(service.toPostStatus('cancelled')).toBe(PostStatus.DRAFT);
-      expect(service.toPostStatus('publishing')).toBe(PostStatus.PROCESSING);
     });
 
-    it('preserves already-valid PostStatus values and defaults unknown', () => {
+    it('keeps paused and cancelled targets out of the publish sweep vocabulary', () => {
+      expect(service.toPostStatus(ReleaseStatus.PAUSED)).toBe(PostStatus.DRAFT);
+      expect(service.toPostStatus(ReleaseStatus.CANCELLED)).toBe(
+        PostStatus.DRAFT,
+      );
+      expect(service.toPostStatus(ReleaseStatus.PUBLISHING)).toBe(
+        PostStatus.PROCESSING,
+      );
+      expect(service.toPostStatus(ReleaseStatus.PARTIALLY_PUBLISHED)).toBe(
+        PostStatus.SCHEDULED,
+      );
+    });
+
+    it('preserves already-valid non-release PostStatus values', () => {
       expect(service.toPostStatus(PostStatus.PRIVATE)).toBe(PostStatus.PRIVATE);
       expect(service.toPostStatus(PostStatus.UNLISTED)).toBe(
         PostStatus.UNLISTED,
@@ -66,7 +59,9 @@ describe('PostGroupContractService', () => {
       expect(service.toPostStatus(PostStatus.PENDING)).toBe(
         PostStatus.PROCESSING,
       );
-      expect(service.toPostStatus('not-a-real-status')).toBe(PostStatus.DRAFT);
+      expect(service.toPostStatus('not-a-real-status')).toBe(
+        PostStatus.SCHEDULED,
+      );
     });
   });
 
@@ -397,6 +392,7 @@ function makeTarget(
     publishApprovalId: null,
     retryCount: 0,
     scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
+    status: PostStatus.SCHEDULED,
     targetAttachments: [],
     targetError: null,
     targetExecutionState: TargetExecutionState.SCHEDULED,

@@ -299,33 +299,30 @@ export class PostGroupContractService {
     switch (status) {
       case ReleaseStatus.DRAFT:
       case PostStatus.DRAFT:
-        return PostStatus.DRAFT;
-      case ReleaseStatus.SCHEDULED:
+      // The legacy vocabulary has no paused/cancelled members: draft keeps
+      // these targets out of the publish sweep, while targetExecutionState
+      // preserves the precise state.
       case ReleaseStatus.PAUSED:
-      case PostStatus.SCHEDULED:
-        // Paused is still "not live" — keep the classic scheduled bucket.
-        return PostStatus.SCHEDULED;
       case ReleaseStatus.CANCELLED:
-        // No longer queued; fall back to draft so list filters stay valid.
         return PostStatus.DRAFT;
       case ReleaseStatus.PUBLISHING:
       case PostStatus.PENDING:
       case PostStatus.PROCESSING:
         return PostStatus.PROCESSING;
       case ReleaseStatus.PUBLISHED:
-      case ReleaseStatus.PARTIALLY_PUBLISHED:
       case PostStatus.PUBLIC:
         return PostStatus.PUBLIC;
+      case ReleaseStatus.FAILED:
+      case PostStatus.FAILED:
+        return PostStatus.FAILED;
       case PostStatus.PRIVATE:
         return PostStatus.PRIVATE;
       case PostStatus.UNLISTED:
         return PostStatus.UNLISTED;
-      case ReleaseStatus.FAILED:
-      case PostStatus.FAILED:
-        return PostStatus.FAILED;
       default:
-        // Unknown / corrupted values never leak into the column.
-        return PostStatus.DRAFT;
+        // Scheduled, aggregate-only, and unknown release values stay in the
+        // legacy scheduled bucket; targetExecutionState retains exact state.
+        return PostStatus.SCHEDULED;
     }
   }
 

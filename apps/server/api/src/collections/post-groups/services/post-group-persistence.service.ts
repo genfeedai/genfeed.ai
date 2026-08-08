@@ -510,7 +510,7 @@ export class PostGroupPersistenceService {
           parentId: params.parent.id,
           platform: params.target.platform,
           scheduledDate: params.parent.scheduledDate,
-          status: params.parent.targetExecutionState,
+          status: params.parent.status,
           targetExecutionState: params.parent.targetExecutionState,
           timezone: params.parent.timezone,
           userId: params.userId,

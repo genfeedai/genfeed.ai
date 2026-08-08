@@ -16,21 +16,6 @@ import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
-// Named sub-route segments that exist under /publish/ (not post-detail pages).
-// Campaigns / outreach live under Automate; keep legacy segment names only if a
-// page still serves them (newsletters deep links, remix action deep link).
-const KNOWN_SUB_ROUTES = [
-  'analytics',
-  'calendar',
-  'newsletters',
-  'overview',
-  'posts',
-  'published',
-  'remix',
-  'review',
-  'scheduled',
-];
-
 function buildNewPostAgentPrompt(brandLabel?: string | null): string {
   const brandClause = brandLabel?.trim()
     ? `my brand "${brandLabel.trim()}" (already selected in the workspace — do not ask which brand to use)`
@@ -134,7 +119,6 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
     publishSegmentIndex === -1
       ? []
       : pathSegments.slice(publishSegmentIndex + 1);
-  const lastSegment = routeSuffix[0];
   // Content desk (`/publish/posts/:id`) skips list chrome.
   const isDetailRoute = routeSuffix[0] === 'posts' && routeSuffix.length === 2;
 

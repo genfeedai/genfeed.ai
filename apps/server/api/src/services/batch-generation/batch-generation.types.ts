@@ -49,15 +49,23 @@ export interface BatchItemFull extends BatchItem {
 /**
  * Running total of credits actually moved for a batch.
  *
- * `chargedCredits` is the net amount deducted so far (up-front estimate plus
- * any settlement delta, minus refunds). Settlement always targets the price of
- * what landed and charges `target - chargedCredits`, so replaying settlement is
- * a no-op rather than a second charge.
+ * `chargedCredits` is the claimed net charge (up-front estimate plus any
+ * settlement delta, minus refunds). It normally matches the amount deducted;
+ * when the settlement delta fails, `Batch.settlementShortfall` records the
+ * exact amount still collectible. Settlement always targets the price of what
+ * landed and charges `target - chargedCredits`, so replaying settlement is a
+ * no-op rather than a second charge.
  */
 export type BatchCreditsLedger = {
   chargedCredits: number;
   refundedCredits?: number;
   settledAt?: string;
+  /**
+   * Monotonic count of settlement claims won for this batch. Each occurrence
+   * keys its own credit-transaction reference, so a later legitimate delta is
+   * never mistaken for a replay of an earlier one.
+   */
+  settlementSeq?: number;
 };
 
 export type BatchConfig = {

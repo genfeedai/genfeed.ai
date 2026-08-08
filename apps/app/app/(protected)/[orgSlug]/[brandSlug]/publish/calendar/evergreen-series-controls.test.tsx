@@ -200,7 +200,7 @@ describe('EvergreenSeriesControls', () => {
     const { rerender, unmount } = render(
       <EvergreenSeriesControls groupId="one-off" />,
     );
-    expect(await screen.findByText('One-off release')).toBeInTheDocument();
+    expect(await screen.findByText('One-off post')).toBeInTheDocument();
 
     mocks.getOne.mockResolvedValueOnce({
       ...release,

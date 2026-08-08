@@ -1437,7 +1437,7 @@ export async function setupApiMocks(
   // Register broad local fallback first so later specific mocks win. This keeps
   // route smoke tests from leaking to a real local API when a page asks for a
   // low-risk collection that does not need bespoke fixture data.
-  await page.route(createPlaywrightApiRoutePattern(), async (r) => {
+  const fallbackCollectionHandler = async (r: Route): Promise<void> => {
     const url = r.request().url();
 
     if (url.includes('/v1/health')) {
@@ -1454,7 +1454,12 @@ export async function setupApiMocks(
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
+
+  await page.route(
+    createPlaywrightApiRoutePattern(),
+    fallbackCollectionHandler,
+  );
 
   const routeApi = async (
     pathPattern: string,
@@ -1798,8 +1803,27 @@ export async function setupApiMocks(
       return;
     }
 
+    // Mention endpoints speak { mentions: [] }, not JSON:API — the generic
+    // { data: [] } fallback made json.mentions undefined, which crashed the
+    // composer's ContentLibraryPicker at render.
+    if (url.includes('/mentions')) {
+      await r.fulfill({
+        body: JSON.stringify({ mentions: [] }),
+        contentType: 'application/json',
+        status: 200,
+      });
+      return;
+    }
+
+    // Default to a VALID empty JSON:API collection. The old
+    // `{ mock: true }` body had no `data` key, so every service that
+    // deserializes a collection threw 'Invalid JSON:API document' — five of
+    // those at once (prompt bar) crashed /automate/* to the error boundary.
     await r.fulfill({
-      body: JSON.stringify({ mock: true, unhandledV1Route: url }),
+      body: JSON.stringify({
+        data: [],
+        meta: { totalCount: 0, unhandledV1Route: url },
+      }),
       contentType: 'application/json',
       status: 200,
     });

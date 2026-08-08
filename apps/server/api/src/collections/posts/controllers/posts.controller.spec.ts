@@ -70,6 +70,38 @@ describe('PostsController.buildFindAllQuery', () => {
       ]),
     );
   });
+
+  it('maps publicationState posted onto the live status set', () => {
+    const query = { publicationState: 'posted' } as PostsQueryDto;
+    const result = controller.buildFindAllQuery(makeUser(), query);
+
+    expect(result.where).toMatchObject({
+      status: {
+        in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+      },
+    });
+  });
+
+  it('maps publicationState not-posted onto the work-in-progress complement', () => {
+    const query = { publicationState: 'not-posted' } as PostsQueryDto;
+    const result = controller.buildFindAllQuery(makeUser(), query);
+
+    expect(result.where).toMatchObject({
+      status: {
+        notIn: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+      },
+    });
+  });
+
+  it('lets an explicit status filter win over publicationState', () => {
+    const query = {
+      publicationState: 'posted',
+      status: PostStatus.FAILED,
+    } as PostsQueryDto;
+    const result = controller.buildFindAllQuery(makeUser(), query);
+
+    expect(result.where).toMatchObject({ status: PostStatus.FAILED });
+  });
 });
 
 describe('PostsController.create account-health warmup gate', () => {

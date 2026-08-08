@@ -91,6 +91,46 @@ export async function setupStrictNetworkGuard(
   ]);
   const blockedRequests: BlockedRequest[] = [];
 
+  // Client crashes in a production build are otherwise invisible — the error
+  // boundary swallows the stack and CI only sees "element(s) not found".
+  // Surface every uncaught page error in the test output, symbolicated when
+  // the build served source maps (E2E_COVERAGE=1 in the e2e workflow).
+  page.on('pageerror', (error) => {
+    void (async () => {
+      const stack = error.stack ?? '(no stack)';
+      const resolved = await symbolicateStack(page, stack);
+      console.error(
+        `[pageerror] ${error.message}\n${stack}${
+          resolved.length > 0 ? `\n  symbolicated:\n${resolved.join('\n')}` : ''
+        }`,
+      );
+    })();
+  });
+
+  // Service-layer failures log the operation name and URL through the app
+  // logger before rethrowing — mirror them here so a minified pageerror stack
+  // can be traced to the exact endpoint. Render errors never reach
+  // 'pageerror' (the app's ErrorBoundary catches them and logs instead), so
+  // symbolicate chunk positions in console errors too.
+  page.on('console', (message) => {
+    if (message.type() !== 'error') {
+      return;
+    }
+    const text = message.text();
+    if (!/_next\/static\/chunks\/[^\s)]+\.js:\d+:\d+/.test(text)) {
+      console.error(`[console.error] ${text}`);
+      return;
+    }
+    void (async () => {
+      const resolved = await symbolicateStack(page, text);
+      console.error(
+        `[console.error] ${text}${
+          resolved.length > 0 ? `\n  symbolicated:\n${resolved.join('\n')}` : ''
+        }`,
+      );
+    })();
+  });
+
   await page.route('**/*', async (route: Route) => {
     const request = route.request();
     const requestUrl = request.url();
@@ -150,4 +190,131 @@ export async function setupStrictNetworkGuard(
     },
     getBlockedRequests: (): BlockedRequest[] => [...blockedRequests],
   };
+}
+
+const BASE64_ALPHABET =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+interface RawSourceMap {
+  mappings: string;
+  names: string[];
+  sources: string[];
+}
+
+function decodeVlqSegment(segment: string): number[] {
+  const values: number[] = [];
+  let shift = 0;
+  let value = 0;
+
+  for (const char of segment) {
+    const digit = BASE64_ALPHABET.indexOf(char);
+    if (digit === -1) {
+      return values;
+    }
+    value += (digit & 31) << shift;
+    if (digit & 32) {
+      shift += 5;
+    } else {
+      values.push(value & 1 ? -(value >>> 1) : value >>> 1);
+      shift = 0;
+      value = 0;
+    }
+  }
+
+  return values;
+}
+
+function resolveOriginalPosition(
+  map: RawSourceMap,
+  generatedLine: number,
+  generatedColumn: number,
+): string | null {
+  const lines = map.mappings.split(';');
+  if (generatedLine >= lines.length) {
+    return null;
+  }
+
+  let sourceIndex = 0;
+  let sourceLine = 0;
+  let sourceColumn = 0;
+  let nameIndex = 0;
+  let best: {
+    source: number;
+    line: number;
+    column: number;
+    name: number | null;
+  } | null = null;
+
+  for (let line = 0; line <= generatedLine; line += 1) {
+    let generated = 0;
+    const segments = lines[line] ?? '';
+    if (!segments) {
+      continue;
+    }
+    for (const segment of segments.split(',')) {
+      const decoded = decodeVlqSegment(segment);
+      if (decoded.length === 0) {
+        continue;
+      }
+      generated += decoded[0];
+      if (decoded.length >= 4) {
+        sourceIndex += decoded[1];
+        sourceLine += decoded[2];
+        sourceColumn += decoded[3];
+        if (decoded.length >= 5) {
+          nameIndex += decoded[4];
+        }
+        if (line === generatedLine && generated <= generatedColumn) {
+          best = {
+            column: sourceColumn,
+            line: sourceLine,
+            name: decoded.length >= 5 ? nameIndex : null,
+            source: sourceIndex,
+          };
+        }
+      }
+    }
+  }
+
+  if (!best) {
+    return null;
+  }
+
+  const source = map.sources[best.source] ?? '(unknown source)';
+  const name = best.name === null ? '' : ` (${map.names[best.name] ?? ''})`;
+
+  return `${source}:${best.line + 1}:${best.column + 1}${name}`;
+}
+
+async function symbolicateStack(page: Page, stack: string): Promise<string[]> {
+  const resolvedFrames: string[] = [];
+  const frames = [
+    ...stack.matchAll(/(https?:\/\/[^\s)]+?\.js):(\d+):(\d+)/g),
+  ].slice(0, 5);
+
+  for (const [, url, lineText, columnText] of frames) {
+    try {
+      const response = await page.request.get(`${url}.map`, { timeout: 5000 });
+      if (!response.ok()) {
+        console.error(`[symbolicate] ${url}.map -> HTTP ${response.status()}`);
+        continue;
+      }
+      const map = (await response.json()) as RawSourceMap;
+      const original = resolveOriginalPosition(
+        map,
+        Number(lineText) - 1,
+        Number(columnText) - 1,
+      );
+      if (original) {
+        resolvedFrames.push(
+          `    ${url}:${lineText}:${columnText} -> ${original}`,
+        );
+      }
+    } catch (cause) {
+      // Source maps are best-effort debugging aid; never fail the guard.
+      console.error(`[symbolicate] ${url}.map -> ${String(cause)}`);
+    }
+  }
+
+  return resolvedFrames;
 }

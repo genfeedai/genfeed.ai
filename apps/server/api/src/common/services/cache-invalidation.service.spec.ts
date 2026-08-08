@@ -7,11 +7,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 describe('CacheInvalidationService', () => {
   let service: CacheInvalidationService;
 
-  const mockScan = vi.fn();
   const mockUnlink = vi.fn();
 
   const mockRedisClient = {
-    scan: mockScan,
     unlink: mockUnlink,
   };
 
@@ -84,64 +82,6 @@ describe('CacheInvalidationService', () => {
       mockUnlink.mockRejectedValue(error);
 
       await expect(service.invalidate('some:key')).resolves.not.toThrow();
-      expect(mockLogger.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('invalidatePattern', () => {
-    it('should scan and unlink all keys matching the pattern', async () => {
-      mockScan
-        .mockResolvedValueOnce(['42', ['brands:list:org1', 'brands:list:org2']])
-        .mockResolvedValueOnce(['0', ['brands:list:org3']]);
-      mockUnlink.mockResolvedValue(1);
-
-      await service.invalidatePattern('brands:list:*');
-
-      expect(mockScan).toHaveBeenCalledTimes(2);
-      expect(mockScan).toHaveBeenNthCalledWith(
-        1,
-        '0',
-        'MATCH',
-        'brands:list:*',
-        'COUNT',
-        100,
-      );
-      expect(mockUnlink).toHaveBeenCalledTimes(2);
-      expect(mockUnlink).toHaveBeenNthCalledWith(1, [
-        'brands:list:org1',
-        'brands:list:org2',
-      ]);
-      expect(mockUnlink).toHaveBeenNthCalledWith(2, ['brands:list:org3']);
-    });
-
-    it('should stop scanning when cursor returns 0', async () => {
-      mockScan.mockResolvedValueOnce(['0', []]);
-
-      await service.invalidatePattern('brands:*');
-
-      expect(mockScan).toHaveBeenCalledTimes(1);
-      expect(mockUnlink).not.toHaveBeenCalled();
-    });
-
-    it('should skip unlink when a scan page returns no keys', async () => {
-      mockScan
-        .mockResolvedValueOnce(['5', []])
-        .mockResolvedValueOnce(['0', ['brands:list:org1']]);
-      mockUnlink.mockResolvedValue(1);
-
-      await service.invalidatePattern('brands:list:*');
-
-      expect(mockUnlink).toHaveBeenCalledTimes(1);
-      expect(mockUnlink).toHaveBeenCalledWith(['brands:list:org1']);
-    });
-
-    it('should not throw and should log on redis error', async () => {
-      const error = new Error('Redis unavailable');
-      mockScan.mockRejectedValue(error);
-
-      await expect(
-        service.invalidatePattern('brands:*'),
-      ).resolves.not.toThrow();
       expect(mockLogger.error).toHaveBeenCalled();
     });
   });

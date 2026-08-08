@@ -965,8 +965,5 @@ export class BrandRelocationService {
       CACHE_PATTERNS.BRANDS_LIST(destOrgId),
     );
     await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
-    await this.cacheInvalidationService.invalidatePattern(
-      `${CACHE_TAGS.BRANDS}:*`,
-    );
   }
 }

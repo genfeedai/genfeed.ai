@@ -182,7 +182,7 @@ export function useElements({
 
   const filteredModelsByType = useMemo(() => {
     if (type === 'all') {
-      return contextData.models;
+      return contextData.models || [];
     }
 
     switch (type) {

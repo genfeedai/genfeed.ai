@@ -87,7 +87,7 @@ describe('ReleaseDetailDrawer', () => {
   it('seeds both schedule inputs from the instants the API returned', () => {
     renderDrawer();
 
-    expect(screen.getByLabelText('Release time')).toHaveValue(
+    expect(screen.getByLabelText('Publish time')).toHaveValue(
       '2026-08-02T09:00',
     );
     expect(screen.getByLabelText('Instagram time')).toHaveValue(
@@ -106,10 +106,10 @@ describe('ReleaseDetailDrawer', () => {
   it('emits an absolute instant, not the local wall-clock string', () => {
     const { onRescheduleRelease } = renderDrawer();
 
-    fireEvent.change(screen.getByLabelText('Release time'), {
+    fireEvent.change(screen.getByLabelText('Publish time'), {
       target: { value: '2026-08-03T14:30' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Reschedule release' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reschedule post' }));
 
     expect(onRescheduleRelease).toHaveBeenCalledWith(
       '2026-08-03T14:30:00.000Z',
@@ -179,7 +179,7 @@ describe('ReleaseDetailDrawer', () => {
     // Moving the release would rewrite the instant a published target already
     // went out at; moving the target that has not gone out yet is still valid.
     expect(
-      screen.getByRole('button', { name: 'Reschedule release' }),
+      screen.getByRole('button', { name: 'Reschedule post' }),
     ).toBeDisabled();
     expect(
       screen.getByRole('button', { name: 'Reschedule Instagram target' }),
@@ -243,7 +243,7 @@ describe('ReleaseDetailDrawer', () => {
     renderDrawer({}, targetRescheduleAction('target-1'));
 
     expect(
-      screen.getByRole('button', { name: 'Reschedule release' }),
+      screen.getByRole('button', { name: 'Reschedule post' }),
     ).toBeDisabled();
     expect(
       screen.getByRole('button', { name: 'Reschedule Instagram target' }),
@@ -288,7 +288,7 @@ describe('ReleaseDetailDrawer', () => {
     );
 
     expect(
-      screen.getByText('This release has no channel targets.'),
+      screen.getByText('This post has no channel targets.'),
     ).toBeInTheDocument();
   });
 

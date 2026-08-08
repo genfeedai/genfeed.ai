@@ -4,13 +4,15 @@ import test from 'node:test';
 import {
   AREA_INFRA,
   BLAST_RADIUS_INFRA,
-  buildReleaseE2eFailureBody,
   GENFEED_PROJECT_ID,
   PRIORITY_P0,
+  WORK_TYPE_BUG,
+} from './genfeed-project-board.mjs';
+import {
+  buildReleaseE2eFailureBody,
   RELEASE_E2E_FAILURE_LABEL,
   reportReleaseE2eFailure,
   resolveReleaseE2eFailure,
-  WORK_TYPE_BUG,
 } from './release-e2e-failure-reporter.mjs';
 
 function createGithubMock({ openIssues = [], createNumber = 99 } = {}) {

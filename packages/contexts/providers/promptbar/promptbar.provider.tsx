@@ -131,6 +131,14 @@ function PromptBarProviderContent({
         }),
       ];
 
+      // Observe every request up front: Promise.all rejects on the FIRST
+      // failure (and the supersede path bails before awaiting at all), which
+      // left the remaining in-flight rejections unhandled — each one surfaced
+      // as an uncaught page error and took down the route's error boundary.
+      for (const promise of dataPromises) {
+        promise.catch(() => undefined);
+      }
+
       if (currentFetchId !== fetchIdRef.current) {
         logger.info('PromptBar fetch superseded, discarding stale results', {
           currentFetchId: fetchIdRef.current,

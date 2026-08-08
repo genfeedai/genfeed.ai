@@ -32,6 +32,18 @@ describe('GenerateArticlesDto', () => {
       expect(dto.model).toBe(MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET);
     });
 
+    it('keeps an optional brandId through whitelist stripping', async () => {
+      const dto = plainToInstance(GenerateArticlesDto, {
+        brandId: 'clz1a2b3c4d5e6f7g8h9i0j1k',
+        prompt: 'AI infrastructure trends',
+      });
+
+      const errors = await validate(dto, { whitelist: true });
+
+      expect(errors).toHaveLength(0);
+      expect(dto.brandId).toBe('clz1a2b3c4d5e6f7g8h9i0j1k');
+    });
+
     it('strips keys the DTO does not declare', async () => {
       const dto = plainToInstance(GenerateArticlesDto, {
         prompt: 'AI infrastructure trends',

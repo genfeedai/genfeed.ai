@@ -542,7 +542,6 @@ model User {
   userSubscription         UserSubscription?
   subscriptionAttributions SubscriptionAttribution[]
   distributions            Distribution[]
-  repurposingJobs          RepurposingJob[]
   contentDrafts            ContentDraft[]            @relation("content_draft_approved_by")
   creatorAnalyses          CreatorAnalysis[]
   profiles                 Profile[]
@@ -647,7 +646,6 @@ model Organization {
   schedules                     Schedule[]
   contentSchedules              ContentSchedule[]
   distributions                 Distribution[]
-  repurposingJobs               RepurposingJob[]
   votes                         Vote[]
   watchlists                    Watchlist[]
   goals                         Goal[]
@@ -855,6 +853,7 @@ model Brand {
   @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@index([isDefault])
   @@index([organizationId, isDeleted, label], map: "brands_org_deleted_label_idx")
+  @@index([organizationId, updatedAt, id], map: "brands_org_updated_at_id_idx")
   @@map("brands")
 }
 
@@ -1554,6 +1553,7 @@ model Ingredient {
   @@index([isDeleted, createdAt(sort: Desc)], map: "ingredients_deleted_created_at_idx")
   @@index([isDeleted, category, createdAt(sort: Desc)], map: "ingredients_deleted_category_created_at_idx")
   @@index([isDeleted, organizationId, createdAt(sort: Desc)], map: "ingredients_deleted_org_created_at_idx")
+  @@index([organizationId, updatedAt, id], map: "ingredients_org_updated_at_id_idx")
   @@map("ingredients")
 }
 
@@ -1787,6 +1787,7 @@ model Asset {
   updatedAt          DateTime      @updatedAt
 
   @@index([parentOrgId, parentBrandId, updatedAt(sort: Desc)])
+  @@index([parentOrgId, updatedAt, id], map: "assets_parent_org_updated_at_id_idx")
   @@index([sha256, sizeBytes])
   @@index([localAssetId])
   @@map("assets")
@@ -2225,26 +2226,6 @@ model Distribution {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
   @@index([organizationId, platform, isDeleted, createdAt(sort: Desc)])
   @@map("distributions")
-}
-
-model RepurposingJob {
-  id                String       @id @default(cuid())
-  organizationId    String
-  organization      Organization @relation(fields: [organizationId], references: [id])
-  userId            String
-  user              User         @relation(fields: [userId], references: [id])
-  config            Json         @default("{}")
-  status            String?
-  sourceContentId   String?
-  sourceContentType String?
-  targetFormats     Json?
-  results           Json?
-  settings          Json?
-  isDeleted         Boolean      @default(false)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-
-  @@map("repurposing_jobs")
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -3913,8 +3894,8 @@ model ContentDraft {
   approvedBy           User?              @relation("content_draft_approved_by", fields: [approvedById], references: [id])
   approvedVersionPinId String?
   approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status               String             @default("draft")
+  // String column; canonical casing is the SCREAMING ContentDraftStatus domain vocabulary (#2543).
+  status               String             @default("DRAFT")
   data                 Json               @default("{}")
   // Draft payload columns — createFromSkillExecution / createFromContentEngine write
   // these as top-level fields and autoPublishAboveThreshold filters on `confidence`.
@@ -4376,8 +4357,8 @@ model CampaignTarget {
   organization    Organization     @relation(fields: [organizationId], references: [id])
   campaignId      String
   campaign        OutreachCampaign @relation(fields: [campaignId], references: [id])
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status          String           @default("pending")
+  // String column; canonical casing is the SCREAMING CampaignTargetStatus domain vocabulary (#2543).
+  status          String           @default("PENDING")
   data            Json             @default("{}")
   externalId      String?
   scheduledAt     DateTime?
@@ -4961,6 +4942,8 @@ model Batch {
   items           Json           @default("[]")
   status          BatchStatus    @default(PENDING)
   config          Json           @default("{}")
+  settlementShortfall Float?
+  settlementShortfallSeq Int?
   isDeleted       Boolean        @default(false)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -4968,6 +4951,7 @@ model Batch {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "batches_org_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "batches_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "batches_org_deleted_status_created_at_idx")
+  @@index([isDeleted, settlementShortfall], map: "batches_deleted_settlement_shortfall_idx")
   @@map("batches")
 }
 
@@ -5118,6 +5102,7 @@ model DesktopThread {
   @@index([userId, updatedAt(sort: Desc)])
   @@index([organizationId, updatedAt(sort: Desc)])
   @@index([organizationId, userId, updatedAt(sort: Desc)])
+  @@index([organizationId, userId, updatedAt, id], map: "desktop_threads_org_user_updated_at_id_idx")
   @@map("desktop_threads")
 }
 

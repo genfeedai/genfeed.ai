@@ -241,6 +241,7 @@ describe('DesktopSyncService', () => {
           updatedAt: '2026-04-01T09:00:00.000Z',
         },
       ],
+      hasMore: false,
       ingredients: [],
       organization: {
         id: 'org-cloud-1',
