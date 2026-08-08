@@ -33,7 +33,8 @@ export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   {
     group: '',
     href: APP_ROUTES.PUBLISH.SCHEDULED,
-    label: 'Scheduled',
+    // Drafts + scheduled + in-progress — the post library (not the dashboard).
+    label: 'Drafts',
     matchPaths: [APP_ROUTES.PUBLISH.SCHEDULED],
     outline: List,
     solid: List,
