@@ -7,6 +7,7 @@ import { createEntityAttributes } from '@genfeedai/helpers';
 export const channelTargetAttributes = createEntityAttributes([
   'releaseId',
   'platform',
+  'category',
   'credentialId',
   'credential',
   'scheduledAt',

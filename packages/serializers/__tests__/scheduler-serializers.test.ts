@@ -140,6 +140,7 @@ describe('Channel target serialization', () => {
   ])('serializes a target in "%s" execution state', (executionState) => {
     const result = ChannelTargetSerializer.serialize({
       id: `tgt_${executionState}`,
+      category: 'POST',
       executionState,
       platform: 'twitter',
       timezone: 'America/New_York',
@@ -155,6 +156,7 @@ describe('Channel target serialization', () => {
       'timezone',
       'America/New_York',
     );
+    expect(result.data.attributes).toHaveProperty('category', 'POST');
   });
 
   test('serializes provider ids and structured error detail', () => {

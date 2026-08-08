@@ -5,6 +5,7 @@ import type {
 } from '@api-types/contracts/scheduler.contract';
 import type {
   CredentialPlatform,
+  PostCategory,
   PostVisibility,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -59,6 +60,7 @@ export type SchedulerPostTarget = {
   analyticsCollectionRequestedAt: Date | null;
   analyticsCollectionState: string;
   brandId: string | null;
+  category?: PostCategory;
   createdAt: Date;
   credentialId: string;
   externalId: string | null;
@@ -66,6 +68,8 @@ export type SchedulerPostTarget = {
   groupId: string | null;
   id: string;
   isDeleted: boolean;
+  description?: string;
+  label?: string | null;
   lastAttemptAt: Date | null;
   order: number;
   platform: string;
@@ -86,6 +90,8 @@ export type SchedulerPostTarget = {
   timezone: string;
   updatedAt: Date;
   url: string | null;
+  organizationId?: string;
+  userId?: string;
   workflowExecutionId: string | null;
 };
 
@@ -106,20 +112,48 @@ export type SchedulerPostAnalytics = {
 };
 
 /**
- * Calendar read-model query. `statuses` narrows the derived release status; the
- * remaining filters are target-scoped — a release matches when **at least one**
- * of its channel targets satisfies them.
+ * Canonical Calendar and Publish-list read-model query. `statuses` narrows the
+ * derived release status; target facets must all match the same channel target.
  */
+export type PublishListPublicationState = 'posted' | 'not-posted';
+
+export type ReleaseGroupListSort =
+  | 'createdAt: -1'
+  | 'createdAt: 1'
+  | 'scheduledDate: -1'
+  | 'scheduledDate: 1'
+  | 'updatedAt: -1'
+  | 'updatedAt: 1';
+
 export type ReleaseGroupListQuery = {
   brandId?: string;
+  categories?: PostCategory[];
   credentialIds?: string[];
-  endDate: Date;
+  endDate?: Date;
   executionStates?: TargetExecutionState[];
+  limit?: number;
   organizationId: string;
+  page?: number;
   platforms?: CredentialPlatform[];
+  publicationState?: PublishListPublicationState;
+  search?: string;
+  sort?: ReleaseGroupListSort;
   sources?: ReleaseTargetSource[];
-  startDate: Date;
+  startDate?: Date;
   statuses?: ReleaseStatus[];
+};
+
+export type ReleaseGroupListResult = {
+  docs: IReleaseGroup[];
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  limit: number;
+  nextPage: number | null;
+  page: number;
+  pagingCounter: number;
+  prevPage: number | null;
+  totalDocs: number;
+  totalPages: number;
 };
 
 export type CreateAttachmentPostsParams = {
