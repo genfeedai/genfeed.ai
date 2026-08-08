@@ -35,6 +35,7 @@ import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/to
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
+import { BatchGenerationStreamService } from '@api/services/batch-generation/batch-generation-stream.service';
 import type { CreateReleaseGroupInput } from '@api-types/contracts/scheduler.contract';
 import {
   ApiKeyScope,
@@ -886,6 +887,12 @@ describe('AgentToolExecutorService', () => {
       credentialsService as never,
       streamPublisher as never,
       contentQualityScorerService as never,
+      creditsUtilsService as never,
+      undefined,
+      // Real, not mocked: the async batch path only streams into the thread
+      // when this builder hands back callbacks, so stubbing it would assert
+      // nothing about whether progress actually reaches the user.
+      new BatchGenerationStreamService(loggerService, streamPublisher as never),
     );
     const qualityHandler = new AgentQualityToolHandler(
       loggerService,

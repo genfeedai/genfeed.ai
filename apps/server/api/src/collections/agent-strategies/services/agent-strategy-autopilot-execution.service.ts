@@ -37,10 +37,11 @@ import {
   ActivitySource,
   ContentDraftStatus,
   ContentFormat,
-  type CredentialPlatform,
+  fromPrismaCredentialPlatform,
   IngredientCategory,
   PostCategory,
   PostStatus,
+  toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -763,11 +764,14 @@ export class AgentStrategyAutopilotExecutionService {
     const createdPostIds: string[] = [];
 
     for (const platform of platforms) {
+      // `credentials.platform` is the SCREAMING Prisma enum; the opportunity
+      // carries the lowercase product id. Querying with the raw value matches
+      // nothing, so auto-publish would silently no-op on every platform.
       const credential = await this.credentialsService.findOne(
         scopedWhere(getStrategyOrganizationId(strategy), {
           brandId: getStrategyBrandId(strategy) ?? '',
           isConnected: true,
-          platform,
+          platform: toPrismaCredentialPlatform(platform),
         }),
       );
 
@@ -781,7 +785,9 @@ export class AgentStrategyAutopilotExecutionService {
         credentialId: documentId(credential),
         description: content,
         organizationId: getStrategyOrganizationId(strategy),
-        platform: credential.platform as CredentialPlatform,
+        // ...and back out again: `posts.platform` is a lowercase String
+        // column, so the SCREAMING credential label cannot ride through.
+        platform: fromPrismaCredentialPlatform(credential.platform),
         scheduledDate: new Date(),
         status: PostStatus.PENDING,
         userId: userId,
