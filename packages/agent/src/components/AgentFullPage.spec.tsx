@@ -502,9 +502,11 @@ describe('AgentFullPage', () => {
 
     render(<AgentFullPage apiService={createApiService() as never} />);
 
-    expect(screen.getAllByText('agent-outputs-panel')).toHaveLength(2);
+    // T3 density: no inline right rail on product routes — the outputs panel
+    // lives in the mobile drawer only, and the conversation stays wide.
+    expect(screen.getAllByText('agent-outputs-panel')).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Outputs' })).toBeInTheDocument();
-    expect(screen.getByText('standard-layout')).toBeInTheDocument();
+    expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
   it('projects outputs only while the conversation owns the shell inspector', async () => {
@@ -806,8 +808,9 @@ describe('AgentFullPage', () => {
     render(<AgentFullPage apiService={createApiService() as never} />);
 
     // T3 density: non-onboarding standalone does not paint a dual-column rail.
-    // Mobile drawers still expose setup; inspector shell portals when present.
-    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
+    // The mobile drawer is the only place the setup panel mounts; the
+    // conversation column stays wide.
+    expect(screen.getAllByText('agent-setup-panel')).toHaveLength(1);
     expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 

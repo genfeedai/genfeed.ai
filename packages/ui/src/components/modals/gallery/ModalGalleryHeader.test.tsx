@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import ModalGalleryHeader from '@ui/modals/gallery/ModalGalleryHeader';
 import { describe, expect, it, vi } from 'vitest';
@@ -54,7 +55,7 @@ describe('ModalGalleryHeader', () => {
   const defaultProps = {
     accountReference: null,
     activeTab: 'media' as const,
-    category: 'image' as const,
+    category: IngredientCategory.IMAGE,
     filterReferenceId: '',
     localFormat: 'portrait' as const,
     onClearFilter: vi.fn(),

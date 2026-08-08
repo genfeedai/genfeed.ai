@@ -40,7 +40,9 @@ function ingredient(
     category,
     id: `${category}-1`,
     ingredientUrl,
-    metadataLabel: `${category} source`,
+    // Category values are SCREAMING enum labels; keep the fixture label
+    // human-cased like real metadata labels.
+    metadataLabel: `${category.toLowerCase()} source`,
   } as IIngredient;
 }
 

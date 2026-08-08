@@ -1,18 +1,20 @@
-/* @vitest-environment jsdom */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-import { render, screen } from '@testing-library/react';
-import DiscoverSocialsPage from './page';
-import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+describe('discover/socials/page.tsx', () => {
+  it('permanently redirects the retired Socials peer into Discover Overview', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/discover/socials/page.tsx',
+      ),
+      'utf8',
+    );
 
-vi.mock('@pages/trends/list/trends-list', () => ({
-  default: () => <div>Mocked socials overview</div>,
-}));
-
-describe('DiscoverSocialsPage', () => {
-  it('renders the socials overview route', () => {
-    render(<DiscoverSocialsPage />);
-
-    expect(screen.getByText('Mocked socials overview')).toBeInTheDocument();
+    expect(source).toContain('permanentRedirect');
+    expect(source).toContain('DISCOVER.OVERVIEW');
+    expect(source).toContain('createBrandAppRoute');
+    expect(source).not.toMatch(/import\s+TrendsList/);
   });
 });

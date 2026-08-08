@@ -1,3 +1,4 @@
+import { IngredientCategory } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalGalleryFooter from '@ui/modals/gallery/ModalGalleryFooter';
@@ -39,7 +40,7 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
 describe('ModalGalleryFooter', () => {
   const defaultProps = {
     activeTab: 'media' as const,
-    category: 'image' as const,
+    category: IngredientCategory.IMAGE,
     isLoading: false,
     isNoneAllowed: false,
     onClear: vi.fn(),
@@ -88,7 +89,12 @@ describe('ModalGalleryFooter', () => {
   });
 
   it('renders music action buttons for music category', () => {
-    render(<ModalGalleryFooter {...defaultProps} category="music" />);
+    render(
+      <ModalGalleryFooter
+        {...defaultProps}
+        category={IngredientCategory.MUSIC}
+      />,
+    );
     expect(screen.getByText('Cancel')).toBeInTheDocument();
     expect(screen.getByText('Continue Without Music')).toBeInTheDocument();
   });
@@ -125,7 +131,12 @@ describe('ModalGalleryFooter', () => {
   });
 
   it('disables music confirm button when no item selected and isNoneAllowed is false', () => {
-    render(<ModalGalleryFooter {...defaultProps} category="music" />);
+    render(
+      <ModalGalleryFooter
+        {...defaultProps}
+        category={IngredientCategory.MUSIC}
+      />,
+    );
     const confirmButton = screen.getByText('Continue Without Music');
     expect(confirmButton).toBeDisabled();
   });
@@ -134,7 +145,7 @@ describe('ModalGalleryFooter', () => {
     render(
       <ModalGalleryFooter
         {...defaultProps}
-        category="music"
+        category={IngredientCategory.MUSIC}
         isNoneAllowed={true}
       />,
     );
@@ -218,7 +229,7 @@ describe('ModalGalleryFooter', () => {
     render(
       <ModalGalleryFooter
         {...defaultProps}
-        category="music"
+        category={IngredientCategory.MUSIC}
         selectedItem="music-1"
       />,
     );
@@ -229,7 +240,7 @@ describe('ModalGalleryFooter', () => {
     render(
       <ModalGalleryFooter
         {...defaultProps}
-        category="music"
+        category={IngredientCategory.MUSIC}
         selectedItem="music-1"
       />,
     );
@@ -242,7 +253,7 @@ describe('ModalGalleryFooter', () => {
     render(
       <ModalGalleryFooter
         {...defaultProps}
-        category="music"
+        category={IngredientCategory.MUSIC}
         selectedItem="music-1"
         onSelect={onSelect}
       />,
@@ -258,7 +269,7 @@ describe('ModalGalleryFooter', () => {
     render(
       <ModalGalleryFooter
         {...defaultProps}
-        category="music"
+        category={IngredientCategory.MUSIC}
         selectedItem="music-1"
         onConfirm={onConfirm}
       />,
@@ -274,7 +285,7 @@ describe('ModalGalleryFooter', () => {
     render(
       <ModalGalleryFooter
         {...defaultProps}
-        category="music"
+        category={IngredientCategory.MUSIC}
         onClose={onClose}
       />,
     );

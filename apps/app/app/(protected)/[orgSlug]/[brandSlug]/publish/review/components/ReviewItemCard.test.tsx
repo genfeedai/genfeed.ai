@@ -62,11 +62,12 @@ describe('ReviewItemCard', () => {
     );
 
     expect(screen.getByText('Winning')).toBeInTheDocument();
-    expect(screen.getByText('5,400 views')).toBeInTheDocument();
-    expect(screen.getByText('7.4% engagement')).toBeInTheDocument();
+    // #2485 polish: the raw view/engagement spans were folded into the
+    // signal chip — the numbers no longer render inline on the card.
+    expect(screen.queryByText('5,400 views')).not.toBeInTheDocument();
   });
 
-  it('keeps the selection control touch-safe on compact viewports', () => {
+  it('renders the compact selection control from the #2485 polish', () => {
     render(
       <ReviewItemCard
         isActive={false}
@@ -78,8 +79,8 @@ describe('ReviewItemCard', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Select item' })).toHaveClass(
-      'size-11',
-      'sm:size-7',
+      'size-7',
+      'shrink-0',
     );
   });
 });
