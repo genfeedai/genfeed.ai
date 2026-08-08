@@ -10,24 +10,31 @@ import {
   AgentExecutionStatus,
   ButtonVariant,
   PageScope,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IActivity, IAgentRun, ICredential } from '@genfeedai/interfaces';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { getActivityDescription } from '@pages/activities/activities-list.utils';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
+import { ReleaseGroupsService } from '@services/content/release-groups.service';
+import { logger } from '@services/core/logger.service';
 import { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import {
   getActivityBadge,
   getCredentialBadge,
   summarizeCredentialHealth,
+  summarizeUpcomingSchedule,
+  type UpcomingScheduleDay,
 } from './operational-home.helpers';
 
 interface OperationalHomeSectionsProps {
@@ -357,6 +364,152 @@ function PublishingSurface({
   );
 }
 
+const UPCOMING_SCHEDULE_DAYS = 7;
+
+function formatScheduleDayLabel(date: Date, index: number): string {
+  if (index === 0) {
+    return 'today';
+  }
+
+  return date.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+function UpcomingScheduleSurface({
+  brandId,
+  brandSlug,
+  orgSlug,
+}: {
+  brandId?: string;
+  brandSlug?: string;
+  orgSlug: string;
+}) {
+  const getReleaseGroupsService = useAuthedService((token: string) =>
+    ReleaseGroupsService.getInstance(token),
+  );
+  const [scheduleDays, setScheduleDays] = useState<
+    UpcomingScheduleDay[] | null
+  >(null);
+  const [isError, setIsError] = useState(false);
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  const refresh = useCallback(async () => {
+    setRefreshToken((current) => current + 1);
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refreshToken intentionally re-runs the load after a manual retry
+  useEffect(() => {
+    if (!brandSlug) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadSchedule = async () => {
+      try {
+        const service = await getReleaseGroupsService();
+
+        const windowStart = new Date();
+        windowStart.setHours(0, 0, 0, 0);
+        const windowEnd = new Date(windowStart);
+        windowEnd.setDate(windowEnd.getDate() + UPCOMING_SCHEDULE_DAYS);
+
+        // Same scheduler read model the publish calendar queries — the window
+        // filter narrows releases, the target filter narrows to live sends.
+        const releases = await service.findAll(
+          {
+            ...(brandId ? { brandId } : {}),
+            endDate: windowEnd.toISOString(),
+            executionState: [TargetExecutionState.SCHEDULED],
+            startDate: windowStart.toISOString(),
+          },
+          controller.signal,
+        );
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setScheduleDays(
+          summarizeUpcomingSchedule(
+            releases,
+            windowStart,
+            UPCOMING_SCHEDULE_DAYS,
+          ),
+        );
+        setIsError(false);
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+        logger.error('Failed to load the upcoming schedule', error);
+        setIsError(true);
+      }
+    };
+
+    void loadSchedule();
+
+    return () => controller.abort();
+  }, [brandId, brandSlug, getReleaseGroupsService, refreshToken]);
+
+  const brandSetupHref = createOrganizationAppRoute(
+    orgSlug,
+    APP_ROUTES.SETTINGS.BRANDS,
+  );
+  const calendarHref = brandSlug
+    ? createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISH.CALENDAR)
+    : brandSetupHref;
+  const totalScheduled =
+    scheduleDays?.reduce((total, day) => total + day.count, 0) ?? 0;
+
+  return (
+    <WorkspaceSurface
+      actions={
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={calendarHref}>
+            Open calendar
+            <ArrowRight aria-hidden="true" className="size-4" />
+          </Link>
+        </Button>
+      }
+      className="h-full lg:col-span-2"
+      data-testid="operational-home-upcoming"
+      description="Scheduled channel sends over the coming week."
+      eyebrow="Upcoming schedule"
+      title="Next 7 days"
+    >
+      {!brandSlug ? (
+        <EmptyPanel
+          actionHref={brandSetupHref}
+          actionLabel="Set up a brand"
+          description="Add a brand before scheduling posts to the calendar."
+        />
+      ) : isError ? (
+        <ErrorPanel
+          description="The upcoming schedule is temporarily unavailable. Approval, publishing, and credential summaries remain available."
+          onRetry={refresh}
+        />
+      ) : scheduleDays === null ? (
+        <LoadingPanel label="Loading upcoming schedule..." />
+      ) : totalScheduled === 0 ? (
+        <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
+          Nothing is scheduled for the next 7 days.
+        </p>
+      ) : (
+        <MetricSummary
+          data-testid="upcoming-schedule-summary"
+          items={[
+            { label: 'scheduled', value: String(totalScheduled) },
+            ...scheduleDays.map((day, index) => ({
+              label: formatScheduleDayLabel(day.date, index),
+              value: String(day.count),
+            })),
+          ]}
+        />
+      )}
+    </WorkspaceSurface>
+  );
+}
+
 function getCredentialLabel(credential: ICredential): string {
   const handle = credential.externalHandle?.replace(/^@/, '');
   return (
@@ -558,8 +711,13 @@ export default function OperationalHomeSections({
   brandSlug,
   orgSlug,
 }: OperationalHomeSectionsProps) {
-  const { credentials, credentialsError, credentialsLoading, refreshBrands } =
-    useBrand();
+  const {
+    brandId,
+    credentials,
+    credentialsError,
+    credentialsLoading,
+    refreshBrands,
+  } = useBrand();
   const {
     activeRuns,
     analytics,
@@ -603,6 +761,11 @@ export default function OperationalHomeSections({
         onRetry={refresh}
         orgSlug={orgSlug}
         runs={runs}
+      />
+      <UpcomingScheduleSurface
+        brandId={brandId}
+        brandSlug={brandSlug}
+        orgSlug={orgSlug}
       />
       <CredentialHealthSurface
         brandSlug={brandSlug}
