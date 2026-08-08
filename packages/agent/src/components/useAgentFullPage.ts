@@ -13,7 +13,7 @@ import {
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import { isRenderableThreadId } from '@genfeedai/agent/utils/thread-id.util';
-import type { AgentThreadStatus, MemberRole } from '@genfeedai/enums';
+import { AgentThreadStatus, type MemberRole } from '@genfeedai/enums';
 import {
   Briefcase,
   Calendar,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import {
   createElement,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -152,6 +153,7 @@ export function useAgentFullPage({
     (s) => s.status === 'in-progress',
   )?.id;
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
+  const updateThread = useAgentChatStore((s) => s.updateThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
   const setError = useAgentChatStore((s) => s.setError);
   const setMessages = useAgentChatStore((s) => s.setMessages);
@@ -465,11 +467,28 @@ export function useAgentFullPage({
     resetActiveConversationState,
   ]);
 
+  const handleUnarchiveActiveThread = useCallback(async () => {
+    if (!threadId) {
+      return;
+    }
+
+    const restored = await runAgentApiEffect(
+      apiService.unarchiveThreadEffect(threadId),
+    );
+    const nextStatus = restored.status ?? AgentThreadStatus.ACTIVE;
+    setActiveThreadStatus(nextStatus);
+    updateThread(threadId, {
+      status: nextStatus,
+      updatedAt: restored.updatedAt ?? new Date().toISOString(),
+    });
+  }, [apiService, threadId, updateThread]);
+
   return {
     activeThreadBrandId,
     activeThreadStatus,
     agentSetup,
     currentStepId,
+    handleUnarchiveActiveThread,
     hasThreadOutputs,
     isLoadingThread,
     mobileChecklistOpen,

@@ -1,3 +1,4 @@
+import { AgentArchivedComposerBar } from '@genfeedai/agent/components/AgentArchivedComposerBar';
 import {
   AgentChatContainerThreadView,
   selectActiveWorkEvent,
@@ -19,7 +20,13 @@ import {
 } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
-import { AlertCategory } from '@genfeedai/enums';
+import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
+import {
+  AlertCategory,
+  RouterPriority,
+  toRouterPriority,
+} from '@genfeedai/enums';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import Alert from '@ui/feedback/alert/Alert';
 import {
   type ReactElement,
@@ -28,6 +35,10 @@ import {
   useMemo,
   useState,
 } from 'react';
+
+function isAutoAgentModel(value: string | null | undefined): boolean {
+  return value?.trim() === AUTO_MODEL_OPTION_VALUE;
+}
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -50,6 +61,7 @@ export function AgentChatContainer({
   onCreateFollowUpTasks,
   onSelectCreditPack,
   onSelectIngredient,
+  onUnarchive,
   isStreaming = false,
   promptBarLayoutMode = 'fixed',
   onboardingMode = false,
@@ -57,6 +69,15 @@ export function AgentChatContainer({
   workspacePlanningTaskId = null,
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
+  const userContext = useOptionalUser();
+  // Only treat settings as authoritative once the user payload is present —
+  // otherwise an empty defaultAgentModel during load would force Auto forever.
+  const hasUserSettings = Boolean(userContext?.currentUser?.settings);
+  const settingsDefaultModel =
+    userContext?.currentUser?.settings?.defaultAgentModel?.trim() ?? '';
+  const settingsPriority =
+    toRouterPriority(userContext?.currentUser?.settings?.generationPriority) ??
+    RouterPriority.BALANCED;
   const messages = useAgentChatStore((state) => state.messages);
   const {
     defaultModelKey,
@@ -68,8 +89,19 @@ export function AgentChatContainer({
     if (fromProp) {
       return fromProp;
     }
-    return readPreferredAgentChatModel() || UNRESOLVED_RUNTIME_AGENT_MODEL;
+    const preferred = readPreferredAgentChatModel();
+    if (preferred) {
+      return preferred;
+    }
+    // Wait for registry + settings before choosing Auto vs concrete default.
+    return UNRESOLVED_RUNTIME_AGENT_MODEL;
   });
+  const [prioritize, setPrioritize] =
+    useState<RouterPriority>(settingsPriority);
+
+  useEffect(() => {
+    setPrioritize(settingsPriority);
+  }, [settingsPriority]);
 
   const handleModelChange = useCallback((nextModel: string) => {
     const trimmed = nextModel.trim();
@@ -80,8 +112,17 @@ export function AgentChatContainer({
     writePreferredAgentChatModel(trimmed);
   }, []);
 
+  const handlePrioritizeChange = useCallback((next: RouterPriority) => {
+    setPrioritize(next);
+  }, []);
+
   useEffect(() => {
     if (isRegistryModelsLoading || registryModels.length === 0) {
+      return;
+    }
+    // Explicit Auto is first-class — never replace it with a registry default.
+    if (isAutoAgentModel(selectedModel)) {
+      writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
       return;
     }
     const keys = new Set(registryModels.map((entry) => entry.key));
@@ -91,9 +132,26 @@ export function AgentChatContainer({
       return;
     }
     const preferred = readPreferredAgentChatModel();
+    // Wait for user settings before pinning a first default so empty
+    // defaultAgentModel can land as Auto instead of racing the registry.
+    if (!preferred && !model?.trim() && !hasUserSettings) {
+      return;
+    }
+    const settingsOverride =
+      settingsDefaultModel && keys.has(settingsDefaultModel)
+        ? settingsDefaultModel
+        : null;
+    // Empty defaultAgentModel = Auto (Settings → Chat Defaults).
+    const settingsMeansAuto = hasUserSettings && !settingsDefaultModel;
     const next =
       (model?.trim() && keys.has(model.trim()) ? model.trim() : null) ||
-      (preferred && keys.has(preferred) ? preferred : null) ||
+      (preferred === AUTO_MODEL_OPTION_VALUE
+        ? AUTO_MODEL_OPTION_VALUE
+        : preferred && keys.has(preferred)
+          ? preferred
+          : null) ||
+      (settingsMeansAuto ? AUTO_MODEL_OPTION_VALUE : null) ||
+      settingsOverride ||
       defaultModelKey ||
       registryModels[0]?.key ||
       UNRESOLVED_RUNTIME_AGENT_MODEL;
@@ -105,18 +163,25 @@ export function AgentChatContainer({
     }
   }, [
     defaultModelKey,
+    hasUserSettings,
     isRegistryModelsLoading,
     model,
     registryModels,
     selectedModel,
+    settingsDefaultModel,
   ]);
+
+  // Auto → omit model on the wire so the server resolves via defaults + priority.
+  const runtimeModel = isAutoAgentModel(selectedModel)
+    ? UNRESOLVED_RUNTIME_AGENT_MODEL
+    : selectedModel;
 
   const container = useAgentChatContainer({
     apiService,
     isLoadingThread,
     isReadOnly,
     isStreaming,
-    model: selectedModel,
+    model: runtimeModel,
     onOnboardingCompleted,
     onCopy,
     onRegenerate,
@@ -198,8 +263,11 @@ export function AgentChatContainer({
       onboardingMode ||
       composerShell?.placement === 'inspector');
   const shouldRenderInlineComposerFeedback = !isComposerDocked;
-
-  const shouldShowDockedComposer = isComposerDocked;
+  // Archived threads replace the prompt bar with restore chrome — always dock it
+  // so empty archived threads still get Unarchive instead of a dead input.
+  const isArchivedThread = Boolean(isReadOnly && archivedNotice);
+  const shouldShowDockedComposer = isComposerDocked || isArchivedThread;
+  const shouldShowArchivedComposer = isArchivedThread && Boolean(onUnarchive);
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-col">
@@ -227,14 +295,6 @@ export function AgentChatContainer({
           </div>
         ) : null}
 
-        {archivedNotice && shouldRenderInlineComposerFeedback ? (
-          <div className={AGENT_CONVERSATION_TRACK_CLASS}>
-            <Alert type={AlertCategory.WARNING} className="mt-3 w-full">
-              {archivedNotice}
-            </Alert>
-          </div>
-        ) : null}
-
         {isLoadingThread && container.isEmpty ? (
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
             <AgentConversationSkeleton
@@ -256,8 +316,11 @@ export function AgentChatContainer({
             isAttachmentUploading={container.isAttachmentUploading}
             isBusy={container.isBusy}
             // Inspector docks the composer in the shell slot; full-page empty
-            // keeps it inline and centered under the hero.
-            isComposerVisible={composerShell?.placement !== 'inspector'}
+            // keeps it inline and centered under the hero. Archived threads
+            // use the docked restore bar instead of a dead input.
+            isComposerVisible={
+              !isArchivedThread && composerShell?.placement !== 'inspector'
+            }
             isReadOnly={isReadOnly}
             isRunActive={container.isRunActive}
             isWideLayout={isWideLayout}
@@ -271,6 +334,8 @@ export function AgentChatContainer({
             removeAttachment={container.removeAttachment}
             selectedModel={selectedModel}
             onModelChange={handleModelChange}
+            onPrioritizeChange={handlePrioritizeChange}
+            prioritize={prioritize}
             models={registryModels}
             isModelsLoading={isRegistryModelsLoading}
           />
@@ -333,52 +398,67 @@ export function AgentChatContainer({
         )}
 
         {shouldShowDockedComposer ? (
-          <AgentChatPromptBar
-            activeGenerationAction={pendingGenerationAction}
-            activeWorkEvent={activeWorkEvent}
-            addFiles={container.addFiles}
-            apiService={apiService}
-            chatAttachments={container.chatAttachments}
-            clearAllAttachments={container.clearAllAttachments}
-            dragHandlers={container.dragHandlers}
-            dragState={container.dragState}
-            error={
-              isComposerDocked && container.error
-                ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
-                : null
-            }
-            getCompletedAttachments={container.getCompletedAttachments}
-            isAttachmentUploading={container.isAttachmentUploading}
-            isBusy={
-              container.isBusy ||
-              isLoadingThread ||
-              container.socketConnectionState !== 'connected'
-            }
-            isReadOnly={isReadOnly}
-            isRunActive={container.isRunActive}
-            isSubmittingInputRequest={container.isSubmittingInputRequest}
-            latestProposedPlan={container.latestProposedPlan}
-            layoutMode={promptBarLayoutMode}
-            onClearError={() => container.setError(null)}
-            onModelChange={handleModelChange}
-            onSend={container.handleSend}
-            onStop={container.handleStopRun}
-            onSubmitInputRequest={container.handleSubmitInputRequest}
-            onUiAction={container.handleUiAction}
-            pendingInputRequest={
-              composerShell && !onboardingMode
-                ? container.pendingInputRequest
-                : null
-            }
-            placeholder={placeholder}
-            promptBarSuggestions={promptBarSuggestions}
-            removeAttachment={container.removeAttachment}
-            selectedModel={selectedModel}
-            models={registryModels}
-            isModelsLoading={isRegistryModelsLoading}
-            showSuggestedActionsWhenNotEmpty={showSuggestedActionsWhenNotEmpty}
-            socketConnectionState={container.socketConnectionState}
-          />
+          shouldShowArchivedComposer && onUnarchive ? (
+            <AgentArchivedComposerBar
+              layoutMode={promptBarLayoutMode}
+              message={
+                archivedNotice ??
+                'This thread is archived. Unarchive it to continue the conversation.'
+              }
+              onUnarchive={onUnarchive}
+            />
+          ) : (
+            <AgentChatPromptBar
+              activeGenerationAction={pendingGenerationAction}
+              activeWorkEvent={activeWorkEvent}
+              addFiles={container.addFiles}
+              apiService={apiService}
+              chatAttachments={container.chatAttachments}
+              clearAllAttachments={container.clearAllAttachments}
+              dragHandlers={container.dragHandlers}
+              dragState={container.dragState}
+              error={
+                isComposerDocked && container.error
+                  ? `${formatAgentError(container.error).title}: ${formatAgentError(container.error).summary}`
+                  : null
+              }
+              getCompletedAttachments={container.getCompletedAttachments}
+              isAttachmentUploading={container.isAttachmentUploading}
+              isBusy={
+                container.isBusy ||
+                isLoadingThread ||
+                container.socketConnectionState !== 'connected'
+              }
+              isReadOnly={isReadOnly}
+              isRunActive={container.isRunActive}
+              isSubmittingInputRequest={container.isSubmittingInputRequest}
+              latestProposedPlan={container.latestProposedPlan}
+              layoutMode={promptBarLayoutMode}
+              onClearError={() => container.setError(null)}
+              onModelChange={handleModelChange}
+              onPrioritizeChange={handlePrioritizeChange}
+              onSend={container.handleSend}
+              onStop={container.handleStopRun}
+              onSubmitInputRequest={container.handleSubmitInputRequest}
+              onUiAction={container.handleUiAction}
+              pendingInputRequest={
+                composerShell && !onboardingMode
+                  ? container.pendingInputRequest
+                  : null
+              }
+              placeholder={placeholder}
+              prioritize={prioritize}
+              promptBarSuggestions={promptBarSuggestions}
+              removeAttachment={container.removeAttachment}
+              selectedModel={selectedModel}
+              models={registryModels}
+              isModelsLoading={isRegistryModelsLoading}
+              showSuggestedActionsWhenNotEmpty={
+                showSuggestedActionsWhenNotEmpty
+              }
+              socketConnectionState={container.socketConnectionState}
+            />
+          )
         ) : null}
       </div>
     </div>
