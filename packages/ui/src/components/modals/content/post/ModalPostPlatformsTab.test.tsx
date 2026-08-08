@@ -93,7 +93,7 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    expect(screen.getByText('Channel previews')).toBeVisible();
+    expect(screen.getByText('Live preview')).toBeVisible();
     expect(
       screen.getByRole('article', { name: 'Instagram platform preview' }),
     ).toBeVisible();
@@ -105,6 +105,26 @@ describe('ModalPostPlatformsTab', () => {
       screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
     ).toBeVisible();
     expect(screen.getByText('X-specific launch copy')).toBeVisible();
+  });
+
+  it('hides and restores the selected-channel preview', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        ingredients={[]}
+        platformConfigs={[platformConfig()]}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /hide preview/i }));
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /show preview/i }));
+    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
   });
 
   it('omits disabled, disconnected, and invalid channel selections', () => {
@@ -194,7 +214,7 @@ describe('ModalPostPlatformsTab', () => {
     });
   });
 
-  it('shows an explicit empty preview when no channel is selected', () => {
+  it('hides the preview section when no connected channel is selected', () => {
     render(
       <ModalPostPlatformsTab
         form={createFormStub()}
@@ -207,8 +227,7 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    expect(
-      screen.getByText('Select at least one connected channel to preview it.'),
-    ).toBeVisible();
+    expect(screen.queryByText('Live preview')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,13 @@
 'use client';
 
-import { resolveChannelTargetSettings } from '@genfeedai/api-types';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import { resolveChannelTargetSettings } from '@api-types/contracts';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
@@ -12,9 +18,11 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import PlatformPreview, {
-  buildPlatformPreviewMedia,
+  buildMediaFromIngredients,
   type PlatformPreviewTarget,
 } from '@ui/posts/platform-preview/PlatformPreview';
+import { Button } from '@ui/primitives/button';
+import { Eye, EyeOff } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
@@ -30,6 +38,7 @@ export default function ModalPostPlatformsTab({
   ingredients,
   platformConfigs,
   isLoading,
+  ingredient,
   togglePlatform,
   updatePlatformConfig,
   getMinDateTime,
@@ -42,9 +51,16 @@ export default function ModalPostPlatformsTab({
   const [generatingDescFor, setGeneratingDescFor] = useState<string | null>(
     null,
   );
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const previewTargets = useMemo(
-    () => buildComposerPreviewTargets(platformConfigs, ingredients),
-    [ingredients, platformConfigs],
+    () =>
+      buildComposerPreviewTargets(
+        platformConfigs,
+        ingredients ?? (ingredient ? [ingredient] : undefined),
+        globalLabel,
+        globalDescription,
+      ),
+    [globalDescription, globalLabel, ingredient, ingredients, platformConfigs],
   );
 
   const getPromptsService = useAuthedService((token) =>
@@ -171,20 +187,6 @@ export default function ModalPostPlatformsTab({
         togglePlatform={togglePlatform}
       />
 
-      <section className="space-y-3 border-t pt-4">
-        <div>
-          <h4 className="font-medium">Channel previews</h4>
-          <p className="mt-1 text-sm text-foreground/70">
-            Review every selected channel before publishing. Edits below update
-            these previews immediately.
-          </p>
-        </div>
-        <PlatformPreview
-          emptyMessage="Select at least one connected channel to preview it."
-          targets={previewTargets}
-        />
-      </section>
-
       {/* Platform-specific customization */}
       <div className="border-t pt-4 space-y-4">
         <h4 className="font-medium">Platform-Specific Settings</h4>
@@ -236,6 +238,37 @@ export default function ModalPostPlatformsTab({
           </div>
         )}
       </div>
+
+      {previewTargets.length > 0 ? (
+        <div className="border-t pt-4 space-y-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="font-medium">Live preview</h4>
+              <p className="text-sm text-foreground/70">
+                Platform-tuned preview of each enabled channel, updated as you
+                type.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.XS}
+              onClick={() => setIsPreviewVisible((isVisible) => !isVisible)}
+              icon={
+                isPreviewVisible ? (
+                  <EyeOff className="size-3.5" />
+                ) : (
+                  <Eye className="size-3.5" />
+                )
+              }
+              label={isPreviewVisible ? 'Hide preview' : 'Show preview'}
+            />
+          </div>
+          {isPreviewVisible ? (
+            <PlatformPreview targets={previewTargets} />
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }
@@ -243,8 +276,10 @@ export default function ModalPostPlatformsTab({
 export function buildComposerPreviewTargets(
   platformConfigs: IPostPlatformConfig[],
   ingredients: IIngredient[] | undefined,
+  globalLabel = '',
+  globalDescription = '',
 ): PlatformPreviewTarget[] {
-  const media = buildPlatformPreviewMedia(ingredients);
+  const media = buildMediaFromIngredients(ingredients);
 
   return platformConfigs
     .filter(
@@ -274,12 +309,12 @@ export function buildComposerPreviewTargets(
 
       return {
         author: { handle: config.handle },
-        caption: config.description,
+        caption: config.description || globalDescription,
         media,
         platform: config.platform,
         publishMode: 'scheduled',
         settings: resolveChannelTargetSettings(config.platform, overrides),
-        title: config.label,
+        title: config.label || globalLabel,
       };
     });
 }

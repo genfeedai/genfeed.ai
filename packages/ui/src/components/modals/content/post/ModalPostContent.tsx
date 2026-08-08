@@ -38,6 +38,7 @@ export default function ModalPostContent({
       ingredients={ingredients}
       platformConfigs={platformConfigs}
       isLoading={isLoading}
+      ingredient={ingredient}
       togglePlatform={togglePlatform}
       updatePlatformConfig={updatePlatformConfig}
       getMinDateTime={getMinDateTime}

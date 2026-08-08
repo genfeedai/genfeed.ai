@@ -311,6 +311,7 @@ export interface ModalPostPlatformsTabProps {
   ingredients?: IIngredient[];
   platformConfigs: IPostPlatformConfig[];
   isLoading: boolean;
+  ingredient?: IIngredient | null;
   togglePlatform: (credentialId: string) => void;
   updatePlatformConfig: (
     credentialId: string,
