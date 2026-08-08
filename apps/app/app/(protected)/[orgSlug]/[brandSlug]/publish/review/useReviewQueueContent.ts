@@ -27,7 +27,10 @@ export function useReviewQueueContent() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const requestedBatchId = searchParams.get('batch');
-  const requestedFilters = parseReviewFilters(searchParams.get('filter'));
+  // Raw param — effect deps must key on the URL string, not a derived array,
+  // so local filter toggles are not clobbered before router navigation settles.
+  const filterParam = searchParams.get('filter');
+  const requestedFilters = parseReviewFilters(filterParam);
   const requestedItemId = searchParams.get('item');
 
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(
@@ -161,20 +164,27 @@ export function useReviewQueueContent() {
     }
   }, [batchList, requestedBatchId, selectedBatchId]);
 
+  // URL → state only. Never depend on activeFilters here — that reverts toggles
+  // before `router.replace` updates searchParams (selection appears stuck).
   useEffect(() => {
-    if (
-      requestedFilters &&
-      !areReviewFiltersEqual(requestedFilters, activeFilters)
-    ) {
-      setActiveFilters(requestedFilters);
+    const parsed = parseReviewFilters(filterParam);
+    if (parsed === null) {
+      return;
     }
-  }, [activeFilters, requestedFilters]);
+    setActiveFilters((current) =>
+      areReviewFiltersEqual(current, parsed) ? current : parsed,
+    );
+  }, [filterParam]);
 
+  // URL → item only when the item query changes (back/forward / deep link).
   useEffect(() => {
-    if (requestedItemId && requestedItemId !== activeItemId) {
-      setActiveItemId(requestedItemId);
+    if (!requestedItemId) {
+      return;
     }
-  }, [activeItemId, requestedItemId]);
+    setActiveItemId((current) =>
+      current === requestedItemId ? current : requestedItemId,
+    );
+  }, [requestedItemId]);
 
   useEffect(() => {
     if (!requestedBatchId && activeBatchId) {
@@ -202,7 +212,14 @@ export function useReviewQueueContent() {
     syncReviewLocation,
   ]);
 
+  // Keep the active row inside the current filter window. Prefer the URL item
+  // when it is still visible; otherwise pick the first visible item (or none).
   useEffect(() => {
+    if (visibleItems.length === 0) {
+      setActiveItemId((current) => (current === null ? current : null));
+      return;
+    }
+
     if (
       requestedItemId &&
       activeBatchId === requestedBatchId &&
@@ -214,28 +231,39 @@ export function useReviewQueueContent() {
       return;
     }
 
-    if (visibleItems.length === 0) {
-      setActiveItemId(null);
-      syncReviewLocation({ itemId: null });
-      return;
-    }
-
     if (
       !activeItemId ||
       !visibleItems.some((item) => item.id === activeItemId)
     ) {
       const nextItemId = visibleItems[0]?.id ?? null;
       setActiveItemId(nextItemId);
-      syncReviewLocation({ itemId: nextItemId });
     }
   }, [
     activeBatchId,
     activeItemId,
     requestedBatchId,
     requestedItemId,
-    syncReviewLocation,
     visibleItems,
   ]);
+
+  // Push item id into the URL only after local active item settles — never
+  // rewrite filters from this effect (would fight multi-select toggles).
+  useEffect(() => {
+    if (activeItemId === requestedItemId) {
+      return;
+    }
+    if (
+      activeItemId &&
+      !visibleItems.some((item) => item.id === activeItemId)
+    ) {
+      return;
+    }
+    // Empty list: clear item from the URL when it still has a stale value.
+    if (!activeItemId && !requestedItemId) {
+      return;
+    }
+    syncReviewLocation({ itemId: activeItemId });
+  }, [activeItemId, requestedItemId, syncReviewLocation, visibleItems]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -279,6 +307,8 @@ export function useReviewQueueContent() {
       );
       const nextItemId = getNextActiveItemId(nextVisibleItems, null);
 
+      // Write local state first, then push URL. URL→state effect only keys on
+      // `filterParam`, so this no longer reverts mid-toggle.
       setActiveFilters(filters);
       setActiveItemId(nextItemId);
       syncReviewLocation({ filters, itemId: nextItemId });
