@@ -1460,12 +1460,6 @@ export async function setupApiMocks(
     createPlaywrightApiRoutePattern(),
     fallbackCollectionHandler,
   );
-  // Mirror the fallback on the production API host: shared providers that
-  // resolve the default base URL (prompt bar: font-families, presets, models,
-  // tags) otherwise leak past every mock to the live API, and its error body
-  // is not a JSON:API document — each rejection then surfaced as an uncaught
-  // 'expected collection data' page error.
-  await page.route(`${PROD_API_V1}/**`, fallbackCollectionHandler);
 
   const routeApi = async (
     pathPattern: string,
@@ -1809,8 +1803,15 @@ export async function setupApiMocks(
       return;
     }
 
+    // Default to a VALID empty JSON:API collection. The old
+    // `{ mock: true }` body had no `data` key, so every service that
+    // deserializes a collection threw 'Invalid JSON:API document' — five of
+    // those at once (prompt bar) crashed /automate/* to the error boundary.
     await r.fulfill({
-      body: JSON.stringify({ mock: true, unhandledV1Route: url }),
+      body: JSON.stringify({
+        data: [],
+        meta: { totalCount: 0, unhandledV1Route: url },
+      }),
       contentType: 'application/json',
       status: 200,
     });
