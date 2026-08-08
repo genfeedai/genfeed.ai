@@ -41,6 +41,8 @@ interface AgentChatMessageProps {
     payload?: Record<string, unknown>,
   ) => void | Promise<void>;
   isBusy?: boolean;
+  /** Archived thread — strip mutating card actions and retry/regenerate. */
+  isReadOnly?: boolean;
   messageAnchorId?: string;
   isHighlighted?: boolean;
   onRemember?: (message: AgentChatMessageType) => void;
@@ -86,6 +88,7 @@ export function AgentChatMessage({
   onSelectIngredient,
   onUiAction,
   isBusy = false,
+  isReadOnly = false,
   messageAnchorId,
   isHighlighted = false,
   onRemember,
@@ -337,9 +340,15 @@ export function AgentChatMessage({
             title={generatedContentTitle}
             content={generatedContent ?? ''}
             onCopy={onCopy}
-            onInsert={onUiAction ? handleInsertGeneratedContent : undefined}
+            onInsert={
+              !isReadOnly && onUiAction
+                ? handleInsertGeneratedContent
+                : undefined
+            }
             onRegenerate={
-              onRegenerate ? () => onRegenerate(message) : undefined
+              !isReadOnly && onRegenerate
+                ? () => onRegenerate(message)
+                : undefined
             }
             isBusy={isBusy}
           />
@@ -351,10 +360,13 @@ export function AgentChatMessage({
             key={`ui-action-${completionSummaryAction.id}`}
             action={completionSummaryAction}
             apiService={apiService}
+            isReadOnly={isReadOnly}
             onCopy={onCopy}
             onOAuthConnect={onOAuthConnect}
             onBrandCreate={onBrandCreate}
-            onRetry={onRetry ? () => onRetry(message) : undefined}
+            onRetry={
+              !isReadOnly && onRetry ? () => onRetry(message) : undefined
+            }
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onSelectIngredient}
             onUiAction={onUiAction}
@@ -367,10 +379,13 @@ export function AgentChatMessage({
               key={`ui-action-${action.id}`}
               action={action}
               apiService={apiService}
+              isReadOnly={isReadOnly}
               onCopy={onCopy}
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
-              onRetry={onRetry ? () => onRetry(message) : undefined}
+              onRetry={
+                !isReadOnly && onRetry ? () => onRetry(message) : undefined
+              }
               onSelectCreditPack={onSelectCreditPack}
               onSelectIngredient={onSelectIngredient}
               onUiAction={onUiAction}
@@ -381,12 +396,12 @@ export function AgentChatMessage({
           isUser={isUser}
           metaItems={metaItems}
           shouldShowAssistantActions={Boolean(shouldShowAssistantActions)}
-          isBusy={isBusy}
+          isBusy={isBusy || isReadOnly}
           copyContent={copyContent}
           message={message}
           onCopy={onCopy}
-          onRetry={onRetry}
-          onRemember={onRemember}
+          onRetry={isReadOnly ? undefined : onRetry}
+          onRemember={isReadOnly ? undefined : onRemember}
         />
       </div>
     </div>

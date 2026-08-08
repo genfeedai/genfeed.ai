@@ -167,11 +167,11 @@ export function AgentChatContainerThreadView({
           {latestProposedPlan ? (
             <AgentPlanReviewSection
               plan={latestProposedPlan}
-              isBusy={isBusy}
+              isBusy={isBusy || isReadOnly}
               activeUiAction={activeUiAction}
               isCreatingFollowUpTasks={isCreatingFollowUpTasks}
               followUpTaskMessage={followUpTaskMessage}
-              showFollowUpButton={showFollowUpButton}
+              showFollowUpButton={showFollowUpButton && !isReadOnly}
               onApprove={onApprovePlan}
               onRequestChanges={onRequestPlanChanges}
               onCreateFollowUpTasks={onCreateFollowUpTasks}
@@ -195,6 +195,7 @@ export function AgentChatContainerThreadView({
             isGenerating={isGenerating}
             isStreamingActive={isStreamingActive}
             isBusy={isBusy}
+            isReadOnly={isReadOnly}
             highlightedMessageId={highlightedMessageId}
             apiService={apiService}
             messagesEndRef={messagesEndRef}

@@ -43,6 +43,7 @@ type AgentChatTimelineProps = {
     action: string,
     payload?: Record<string, unknown>,
   ) => Promise<void>;
+  isReadOnly?: boolean;
   /**
    * When true, pure "Thinking" placeholders are suppressed — composer status
    * (or a live streaming row) already owns busy chrome (T3 density).
@@ -68,6 +69,7 @@ export function AgentChatTimeline({
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
+  isReadOnly = false,
   suppressThinkingPlaceholder = true,
 }: AgentChatTimelineProps): ReactElement {
   // Only the terminal timeline entry may own the failure card / retry context.
@@ -103,6 +105,7 @@ export function AgentChatTimeline({
                 messageAnchorId={`agent-message-${entry.message.id}`}
                 isHighlighted={highlightedMessageId === entry.message.id}
                 isBusy={isBusy}
+                isReadOnly={isReadOnly}
                 apiService={apiService}
                 onCopy={onCopy}
                 onRetry={onRetry}
@@ -127,7 +130,7 @@ export function AgentChatTimeline({
         <AgentRunFailureCard
           error={lastFailedDetail}
           isRetrying={isBusy}
-          onRetry={onRetryLastFailedRun}
+          onRetry={isReadOnly ? undefined : onRetryLastFailedRun}
         />
       ) : null}
 
@@ -164,6 +167,7 @@ export function AgentChatTimeline({
               key={`pending-ui-action-${action.id}`}
               action={action}
               apiService={apiService}
+              isReadOnly={isReadOnly}
               onCopy={onCopy}
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}

@@ -43,11 +43,13 @@ import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecute
 import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ReactElement } from 'react';
 
 export function UiActionRenderer({
   action,
   apiService,
+  isReadOnly = false,
   onCopy,
   onOAuthConnect,
   onBrandCreate,
@@ -58,6 +60,11 @@ export function UiActionRenderer({
 }: {
   action: AgentUiAction;
   apiService?: AgentApiService;
+  /**
+   * Archived / read-only threads: cards stay visible for reference but every
+   * control (including href CTAs like Review Draft) is inert.
+   */
+  isReadOnly?: boolean;
   onCopy?: (content: string) => void | Promise<void>;
   onOAuthConnect?: (platform: string) => void;
   onBrandCreate?: (payload: {
@@ -76,119 +83,206 @@ export function UiActionRenderer({
     payload?: Record<string, unknown>,
   ) => void | Promise<void>;
 }): ReactElement | null {
+  // Drop mutating handlers when archived — pointer-events-none alone is not
+  // enough for keyboard / programmatic activation of nested controls.
+  const liveOnCopy = isReadOnly ? undefined : onCopy;
+  const liveOnOAuthConnect = isReadOnly ? undefined : onOAuthConnect;
+  const liveOnBrandCreate = isReadOnly ? undefined : onBrandCreate;
+  const liveOnSelectCreditPack = isReadOnly ? undefined : onSelectCreditPack;
+  const liveOnSelectIngredient = isReadOnly ? undefined : onSelectIngredient;
+  const liveOnRetry = isReadOnly ? undefined : onRetry;
+  const liveOnUiAction = isReadOnly ? undefined : onUiAction;
+
+  let card: ReactElement | null = null;
+
   switch (action.type) {
     case 'completion_summary_card':
-      return (
+      card = (
         <AgentCompletionSummaryCard
           action={action}
-          onCopy={onCopy}
-          onRetry={onRetry}
-          onUiAction={onUiAction}
+          onCopy={liveOnCopy}
+          onRetry={liveOnRetry}
+          onUiAction={liveOnUiAction}
         />
       );
+      break;
     case 'oauth_connect_card':
-      return <OAuthConnectCard action={action} onConnect={onOAuthConnect} />;
+      card = (
+        <OAuthConnectCard action={action} onConnect={liveOnOAuthConnect} />
+      );
+      break;
     case 'content_preview_card':
-      return <ContentPreviewCard action={action} onCopy={onCopy} />;
+      card = <ContentPreviewCard action={action} onCopy={liveOnCopy} />;
+      break;
     case 'payment_cta_card':
-      return <PaymentCtaCard action={action} onSelect={onSelectCreditPack} />;
+      card = (
+        <PaymentCtaCard action={action} onSelect={liveOnSelectCreditPack} />
+      );
+      break;
     case 'generation_action_card':
-      return apiService ? (
+      card = apiService ? (
         <GenerationActionCard action={action} apiService={apiService} />
       ) : null;
+      break;
     case 'analytics_snapshot_card':
-      return <AnalyticsSnapshotCard action={action} />;
+      card = <AnalyticsSnapshotCard action={action} />;
+      break;
     case 'ads_search_results_card':
-      return <AdsSearchResultsCard action={action} />;
+      card = <AdsSearchResultsCard action={action} />;
+      break;
     case 'ad_detail_summary_card':
-      return <AdDetailSummaryCard action={action} />;
+      card = <AdDetailSummaryCard action={action} />;
+      break;
     case 'campaign_launch_prep_card':
-      return <CampaignLaunchPrepCard action={action} />;
+      card = <CampaignLaunchPrepCard action={action} />;
+      break;
     case 'publish_post_card':
-      return <PublishPostCard action={action} onUiAction={onUiAction} />;
+      card = <PublishPostCard action={action} onUiAction={liveOnUiAction} />;
+      break;
     case 'image_transform_card':
-      return <ImageTransformCard action={action} />;
+      card = <ImageTransformCard action={action} />;
+      break;
     case 'campaign_create_card':
-      return <CampaignCreateCard action={action} />;
+      card = <CampaignCreateCard action={action} />;
+      break;
     case 'campaign_control_card':
-      return <CampaignControlCard action={action} />;
+      card = <CampaignControlCard action={action} />;
+      break;
     case 'review_gate_card':
-      return <ReviewGateCard action={action} />;
+      card = <ReviewGateCard action={action} />;
+      break;
     case 'ingredient_picker_card':
-      return (
-        <IngredientPickerCard action={action} onSelect={onSelectIngredient} />
+      card = (
+        <IngredientPickerCard
+          action={action}
+          onSelect={liveOnSelectIngredient}
+        />
       );
+      break;
     case 'workflow_trigger_card':
-      return apiService ? (
+      card = apiService ? (
         <WorkflowTriggerCard action={action} apiService={apiService} />
       ) : null;
+      break;
     case 'clip_workflow_run_card':
-      return apiService ? (
+      card = apiService ? (
         <ClipWorkflowRunCard action={action} apiService={apiService} />
       ) : null;
+      break;
     case 'clip_run_card':
-      return action.clipRunState ? (
+      card = action.clipRunState ? (
         <ClipRunCard state={action.clipRunState} />
       ) : null;
+      break;
     case 'ingredient_alternatives_card':
-      return apiService ? (
+      card = apiService ? (
         <IngredientAlternativesCard action={action} apiService={apiService} />
       ) : null;
+      break;
     case 'schedule_post_card':
-      return <SchedulePostCard action={action} />;
+      card = <SchedulePostCard action={action} />;
+      break;
     case 'engagement_opportunity_card':
-      return <EngagementOpportunityCard action={action} />;
+      card = <EngagementOpportunityCard action={action} />;
+      break;
     case 'onboarding_checklist_card':
-      return <OnboardingChecklistCard action={action} />;
+      card = <OnboardingChecklistCard action={action} />;
+      break;
     case 'credits_balance_card':
-      return <CreditsBalanceCard action={action} />;
+      card = <CreditsBalanceCard action={action} />;
+      break;
     case 'studio_handoff_card':
-      return <StudioHandoffCard action={action} />;
+      card = <StudioHandoffCard action={action} />;
+      break;
     case 'brand_create_card':
-      return <BrandCreateCard action={action} onCreate={onBrandCreate} />;
+      card = <BrandCreateCard action={action} onCreate={liveOnBrandCreate} />;
+      break;
     case 'workflow_execute_card':
-      return apiService ? (
+      card = apiService ? (
         <WorkflowExecuteCard action={action} apiService={apiService} />
       ) : null;
+      break;
     case 'trending_topics_card':
-      return <TrendingTopicsCard action={action} />;
+      card = <TrendingTopicsCard action={action} />;
+      break;
     case 'content_calendar_card':
-      return <ContentCalendarCard action={action} />;
+      card = <ContentCalendarCard action={action} />;
+      break;
     case 'batch_generation_card':
-      return <BatchGenerationCard action={action} />;
+      card = <BatchGenerationCard action={action} />;
+      break;
     case 'batch_generation_result_card':
-      return <BatchGenerationResultCard action={action} />;
+      card = <BatchGenerationResultCard action={action} />;
+      break;
     case 'voice_clone_card':
-      return apiService ? (
+      card = apiService ? (
         <VoiceCloneCard action={action} apiService={apiService} />
       ) : null;
+      break;
     case 'brand_voice_profile_card':
-      return <BrandVoiceProfileCard action={action} onUiAction={onUiAction} />;
-    case 'workflow_created_card':
-      return <WorkflowCreatedCard action={action} onUiAction={onUiAction} />;
-    case 'bot_created_card':
-      return <LivestreamBotCard action={action} onUiAction={onUiAction} />;
-    case 'livestream_bot_status_card':
-      return <LivestreamBotCard action={action} onUiAction={onUiAction} />;
-    case 'brand_interview_offer_card':
-      return (
-        <BrandInterviewOfferCard action={action} onUiAction={onUiAction} />
+      card = (
+        <BrandVoiceProfileCard action={action} onUiAction={liveOnUiAction} />
       );
+      break;
+    case 'workflow_created_card':
+      card = (
+        <WorkflowCreatedCard action={action} onUiAction={liveOnUiAction} />
+      );
+      break;
+    case 'bot_created_card':
+      card = <LivestreamBotCard action={action} onUiAction={liveOnUiAction} />;
+      break;
+    case 'livestream_bot_status_card':
+      card = <LivestreamBotCard action={action} onUiAction={liveOnUiAction} />;
+      break;
+    case 'brand_interview_offer_card':
+      card = (
+        <BrandInterviewOfferCard action={action} onUiAction={liveOnUiAction} />
+      );
+      break;
     case 'brand_interview_complete_card':
-      return <BrandInterviewCompleteCard action={action} />;
+      card = <BrandInterviewCompleteCard action={action} />;
+      break;
     case 'ai_text_action_card':
-      return (
+      card = (
         <AiTextActionCard
           action={action}
-          onApply={({ text, selectedAction }) =>
-            onUiAction?.('apply_to_draft', {
-              sourceAction: selectedAction,
-              text,
-            })
+          onApply={
+            liveOnUiAction
+              ? ({ text, selectedAction }) =>
+                  liveOnUiAction('apply_to_draft', {
+                    sourceAction: selectedAction,
+                    text,
+                  })
+              : undefined
           }
         />
       );
+      break;
     default:
       return null;
   }
+
+  if (!card) {
+    return null;
+  }
+
+  if (!isReadOnly) {
+    return card;
+  }
+
+  return (
+    <div
+      aria-disabled="true"
+      className={cn(
+        'pointer-events-none select-none opacity-60',
+        '[&_a]:pointer-events-none [&_a]:cursor-not-allowed',
+        '[&_button]:pointer-events-none [&_button]:cursor-not-allowed',
+      )}
+      data-archived-readonly="true"
+      data-testid="ui-action-archived-readonly"
+    >
+      {card}
+    </div>
+  );
 }
