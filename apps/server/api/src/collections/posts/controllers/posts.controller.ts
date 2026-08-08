@@ -224,6 +224,18 @@ export class PostsController extends BaseCRUDController<
 
     if (query.status) {
       matchFilter.status = query.status;
+    } else if (query.publicationState) {
+      // 'posted' means live on the platform in any visibility — public,
+      // private, and unlisted are all post-publish visibility states.
+      const postedStatuses = [
+        PostStatus.PUBLIC,
+        PostStatus.PRIVATE,
+        PostStatus.UNLISTED,
+      ];
+      matchFilter.status =
+        query.publicationState === 'posted'
+          ? { in: postedStatuses }
+          : { notIn: postedStatuses };
     }
 
     if (query.credentialId) {
