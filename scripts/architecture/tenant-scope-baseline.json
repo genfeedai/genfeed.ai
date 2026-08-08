@@ -369,22 +369,6 @@
       "reason": "missing-is-deleted"
     },
     {
-      "delegate": "workflow",
-      "file": "apps/server/api/src/collections/brands/services/default-recurring-content.service.ts",
-      "fingerprint": "1b3427fbeeb93f10112e",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "workflow",
-      "file": "apps/server/api/src/collections/brands/services/default-recurring-content.service.ts",
-      "fingerprint": "3674c1eef13a20bc15e1",
-      "method": "update",
-      "model": "Workflow",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "contentPerformance",
       "file": "apps/server/api/src/collections/content-performance/services/optimization-cycle.service.ts",
       "fingerprint": "2f87a531e7e49de5a2cd",

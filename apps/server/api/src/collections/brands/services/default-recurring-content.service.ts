@@ -246,7 +246,14 @@ export class DefaultRecurringContentService {
     const workflows = await this.prisma.workflow.findMany({
       orderBy: { createdAt: 'desc' },
       select: { id: true, metadata: true },
-      where: scopedWhere(organizationId, { brandId }),
+      // defaultRecurringBrandId is written only by this service, never by
+      // client-supplied workflow payloads — scoping on it keeps this sweep off
+      // user-authored workflows whose free-form metadata happens to resemble a
+      // default-recurring marker.
+      where: scopedWhere(organizationId, {
+        brandId,
+        defaultRecurringBrandId: brandId,
+      }),
     });
 
     for (const workflow of workflows) {
@@ -265,6 +272,12 @@ export class DefaultRecurringContentService {
           scheduleConfig.isEnabled,
         );
       } else {
+        // Degraded path: schedule columns are written without BullMQ
+        // registration; WorkflowSchedulerService.onModuleInit reconciles them
+        // on the next API boot.
+        this.logger.warn(
+          `${this.logContext} scheduler unavailable; wrote schedule columns for workflow ${workflow.id} without BullMQ registration`,
+        );
         await this.prisma.workflow.update({
           data: {
             isScheduleEnabled: scheduleConfig.isEnabled,

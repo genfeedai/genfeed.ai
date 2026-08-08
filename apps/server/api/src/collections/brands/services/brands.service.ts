@@ -433,20 +433,6 @@ export class BrandsService extends BaseService<
         ),
     );
 
-    if (
-      incomingSchedule?.cronExpression !== undefined &&
-      typeof incomingSchedule.cronExpression === 'string'
-    ) {
-      const cronExpression = incomingSchedule.cronExpression.trim();
-      try {
-        computeNextRunAtOrThrow(cronExpression, 'UTC');
-      } catch {
-        throw new BadRequestException(
-          'Invalid cron expression. Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.',
-        );
-      }
-    }
-
     for (const [key, value] of Object.entries(agentConfig)) {
       if (value === undefined) {
         continue;
@@ -463,6 +449,29 @@ export class BrandsService extends BaseService<
       }
 
       updatedConfig[key] = value;
+    }
+
+    // Validate the MERGED cron, not just the incoming patch: a timezone-only
+    // update must not carry a stale invalid cron into the scheduler, where it
+    // would silently fall back to the default cadence while the settings UI
+    // still displays the stored value.
+    if (hasScheduleUpdate) {
+      const mergedSchedule = isMergeableRecord(updatedConfig.schedule)
+        ? updatedConfig.schedule
+        : null;
+      const mergedCron =
+        typeof mergedSchedule?.cronExpression === 'string'
+          ? mergedSchedule.cronExpression.trim()
+          : '';
+      if (mergedCron) {
+        try {
+          computeNextRunAtOrThrow(mergedCron, 'UTC');
+        } catch {
+          throw new BadRequestException(
+            `Invalid cron expression "${mergedCron}". Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.`,
+          );
+        }
+      }
     }
 
     const updatedBrand = (await this.delegate.update({

@@ -1344,5 +1344,25 @@ describe('BrandsService', () => {
         defaultRecurringContentService.updateScheduleFromAgentConfig,
       ).not.toHaveBeenCalled();
     });
+
+    it('rejects a partial update that carries forward a stored invalid cron', async () => {
+      withStoredConfig({
+        schedule: {
+          cronExpression: 'not-a-cron',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      });
+
+      const update = service.updateAgentConfig(brandId, orgId, {
+        schedule: { timezone: 'Europe/Malta' },
+      });
+
+      await expect(update).rejects.toThrow(BadRequestException);
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).not.toHaveBeenCalled();
+    });
   });
 });

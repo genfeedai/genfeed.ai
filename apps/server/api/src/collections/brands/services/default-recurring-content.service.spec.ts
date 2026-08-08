@@ -48,6 +48,7 @@ type StoredWorkflow = {
 
 type WhereClause = {
   brandId?: string;
+  defaultRecurringBrandId?: string;
   isDeleted?: boolean;
   metadata?: { equals?: unknown; path?: string[] };
   organizationId?: string;
@@ -75,6 +76,12 @@ function matches(row: StoredWorkflow, where: WhereClause | undefined): boolean {
     return true;
   }
   if (where.brandId !== undefined && row.brandId !== where.brandId) {
+    return false;
+  }
+  if (
+    where.defaultRecurringBrandId !== undefined &&
+    row.defaultRecurringBrandId !== where.defaultRecurringBrandId
+  ) {
     return false;
   }
   if (where.isDeleted !== undefined && row.isDeleted !== where.isDeleted) {
@@ -771,5 +778,91 @@ describe('DefaultRecurringContentService', () => {
         false,
       );
     }
+  });
+
+  it('ignores workflows without the system defaultRecurringBrandId marker', async () => {
+    const foreignWorkflow: StoredWorkflow = {
+      ...buildStoredWorkflow('post', true),
+      defaultRecurringBrandId: null,
+      id: 'user_workflow',
+    };
+    const { prisma } = createFakePrisma({
+      brand: buildBrand(),
+      initialWorkflows: [buildStoredWorkflow('post', true), foreignWorkflow],
+    });
+    const updateSchedule = vi.fn().mockResolvedValue(undefined);
+    const service = createService(
+      prisma,
+      createWorkflowScheduler(updateSchedule),
+    );
+
+    await service.updateScheduleFromAgentConfig(ORGANIZATION_ID, BRAND_ID, {
+      schedule: {
+        cronExpression: '0 12 * * *',
+        enabled: true,
+        timezone: 'UTC',
+      },
+    });
+
+    expect(updateSchedule).toHaveBeenCalledWith(
+      'seed_post',
+      '0 12 * * *',
+      'UTC',
+      true,
+    );
+    expect(updateSchedule).not.toHaveBeenCalledWith(
+      'user_workflow',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
+  });
+
+  it('falls back to direct row updates and warns when the scheduler is unavailable', async () => {
+    const { prisma } = createFakePrisma({
+      brand: buildBrand(),
+      initialWorkflows: [buildStoredWorkflow('post', true)],
+    });
+    const rawPrisma = prisma as unknown as {
+      workflow: { update: (args: UpdateArgs) => Promise<unknown> };
+    };
+    const updateSpy = vi.fn(rawPrisma.workflow.update);
+    rawPrisma.workflow.update = updateSpy;
+    const warnSpy = vi.fn();
+    const logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: warnSpy,
+    } as unknown as LoggerService;
+    const service = new DefaultRecurringContentService(prisma, logger, {
+      get: () => {
+        throw new Error('WorkflowSchedulerService is not registered');
+      },
+    } as unknown as ModuleRef);
+
+    await service.updateScheduleFromAgentConfig(
+      ORGANIZATION_ID,
+      BRAND_ID,
+      {
+        schedule: {
+          cronExpression: '0 12 * * *',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      },
+      { isSchedulerRequired: false },
+    );
+
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          isScheduleEnabled: true,
+          schedule: '0 12 * * *',
+          timezone: 'UTC',
+        },
+      }),
+    );
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
