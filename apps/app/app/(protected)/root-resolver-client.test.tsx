@@ -173,6 +173,7 @@ describe('ProtectedRootResolver', () => {
       isOnboardingCompleted: false,
       onboardingStepsCompleted: [],
     };
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
@@ -250,6 +251,7 @@ describe('ProtectedRootResolver', () => {
       isOnboardingCompleted: false,
       onboardingStepsCompleted: ['brand'],
     };
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
@@ -277,6 +279,7 @@ describe('ProtectedRootResolver', () => {
     expect(mocks.replace).not.toHaveBeenCalled();
 
     mocks.brandState.isReady = true;
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
@@ -346,6 +349,7 @@ describe('ProtectedRootResolver', () => {
     vi.useFakeTimers();
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.brandState.isReady = false;
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
