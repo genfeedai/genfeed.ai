@@ -1,4 +1,20 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  BeehiivProviderError,
+  toBeehiivProviderError,
+} from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
+import type {
+  BeehiivCreatePostInput,
+  BeehiivCreatePostResponse,
+  BeehiivCreateSubscriberResponse,
+  BeehiivGetPostResponse,
+  BeehiivPost,
+  BeehiivPublication,
+  BeehiivPublicationsResponse,
+  BeehiivSubscriber,
+  BeehiivSubscriberOutcome,
+  BeehiivSubscribersResponse,
+} from '@api/services/integrations/beehiiv/interfaces/beehiiv.interface';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -7,56 +23,6 @@ import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
-
-interface BeehiivPublication {
-  id: string;
-  name: string;
-  description: string;
-  url: string;
-  created: number;
-}
-
-interface BeehiivPublicationsResponse {
-  data: BeehiivPublication[];
-  total_results: number;
-}
-
-interface BeehiivSubscriber {
-  id: string;
-  email: string;
-  status: string;
-  created: number;
-  utm_source: string;
-}
-
-interface BeehiivSubscribersResponse {
-  data: BeehiivSubscriber[];
-  total_results: number;
-  page: number;
-  limit: number;
-}
-
-interface BeehiivCreateSubscriberResponse {
-  data: BeehiivSubscriber;
-}
-
-interface BeehiivPost {
-  id: string;
-  title: string;
-  subtitle: string;
-  status: string;
-  publish_date: number;
-  web_url: string;
-  content_html: string;
-}
-
-interface BeehiivCreatePostResponse {
-  data: BeehiivPost;
-}
-
-interface BeehiivGetPostResponse {
-  data: BeehiivPost;
-}
 
 @Injectable()
 export class BeehiivService {
@@ -93,12 +59,7 @@ export class BeehiivService {
       });
       return response.data.data || [];
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
-        error:
-          (error as { response?: { data?: unknown } })?.response?.data ||
-          (error as Error)?.message,
-      });
-      throw error;
+      this.rethrowProviderError(error, url);
     }
   }
 
@@ -137,13 +98,7 @@ export class BeehiivService {
       });
       return response.data;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
-        error:
-          (error as { response?: { data?: unknown } })?.response?.data ||
-          (error as Error)?.message,
-        publicationId,
-      });
-      throw error;
+      this.rethrowProviderError(error, url, { publicationId });
     }
   }
 
@@ -177,43 +132,90 @@ export class BeehiivService {
       );
 
       this.loggerService.log(`${url} success`, {
-        email,
         publicationId,
         subscriberId: response.data.data?.id,
       });
       return response.data.data;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
-        error:
-          (error as { response?: { data?: unknown } })?.response?.data ||
-          (error as Error)?.message,
-        publicationId,
-      });
-      throw error;
+      this.rethrowProviderError(error, url, { publicationId });
     }
   }
 
   /**
-   * Create a post (email/newsletter) in a publication
-   * Status can be 'draft' or 'confirmed' (published)
+   * Add every requested address independently so one provider rejection does
+   * not hide the outcome of the remaining addresses.
+   */
+  async createSubscribers(
+    apiKey: string,
+    publicationId: string,
+    emails: readonly string[],
+    utmSource?: string,
+  ): Promise<BeehiivSubscriberOutcome[]> {
+    const outcomes: BeehiivSubscriberOutcome[] = [];
+
+    for (const rawEmail of emails) {
+      const email = rawEmail.trim().toLowerCase();
+      try {
+        const subscriber = await this.createSubscriber(
+          apiKey,
+          publicationId,
+          email,
+          utmSource,
+        );
+        outcomes.push({
+          email,
+          id: email,
+          status: subscriber.status,
+          subscriberId: subscriber.id,
+          success: true,
+        });
+      } catch (error: unknown) {
+        const providerError = toBeehiivProviderError(error);
+        outcomes.push({
+          email,
+          errorCode: providerError.code,
+          errorMessage: providerError.message,
+          id: email,
+          isRetryable: providerError.isRetryable,
+          success: false,
+        });
+      }
+    }
+
+    return outcomes;
+  }
+
+  /**
+   * Create a post (email/newsletter) in a publication. Status is required so
+   * Beehiiv's changing provider default can never alter execution semantics.
    */
   async createPost(
     apiKey: string,
     publicationId: string,
-    title: string,
-    contentHtml: string,
-    status: 'draft' | 'confirmed' = 'draft',
+    input: BeehiivCreatePostInput,
   ): Promise<BeehiivPost> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    if (input.status === 'draft' && input.scheduledAt) {
+      throw new BeehiivProviderError(
+        'validation_failed',
+        'Beehiiv draft posts cannot include a scheduled time.',
+        { isRetryable: false },
+      );
+    }
+
     try {
+      const body = {
+        body_content: input.contentHtml,
+        ...(input.scheduledAt
+          ? { scheduled_at: input.scheduledAt.toISOString() }
+          : {}),
+        status: input.status,
+        title: input.title,
+      };
       const response = await firstValueFrom(
         this.httpService.post<BeehiivCreatePostResponse>(
           `${this.apiBase}/publications/${publicationId}/posts`,
-          {
-            body_content: contentHtml,
-            status,
-            title,
-          },
+          body,
           {
             headers: {
               Authorization: `Bearer ${apiKey}`,
@@ -226,17 +228,11 @@ export class BeehiivService {
       this.loggerService.log(`${url} success`, {
         postId: response.data.data?.id,
         publicationId,
-        status,
+        status: input.status,
       });
       return response.data.data;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
-        error:
-          (error as { response?: { data?: unknown } })?.response?.data ||
-          (error as Error)?.message,
-        publicationId,
-      });
-      throw error;
+      this.rethrowProviderError(error, url, { publicationId });
     }
   }
 
@@ -265,14 +261,7 @@ export class BeehiivService {
       });
       return response.data.data;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, {
-        error:
-          (error as { response?: { data?: unknown } })?.response?.data ||
-          (error as Error)?.message,
-        postId,
-        publicationId,
-      });
-      throw error;
+      this.rethrowProviderError(error, url, { postId, publicationId });
     }
   }
 
@@ -282,11 +271,13 @@ export class BeehiivService {
   async getDecryptedApiKey(
     organizationId: string,
     brandId: string,
+    credentialId?: string,
   ): Promise<{ apiKey: string; publicationId: string }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     const credential = await this.credentialsService.findOne({
       brandId: brandId,
+      ...(credentialId ? { id: credentialId } : {}),
       organizationId: organizationId,
       platform: CredentialPlatform.BEEHIIV,
     });
@@ -299,8 +290,10 @@ export class BeehiivService {
           organizationId,
         },
       );
-      throw new Error(
+      throw new BeehiivProviderError(
+        'authorization_failed',
         'Beehiiv credential or publication ID not found. Please reconnect your account.',
+        { isRetryable: false },
       );
     }
 
@@ -308,5 +301,20 @@ export class BeehiivService {
       apiKey: EncryptionUtil.decrypt(credential.accessToken),
       publicationId: credential.externalId,
     };
+  }
+
+  private rethrowProviderError(
+    error: unknown,
+    logContext: string,
+    metadata: Record<string, unknown> = {},
+  ): never {
+    const providerError = toBeehiivProviderError(error);
+    this.loggerService.error(`${logContext} failed`, {
+      code: providerError.code,
+      isRetryable: providerError.isRetryable,
+      ...metadata,
+      statusCode: providerError.statusCode,
+    });
+    throw providerError;
   }
 }

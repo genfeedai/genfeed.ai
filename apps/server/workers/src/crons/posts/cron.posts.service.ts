@@ -199,7 +199,7 @@ export class CronPostsService {
       }
       return this.handleTerminalPublishValidationFailure(post, error);
     }
-    const result = await this.publishSinglePost(post);
+    const result = await this.publishSinglePost(post, job.source);
 
     await this.publishApprovalsService.completeExecution({
       approvalId,
@@ -211,7 +211,7 @@ export class CronPostsService {
       versionPinId,
     });
 
-    if (result.success) {
+    if (result.success && result.status !== PostStatus.DRAFT) {
       await this.activitiesService.create(
         new ActivityEntity({
           brandId: readPostString(post, ['brandId']) ?? undefined,
@@ -355,7 +355,10 @@ export class CronPostsService {
       : String(error || 'Post failed');
   }
 
-  private async publishSinglePost(post: PostEntity): Promise<PublishResult> {
+  private async publishSinglePost(
+    post: PostEntity,
+    source: PostPublishJobData['source'],
+  ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     // Mark post as PROCESSING immediately to prevent race conditions and show user feedback
@@ -561,6 +564,9 @@ export class CronPostsService {
         organizationId: postOrganizationId ?? '',
         post,
         postId: post.id.toString(),
+        ...(source !== 'publish_now' && post.scheduledDate instanceof Date
+          ? { scheduledAt: post.scheduledDate }
+          : {}),
         settings: resolveChannelTargetSettings(platform, post.targetSettings),
       };
 
@@ -650,6 +656,7 @@ export class CronPostsService {
         }
 
         // Immediate success - update post with external ID and status
+        const isProviderDraft = result.status === PostStatus.DRAFT;
         const publishedAt = new Date();
         const persisted = await this.persistPublishState(
           post,
@@ -658,9 +665,10 @@ export class CronPostsService {
             executionState: TargetExecutionState.PUBLISHED,
             externalId: result.externalId,
             externalShortcode: result.externalShortcode ?? null,
-            publicationDate: publishedAt,
-            publishedAt,
-            status: PostStatus.PUBLIC,
+            ...(!isProviderDraft
+              ? { publicationDate: publishedAt, publishedAt }
+              : {}),
+            status: result.status,
             url: result.url || null,
             workflowExecutionId,
           },
@@ -711,14 +719,19 @@ export class CronPostsService {
           }
         }
 
-        this.emitPublishPublishedWebhook(post, result, credential.platform);
+        if (!isProviderDraft) {
+          this.emitPublishPublishedWebhook(post, result, credential.platform);
+        }
 
-        this.logger.log(`${url} published post successfully`, {
-          childrenCount: children.length,
-          externalId: result.externalId,
-          platform: credential.platform,
-          postId: post.id.toString(),
-        });
+        this.logger.log(
+          `${url} ${isProviderDraft ? 'created provider draft' : 'published post successfully'}`,
+          {
+            childrenCount: children.length,
+            externalId: result.externalId,
+            platform: credential.platform,
+            postId: post.id.toString(),
+          },
+        );
       } else if (!result.success) {
         // Handle retry logic
         return await this.handlePublishFailure(
@@ -913,8 +926,19 @@ export class CronPostsService {
   }
 
   private isRetryableError(error: unknown): boolean {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'isRetryable' in error &&
+      typeof (error as { isRetryable?: unknown }).isRetryable === 'boolean'
+    ) {
+      return (error as { isRetryable: boolean }).isRetryable;
+    }
+
     const retryableErrorPatterns = [
       'rate limit',
+      'rate_limited',
+      'transient_failure',
       'timeout',
       'ETIMEDOUT',
       'ECONNRESET',

@@ -18,6 +18,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.INSTAGRAM,
       CredentialPlatform.TWITTER,
       CredentialPlatform.LINKEDIN,
+      CredentialPlatform.BEEHIIV,
     ]);
 
     expect(
@@ -28,6 +29,7 @@ describe('channel capability catalog', () => {
       CredentialPlatform.INSTAGRAM,
       CredentialPlatform.TWITTER,
       CredentialPlatform.LINKEDIN,
+      CredentialPlatform.BEEHIIV,
     ]);
   });
 
@@ -125,6 +127,51 @@ describe('validateChannelTargetSettings', () => {
     expect(result.valid).toBe(true);
     expect(result.validationState).toBe(TargetValidationState.VALID);
     expect(result.errors).toEqual([]);
+  });
+
+  test('exposes Beehiiv draft, immediate, and scheduled execution', () => {
+    expect(getChannelCapability(CredentialPlatform.BEEHIIV)).toEqual(
+      expect.objectContaining({
+        publishModes: ['draft', 'publish_now', 'scheduled'],
+        status: 'supported',
+      }),
+    );
+
+    expect(
+      validateChannelTargetSettings({
+        caption: '<p>Newsletter</p>',
+        platform: CredentialPlatform.BEEHIIV,
+        publishMode: 'publish_now',
+        settings: { providerStatus: 'draft' },
+      }).valid,
+    ).toBe(true);
+
+    expect(
+      validateChannelTargetSettings({
+        caption: '<p>Newsletter</p>',
+        platform: CredentialPlatform.BEEHIIV,
+        publishMode: 'scheduled',
+        settings: { providerStatus: 'confirmed' },
+      }).valid,
+    ).toBe(true);
+  });
+
+  test('rejects a scheduled Beehiiv provider draft', () => {
+    const result = validateChannelTargetSettings({
+      caption: '<p>Newsletter</p>',
+      platform: CredentialPlatform.BEEHIIV,
+      publishMode: 'scheduled',
+      settings: { providerStatus: 'draft' },
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.beehiiv_draft_cannot_be_scheduled',
+          field: 'settings.providerStatus',
+        }),
+      ]),
+    );
   });
 
   test('allows provider readiness to travel with validation results', () => {

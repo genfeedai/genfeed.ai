@@ -29,6 +29,12 @@ export interface PublishContext {
   postId: string;
   isDraft?: boolean;
   /**
+   * Provider schedule approved by the workflow scheduler. Undefined for an
+   * immediate execution, even though the legacy Post row uses `scheduledDate`
+   * to make publish-now jobs eligible for the queue.
+   */
+  scheduledAt?: Date;
+  /**
    * Channel settings resolved from `post.targetSettings` against the current
    * capability catalog. Always present — publishers read it instead of the raw
    * JSON so a stale or unknown key can never reach a provider API.

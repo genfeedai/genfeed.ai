@@ -1,6 +1,6 @@
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -110,6 +110,7 @@ describe('BeehiivPublisherService', () => {
       expect(mockBeehiivService.getDecryptedApiKey).toHaveBeenCalledWith(
         'org-123',
         'brand-123',
+        'cred-id',
       );
     });
 
@@ -119,21 +120,48 @@ describe('BeehiivPublisherService', () => {
       expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
         'test-api-key',
         'pub-456',
-        'My Newsletter',
-        '<p>Post content</p>',
-        'confirmed',
+        {
+          contentHtml: '<p>Post content</p>',
+          status: 'confirmed',
+          title: 'My Newsletter',
+        },
       );
     });
 
     it('should pass "draft" status when isDraft is true', async () => {
-      await service.publish({ ...baseContext, isDraft: true });
+      const result = await service.publish({ ...baseContext, isDraft: true });
 
       expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
+        expect.objectContaining({ status: 'draft' }),
+      );
+      expect(result.status).toBe(PostStatus.DRAFT);
+    });
+
+    it('creates a provider draft from resolved channel settings', async () => {
+      const result = await service.publish({
+        ...baseContext,
+        settings: { providerStatus: 'draft' },
+      });
+
+      expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
-        'draft',
+        expect.objectContaining({ status: 'draft' }),
+      );
+      expect(result.status).toBe(PostStatus.DRAFT);
+    });
+
+    it('passes the workflow-approved schedule only with confirmed status', async () => {
+      const scheduledAt = new Date('2026-08-10T09:30:00.000Z');
+
+      await service.publish({ ...baseContext, scheduledAt });
+
+      expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({ scheduledAt, status: 'confirmed' }),
       );
     });
 
@@ -149,9 +177,7 @@ describe('BeehiivPublisherService', () => {
       expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
-        'Untitled',
-        expect.anything(),
-        expect.anything(),
+        expect.objectContaining({ title: 'Untitled' }),
       );
     });
 
@@ -167,9 +193,7 @@ describe('BeehiivPublisherService', () => {
       expect(mockBeehiivService.createPost).toHaveBeenCalledWith(
         expect.anything(),
         expect.anything(),
-        expect.anything(),
-        '',
-        expect.anything(),
+        expect.objectContaining({ contentHtml: '' }),
       );
     });
 
@@ -201,6 +225,17 @@ describe('BeehiivPublisherService', () => {
       const result = await service.publish(baseContext);
 
       expect(result.url).toBe('https://newsletter.example.com/p/title');
+    });
+
+    it('uses the preview URL returned by asynchronous post creation', async () => {
+      mockBeehiivService.createPost.mockResolvedValue({
+        id: 'post-id',
+        preview_url: 'https://app.beehiiv.com/posts/post-id/preview',
+      });
+
+      const result = await service.publish(baseContext);
+
+      expect(result.url).toBe('https://app.beehiiv.com/posts/post-id/preview');
     });
   });
 

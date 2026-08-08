@@ -5,7 +5,8 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform } from '@genfeedai/enums';
+import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
+import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -42,21 +43,34 @@ export class BeehiivPublisherService extends BasePublisherService {
 
     try {
       const { apiKey, publicationId } =
-        await this.beehiivService.getDecryptedApiKey(organizationId, brandId);
+        await this.beehiivService.getDecryptedApiKey(
+          organizationId,
+          brandId,
+          String(context.credential.id),
+        );
 
       // Use post label as title, description as HTML content
       const title = post.label ?? 'Untitled';
       const contentHtml = post.description ?? '';
 
-      // Set status based on draft flag
-      const status = context.isDraft ? 'draft' : 'confirmed';
+      const configuredStatus = readChannelSettingString(
+        context.settings,
+        'providerStatus',
+      );
+      const status =
+        context.isDraft || configuredStatus === 'draft' ? 'draft' : 'confirmed';
 
       const result = await this.beehiivService.createPost(
         apiKey,
         publicationId,
-        title,
-        contentHtml,
-        status,
+        {
+          contentHtml,
+          ...(status === 'confirmed' && context.scheduledAt
+            ? { scheduledAt: context.scheduledAt }
+            : {}),
+          status,
+          title,
+        },
       );
 
       if (!result.id) {
@@ -67,8 +81,17 @@ export class BeehiivPublisherService extends BasePublisherService {
       }
 
       const postUrl =
-        result.web_url || this.buildPostUrl(result.id, context.credential);
-      return this.createSuccessResult(result.id, this.platform, postUrl);
+        result.web_url ||
+        result.preview_url ||
+        this.buildPostUrl(result.id, context.credential);
+      const publishResult = this.createSuccessResult(
+        result.id,
+        this.platform,
+        postUrl,
+      );
+      return status === 'draft'
+        ? { ...publishResult, status: PostStatus.DRAFT }
+        : publishResult;
     } catch (error: unknown) {
       this.logger.error(`${url} failed to publish`, {
         error: (error as Error)?.message,
