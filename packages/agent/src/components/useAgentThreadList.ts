@@ -373,15 +373,31 @@ export function useAgentThreadList({
   const handleArchiveFromMenu = useCallback(
     async (thread: AgentThread) => {
       try {
-        await runAgentApiEffect(apiService.archiveThreadEffect(thread.id));
+        const archived = await runAgentApiEffect(
+          apiService.archiveThreadEffect(thread.id),
+        );
         const currentThreads = useAgentChatStore.getState().threads;
-        setThreads(currentThreads.filter((item) => item.id !== thread.id));
-
+        // Drop from Recent immediately. If this is the open thread and we stay
+        // on the URL, keep a store row with status archived so isReadOnly flips
+        // even before the next getThread.
         if (thread.id === activeThreadId) {
-          clearMessages();
+          setThreads(
+            currentThreads.map((item) =>
+              item.id === thread.id
+                ? {
+                    ...item,
+                    ...archived,
+                    status: archived.status ?? AgentThreadStatus.ARCHIVED,
+                  }
+                : item,
+            ),
+          );
           if (onNavigate) {
+            clearMessages();
             onNavigate(getNewThreadHref());
           }
+        } else {
+          setThreads(currentThreads.filter((item) => item.id !== thread.id));
         }
       } catch {
         // Silently ignore failed archive

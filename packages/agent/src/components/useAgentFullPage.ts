@@ -188,6 +188,13 @@ export function useAgentFullPage({
       ? (s.threads.find((thread) => thread.id === threadId)?.brandId ?? null)
       : null,
   );
+  // Store status can land before getThread resolves (or after archive-from-menu).
+  // Prefer either source so isReadOnly does not lag open for regenerates.
+  const storeThreadStatus = useAgentChatStore((s) =>
+    threadId
+      ? (s.threads.find((thread) => thread.id === threadId)?.status ?? null)
+      : null,
+  );
   const activeThreadRef = useRef(activeStoreThreadId);
   const messageCountRef = useRef(existingMessages.length);
   const threadOutputs = useMemo(
@@ -483,9 +490,11 @@ export function useAgentFullPage({
     });
   }, [apiService, threadId, updateThread]);
 
+  const resolvedThreadStatus = activeThreadStatus ?? storeThreadStatus ?? null;
+
   return {
     activeThreadBrandId,
-    activeThreadStatus,
+    activeThreadStatus: resolvedThreadStatus,
     agentSetup,
     currentStepId,
     handleUnarchiveActiveThread,

@@ -289,6 +289,19 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
+      const thread = await this.agentThreadsService.findOne({
+        id: threadId,
+        isDeleted: false,
+        organizationId,
+      } as never);
+      const status = String(
+        (thread as { status?: string | null } | null)?.status ?? '',
+      ).toLowerCase();
+      if (status === AgentThreadStatus.ARCHIVED || status === 'archived') {
+        throw new BadRequestException(
+          'This thread is archived. Unarchive it before sending messages or running actions.',
+        );
+      }
       const message = await this.agentMessagesService.addMessage({
         content: body.content,
         organizationId,

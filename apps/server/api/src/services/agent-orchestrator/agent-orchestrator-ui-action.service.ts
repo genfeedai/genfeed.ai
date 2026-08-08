@@ -39,6 +39,7 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import {
   AgentAutonomyMode,
   AgentMessageRole,
+  AgentThreadStatus,
   RouterPriority,
   toRouterPriority,
 } from '@genfeedai/enums';
@@ -123,6 +124,23 @@ export class AgentOrchestratorUiActionService {
 
     if (!threadId) {
       throw new BadRequestException('Thread not found or inaccessible.');
+    }
+
+    const threadRecord = await this.agentThreadsService.findOne({
+      id: threadId,
+      isDeleted: false,
+      organizationId: context.organizationId,
+    } as never);
+    const threadStatus = String(
+      (threadRecord as { status?: string | null } | null)?.status ?? '',
+    ).toLowerCase();
+    if (
+      threadStatus === AgentThreadStatus.ARCHIVED ||
+      threadStatus === 'archived'
+    ) {
+      throw new BadRequestException(
+        'This thread is archived. Unarchive it before sending messages or running actions.',
+      );
     }
 
     const orgSettings = await this.organizationSettingsService.findOne({
