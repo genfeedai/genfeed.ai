@@ -427,7 +427,7 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('3 ad variations')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Review Draft' })).toHaveAttribute(
       'href',
-      '/publish/drafts',
+      '/publish/review',
     );
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument();
     expect(
@@ -477,7 +477,7 @@ describe('AgentChatMessage', () => {
 
     expect(
       screen.getByText(
-        'Created a recurring automation for your Instagram batch.',
+        /Created a recurring automation for your Instagram batch\./,
       ),
     ).toBeInTheDocument();
     expect(

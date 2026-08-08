@@ -67,8 +67,10 @@ describe('MetricSummary', () => {
       />,
     );
 
+    // Spacing between value/label/separator comes from flex gaps, so the
+    // text content itself carries no spaces.
     expect(screen.getByTestId('metric-summary')).toHaveTextContent(
-      '4 accounts · 2 healthy',
+      /4\s*accounts\s*·\s*2\s*healthy/,
     );
   });
 });

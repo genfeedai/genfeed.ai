@@ -1,4 +1,4 @@
-import { RouterPriority } from '@genfeedai/enums';
+import { AgentAutonomyMode, RouterPriority } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -139,7 +139,8 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
 
     expect(result.policy).toMatchObject({
       allowAdvancedOverrides: true,
-      autonomyMode: 'supervised',
+      // Unmigrated lowercase blobs normalize to the SCREAMING domain labels.
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
       generationModelOverride: 'openai/gpt-5.6-terra',
       generationPriority: RouterPriority.QUALITY,
       qualityTier: 'high_quality',
@@ -168,7 +169,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
     });
 
     expect(result.policy).toMatchObject({
-      autonomyMode: 'auto_publish',
+      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
       brandId: strategyBrandId.toString(),
       generationPriority: RouterPriority.COST,
       platform: 'twitter',

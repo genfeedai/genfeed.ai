@@ -482,12 +482,15 @@ async function runCli() {
           cwd: path.join(REPOSITORY_ROOT, 'apps', 'server', 'api'),
         })
       : Promise.resolve([]);
+  // Workspace groups are computed for every event, not just pull requests.
+  // On a push to master the diff base is `github.event.before` (the previous
+  // trunk tip), so each merge validates exactly the workspaces it touched.
+  // Gating this on `pull_request` meant packages/server/web tests never ran
+  // on master pushes at all — red workspaces rode the trunk invisibly.
   const turboTaskEntriesPromise = Promise.all(
     Object.entries(TURBO_TEST_GROUPS).map(async ([group, filters]) => [
       group,
-      args.event === 'pull_request' &&
-      !forceFull &&
-      !TEMPORARILY_DISABLED_TEST_GROUPS.has(group)
+      !forceFull && !TEMPORARILY_DISABLED_TEST_GROUPS.has(group)
         ? await listTurboTasks(base, filters)
         : [],
     ]),
