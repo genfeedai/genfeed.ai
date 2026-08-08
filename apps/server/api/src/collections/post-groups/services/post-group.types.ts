@@ -72,6 +72,7 @@ export type SchedulerPostTarget = {
   publishApprovalId: string | null;
   retryCount: number;
   scheduledDate: Date | null;
+  status: string;
   targetAttachments: Prisma.JsonValue;
   targetError: Prisma.JsonValue | null;
   targetExecutionState: string;
