@@ -151,8 +151,14 @@ function AgentChatInputToolbarInner({
     event.target.value = '';
   }
 
-  // Icon tools stay square; model chip is a tight text control of matching height.
+  // Match paperclip / link / actions: square ICON control with default
+  // design-system radius (rounded-md via ButtonSize.ICON) — never a full pill.
   const controlSize = isCompact ? 'size-8' : 'size-9';
+  const trailingControlClass = cn(
+    'shrink-0',
+    controlSize,
+    'min-h-0 min-w-0 p-0',
+  );
   // Pull only the far-right send into the shell padding — leading model chip
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
@@ -166,11 +172,7 @@ function AgentChatInputToolbarInner({
     trailingPrimary = (
       <Button
         ariaLabel="Stop agent"
-        className={cn(
-          'shrink-0 rounded-full',
-          controlSize,
-          'min-h-0 min-w-0 p-0',
-        )}
+        className={trailingControlClass}
         icon={
           <Square aria-hidden className="size-2.5 fill-current stroke-none" />
         }
@@ -187,11 +189,7 @@ function AgentChatInputToolbarInner({
     trailingPrimary = (
       <Button
         ariaLabel="Transcribing"
-        className={cn(
-          'shrink-0 rounded-full',
-          controlSize,
-          'min-h-0 min-w-0 p-0',
-        )}
+        className={trailingControlClass}
         icon={
           <RefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
         }
@@ -206,9 +204,8 @@ function AgentChatInputToolbarInner({
       <Button
         ariaLabel="Stop listening"
         className={cn(
-          'relative shrink-0 rounded-full bg-destructive/15 text-destructive',
-          controlSize,
-          'min-h-0 min-w-0 p-0',
+          trailingControlClass,
+          'relative bg-destructive/15 text-destructive',
         )}
         onClick={onStopListening}
         size={ButtonSize.ICON}
@@ -227,11 +224,7 @@ function AgentChatInputToolbarInner({
     trailingPrimary = (
       <Button
         ariaLabel="Start voice input"
-        className={cn(
-          'shrink-0 rounded-full',
-          controlSize,
-          'min-h-0 min-w-0 p-0',
-        )}
+        className={trailingControlClass}
         icon={<Mic className="size-4" />}
         isDisabled={disabled}
         onClick={onStartListening}
@@ -245,11 +238,7 @@ function AgentChatInputToolbarInner({
     trailingPrimary = (
       <Button
         ariaLabel="Send message"
-        className={cn(
-          'shrink-0 rounded-full',
-          controlSize,
-          'min-h-0 min-w-0 p-0',
-        )}
+        className={trailingControlClass}
         icon={<ArrowUp className="size-4" />}
         isDisabled={disabled || !hasEditor || !canSendMessage || isUploading}
         onClick={onSend}
