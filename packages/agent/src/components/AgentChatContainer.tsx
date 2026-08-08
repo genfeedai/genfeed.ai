@@ -153,17 +153,14 @@ export function AgentChatContainer({
       let settingsSnapshot = { ...currentUser.settings };
       try {
         while (pendingSettingsPatch.current) {
-          const nextPatch = pendingSettingsPatch.current;
-          pendingSettingsPatch.current = null;
           const token = await apiService.getToken();
           if (!token) {
-            // Do not drop the patch — re-queue so a later call can flush it.
-            pendingSettingsPatch.current = {
-              ...nextPatch,
-              ...pendingSettingsPatch.current,
-            };
+            // Patch stays queued (concurrent calls keep merging into it), so
+            // a later call can flush it.
             return;
           }
+          const nextPatch = pendingSettingsPatch.current;
+          pendingSettingsPatch.current = null;
           await UsersService.getInstance(token).patchSettings(
             currentUser.id,
             nextPatch,

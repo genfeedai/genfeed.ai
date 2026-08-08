@@ -459,6 +459,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         // Focus search (not the brand-rail icon). Rail tooltips are hover-only
         // too, but autofocus on "All providers" still felt wrong.
         onOpenAutoFocus={(event) => {
+          if (!(event.currentTarget instanceof HTMLElement)) {
+            return;
+          }
           const searchInput = event.currentTarget.querySelector('input');
           if (searchInput instanceof HTMLElement) {
             event.preventDefault();
