@@ -3,7 +3,7 @@ import { BatchesService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { captureWorkspaceShellApproval } from '@/lib/workspace-shell/workspace-shell-telemetry';
 import {
   areReviewFiltersEqual,
@@ -18,6 +18,31 @@ import { isReadyToReview } from './components/review-state';
 
 const DEFAULT_STATUS_FILTERS: ReviewStatusFilter[] = ['ready'];
 
+function buildReviewQuery(input: {
+  batchId: string | null;
+  filters: readonly ReviewStatusFilter[];
+  itemId: string | null;
+  baseParams: URLSearchParams;
+}): string {
+  const params = new URLSearchParams(input.baseParams.toString());
+
+  if (input.batchId) {
+    params.set('batch', input.batchId);
+  } else {
+    params.delete('batch');
+  }
+
+  params.set('filter', serializeReviewFilters(input.filters));
+
+  if (input.itemId) {
+    params.set('item', input.itemId);
+  } else {
+    params.delete('item');
+  }
+
+  return params.toString();
+}
+
 export function useReviewQueueContent() {
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
@@ -27,8 +52,6 @@ export function useReviewQueueContent() {
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const requestedBatchId = searchParams.get('batch');
-  // Raw param — effect deps must key on the URL string, not a derived array,
-  // so local filter toggles are not clobbered before router navigation settles.
   const filterParam = searchParams.get('filter');
   const requestedFilters = parseReviewFilters(filterParam);
   const requestedItemId = searchParams.get('item');
@@ -45,6 +68,9 @@ export function useReviewQueueContent() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isActioning, setIsActioning] = useState(false);
+
+  // Last query we wrote — ignore echo updates from our own replace().
+  const lastWrittenQueryRef = useRef<string | null>(null);
 
   const {
     data: batches = [],
@@ -74,27 +100,28 @@ export function useReviewQueueContent() {
       filters?: readonly ReviewStatusFilter[];
       itemId?: string | null;
     }) => {
-      const params = new URLSearchParams(searchParamsString);
-      const nextBatchId = input.batchId ?? activeBatchId;
-      const nextFilters = input.filters ?? activeFilters;
+      const nextBatchId =
+        input.batchId === undefined ? activeBatchId : input.batchId;
+      const nextFilters =
+        input.filters === undefined ? activeFilters : input.filters;
       const nextItemId =
-        input.itemId === undefined ? activeItemId : (input.itemId ?? null);
+        input.itemId === undefined ? activeItemId : input.itemId;
 
-      if (nextBatchId) {
-        params.set('batch', nextBatchId);
-      } else {
-        params.delete('batch');
+      const nextQuery = buildReviewQuery({
+        baseParams: new URLSearchParams(searchParamsString),
+        batchId: nextBatchId,
+        filters: nextFilters,
+        itemId: nextItemId,
+      });
+
+      // Critical: no-op when nothing changed — replace() on an identical URL
+      // still churns searchParams in App Router and retriggers effects.
+      if (nextQuery === searchParamsString) {
+        lastWrittenQueryRef.current = nextQuery;
+        return;
       }
 
-      params.set('filter', serializeReviewFilters(nextFilters));
-
-      if (nextItemId) {
-        params.set('item', nextItemId);
-      } else {
-        params.delete('item');
-      }
-
-      const nextQuery = params.toString();
+      lastWrittenQueryRef.current = nextQuery;
       const nextHref = nextQuery ? `${pathname}?${nextQuery}` : pathname;
       replace(nextHref, { scroll: false });
     },
@@ -164,36 +191,84 @@ export function useReviewQueueContent() {
     }
   }, [batchList, requestedBatchId, selectedBatchId]);
 
-  // URL → state only. Never depend on activeFilters here — that reverts toggles
-  // before `router.replace` updates searchParams (selection appears stuck).
+  // External URL changes only (back/forward / pasted link). Skip our own writes.
   useEffect(() => {
-    const parsed = parseReviewFilters(filterParam);
-    if (parsed === null) {
+    if (searchParamsString === lastWrittenQueryRef.current) {
       return;
     }
-    setActiveFilters((current) =>
-      areReviewFiltersEqual(current, parsed) ? current : parsed,
-    );
-  }, [filterParam]);
 
-  // URL → item only when the item query changes (back/forward / deep link).
+    const parsedFilters = parseReviewFilters(filterParam);
+    if (parsedFilters !== null) {
+      setActiveFilters((current) =>
+        areReviewFiltersEqual(current, parsedFilters) ? current : parsedFilters,
+      );
+    }
+
+    if (requestedBatchId) {
+      setSelectedBatchId((current) =>
+        current === requestedBatchId ? current : requestedBatchId,
+      );
+    }
+
+    setActiveItemId((current) => {
+      if (requestedItemId) {
+        return current === requestedItemId ? current : requestedItemId;
+      }
+      // URL dropped item — keep local selection until visible-items guard runs.
+      return current;
+    });
+  }, [filterParam, requestedBatchId, requestedItemId, searchParamsString]);
+
+  // Ensure the active row is always inside the current filter window (local only).
+  // URL writes happen once below when local + URL actually disagree.
   useEffect(() => {
-    if (!requestedItemId) {
+    if (visibleItems.length === 0) {
+      setActiveItemId((current) => (current === null ? current : null));
       return;
     }
-    setActiveItemId((current) =>
-      current === requestedItemId ? current : requestedItemId,
-    );
-  }, [requestedItemId]);
 
+    setActiveItemId((current) => {
+      if (current && visibleItems.some((item) => item.id === current)) {
+        return current;
+      }
+      // Prefer deep-linked item when still visible after a filter change.
+      if (
+        requestedItemId &&
+        visibleItems.some((item) => item.id === requestedItemId)
+      ) {
+        return requestedItemId;
+      }
+      return visibleItems[0]?.id ?? null;
+    });
+  }, [requestedItemId, visibleItems]);
+
+  // Single URL write path for settled local state — only when query would change.
   useEffect(() => {
-    if (!requestedBatchId && activeBatchId) {
-      syncReviewLocation({ batchId: activeBatchId });
+    if (!activeBatchId) {
+      return;
     }
-  }, [activeBatchId, requestedBatchId, syncReviewLocation]);
 
+    // Wait until batch list is known so we don't thrash empty filters.
+    if (activeBatch === null && isBatchLoading) {
+      return;
+    }
+
+    syncReviewLocation({
+      batchId: activeBatchId,
+      filters: activeFilters,
+      itemId: activeItemId,
+    });
+  }, [
+    activeBatch,
+    activeBatchId,
+    activeFilters,
+    activeItemId,
+    isBatchLoading,
+    syncReviewLocation,
+  ]);
+
+  // Default ready-only view is empty but the batch has other work — open all.
   useEffect(() => {
-    // Default ready-only view is empty but the batch has other work — open all.
     if (
       activeBatch &&
       activeFilters.length === 1 &&
@@ -202,68 +277,8 @@ export function useReviewQueueContent() {
       filterCounts.all > 0
     ) {
       setActiveFilters([]);
-      syncReviewLocation({ filters: [], itemId: activeItemId });
     }
-  }, [
-    activeBatch,
-    activeFilters,
-    activeItemId,
-    filterCounts,
-    syncReviewLocation,
-  ]);
-
-  // Keep the active row inside the current filter window. Prefer the URL item
-  // when it is still visible; otherwise pick the first visible item (or none).
-  useEffect(() => {
-    if (visibleItems.length === 0) {
-      setActiveItemId((current) => (current === null ? current : null));
-      return;
-    }
-
-    if (
-      requestedItemId &&
-      activeBatchId === requestedBatchId &&
-      visibleItems.some((item) => item.id === requestedItemId)
-    ) {
-      setActiveItemId((current) =>
-        current === requestedItemId ? current : requestedItemId,
-      );
-      return;
-    }
-
-    if (
-      !activeItemId ||
-      !visibleItems.some((item) => item.id === activeItemId)
-    ) {
-      const nextItemId = visibleItems[0]?.id ?? null;
-      setActiveItemId(nextItemId);
-    }
-  }, [
-    activeBatchId,
-    activeItemId,
-    requestedBatchId,
-    requestedItemId,
-    visibleItems,
-  ]);
-
-  // Push item id into the URL only after local active item settles — never
-  // rewrite filters from this effect (would fight multi-select toggles).
-  useEffect(() => {
-    if (activeItemId === requestedItemId) {
-      return;
-    }
-    if (
-      activeItemId &&
-      !visibleItems.some((item) => item.id === activeItemId)
-    ) {
-      return;
-    }
-    // Empty list: clear item from the URL when it still has a stale value.
-    if (!activeItemId && !requestedItemId) {
-      return;
-    }
-    syncReviewLocation({ itemId: activeItemId });
-  }, [activeItemId, requestedItemId, syncReviewLocation, visibleItems]);
+  }, [activeBatch, activeFilters, filterCounts]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -291,13 +306,9 @@ export function useReviewQueueContent() {
     });
   }, []);
 
-  const handleSelectItem = useCallback(
-    (itemId: string) => {
-      setActiveItemId(itemId);
-      syncReviewLocation({ itemId });
-    },
-    [syncReviewLocation],
-  );
+  const handleSelectItem = useCallback((itemId: string) => {
+    setActiveItemId(itemId);
+  }, []);
 
   const handleFilterChange = useCallback(
     (filters: ReviewStatusFilter[]) => {
@@ -305,15 +316,12 @@ export function useReviewQueueContent() {
         activeBatch?.items ?? [],
         filters,
       );
-      const nextItemId = getNextActiveItemId(nextVisibleItems, null);
+      const nextItemId = getNextActiveItemId(nextVisibleItems, activeItemId);
 
-      // Write local state first, then push URL. URL→state effect only keys on
-      // `filterParam`, so this no longer reverts mid-toggle.
       setActiveFilters(filters);
       setActiveItemId(nextItemId);
-      syncReviewLocation({ filters, itemId: nextItemId });
     },
-    [activeBatch?.items, syncReviewLocation],
+    [activeBatch?.items, activeItemId],
   );
 
   const handleBulkAction = useCallback(
@@ -339,7 +347,6 @@ export function useReviewQueueContent() {
         await refreshBatch();
         const nextItemId = getNextActiveItemId(remainingItems, activeItemId);
         setActiveItemId(nextItemId);
-        syncReviewLocation({ itemId: nextItemId });
         captureWorkspaceShellApproval({
           action,
           integrity: 'not_applicable',
@@ -362,7 +369,6 @@ export function useReviewQueueContent() {
       getBatchesService,
       refreshBatch,
       selectedIds,
-      syncReviewLocation,
       visibleItems,
     ],
   );
@@ -404,15 +410,10 @@ export function useReviewQueueContent() {
 
         if (approvedItem?.postId && !approvedItem.scheduledDate) {
           setSelectedPostId(approvedItem.postId);
-          const nextItemId = getNextActiveItemId(remainingItems, itemId);
-          setActiveItemId(nextItemId);
-          syncReviewLocation({ itemId: nextItemId });
-          return;
         }
 
         const nextItemId = getNextActiveItemId(remainingItems, itemId);
         setActiveItemId(nextItemId);
-        syncReviewLocation({ itemId: nextItemId });
       } catch (error) {
         captureWorkspaceShellApproval({
           action: 'approve',
@@ -424,14 +425,7 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [
-      activeBatch,
-      activeBatchId,
-      getBatchesService,
-      refreshBatch,
-      syncReviewLocation,
-      visibleItems,
-    ],
+    [activeBatch, activeBatchId, getBatchesService, refreshBatch, visibleItems],
   );
 
   const handleRequestChanges = useCallback(
@@ -463,20 +457,13 @@ export function useReviewQueueContent() {
         });
         const nextItemId = getNextActiveItemId(remainingItems, itemId);
         setActiveItemId(nextItemId);
-        syncReviewLocation({ itemId: nextItemId });
       } catch (error) {
         logger.error('Request changes failed', error);
       } finally {
         setIsActioning(false);
       }
     },
-    [
-      activeBatchId,
-      getBatchesService,
-      refreshBatch,
-      syncReviewLocation,
-      visibleItems,
-    ],
+    [activeBatchId, getBatchesService, refreshBatch, visibleItems],
   );
 
   const handleRejectItem = useCallback(
@@ -515,7 +502,6 @@ export function useReviewQueueContent() {
 
         const nextItemId = getNextActiveItemId(remainingItems, itemId);
         setActiveItemId(nextItemId);
-        syncReviewLocation({ itemId: nextItemId });
       } catch (error) {
         captureWorkspaceShellApproval({
           action: 'reject',
@@ -527,29 +513,15 @@ export function useReviewQueueContent() {
         setIsActioning(false);
       }
     },
-    [
-      activeBatchId,
-      getBatchesService,
-      refreshBatch,
-      syncReviewLocation,
-      visibleItems,
-    ],
+    [activeBatchId, getBatchesService, refreshBatch, visibleItems],
   );
 
-  const handleBatchChange = useCallback(
-    (value: string) => {
-      setSelectedBatchId(value);
-      setActiveItemId(null);
-      setSelectedIds(new Set());
-      setActiveFilters(DEFAULT_STATUS_FILTERS);
-      syncReviewLocation({
-        batchId: value,
-        filters: DEFAULT_STATUS_FILTERS,
-        itemId: null,
-      });
-    },
-    [syncReviewLocation],
-  );
+  const handleBatchChange = useCallback((value: string) => {
+    setSelectedBatchId(value);
+    setActiveItemId(null);
+    setSelectedIds(new Set());
+    setActiveFilters(DEFAULT_STATUS_FILTERS);
+  }, []);
 
   return {
     activeFilters,
