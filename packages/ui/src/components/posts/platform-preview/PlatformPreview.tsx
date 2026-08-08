@@ -387,7 +387,7 @@ function formatDuration(seconds?: number): string | undefined {
   return `${minutes}:${remainder}`;
 }
 
-function buildMediaFromIngredients(
+export function buildMediaFromIngredients(
   ingredients: IIngredient[] | undefined,
 ): PlatformPreviewMedia[] {
   return (ingredients ?? []).map((ingredient, index) => ({

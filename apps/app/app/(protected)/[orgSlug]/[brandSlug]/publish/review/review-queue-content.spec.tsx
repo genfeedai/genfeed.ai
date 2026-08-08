@@ -123,6 +123,9 @@ vi.mock('./components/ReviewGrid', () => ({
   ),
 }));
 
+// Single-item decision actions (approve / request changes / reject) moved to
+// the agent Context rail via ReviewWorkspaceSurfaceAdapter — ReviewGrid is a
+// table-only queue now (see ReviewQueueView.tsx).
 vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
   default: ({
     activeItem,
@@ -131,9 +134,12 @@ vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
     onRequestChanges,
   }: {
     activeItem: { id: string } | null;
+    isActioning: boolean;
+    isSelected: boolean;
     onApprove: (itemId: string) => void;
     onReject: (itemId: string, feedback?: string) => void;
     onRequestChanges: (itemId: string, feedback?: string) => void;
+    onToggleSelect: (itemId: string) => void;
   }) => (
     <div>
       <button
@@ -500,7 +506,8 @@ describe('ReviewQueueContent', () => {
     render(<ReviewQueueContent />);
 
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();
-    // Batch picker lives in publish layout action rail (filtersNode), not body.
+    // Batch picker + status filters live in the publish layout action rail
+    // (filtersNode), not the page body — render what was portaled to assert on it.
     expect(screen.queryByText('Review Stats Header')).not.toBeInTheDocument();
     render(latestFiltersNode());
     expect(screen.getByText('Ready count: 2')).toBeInTheDocument();
@@ -519,8 +526,11 @@ describe('ReviewQueueContent', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+    // Show All clears the filter (serializes to "all"). getNextActiveItemId
+    // keeps the current active item when it remains visible, and item-2 is
+    // visible under "all", so the active item does not move.
     expect(mocks.replace).toHaveBeenCalledWith(
-      '/publish/review?batch=batch-1&filter=all&item=item-1',
+      '/publish/review?batch=batch-1&filter=all&item=item-2',
       { scroll: false },
     );
   });
