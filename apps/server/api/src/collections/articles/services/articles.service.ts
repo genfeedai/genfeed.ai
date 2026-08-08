@@ -126,7 +126,7 @@ export class ArticlesService extends BaseService<
    * createArticle/update/removeArticle.
    *
    * Busts two layers: (1) the canonical `articles:list:{orgId}` /
-   * `articles:single:{id}` keys plus the shared `articles:*` pattern via
+   * `articles:single:{id}` keys plus the shared `articles` tag via
    * CacheInvalidationService — without these, HTTP `@Cache` responses keyed by
    * org/id can go stale after a write — and (2) the legacy tag set on the
    * tag-based CacheService. See api CLAUDE.md → Cache Invalidation Pattern.
@@ -158,10 +158,12 @@ export class ArticlesService extends BaseService<
       if (keys.length > 0) {
         await this.cacheInvalidationService.invalidate(...keys);
       }
-      // Bust any remaining org/user-scoped article keys from the @Cache decorator.
-      await this.cacheInvalidationService.invalidatePattern(
-        `${CACHE_TAGS.ARTICLES}:*`,
-      );
+      // Bust org/user-scoped @Cache responses registered under the shared
+      // articles tag at set time. Idempotent with the CacheService tag pass
+      // below — both run so each optional dependency stays self-sufficient.
+      await this.cacheInvalidationService.invalidateByTags([
+        CACHE_TAGS.ARTICLES,
+      ]);
     }
 
     if (!this.cacheService) {

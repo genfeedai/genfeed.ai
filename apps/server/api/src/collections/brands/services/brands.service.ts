@@ -246,9 +246,7 @@ export class BrandsService extends BaseService<
       );
     }
     // Also bust the shared brands tag (covers user-scoped list keys from @Cache decorator)
-    await this.cacheInvalidationService.invalidatePattern(
-      `${CACHE_TAGS.BRANDS}:*`,
-    );
+    await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
 
     return brand;
   }

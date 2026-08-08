@@ -50,3 +50,13 @@ export const CACHE_TAGS = {
   INGREDIENTS: 'ingredients',
   LISTENING_TOPICS: 'listeningTopics',
 } as const;
+
+/**
+ * Org-scoped tag factories for caches that hold several keys per organization
+ * (one per brand, plus derived variants). The tag must be registered at set
+ * time via the CacheService `tags` option so a write invalidates the exact
+ * key set (SMEMBERS + DEL) instead of walking the keyspace with SCAN.
+ */
+export const SCOPED_CACHE_TAGS = {
+  BRAND_CONTEXT: (orgId: string) => `brand-ctx:${orgId}`,
+} as const;

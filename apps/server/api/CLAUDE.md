@@ -44,13 +44,25 @@ per-collection write path; that reintroduces the cache stampede this fixes.
    ```
 5. Test: verify write → list reflects change immediately (no stale cache)
 
+### Invalidation is tag-set based — never SCAN
+
+Every cached key must be registered under its tags at set time (`CacheService`
+`tags` option, which routes through `CacheTagsService.setTags`). Writes then
+bust the exact key set with `invalidateByTags` (SMEMBERS + pipelined DEL), so
+invalidation cost is proportional to the keys actually cached for the
+collection. Keyspace-walking pattern invalidation
+(`invalidatePattern`, SCAN+UNLINK) is retired — do not reintroduce it on
+request-path writes. Caches holding several keys per org (e.g. the assembled
+agent brand context, one key per brand plus `selected`) use an org-scoped tag
+from `SCOPED_CACHE_TAGS` (`brand-ctx:{orgId}`) registered at set time.
+
 ### Services involved
 - `CacheService` — tag-based get/set/invalidate (prefer this for most cases)
-- `CacheInvalidationService` — direct key + pattern (SCAN+UNLINK) busting for explicit keys
+- `CacheInvalidationService` — direct key (UNLINK) + tag-set busting for explicit keys
 - `CacheTagsService` — internal: maintains tag→key sets in Redis
 - `RedisCacheInterceptor` + `@Cache()` decorator — HTTP-level response caching with tags
 
 ### BrandsService reference implementation
-- `create()` → invalidates `CACHE_PATTERNS.BRANDS_LIST(orgId)` + pattern `brands:*`
+- `create()` → invalidates `CACHE_PATTERNS.BRANDS_LIST(orgId)` + the `brands` tag
 - `patch()` → invalidates `CACHE_PATTERNS.BRANDS_SINGLE(id)` (list handled by BaseService)
 - `remove()` → invalidates `CACHE_PATTERNS.BRANDS_SINGLE(id)` (list handled by BaseService)

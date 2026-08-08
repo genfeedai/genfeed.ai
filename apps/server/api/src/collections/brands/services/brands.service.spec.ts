@@ -15,7 +15,11 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
 import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
@@ -39,7 +43,6 @@ describe('BrandsService', () => {
   let cacheInvalidationService: {
     invalidate: ReturnType<typeof vi.fn>;
     invalidateByTags: ReturnType<typeof vi.fn>;
-    invalidatePattern: ReturnType<typeof vi.fn>;
   };
   let accessBootstrapCacheService: {
     invalidateForOrganization: ReturnType<typeof vi.fn>;
@@ -74,7 +77,6 @@ describe('BrandsService', () => {
     cacheInvalidationService = {
       invalidate: vi.fn(),
       invalidateByTags: vi.fn(),
-      invalidatePattern: vi.fn(),
     };
     accessBootstrapCacheService = {
       invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
@@ -192,6 +194,9 @@ describe('BrandsService', () => {
       expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
         CACHE_PATTERNS.BRANDS_LIST('org-1'),
       );
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        CACHE_TAGS.BRANDS,
+      ]);
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org-1');
@@ -607,6 +612,7 @@ describe('BrandsService', () => {
       expect(cacheInvalidationService.invalidate).toHaveBeenCalled();
       expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
         'brands',
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId),
         'assets',
         'links',
         'public',

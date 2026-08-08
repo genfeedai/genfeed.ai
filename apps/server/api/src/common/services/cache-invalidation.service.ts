@@ -39,47 +39,14 @@ export class CacheInvalidationService {
   }
 
   /**
-   * Scan Redis for all keys matching a glob pattern and unlink them.
+   * Bust every key registered under the given tags (SMEMBERS + pipelined DEL).
    *
-   * Uses SCAN + UNLINK to avoid blocking the server on large keyspaces.
-   * Example pattern: `brands:list:*`
+   * This is the only fan-out invalidation primitive: cost is proportional to
+   * the keys actually cached under the tag, never to Redis keyspace size.
+   * Keys must be registered under their tags at set time (CacheService `tags`
+   * option / CacheTagsService.setTags) — pattern SCAN invalidation is retired
+   * from write paths.
    */
-  async invalidatePattern(pattern: string): Promise<void> {
-    try {
-      let cursor = '0';
-      let totalUnlinked = 0;
-
-      do {
-        const [nextCursor, keys] = await this.client.scan(
-          cursor,
-          'MATCH',
-          pattern,
-          'COUNT',
-          100,
-        );
-
-        cursor = nextCursor;
-
-        if (keys.length) {
-          await this.client.unlink(keys);
-          totalUnlinked += keys.length;
-        }
-      } while (cursor !== '0');
-
-      if (totalUnlinked > 0) {
-        this.logger.debug(
-          `${this.constructorName} invalidatePattern unlinked ${totalUnlinked} keys`,
-          { pattern },
-        );
-      }
-    } catch (error: unknown) {
-      this.logger.error(`${this.constructorName} invalidatePattern error`, {
-        error,
-        pattern,
-      });
-    }
-  }
-
   async invalidateByTags(tags: string[]): Promise<number> {
     try {
       const count = await this.cacheTagsService.invalidateByTags(tags);

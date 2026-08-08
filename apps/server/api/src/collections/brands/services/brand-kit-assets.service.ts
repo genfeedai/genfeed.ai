@@ -7,6 +7,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -604,12 +605,11 @@ export class BrandKitAssetsService {
     );
     // The assembled agent context caches the resolved assets, so a freshly
     // imported logo must not wait out the 5-minute TTL before it reaches a
-    // prompt. `selected` is a second key for the same brand.
-    await this.cacheInvalidationService.invalidatePattern(
-      `brand-ctx:${organizationId}:*`,
-    );
+    // prompt. The org-scoped tag covers every brand-ctx variant (per-brand
+    // + `selected`), registered at set time by AgentContextAssemblyService.
     await this.cacheInvalidationService.invalidateByTags([
       CACHE_TAGS.BRANDS,
+      SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId),
       'assets',
       'links',
       'public',
