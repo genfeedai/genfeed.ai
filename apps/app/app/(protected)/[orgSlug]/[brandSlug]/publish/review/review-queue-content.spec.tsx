@@ -187,32 +187,21 @@ vi.mock('@contexts/posts/posts-layout-context', () => ({
   }),
 }));
 
-vi.mock('@ui/primitives/select', () => ({
-  Select: ({
-    children,
-    onValueChange,
+vi.mock('@ui/buttons/dropdown/button-dropdown/ButtonDropdown', () => ({
+  default: ({
+    onChange,
     value,
   }: {
-    children: ReactNode;
-    onValueChange: (value: string) => void;
+    onChange: (name: string, value: string) => void;
     value: string;
   }) => (
     <div>
       <div>Selected batch: {value}</div>
-      <button type="button" onClick={() => onValueChange('batch-2')}>
+      <button type="button" onClick={() => onChange('review-batch', 'batch-2')}>
         Select batch-2
       </button>
-      {children}
     </div>
   ),
-  SelectContent: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectItem: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  SelectTrigger: ({ children }: { children: ReactNode }) => (
-    <div>{children}</div>
-  ),
-  SelectValue: () => <div>Select value</div>,
 }));
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({

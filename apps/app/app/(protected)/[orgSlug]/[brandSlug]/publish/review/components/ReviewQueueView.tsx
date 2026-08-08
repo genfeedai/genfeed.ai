@@ -4,25 +4,25 @@ import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { CardVariant, PageScope } from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
+import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@ui/primitives/select';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import ReviewGrid from './ReviewGrid';
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
 
-function getBatchOptionLabel(batch: IBatchSummary): string {
+/** Match Publish header chrome used by PostsListToolbar sort/status controls. */
+const PUBLISH_HEADER_DROPDOWN_CLASS =
+  'h-8 max-w-[16rem] rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/80 hover:bg-white/[0.06] hover:text-white';
+
+export function getBatchOptionLabel(batch: IBatchSummary): string {
   const shortId = batch.id.slice(-6);
   const status =
-    typeof batch.status === 'string' ? batch.status.replaceAll('_', ' ') : '';
+    typeof batch.status === 'string' && batch.status.trim()
+      ? batch.status.replaceAll('_', ' ').toLowerCase()
+      : '';
   return `${shortId} · ${batch.totalCount} items${status ? ` · ${status}` : ''}`;
 }
 
@@ -89,6 +89,15 @@ export default function ReviewQueueView({
 }: ReviewQueueViewProps) {
   const { setFiltersNode, setIsRefreshing, setRefresh } = usePostsLayout();
 
+  const batchOptions = useMemo(
+    () =>
+      batchList.map((batch) => ({
+        label: getBatchOptionLabel(batch),
+        value: batch.id,
+      })),
+    [batchList],
+  );
+
   useEffect(() => {
     setRefresh(() => onRefresh);
     return () => {
@@ -101,35 +110,33 @@ export default function ReviewQueueView({
   }, [isBatchLoading, isRefreshing, setIsRefreshing]);
 
   useEffect(() => {
-    if (batchList.length === 0) {
+    if (batchOptions.length === 0) {
       setFiltersNode(null);
       return () => {
         setFiltersNode(null);
       };
     }
 
+    // Same shell control as publish list sort/status (ButtonDropdown), not a
+    // bare form Select — those render a different chrome in the action rail.
     setFiltersNode(
-      <Select value={activeBatchId ?? ''} onValueChange={onBatchChange}>
-        <SelectTrigger
-          aria-label="Select review batch"
-          className="h-8 w-[min(100%,16rem)] text-xs"
-        >
-          <SelectValue placeholder="Select batch" />
-        </SelectTrigger>
-        <SelectContent>
-          {batchList.map((batch) => (
-            <SelectItem key={batch.id} value={batch.id}>
-              {getBatchOptionLabel(batch)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>,
+      <ButtonDropdown
+        className={PUBLISH_HEADER_DROPDOWN_CLASS}
+        name="review-batch"
+        onChange={(_name, value) => {
+          onBatchChange(value);
+        }}
+        options={batchOptions}
+        placeholder="Select batch"
+        tooltip="Select review batch"
+        value={activeBatchId ?? ''}
+      />,
     );
 
     return () => {
       setFiltersNode(null);
     };
-  }, [activeBatchId, batchList, onBatchChange, setFiltersNode]);
+  }, [activeBatchId, batchOptions, onBatchChange, setFiltersNode]);
 
   if (batchesError || hasInvalidBatchPayload) {
     return (
