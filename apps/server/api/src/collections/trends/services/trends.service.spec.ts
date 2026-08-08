@@ -268,12 +268,7 @@ describe('TrendsService', () => {
 
   describe('purgeSyntheticTrendRows', () => {
     it('delegates soft-delete of prelaunch seed rows', async () => {
-      const purgeSpy = vi
-        .spyOn(service as never, 'purgeSyntheticTrendRows')
-        .mockResolvedValue({ purged: 3 } as never);
-
-      // Call through the real method path via trendQueryService mock instead
-      purgeSpy.mockRestore();
+      // Exercise the real method path with only the delegate mocked.
       const trendQueryService = (
         service as unknown as { trendQueryService: TrendQueryService }
       ).trendQueryService;

@@ -1,6 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsOperationsController } from '@api/collections/ingredients/controllers/ingredients-operations.controller';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -121,7 +122,7 @@ describe('IngredientsController (cloneIngredient)', () => {
           width: 100,
         },
         organizationId: 'org',
-      });
+      } as unknown as IngredientDocument);
 
       const sharedServiceSaveDocumentsSpy = vi
         .spyOn(sharedService, 'createMediaDocuments')
