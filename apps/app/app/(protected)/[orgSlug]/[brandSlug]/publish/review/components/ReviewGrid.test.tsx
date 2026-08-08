@@ -1,5 +1,6 @@
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
 import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ReviewGrid from './ReviewGrid';
 import {
   getReviewFilterCounts,
@@ -276,7 +277,7 @@ describe('ReviewGrid', () => {
     expect(getVisibleReviewItems(items as never, 'skipped')).toHaveLength(1);
   });
 
-  it('routes filter, item, selection, and bulk actions', () => {
+  it('routes filter, item, selection, and bulk actions', async () => {
     const onFilterChange = vi.fn();
     const onSelectItem = vi.fn();
     const onToggleSelect = vi.fn();
@@ -311,7 +312,8 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('tab', { name: /Approved\s*0/i }));
+    // Radix tab triggers activate on the pointer sequence, not a bare click.
+    await userEvent.click(screen.getByRole('tab', { name: /Approved\s*0/i }));
     fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
     fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
     // The detail panel renders its own Approve/Reject; scope the bulk
