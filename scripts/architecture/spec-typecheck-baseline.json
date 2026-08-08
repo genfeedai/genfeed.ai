@@ -225,14 +225,6 @@
       "workspace": "api"
     },
     {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/server/api/src/collections/assets/controllers/operations/assets-operations.controller.spec.ts",
-      "fingerprint": "fe106f41dc7e55bebad1",
-      "message": "Type 'IngredientCategory.VIDEO' is not assignable to type 'IngredientCategory'. Did you mean '\"VIDEO\"'?",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/assets/entities/asset.entity.spec.ts",
@@ -270,54 +262,6 @@
       "file": "apps/server/api/src/collections/avatars/entities/avatar.entity.spec.ts",
       "fingerprint": "e122b7c34fb7417e5735",
       "message": "Expected 1 arguments, but got 0.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "5278e467d0a43a09f17c",
-      "message": "Type '\"twitter\"' is not assignable to type 'BookmarkPlatform'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "ce64f54d567e52401bf1",
-      "message": "Type '\"reference\"' is not assignable to type 'BookmarkIntent | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "e540de0baeab36f112a2",
-      "message": "Type '\"twitter\"' is not assignable to type 'BookmarkPlatform | undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "b528413168c0c3536c5d",
-      "message": "Type '{ limit: number; page: number; search: string; }' is missing the following properties from type 'BookmarksQueryDto': pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "de9066decc0d38f3696c",
-      "message": "Type '{ limit: number; page: number; }' is missing the following properties from type 'BookmarksQueryDto': pagination, isDeleted, sort",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 1,
-      "file": "apps/server/api/src/collections/bookmarks/controllers/bookmarks.controller.spec.ts",
-      "fingerprint": "eec0667ebb5bd46f93af",
-      "message": "Type '{ category: \"tweet\"; limit: number; page: number; }' is missing the following properties from type 'BookmarksQueryDto': pagination, isDeleted, sort",
       "workspace": "api"
     },
     {
@@ -793,14 +737,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
-      "fingerprint": "a8b87cfd2b1a2591e069",
-      "message": "Type '\"video\"' is not assignable to type '\"article\" | IngredientCategory | undefined'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/evaluations/controllers/evaluations.controller.spec.ts",
@@ -1058,26 +994,10 @@
     },
     {
       "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "4137a86a0b4ec6c67ca3",
-      "message": "Argument of type 'IngredientEntity[]' is not assignable to parameter of type 'IngredientDocument[]'.   Type 'IngredientEntity' is not assignable to type 'IngredientDocument'.     Types of property 'scope' are incompatible.       Type 'AssetScope' is not assignable to type 'Scope | null | undefined'.         Type '\"BRAND\"' is not assignable to type 'Scope | null | undefined'. Did you mean 'Scope.BRAND'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 2,
       "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
       "fingerprint": "b962f5d883d14f1712f8",
       "message": "Argument of type '{ cost: number; key: string; }' is not assignable to parameter of type 'ModelDocument'.   Type '{ cost: number; key: string; }' is missing the following properties from type '{ description: string | null; isDeleted: boolean; organizationId: string | null; label: string; key: string; createdAt: Date; id: string; updatedAt: Date; config: JsonValue; ... 54 more ...; supportsFeatures: string[]; }': description, isDeleted, organizationId, label, and 58 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/images/controllers/operations/images-operations.controller.spec.ts",
-      "fingerprint": "f147741bd6732867bfbd",
-      "message": "Argument of type 'IngredientEntity' is not assignable to parameter of type 'IngredientDocument'.   Types of property 'scope' are incompatible.     Type 'AssetScope' is not assignable to type 'Scope | null | undefined'.       Type '\"BRAND\"' is not assignable to type 'Scope | null | undefined'. Did you mean 'Scope.BRAND'?",
       "workspace": "api"
     },
     {
@@ -1198,14 +1118,6 @@
       "file": "apps/server/api/src/collections/ingredients/controllers/ingredients.controller.spec.ts",
       "fingerprint": "aaa4c43ade428f9fe727",
       "message": "Type '{ id: string; }' is missing the following properties from type 'MetadataDocument': error, externalId, result, description, and 20 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 1,
-      "file": "apps/server/api/src/collections/ingredients/controllers/ingredients.controller.spec.ts",
-      "fingerprint": "b4756484f626dec1fb34",
-      "message": "Type 'IngredientCategory.IMAGE' is not assignable to type 'IngredientCategory'. Did you mean '\"IMAGE\"'?",
       "workspace": "api"
     },
     {
@@ -1470,14 +1382,6 @@
       "file": "apps/server/api/src/collections/optimizers/controllers/optimizers.controller.spec.ts",
       "fingerprint": "ee256b319026f7c3c9c8",
       "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2551,
-      "count": 2,
-      "file": "apps/server/api/src/collections/organizations/controllers/organizations-integrations.controller.spec.ts",
-      "fingerprint": "5fe73e4f888e0ac1ba64",
-      "message": "Property 'INACTIVE' does not exist on type 'typeof IntegrationStatus'. Did you mean 'ACTIVE'?",
       "workspace": "api"
     },
     {
@@ -2537,14 +2441,6 @@
       "workspace": "api"
     },
     {
-      "code": 2551,
-      "count": 2,
-      "file": "apps/server/api/src/endpoints/integrations/__tests__/integrations.controller.spec.ts",
-      "fingerprint": "263bd5176612b49115c5",
-      "message": "Property 'INACTIVE' does not exist on type 'typeof IntegrationStatus'. Did you mean 'ACTIVE'?",
-      "workspace": "api"
-    },
-    {
       "code": 2698,
       "count": 1,
       "file": "apps/server/api/src/endpoints/integrations/__tests__/integrations.controller.spec.ts",
@@ -2862,14 +2758,6 @@
       "file": "apps/server/api/src/endpoints/webhooks/stripe/webhooks.stripe.service.spec.ts",
       "fingerprint": "28ceb818bb42326bcfd8",
       "message": "Element implicitly has an 'any' type because expression of type '\"handleSubscriptionCreated\" | \"handleSubscriptionUpdated\" | \"handleSubscriptionDeleted\" | \"handleCheckoutCompleted\" | \"handleInvoicePaid\" | \"handleInvoicePaymentFailed\" | \"handleCustomerCreated\" | \"handleCustomerUpdated\"' can't be used to index type '{ handleSubscriptionCreated: Mock<Procedure>; handleSubscriptionDeleted: Mock<Procedure>; handleSubscriptionUpdated: Mock<Procedure>; } | { ...; } | { ...; } | { ...; }'.   Property 'handleSubscriptionCreated' does not exist on type '{ handleSubscriptionCreated: Mock<Procedure>; handleSubscriptionDeleted: Mock<Procedure>; handleSubscriptionUpdated: Mock<Procedure>; } | { ...; } | { ...; } | { ...; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/endpoints/webhooks/webhooks.service.spec.ts",
-      "fingerprint": "ea486b6a6f803a450af6",
-      "message": "Argument of type 'IngredientEntity' is not assignable to parameter of type 'IngredientDocument'.   Types of property 'scope' are incompatible.     Type 'AssetScope' is not assignable to type 'Scope | null | undefined'.       Type '\"BRAND\"' is not assignable to type 'Scope | null | undefined'. Did you mean 'Scope.BRAND'?",
       "workspace": "api"
     },
     {
@@ -3374,14 +3262,6 @@
       "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
       "fingerprint": "017b356799f528351cbc",
       "message": "Object literal may only specify known properties, and 'ctaHref' does not exist in type 'AgentUiActionCta'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-route-rewrite.service.spec.ts",
-      "fingerprint": "072905877ce3f7edb8c4",
-      "message": "Property 'id' is missing in type '{ ctas: { href: string; label: string; }[]; title: string; type: \"content_preview_card\"; }' but required in type 'AgentUiAction'.",
       "workspace": "api"
     },
     {
@@ -4681,30 +4561,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 5,
-      "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
-      "fingerprint": "78e41a01837dde1b8613",
-      "message": "Type 'IngredientEntity' is not assignable to type 'IngredientDocument'.   Types of property 'scope' are incompatible.     Type 'AssetScope' is not assignable to type 'Scope | null | undefined'.       Type '\"BRAND\"' is not assignable to type 'Scope | null | undefined'. Did you mean 'Scope.BRAND'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 6,
-      "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
-      "fingerprint": "894776f000cb641d168a",
-      "message": "Type 'IngredientCategory.IMAGE' is not assignable to type 'IngredientCategory | undefined'. Did you mean '\"IMAGE\"'?",
-      "workspace": "api"
-    },
-    {
-      "code": 2820,
-      "count": 3,
-      "file": "apps/server/api/src/services/uploads/presigned-upload.service.spec.ts",
-      "fingerprint": "a896d704f717347bac1e",
-      "message": "Type 'IngredientCategory.VIDEO' is not assignable to type 'IngredientCategory | undefined'. Did you mean '\"VIDEO\"'?",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 5,
       "file": "apps/server/api/src/services/video-completion/video-completion.service.spec.ts",
@@ -4790,14 +4646,6 @@
       "file": "apps/server/api/src/shared/services/base/base.service.spec.ts",
       "fingerprint": "f74aa425abc9e1fa3505",
       "message": "Expected 0-1 type arguments, but got 2.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/shared/services/shared/shared.service.spec.ts",
-      "fingerprint": "dab0815b93ae6bc1c864",
-      "message": "Argument of type 'IngredientEntity' is not assignable to parameter of type 'IngredientDocument'.   Types of property 'scope' are incompatible.     Type 'AssetScope' is not assignable to type 'Scope | null | undefined'.       Type '\"BRAND\"' is not assignable to type 'Scope | null | undefined'. Did you mean 'Scope.BRAND'?",
       "workspace": "api"
     },
     {

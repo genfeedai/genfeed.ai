@@ -43,6 +43,7 @@ import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { FleetReviewStatus } from '@genfeedai/enums';
 import { FleetPublishResultSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { GUARDS_METADATA } from '@nestjs/common/constants';
@@ -386,12 +387,12 @@ describe('AdminFleetController', () => {
     describe('reviewAsset', () => {
       it('should approve an asset', async () => {
         const dto: ReviewAssetDto = {
-          reviewStatus: 'approved',
-        } as ReviewAssetDto;
+          reviewStatus: FleetReviewStatus.APPROVED,
+        };
 
         const mockReviewed = {
           id: 'asset1',
-          reviewStatus: 'approved',
+          reviewStatus: FleetReviewStatus.APPROVED,
         };
 
         adminFleetService.reviewAsset.mockResolvedValue(mockReviewed as never);
@@ -406,19 +407,19 @@ describe('AdminFleetController', () => {
         expect(adminFleetService.reviewAsset).toHaveBeenCalledWith(
           'asset1',
           'org_123',
-          'approved',
+          FleetReviewStatus.APPROVED,
         );
         expect(result).toEqual(mockReviewed);
       });
 
       it('should reject an asset', async () => {
         const dto: ReviewAssetDto = {
-          reviewStatus: 'rejected',
-        } as ReviewAssetDto;
+          reviewStatus: FleetReviewStatus.REJECTED,
+        };
 
         const mockReviewed = {
           id: 'asset2',
-          reviewStatus: 'rejected',
+          reviewStatus: FleetReviewStatus.REJECTED,
         };
 
         adminFleetService.reviewAsset.mockResolvedValue(mockReviewed as never);
@@ -433,7 +434,7 @@ describe('AdminFleetController', () => {
         expect(adminFleetService.reviewAsset).toHaveBeenCalledWith(
           'asset2',
           'org_123',
-          'rejected',
+          FleetReviewStatus.REJECTED,
         );
       });
     });
