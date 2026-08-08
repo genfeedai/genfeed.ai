@@ -167,6 +167,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.7",
     "@genfeedai/constants": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@google/design.md": "0.4.0",
     "@nestjs/cli": "11.0.24",
     "@nestjs/testing": "11.1.28",

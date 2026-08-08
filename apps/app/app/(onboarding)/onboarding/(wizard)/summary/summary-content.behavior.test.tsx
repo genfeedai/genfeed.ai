@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -313,8 +314,10 @@ describe('SummaryContent behavior', () => {
         isOnboardingCompleted: true,
         isSuperAdmin: false,
         organizationId: 'org-123',
-        subscriptionStatus: 'active',
-        subscriptionTier: 'pro',
+        // Status is a Prisma enum column (SCREAMING labels); tier is a String
+        // column that keeps lowercase product vocabulary. See enum_source_of_truth.
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionTier: SubscriptionTier.PRO,
         userId: 'user-123',
       },
     });
