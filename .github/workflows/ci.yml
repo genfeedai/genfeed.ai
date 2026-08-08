@@ -427,8 +427,7 @@ jobs:
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && (inputs.run_heavy_tests
-        || (github.event_name == 'pull_request'
-          && needs.test-scope.outputs.packages == 'true'))
+        || needs.test-scope.outputs.packages == 'true')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -442,7 +441,13 @@ jobs:
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter='./packages/*' --filter='./ee/packages/*'
           else
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./packages/*' --filter='./ee/packages/*'
+            BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+            # Force-push / new-branch pushes report an all-zero "before"; fall back
+            # to the previous commit so --affected always has a valid diff base.
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="HEAD~1"
+            fi
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter='./packages/*' --filter='./ee/packages/*'
           fi
 
   test-server-services:
@@ -453,8 +458,7 @@ jobs:
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && (inputs.run_heavy_tests
-        || (github.event_name == 'pull_request'
-          && needs.test-scope.outputs.server_services == 'true'))
+        || needs.test-scope.outputs.server_services == 'true')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -468,7 +472,13 @@ jobs:
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter='./apps/server/*' --filter='!@genfeedai/api'
           else
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
+            BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+            # Force-push / new-branch pushes report an all-zero "before"; fall back
+            # to the previous commit so --affected always has a valid diff base.
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="HEAD~1"
+            fi
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter='./apps/server/*' --filter='!@genfeedai/api'
           fi
 
   test-web-desktop-mobile:
@@ -479,8 +489,7 @@ jobs:
     if: >-
       needs.trust.outputs.is-trusted == 'true'
       && (inputs.run_heavy_tests
-        || (github.event_name == 'pull_request'
-          && needs.test-scope.outputs.web_desktop_mobile == 'true'))
+        || needs.test-scope.outputs.web_desktop_mobile == 'true')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -496,7 +505,13 @@ jobs:
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
           else
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
+            BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+            # Force-push / new-branch pushes report an all-zero "before"; fall back
+            # to the previous commit so --affected always has a valid diff base.
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="HEAD~1"
+            fi
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter=@genfeedai/website --filter=@genfeedai/docs --filter=@genfeedai/mobile
           fi
 
   test-extensions:
@@ -517,8 +532,7 @@ jobs:
       vars.ENABLE_EXTENSION_CI == 'true'
       && needs.trust.outputs.is-trusted == 'true'
       && (inputs.run_heavy_tests
-        || (github.event_name == 'pull_request'
-          && needs.test-scope.outputs.extensions == 'true'))
+        || needs.test-scope.outputs.extensions == 'true')
     steps:
       - uses: actions/checkout@v5
         with:
@@ -532,7 +546,13 @@ jobs:
           if [ "${{ needs.test-scope.outputs.force_full }}" = "true" ]; then
             bunx turbo run test --filter=@genfeedai/extension-browser --filter=extension-ide
           else
-            TURBO_SCM_BASE="${{ github.event.pull_request.base.sha }}" bunx turbo run test --affected --filter=@genfeedai/extension-browser --filter=extension-ide
+            BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+            # Force-push / new-branch pushes report an all-zero "before"; fall back
+            # to the previous commit so --affected always has a valid diff base.
+            if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+              BASE="HEAD~1"
+            fi
+            TURBO_SCM_BASE="$BASE" bunx turbo run test --affected --filter=@genfeedai/extension-browser --filter=extension-ide
           fi
 
   test-app:
