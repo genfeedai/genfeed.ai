@@ -296,6 +296,7 @@ async function symbolicateStack(page: Page, stack: string): Promise<string[]> {
     try {
       const response = await page.request.get(`${url}.map`, { timeout: 5000 });
       if (!response.ok()) {
+        console.error(`[symbolicate] ${url}.map -> HTTP ${response.status()}`);
         continue;
       }
       const map = (await response.json()) as RawSourceMap;
@@ -309,8 +310,9 @@ async function symbolicateStack(page: Page, stack: string): Promise<string[]> {
           `    ${url}:${lineText}:${columnText} -> ${original}`,
         );
       }
-    } catch {
+    } catch (cause) {
       // Source maps are best-effort debugging aid; never fail the guard.
+      console.error(`[symbolicate] ${url}.map -> ${String(cause)}`);
     }
   }
 
