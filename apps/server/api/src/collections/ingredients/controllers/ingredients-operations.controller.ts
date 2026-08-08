@@ -18,7 +18,11 @@ import {
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { FileInputType, IngredientStatus } from '@genfeedai/enums';
+import {
+  categoryToPlural,
+  FileInputType,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import {
   IngredientSerializer,
@@ -190,12 +194,15 @@ export class IngredientsOperationsController {
         originalIngredientId,
       });
 
-      // Upload file from original ingredient URL
-      const uploadUrl = `${this.configService.ingredientsEndpoint}/${category}s/${originalIngredientId}`;
+      // Upload file from original ingredient URL. `category` is a
+      // SCREAMING_SNAKE IngredientCategory label but every upload writes to a
+      // lower-cased plural folder, so the key must go through categoryToPlural.
+      const categoryFolder = categoryToPlural(category);
+      const uploadUrl = `${this.configService.ingredientsEndpoint}/${categoryFolder}/${originalIngredientId}`;
 
       const uploadMeta = await this.getFilesClientService().uploadToS3(
         newIngredientId,
-        `${category}s`,
+        categoryFolder,
         {
           type: FileInputType.URL,
           url: uploadUrl,
@@ -290,7 +297,7 @@ export class IngredientsOperationsController {
       );
     }
 
-    const ingredientUrl = `${this.configService.ingredientsEndpoint}/${ingredient.category}s/${ingredientId}`;
+    const ingredientUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
 
     try {
       // Extract metadata from the file URL without re-uploading

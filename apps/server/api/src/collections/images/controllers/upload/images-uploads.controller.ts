@@ -22,6 +22,7 @@ import { PresignedUploadService } from '@api/services/uploads/presigned-upload.s
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import {
   AssetScope,
+  categoryToPlural,
   FileInputType,
   IngredientCategory,
   IngredientStatus,
@@ -172,7 +173,7 @@ export class ImagesUploadsController {
 
     await this.filesClientService.uploadToS3(
       ingredientData.id,
-      `${category}s`,
+      categoryToPlural(category),
       {
         contentType: validatedFile.mimetype || contentType,
         data: validatedFile.buffer,

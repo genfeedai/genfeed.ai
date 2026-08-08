@@ -57,6 +57,7 @@ export * from './generation-type.enum';
 export * from './health.enum';
 export * from './image-format.enum';
 export * from './ingredient.enum';
+export * from './ingredient-category.util';
 export * from './insight.enum';
 export * from './instagram-media.enum';
 export * from './integration.enum';

@@ -4,6 +4,7 @@ import { MetadataService } from '@api/collections/metadata/services/metadata.ser
 import { CacheService } from '@api/services/cache/services/cache.service';
 import {
   ActivityKey,
+  categoryToPlural,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
@@ -388,7 +389,7 @@ export class CronIngredientsService {
       for (const ingredient of docs) {
         try {
           const ingredientId = ingredient.id.toString();
-          const ingredientUrl = `${this.configService.ingredientsEndpoint}/${ingredient.category}s/${ingredientId}`;
+          const ingredientUrl = `${this.configService.ingredientsEndpoint}/${categoryToPlural(ingredient.category)}/${ingredientId}`;
 
           // Extract metadata from the file URL
           const uploadMeta =

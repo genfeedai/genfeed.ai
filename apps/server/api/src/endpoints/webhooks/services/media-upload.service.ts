@@ -1,6 +1,9 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
-import { FileInputType, IngredientCategory } from '@genfeedai/enums';
+import {
+  categoryToPlural,
+  FileInputType,
+  IngredientCategory,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';

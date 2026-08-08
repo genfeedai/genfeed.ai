@@ -15,6 +15,7 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { IngredientCategory } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
@@ -185,6 +186,33 @@ describe('IngredientsOperationsController', () => {
       ).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    // Regression: production categories are SCREAMING_SNAKE, but uploads land
+    // in lowercase plural folders. The raw `${category}s` interpolation sent
+    // the clone to `VIDEOs/` and pulled its source from a key that never
+    // existed. The `category: 'image'` fixture above is why this shipped green.
+    it('lower-cases a SCREAMING_SNAKE category for the clone source URL and S3 folder', async () => {
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        ...mockIngredient,
+        category: IngredientCategory.VIDEO,
+      });
+
+      await controller.cloneIngredient(
+        mockRequest,
+        mockUser,
+        'c07f1f77bcf86cd799439014',
+      );
+
+      await vi.waitFor(() => {
+        expect(mockServices.filesClientService.uploadToS3).toHaveBeenCalledWith(
+          'c07f1f77bcf86cd799439016',
+          'videos',
+          expect.objectContaining({
+            url: 'https://api.example.com/ingredients/videos/c07f1f77bcf86cd799439014',
+          }),
+        );
+      });
+    });
   });
 
   describe('refreshMetadata', () => {
@@ -201,6 +229,27 @@ describe('IngredientsOperationsController', () => {
       ).toHaveBeenCalled();
       expect(metadataService.patch).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    // Regression: same defect on the read path — `VIDEOs/` resolves to nothing,
+    // so metadata extraction silently failed for every real ingredient.
+    it('lower-cases a SCREAMING_SNAKE category for the metadata source URL', async () => {
+      mockServices.ingredientsService.findOne.mockResolvedValueOnce({
+        ...mockIngredient,
+        category: IngredientCategory.VIDEO,
+      });
+
+      await controller.refreshMetadata(
+        mockRequest,
+        'c07f1f77bcf86cd799439014',
+        mockUser,
+      );
+
+      expect(
+        mockServices.filesClientService.extractMetadataFromUrl,
+      ).toHaveBeenCalledWith(
+        'https://api.example.com/ingredients/videos/c07f1f77bcf86cd799439014',
+      );
     });
   });
 
