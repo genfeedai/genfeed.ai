@@ -5,7 +5,7 @@ import { useAgentChatStore } from '@genfeedai/agent';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import { ClipboardCheck, Sparkles, SquarePen, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { createElement, useCallback, useEffect, useMemo } from 'react';
+import { createElement, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useWorkspaceInspector } from '@/components/workspace-shell/WorkspaceInspectorContext';
 import {
   type ProductWorkspaceSurfaceAdapter,
@@ -45,17 +45,27 @@ export default function ReviewWorkspaceSurfaceAdapter({
   const { brandId, organizationId } = useBrand();
   const setPageContext = useAgentChatStore((state) => state.setPageContext);
   const inspector = useWorkspaceInspector();
+  // Stable setters — the full `inspector` object identity flips whenever
+  // isOpen changes, which would re-fire an open-on-select effect and fight
+  // the topbar collapse control.
+  const setInspectorOpen = inspector?.setIsOpen;
+  const previousActiveItemIdRef = useRef<string | null>(null);
 
+  // Auto-open the Context rail only when the selected row *changes* to a new
+  // item. Never re-open just because the operator collapsed the rail while a
+  // row is still selected.
   useEffect(() => {
-    if (!activeItem || !inspector) {
+    const nextId = activeItem?.id ?? null;
+    const previousId = previousActiveItemIdRef.current;
+    previousActiveItemIdRef.current = nextId;
+
+    if (!nextId || nextId === previousId || !setInspectorOpen) {
       return;
     }
-    if (!inspector.isOpen) {
-      inspector.setIsOpen(true);
-    }
-    // Ask the shell to show Context when a row is selected (product details).
+
+    setInspectorOpen(true);
     window.dispatchEvent(new CustomEvent('workspace:open-context-tab'));
-  }, [activeItem, inspector]);
+  }, [activeItem?.id, setInspectorOpen]);
 
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;
