@@ -3,7 +3,10 @@
  * Scope is per browser profile (localStorage), not per thread — switching
  * models is a user preference, not thread state.
  */
+import { type RouterPriority, toRouterPriority } from '@genfeedai/enums';
+
 const STORAGE_KEY = 'genfeed:agent-preferred-chat-model:v1';
+const PRIORITY_STORAGE_KEY = 'genfeed:agent-preferred-chat-priority:v1';
 
 function getStorage(): Storage | null {
   if (typeof window === 'undefined') {
@@ -58,7 +61,37 @@ export function clearPreferredAgentChatModel(): void {
 
   try {
     storage.removeItem(STORAGE_KEY);
+    storage.removeItem(PRIORITY_STORAGE_KEY);
   } catch {
     // ignore
+  }
+}
+
+/** Local Auto routing priority until / after settings hydrate. */
+export function readPreferredAgentChatPriority(): RouterPriority | null {
+  const storage = getStorage();
+  if (!storage) {
+    return null;
+  }
+
+  try {
+    return toRouterPriority(storage.getItem(PRIORITY_STORAGE_KEY)) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export function writePreferredAgentChatPriority(
+  priority: RouterPriority,
+): void {
+  const storage = getStorage();
+  if (!storage) {
+    return;
+  }
+
+  try {
+    storage.setItem(PRIORITY_STORAGE_KEY, priority);
+  } catch {
+    // Quota / private mode — preference is best-effort.
   }
 }

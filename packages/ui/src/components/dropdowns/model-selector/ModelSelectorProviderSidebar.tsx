@@ -117,7 +117,9 @@ function SidebarButton({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}
+      // Rail sits on the left edge of the popover — open tooltips outward.
       tooltip={tooltip}
+      tooltipPosition="left"
       className={cn(
         'relative flex size-7 shrink-0 items-center justify-center rounded-md',
         'transition-colors',

@@ -16,7 +16,9 @@ import { useAgentRegistryModels } from '@genfeedai/agent/hooks/use-agent-registr
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   readPreferredAgentChatModel,
+  readPreferredAgentChatPriority,
   writePreferredAgentChatModel,
+  writePreferredAgentChatPriority,
 } from '@genfeedai/agent/stores/agent-preferred-model.store';
 import {
   isAutoAgentModel,
@@ -87,6 +89,10 @@ export function AgentChatContainer({
   const messages = useAgentChatStore((state) => state.messages);
   const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
   const persistSettingsInFlight = useRef(false);
+  const pendingSettingsPatch = useRef<{
+    defaultAgentModel?: string;
+    generationPriority?: ReturnType<typeof fromRouterPriority>;
+  } | null>(null);
   const {
     defaultModelKey,
     isLoading: isRegistryModelsLoading,
@@ -104,45 +110,73 @@ export function AgentChatContainer({
     // Wait for registry + settings before choosing Auto vs concrete default.
     return UNRESOLVED_RUNTIME_AGENT_MODEL;
   });
-  const [prioritize, setPrioritize] =
-    useState<RouterPriority>(settingsPriority);
+  const [prioritize, setPrioritize] = useState<RouterPriority>(
+    () => readPreferredAgentChatPriority() ?? settingsPriority,
+  );
 
   useEffect(() => {
-    setPrioritize(settingsPriority);
-  }, [settingsPriority]);
+    // Prefer server settings once the user payload is present; otherwise keep
+    // the localStorage priority so a refresh after Lowest Cost doesn't flash
+    // back to BALANCED before hydrate.
+    if (hasUserSettings) {
+      setPrioritize(settingsPriority);
+    }
+  }, [hasUserSettings, settingsPriority]);
 
   const persistChatDefaults = useCallback(
     async (patch: {
       defaultAgentModel?: string;
       generationPriority?: ReturnType<typeof fromRouterPriority>;
     }) => {
-      if (!currentUser?.id || !mutateUser || persistSettingsInFlight.current) {
+      if (!currentUser?.id || !mutateUser) {
+        return;
+      }
+
+      // Merge concurrent patches (Auto priority + model clear often fire as a
+      // pair). Dropping the second call left generationPriority stuck on
+      // BALANCED after refresh.
+      pendingSettingsPatch.current = {
+        ...pendingSettingsPatch.current,
+        ...patch,
+      };
+
+      if (persistSettingsInFlight.current) {
         return;
       }
 
       persistSettingsInFlight.current = true;
+      let settingsSnapshot = { ...currentUser.settings };
       try {
-        const token = await apiService.getToken();
-        if (!token) {
-          return;
+        while (pendingSettingsPatch.current) {
+          const nextPatch = pendingSettingsPatch.current;
+          pendingSettingsPatch.current = null;
+          const token = await apiService.getToken();
+          if (!token) {
+            return;
+          }
+          await UsersService.getInstance(token).patchSettings(
+            currentUser.id,
+            nextPatch,
+          );
+          settingsSnapshot = {
+            ...settingsSnapshot,
+            ...nextPatch,
+          };
+          mutateUser(
+            new User({
+              ...currentUser,
+              settings: settingsSnapshot,
+            }),
+          );
         }
-        await UsersService.getInstance(token).patchSettings(
-          currentUser.id,
-          patch,
-        );
-        mutateUser(
-          new User({
-            ...currentUser,
-            settings: {
-              ...currentUser.settings,
-              ...patch,
-            },
-          }),
-        );
       } catch {
         // Preference patch is best-effort — UI already reflects the pick.
       } finally {
         persistSettingsInFlight.current = false;
+        // A patch may have been queued while we were finishing.
+        if (pendingSettingsPatch.current) {
+          void persistChatDefaults({});
+        }
       }
     },
     [apiService, currentUser, mutateUser],
@@ -166,6 +200,7 @@ export function AgentChatContainer({
   const handlePrioritizeChange = useCallback(
     (next: RouterPriority) => {
       setPrioritize(next);
+      writePreferredAgentChatPriority(next);
       // Selecting a priority also means Auto — clear any pinned model override.
       setSelectedModel(AUTO_MODEL_OPTION_VALUE);
       writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);

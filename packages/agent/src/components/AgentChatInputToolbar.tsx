@@ -126,9 +126,9 @@ function AgentChatInputToolbarInner({
         }}
         onFavoriteToggle={onFavoriteToggle}
         onPrioritizeChange={(priority) => {
-          // Priority pick is Auto mode even if the host only implements this
-          // callback — force the parent off a pinned model.
-          onModelChange(AUTO_MODEL_OPTION_VALUE);
+          // Parent handlePrioritizeChange already pins Auto + persists
+          // generationPriority. Do NOT also call onModelChange first — that
+          // raced a model-only settings patch and dropped the priority save.
           onPrioritizeChange?.(priority);
         }}
         prioritize={prioritize}
