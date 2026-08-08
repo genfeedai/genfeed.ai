@@ -19,11 +19,13 @@ import { type ReactElement, useEffect, useMemo, useState } from 'react';
 export interface ContentLibraryPickerProps {
   isOpen: boolean;
   isLoading?: boolean;
-  items: readonly ContentMentionItem[];
+  items?: readonly ContentMentionItem[];
   selectedIds?: ReadonlySet<string>;
   onOpenChange: (open: boolean) => void;
   onSelect: (item: ContentMentionItem) => void;
 }
+
+const EMPTY_ITEMS: readonly ContentMentionItem[] = [];
 
 function contentTypeIcon(contentType: string): ReactElement {
   const normalized = contentType.toLowerCase();
@@ -40,7 +42,7 @@ function contentTypeIcon(contentType: string): ReactElement {
 export function ContentLibraryPicker({
   isOpen,
   isLoading = false,
-  items,
+  items = EMPTY_ITEMS,
   selectedIds,
   onOpenChange,
   onSelect,

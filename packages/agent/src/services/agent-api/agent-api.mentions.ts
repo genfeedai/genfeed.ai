@@ -1,6 +1,9 @@
 import type { AgentMemoryEntry } from '@genfeedai/agent/models/agent-chat.model';
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.types';
-import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
+import {
+  AgentApiDecodeError,
+  type AgentApiError,
+} from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import type {
   AgentContentMentionsResponse,
@@ -9,6 +12,19 @@ import type {
   AgentTeamMentionItem as TeamMentionItem,
 } from '@genfeedai/interfaces';
 import { Effect } from 'effect';
+
+// fetchJsonEffect trusts whatever JSON a 2xx carries, so a proxy or error
+// envelope answering 200 without a `mentions` array must become a decode
+// failure here — succeeding with `undefined` crashes composer consumers.
+function decodeMentionsEffect<T>(
+  json: { mentions?: unknown } | null | undefined,
+  message: string,
+): Effect.Effect<T[], AgentApiDecodeError> {
+  const mentions = json?.mentions;
+  return Array.isArray(mentions)
+    ? Effect.succeed(mentions as T[])
+    : Effect.fail(new AgentApiDecodeError({ cause: json, message }));
+}
 
 export function getMentionsEffect(
   api: AgentBaseApiService,
@@ -20,7 +36,14 @@ export function getMentionsEffect(
       { signal },
       'Failed to fetch mentions',
     )
-    .pipe(Effect.map((json) => json.mentions));
+    .pipe(
+      Effect.flatMap((json) =>
+        decodeMentionsEffect<CredentialMentionItem>(
+          json,
+          'Failed to decode credential mentions',
+        ),
+      ),
+    );
 }
 
 export function getTeamMentionsEffect(
@@ -33,7 +56,14 @@ export function getTeamMentionsEffect(
       { signal },
       'Failed to fetch team mentions',
     )
-    .pipe(Effect.map((json) => json.mentions));
+    .pipe(
+      Effect.flatMap((json) =>
+        decodeMentionsEffect<TeamMentionItem>(
+          json,
+          'Failed to decode team mentions',
+        ),
+      ),
+    );
 }
 
 export function getContentMentionsEffect(
@@ -46,7 +76,14 @@ export function getContentMentionsEffect(
       { signal },
       'Failed to fetch content mentions',
     )
-    .pipe(Effect.map((json) => json.mentions));
+    .pipe(
+      Effect.flatMap((json) =>
+        decodeMentionsEffect<ContentMentionItem>(
+          json,
+          'Failed to decode content mentions',
+        ),
+      ),
+    );
 }
 
 export function listMemoriesEffect(
