@@ -125,6 +125,19 @@ describe('PostGroupContractService', () => {
     );
   });
 
+  it('projects release status from targets instead of the persisted group value', () => {
+    const release = service.toReleaseGroup(
+      makeGroup({ status: ReleaseStatus.PUBLISHED }),
+      [
+        makeTarget({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      ],
+    );
+
+    expect(release.status).toBe(ReleaseStatus.FAILED);
+  });
+
   it('maps only an exact target analytics snapshot into the release contract', () => {
     const group = makeGroup();
     const target = makeTarget();

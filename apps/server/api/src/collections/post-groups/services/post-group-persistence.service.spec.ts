@@ -302,9 +302,6 @@ describe('PostGroupPersistenceService', () => {
           },
           { id: { in: ['group-target'] } },
         ],
-        status: {
-          in: [ReleaseStatus.SCHEDULED, ReleaseStatus.FAILED],
-        },
       },
     });
     expect(prisma.post.findMany).toHaveBeenCalledWith({
@@ -324,6 +321,7 @@ describe('PostGroupPersistenceService', () => {
     expect(result).toEqual([
       expect.objectContaining({
         id: 'group-target',
+        status: ReleaseStatus.FAILED,
         targetSummary: {
           [TargetExecutionState.FAILED]: 1,
           total: 1,
@@ -369,6 +367,31 @@ describe('PostGroupPersistenceService', () => {
       'group-a',
       'group-b',
     ]);
+  });
+
+  it('filters calendar reads by derived target status instead of persisted group status', async () => {
+    prisma.post.groupBy.mockResolvedValue([]);
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ status: ReleaseStatus.SCHEDULED }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ targetExecutionState: TargetExecutionState.FAILED }),
+    ]);
+
+    await expect(
+      service.listReleaseGroups({
+        endDate: new Date('2026-07-27T00:00:00.000Z'),
+        organizationId: 'org-1',
+        startDate: new Date('2026-07-20T00:00:00.000Z'),
+        statuses: [ReleaseStatus.SCHEDULED],
+      }),
+    ).resolves.toEqual([]);
+
+    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.not.objectContaining({ status: expect.anything() }),
+      }),
+    );
   });
 
   it('narrows the calendar to releases owning a target that matches the platform, credential, and execution-state filters', async () => {

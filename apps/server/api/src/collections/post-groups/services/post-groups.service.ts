@@ -335,11 +335,10 @@ export class PostGroupsService {
         transaction: tx,
       });
 
-      return this.persistenceService.recalculateAndHydrate(
+      return this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,
         group.id,
-        userId,
       );
     });
   }
@@ -359,14 +358,23 @@ export class PostGroupsService {
         organizationId,
         groupId,
       );
-      const nextStatus = input.status ?? existing.status;
+      const currentTargets = await this.persistenceService.getTargets(
+        tx,
+        organizationId,
+        existing.id,
+      );
+      const currentStatus = this.contractService.deriveReleaseStatus(
+        existing.id,
+        currentTargets.map((target) => target.targetExecutionState),
+      );
+      const nextStatus = input.status ?? currentStatus;
       const changesPublishState =
         nextStatus === ReleaseStatus.PUBLISHED ||
         nextStatus === ReleaseStatus.PUBLISHING ||
         nextStatus === ReleaseStatus.PARTIALLY_PUBLISHED;
       const changesScheduleIntent =
         !changesPublishState &&
-        (existing.status !== ReleaseStatus.DRAFT ||
+        (currentStatus !== ReleaseStatus.DRAFT ||
           nextStatus !== ReleaseStatus.DRAFT ||
           input.recurrence !== undefined ||
           input.scheduledDate !== undefined ||
@@ -379,16 +387,6 @@ export class PostGroupsService {
             ? 'schedule'
             : 'draft',
       );
-      const transition =
-        nextStatus !== existing.status
-          ? this.contractService.appendTransition(
-              existing.statusTransitions,
-              existing.status,
-              nextStatus,
-              userId,
-            )
-          : undefined;
-
       const updated = (await tx.postGroup.update({
         data: {
           ...(input.attachments !== undefined && {
@@ -409,10 +407,8 @@ export class PostGroupsService {
           ...(input.scheduledDate !== undefined && {
             scheduledAt: this.contractService.toDate(input.scheduledDate),
           }),
-          ...(input.status !== undefined && { status: input.status }),
           ...(input.timezone !== undefined && { timezone: input.timezone }),
           ...(input.title !== undefined && { title: input.title }),
-          ...(transition !== undefined && { statusTransitions: transition }),
         },
         where: { id: existing.id },
       })) as SchedulerPostGroup;
@@ -429,11 +425,6 @@ export class PostGroupsService {
       if (input.timezone !== undefined) {
         targetUpdate.timezone = input.timezone;
       }
-      const currentTargets = await this.persistenceService.getTargets(
-        tx,
-        organizationId,
-        existing.id,
-      );
       if (input.status !== undefined) {
         const nextState = this.contractService.toTargetState(input.status);
         for (const target of currentTargets) {
@@ -621,11 +612,10 @@ export class PostGroupsService {
 
       return {
         manualRetryApproval,
-        release: await this.persistenceService.recalculateAndHydrate(
+        release: await this.persistenceService.hydrateWithDerivedStatus(
           tx,
           organizationId,
           group.id,
-          userId,
         ),
       };
     });
@@ -863,11 +853,10 @@ export class PostGroupsService {
         );
       }
 
-      return this.persistenceService.recalculateAndHydrate(
+      return this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,
         group.id,
-        userId,
       );
     });
 
@@ -1004,11 +993,10 @@ export class PostGroupsService {
         );
       }
 
-      return this.persistenceService.recalculateAndHydrate(
+      return this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,
         group.id,
-        userId,
       );
     });
     if (nextState === TargetExecutionState.CANCELLED) {

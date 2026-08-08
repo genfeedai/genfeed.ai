@@ -1,5 +1,6 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { TargetExecutionState } from '@genfeedai/enums';
 import {
   WEBHOOK_CLIENT_QUEUE,
   type WebhookJobData,
@@ -177,6 +178,7 @@ describe('PublishEventWebhookService', () => {
           organizationId: 'org_123',
           platform: 'twitter',
           status: 'public',
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         },
         {
           credentialId: 'cred_456',
@@ -184,9 +186,11 @@ describe('PublishEventWebhookService', () => {
           id: 'post_456',
           organizationId: 'org_123',
           platform: 'linkedin',
-          status: 'failed',
+          status: 'public',
+          targetExecutionState: TargetExecutionState.FAILED,
         },
       ],
+      total: 2,
     });
 
     await service.emitLegacyPostPublished({
@@ -213,6 +217,42 @@ describe('PublishEventWebhookService', () => {
         },
       },
     });
+  });
+
+  it('fails grouped release events closed when the complete target set is unavailable', async () => {
+    postsService.findAll.mockResolvedValue({
+      docs: [
+        {
+          credentialId: 'cred_123',
+          groupId: 'group_123',
+          id: 'post_123',
+          organizationId: 'org_123',
+          platform: 'twitter',
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        },
+      ],
+      total: 2,
+    });
+
+    await service.emitLegacyPostPublished({
+      post: {
+        credentialId: 'cred_123',
+        groupId: 'group_123',
+        id: 'post_123',
+        organizationId: 'org_123',
+        platform: 'twitter',
+      },
+    });
+
+    expect(queue.add).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('skipped incomplete release projection'),
+      expect.objectContaining({
+        groupId: 'group_123',
+        loadedTargetCount: 1,
+        totalTargetCount: 2,
+      }),
+    );
   });
 
   it('redacts secret material from failed publish payloads', async () => {

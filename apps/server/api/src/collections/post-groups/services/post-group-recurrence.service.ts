@@ -27,10 +27,12 @@ const FUTURE_SERIES_STATES = new Set<string>([
   ReleaseStatus.SCHEDULED,
 ]);
 
-type SeriesRow = Pick<
+type StoredSeriesRow = Pick<
   SchedulerPostGroup,
-  'id' | 'recurrence' | 'scheduledAt' | 'status' | 'timezone'
+  'id' | 'recurrence' | 'scheduledAt' | 'timezone'
 >;
+
+type SeriesRow = StoredSeriesRow & { status: ReleaseStatus };
 
 @Injectable()
 export class PostGroupRecurrenceService {
@@ -193,7 +195,6 @@ export class PostGroupRecurrenceService {
         id: true,
         recurrence: true,
         scheduledAt: true,
-        status: true,
         timezone: true,
       },
       where: scopedWhere(organizationId, { id: groupId }),
@@ -218,7 +219,6 @@ export class PostGroupRecurrenceService {
         id: true,
         recurrence: true,
         scheduledAt: true,
-        status: true,
         timezone: true,
       },
       where: scopedWhere(organizationId, {
@@ -234,7 +234,35 @@ export class PostGroupRecurrenceService {
       }),
     });
 
-    return { rootId, rows };
+    const statesByGroup = new Map<string, unknown[]>();
+    if (rows.length > 0) {
+      const targets = await this.prisma.post.findMany({
+        select: { groupId: true, targetExecutionState: true },
+        where: scopedWhere(organizationId, {
+          groupId: { in: rows.map((row) => row.id) },
+          parentId: null,
+        }),
+      });
+      for (const target of targets) {
+        if (!target.groupId) {
+          continue;
+        }
+        const states = statesByGroup.get(target.groupId) ?? [];
+        states.push(target.targetExecutionState);
+        statesByGroup.set(target.groupId, states);
+      }
+    }
+
+    return {
+      rootId,
+      rows: rows.map((row) => ({
+        ...row,
+        status: this.contractService.deriveReleaseStatus(
+          row.id,
+          statesByGroup.get(row.id) ?? [],
+        ),
+      })),
+    };
   }
 
   private futureRows(rows: readonly SeriesRow[]): SeriesRow[] {
