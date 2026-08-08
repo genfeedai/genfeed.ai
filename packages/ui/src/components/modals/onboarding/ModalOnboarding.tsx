@@ -152,7 +152,8 @@ function ModalOnboardingContent({
         getUsersService(),
         getBrandsService(),
       ]);
-      const brands = await usersService.findMeBrands({ pagination: false });
+      // Onboarding targets the workspace's first brand — one row is enough.
+      const brands = await usersService.findMeBrands({ limit: 1 });
       const targetBrandId = brands[0]?.id;
       if (!targetBrandId) {
         throw new Error('No brand found for the current workspace');

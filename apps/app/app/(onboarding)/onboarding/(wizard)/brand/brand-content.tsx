@@ -142,7 +142,8 @@ function BrandContentContent() {
         }
 
         const [brands, organizations] = await Promise.all([
-          service.findMeBrands({ pagination: false }),
+          // Only the first brand is read below, so one row is enough.
+          service.findMeBrands({ limit: 1 }),
           service.findMeOrganizations(),
         ]);
 
@@ -197,7 +198,7 @@ function BrandContentContent() {
         return brandIdRef.current;
       }
       const brands = await UsersService.getInstance(token).findMeBrands({
-        pagination: false,
+        limit: 1,
       });
       brandIdRef.current = brands[0]?.id ?? null;
       return brandIdRef.current;

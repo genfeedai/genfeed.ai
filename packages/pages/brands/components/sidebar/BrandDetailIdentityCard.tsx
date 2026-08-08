@@ -41,7 +41,6 @@ export default function BrandDetailIdentityCard({
     useAvatarImages(organizationId);
   const { isLoading: isLoadingCatalog, voices: catalog } = useVoiceCatalog({
     isActive: true,
-    pagination: false,
   });
 
   const getBrandsService = useAuthedService((token: string) =>

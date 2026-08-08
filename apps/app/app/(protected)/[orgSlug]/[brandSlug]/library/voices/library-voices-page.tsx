@@ -118,9 +118,9 @@ function LibraryVoicesContent() {
     voices,
   } = useVoiceCatalog({
     isActive: true,
+    isPaginated: true,
     limit: PAGE_SIZE,
     page: currentPage,
-    pagination: true,
     providers: providerQuery,
     search: searchQuery,
     status: statusQuery,

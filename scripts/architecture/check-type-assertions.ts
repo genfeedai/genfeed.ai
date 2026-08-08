@@ -76,18 +76,30 @@ const KIND_PATTERNS: Record<AssertionKind, RegExp> = {
  * The ts-ignore directive is the opposite: it only ever *is* a comment, so it is
  * matched against the raw line and never goes through here.
  *
- * Comments and string bodies are blanked rather than deleted so column
- * positions still line up with the source; a `//` comment is the one case that
- * truncates, since nothing after it is code. Returning the block-comment state
- * lets the caller carry it across lines.
+ * Comments, string bodies, and template text are blanked rather than deleted so
+ * column positions still line up with the source. Template interpolations stay
+ * intact because they are executable code. A `//` comment is the one case that
+ * truncates, since nothing after it is code. Returning the block-comment and
+ * template-stack state lets the caller carry both across lines.
  */
+type TemplateLiteralFrame = {
+  /** Zero in template text; positive while inside a `${...}` interpolation. */
+  interpolationDepth: number;
+};
+
 export function stripCommentsAndStrings(
   line: string,
   inBlockComment: boolean,
-): { inBlockComment: boolean; code: string } {
+  templateStack: readonly TemplateLiteralFrame[] = [],
+): {
+  inBlockComment: boolean;
+  code: string;
+  templateStack: TemplateLiteralFrame[];
+} {
   let code = '';
   let block = inBlockComment;
   let quote: string | null = null;
+  const templates = templateStack.map((frame) => ({ ...frame }));
 
   for (let i = 0; i < line.length; i += 1) {
     const char = line[i] as string;
@@ -104,11 +116,37 @@ export function stripCommentsAndStrings(
       continue;
     }
 
+    const template = templates.at(-1);
+    if (template?.interpolationDepth === 0) {
+      if (char === '\\') {
+        code += next === undefined ? ' ' : '  ';
+        if (next !== undefined) {
+          i += 1;
+        }
+        continue;
+      }
+      if (char === '`') {
+        templates.pop();
+        code += ' ';
+        continue;
+      }
+      if (char === '$' && next === '{') {
+        template.interpolationDepth = 1;
+        code += '  ';
+        i += 1;
+        continue;
+      }
+      code += ' ';
+      continue;
+    }
+
     if (quote) {
       // Skip the escaped character wholesale so `'\\'` ends the string here.
       if (char === '\\') {
-        code += '  ';
-        i += 1;
+        code += next === undefined ? ' ' : '  ';
+        if (next !== undefined) {
+          i += 1;
+        }
         continue;
       }
       if (char === quote) {
@@ -127,16 +165,31 @@ export function stripCommentsAndStrings(
     if (char === '/' && next === '/') {
       break;
     }
-    if (char === "'" || char === '"' || char === '`') {
+    if (char === "'" || char === '"') {
       quote = char;
       code += ' ';
       continue;
+    }
+    if (char === '`') {
+      templates.push({ interpolationDepth: 0 });
+      code += ' ';
+      continue;
+    }
+
+    if (template && char === '{') {
+      template.interpolationDepth += 1;
+    } else if (template && char === '}') {
+      template.interpolationDepth -= 1;
+      if (template.interpolationDepth === 0) {
+        code += ' ';
+        continue;
+      }
     }
 
     code += char;
   }
 
-  return { code, inBlockComment: block };
+  return { code, inBlockComment: block, templateStack: templates };
 }
 
 function toPosix(filePath: string): string {
@@ -171,10 +224,16 @@ export function scanTypeAssertions(
 
     const lines = text.split(/\r?\n/);
     let inBlockComment = false;
+    let templateStack: TemplateLiteralFrame[] = [];
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index] ?? '';
-      const stripped = stripCommentsAndStrings(line, inBlockComment);
+      const stripped = stripCommentsAndStrings(
+        line,
+        inBlockComment,
+        templateStack,
+      );
       inBlockComment = stripped.inBlockComment;
+      templateStack = stripped.templateStack;
 
       for (const [kind, pattern] of Object.entries(KIND_PATTERNS) as Array<
         [AssertionKind, RegExp]

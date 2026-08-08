@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, MAX_PAGE_SIZE } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import type { IQueryParams } from '@genfeedai/interfaces';
 
@@ -26,10 +26,12 @@ export function createLibraryFolderQuery(
   return {
     brand: scope === PageScope.BRAND ? (brandId ?? undefined) : undefined,
     isActive: true,
+    // The sidebar renders one flat folder list per brand/organization, which
+    // stays well inside the server's page cap — no page walk needed.
+    limit: MAX_PAGE_SIZE,
     organization:
       scope === PageScope.ORGANIZATION
         ? (organizationId ?? undefined)
         : undefined,
-    pagination: false,
   };
 }

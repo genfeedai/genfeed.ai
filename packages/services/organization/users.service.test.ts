@@ -44,4 +44,16 @@ describe('UsersService', () => {
       expect(typeof service.delete).toBe('function');
     });
   });
+
+  describe('brand access', () => {
+    it('has findMeBrands method for a single server page', () => {
+      expect(service.findMeBrands).toBeDefined();
+      expect(typeof service.findMeBrands).toBe('function');
+    });
+
+    it('has findAllMeBrands method for the full paginated collection', () => {
+      expect(service.findAllMeBrands).toBeDefined();
+      expect(typeof service.findAllMeBrands).toBe('function');
+    });
+  });
 });

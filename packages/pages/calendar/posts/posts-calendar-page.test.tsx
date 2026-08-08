@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
-const findAllMock = vi.fn();
+const findAllPagesMock = vi.fn();
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -17,7 +17,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() =>
     vi.fn(async () => ({
-      findAll: findAllMock,
+      findAllPages: findAllPagesMock,
     })),
   ),
 }));
@@ -71,7 +71,7 @@ vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
 describe('PostsCalendarPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    findAllMock.mockResolvedValue([
+    findAllPagesMock.mockResolvedValue([
       {
         id: 'post-123',
         label: 'Launch post',
@@ -86,7 +86,7 @@ describe('PostsCalendarPage', () => {
     render(<PostsCalendarPage scope={PageScope.PUBLISHER} />);
 
     await waitFor(() => {
-      expect(findAllMock).toHaveBeenCalled();
+      expect(findAllPagesMock).toHaveBeenCalled();
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Open post' }));

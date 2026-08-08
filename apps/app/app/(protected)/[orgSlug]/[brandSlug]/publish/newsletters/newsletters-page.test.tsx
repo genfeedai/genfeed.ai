@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   archive: vi.fn(),
   captureAnalyticsEvent: vi.fn(),
   error: vi.fn(),
-  findAll: vi.fn(),
+  findAllPages: vi.fn(),
   generateDraft: vi.fn(),
   generateTopicProposals: vi.fn(),
   getContext: vi.fn(),
@@ -73,7 +73,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     approve: mocks.approve,
     archive: mocks.archive,
-    findAll: mocks.findAll,
+    findAllPages: mocks.findAllPages,
     generateDraft: mocks.generateDraft,
     generateTopicProposals: mocks.generateTopicProposals,
     getContext: mocks.getContext,
@@ -131,7 +131,7 @@ describe('NewslettersPage', () => {
     mocks.queryResult.isLoading = false;
     mocks.queryResult.refetch = mocks.refetch;
     mocks.requestedNewsletterId = null;
-    mocks.findAll.mockResolvedValue(newsletters);
+    mocks.findAllPages.mockResolvedValue(newsletters);
     mocks.refetch.mockResolvedValue({ data: newsletters });
     mocks.generateTopicProposals.mockResolvedValue([
       {

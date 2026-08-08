@@ -458,7 +458,7 @@ export class WebhooksService {
 
       await this.filesClientService.uploadToS3(
         assetId,
-        `${asset.category.toLowerCase()}s`,
+        categoryToPlural(asset.category),
         { type: FileInputType.URL, url },
       );
 

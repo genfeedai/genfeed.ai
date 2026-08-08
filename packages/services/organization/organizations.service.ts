@@ -482,32 +482,26 @@ export class OrganizationsService extends BaseService<Organization> {
   public async getAllOrganizations(): Promise<
     { id: string; label: string; slug: string }[]
   > {
-    const organizations: { id: string; label: string; slug: string }[] = [];
-    let page = 1;
-    let totalPages = 1;
-
-    do {
+    return await this.collectAllPages<{
+      id: string;
+      label: string;
+      slug: string;
+    }>({ limit: ORGANIZATION_LIST_PAGE_SIZE }, async (pageQuery) => {
       const document = await this.instance
-        .get<JsonApiResponseDocument>('', {
-          params: { limit: ORGANIZATION_LIST_PAGE_SIZE, page },
-        })
+        .get<JsonApiResponseDocument>('', { params: pageQuery })
         .then((res) => res.data);
 
-      organizations.push(
-        ...this.extractCollection<Partial<Organization>>(document).map(
+      return {
+        items: this.extractCollection<Partial<Organization>>(document).map(
           (organization) => ({
             id: String(organization.id),
             label: organization.label ?? '',
             slug: organization.slug ?? '',
           }),
         ),
-      );
-
-      totalPages = document.links?.pagination?.pages ?? page;
-      page += 1;
-    } while (page <= totalPages);
-
-    return organizations;
+        totalPages: document.links?.pagination?.pages ?? 1,
+      };
+    });
   }
 
   /**

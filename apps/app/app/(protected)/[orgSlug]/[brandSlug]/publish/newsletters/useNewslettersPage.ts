@@ -60,10 +60,9 @@ export function useNewslettersPage() {
       }
 
       const service = await getService();
-      return await service.findAll({
+      return await service.findAllPages({
         brand: brandId,
         organization: organizationId,
-        pagination: false,
         sort: 'publishedAt: -1, createdAt: -1',
       });
     },

@@ -486,7 +486,7 @@ describe('AgentApiService', () => {
       ]);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://api.test/models?isActive=true&pagination=false',
+        'http://api.test/models?isActive=true&limit=100',
         expect.anything(),
       );
     });
@@ -806,6 +806,57 @@ describe('AgentApiService', () => {
           _tag: 'AgentApiRequestError',
           status: 401,
         }),
+      );
+    });
+
+    // A 200 whose body is any other JSON shape (a JSON:API document, an error
+    // envelope) used to succeed with `mentions: undefined` and crash the
+    // composer's ContentLibraryPicker at render — blanking /automate/*.
+    it('maps a credential mentions payload without a mentions array to a typed decode error', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      const error = await Effect.runPromise(
+        Effect.flip(service.getMentionsEffect()),
+      );
+
+      expect(error).toEqual(
+        expect.objectContaining({
+          _tag: 'AgentApiDecodeError',
+          message: 'Failed to decode credential mentions',
+        } satisfies Partial<AgentApiDecodeError>),
+      );
+    });
+
+    it('maps a team mentions payload without a mentions array to a typed decode error', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      const error = await Effect.runPromise(
+        Effect.flip(service.getTeamMentionsEffect()),
+      );
+
+      expect(error).toEqual(
+        expect.objectContaining({
+          _tag: 'AgentApiDecodeError',
+          message: 'Failed to decode team mentions',
+        } satisfies Partial<AgentApiDecodeError>),
+      );
+    });
+
+    it('maps a content mentions payload without a mentions array to a typed decode error', async () => {
+      mockOk({ data: [] });
+      const service = makeService();
+
+      const error = await Effect.runPromise(
+        Effect.flip(service.getContentMentionsEffect()),
+      );
+
+      expect(error).toEqual(
+        expect.objectContaining({
+          _tag: 'AgentApiDecodeError',
+          message: 'Failed to decode content mentions',
+        } satisfies Partial<AgentApiDecodeError>),
       );
     });
   });
