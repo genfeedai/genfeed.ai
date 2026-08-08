@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -8,7 +9,6 @@ import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
   ChartColumn,
-  ChevronDown,
   Eye,
   Heart,
   MessageCircle,
@@ -209,24 +209,14 @@ export function AnalyticsSnapshotCard({
             {selectedPeriod}
           </span>
         )}
-        <Button
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          size={ButtonSize.ICON}
-          ariaLabel={isExpanded ? 'Collapse analytics' : 'Expand analytics'}
-          className="size-8 shrink-0 rounded-md text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
-          onClick={() => {
+        <AgentCardCollapseToggle
+          isCollapsed={!isExpanded}
+          labelCollapse="Collapse analytics"
+          labelExpand="Expand analytics"
+          onToggle={() => {
             setIsExpanded((current) => !current);
           }}
-        >
-          <ChevronDown
-            className={cn(
-              'size-4 transition-transform',
-              isExpanded ? 'rotate-180' : 'rotate-0',
-            )}
-          />
-        </Button>
+        />
       </div>
 
       {!isExpanded ? (

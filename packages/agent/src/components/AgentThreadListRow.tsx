@@ -68,6 +68,7 @@ interface AgentThreadListRowProps {
 /**
  * Finalist 1 row chrome: dense title+preview+time, square active border,
  * activity disc only when running/waiting/failed (Claude-style pulse).
+ * Archived rows use a clearer dim (opacity alone + muted title).
  */
 function agentThreadListRowClassName(options: {
   isMuted?: boolean;
@@ -80,7 +81,8 @@ function agentThreadListRowClassName(options: {
     options.isSelected
       ? 'border-border bg-foreground/[0.06]'
       : 'hover:bg-foreground/[0.045]',
-    options.isMuted && 'opacity-55',
+    // Stronger than 0.55 — archived list was hard to tell from Recent.
+    options.isMuted && 'opacity-40',
   );
 }
 
@@ -195,7 +197,9 @@ export function AgentThreadListRow({
       className={cn(
         'flex min-h-0 items-stretch',
         agentThreadListRowClassName({
-          isMuted: conv.status === AgentThreadStatus.ARCHIVED,
+          // Archived view lists only archived threads — always mute there too
+          // so a missing/stale status still reads as archived.
+          isMuted: isArchivedView || conv.status === AgentThreadStatus.ARCHIVED,
           isSelected: isActiveConversation,
         }),
       )}

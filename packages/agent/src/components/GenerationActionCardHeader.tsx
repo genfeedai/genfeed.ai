@@ -1,8 +1,6 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
 import type { IconType } from '@genfeedai/interfaces/ui/icon.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { Button } from '@ui/primitives/button';
-import { ChevronDown } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 type GenerationActionCardHeaderProps = {
@@ -37,24 +35,12 @@ export function GenerationActionCardHeader({
         </span>
       ) : null}
       {onToggleCollapsed ? (
-        <Button
-          type="button"
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          aria-expanded={!isCollapsed}
-          aria-label={
-            isCollapsed ? 'Expand generation card' : 'Collapse generation card'
-          }
-          onClick={onToggleCollapsed}
-          className="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <ChevronDown
-            className={cn(
-              'size-4 transition-transform',
-              isCollapsed ? '-rotate-90' : 'rotate-0',
-            )}
-          />
-        </Button>
+        <AgentCardCollapseToggle
+          isCollapsed={isCollapsed}
+          labelCollapse="Collapse generation card"
+          labelExpand="Expand generation card"
+          onToggle={onToggleCollapsed}
+        />
       ) : null}
     </div>
   );
