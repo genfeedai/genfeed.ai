@@ -106,7 +106,7 @@ export default function AgentCampaignNewPage() {
 
         await service.create(payload);
         notificationsService.success('Campaign created successfully');
-        router.push(APP_ROUTES.PUBLISH.CAMPAIGNS);
+        router.push(APP_ROUTES.AUTOMATE.CAMPAIGNS);
       } catch (error) {
         logger.error('Failed to create agent campaign', { error });
         notificationsService.error('Failed to create campaign');
@@ -260,7 +260,7 @@ export default function AgentCampaignNewPage() {
             label="Cancel"
             type="button"
             variant={ButtonVariant.SECONDARY}
-            onClick={() => router.push(APP_ROUTES.PUBLISH.CAMPAIGNS)}
+            onClick={() => router.push(APP_ROUTES.AUTOMATE.CAMPAIGNS)}
           />
         </div>
       </form>

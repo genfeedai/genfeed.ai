@@ -17,13 +17,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 
-// Named sub-route segments that exist under /publish/ (not post-detail pages)
+// Named sub-route segments that exist under /publish/ (not post-detail pages).
+// Campaigns / outreach live under Automate; keep legacy segment names only if a
+// page still serves them (newsletters deep links, remix action deep link).
 const KNOWN_SUB_ROUTES = [
   'analytics',
   'calendar',
-  'campaigns',
   'newsletters',
-  'outreach-campaigns',
   'overview',
   'published',
   'remix',

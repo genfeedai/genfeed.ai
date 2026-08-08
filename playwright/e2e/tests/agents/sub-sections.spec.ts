@@ -11,8 +11,8 @@ import { expect, test } from '../../fixtures/auth.fixture';
 /**
  * E2E Tests for Agents Sub-Routes
  *
- * Covers: /publish/campaigns, /publish/campaigns/new, /publish/outreach-campaigns,
- *         /publish/outreach-campaigns/new, /automate/runs, /automate/strategies,
+ * Covers: /automate/campaigns, /automate/campaigns/new, /automate/outreach-campaigns,
+ *         /automate/outreach-campaigns/new, /automate/runs, /automate/strategies,
  *         /workflows, /workflows/new, /workflows/templates
  *
  * CRITICAL: All tests use mocked API responses.
@@ -28,7 +28,7 @@ test.describe('Agents — Sub-Sections', () => {
 
   test('campaigns page loads campaigns list', async ({ authenticatedPage }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.CAMPAIGNS, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -42,7 +42,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.CAMPAIGNS_NEW, {
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -55,7 +55,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS);
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS);
 
     await expect(authenticatedPage).toHaveURL(/publish\/outreach-campaigns/);
     await expect(
@@ -67,7 +67,7 @@ test.describe('Agents — Sub-Sections', () => {
     authenticatedPage,
   }) => {
     await mockAutomationData(authenticatedPage);
-    await authenticatedPage.goto(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS_NEW);
+    await authenticatedPage.goto(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW);
 
     await expect(authenticatedPage).toHaveURL(
       /publish\/outreach-campaigns\/new/,
@@ -152,7 +152,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from agents routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.CAMPAIGNS, {
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.CAMPAIGNS, {
       waitUntil: 'domcontentloaded',
     });
 
@@ -175,7 +175,7 @@ test.describe('Agents — Sub-Sections', () => {
   test('unauthenticated user is redirected from outreach campaign routes', async ({
     unauthenticatedPage,
   }) => {
-    await unauthenticatedPage.goto(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS);
+    await unauthenticatedPage.goto(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS);
 
     await unauthenticatedPage.waitForURL(/\/sign-in|\/login/, {
       timeout: 15000,

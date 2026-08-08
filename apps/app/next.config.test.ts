@@ -170,35 +170,35 @@ describe('app next.config', () => {
     },
   );
 
-  it('permanently hard-cuts Automate campaign routes into Publish', async () => {
+  it('permanently hard-cuts Publish campaign routes into Automate', async () => {
     const redirects = await config.redirects?.();
 
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.PUBLISH.CAMPAIGNS,
+      destination: APP_ROUTES.AUTOMATE.CAMPAIGNS,
       permanent: true,
-      source: '/automate/campaigns',
+      source: '/publish/campaigns',
     });
     expect(redirects).toContainEqual({
-      destination: `${APP_ROUTES.PUBLISH.CAMPAIGNS}/:path*`,
+      destination: `${APP_ROUTES.AUTOMATE.CAMPAIGNS}/:path*`,
       permanent: true,
-      source: '/automate/campaigns/:path*',
+      source: '/publish/campaigns/:path*',
     });
     expect(redirects).toContainEqual({
-      destination: APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
+      destination: APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS,
       permanent: true,
-      source: '/automate/outreach-campaigns',
+      source: '/publish/outreach-campaigns',
     });
     expect(redirects).toContainEqual({
       destination: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        APP_ROUTES.PUBLISH.CAMPAIGNS,
+        APP_ROUTES.AUTOMATE.CAMPAIGNS,
       ),
       permanent: true,
       source: createBrandAppRoute(
         ':orgSlug',
         ':brandSlug',
-        '/automate/campaigns',
+        '/publish/campaigns',
       ),
     });
   });

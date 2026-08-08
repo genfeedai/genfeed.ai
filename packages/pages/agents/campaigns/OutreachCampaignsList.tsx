@@ -140,12 +140,12 @@ export default function OutreachCampaignsList() {
   );
 
   const handleCreateCampaign = useCallback(() => {
-    router.push(APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS_NEW);
+    router.push(APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW);
   }, [router]);
 
   const handleConfigureCampaign = useCallback(
     (campaign: OutreachCampaign) => {
-      router.push(`${APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS}/${campaign.id}`);
+      router.push(`${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}/${campaign.id}`);
     },
     [router],
   );

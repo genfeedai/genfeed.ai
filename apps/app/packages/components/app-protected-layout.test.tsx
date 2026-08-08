@@ -886,7 +886,11 @@ describe('AppProtectedLayout', () => {
       'Automate',
       'Content Run',
     ],
-    ['/org-123/brand-123/publish/campaigns/campaign-1', 'Publish', 'Campaign'],
+    [
+      '/org-123/brand-123/automate/campaigns/campaign-1',
+      'Automate',
+      'Campaign',
+    ],
   ] as const)(
     'feeds canonical root and leaf breadcrumb metadata on %s',
     (pathname, rootLabel, leafLabel) => {

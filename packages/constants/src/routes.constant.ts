@@ -123,6 +123,18 @@ export const APP_ROUTES = {
     RUNS: '/automate/runs',
     SKILLS: '/automate/skills',
     STRATEGIES: '/automate/strategies',
+    /**
+     * Agent-driven content campaigns (bulk production programs).
+     * Canonical home under Automate — not Publish.
+     */
+    CAMPAIGNS: '/automate/campaigns',
+    CAMPAIGNS_NEW: '/automate/campaigns/new',
+    /**
+     * Outreach / growth engagement campaigns (replies, DMs).
+     * Canonical home under Automate — not Publish.
+     */
+    OUTREACH_CAMPAIGNS: '/automate/outreach-campaigns',
+    OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
     /** Throttled social reply drip campaigns. */
     REPLY_CAMPAIGNS: '/automate/reply-campaigns',
     /** Pipeline canvas library (merged former /workflows surface). */
@@ -219,13 +231,25 @@ export const APP_ROUTES = {
   },
   PUBLISH: {
     CALENDAR: '/publish/calendar',
-    /** Agent-driven content campaigns (Publish surface). */
-    CAMPAIGNS: '/publish/campaigns',
-    CAMPAIGNS_NEW: '/publish/campaigns/new',
+    /**
+     * @deprecated Canonical path is APP_ROUTES.AUTOMATE.CAMPAIGNS.
+     * Legacy `/publish/campaigns` permanently redirects there.
+     */
+    CAMPAIGNS: '/automate/campaigns',
+    /** @deprecated Use APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW. */
+    CAMPAIGNS_NEW: '/automate/campaigns/new',
+    /**
+     * @deprecated Newsletter is a creation surface, not Publish nav.
+     * Route retained for deep links until the long-form UX lands elsewhere.
+     */
     NEWSLETTERS: '/publish/newsletters',
-    /** Outreach / growth campaigns (Publish surface). */
-    OUTREACH_CAMPAIGNS: '/publish/outreach-campaigns',
-    OUTREACH_CAMPAIGNS_NEW: '/publish/outreach-campaigns/new',
+    /**
+     * @deprecated Canonical path is APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS.
+     * Legacy `/publish/outreach-campaigns` permanently redirects there.
+     */
+    OUTREACH_CAMPAIGNS: '/automate/outreach-campaigns',
+    /** @deprecated Use APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW. */
+    OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
     /**
      * Canonical Publish home (all-posts list). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /
@@ -233,6 +257,11 @@ export const APP_ROUTES = {
      */
     OVERVIEW: '/publish/overview',
     PUBLISHED: '/publish/published',
+    /**
+     * Remix is a contextual **action** (Discover/Library button), not a module
+     * page. This path is the deep-link target for that action only — never a
+     * Publish nav item.
+     */
     REMIX: '/publish/remix',
     REVIEW: '/publish/review',
     ROOT: '/publish',

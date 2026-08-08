@@ -1,5 +1,5 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 
 assertSourceHasExport(
-  'app/(protected)/[orgSlug]/[brandSlug]/publish/campaigns/new/page.tsx',
+  'app/(protected)/[orgSlug]/[brandSlug]/automate/campaigns/[id]/page.tsx',
 );

@@ -406,11 +406,11 @@ const config = createAppNextConfig({
     ...appHomeToOverviewRedirects(APP_ROUTES.LIBRARY.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.ANALYTICS.ROOT),
     ...appHomeToOverviewRedirects(APP_ROUTES.PUBLISH.ROOT),
-    // Campaigns / outreach moved from Automate → Publish (hard cut).
-    ...legacyPathRedirects('/automate/campaigns', APP_ROUTES.PUBLISH.CAMPAIGNS),
+    // Campaigns / outreach live under Automate (hard cut back from Publish).
+    ...legacyPathRedirects('/publish/campaigns', APP_ROUTES.AUTOMATE.CAMPAIGNS),
     ...legacyPathRedirects(
-      '/automate/outreach-campaigns',
-      APP_ROUTES.PUBLISH.OUTREACH_CAMPAIGNS,
+      '/publish/outreach-campaigns',
+      APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS,
     ),
   ],
   sentryProject: 'app-genfeed-ai',

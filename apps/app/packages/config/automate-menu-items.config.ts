@@ -4,8 +4,10 @@ import {
   History,
   LayoutGrid,
   Megaphone,
+  MessageSquare,
   Network,
   Rocket,
+  Send,
   Settings,
   Sparkles,
   UserPlus,
@@ -19,12 +21,11 @@ import {
  * - Home: Overview
  * - Workflows: pipelines + run history
  * - Agents: roster, hire, skills, autopilot strategies
- * - Campaigns: reply drip + multi-agent launch (orchestrator)
+ * - Campaigns: content programs, outreach, reply drip, launch team
  * - Settings: module config
  *
- * Icons: one unique lucide glyph per row, from the same set used across app
- * menus (LayoutGrid for Overview, Megaphone for campaigns, Settings for config).
- * Measurement lives in the Analytics app — no Automate Analytics clone.
+ * Icons: one unique lucide glyph per row. Measurement lives in Analytics —
+ * no Automate Analytics clone.
  */
 export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   {
@@ -93,11 +94,33 @@ export const AUTOMATE_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Campaigns',
+    href: APP_ROUTES.AUTOMATE.CAMPAIGNS,
+    label: 'Campaigns',
+    matchPaths: [
+      APP_ROUTES.AUTOMATE.CAMPAIGNS,
+      APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW,
+    ],
+    outline: Megaphone,
+    solid: Megaphone,
+  },
+  {
+    group: 'Campaigns',
+    href: APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS,
+    label: 'Outreach',
+    matchPaths: [
+      APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS,
+      APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW,
+    ],
+    outline: Send,
+    solid: Send,
+  },
+  {
+    group: 'Campaigns',
     href: APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS,
     label: 'Reply Campaigns',
     matchPaths: [APP_ROUTES.AUTOMATE.REPLY_CAMPAIGNS],
-    outline: Megaphone,
-    solid: Megaphone,
+    outline: MessageSquare,
+    solid: MessageSquare,
   },
   {
     group: 'Campaigns',

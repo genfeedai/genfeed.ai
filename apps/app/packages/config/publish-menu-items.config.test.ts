@@ -55,4 +55,19 @@ describe('PUBLISH_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/publish/analytics');
     expect(labels).not.toContain('Analytics');
   });
+
+  it('does not host creation/automation destinations (Automate + actions own those)', () => {
+    const hrefs = PUBLISH_MENU_ITEMS.map((item) => item.href);
+    const labels = PUBLISH_MENU_ITEMS.map((item) => item.label);
+
+    expect(hrefs).not.toContain('/publish/campaigns');
+    expect(hrefs).not.toContain('/automate/campaigns');
+    expect(hrefs).not.toContain('/publish/outreach-campaigns');
+    expect(hrefs).not.toContain('/publish/newsletters');
+    expect(hrefs).not.toContain('/publish/remix');
+    expect(labels).not.toContain('Campaigns');
+    expect(labels).not.toContain('Outreach');
+    expect(labels).not.toContain('Newsletters');
+    expect(labels).not.toContain('Remix');
+  });
 });
