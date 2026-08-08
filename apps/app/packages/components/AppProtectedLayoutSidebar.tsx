@@ -293,7 +293,7 @@ export default function AppProtectedLayoutSidebar({
       shellMode="workspace"
       showPrimaryItems
       showUserProfile
-      sidebarWidth={304}
+      sidebarWidth={280}
       shellChromeVariant={shellChromeVariant}
     />
   );

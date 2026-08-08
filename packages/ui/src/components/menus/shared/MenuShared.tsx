@@ -18,8 +18,8 @@ import MenuSharedPrimaryAction from './MenuSharedPrimaryAction';
 import SidebarUserProfile from './SidebarUserProfile';
 import { useMenuShared } from './useMenuShared';
 
-/** Single-column sidebar width */
-const SIDEBAR_WIDTH = 240;
+/** Fallback when host does not pass an explicit rail width. */
+const DEFAULT_SIDEBAR_WIDTH = 280;
 
 export default function MenuShared({
   config,
@@ -39,6 +39,7 @@ export default function MenuShared({
   renderFooterSlot,
   showUserProfile = true,
   orgSwitcherSlot,
+  sidebarWidth = DEFAULT_SIDEBAR_WIDTH,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -170,8 +171,8 @@ export default function MenuShared({
           : 'bg-background',
       )}
       style={{
-        minWidth: SIDEBAR_WIDTH,
-        width: SIDEBAR_WIDTH,
+        minWidth: sidebarWidth,
+        width: sidebarWidth,
       }}
     >
       <div className="flex min-w-0 flex-1 flex-col">

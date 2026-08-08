@@ -40,9 +40,12 @@ export default function AppLayout({
     desktopSidebarExpandedWidth,
     handleAgentPanelResizeStart,
     handleCloseSidebar,
+    handleSidebarResizeKeyDown,
+    handleSidebarResizeStart,
     handleToggleDesktopSidebar,
     isDesktopCollapsed,
     isSidebarOpen,
+    isSidebarResizing,
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,
@@ -93,6 +96,9 @@ export default function AppLayout({
               ariaLabel="Navigation"
               collapsedWidth={desktopSidebarCollapsedWidth}
               isCollapsed={isDesktopCollapsed}
+              isResizing={isSidebarResizing}
+              onResizeKeyDown={handleSidebarResizeKeyDown}
+              onResizeStart={handleSidebarResizeStart}
               shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >

@@ -5,6 +5,7 @@ import {
   type CSSProperties,
   cloneElement,
   type ReactElement,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   useCallback,
   useEffect,
@@ -13,13 +14,18 @@ import {
 } from 'react';
 import {
   clampAgentPanelHeight,
+  clampSidebarWidth,
   persistAgentPanelHeight,
   persistSidebarCollapsed,
+  persistSidebarWidth,
   readPersistedAgentPanelHeight,
   readPersistedSidebarCollapsed,
+  readPersistedSidebarWidth,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
 } from './app-layout.utils';
 
-const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 0;
 const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
@@ -56,6 +62,10 @@ export function useAppLayout({
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] =
     useState(false);
+  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
+  const [sidebarExpandedWidth, setSidebarExpandedWidth] = useState(
+    SIDEBAR_DEFAULT_WIDTH,
+  );
   const [agentPanelHeight, setAgentPanelHeight] =
     useState<number>(AGENT_PANEL_HEIGHT);
 
@@ -76,7 +86,21 @@ export function useAppLayout({
     if (persistedValue !== null) {
       setIsDesktopCollapsed(persistedValue);
     }
+    const persistedWidth = readPersistedSidebarWidth();
+    if (persistedWidth !== null) {
+      setSidebarExpandedWidth(clampSidebarWidth(persistedWidth));
+    } else {
+      // Seed from host menu prop (e.g. AppProtectedLayout) once per session.
+      const hostWidth = (
+        menuComponent as ReactElement<{ sidebarWidth?: number }> | null
+      )?.props?.sidebarWidth;
+      if (typeof hostWidth === 'number') {
+        setSidebarExpandedWidth(clampSidebarWidth(hostWidth));
+      }
+    }
     setIsSidebarPreferenceLoaded(true);
+    // Intentionally run once on mount — resizing is owned by localStorage + state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- host width is a seed only
   }, []);
 
   useEffect(() => {
@@ -86,6 +110,14 @@ export function useAppLayout({
 
     persistSidebarCollapsed(isDesktopCollapsed);
   }, [isDesktopCollapsed, isSidebarPreferenceLoaded]);
+
+  useEffect(() => {
+    if (!isSidebarPreferenceLoaded) {
+      return;
+    }
+
+    persistSidebarWidth(sidebarExpandedWidth);
+  }, [isSidebarPreferenceLoaded, sidebarExpandedWidth]);
 
   useEffect(() => {
     const persistedHeight = readPersistedAgentPanelHeight();
@@ -172,6 +204,8 @@ export function useAppLayout({
         currentApp,
         isCollapsed:
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
+        // Keep menu shell width in sync with the resizable rail.
+        sidebarWidth: sidebarExpandedWidth,
         onClose: (...args: unknown[]) => {
           if (extraOnClose) {
             extraOnClose(...args);
@@ -184,7 +218,13 @@ export function useAppLayout({
         onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
-    [menuComponent, handleToggleDesktopSidebar, isDesktopCollapsed, currentApp],
+    [
+      menuComponent,
+      handleToggleDesktopSidebar,
+      isDesktopCollapsed,
+      currentApp,
+      sidebarExpandedWidth,
+    ],
   );
 
   const topbarProps: TopbarProps | undefined = useMemo(() => {
@@ -224,8 +264,7 @@ export function useAppLayout({
     mobileSidebarWidth?: number;
     sidebarWidth?: number;
   }> | null;
-  const desktopSidebarExpandedWidth =
-    menuElement?.props?.sidebarWidth ?? SIDEBAR_WIDTH;
+  const desktopSidebarExpandedWidth = sidebarExpandedWidth;
   const desktopSidebarCollapsedWidth =
     menuElement?.props?.collapsedSidebarWidth ?? SIDEBAR_COLLAPSED_WIDTH;
   const mobileSidebarWidth =
@@ -245,6 +284,56 @@ export function useAppLayout({
       ? `${DESKTOP_TITLEBAR_HEIGHT}px`
       : '0px',
   } as CSSProperties;
+
+  const handleSidebarResizeStart = useCallback(
+    (event: ReactMouseEvent<HTMLButtonElement>) => {
+      if (isDesktopCollapsed) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsSidebarResizing(true);
+      const startX = event.clientX;
+      const startWidth = sidebarExpandedWidth;
+
+      const handleMouseMove = (moveEvent: MouseEvent): void => {
+        setSidebarExpandedWidth(
+          clampSidebarWidth(startWidth + moveEvent.clientX - startX),
+        );
+      };
+
+      const handleMouseUp = (): void => {
+        setIsSidebarResizing(false);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [isDesktopCollapsed, sidebarExpandedWidth],
+  );
+
+  const handleSidebarResizeKeyDown = useCallback(
+    (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+      const step = event.shiftKey ? 32 : 16;
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setSidebarExpandedWidth((current) => clampSidebarWidth(current + step));
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setSidebarExpandedWidth((current) => clampSidebarWidth(current - step));
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        setSidebarExpandedWidth(SIDEBAR_MIN_WIDTH);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        setSidebarExpandedWidth(SIDEBAR_MAX_WIDTH);
+      }
+    },
+    [],
+  );
 
   const handleAgentPanelResizeStart = useCallback(
     (event: ReactMouseEvent<HTMLButtonElement>) => {
@@ -293,7 +382,10 @@ export function useAppLayout({
   // consumer that offsets itself by that var must ease over the exact same
   // duration/easing as DesktopSidebar's own width animation. Otherwise the
   // content jumps to its final position a frame before the rail starts moving.
-  const sidebarOffsetTransition = `padding-left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, padding-right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
+  // While dragging the rail, offsets track live without transition lag.
+  const sidebarOffsetTransition = isSidebarResizing
+    ? 'none'
+    : `padding-left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, padding-right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
   const agentPanelTransition = `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, ${sidebarOffsetTransition}`;
 
   return {
@@ -304,9 +396,12 @@ export function useAppLayout({
     desktopSidebarExpandedWidth,
     handleAgentPanelResizeStart,
     handleCloseSidebar,
+    handleSidebarResizeKeyDown,
+    handleSidebarResizeStart,
     handleToggleDesktopSidebar,
     isDesktopCollapsed,
     isSidebarOpen,
+    isSidebarResizing,
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,
