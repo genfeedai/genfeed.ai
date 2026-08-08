@@ -1,6 +1,6 @@
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import ModalPostPlatformsTab from '@ui/modals/content/post/ModalPostPlatformsTab';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
@@ -130,8 +130,11 @@ describe('ModalPostPlatformsTab', () => {
     );
 
     expect(screen.getByText('Live preview')).toBeInTheDocument();
-    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
-    expect(screen.getByText('Hello from the live preview')).toBeInTheDocument();
+    // The settings textarea holds the same string, so scope to the preview.
+    const preview = screen.getByLabelText('Platform preview');
+    expect(
+      within(preview).getByText('Hello from the live preview'),
+    ).toBeInTheDocument();
   });
 
   it('hides and restores the preview via the toggle', () => {
