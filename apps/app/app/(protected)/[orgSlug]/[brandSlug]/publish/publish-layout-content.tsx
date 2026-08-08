@@ -22,6 +22,7 @@ const KNOWN_SUB_ROUTES = [
   'analytics',
   'calendar',
   'campaigns',
+  'failed',
   'newsletters',
   'outreach-campaigns',
   'overview',

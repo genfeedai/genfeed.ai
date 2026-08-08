@@ -8,7 +8,14 @@ import {
 } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
-import { Copy, ExternalLink, Eye, Pencil, Trash2 } from 'lucide-react';
+import {
+  Copy,
+  ExternalLink,
+  Eye,
+  Pencil,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 
 export type BuildPostsTableActionsParams = {
   scope: PageScope | undefined;
@@ -17,6 +24,7 @@ export type BuildPostsTableActionsParams = {
   onViewIngredient: (post: IPost) => void;
   onOpenPlatformUrl: (post: IPost) => void;
   onRemix: (post: IPost) => void;
+  onRetry: (post: IPost) => void;
 };
 
 export function buildPostsTableActions({
@@ -26,6 +34,7 @@ export function buildPostsTableActions({
   onViewIngredient,
   onOpenPlatformUrl,
   onRemix,
+  onRetry,
 }: BuildPostsTableActionsParams): TableAction<IPost>[] {
   if (scope === PageScope.SUPERADMIN) {
     return [
@@ -40,6 +49,14 @@ export function buildPostsTableActions({
   }
 
   return [
+    {
+      icon: () => <RefreshCw />,
+      isVisible: (post: IPost) => post.status === PostStatus.FAILED,
+      onClick: onRetry,
+      size: ButtonSize.SM,
+      tooltip: 'Retry publishing',
+      variant: ButtonVariant.SECONDARY,
+    },
     {
       icon: () => <Eye />,
       isVisible: (post: IPost) => {

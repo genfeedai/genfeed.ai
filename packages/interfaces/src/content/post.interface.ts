@@ -11,6 +11,7 @@ import type {
   IUser,
 } from '../index';
 import type { IPublishApproval } from '../publisher/publish-approval.interface';
+import type { IChannelTargetError } from '../scheduler/channel-target.interface';
 import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 
 export interface IPost extends IBaseEntity {
@@ -34,6 +35,7 @@ export interface IPost extends IBaseEntity {
   publicationDate: string;
   publishedAt?: string;
   retryCount?: number;
+  targetError?: IChannelTargetError | null;
   reviewVersionPinId?: string | null;
   publishApprovalId?: string | null;
   publishApproval?: IPublishApproval | null;
