@@ -1,6 +1,6 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
-import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
+import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
@@ -239,7 +239,8 @@ export class DefaultRecurringContentService {
     options: UpdateDefaultRecurringScheduleOptions = {},
   ): Promise<void> {
     const scheduleConfig = this.resolveScheduleConfig(agentConfig);
-    const workflowSchedulerService = this.resolveWorkflowSchedulerService();
+    const workflowSchedulerService =
+      await this.resolveWorkflowSchedulerService();
     if (!workflowSchedulerService && options.isSchedulerRequired !== false) {
       throw new Error('Workflow scheduler service is unavailable');
     }
@@ -650,9 +651,15 @@ export class DefaultRecurringContentService {
     }
   }
 
-  private resolveWorkflowSchedulerService(): WorkflowSchedulerService | null {
+  private async resolveWorkflowSchedulerService(): Promise<WorkflowSchedulerService | null> {
     try {
-      return this.moduleRef.get(WorkflowSchedulerService, { strict: false });
+      // Deferred import: a top-level value import of the scheduler closes the
+      // brands -> workflows -> newsletters -> brands module cycle and crashes
+      // API bootstrap ("Cannot access 'BrandsService' before initialization").
+      const { WorkflowSchedulerService: schedulerServiceClass } = await import(
+        '@api/collections/workflows/services/workflow-scheduler.service'
+      );
+      return this.moduleRef.get(schedulerServiceClass, { strict: false });
     } catch {
       return null;
     }
