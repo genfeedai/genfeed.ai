@@ -2426,30 +2426,6 @@
     },
     {
       "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
-      "fingerprint": "270416a254f7194dda09",
-      "method": "findMany",
-      "model": "Trend",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
-      "fingerprint": "29fc529c7e134ab5eb62",
-      "method": "update",
-      "model": "Trend",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "trend",
-      "file": "apps/server/api/src/collections/trends/services/modules/trend-query.service.ts",
-      "fingerprint": "87cb9296ea78ea9ac3fd",
-      "method": "update",
-      "model": "Trend",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "trend",
       "file": "apps/server/api/src/collections/trends/services/modules/trend-source-preview.service.ts",
       "fingerprint": "cac0313fc177677f691b",
       "method": "findFirst",

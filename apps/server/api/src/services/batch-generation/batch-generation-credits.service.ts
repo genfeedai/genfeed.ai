@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BatchPricingOptions,
-  chargeBatchGenerationCredits,
+  reconcileBatchGenerationCredits,
 } from '@genfeedai/constants';
 import { ActivitySource, BatchItemStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
@@ -75,13 +75,18 @@ export class BatchGenerationCreditsService {
       chargedCredits: (config.credits?.chargedCredits ?? 0) + params.credits,
     };
 
+    // Name the shape before the cast. An inline literal widens the optional
+    // nested config objects, and the stricter tsconfigs then reject the direct
+    // `as Prisma.InputJsonValue` conversion as non-overlapping.
+    const chargedConfig: BatchConfig = {
+      ...config,
+      credits: ledger,
+      ...(params.pricingOptions ? { pricing: params.pricingOptions } : {}),
+    };
+
     const recorded = await this.prisma.batch.updateMany({
       data: {
-        config: {
-          ...config,
-          credits: ledger,
-          ...(params.pricingOptions ? { pricing: params.pricingOptions } : {}),
-        } as unknown as Prisma.InputJsonValue,
+        config: chargedConfig as Prisma.InputJsonValue,
       },
       where: scopedWhere(params.organizationId, {
         id: params.batchId,
@@ -138,13 +143,12 @@ export class BatchGenerationCreditsService {
           format: item.format,
           hasMedia: Boolean(item.mediaUrl),
         }));
-      const settledCredits = chargeBatchGenerationCredits(
-        billableItems,
-        config.pricing ?? {},
-      );
-
-      const additionalCredits = Math.max(0, settledCredits - alreadyCharged);
-      const refundCredits = Math.max(0, alreadyCharged - settledCredits);
+      const { additionalCredits, refundCredits, settledCredits } =
+        reconcileBatchGenerationCredits(
+          alreadyCharged,
+          billableItems,
+          config.pricing ?? {},
+        );
 
       const ledger: BatchCreditsLedger = {
         chargedCredits: settledCredits,
@@ -157,12 +161,11 @@ export class BatchGenerationCreditsService {
       // loses the swap recomputes against the new ledger and finds nothing
       // owing. Recording first also means a failed credit move fails as an
       // under-charge, never as a double charge.
+      const settledConfig: BatchConfig = { ...config, credits: ledger };
+
       const claimed = await this.prisma.batch.updateMany({
         data: {
-          config: {
-            ...config,
-            credits: ledger,
-          } as unknown as Prisma.InputJsonValue,
+          config: settledConfig as Prisma.InputJsonValue,
         },
         where: scopedWhere(params.organizationId, {
           id: params.batchId,
