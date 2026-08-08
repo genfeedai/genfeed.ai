@@ -7,8 +7,6 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
-import { Lightbulb } from 'lucide-react';
 import { useState } from 'react';
 
 import ReviewDecisionPanel from './ReviewDecisionPanel';
@@ -41,6 +39,21 @@ interface ReviewDetailPanelAsideProps {
   statusLabel: string;
 }
 
+function Section({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
+  return (
+    <div className="space-y-3 border-b border-border px-4 py-4 last:border-b-0">
+      <h3 className="text-sm font-medium text-foreground">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
 export default function ReviewDetailPanelAside({
   browserTimezone,
   formattedCreatedDate,
@@ -59,23 +72,24 @@ export default function ReviewDetailPanelAside({
   const [feedback, setFeedback] = useState(item.reviewFeedback ?? '');
 
   return (
-    <aside className="space-y-4">
-      <ReviewDecisionPanel
-        feedback={feedback}
-        isActioning={isActioning}
-        isReady={isReady}
-        isSelected={isSelected}
-        item={item}
-        onApprove={onApprove}
-        onReject={onReject}
-        onRequestChanges={onRequestChanges}
-        onToggleSelect={onToggleSelect}
-        setFeedback={setFeedback}
-      />
+    <aside className="flex min-h-0 flex-col">
+      <div className="border-b border-border px-4 py-4">
+        <ReviewDecisionPanel
+          feedback={feedback}
+          isActioning={isActioning}
+          isReady={isReady}
+          isSelected={isSelected}
+          item={item}
+          onApprove={onApprove}
+          onReject={onReject}
+          onRequestChanges={onRequestChanges}
+          onToggleSelect={onToggleSelect}
+          setFeedback={setFeedback}
+        />
+      </div>
 
-      <InsetSurface className="p-5" tone="contrast">
-        <h3 className="text-sm font-medium text-foreground">Details</h3>
-        <DefinitionList className="mt-4 text-sm">
+      <Section title="Details">
+        <DefinitionList className="text-sm">
           <div className="flex items-start justify-between gap-4">
             <DefinitionTerm>Created</DefinitionTerm>
             <DefinitionDetail variant="value">
@@ -99,17 +113,14 @@ export default function ReviewDetailPanelAside({
             <DefinitionDetail variant="value">{statusLabel}</DefinitionDetail>
           </div>
         </DefinitionList>
-      </InsetSurface>
+      </Section>
 
-      <InsetSurface className="p-5" tone="contrast">
-        <h3 className="text-sm font-medium text-foreground">
-          Version-bound publish approval
-        </h3>
-        <p className="mt-1 text-sm text-foreground/55">
-          Chat and model text never authorize publishing. This typed decision
-          locks the exact version, destination, timing, actor, and policy.
+      <Section title="Publish approval">
+        <p className="text-xs leading-5 text-muted-foreground">
+          Approval pins version, destination, timing, and policy — chat never
+          authorizes publish on its own.
         </p>
-        <DefinitionList className="mt-4 text-sm">
+        <DefinitionList className="mt-3 text-sm">
           <div className="flex items-start justify-between gap-4">
             <DefinitionTerm>Version</DefinitionTerm>
             <DefinitionDetail variant="value">
@@ -147,37 +158,25 @@ export default function ReviewDetailPanelAside({
             </DefinitionDetail>
           </div>
           <div className="flex items-start justify-between gap-4">
-            <DefinitionTerm>Provenance</DefinitionTerm>
-            <DefinitionDetail variant="value">
-              {item.sourceWorkflowName ??
-                item.sourceActionId ??
-                'Manual review control'}
-            </DefinitionDetail>
-          </div>
-          <div className="flex items-start justify-between gap-4">
             <DefinitionTerm>Status</DefinitionTerm>
             <DefinitionDetail variant="value">
               {item.publishApproval?.status ?? 'Awaiting typed approval'}
             </DefinitionDetail>
           </div>
         </DefinitionList>
-        {item.publishApproval?.invalidationReason && (
-          <p className="mt-4 text-sm text-warning">
+        {item.publishApproval?.invalidationReason ? (
+          <p className="mt-2 text-xs text-warning">
             {item.publishApproval.invalidationReason}
           </p>
-        )}
-      </InsetSurface>
+        ) : null}
+      </Section>
 
       <ReviewLineagePanel item={item} />
 
       {(item.gateOverallScore !== undefined ||
         (item.gateReasons?.length ?? 0) > 0) && (
-        <InsetSurface className="p-5" tone="contrast">
-          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <Lightbulb className="size-4 text-foreground/55" />
-            Publish Gate
-          </div>
-          <DefinitionList className="mt-4 text-sm">
+        <Section title="Publish gate">
+          <DefinitionList className="text-sm">
             <div className="flex items-start justify-between gap-4">
               <DefinitionTerm>Overall score</DefinitionTerm>
               <DefinitionDetail variant="value">
@@ -187,25 +186,16 @@ export default function ReviewDetailPanelAside({
               </DefinitionDetail>
             </div>
           </DefinitionList>
-
-          {(item.gateReasons?.length ?? 0) > 0 && (
-            <div className="mt-4 border-t border-white/10 pt-4">
-              <h4 className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
-                Why it passed
-              </h4>
-              <ul className="mt-3 space-y-2 text-sm text-foreground/75">
-                {item.gateReasons?.map((reason) => (
-                  <li
-                    key={`${item.id}-${reason}`}
-                    className="rounded-card border border-border bg-muted/30 px-3 py-2"
-                  >
-                    {reason}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </InsetSurface>
+          {(item.gateReasons?.length ?? 0) > 0 ? (
+            <ul className="mt-3 space-y-1.5 text-sm text-foreground/75">
+              {item.gateReasons?.map((reason) => (
+                <li key={`${item.id}-${reason}`} className="leading-5">
+                  · {reason}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </Section>
       )}
 
       <ReviewPublishOutcomePanel
@@ -218,25 +208,19 @@ export default function ReviewDetailPanelAside({
         reviewEvents={reviewEvents}
       />
 
-      {item.reviewFeedback && (
-        <InsetSurface className="p-5" tone="contrast">
-          <h3 className="text-sm font-medium text-foreground">
-            Saved reviewer notes
-          </h3>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground/75">
+      {item.reviewFeedback ? (
+        <Section title="Saved notes">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/80">
             {item.reviewFeedback}
           </p>
-        </InsetSurface>
-      )}
+        </Section>
+      ) : null}
 
-      {item.status === BatchItemStatus.FAILED && item.error && (
-        <div className="rounded-card border border-destructive/20 bg-destructive/10 p-4">
-          <h3 className="text-sm font-medium text-rose-200">Failure reason</h3>
-          <p className="mt-2 text-sm leading-6 text-rose-100/85">
-            {item.error}
-          </p>
-        </div>
-      )}
+      {item.status === BatchItemStatus.FAILED && item.error ? (
+        <Section title="Failure">
+          <p className="text-sm leading-6 text-destructive">{item.error}</p>
+        </Section>
+      ) : null}
     </aside>
   );
 }

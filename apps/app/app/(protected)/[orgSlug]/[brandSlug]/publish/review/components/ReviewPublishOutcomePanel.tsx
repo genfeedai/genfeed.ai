@@ -7,7 +7,6 @@ import {
   DefinitionTerm,
 } from '@genfeedai/ui';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 
 type ReviewPanelItem = IBatchItem & {
   gateOverallScore?: number;
@@ -26,9 +25,9 @@ export default function ReviewPublishOutcomePanel({
   item,
 }: ReviewPublishOutcomePanelProps) {
   return (
-    <InsetSurface className="p-5" tone="contrast">
-      <h3 className="text-sm font-medium text-foreground">Publish Outcome</h3>
-      <DefinitionList className="mt-4 text-sm">
+    <div className="space-y-3 border-b border-border px-4 py-4 last:border-b-0">
+      <h3 className="text-sm font-medium text-foreground">Publish outcome</h3>
+      <DefinitionList className="text-sm">
         <div className="flex items-start justify-between gap-4">
           <DefinitionTerm>Post status</DefinitionTerm>
           <DefinitionDetail variant="value">
@@ -73,11 +72,11 @@ export default function ReviewPublishOutcomePanel({
         </div>
       </DefinitionList>
 
-      <div className="mt-4 border-t border-white/10 pt-4">
-        <h4 className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
+      <div className="space-y-3 pt-1">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Performance snapshot
-        </h4>
-        <DefinitionList className="mt-3 text-sm">
+        </p>
+        <DefinitionList className="text-sm">
           <div className="flex items-start justify-between gap-4">
             <DefinitionTerm>Views</DefinitionTerm>
             <DefinitionDetail variant="value">
@@ -113,16 +112,16 @@ export default function ReviewPublishOutcomePanel({
         </DefinitionList>
       </div>
 
-      {item.postUrl && (
+      {item.postUrl ? (
         <a
-          className="mt-4 inline-flex text-sm text-primary underline-offset-2 hover:underline"
+          className="inline-flex text-sm text-primary underline-offset-2 hover:underline"
           href={item.postUrl}
           rel="noreferrer"
           target="_blank"
         >
           Open published URL
         </a>
-      )}
-    </InsetSurface>
+      ) : null}
+    </div>
   );
 }
