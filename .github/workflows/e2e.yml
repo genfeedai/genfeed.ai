@@ -241,6 +241,10 @@ jobs:
           # NEXT_PUBLIC_* is inlined at build time. Point at the prod host the
           # api-interceptor mocks; localhost:3010 is NOT intercepted.
           NEXT_PUBLIC_API_ENDPOINT: https://api.genfeed.ai/v1
+          # Browser source maps (next.config gates on this): the network guard
+          # symbolicates uncaught page errors so a production-build crash names
+          # its real source file instead of a minified chunk position.
+          E2E_COVERAGE: "1"
 
       - name: Run core E2E shard ${{ matrix.shard }}/4
         # --reporter=blob (passed inline, overriding the config reporter) so the
