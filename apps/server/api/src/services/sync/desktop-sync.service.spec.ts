@@ -44,9 +44,9 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-const { DesktopSyncService } = await import('./desktop-sync.service.ts');
+const { DesktopSyncService } = await import('./desktop-sync.service');
 const { decodeManifestCursor, decodeThreadCursor, encodeThreadCursor } =
-  await import('./desktop-sync-cursor.util.ts');
+  await import('./desktop-sync-cursor.util');
 
 const userId = '507f191e810c19729de860ee';
 const organizationId = '607f191e810c19729de860ee';
