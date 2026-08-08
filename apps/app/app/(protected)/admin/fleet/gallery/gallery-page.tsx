@@ -1,7 +1,11 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import { ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  ContentRating as ContentRatingEnum,
+  FleetReviewStatus,
+} from '@genfeedai/enums';
 import type { IFleetAsset, IFleetCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import ImageGrid from '@protected/fleet/_components/image-grid';
@@ -70,7 +74,12 @@ export default function GalleryPage() {
       }
 
       if (contentRating !== 'all') {
-        query.contentRating = contentRating;
+        // The tab keys are UI vocabulary; the API filter takes the Prisma
+        // ContentRating enum (SCREAMING labels).
+        query.contentRating =
+          contentRating === 'sfw'
+            ? ContentRatingEnum.SFW
+            : ContentRatingEnum.NSFW;
       }
 
       return service.getAssets(query);
@@ -98,7 +107,9 @@ export default function GalleryPage() {
       try {
         const service = await getFleetService();
 
-        await Promise.all(ids.map((id) => service.reviewAsset(id, 'rejected')));
+        await Promise.all(
+          ids.map((id) => service.reviewAsset(id, FleetReviewStatus.REJECTED)),
+        );
 
         notificationsService.success(`${ids.length} image(s) rejected`);
         setSelectedIds(new Set());

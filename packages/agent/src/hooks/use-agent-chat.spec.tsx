@@ -23,7 +23,7 @@ describe('useAgentChat', () => {
     });
   });
 
-  it('uses the runtime default model when no explicit model is supplied', async () => {
+  it('leaves the model unset so the server resolves the runtime default', async () => {
     const chat = vi.fn().mockResolvedValue({
       contextVersion: 1,
       creditsRemaining: 95,
@@ -53,10 +53,12 @@ describe('useAgentChat', () => {
       await result.current.sendMessage('Use the default runtime model');
     });
 
+    // No client-side default: the hook sends model: undefined and the
+    // server resolves the registry default (agent-runtime-model.constant).
     expect(chat).toHaveBeenCalledWith(
       expect.objectContaining({
         content: 'Use the default runtime model',
-        model: 'openai/gpt-5.6-terra',
+        model: undefined,
       }),
       expect.any(AbortSignal),
     );

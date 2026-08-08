@@ -1,5 +1,5 @@
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { IngredientStatus } from '@genfeedai/enums';
+import { ContentRating, IngredientStatus } from '@genfeedai/enums';
 import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
 import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IIngredient, IMetadata, IVideo } from '@genfeedai/interfaces';
@@ -60,7 +60,7 @@ export function useMasonryVideo({
   const isFleetNsfwSensitive =
     selectedBrand?.isFleetEnabled &&
     !!video.personaSlug &&
-    video.contentRating !== 'sfw';
+    video.contentRating !== ContentRating.SFW;
   const isFleetNsfwLocked =
     Boolean(isFleetNsfwSensitive) && !settings?.isFleetNsfwVisible;
   const isInteractionBlocked = isUnavailable || isFleetNsfwLocked;

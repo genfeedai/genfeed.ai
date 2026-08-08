@@ -4,7 +4,11 @@ import type {
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
-import { ButtonSize, ButtonVariant, isTwitterPlatform } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatPlatformLabel,
+} from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
@@ -13,16 +17,6 @@ import type { ReactElement } from 'react';
 
 interface BatchGenerationResultCardProps {
   action: AgentUiAction;
-}
-
-function formatPlatformLabel(platform: string): string {
-  const normalized = platform.trim().toLowerCase();
-
-  if (isTwitterPlatform(normalized)) {
-    return 'X';
-  }
-
-  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
@@ -68,7 +62,9 @@ export function BatchGenerationResultCard({
   const creditsUsed = action.creditsUsed ?? 0;
   const completedCount = action.completedCount;
   const failedCount = action.failedCount;
-  const platformLabels = (action.platforms ?? []).map(formatPlatformLabel);
+  const platformLabels = (action.platforms ?? []).map(
+    (platform) => formatPlatformLabel(platform) ?? platform,
+  );
   const previewItems = action.items ?? [];
   const remainingCount =
     action.remainingCount ??

@@ -1,5 +1,6 @@
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ReviewGrid from './ReviewGrid';
 import {
   getReviewFilterCounts,
@@ -152,7 +153,12 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    expect(screen.getByText('1 selected')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' && element.textContent === '1 selected',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('shows publishing context in the detail panel when metadata is present', () => {
@@ -271,7 +277,7 @@ describe('ReviewGrid', () => {
     expect(getVisibleReviewItems(items as never, 'skipped')).toHaveLength(1);
   });
 
-  it('routes filter, item, selection, and bulk actions', () => {
+  it('routes filter, item, selection, and bulk actions', async () => {
     const onFilterChange = vi.fn();
     const onSelectItem = vi.fn();
     const onToggleSelect = vi.fn();
@@ -306,11 +312,28 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Approved\s*0/i }));
+    // Radix tab triggers activate on the pointer sequence, not a bare click.
+    await userEvent.click(screen.getByRole('tab', { name: /Approved\s*0/i }));
     fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
     fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
-    fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+    // The detail panel renders its own Approve/Reject; scope the bulk
+    // actions to the selection banner.
+    const selectionBanner = screen
+      .getByText(
+        (_, element) =>
+          element?.tagName === 'P' &&
+          /^\d+\s*selected$/.test(element.textContent ?? ''),
+      )
+      .closest('div')?.parentElement;
+    if (!selectionBanner) {
+      throw new Error('Selection banner did not render');
+    }
+    fireEvent.click(
+      within(selectionBanner).getByRole('button', { name: /^Approve$/i }),
+    );
+    fireEvent.click(
+      within(selectionBanner).getByRole('button', { name: /^Reject$/i }),
+    );
 
     expect(onFilterChange).toHaveBeenCalledWith('approved');
     expect(onSelectItem).toHaveBeenCalledWith('item-1');

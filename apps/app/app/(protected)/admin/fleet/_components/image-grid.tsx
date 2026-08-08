@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, FleetReviewStatus } from '@genfeedai/enums';
 import type { IFleetAsset } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -134,7 +134,9 @@ export default function ImageGrid({
                   variant={ButtonVariant.UNSTYLED}
                   withWrapper={false}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                  onClick={() => onMove(Array.from(selectedIds), 'approved')}
+                  onClick={() =>
+                    onMove(Array.from(selectedIds), FleetReviewStatus.APPROVED)
+                  }
                 >
                   {moveLabel}
                 </Button>

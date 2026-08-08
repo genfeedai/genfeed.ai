@@ -1,4 +1,4 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
 import { render, screen } from '@testing-library/react';
 import ModalGallery from '@ui/modals/gallery/ModalGallery';
 import { describe, expect, it, vi } from 'vitest';
@@ -63,7 +63,7 @@ vi.mock('@ui/modals/modal/Modal', () => ({
 
 describe('ModalGallery', () => {
   const defaultProps = {
-    category: 'image' as const,
+    category: IngredientCategory.IMAGE,
     format: IngredientFormat.PORTRAIT,
     isNoneAllowed: false,
     isOpen: true,
@@ -82,14 +82,22 @@ describe('ModalGallery', () => {
 
   it('renders with correct title for video category', () => {
     render(
-      <ModalGallery {...defaultProps} category="video" title={undefined} />,
+      <ModalGallery
+        {...defaultProps}
+        category={IngredientCategory.VIDEO}
+        title={undefined}
+      />,
     );
     expect(screen.getByText('Select Video')).toBeInTheDocument();
   });
 
   it('renders with correct title for music category', () => {
     render(
-      <ModalGallery {...defaultProps} category="music" title={undefined} />,
+      <ModalGallery
+        {...defaultProps}
+        category={IngredientCategory.MUSIC}
+        title={undefined}
+      />,
     );
     expect(screen.getByText('Select Music')).toBeInTheDocument();
   });

@@ -21,6 +21,7 @@ const STATUS_VARIANTS: Record<
 > = {
   approved: 'success',
   draft: 'secondary',
+  failed: 'error',
   generated: 'success',
   pending: 'warning',
   processing: 'warning',
