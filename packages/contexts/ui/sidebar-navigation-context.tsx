@@ -78,6 +78,10 @@ function stripOrgPrefix(path: string): string {
       'automate',
       'elements',
       'bots',
+      'publish',
+      'lab',
+      'messages',
+      'tasks',
     ];
     if (parts.length >= 3 && knownPrefixes.includes(parts[2])) {
       return `/${parts.slice(2).join('/')}`;
