@@ -66,10 +66,10 @@ describe('ingredient.enum', () => {
       expect(TransformationCategory.INTERPOLATED).toBe('INTERPOLATED');
       expect(TransformationCategory.STABILIZED).toBe('STABILIZED');
       expect(TransformationCategory.BACKGROUND_REMOVED).toBe(
-        'background-removed',
+        'BACKGROUND_REMOVED',
       );
       expect(TransformationCategory.STYLE_TRANSFERRED).toBe(
-        'style-transferred',
+        'STYLE_TRANSFERRED',
       );
       expect(TransformationCategory.FACE_SWAPPED).toBe('FACE_SWAPPED');
       expect(TransformationCategory.LIP_SYNCED).toBe('LIP_SYNCED');

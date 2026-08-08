@@ -433,6 +433,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "discord.js": "14.27.0",
         "tsconfig-paths": "4.2.0",

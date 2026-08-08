@@ -13,7 +13,9 @@ import {
 
 const contentDirectory = fileURLToPath(new URL('../content', import.meta.url));
 
-const MINIMUM_DOCS_PAGES = 54;
+// 54 → 52: #2538 retired core-loop/corpus-health and
+// core-loop/prelaunch-corpus-backfill without lowering the floor.
+const MINIMUM_DOCS_PAGES = 52;
 
 function findMdxFiles(directory: string): string[] {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
