@@ -52,7 +52,7 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
             variant={ButtonVariant.UNSTYLED}
             className={cn(
               'absolute left-0 top-1/2 -translate-y-1/2 z-10',
-              'size-10 rounded-full',
+              'size-10 rounded-md',
               'bg-elevated backdrop-blur-sm shadow-border',
               'flex items-center justify-center',
               'opacity-0 group-hover:opacity-100 transition-opacity duration-300',
@@ -70,7 +70,7 @@ const HorizontalCarousel = memo(function HorizontalCarousel({
             variant={ButtonVariant.UNSTYLED}
             className={cn(
               'absolute right-0 top-1/2 -translate-y-1/2 z-10',
-              'size-10 rounded-full',
+              'size-10 rounded-md',
               'bg-elevated backdrop-blur-sm shadow-border',
               'flex items-center justify-center',
               'opacity-0 group-hover:opacity-100 transition-opacity duration-300',

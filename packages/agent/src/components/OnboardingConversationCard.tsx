@@ -183,7 +183,7 @@ export function OnboardingConversationCard({
           withWrapper={false}
           onClick={handleStart}
           isDisabled={!canSubmit}
-          className="inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-semibold"
+          className="inline-flex h-11 items-center justify-center px-5 text-sm font-semibold"
         >
           Start with my first image
         </Button>

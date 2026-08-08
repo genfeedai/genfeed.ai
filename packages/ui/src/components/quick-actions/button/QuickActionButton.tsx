@@ -54,7 +54,8 @@ export default function QuickActionButton({
       variant={buttonVariant}
       size={SIZE_MAP[size]}
       className={cn(
-        'rounded-full transition-all duration-300',
+        // Default Button radius (md) — never force a pill on product chrome.
+        'transition-all duration-300',
         action.isDisabled && 'opacity-50 cursor-not-allowed',
         className,
       )}

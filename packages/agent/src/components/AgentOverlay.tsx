@@ -52,7 +52,7 @@ export function AgentOverlay({
         withWrapper={false}
         onClick={handleToggle}
         className={cn(
-          'fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full shadow-lg transition-all duration-200',
+          'fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-md shadow-lg transition-all duration-200',
           isOpen
             ? 'bg-foreground/10 text-foreground hover:bg-foreground/20'
             : 'bg-primary text-primary-foreground hover:scale-105',

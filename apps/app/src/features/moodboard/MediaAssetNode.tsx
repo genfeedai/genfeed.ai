@@ -23,7 +23,7 @@ function PlayBadge(): React.JSX.Element {
   return (
     <div
       data-testid="moodboard-play-badge"
-      className="absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"
+      className="absolute right-2 bottom-2 flex h-7 w-7 items-center justify-center rounded-md bg-black/55 text-white backdrop-blur-sm"
     >
       <svg
         viewBox="0 0 24 24"

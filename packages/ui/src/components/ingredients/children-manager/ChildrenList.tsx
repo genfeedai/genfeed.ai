@@ -81,7 +81,7 @@ export default function ChildrenList({
                   variant={ButtonVariant.UNSTYLED}
                   onClick={() => onRemoveChild(child.id)}
                   isDisabled={isSaving}
-                  className="absolute top-1 right-1 bg-error text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-focus disabled:opacity-50"
+                  className="absolute top-1 right-1 rounded-md bg-error p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-error-focus disabled:opacity-50"
                   ariaLabel="Remove child"
                 >
                   <X className="size-3" />

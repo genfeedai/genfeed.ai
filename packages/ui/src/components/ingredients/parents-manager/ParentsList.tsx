@@ -80,7 +80,7 @@ export default function ParentsList({
                   withWrapper={false}
                   variant={ButtonVariant.UNSTYLED}
                   onClick={() => onRemoveParent(parent.id)}
-                  className="absolute top-1 right-1 bg-error text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-focus"
+                  className="absolute top-1 right-1 rounded-md bg-error p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-error-focus"
                   ariaLabel="Remove parent"
                 >
                   <X className="size-3" />

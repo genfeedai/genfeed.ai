@@ -226,7 +226,7 @@ export function AgentOutputsPanel({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => setSelectedVariantId(variant.id)}
-                className="gen-shell-control inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
+                className="gen-shell-control inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold"
                 data-active={
                   variant.id === selectedVariantId ? 'true' : 'false'
                 }
