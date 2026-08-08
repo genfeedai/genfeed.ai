@@ -1,6 +1,10 @@
 'use client';
 
-import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CredentialPlatform,
+} from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
@@ -9,8 +13,14 @@ import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
 import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import PlatformPreview, {
+  buildMediaFromIngredients,
+  type PlatformPreviewTarget,
+} from '@ui/posts/platform-preview/PlatformPreview';
+import { Button } from '@ui/primitives/button';
+import { Eye, EyeOff } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModalPostPlatformCard from './ModalPostPlatformCard';
 import ModalPostPlatformGrid from './ModalPostPlatformGrid';
 import {
@@ -23,6 +33,7 @@ export default function ModalPostPlatformsTab({
   form,
   platformConfigs,
   isLoading,
+  ingredient,
   togglePlatform,
   updatePlatformConfig,
   getMinDateTime,
@@ -35,6 +46,21 @@ export default function ModalPostPlatformsTab({
   const [generatingDescFor, setGeneratingDescFor] = useState<string | null>(
     null,
   );
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
+
+  const previewTargets = useMemo<PlatformPreviewTarget[]>(() => {
+    const media = ingredient ? buildMediaFromIngredients([ingredient]) : [];
+
+    return platformConfigs
+      .filter((config) => config.enabled)
+      .map((config) => ({
+        author: { handle: config.handle },
+        caption: config.description || globalDescription || '',
+        media,
+        platform: config.platform,
+        title: config.label || globalLabel,
+      }));
+  }, [globalDescription, globalLabel, ingredient, platformConfigs]);
 
   const getPromptsService = useAuthedService((token) =>
     PromptsService.getInstance(token),
@@ -211,6 +237,37 @@ export default function ModalPostPlatformsTab({
           </div>
         )}
       </div>
+
+      {previewTargets.length > 0 ? (
+        <div className="border-t pt-4 space-y-4">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="font-medium">Live preview</h4>
+              <p className="text-sm text-foreground/70">
+                Platform-tuned preview of each enabled channel, updated as you
+                type.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.XS}
+              onClick={() => setIsPreviewVisible((isVisible) => !isVisible)}
+              icon={
+                isPreviewVisible ? (
+                  <EyeOff className="size-3.5" />
+                ) : (
+                  <Eye className="size-3.5" />
+                )
+              }
+              label={isPreviewVisible ? 'Hide preview' : 'Show preview'}
+            />
+          </div>
+          {isPreviewVisible ? (
+            <PlatformPreview targets={previewTargets} />
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }
