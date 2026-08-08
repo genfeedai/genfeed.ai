@@ -1,6 +1,7 @@
 import { AdminFleetValueReader } from '@api/endpoints/admin/fleet/services/fleet-value-reader.util';
 import {
   ContentIntelligencePlatform,
+  IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
@@ -147,19 +148,34 @@ describe('AdminFleetValueReader', () => {
   describe('getDatasetExtension', () => {
     it('infers the extension from the url and category', () => {
       expect(
-        AdminFleetValueReader.getDatasetExtension('a/b.png', 'image'),
+        AdminFleetValueReader.getDatasetExtension(
+          'a/b.png',
+          IngredientCategory.IMAGE,
+        ),
       ).toBe('png');
       expect(
-        AdminFleetValueReader.getDatasetExtension('a/b.webp', 'image'),
+        AdminFleetValueReader.getDatasetExtension(
+          'a/b.webp',
+          IngredientCategory.IMAGE,
+        ),
       ).toBe('webp');
       expect(
-        AdminFleetValueReader.getDatasetExtension('a/b.mp4', 'image'),
+        AdminFleetValueReader.getDatasetExtension(
+          'a/b.mp4',
+          IngredientCategory.IMAGE,
+        ),
       ).toBe('mp4');
-      expect(AdminFleetValueReader.getDatasetExtension('a/b', 'video')).toBe(
-        'mp4',
-      );
       expect(
-        AdminFleetValueReader.getDatasetExtension('a/b.jpg', 'image'),
+        AdminFleetValueReader.getDatasetExtension(
+          'a/b',
+          IngredientCategory.VIDEO,
+        ),
+      ).toBe('mp4');
+      expect(
+        AdminFleetValueReader.getDatasetExtension(
+          'a/b.jpg',
+          IngredientCategory.IMAGE,
+        ),
       ).toBe('jpg');
     });
   });

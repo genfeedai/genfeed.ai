@@ -369,6 +369,9 @@ describe('AgentToolExecutorService', () => {
       addOrganizationCreditsWithExpiration: vi
         .fn()
         .mockResolvedValue(undefined),
+      // Batch generation checks the balance up front (#2528); keep it high so
+      // pricing never blocks the tool-routing behavior under test.
+      getOrganizationCreditsBalance: vi.fn().mockResolvedValue(1_000_000),
       getOrganizationCreditsWithExpiration: vi.fn().mockResolvedValue({
         credits: [],
         totalBalance: 0,
