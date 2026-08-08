@@ -6,8 +6,10 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import type { ModuleRef } from '@nestjs/core';
 
 /**
  * Regression coverage for the duplicate-default-workflow race.
@@ -40,6 +42,8 @@ type StoredWorkflow = {
   isScheduleEnabled: boolean | null;
   metadata: Record<string, unknown>;
   organizationId: string;
+  schedule: string;
+  timezone: string;
 };
 
 type WhereClause = {
@@ -111,6 +115,8 @@ function rowFromCreateData(
     isScheduleEnabled: (data.isScheduleEnabled as boolean | null) ?? null,
     metadata,
     organizationId: (data.organizationId as string) ?? '',
+    schedule: (data.schedule as string) ?? '',
+    timezone: (data.timezone as string) ?? '',
   };
 }
 
@@ -308,6 +314,23 @@ function createLogger() {
   } as unknown as LoggerService;
 }
 
+function createWorkflowScheduler(
+  updateSchedule: ReturnType<typeof vi.fn> = vi
+    .fn()
+    .mockResolvedValue(undefined),
+): WorkflowSchedulerService {
+  return { updateSchedule } as unknown as WorkflowSchedulerService;
+}
+
+function createService(
+  prisma: PrismaService,
+  workflowSchedulerService: WorkflowSchedulerService = createWorkflowScheduler(),
+): DefaultRecurringContentService {
+  return new DefaultRecurringContentService(prisma, createLogger(), {
+    get: () => workflowSchedulerService,
+  } as unknown as ModuleRef);
+}
+
 const ORGANIZATION_ID = 'org_1';
 const BRAND_ID = 'brand_1';
 const USER_ID = 'user_1';
@@ -352,6 +375,8 @@ function buildStoredWorkflow(
     isScheduleEnabled,
     metadata: { defaultRecurringContent: { contentType } },
     organizationId: ORGANIZATION_ID,
+    schedule: '0 8 * * *',
+    timezone: 'UTC',
   };
 }
 
@@ -364,7 +389,7 @@ describe('DefaultRecurringContentService', () => {
     const { committed, prisma, transactionSpy } = createFakePrisma({
       brand: buildBrand(),
     });
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const service = createService(prisma);
 
     await service.ensureDefaultBundle(buildParams());
 
@@ -390,7 +415,7 @@ describe('DefaultRecurringContentService', () => {
       // production loop processes content types sequentially (`for...of`).
       bulkReadBarrierSize: 2,
     });
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const service = createService(prisma);
 
     await Promise.all([
       service.ensureDefaultBundle(buildParams()),
@@ -452,7 +477,7 @@ describe('DefaultRecurringContentService', () => {
       $transaction: overriddenTransactionSpy,
     } as unknown as PrismaService;
 
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const service = createService(prisma);
 
     // Must not throw — retry should succeed and workflows must be created.
     await expect(
@@ -490,7 +515,7 @@ describe('DefaultRecurringContentService', () => {
       credential: { findFirst: async () => null },
       workflow: { findMany: async () => [], update: vi.fn() },
     } as unknown as PrismaService;
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const service = createService(prisma);
 
     await expect(
       service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
@@ -542,10 +567,7 @@ describe('DefaultRecurringContentService', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new DefaultRecurringContentService(
-      prismaWithEmptyBulkRead,
-      createLogger(),
-    );
+    const service = createService(prismaWithEmptyBulkRead);
 
     // Must resolve successfully — the P2002 from the partial unique index is
     // the correct "already created by concurrent winner" signal.
@@ -596,7 +618,7 @@ describe('DefaultRecurringContentService', () => {
       credential: { findFirst: async () => null },
       workflow: { findMany: async () => [], update: vi.fn() },
     } as unknown as PrismaService;
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const service = createService(prisma);
 
     await expect(
       service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
@@ -616,7 +638,7 @@ describe('DefaultRecurringContentService', () => {
       credential: { findFirst: async () => null },
       workflow: { findMany: async () => [], update: vi.fn() },
     } as unknown as PrismaService;
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const service = createService(prisma);
 
     await expect(
       service.ensureDefaultBundle({ ...buildParams(), includeStatus: false }),
@@ -632,7 +654,25 @@ describe('DefaultRecurringContentService', () => {
         buildStoredWorkflow(contentType, false),
       ),
     });
-    const service = new DefaultRecurringContentService(prisma, createLogger());
+    const updateSchedule = vi.fn(
+      async (
+        workflowId: string,
+        schedule: string | null,
+        timezone: string,
+        isEnabled: boolean,
+      ) => {
+        const row = committed.find((candidate) => candidate.id === workflowId);
+        if (row) {
+          row.isScheduleEnabled = isEnabled;
+          row.schedule = schedule ?? '';
+          row.timezone = timezone;
+        }
+      },
+    );
+    const service = createService(
+      prisma,
+      createWorkflowScheduler(updateSchedule),
+    );
 
     await service.ensureDefaultBundle(buildParams());
 
@@ -646,5 +686,90 @@ describe('DefaultRecurringContentService', () => {
     expect(committed.every((row) => row.isScheduleEnabled === true)).toBe(true);
     // All present in the bulk read, so no transaction is opened.
     expect(transactionSpy).not.toHaveBeenCalled();
+    expect(updateSchedule).toHaveBeenCalledTimes(CONTENT_TYPES.length);
+  });
+
+  it('honors the brand cron expression when creating default recurring workflows', async () => {
+    const { committed, prisma } = createFakePrisma({
+      brand: {
+        ...buildBrand(),
+        agentConfig: {
+          schedule: { cronExpression: '0 9 * * 1-5', timezone: 'UTC' },
+        },
+      },
+    });
+    const service = createService(prisma);
+
+    await service.ensureDefaultBundle(buildParams());
+
+    expect(committed.every((row) => row.schedule === '0 9 * * 1-5')).toBe(true);
+  });
+
+  it('falls back to the default cron when stored configuration is invalid', async () => {
+    const { committed, prisma } = createFakePrisma({
+      brand: {
+        ...buildBrand(),
+        agentConfig: {
+          schedule: { cronExpression: 'not-a-cron', timezone: 'UTC' },
+        },
+      },
+    });
+    const service = createService(prisma);
+
+    await service.ensureDefaultBundle(buildParams());
+
+    expect(committed.every((row) => row.schedule === '0 8 * * *')).toBe(true);
+  });
+
+  it('honors the saved timezone for default recurring workflows', async () => {
+    const { committed, prisma } = createFakePrisma({
+      brand: {
+        ...buildBrand(),
+        agentConfig: {
+          schedule: {
+            cronExpression: '0 18 * * *',
+            timezone: 'Europe/Malta',
+          },
+        },
+      },
+    });
+    const service = createService(prisma);
+
+    await service.ensureDefaultBundle(buildParams());
+
+    expect(committed.every((row) => row.timezone === 'Europe/Malta')).toBe(
+      true,
+    );
+  });
+
+  it('propagates config changes through the workflow scheduler update path', async () => {
+    const { prisma } = createFakePrisma({
+      brand: buildBrand(),
+      initialWorkflows: CONTENT_TYPES.map((contentType) =>
+        buildStoredWorkflow(contentType, true),
+      ),
+    });
+    const updateSchedule = vi.fn().mockResolvedValue(undefined);
+    const service = createService(
+      prisma,
+      createWorkflowScheduler(updateSchedule),
+    );
+
+    await service.updateScheduleFromAgentConfig(ORGANIZATION_ID, BRAND_ID, {
+      schedule: {
+        cronExpression: '0 12 * * *',
+        enabled: false,
+        timezone: 'America/New_York',
+      },
+    });
+
+    for (const contentType of CONTENT_TYPES) {
+      expect(updateSchedule).toHaveBeenCalledWith(
+        `seed_${contentType}`,
+        '0 12 * * *',
+        'America/New_York',
+        false,
+      );
+    }
   });
 });

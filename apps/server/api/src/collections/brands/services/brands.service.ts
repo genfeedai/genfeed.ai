@@ -18,7 +18,9 @@ import {
   type BrandRelocationResult,
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
+import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
+import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -146,6 +148,7 @@ export class BrandsService extends BaseService<
     private readonly brandGenerationService: BrandGenerationService,
     private readonly brandKitAssetsService: BrandKitAssetsService,
     private readonly brandKitDraftService: BrandKitDraftService,
+    private readonly defaultRecurringContentService: DefaultRecurringContentService,
   ) {
     super(prisma, 'brand', logger, undefined, cacheService);
   }
@@ -420,6 +423,29 @@ export class BrandsService extends BaseService<
         unknown
       >) ?? {};
     const updatedConfig = { ...currentConfig };
+    const incomingSchedule = isMergeableRecord(agentConfig.schedule)
+      ? agentConfig.schedule
+      : null;
+    const hasScheduleUpdate = Boolean(
+      incomingSchedule &&
+        ['cronExpression', 'enabled', 'timezone'].some(
+          (key) => incomingSchedule[key] !== undefined,
+        ),
+    );
+
+    if (
+      incomingSchedule?.cronExpression !== undefined &&
+      typeof incomingSchedule.cronExpression === 'string'
+    ) {
+      const cronExpression = incomingSchedule.cronExpression.trim();
+      try {
+        computeNextRunAtOrThrow(cronExpression, 'UTC');
+      } catch {
+        throw new BadRequestException(
+          'Invalid cron expression. Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.',
+        );
+      }
+    }
 
     for (const [key, value] of Object.entries(agentConfig)) {
       if (value === undefined) {
@@ -439,12 +465,22 @@ export class BrandsService extends BaseService<
       updatedConfig[key] = value;
     }
 
-    return this.delegate.update({
+    const updatedBrand = (await this.delegate.update({
       where: { id: brandId },
       data: {
         agentConfig: updatedConfig as Record<string, unknown>,
       },
-    }) as Promise<BrandDocument>;
+    })) as BrandDocument;
+
+    if (hasScheduleUpdate) {
+      await this.defaultRecurringContentService.updateScheduleFromAgentConfig(
+        orgId,
+        brandId,
+        updatedConfig,
+      );
+    }
+
+    return updatedBrand;
   }
 
   async crawlWebsiteBrandKitDraft(
