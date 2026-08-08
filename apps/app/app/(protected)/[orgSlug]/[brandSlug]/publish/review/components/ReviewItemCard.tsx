@@ -19,14 +19,15 @@ import Image from 'next/image';
 import { useMemo } from 'react';
 
 import {
+  formatReviewItemStatus,
+  getReviewItemTitle,
+  isReviewItemSelectable,
+} from './review-item.helpers';
+import {
   getReviewPerformanceLabel,
   getReviewPerformanceSignal,
 } from './review-performance';
-import {
-  isApproved,
-  isChangesRequested,
-  isReadyToReview,
-} from './review-state';
+import { isApproved } from './review-state';
 
 interface ReviewItemCardProps {
   isActive: boolean;
@@ -34,32 +35,6 @@ interface ReviewItemCardProps {
   item: IBatchItem;
   onSelect: () => void;
   onToggleSelect: (itemId: string) => void;
-}
-
-function formatDisplayStatus(item: IBatchItem): string {
-  if (isApproved(item)) {
-    return 'Approved';
-  }
-  if (isChangesRequested(item)) {
-    return 'Changes requested';
-  }
-  if (item.reviewDecision === 'rejected') {
-    return 'Rejected';
-  }
-  switch (item.status) {
-    case BatchItemStatus.COMPLETED:
-      return 'Ready';
-    case BatchItemStatus.FAILED:
-      return 'Failed';
-    case BatchItemStatus.PROCESSING:
-      return 'Generating';
-    case BatchItemStatus.PENDING:
-      return 'Pending';
-    case BatchItemStatus.SKIPPED:
-      return 'Skipped';
-    default:
-      return String(item.status).replaceAll('_', ' ').toLowerCase();
-  }
 }
 
 export default function ReviewItemCard({
@@ -74,14 +49,11 @@ export default function ReviewItemCard({
   const formattedDate = item.scheduledDate
     ? formatDateInTimezone(item.scheduledDate, browserTimezone, 'MMM d')
     : null;
-  const isActionable = isReadyToReview(item);
+  const isActionable = isReviewItemSelectable(item);
   const performanceSignal = getReviewPerformanceSignal(item);
   const performanceLabel = getReviewPerformanceLabel(performanceSignal);
-  const displayStatus = formatDisplayStatus(item);
-  const title =
-    item.caption?.trim() ||
-    item.prompt?.trim() ||
-    (item.postId ? 'Draft post' : 'Untitled post');
+  const displayStatus = formatReviewItemStatus(item);
+  const title = getReviewItemTitle(item);
 
   return (
     <div

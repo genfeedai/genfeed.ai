@@ -155,6 +155,52 @@ describe('ReviewGrid', () => {
     expect(screen.getByText('1 selected')).toBeInTheDocument();
   });
 
+  it('renders status filters in the header and a table list of posts', () => {
+    const onFilterChange = vi.fn();
+
+    render(
+      <ReviewGrid
+        activeFilter="ready"
+        activeItem={mockItems[0]}
+        batch={mockBatch}
+        filterCounts={{
+          all: 1,
+          approved: 0,
+          changes_requested: 0,
+          failed: 0,
+          pending: 0,
+          ready: 1,
+          skipped: 0,
+        }}
+        isActioning={false}
+        items={mockItems}
+        selectedIds={new Set()}
+        onApprove={vi.fn()}
+        onBulkApprove={vi.fn()}
+        onBulkReject={vi.fn()}
+        onFilterChange={onFilterChange}
+        onRequestChanges={vi.fn()}
+        onReject={vi.fn()}
+        onSelectItem={vi.fn()}
+        onToggleSelect={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole('navigation', { name: 'Review status filters' }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Approved/i }));
+    expect(onFilterChange).toHaveBeenCalledWith('approved');
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Post' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'Platform' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Draft caption')).toBeInTheDocument();
+  });
+
   it('shows publishing context in the detail panel when metadata is present', () => {
     render(
       <ReviewGrid
