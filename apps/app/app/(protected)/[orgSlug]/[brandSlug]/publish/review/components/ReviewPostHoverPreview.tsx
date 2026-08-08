@@ -1,7 +1,6 @@
 'use client';
 
-import type { ChannelMediaKind } from '@api-types/contracts';
-import { ButtonSize, ButtonVariant, ContentFormat } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -18,7 +17,7 @@ import NextLink from 'next/link';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getReviewItemTitle } from './review-item.helpers';
+import { buildReviewItemPreviewTarget } from './review-item.helpers';
 
 interface ReviewPostHoverPreviewProps {
   children: ReactNode;
@@ -26,20 +25,6 @@ interface ReviewPostHoverPreviewProps {
   item: IBatchItem;
   /** Select row / open Context rail. */
   onOpenDetail?: () => void;
-}
-
-function resolveMediaKind(item: IBatchItem): ChannelMediaKind {
-  const format = String(item.format ?? '').toLowerCase();
-  if (format === ContentFormat.REEL || format.includes('reel')) {
-    return 'short_video';
-  }
-  if (format === ContentFormat.VIDEO || format.includes('video')) {
-    return 'video';
-  }
-  if (format === ContentFormat.CAROUSEL || format.includes('carousel')) {
-    return 'carousel';
-  }
-  return 'image';
 }
 
 export default function ReviewPostHoverPreview({
@@ -53,12 +38,7 @@ export default function ReviewPostHoverPreview({
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { href } = useOrgUrl();
 
-  const title = getReviewItemTitle(item);
-  const caption = item.caption?.trim() || item.prompt?.trim() || title;
-  // Prefer stored platform; never invent twitter when missing — PlatformPreview
-  // already canonicalises aliases via parsePlatform.
-  const platform = item.platform?.trim() || 'unknown';
-  const mediaKind = resolveMediaKind(item);
+  const previewTarget = buildReviewItemPreviewTarget(item);
   const postDetailHref = item.postId
     ? href(getPublisherPostHref(item.postId))
     : null;
@@ -134,21 +114,7 @@ export default function ReviewPostHoverPreview({
         <PlatformPreview
           className="max-h-[28rem] overflow-y-auto"
           emptyMessage="No preview available for this draft."
-          target={{
-            caption,
-            media: item.mediaUrl
-              ? [
-                  {
-                    id: `${item.id}-media`,
-                    kind: mediaKind,
-                    thumbnailUrl: item.mediaUrl,
-                    url: item.mediaUrl,
-                  },
-                ]
-              : [],
-            platform,
-            title,
-          }}
+          target={previewTarget}
         />
         <div className="mt-2 flex flex-wrap gap-1.5 border-t border-border pt-2">
           <Button

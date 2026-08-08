@@ -103,6 +103,100 @@ describe('ModalPostPlatformsTab', () => {
     expect(screen.getByText('Description')).toBeInTheDocument();
   });
 
+  it('renders a live platform preview bound to the enabled configs', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        platformConfigs={[
+          {
+            credentialId: 'cred-2',
+            customScheduledDate: '',
+            description: 'Hello from the live preview',
+            enabled: true,
+            handle: 'twitter-handle',
+            label: '',
+            overrideSchedule: false,
+            platform: CredentialPlatform.TWITTER,
+            status: 'scheduled',
+          },
+        ]}
+        selectedPlatformId="cred-2"
+        setSelectedPlatformId={vi.fn()}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    expect(screen.getByText('Live preview')).toBeInTheDocument();
+    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
+    expect(screen.getByText('Hello from the live preview')).toBeInTheDocument();
+  });
+
+  it('hides and restores the preview via the toggle', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        platformConfigs={[
+          {
+            credentialId: 'cred-2',
+            customScheduledDate: '',
+            description: 'Toggle me',
+            enabled: true,
+            handle: 'twitter-handle',
+            label: '',
+            overrideSchedule: false,
+            platform: CredentialPlatform.TWITTER,
+            status: 'scheduled',
+          },
+        ]}
+        selectedPlatformId="cred-2"
+        setSelectedPlatformId={vi.fn()}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /hide preview/i }));
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /show preview/i }));
+    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
+  });
+
+  it('renders no preview section while every platform is disabled', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        platformConfigs={[
+          {
+            credentialId: 'cred-1',
+            customScheduledDate: '',
+            description: '',
+            enabled: false,
+            handle: 'genfeed',
+            label: '',
+            overrideSchedule: false,
+            platform: CredentialPlatform.INSTAGRAM,
+            status: 'scheduled',
+          },
+        ]}
+        selectedPlatformId="cred-1"
+        setSelectedPlatformId={vi.fn()}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    expect(screen.queryByText('Live preview')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
+  });
+
   it.skip('calls setSelectedPlatformId when choosing a different platform', () => {
     const setSelectedPlatformId = vi.fn();
 
