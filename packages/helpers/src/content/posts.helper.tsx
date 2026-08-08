@@ -140,7 +140,16 @@ export function getPublisherPostsStatusPath(
     return APP_ROUTES.PUBLISH.PUBLISHED;
   }
 
-  return APP_ROUTES.PUBLISH.ROOT;
+  // Draft + scheduled + in-progress share the "not posted" list. Bare
+  // `/publish` permanently redirects to Overview — never deep-link there.
+  if (
+    normalizedStatus === PostStatus.SCHEDULED ||
+    normalizedStatus === PostStatus.DRAFT
+  ) {
+    return APP_ROUTES.PUBLISH.SCHEDULED;
+  }
+
+  return APP_ROUTES.PUBLISH.SCHEDULED;
 }
 
 export function getPublisherPostsStatusFromPathname(

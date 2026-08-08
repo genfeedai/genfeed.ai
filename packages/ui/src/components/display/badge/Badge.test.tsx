@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import Badge from '@ui/display/badge/Badge';
 import { describe, expect, it } from 'vitest';
 
@@ -20,5 +20,19 @@ describe('Badge', () => {
     expect(rootElement).toBeInTheDocument();
     expect(rootElement).toHaveClass('rounded-full');
     expect(rootElement).toHaveClass('ship-ui');
+  });
+
+  it('prefers explicit children over statusConfig label', () => {
+    render(<Badge status="completed">Approved</Badge>);
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument();
+
+    render(<Badge status="failed">Rejected</Badge>);
+    expect(screen.getByText('Rejected')).toBeInTheDocument();
+  });
+
+  it('falls back to statusConfig label when children are omitted', () => {
+    render(<Badge status="completed" />);
+    expect(screen.getByText('Completed')).toBeInTheDocument();
   });
 });

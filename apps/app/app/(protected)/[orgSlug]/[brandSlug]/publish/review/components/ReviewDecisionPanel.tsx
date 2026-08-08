@@ -87,19 +87,8 @@ export default function ReviewDecisionPanel({
 
       {isReady ? (
         <div className="flex flex-col gap-2">
-          {/* Same decision grammar as the bulk bar: Reject (red) first,
-              then secondary path, Approve (primary) last. */}
-          <Button
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DESTRUCTIVE}
-            withWrapper={false}
-            isDisabled={isActioning}
-            onClick={() => onReject(item.id, feedback)}
-            className="w-full justify-start gap-2"
-            icon={<X className="size-3.5" />}
-          >
-            Reject
-          </Button>
+          {/* Match ModalConfirm / app-wide grammar: secondary paths first,
+              primary next, destructive last (right/bottom). */}
           <Button
             size={ButtonSize.SM}
             variant={ButtonVariant.SECONDARY}
@@ -121,6 +110,17 @@ export default function ReviewDecisionPanel({
             icon={<Check className="size-3.5" />}
           >
             {getApproveLabel(item)}
+          </Button>
+          <Button
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DESTRUCTIVE}
+            withWrapper={false}
+            isDisabled={isActioning}
+            onClick={() => onReject(item.id, feedback)}
+            className="w-full justify-start gap-2"
+            icon={<X className="size-3.5" />}
+          >
+            Reject
           </Button>
           {isReadyToReview(item) ? (
             <Button

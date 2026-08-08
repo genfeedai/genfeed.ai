@@ -15,7 +15,7 @@ import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
-import { AgentScopeContextService } from '@genfeedai/server';
+import { AgentScopeContextService, scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -289,11 +289,12 @@ export class AgentThreadsController {
     try {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveDatabaseUserId(user);
-      const thread = await this.agentThreadsService.findOne({
-        id: threadId,
-        isDeleted: false,
-        organizationId,
-      } as never);
+      const thread = await this.agentThreadsService.findOne(
+        scopedWhere(organizationId, {
+          id: threadId,
+          isDeleted: false,
+        }),
+      );
       const status = String(
         (thread as { status?: string | null } | null)?.status ?? '',
       ).toLowerCase();

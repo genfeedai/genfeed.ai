@@ -31,20 +31,24 @@ vi.mock('@genfeedai/agent/hooks/use-team-mentions', () => ({
   useTeamMentions: () => ({ mentions: [] }),
 }));
 
+const microphoneState = {
+  isListening: false,
+  isSupported: true,
+  isTranscribing: false,
+  startListening: vi.fn(),
+  stopListening: vi.fn(),
+};
+
 vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
-  useMicrophoneInput: () => ({
-    isListening: false,
-    isSupported: false,
-    isTranscribing: false,
-    startListening: vi.fn(),
-    stopListening: vi.fn(),
-  }),
+  useMicrophoneInput: () => microphoneState,
 }));
 
+const brandSettings = {
+  settings: { isVoiceControlEnabled: false },
+};
+
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    settings: { isVoiceControlEnabled: false },
-  }),
+  useBrand: () => brandSettings,
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -107,10 +111,76 @@ describe('areAgentChatMentionReferencesEqual', () => {
   });
 });
 
+describe('useAgentChatInput voice exclusivity', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    sessionStorage.clear();
+    microphoneState.isListening = false;
+    microphoneState.isTranscribing = false;
+    microphoneState.isSupported = true;
+    brandSettings.settings.isVoiceControlEnabled = true;
+    storeState.activeThreadId = null;
+    storeState.composerSeed = null;
+  });
+
+  it('blocks handleSend while the mic is listening', async () => {
+    writeConversationComposerDocument(
+      draftScopeKey,
+      {
+        content: [
+          {
+            content: [{ text: 'Hello from voice mode', type: 'text' }],
+            type: 'paragraph',
+          },
+        ],
+        type: 'doc',
+      },
+      'Hello from voice mode',
+    );
+
+    const onSend = vi.fn();
+    const { result } = renderHook(() => useAgentChatInput({ onSend }), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => {
+      expect(result.current.editor).not.toBeNull();
+    });
+
+    microphoneState.isListening = true;
+    // Re-render is not automatic for module state — force via editor tick.
+    await act(async () => {
+      result.current.editor?.commands.setContent('Hello from voice mode');
+    });
+
+    // After re-creating the hook with listening flag, send must no-op.
+    // The handleSend closure reads isListening from the latest render of the
+    // hook; mock module state is read on each useMicrophoneInput() call, so
+    // remount the hook.
+    const { result: listeningResult, unmount } = renderHook(
+      () => useAgentChatInput({ onSend }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => {
+      expect(listeningResult.current.editor).not.toBeNull();
+    });
+    expect(listeningResult.current.isListening).toBe(true);
+
+    await act(async () => {
+      await listeningResult.current.handleSend();
+    });
+
+    expect(onSend).not.toHaveBeenCalled();
+    unmount();
+  });
+});
+
 describe('useAgentChatInput references', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    microphoneState.isListening = false;
+    brandSettings.settings.isVoiceControlEnabled = false;
     writeConversationComposerDocument(
       draftScopeKey,
       {

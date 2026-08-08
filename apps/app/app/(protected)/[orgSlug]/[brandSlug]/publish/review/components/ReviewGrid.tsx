@@ -48,19 +48,8 @@ export default function ReviewGrid({
             </span>{' '}
             selected
           </p>
-          {/* Reject left (destructive) · Approve right (primary) — same as Context. */}
+          {/* ModalConfirm grammar: primary first, destructive last (right). */}
           <div className="ml-auto flex shrink-0 items-center gap-1.5">
-            <Button
-              className="h-7 gap-1 px-2 text-xs"
-              isDisabled={isActioning}
-              onClick={onBulkReject}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DESTRUCTIVE}
-              withWrapper={false}
-            >
-              <X className="size-3.5" />
-              Reject
-            </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"
               isDisabled={isActioning}
@@ -71,6 +60,17 @@ export default function ReviewGrid({
             >
               <Check className="size-3.5" />
               Approve
+            </Button>
+            <Button
+              className="h-7 gap-1 px-2 text-xs"
+              isDisabled={isActioning}
+              onClick={onBulkReject}
+              size={ButtonSize.SM}
+              variant={ButtonVariant.DESTRUCTIVE}
+              withWrapper={false}
+            >
+              <X className="size-3.5" />
+              Reject
             </Button>
           </div>
         </Card>

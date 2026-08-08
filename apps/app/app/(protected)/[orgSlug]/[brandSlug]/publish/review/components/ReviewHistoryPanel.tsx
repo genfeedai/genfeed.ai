@@ -1,6 +1,7 @@
 'use client';
 
 import type { IBatchItem } from '@genfeedai/interfaces';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 
@@ -49,7 +50,7 @@ export default function ReviewHistoryPanel({
                 {formatDateInTimezone(
                   event.reviewedAt,
                   browserTimezone,
-                  'MMM d, yyyy h:mm a',
+                  DATE_FORMATS.DISPLAY_DATETIME,
                 )}
               </p>
             </div>

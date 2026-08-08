@@ -14,7 +14,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useCallback, useState } from 'react';
+import { type ReactNode, useCallback, useMemo, useState } from 'react';
 
 export interface PostDetailProps {
   postId: string;
@@ -208,6 +208,57 @@ export default function PostDetail({
   const isPagePresentation = presentation === 'page';
   const wrapperClassName = isPagePresentation ? 'container mx-auto p-6' : '';
 
+  const handleScheduleChange = useCallback(
+    (value: typeof scheduleDraft) => {
+      setScheduleDraft(value);
+    },
+    [setScheduleDraft],
+  );
+
+  // Stable node for workspace Context adapter registration — rebuilding this
+  // JSX every keystroke was thrashing parent memos. Hooks stay above early returns.
+  const sidebar = useMemo(() => {
+    if (!post) {
+      return null;
+    }
+    return (
+      <div className="space-y-3">
+        <PostDetailSidebar
+          post={post}
+          credential={credential}
+          scheduleDraft={scheduleDraft}
+          isSavingSchedule={isSavingSchedule}
+          isScheduleDirty={isScheduleDirty}
+          isScoringSeo={isScoringSeo}
+          isSeoDirty={isContentDirty}
+          analyticsStats={analyticsStats}
+          reviewSummary={reviewSummary}
+          onScheduleChange={handleScheduleChange}
+          onScheduleSave={handleScheduleSave}
+          onScoreSeo={handleScoreSeo}
+        />
+        {!isPublished ? <EngagementPreview post={post} /> : null}
+      </div>
+    );
+  }, [
+    analyticsStats,
+    credential,
+    handleScheduleChange,
+    handleScheduleSave,
+    handleScoreSeo,
+    isContentDirty,
+    isPublished,
+    isSavingSchedule,
+    isScheduleDirty,
+    isScoringSeo,
+    post,
+    reviewSummary,
+    scheduleDraft,
+  ]);
+  const usesContextSidebar = Boolean(renderContextSidebar);
+  const contextLabel =
+    labelDraft?.trim() || post?.label?.trim() || 'Untitled post';
+
   // Loading state
   if (isLoading) {
     return (
@@ -237,32 +288,9 @@ export default function PostDetail({
     );
   }
 
-  const sidebar = (
-    <div className="space-y-3">
-      <PostDetailSidebar
-        post={post}
-        credential={credential}
-        scheduleDraft={scheduleDraft}
-        isSavingSchedule={isSavingSchedule}
-        isScheduleDirty={isScheduleDirty}
-        isScoringSeo={isScoringSeo}
-        isSeoDirty={isContentDirty}
-        analyticsStats={analyticsStats}
-        reviewSummary={reviewSummary}
-        onScheduleChange={(value) => setScheduleDraft(value)}
-        onScheduleSave={handleScheduleSave}
-        onScoreSeo={handleScoreSeo}
-      />
-      {!isPublished ? <EngagementPreview post={post} /> : null}
-    </div>
-  );
-  const usesContextSidebar = Boolean(renderContextSidebar);
-  const contextLabel =
-    labelDraft?.trim() || post.label?.trim() || 'Untitled post';
-
   return (
     <>
-      {usesContextSidebar
+      {usesContextSidebar && sidebar
         ? renderContextSidebar?.(sidebar, contextLabel)
         : null}
       <div className={wrapperClassName}>

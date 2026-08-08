@@ -113,7 +113,7 @@ function AgentChatInputToolbarInner({
         isDisabled={Boolean(
           showStop || isUploading || isTranscribing || isModelsLoading,
         )}
-        models={[...models]}
+        models={models}
         name="agent-chat-model"
         onChange={(_name, values) => {
           const next = values[0]?.trim();
@@ -163,9 +163,9 @@ function AgentChatInputToolbarInner({
   // keeps natural shell inset so it doesn't hug the border or fight icon gap.
   const trailingEdgeOffset = isCompact ? '-mr-1.5' : '-mr-2';
 
-  // Trailing primary: Stop run | mic (voice-on + empty) | send (otherwise).
-  // Mic replaces send in the same slot — never both, never a blank corner
-  // when Voice Control is off (disabled send stays).
+  // Trailing primary: Stop run | stop-mic (listening) | idle-mic (voice-on +
+  // empty) | send (otherwise). Mic replaces send — never both. Enter is gated
+  // in useAgentChatInput while listening so text cannot send without a send control.
   let trailingPrimary: ReactElement | null = null;
 
   if (showStop && onStop) {

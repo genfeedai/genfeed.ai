@@ -38,12 +38,14 @@ describe('PostsHelper', () => {
   });
 
   it('should build canonical publisher post hrefs', () => {
-    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish');
+    // Default / draft / scheduled all land on the not-posted list — bare
+    // `/publish` redirects to Overview and is not a list surface.
+    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish/scheduled');
     expect(
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
-    ).toBe('/publish');
+    ).toBe('/publish/scheduled');
     expect(PostsHelper.getPublisherPostsHref({ status: 'scheduled' })).toBe(
-      '/publish',
+      '/publish/scheduled',
     );
     expect(
       PostsHelper.getPublisherPostsHref({

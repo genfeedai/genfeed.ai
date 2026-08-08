@@ -174,7 +174,14 @@ export default function Badge({
   const statusConfig = status ? getStatusConfig(status) : null;
   const effectiveVariant = statusConfig?.variant ?? variant;
   const effectiveIcon = statusConfig?.icon ?? icon;
-  const effectiveLabel = statusConfig?.label ?? children;
+  // Explicit children always win over statusConfig's canned label so product
+  // surfaces can pair a status tone (e.g. completed/failed) with their own
+  // copy ("Approved" / "Rejected") without Badge overwriting it.
+  const hasExplicitChildren =
+    children !== undefined && children !== null && children !== '';
+  const effectiveLabel = hasExplicitChildren
+    ? children
+    : (statusConfig?.label ?? children);
 
   const badgeClasses = cn(
     badgeVariants({

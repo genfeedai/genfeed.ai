@@ -92,6 +92,9 @@ export function UiActionRenderer({
   const liveOnSelectIngredient = isReadOnly ? undefined : onSelectIngredient;
   const liveOnRetry = isReadOnly ? undefined : onRetry;
   const liveOnUiAction = isReadOnly ? undefined : onUiAction;
+  // Cards that take apiService for live mutations must not receive it while
+  // the thread is archived — otherwise their internal CTAs stay fully live.
+  const liveApiService = isReadOnly ? undefined : apiService;
 
   let card: ReactElement | null = null;
 
@@ -120,8 +123,8 @@ export function UiActionRenderer({
       );
       break;
     case 'generation_action_card':
-      card = apiService ? (
-        <GenerationActionCard action={action} apiService={apiService} />
+      card = liveApiService ? (
+        <GenerationActionCard action={action} apiService={liveApiService} />
       ) : null;
       break;
     case 'analytics_snapshot_card':
@@ -160,13 +163,13 @@ export function UiActionRenderer({
       );
       break;
     case 'workflow_trigger_card':
-      card = apiService ? (
-        <WorkflowTriggerCard action={action} apiService={apiService} />
+      card = liveApiService ? (
+        <WorkflowTriggerCard action={action} apiService={liveApiService} />
       ) : null;
       break;
     case 'clip_workflow_run_card':
-      card = apiService ? (
-        <ClipWorkflowRunCard action={action} apiService={apiService} />
+      card = liveApiService ? (
+        <ClipWorkflowRunCard action={action} apiService={liveApiService} />
       ) : null;
       break;
     case 'clip_run_card':
@@ -175,8 +178,11 @@ export function UiActionRenderer({
       ) : null;
       break;
     case 'ingredient_alternatives_card':
-      card = apiService ? (
-        <IngredientAlternativesCard action={action} apiService={apiService} />
+      card = liveApiService ? (
+        <IngredientAlternativesCard
+          action={action}
+          apiService={liveApiService}
+        />
       ) : null;
       break;
     case 'schedule_post_card':
@@ -198,8 +204,8 @@ export function UiActionRenderer({
       card = <BrandCreateCard action={action} onCreate={liveOnBrandCreate} />;
       break;
     case 'workflow_execute_card':
-      card = apiService ? (
-        <WorkflowExecuteCard action={action} apiService={apiService} />
+      card = liveApiService ? (
+        <WorkflowExecuteCard action={action} apiService={liveApiService} />
       ) : null;
       break;
     case 'trending_topics_card':
@@ -215,8 +221,8 @@ export function UiActionRenderer({
       card = <BatchGenerationResultCard action={action} />;
       break;
     case 'voice_clone_card':
-      card = apiService ? (
-        <VoiceCloneCard action={action} apiService={apiService} />
+      card = liveApiService ? (
+        <VoiceCloneCard action={action} apiService={liveApiService} />
       ) : null;
       break;
     case 'brand_voice_profile_card':
@@ -271,16 +277,17 @@ export function UiActionRenderer({
     return card;
   }
 
+  // `inert` blocks pointer + keyboard focus (pointer-events-none alone left
+  // nested buttons Enter-activatable). Strip handlers/apiService above so
+  // mutation-capable cards render null rather than live CTAs.
   return (
     <div
       aria-disabled="true"
-      className={cn(
-        'pointer-events-none select-none opacity-60',
-        '[&_a]:pointer-events-none [&_a]:cursor-not-allowed',
-        '[&_button]:pointer-events-none [&_button]:cursor-not-allowed',
-      )}
+      className="select-none opacity-60"
       data-archived-readonly="true"
       data-testid="ui-action-archived-readonly"
+      // React 19 supports the inert boolean attribute.
+      inert
     >
       {card}
     </div>

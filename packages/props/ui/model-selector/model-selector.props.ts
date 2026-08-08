@@ -18,7 +18,7 @@ export interface ModelSelectorOption {
 }
 
 export interface ModelSelectorPopoverProps {
-  models: IModel[];
+  models: readonly IModel[];
   values: string[];
   onChange: (name: string, values: string[]) => void;
   /**

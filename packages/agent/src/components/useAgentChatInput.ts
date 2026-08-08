@@ -544,6 +544,11 @@ export function useAgentChatInput({
     if (!editor || disabled) {
       return;
     }
+    // Mic is exclusive with send: while listening, Enter must not post text
+    // with a missing send affordance (stop-listening owns the trailing slot).
+    if (isListening || isTranscribing) {
+      return;
+    }
     const text = editor.getText().trim();
     const canSend = Boolean(text) || hasCompletedAttachments;
     if (!canSend) {
@@ -609,6 +614,8 @@ export function useAgentChatInput({
     draftScopeKey,
     editor,
     disabled,
+    isListening,
+    isTranscribing,
     onSend,
     hasCompletedAttachments,
     getCompletedAttachments,

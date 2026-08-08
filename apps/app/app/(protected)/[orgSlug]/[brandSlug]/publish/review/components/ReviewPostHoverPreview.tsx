@@ -153,6 +153,11 @@ export default function ReviewPostHoverPreview({
             onClick={() => {
               setIsOpen(false);
               onOpenDetail?.();
+              // Same row may already be selected with a collapsed rail —
+              // force-open matches the table row action.
+              window.dispatchEvent(
+                new CustomEvent('workspace:force-open-review-context'),
+              );
             }}
             size={ButtonSize.SM}
             type="button"
