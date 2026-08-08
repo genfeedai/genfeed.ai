@@ -751,7 +751,7 @@ export class AgentWorkflowToolHandler {
     }
 
     const schedule = readOptionalString(params.schedule);
-    const timezone = readOptionalString(params.timezone) ?? 'UTC';
+    const requestedTimezone = readOptionalString(params.timezone);
     if (enabled === true && !schedule) {
       return {
         creditsUsed: 0,
@@ -767,28 +767,34 @@ export class AgentWorkflowToolHandler {
     });
 
     if (!workflow) {
-      throw new NotFoundException('Workflow');
+      throw new NotFoundException('Workflow', workflowId);
     }
+
+    // Partial-update semantics matching PATCH /workflows/:workflowId: an
+    // omitted field keeps the stored value, so disabling without a new cron
+    // pauses the schedule instead of wiping cron and timezone.
+    const effectiveSchedule = schedule ?? workflow.schedule ?? null;
+    const effectiveTimezone = requestedTimezone ?? workflow.timezone ?? 'UTC';
 
     if (schedule) {
       try {
-        computeNextRunAtOrThrow(schedule, timezone);
+        computeNextRunAtOrThrow(schedule, effectiveTimezone);
       } catch {
         throw new BadRequestException(
-          `Invalid cron expression "${schedule}" for timezone "${timezone}". Use a valid cron expression such as "0 9 * * 1-5".`,
+          `Invalid cron expression "${schedule}" for timezone "${effectiveTimezone}". Use a valid cron expression such as "0 9 * * 1-5".`,
         );
       }
     }
 
     const updatedWorkflow = await this.workflowSchedulerService.updateSchedule(
       workflowId,
-      schedule ?? null,
-      timezone,
+      effectiveSchedule,
+      effectiveTimezone,
       enabled,
     );
 
     if (!updatedWorkflow) {
-      throw new NotFoundException('Workflow');
+      throw new NotFoundException('Workflow', workflowId);
     }
 
     return {
@@ -796,7 +802,7 @@ export class AgentWorkflowToolHandler {
       data: {
         enabled: updatedWorkflow.isScheduleEnabled ?? false,
         schedule: updatedWorkflow.schedule ?? null,
-        timezone: updatedWorkflow.timezone ?? timezone,
+        timezone: updatedWorkflow.timezone ?? effectiveTimezone,
         workflowId: String(updatedWorkflow.id),
       },
       success: true,

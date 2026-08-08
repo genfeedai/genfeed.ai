@@ -106,6 +106,39 @@ describe('AgentWorkflowToolHandler setWorkflowSchedule', () => {
     });
   });
 
+  it('preserves the stored cron and timezone when disabling without a new schedule', async () => {
+    workflowsService.findOne.mockResolvedValue({
+      id: 'workflow-1',
+      isScheduleEnabled: true,
+      schedule: '0 9 * * 1-5',
+      timezone: 'America/New_York',
+    });
+    workflowSchedulerService.updateSchedule.mockResolvedValue({
+      id: 'workflow-1',
+      isScheduleEnabled: false,
+      schedule: '0 9 * * 1-5',
+      timezone: 'America/New_York',
+    });
+
+    const result = await handler.setWorkflowSchedule(
+      { enabled: false, workflowId: 'workflow-1' },
+      ctx,
+    );
+
+    expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
+      'workflow-1',
+      '0 9 * * 1-5',
+      'America/New_York',
+      false,
+    );
+    expect(result.data).toEqual({
+      enabled: false,
+      schedule: '0 9 * * 1-5',
+      timezone: 'America/New_York',
+      workflowId: 'workflow-1',
+    });
+  });
+
   it('rejects a workflow outside the caller organization', async () => {
     workflowsService.findOne.mockResolvedValue(null);
 
