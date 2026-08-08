@@ -39,6 +39,7 @@ export enum ModalEnum {
   POST_BATCH = 'modal-post-batch',
   POST_METADATA = 'modal-post-metadata',
   POST_REMIX = 'modal-post-remix',
+  POST_REPURPOSE = 'modal-post-repurpose',
   PRESET = 'modal-preset',
   PROMPT = 'modal-prompt',
   REPLY_BOT = 'modal-reply-bot',

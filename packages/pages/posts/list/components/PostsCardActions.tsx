@@ -11,6 +11,7 @@ export type BuildPostsCardActionsParams = {
   onEdit: (post: IPost) => void;
   onDelete: (post: IPost) => void;
   onRemix: (post: IPost) => void;
+  onRepurpose: (post: IPost) => void;
   onRetry: (post: IPost) => void;
   onViewIngredient: (post: IPost) => void;
   onOpenPlatformUrl: (post: IPost) => void;
@@ -27,6 +28,7 @@ export function buildPostsCardActions({
   onEdit,
   onDelete,
   onRemix,
+  onRepurpose,
   onRetry,
   onViewIngredient,
   onOpenPlatformUrl,
@@ -76,6 +78,13 @@ export function buildPostsCardActions({
             key: 'remix',
             label: 'Create remix',
             onClick: onRemix,
+          },
+          {
+            icon: postCardIcons.repurpose,
+            isVisible: (post: IPost) => !post.parent,
+            key: 'repurpose',
+            label: 'Repurpose to another channel',
+            onClick: onRepurpose,
           },
           {
             icon: postCardIcons.viewPlatform,

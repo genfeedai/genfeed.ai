@@ -103,6 +103,9 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   usePostRemixModal: () => ({
     openPostRemixModal: vi.fn(),
   }),
+  usePostRepurposeModal: () => ({
+    openPostRepurposeModal: vi.fn(),
+  }),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
