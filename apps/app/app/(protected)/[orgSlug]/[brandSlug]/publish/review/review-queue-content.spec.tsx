@@ -1,14 +1,36 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewQueueContent from './review-queue-content';
 
 const mocks = vi.hoisted(() => ({
   getBatchesService: vi.fn(),
   loggerError: vi.fn(),
+  notificationError: vi.fn(),
+  notificationSuccess: vi.fn(),
+  notificationWarning: vi.fn(),
+  openConfirm: vi.fn(),
   replace: vi.fn(),
+  setFiltersNode: vi.fn(),
+  setQueryData: vi.fn(),
   useQuery: vi.fn(),
 }));
 const searchParamsState = new URLSearchParams();
+
+type ConfirmConfig = {
+  confirmLabel?: string;
+  isError?: boolean;
+  label?: string;
+  message?: string;
+  onConfirm: () => void | Promise<void>;
+};
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getBatchesService,
@@ -17,8 +39,22 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (options: { queryKey: unknown[] }) => mocks.useQuery(options),
   useQueryClient: () => ({
-    setQueryData: vi.fn(),
+    setQueryData: mocks.setQueryData,
   }),
+}));
+
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: () => ({ openConfirm: mocks.openConfirm }),
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: mocks.notificationError,
+      success: mocks.notificationSuccess,
+      warning: mocks.notificationWarning,
+    }),
+  },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -29,26 +65,22 @@ vi.mock('@services/core/logger.service', () => ({
 
 vi.mock('./components/ReviewGrid', () => ({
   default: ({
-    activeItem,
+    canDiscardBatch,
     isActioning,
     items,
     onBulkApprove,
     onBulkReject,
-    onApprove,
-    onReject,
-    onRequestChanges,
+    onDiscardBatch,
     onSelectItem,
     onToggleSelect,
     selectedIds,
   }: {
-    activeItem: { id: string } | null;
+    canDiscardBatch: boolean;
     isActioning: boolean;
     items: Array<{ id: string }>;
     onBulkApprove: () => void;
     onBulkReject: () => void;
-    onApprove: (itemId: string) => void;
-    onReject: (itemId: string, feedback?: string) => void;
-    onRequestChanges: (itemId: string, feedback?: string) => void;
+    onDiscardBatch: () => void;
     onSelectItem: (itemId: string) => void;
     onToggleSelect: (itemId: string) => void;
     selectedIds: Set<string>;
@@ -57,6 +89,12 @@ vi.mock('./components/ReviewGrid', () => ({
       <div>Review Grid</div>
       <div>Actioning: {String(isActioning)}</div>
       <div>Selected count: {selectedIds.size}</div>
+      {canDiscardBatch ? (
+        <button type="button" onClick={onDiscardBatch}>
+          Discard batch
+        </button>
+      ) : null}
+      {items.length === 0 ? <div>No items in this view</div> : null}
       {items.map((item) => (
         <button
           key={item.id}
@@ -75,17 +113,34 @@ vi.mock('./components/ReviewGrid', () => ({
           Toggle {item.id}
         </button>
       ))}
-      <button
-        type="button"
-        onClick={() => activeItem && onApprove(activeItem.id)}
-      >
-        Approve Active Item
-      </button>
       <button type="button" onClick={() => onBulkApprove()}>
         Bulk Approve
       </button>
       <button type="button" onClick={() => onBulkReject()}>
         Bulk Reject
+      </button>
+    </div>
+  ),
+}));
+
+vi.mock('./components/ReviewWorkspaceSurfaceAdapter', () => ({
+  default: ({
+    activeItem,
+    onApprove,
+    onReject,
+    onRequestChanges,
+  }: {
+    activeItem: { id: string } | null;
+    onApprove: (itemId: string) => void;
+    onReject: (itemId: string, feedback?: string) => void;
+    onRequestChanges: (itemId: string, feedback?: string) => void;
+  }) => (
+    <div>
+      <button
+        type="button"
+        onClick={() => activeItem && onApprove(activeItem.id)}
+      >
+        Approve Active Item
       </button>
       <button
         type="button"
@@ -198,7 +253,7 @@ vi.mock('@ui/loading/default/Loading', () => ({
 vi.mock('@contexts/posts/posts-layout-context', () => ({
   usePostsLayout: () => ({
     setExportNode: vi.fn(),
-    setFiltersNode: vi.fn(),
+    setFiltersNode: mocks.setFiltersNode,
     setIsRefreshing: vi.fn(),
     setRefresh: vi.fn(),
     setScheduleActionsNode: vi.fn(),
@@ -325,6 +380,22 @@ describe('ReviewQueueContent', () => {
     return { refetch };
   }
 
+  function latestConfirm(): ConfirmConfig {
+    const config = mocks.openConfirm.mock.calls.at(-1)?.[0] as
+      | ConfirmConfig
+      | undefined;
+    expect(config).toBeDefined();
+    return config as ConfirmConfig;
+  }
+
+  function latestFiltersNode(): ReactNode {
+    const node = mocks.setFiltersNode.mock.calls
+      .filter(([candidate]) => candidate !== null)
+      .at(-1)?.[0] as ReactNode;
+    expect(node).toBeDefined();
+    return node;
+  }
+
   it('shows an error state when the batch payload is invalid', () => {
     mocks.getBatchesService.mockResolvedValue({
       itemAction: vi.fn(),
@@ -431,6 +502,7 @@ describe('ReviewQueueContent', () => {
     expect(await screen.findByText('Review Grid')).toBeInTheDocument();
     // Batch picker lives in publish layout action rail (filtersNode), not body.
     expect(screen.queryByText('Review Stats Header')).not.toBeInTheDocument();
+    render(latestFiltersNode());
     expect(screen.getByText('Ready count: 2')).toBeInTheDocument();
 
     await waitFor(() => {
@@ -504,6 +576,112 @@ describe('ReviewQueueContent', () => {
         itemIds: ['item-2'],
       });
     });
+  });
+
+  it('requires confirmation before discarding a review batch', async () => {
+    const user = userEvent.setup();
+    const cancelBatch = vi.fn();
+    const itemAction = vi.fn();
+    mockReviewQueries();
+    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
+
+    render(<ReviewQueueContent />);
+    await user.click(
+      await screen.findByRole('button', { name: 'Discard batch' }),
+    );
+
+    expect(itemAction).not.toHaveBeenCalled();
+    expect(cancelBatch).not.toHaveBeenCalled();
+    expect(mocks.openConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confirmLabel: 'Discard batch',
+        isError: true,
+        label: 'Discard review batch',
+      }),
+    );
+  });
+
+  it('surfaces a retryable partial failure when cancellation fails after rejection', async () => {
+    const user = userEvent.setup();
+    const rejectedBatch = {
+      id: 'batch-1',
+      items: [
+        { id: 'item-1', status: 'SKIPPED' },
+        { id: 'item-2', status: 'SKIPPED' },
+        { id: 'item-3', status: 'PENDING' },
+      ],
+      status: 'COMPLETED',
+      totalCount: 3,
+    };
+    const itemAction = vi.fn().mockResolvedValue(rejectedBatch);
+    const cancelBatch = vi.fn().mockRejectedValue(new Error('cancel failed'));
+    const { refetch } = mockReviewQueries();
+    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
+
+    render(<ReviewQueueContent />);
+    await user.click(
+      await screen.findByRole('button', { name: 'Discard batch' }),
+    );
+    await act(async () => latestConfirm().onConfirm());
+
+    expect(itemAction).toHaveBeenCalledWith('batch-1', {
+      action: 'reject',
+      feedback: 'Review batch discarded.',
+      itemIds: ['item-1', 'item-2'],
+    });
+    expect(cancelBatch).toHaveBeenCalledWith('batch-1');
+    expect(
+      itemAction.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    ).toBeLessThan(
+      cancelBatch.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY,
+    );
+    expect(mocks.notificationWarning).toHaveBeenCalledWith(
+      'Ready drafts were discarded, but unfinished items could not be cancelled. Retry Discard batch to finish.',
+    );
+    expect(refetch).toHaveBeenCalled();
+    expect(mocks.loggerError).toHaveBeenCalledWith(
+      'Discard batch cancellation failed after review items were rejected',
+      expect.any(Error),
+    );
+  });
+
+  it('renders the canonical empty state after a review batch is discarded', async () => {
+    const user = userEvent.setup();
+    const cancelledBatch = {
+      id: 'batch-1',
+      items: [
+        { id: 'item-1', status: 'SKIPPED' },
+        { id: 'item-2', status: 'SKIPPED' },
+        { id: 'item-3', status: 'SKIPPED' },
+      ],
+      status: 'CANCELLED',
+      totalCount: 3,
+    };
+    const itemAction = vi.fn().mockResolvedValue(cancelledBatch);
+    const cancelBatch = vi.fn().mockResolvedValue(cancelledBatch);
+    mockReviewQueries();
+    mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
+
+    const { rerender } = render(<ReviewQueueContent />);
+    await user.click(
+      await screen.findByRole('button', { name: 'Discard batch' }),
+    );
+    await act(async () => latestConfirm().onConfirm());
+
+    mocks.useQuery.mockReset();
+    mockReviewQueries({
+      activeBatch: cancelledBatch,
+      batchList: [cancelledBatch],
+    });
+    rerender(<ReviewQueueContent />);
+
+    expect(screen.getByText('No items in this view')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Discard batch' }),
+    ).not.toBeInTheDocument();
+    expect(mocks.notificationSuccess).toHaveBeenCalledWith(
+      'Review batch discarded',
+    );
   });
 
   it('renders loading, empty, selected-batch error, and unresolved detail states', () => {

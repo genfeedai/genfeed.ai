@@ -1,6 +1,6 @@
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { BatchStatus } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { BatchesService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
@@ -436,16 +436,18 @@ export function useReviewQueueContent() {
           logger.error('Discard batch failed before cancellation', error);
         }
       } finally {
-        await refreshQueue();
+        try {
+          await refreshQueue();
+        } catch (refreshError) {
+          logger.error(
+            'Refresh review queue after discard failed',
+            refreshError,
+          );
+        }
         setIsActioning(false);
       }
     },
-    [
-      getBatchesService,
-      notifications,
-      refreshQueue,
-      updateBatchCaches,
-    ],
+    [getBatchesService, notifications, refreshQueue, updateBatchCaches],
   );
 
   const handleDiscardBatch = useCallback(() => {
@@ -463,8 +465,7 @@ export function useReviewQueueContent() {
       label: 'Discard review batch',
       message:
         'Ready drafts will be rejected and unfinished items will be cancelled. Prior review decisions stay unchanged. This action cannot be undone.',
-      onConfirm: () =>
-        executeDiscardBatch(activeBatch.id, reviewableItemIds),
+      onConfirm: () => executeDiscardBatch(activeBatch.id, reviewableItemIds),
     });
   }, [
     activeBatch,
