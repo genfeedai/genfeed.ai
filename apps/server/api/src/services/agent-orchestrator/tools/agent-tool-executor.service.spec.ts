@@ -272,6 +272,9 @@ describe('AgentToolExecutorService', () => {
         status: 'stopped',
       }),
     };
+    const workflowSchedulerService = {
+      updateSchedule: vi.fn(),
+    };
     const workflowsService = {
       createWorkflow: vi.fn().mockResolvedValue({
         id: recurringWorkflowId,
@@ -873,6 +876,7 @@ describe('AgentToolExecutorService', () => {
       configService as never,
       workflowsService as never,
       workflowExecutorService as never,
+      workflowSchedulerService as never,
       internalApi,
       brandsService as never,
       systemWorkflowCatalogService as never,
@@ -970,6 +974,7 @@ describe('AgentToolExecutorService', () => {
       httpService,
       imagesService,
       ingredientsService,
+      workflowSchedulerService,
       instagramInspirationHandler,
       instagramInspirationService,
       internalApi,
@@ -4681,6 +4686,7 @@ describe('AgentToolExecutorService', () => {
         { get: vi.fn() } as never,
         workflowsService as never,
         { findOne: vi.fn() } as never,
+        { updateSchedule: vi.fn() } as never,
         internalApiWithoutScorer,
         brandsService as never,
         { install: vi.fn(), listCatalogForOrganization: vi.fn() } as never,
@@ -5275,13 +5281,20 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
   });
 
-  it('set_workflow_schedule enables a duplicate through the existing schedule endpoint', async () => {
-    const { httpService, service } = createService();
-    httpService.post.mockReturnValue(
-      of({
-        data: { data: { id: 'wf-copy-1', message: 'Schedule updated' } },
-      }),
-    );
+  it('set_workflow_schedule enables a duplicate through the workflow scheduler', async () => {
+    const { service, workflowSchedulerService, workflowsService } =
+      createService();
+    workflowsService.findOne.mockResolvedValue({
+      id: 'wf-copy-1',
+      isDeleted: false,
+      organizationId: CTX.organizationId,
+    });
+    workflowSchedulerService.updateSchedule.mockResolvedValue({
+      id: 'wf-copy-1',
+      isScheduleEnabled: true,
+      schedule: '0 9 * * *',
+      timezone: 'UTC',
+    });
 
     const result = await service.executeTool(
       AgentToolName.SET_WORKFLOW_SCHEDULE,
@@ -5295,25 +5308,31 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(httpService.post).toHaveBeenCalledWith(
-      'http://localhost:3010/v1/workflows/wf-copy-1/schedule',
-      { enabled: true, schedule: '0 9 * * *', timezone: 'UTC' },
-      {
-        headers: {
-          Authorization: 'Bearer token-1',
-          'Content-Type': 'application/json',
-        },
-      },
+    expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
+      'wf-copy-1',
+      '0 9 * * *',
+      'UTC',
+      true,
     );
   });
 
-  it('set_workflow_schedule disables a duplicate through the existing schedule endpoint', async () => {
-    const { httpService, service } = createService();
-    httpService.delete.mockReturnValue(
-      of({
-        data: { data: { id: 'wf-copy-1', message: 'Schedule removed' } },
-      }),
-    );
+  it('set_workflow_schedule disables a duplicate while preserving the stored cron', async () => {
+    const { service, workflowSchedulerService, workflowsService } =
+      createService();
+    workflowsService.findOne.mockResolvedValue({
+      id: 'wf-copy-1',
+      isDeleted: false,
+      isScheduleEnabled: true,
+      organizationId: CTX.organizationId,
+      schedule: '0 9 * * *',
+      timezone: 'Europe/Malta',
+    });
+    workflowSchedulerService.updateSchedule.mockResolvedValue({
+      id: 'wf-copy-1',
+      isScheduleEnabled: false,
+      schedule: '0 9 * * *',
+      timezone: 'Europe/Malta',
+    });
 
     const result = await service.executeTool(
       AgentToolName.SET_WORKFLOW_SCHEDULE,
@@ -5322,13 +5341,11 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(httpService.delete).toHaveBeenCalledWith(
-      'http://localhost:3010/v1/workflows/wf-copy-1/schedule',
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+    expect(workflowSchedulerService.updateSchedule).toHaveBeenCalledWith(
+      'wf-copy-1',
+      '0 9 * * *',
+      'Europe/Malta',
+      false,
     );
   });
 

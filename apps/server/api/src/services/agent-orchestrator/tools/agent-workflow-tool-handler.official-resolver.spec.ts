@@ -74,6 +74,7 @@ describe('AgentWorkflowToolHandler official workflow resolution', () => {
       workflowsService as never,
       {} as never,
       {} as never,
+      {} as never,
       brandsService as never,
       systemWorkflowCatalogService as never,
     );
