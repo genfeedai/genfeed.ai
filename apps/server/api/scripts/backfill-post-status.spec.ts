@@ -11,13 +11,17 @@ import {
 } from './backfill-post-status';
 
 class FakePostStatusBackfillClient implements PostStatusBackfillClient {
+  private beforeFirstUpdateRan = false;
   readonly updateCalls: PostStatusUpdateManyArgs[] = [];
   readonly post = {
     findMany: async (args: PostStatusFindManyArgs) => this.findMany(args),
     updateMany: async (args: PostStatusUpdateManyArgs) => this.updateMany(args),
   };
 
-  constructor(private readonly rows: PostStatusRow[]) {}
+  constructor(
+    private readonly rows: PostStatusRow[],
+    private readonly beforeFirstUpdate?: (rows: PostStatusRow[]) => void,
+  ) {}
 
   private async findMany(
     args: PostStatusFindManyArgs,
@@ -36,6 +40,10 @@ class FakePostStatusBackfillClient implements PostStatusBackfillClient {
   private async updateMany(
     args: PostStatusUpdateManyArgs,
   ): Promise<{ count: number }> {
+    if (!this.beforeFirstUpdateRan) {
+      this.beforeFirstUpdateRan = true;
+      this.beforeFirstUpdate?.(this.rows);
+    }
     this.updateCalls.push(args);
     let count = 0;
     for (const row of this.rows) {
@@ -174,5 +182,36 @@ describe('backfill-post-status', () => {
     expect(
       client.updateCalls.every((call) => typeof call.where.status === 'string'),
     ).toBe(true);
+  });
+
+  it('reports a concurrent status change instead of overwriting it', async () => {
+    const client = new FakePostStatusBackfillClient(
+      [{ id: '01', status: 'paused' }],
+      (rows) => {
+        const row = rows[0];
+        if (row) {
+          row.status = PostStatus.DRAFT;
+        }
+      },
+    );
+
+    const report = await runPostStatusBackfill(client, {
+      batchSize: 10,
+      dryRun: false,
+    });
+
+    expect(report).toMatchObject({
+      concurrentChangesSkipped: 1,
+      remainingInvalid: 0,
+      scanned: 1,
+      updated: 0,
+      wouldUpdate: 1,
+    });
+    expect(client.updateCalls).toEqual([
+      {
+        data: { status: PostStatus.DRAFT },
+        where: { id: { in: ['01'] }, status: 'paused' },
+      },
+    ]);
   });
 });
