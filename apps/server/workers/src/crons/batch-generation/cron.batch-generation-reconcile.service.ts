@@ -26,6 +26,10 @@ export class CronBatchGenerationReconcileService {
     private readonly queueService: BatchGenerationQueueService,
   ) {}
 
+  async reconcileSettlementShortfalls(): Promise<void> {
+    await this.reconcileService.reconcileSettlementShortfalls();
+  }
+
   async resumeStrandedBatches(): Promise<void> {
     const stranded = await this.reconcileService.findStrandedBatches();
 

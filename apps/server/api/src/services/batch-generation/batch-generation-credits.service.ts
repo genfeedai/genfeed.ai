@@ -14,12 +14,16 @@ import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 
 /** Refunded credits expire a year out, matching other refund paths. */
 const REFUND_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 
 /** Compare-and-swap retries before a settlement gives up for this tick. */
 const SETTLE_MAX_ATTEMPTS = 3;
+
+/** Durable credit-ledger idempotency namespace for a batch's one settlement. */
+const BATCH_SETTLEMENT_REFERENCE_TYPE = 'batch-generation:settlement';
 
 export type BatchCreditsSettlement = {
   /** Extra credits deducted to reach the price of what landed. */
@@ -35,11 +39,11 @@ export type BatchCreditsSettlement = {
 /**
  * Owns the credit ledger on a batch.
  *
- * The ledger records the **net credits already moved** for the batch, not
- * "have we settled yet". Settlement recomputes the price of what actually
- * landed and moves only `target - alreadyCharged`, so replaying it — after a
- * BullMQ redelivery, a resumed run, or a reconciliation sweep — charges zero
- * the second time instead of billing the same drafts twice.
+ * The JSON ledger is the batch's settlement claim. Ordinarily its
+ * `chargedCredits` matches credits already moved; if a post-claim deduction
+ * fails, the typed `settlementShortfall` column is the durable exception.
+ * Replaying settlement still moves nothing, and only that stored marker may
+ * retry the missing amount.
  */
 @Injectable()
 export class BatchGenerationCreditsService {
@@ -150,17 +154,20 @@ export class BatchGenerationCreditsService {
           config.pricing ?? {},
         );
 
+      const settlementSeq = (config.credits?.settlementSeq ?? 0) + 1;
       const ledger: BatchCreditsLedger = {
         chargedCredits: settledCredits,
         refundedCredits: (config.credits?.refundedCredits ?? 0) + refundCredits,
         settledAt: new Date().toISOString(),
+        settlementSeq,
       };
 
       // Claim the settlement before moving anything. `updatedAt` is the
       // compare-and-swap token: a redelivered job or a concurrent sweep that
       // loses the swap recomputes against the new ledger and finds nothing
       // owing. Recording first also means a failed credit move fails as an
-      // under-charge, never as a double charge.
+      // under-charge, never as a double charge; the failure path below records
+      // that exact under-charge for idempotent reconciliation.
       const settledConfig: BatchConfig = { ...config, credits: ledger };
 
       const claimed = await this.prisma.batch.updateMany({
@@ -182,6 +189,7 @@ export class BatchGenerationCreditsService {
         batchId: params.batchId,
         organizationId: params.organizationId,
         refundCredits,
+        settlementSeq,
         userId: params.userId,
       });
 
@@ -200,29 +208,112 @@ export class BatchGenerationCreditsService {
     return noop;
   }
 
+  /**
+   * Retry only the exact shortfall recorded by a failed settlement deduction.
+   *
+   * A compare-and-swap first confirms the exact marker still exists, so stale
+   * sweep results cannot charge after another worker collected it. The marker
+   * stays durable until collection succeeds, while the credit-transaction
+   * reference makes concurrent and ambiguous retries idempotent.
+   */
+  async retrySettlementShortfall(params: {
+    batchId: string;
+    organizationId: string;
+    settlementShortfall: number;
+    settlementShortfallSeq: number;
+    userId: string;
+  }): Promise<boolean> {
+    if (!this.creditsUtilsService || params.settlementShortfall <= 0) {
+      return false;
+    }
+
+    const stillMarked = await this.prisma.batch.updateMany({
+      data: { settlementShortfall: params.settlementShortfall },
+      where: scopedWhere(params.organizationId, {
+        id: params.batchId,
+        settlementShortfall: params.settlementShortfall,
+        settlementShortfallSeq: params.settlementShortfallSeq,
+      }),
+    });
+
+    if (stillMarked.count !== 1) {
+      return false;
+    }
+
+    try {
+      await this.deductSettlementCredits({
+        batchId: params.batchId,
+        organizationId: params.organizationId,
+        settlementSeq: params.settlementShortfallSeq,
+        settlementShortfall: params.settlementShortfall,
+        userId: params.userId,
+      });
+    } catch (error: unknown) {
+      // The marker is still set, so the next sweep retries. The original
+      // failure already alerted; a recurring retry failure while the balance
+      // stays exhausted is expected and must not spam Sentry every tick.
+      this.logger.error(
+        `Batch ${params.batchId} settlement shortfall retry failed`,
+        error,
+        {
+          batchId: params.batchId,
+          organizationId: params.organizationId,
+          settlementShortfall: params.settlementShortfall,
+          settlementShortfallSeq: params.settlementShortfallSeq,
+        },
+      );
+      return false;
+    }
+
+    const cleared = await this.prisma.batch.updateMany({
+      data: { settlementShortfall: null, settlementShortfallSeq: null },
+      where: scopedWhere(params.organizationId, {
+        id: params.batchId,
+        settlementShortfall: params.settlementShortfall,
+        settlementShortfallSeq: params.settlementShortfallSeq,
+      }),
+    });
+
+    return cleared.count === 1;
+  }
+
   private async moveSettlementCredits(params: {
     additionalCredits: number;
     batchId: string;
     organizationId: string;
     refundCredits: number;
+    settlementSeq: number;
     userId: string;
   }): Promise<void> {
     if (!this.creditsUtilsService) {
       return;
     }
 
-    try {
-      if (params.additionalCredits > 0) {
-        await this.creditsUtilsService.deductCreditsFromOrganization(
-          params.organizationId,
-          params.userId,
-          params.additionalCredits,
-          `Batch generation ${params.batchId} settlement`,
-          ActivitySource.SCRIPT,
+    if (params.additionalCredits > 0) {
+      try {
+        await this.deductSettlementCredits({
+          batchId: params.batchId,
+          organizationId: params.organizationId,
+          settlementSeq: params.settlementSeq,
+          settlementShortfall: params.additionalCredits,
+          userId: params.userId,
+        });
+      } catch (error: unknown) {
+        await this.handleSettlementDeductionFailure(
+          {
+            batchId: params.batchId,
+            organizationId: params.organizationId,
+            settlementSeq: params.settlementSeq,
+            settlementShortfall: params.additionalCredits,
+            userId: params.userId,
+          },
+          error,
         );
-        return;
       }
+      return;
+    }
 
+    try {
       if (params.refundCredits > 0) {
         await this.creditsUtilsService.refundOrganizationCredits(
           params.organizationId,
@@ -233,8 +324,6 @@ export class BatchGenerationCreditsService {
         );
       }
     } catch (error: unknown) {
-      // The ledger already records the settled amount, so retrying here would
-      // risk billing the same drafts twice. Surface it and stay under-charged.
       this.logger.error(
         `Batch ${params.batchId} credit settlement move failed`,
         error,
@@ -245,5 +334,121 @@ export class BatchGenerationCreditsService {
         },
       );
     }
+  }
+
+  private async deductSettlementCredits(params: {
+    batchId: string;
+    organizationId: string;
+    settlementSeq: number;
+    settlementShortfall: number;
+    userId: string;
+  }): Promise<void> {
+    // The reference is scoped to one settlement occurrence, not the batch: a
+    // resumed batch legitimately settles again with a new delta, and that new
+    // occurrence must charge rather than match the previous occurrence's
+    // transaction. Retries of the SAME occurrence (the shortfall sweep, or an
+    // ambiguous failure after the deduction committed) reuse the same seq and
+    // stay idempotent through the existing reference lookup.
+    await this.creditsUtilsService?.deductCreditsFromOrganization(
+      params.organizationId,
+      params.userId,
+      params.settlementShortfall,
+      `Batch generation ${params.batchId} settlement`,
+      ActivitySource.SCRIPT,
+      {
+        metadata: { batchId: params.batchId },
+        referenceId: `${params.batchId}:${params.settlementSeq}`,
+        referenceType: BATCH_SETTLEMENT_REFERENCE_TYPE,
+      },
+    );
+  }
+
+  private async handleSettlementDeductionFailure(
+    params: {
+      batchId: string;
+      organizationId: string;
+      settlementSeq: number;
+      settlementShortfall: number;
+      userId: string;
+    },
+    error: unknown,
+  ): Promise<void> {
+    try {
+      // Only claim a free marker. Overwriting would erase an earlier, still
+      // uncollected shortfall; the rare second concurrent shortfall is alerted
+      // below instead of silently replacing the first.
+      const marked = await this.prisma.batch.updateMany({
+        data: {
+          settlementShortfall: params.settlementShortfall,
+          settlementShortfallSeq: params.settlementSeq,
+        },
+        where: scopedWhere(params.organizationId, {
+          id: params.batchId,
+          settlementShortfall: null,
+        }),
+      });
+
+      if (marked.count !== 1) {
+        Sentry.captureException(
+          new Error(
+            `Batch ${params.batchId} settlement shortfall is NOT durably tracked: marker occupied or batch missing`,
+          ),
+          {
+            extra: {
+              batchId: params.batchId,
+              organizationId: params.organizationId,
+              settlementSeq: params.settlementSeq,
+              settlementShortfall: params.settlementShortfall,
+            },
+            tags: {
+              operation: 'batch-credit-settlement-marker',
+            },
+          },
+        );
+        this.logger.error(
+          `Batch ${params.batchId} settlement shortfall marker was not persisted`,
+          undefined,
+          {
+            batchId: params.batchId,
+            organizationId: params.organizationId,
+            settlementSeq: params.settlementSeq,
+            settlementShortfall: params.settlementShortfall,
+          },
+        );
+      }
+    } catch (markerError: unknown) {
+      this.logger.error(
+        `Batch ${params.batchId} settlement shortfall marker failed to persist`,
+        markerError,
+        {
+          batchId: params.batchId,
+          organizationId: params.organizationId,
+          settlementShortfall: params.settlementShortfall,
+        },
+      );
+    }
+
+    Sentry.captureException(error, {
+      extra: {
+        batchId: params.batchId,
+        organizationId: params.organizationId,
+        settlementShortfall: params.settlementShortfall,
+      },
+      tags: {
+        operation: 'batch-credit-settlement',
+      },
+    });
+
+    // The settled ledger remains the never-double-charge gate. The shortfall
+    // marker is now the only retry amount; no sweep recomputes it from drafts.
+    this.logger.error(
+      `Batch ${params.batchId} credit settlement deduction failed`,
+      error,
+      {
+        batchId: params.batchId,
+        organizationId: params.organizationId,
+        settlementShortfall: params.settlementShortfall,
+      },
+    );
   }
 }

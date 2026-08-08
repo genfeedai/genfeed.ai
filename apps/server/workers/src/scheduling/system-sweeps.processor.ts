@@ -71,6 +71,10 @@ export class SystemSweepsProcessor extends WorkerHost {
         await this.cronBatchGenerationReconcileService.resumeStrandedBatches();
         return;
 
+      case SYSTEM_SWEEP_JOBS.BATCH_CREDIT_SETTLEMENT_RECONCILE:
+        await this.cronBatchGenerationReconcileService.reconcileSettlementShortfalls();
+        return;
+
       default:
         this.logger.warn(
           `Unknown system sweep job ${job.name} - no dispatcher registered`,

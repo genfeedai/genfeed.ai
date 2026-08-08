@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('SystemSweepsProcessor', () => {
   let processor: SystemSweepsProcessor;
   let batchGenerationService: {
+    reconcileSettlementShortfalls: ReturnType<typeof vi.fn>;
     resumeStrandedBatches: ReturnType<typeof vi.fn>;
   };
   let postsService: { publishScheduledPosts: ReturnType<typeof vi.fn> };
@@ -35,7 +36,10 @@ describe('SystemSweepsProcessor', () => {
   }
 
   beforeEach(async () => {
-    batchGenerationService = { resumeStrandedBatches: vi.fn() };
+    batchGenerationService = {
+      reconcileSettlementShortfalls: vi.fn(),
+      resumeStrandedBatches: vi.fn(),
+    };
     postsService = { publishScheduledPosts: vi.fn() };
     reviewGateService = { resolveTimedOutReviewGates: vi.fn() };
     streaksService = { processStreaks: vi.fn() };
@@ -103,6 +107,16 @@ describe('SystemSweepsProcessor', () => {
     );
 
     expect(batchGenerationService.resumeStrandedBatches).toHaveBeenCalledOnce();
+  });
+
+  it('dispatches the batch credit settlement reconcile sweep', async () => {
+    await processor.process(
+      jobNamed(SYSTEM_SWEEP_JOBS.BATCH_CREDIT_SETTLEMENT_RECONCILE),
+    );
+
+    expect(
+      batchGenerationService.reconcileSettlementShortfalls,
+    ).toHaveBeenCalledOnce();
   });
 
   it('warns on unknown job names without dispatching', async () => {

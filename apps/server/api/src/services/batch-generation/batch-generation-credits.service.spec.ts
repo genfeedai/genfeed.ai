@@ -5,7 +5,12 @@ import { chargeBatchGenerationCredits } from '@genfeedai/constants';
 import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as Sentry from '@sentry/nestjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('@sentry/nestjs', () => ({
+  captureException: vi.fn(),
+}));
 
 /** The rates a batch pins at creation — caption-first, no media generated. */
 const PINNED_PRICING = { includeMedia: false, qualityTier: 'balanced' };
@@ -46,12 +51,16 @@ describe('BatchGenerationCreditsService', () => {
     chargedCredits: number;
     items?: Array<Record<string, unknown>>;
     refundedCredits?: number;
+    settlementSeq?: number;
   }) {
     return {
       config: {
         credits: {
           chargedCredits: params.chargedCredits,
           refundedCredits: params.refundedCredits ?? 0,
+          ...(params.settlementSeq
+            ? { settlementSeq: params.settlementSeq }
+            : {}),
         },
         pricing: PINNED_PRICING,
         totalCount: 2,
@@ -79,6 +88,7 @@ describe('BatchGenerationCreditsService', () => {
   }
 
   beforeEach(async () => {
+    vi.clearAllMocks();
     batchDelegate = {
       findFirst: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -234,19 +244,160 @@ describe('BatchGenerationCreditsService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('stays under-charged when the credit move itself fails', async () => {
+  it('persists and alerts on a settlement deduction shortfall', async () => {
     batchDelegate.findFirst.mockResolvedValue(batchWith({ chargedCredits: 0 }));
+    const deductionError = new Error('insufficient organization credits');
     creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
-      new Error('credits service unavailable'),
+      deductionError,
     );
 
-    // The ledger is written before the move, so a failure must not bubble: a
-    // caller that retried would bill the same drafts a second time.
+    // The ledger is written before the move, so a failure must not bubble back
+    // into settlement. Only the durable shortfall marker may drive a retry.
     const settlement = await settle();
 
     expect(settlement.isAlreadySettled).toBe(false);
     expect(settlement.settledCredits).toBe(ONE_DRAFT);
-    expect(batchDelegate.updateMany).toHaveBeenCalledOnce();
+    expect(batchDelegate.updateMany).toHaveBeenCalledTimes(2);
+    expect(batchDelegate.updateMany).toHaveBeenNthCalledWith(2, {
+      data: { settlementShortfall: ONE_DRAFT, settlementShortfallSeq: 1 },
+      where: expect.objectContaining({
+        id: 'batch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        settlementShortfall: null,
+      }),
+    });
+    expect(Sentry.captureException).toHaveBeenCalledWith(deductionError, {
+      extra: {
+        batchId: 'batch-1',
+        organizationId: 'org-1',
+        settlementShortfall: ONE_DRAFT,
+      },
+      tags: {
+        operation: 'batch-credit-settlement',
+      },
+    });
+  });
+
+  it('retries the exact marked shortfall and leaves the marker clear on success', async () => {
+    await expect(
+      service.retrySettlementShortfall({
+        batchId: 'batch-1',
+        organizationId: 'org-1',
+        settlementShortfall: ONE_DRAFT,
+        settlementShortfallSeq: 3,
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(true);
+
+    expect(batchDelegate.updateMany).toHaveBeenCalledWith({
+      data: { settlementShortfall: null, settlementShortfallSeq: null },
+      where: expect.objectContaining({
+        id: 'batch-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        settlementShortfall: ONE_DRAFT,
+        settlementShortfallSeq: 3,
+      }),
+    });
+    // The retry reuses the failing occurrence's reference, so a deduction that
+    // actually committed before the original failure is a no-op here.
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      ONE_DRAFT,
+      'Batch generation batch-1 settlement',
+      expect.anything(),
+      expect.objectContaining({
+        referenceId: 'batch-1:3',
+        referenceType: 'batch-generation:settlement',
+      }),
+    );
+  });
+
+  it('does not retry a stale sweep result after its marker was cleared', async () => {
+    batchDelegate.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.retrySettlementShortfall({
+        batchId: 'batch-1',
+        organizationId: 'org-1',
+        settlementShortfall: ONE_DRAFT,
+        settlementShortfallSeq: 3,
+        userId: 'user-1',
+      }),
+    ).resolves.toBe(false);
+
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('charges a later legitimate settlement delta under its own reference', async () => {
+    // Occurrence 1: nothing charged up front, one draft landed.
+    batchDelegate.findFirst.mockResolvedValueOnce(
+      batchWith({ chargedCredits: 0 }),
+    );
+    await settle();
+
+    // The batch resumes, a second draft lands, and the ledger carries the
+    // first occurrence's claim. This delta is new money, not a replay.
+    batchDelegate.findFirst.mockResolvedValueOnce(
+      batchWith({
+        chargedCredits: ONE_DRAFT,
+        items: [
+          completedItem,
+          { ...completedItem, id: 'item-2', postId: 'post-2' },
+        ],
+        settlementSeq: 1,
+      }),
+    );
+    const second = await settle();
+
+    expect(second.additionalCredits).toBe(ONE_DRAFT);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenNthCalledWith(
+      1,
+      'org-1',
+      'user-1',
+      ONE_DRAFT,
+      expect.any(String),
+      expect.anything(),
+      expect.objectContaining({ referenceId: 'batch-1:1' }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenNthCalledWith(
+      2,
+      'org-1',
+      'user-1',
+      ONE_DRAFT,
+      expect.any(String),
+      expect.anything(),
+      expect.objectContaining({ referenceId: 'batch-1:2' }),
+    );
+  });
+
+  it('never overwrites an earlier uncollected shortfall marker', async () => {
+    batchDelegate.findFirst.mockResolvedValue(batchWith({ chargedCredits: 0 }));
+    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
+      new Error('insufficient organization credits'),
+    );
+    // The ledger claim succeeds, but the marker slot is occupied by an earlier
+    // uncollected shortfall, so the guarded update matches nothing.
+    batchDelegate.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+
+    await settle();
+
+    const markerCall = batchDelegate.updateMany.mock.calls[1][0];
+    expect(markerCall.where).toMatchObject({ settlementShortfall: null });
+    // One capture for the failed deduction, one for the untracked shortfall.
+    expect(Sentry.captureException).toHaveBeenCalledTimes(2);
   });
 
   it('returns without moving credits when the batch is gone', async () => {

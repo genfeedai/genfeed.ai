@@ -3,6 +3,7 @@ import {
   BATCH_MAX_RESUME_ATTEMPTS,
   BATCH_QUEUE_PICKUP_STALE_MS,
   BATCH_RECONCILE_SWEEP_LIMIT,
+  BATCH_SETTLEMENT_SHORTFALL_SWEEP_LIMIT,
 } from '@api/services/batch-generation/batch-generation.constants';
 import {
   type BatchConfig,
@@ -135,6 +136,75 @@ export class BatchGenerationReconcileService {
     }
 
     return stranded;
+  }
+
+  /**
+   * Retry the durable settlement amounts recorded after failed deductions.
+   *
+   * This maintenance query intentionally crosses organizations. Candidate
+   * rows carry their tenant ids, and each collection attempt uses that scope.
+   * The stored marker is the retry source; batch items and pricing are never
+   * re-read or re-derived here.
+   */
+  async reconcileSettlementShortfalls(
+    limit: number = BATCH_SETTLEMENT_SHORTFALL_SWEEP_LIMIT,
+  ): Promise<void> {
+    // tenant-scope-ignore: platform maintenance sweep — it must collect marked shortfalls across every organization, and each retry is scoped by the candidate organizationId
+    const candidates = await this.prisma.batch.findMany({
+      orderBy: { updatedAt: 'asc' },
+      select: {
+        id: true,
+        organizationId: true,
+        settlementShortfall: true,
+        settlementShortfallSeq: true,
+        userId: true,
+      },
+      take: limit,
+      where: {
+        isDeleted: false,
+        settlementShortfall: { gt: 0 },
+      },
+    });
+
+    let collectedCount = 0;
+
+    for (const candidate of candidates) {
+      if (!candidate.settlementShortfall || !candidate.settlementShortfallSeq) {
+        continue;
+      }
+
+      try {
+        const isCollected = await this.creditsService.retrySettlementShortfall({
+          batchId: candidate.id,
+          organizationId: candidate.organizationId,
+          settlementShortfall: candidate.settlementShortfall,
+          settlementShortfallSeq: candidate.settlementShortfallSeq,
+          userId: candidate.userId,
+        });
+
+        if (isCollected) {
+          collectedCount += 1;
+        }
+      } catch (error: unknown) {
+        // One unavailable tenant or row must not block later shortfalls.
+        this.logger.error(
+          `Batch ${candidate.id} settlement shortfall reconciliation failed`,
+          error,
+          {
+            batchId: candidate.id,
+            organizationId: candidate.organizationId,
+            settlementShortfall: candidate.settlementShortfall,
+          },
+        );
+      }
+    }
+
+    if (candidates.length > 0) {
+      this.logger.log('Batch settlement shortfall reconciliation completed', {
+        candidateCount: candidates.length,
+        collectedCount,
+      });
+    }
   }
 
   /**

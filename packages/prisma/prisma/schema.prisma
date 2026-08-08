@@ -4961,6 +4961,8 @@ model Batch {
   items           Json           @default("[]")
   status          BatchStatus    @default(PENDING)
   config          Json           @default("{}")
+  settlementShortfall Float?
+  settlementShortfallSeq Int?
   isDeleted       Boolean        @default(false)
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -4968,6 +4970,7 @@ model Batch {
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "batches_org_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "batches_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, status, createdAt(sort: Desc)], map: "batches_org_deleted_status_created_at_idx")
+  @@index([isDeleted, settlementShortfall], map: "batches_deleted_settlement_shortfall_idx")
   @@map("batches")
 }
 
