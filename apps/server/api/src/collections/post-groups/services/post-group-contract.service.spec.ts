@@ -6,6 +6,7 @@ import type {
 import { PostGroupContractService } from '@api/collections/post-groups/services/post-group-contract.service';
 import {
   CredentialPlatform,
+  PostStatus,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
@@ -27,6 +28,46 @@ describe('PostGroupContractService', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+  });
+
+  describe('toPostStatus', () => {
+    it.each([
+      [ReleaseStatus.DRAFT, PostStatus.DRAFT],
+      [ReleaseStatus.SCHEDULED, PostStatus.SCHEDULED],
+      [ReleaseStatus.PAUSED, PostStatus.SCHEDULED],
+      [ReleaseStatus.CANCELLED, PostStatus.DRAFT],
+      [ReleaseStatus.PUBLISHING, PostStatus.PROCESSING],
+      [ReleaseStatus.PUBLISHED, PostStatus.PUBLIC],
+      [ReleaseStatus.PARTIALLY_PUBLISHED, PostStatus.PUBLIC],
+      [ReleaseStatus.FAILED, PostStatus.FAILED],
+    ] as const)(
+      'maps ReleaseStatus %s onto a valid PostStatus (%s)',
+      (releaseStatus, expected) => {
+        expect(service.toPostStatus(releaseStatus)).toBe(expected);
+      },
+    );
+
+    it('never passthroughs paused/cancelled/publishing as raw strings', () => {
+      for (const leaked of ['paused', 'cancelled', 'publishing'] as const) {
+        const mapped = service.toPostStatus(leaked);
+        expect(Object.values(PostStatus)).toContain(mapped);
+        expect(mapped).not.toBe(leaked);
+      }
+      expect(service.toPostStatus('paused')).toBe(PostStatus.SCHEDULED);
+      expect(service.toPostStatus('cancelled')).toBe(PostStatus.DRAFT);
+      expect(service.toPostStatus('publishing')).toBe(PostStatus.PROCESSING);
+    });
+
+    it('preserves already-valid PostStatus values and defaults unknown', () => {
+      expect(service.toPostStatus(PostStatus.PRIVATE)).toBe(PostStatus.PRIVATE);
+      expect(service.toPostStatus(PostStatus.UNLISTED)).toBe(
+        PostStatus.UNLISTED,
+      );
+      expect(service.toPostStatus(PostStatus.PENDING)).toBe(
+        PostStatus.PROCESSING,
+      );
+      expect(service.toPostStatus('not-a-real-status')).toBe(PostStatus.DRAFT);
+    });
   });
 
   it('parses the shared create contract and lets the header own idempotency', () => {

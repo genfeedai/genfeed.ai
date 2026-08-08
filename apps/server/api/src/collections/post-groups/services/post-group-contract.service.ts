@@ -287,17 +287,46 @@ export class PostGroupContractService {
     }
   }
 
-  toPostStatus(status: string): string {
-    if (status === ReleaseStatus.DRAFT) {
-      return PostStatus.DRAFT;
+  /**
+   * Map a release-group status onto the legacy `posts.status` String column
+   * (`PostStatus` lowercase product language).
+   *
+   * Never passthrough: `ReleaseStatus` values like `paused` / `cancelled` /
+   * `publishing` are not in `PostStatus` and must not land on `posts.status`.
+   * Target-level truth stays on `targetExecutionState` via {@link toTargetState}.
+   */
+  toPostStatus(status: string): PostStatus {
+    switch (status) {
+      case ReleaseStatus.DRAFT:
+      case PostStatus.DRAFT:
+        return PostStatus.DRAFT;
+      case ReleaseStatus.SCHEDULED:
+      case ReleaseStatus.PAUSED:
+      case PostStatus.SCHEDULED:
+        // Paused is still "not live" — keep the classic scheduled bucket.
+        return PostStatus.SCHEDULED;
+      case ReleaseStatus.CANCELLED:
+        // No longer queued; fall back to draft so list filters stay valid.
+        return PostStatus.DRAFT;
+      case ReleaseStatus.PUBLISHING:
+      case PostStatus.PENDING:
+      case PostStatus.PROCESSING:
+        return PostStatus.PROCESSING;
+      case ReleaseStatus.PUBLISHED:
+      case ReleaseStatus.PARTIALLY_PUBLISHED:
+      case PostStatus.PUBLIC:
+        return PostStatus.PUBLIC;
+      case PostStatus.PRIVATE:
+        return PostStatus.PRIVATE;
+      case PostStatus.UNLISTED:
+        return PostStatus.UNLISTED;
+      case ReleaseStatus.FAILED:
+      case PostStatus.FAILED:
+        return PostStatus.FAILED;
+      default:
+        // Unknown / corrupted values never leak into the column.
+        return PostStatus.DRAFT;
     }
-    if (status === ReleaseStatus.FAILED) {
-      return PostStatus.FAILED;
-    }
-    if (status === ReleaseStatus.PUBLISHED) {
-      return PostStatus.PUBLIC;
-    }
-    return status;
   }
 
   parseCredentialPlatform(value: string): CredentialPlatform {
