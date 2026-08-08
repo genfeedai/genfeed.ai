@@ -53,7 +53,6 @@ export { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry
 export { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
 export { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailPanel';
 export { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
-export type { AgentModelOption } from '@genfeedai/agent/constants/agent-models.constant';
 // Constants
 export { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
 export type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
