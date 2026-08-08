@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   hydrateLayout: vi.fn(),
   resetLayout: vi.fn(),
   useDashboardLayout: vi.fn(),
+  useWorkspaceDashboardData: vi.fn(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -17,12 +18,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/analytics/use-analytics/use-analytics', () => ({
-  useAnalytics: () => ({
-    analytics: { totalPosts: 12 },
-  }),
-}));
-
 vi.mock(
   '@hooks/data/content/use-dashboard-layout/use-dashboard-layout',
   () => ({
@@ -30,6 +25,11 @@ vi.mock(
       mocks.useDashboardLayout(...args),
   }),
 );
+
+vi.mock('./use-workspace-dashboard-data', () => ({
+  useWorkspaceDashboardData: (...args: unknown[]) =>
+    mocks.useWorkspaceDashboardData(...args),
+}));
 
 vi.mock('@genfeedai/agent/dashboard', () => ({
   hydrateLayout: (...args: unknown[]) => mocks.hydrateLayout(...args),
@@ -55,6 +55,15 @@ describe('WorkspaceOverviewContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.hydrateLayout.mockReturnValue([{ id: 'block-1' }, { id: 'block-2' }]);
+    mocks.useWorkspaceDashboardData.mockReturnValue({
+      bundle: {
+        analytics: { totalPosts: 12 },
+        platformComparisonData: [{ platform: 'instagram', views: 20 }],
+        timeSeriesData: [{ date: '2026-08-08', views: 20 }],
+        topPosts: [{ id: 'post-1', views: 20 }],
+      },
+      isLoading: false,
+    });
   });
 
   it('renders the loading fallback while the persisted layout query is in flight', () => {
@@ -97,7 +106,7 @@ describe('WorkspaceOverviewContent', () => {
     const document = { blocks: [], version: 'genfeed.dashboard.openui.v1' };
     mocks.useDashboardLayout.mockReturnValue({
       isLoading: false,
-      layout: { document, id: 'layout-1' },
+      layout: { brandId: 'brand-1', document, id: 'layout-1' },
       resetLayout: mocks.resetLayout,
     });
 
@@ -108,7 +117,11 @@ describe('WorkspaceOverviewContent', () => {
     ).not.toBeInTheDocument();
     expect(mocks.hydrateLayout).toHaveBeenCalledWith(
       document,
-      expect.objectContaining({ analytics: { totalPosts: 12 } }),
+      expect.objectContaining({
+        analytics: { totalPosts: 12 },
+        timeSeriesData: [{ date: '2026-08-08', views: 20 }],
+        topPosts: [{ id: 'post-1', views: 20 }],
+      }),
     );
     expect(screen.getByTestId('dashboard-open-ui-renderer')).toHaveTextContent(
       'Rendered blocks: 2',
@@ -116,5 +129,28 @@ describe('WorkspaceOverviewContent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /reset to default/i }));
     expect(mocks.resetLayout).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the operational default without deleting an invalid persisted layout', () => {
+    mocks.hydrateLayout.mockImplementation(() => {
+      throw new Error('invalid persisted OpenUI document');
+    });
+    mocks.useDashboardLayout.mockReturnValue({
+      isLoading: false,
+      layout: {
+        brandId: 'brand-1',
+        document: { blocks: [], version: 'genfeed.dashboard.openui.v1' },
+        id: 'layout-1',
+      },
+      resetLayout: mocks.resetLayout,
+    });
+
+    render(<WorkspaceOverviewContent />);
+
+    expect(screen.getByTestId('operational-home-fallback')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('dashboard-open-ui-renderer'),
+    ).not.toBeInTheDocument();
+    expect(mocks.resetLayout).not.toHaveBeenCalled();
   });
 });

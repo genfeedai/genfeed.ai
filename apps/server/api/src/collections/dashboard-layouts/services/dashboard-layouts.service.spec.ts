@@ -291,6 +291,40 @@ describe('DashboardLayoutsService', () => {
 
       expect(mockPrisma.dashboardLayout.upsert).not.toHaveBeenCalled();
     });
+
+    it('does not replace the last valid layout when a later write is rejected', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValue({
+        organizationId: 'org-1',
+      });
+      mockPrisma.dashboardLayout.upsert.mockResolvedValueOnce(
+        mockDashboardLayout,
+      );
+
+      await service.upsertForPage('org-1', {
+        brandId: 'brand-1',
+        document: { blocks: [] },
+      });
+
+      vi.mocked(sanitizeLayoutForPersistence).mockReturnValueOnce({
+        document: sanitizedDocument,
+        issues: [
+          {
+            code: 'document_too_large',
+            message: 'dashboard document is too large',
+            path: 'document',
+          },
+        ],
+      });
+
+      await expect(
+        service.upsertForPage('org-1', {
+          brandId: 'brand-1',
+          document: { blocks: ['oversized'] },
+        }),
+      ).rejects.toThrow(ValidationException);
+
+      expect(mockPrisma.dashboardLayout.upsert).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('removeScoped', () => {
