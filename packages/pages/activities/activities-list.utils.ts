@@ -162,7 +162,7 @@ function parseCreditAmount(value: string | undefined): number | null {
 export function getActivityDescription(activity: IActivity): string {
   const key = activity.key?.trim() ?? '';
 
-  if (key === ActivityKey.POST_GENERATED || key === 'post-generated') {
+  if (key === ActivityKey.POST_GENERATED) {
     const parsed = parseActivityValue(activity.value ?? '');
     const fromValue =
       (typeof parsed?.description === 'string' && parsed.description) ||
@@ -179,12 +179,12 @@ export function getActivityDescription(activity: IActivity): string {
       ? getActivitySourceLabel(activity.source)
       : undefined;
 
-    if (key === ActivityKey.CREDITS_ADD || key === 'credits-add') {
+    if (key === ActivityKey.CREDITS_ADD) {
       return amountLabel
         ? `${amountLabel} credits added`
         : formatActivityMessage(getActivityMessageDescriptor(key));
     }
-    if (key === ActivityKey.CREDITS_REMOVE || key === 'credits-remove') {
+    if (key === ActivityKey.CREDITS_REMOVE) {
       if (amountLabel && sourceLabel) {
         return `${sourceLabel} · ${amountLabel} credits used`;
       }

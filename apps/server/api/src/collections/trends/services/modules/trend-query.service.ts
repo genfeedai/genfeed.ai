@@ -103,6 +103,7 @@ export class TrendQueryService {
    * Idempotent.
    */
   async purgeSyntheticTrendRows(): Promise<{ purged: number }> {
+    // tenant-scope-ignore: platform maintenance sweep — prelaunch seed rows were planted across every organization, so the purge must see all of them
     const docs = await this.prisma.trend.findMany({
       where: { isDeleted: false },
     });
@@ -113,6 +114,7 @@ export class TrendQueryService {
       if (!this.isSyntheticTrendData(data)) {
         continue;
       }
+      // tenant-scope-ignore: purging a synthetic row found by the sweep above, addressed by its own primary key
       await this.prisma.trend.update({
         data: { isDeleted: true },
         where: { id: doc.id },

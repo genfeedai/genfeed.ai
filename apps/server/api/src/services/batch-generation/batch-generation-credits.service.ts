@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   type BatchPricingOptions,
-  chargeBatchGenerationCredits,
+  reconcileBatchGenerationCredits,
 } from '@genfeedai/constants';
 import { ActivitySource, BatchItemStatus } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
@@ -138,13 +138,12 @@ export class BatchGenerationCreditsService {
           format: item.format,
           hasMedia: Boolean(item.mediaUrl),
         }));
-      const settledCredits = chargeBatchGenerationCredits(
-        billableItems,
-        config.pricing ?? {},
-      );
-
-      const additionalCredits = Math.max(0, settledCredits - alreadyCharged);
-      const refundCredits = Math.max(0, alreadyCharged - settledCredits);
+      const { additionalCredits, refundCredits, settledCredits } =
+        reconcileBatchGenerationCredits(
+          alreadyCharged,
+          billableItems,
+          config.pricing ?? {},
+        );
 
       const ledger: BatchCreditsLedger = {
         chargedCredits: settledCredits,
