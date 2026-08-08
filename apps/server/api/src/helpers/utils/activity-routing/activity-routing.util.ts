@@ -26,12 +26,14 @@ export function getActivityRouting(
   input: ActivityRoutingInput,
 ): ActivityRouting | null {
   const { category, isReframe, isUpscale, metadataExtension } = input;
-  const categoryStr = String(category);
+  // Webhook payloads carry free-form lowercase categories ('video',
+  // 'avatar-video'); the enums are SCREAMING Prisma labels. Normalize once.
+  const categoryStr = String(category).toUpperCase();
 
   const isVideo =
     categoryStr === String(IngredientCategory.VIDEO) ||
-    (categoryStr === 'avatar-video' &&
-      metadataExtension === MetadataExtension.MP4);
+    (categoryStr === 'AVATAR-VIDEO' &&
+      String(metadataExtension).toUpperCase() === MetadataExtension.MP4);
 
   if (isVideo) {
     if (isReframe) {
@@ -95,7 +97,7 @@ export function getActivityRouting(
 export function getFailureActivityRouting(
   category: IngredientCategory | string,
 ): ActivityRouting | null {
-  const categoryStr = String(category);
+  const categoryStr = String(category).toUpperCase();
 
   if (categoryStr === String(IngredientCategory.VIDEO)) {
     return {

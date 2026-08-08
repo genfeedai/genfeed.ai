@@ -11,7 +11,7 @@ const mockInstance = {
   post: vi.fn(),
 };
 
-const mockFindAll = vi.fn();
+const mockFindAllPages = vi.fn();
 
 vi.mock('@services/core/base.service', () => {
   class MockBaseService {
@@ -20,7 +20,7 @@ vi.mock('@services/core/base.service', () => {
     public ModelClass: typeof MonitoredAccount;
     public Serializer: typeof MonitoredAccountSerializer;
     public instance = mockInstance;
-    public findAll = mockFindAll;
+    public findAllPages = mockFindAllPages;
 
     constructor(
       endpoint: string,
@@ -102,19 +102,18 @@ describe('MonitoredAccountsService', () => {
   });
 
   describe('findAllByOrganization', () => {
-    it('should call findAll with organization filter', async () => {
-      mockFindAll.mockResolvedValue(mockAccountsList);
+    it('should call findAllPages with organization filter', async () => {
+      mockFindAllPages.mockResolvedValue(mockAccountsList);
 
       await service.findAllByOrganization('org-123');
 
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         organizationId: 'org-123',
-        pagination: false,
       });
     });
 
     it('should return array of MonitoredAccounts', async () => {
-      mockFindAll.mockResolvedValue(mockAccountsList);
+      mockFindAllPages.mockResolvedValue(mockAccountsList);
 
       const result = await service.findAllByOrganization('org-123');
 
@@ -123,28 +122,26 @@ describe('MonitoredAccountsService', () => {
   });
 
   describe('findByBotConfig', () => {
-    it('should call findAll with botConfig filter', async () => {
-      mockFindAll.mockResolvedValue(mockAccountsList);
+    it('should call findAllPages with botConfig filter', async () => {
+      mockFindAllPages.mockResolvedValue(mockAccountsList);
 
       await service.findByBotConfig('config-123');
 
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         botConfigId: 'config-123',
-        pagination: false,
       });
     });
   });
 
   describe('findActive', () => {
-    it('should call findAll with isActive filter', async () => {
-      mockFindAll.mockResolvedValue(mockAccountsList);
+    it('should call findAllPages with isActive filter', async () => {
+      mockFindAllPages.mockResolvedValue(mockAccountsList);
 
       await service.findActive('org-123');
 
-      expect(mockFindAll).toHaveBeenCalledWith({
+      expect(mockFindAllPages).toHaveBeenCalledWith({
         isActive: true,
         organizationId: 'org-123',
-        pagination: false,
       });
     });
   });

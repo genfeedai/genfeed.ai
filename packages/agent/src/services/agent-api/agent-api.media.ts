@@ -9,6 +9,7 @@ import {
   AgentApiRequestError,
 } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
+import { MAX_PAGE_SIZE } from '@genfeedai/constants';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Effect } from 'effect';
 
@@ -16,8 +17,10 @@ export function getModelsEffect(
   api: AgentBaseApiService,
   signal?: AbortSignal,
 ): Effect.Effect<GenerationModel[], AgentApiError> {
+  // List endpoints are always paginated server-side, and `pagination=false` is
+  // ignored — the active model catalog fits in one max-size page.
   return api.fetchCollectionEffect<GenerationModel>(
-    `${api.config.baseUrl}/models?isActive=true&pagination=false`,
+    `${api.config.baseUrl}/models?isActive=true&limit=${MAX_PAGE_SIZE}`,
     { signal },
     'Failed to fetch models',
     'Failed to deserialize models',

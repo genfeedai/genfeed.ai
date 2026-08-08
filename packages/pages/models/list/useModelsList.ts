@@ -223,11 +223,9 @@ export function useModelsList({
         return [];
       }
       const service = await getModelsService();
-      // BaseQueryDto caps limit at 100 — use unpaginated fetch for the
-      // default-model cards (client filters isDefault afterwards).
-      const allModels: IModel[] = await service.findAll({
-        pagination: false,
-      });
+      // The cards filter isDefault client-side, so they need the whole
+      // catalog — HTTP list endpoints are always paginated, hence the walk.
+      const allModels: IModel[] = await service.findAllPages();
       // Instantiate Model class for each item to enable getter methods
       return allModels.map((m) => new Model(m));
     },

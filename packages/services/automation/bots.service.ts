@@ -18,24 +18,21 @@ export class BotsService extends BaseService<Bot> {
   }
 
   async findAllByOrganization(organizationId: string): Promise<Bot[]> {
-    return this.findAll({
+    return this.findAllPages({
       organization: organizationId,
-      pagination: false,
       scope: 'organization',
     });
   }
 
   async findAllByAccount(brandId: string): Promise<Bot[]> {
-    return this.findAll({
+    return this.findAllPages({
       brand: brandId,
-      pagination: false,
       scope: 'brand',
     });
   }
 
   async findAllByUser(userId: string): Promise<Bot[]> {
-    return this.findAll({
-      pagination: false,
+    return this.findAllPages({
       scope: 'user',
       user: userId,
     });

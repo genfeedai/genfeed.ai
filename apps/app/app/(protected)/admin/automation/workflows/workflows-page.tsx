@@ -69,8 +69,7 @@ export default function WorkflowsPage() {
 
       try {
         const service = await getWorkflowsService();
-        const fetchedWorkflows = await service.findAll({
-          pagination: false,
+        const fetchedWorkflows = await service.findAllPages({
           sort: 'createdAt: -1',
         });
 

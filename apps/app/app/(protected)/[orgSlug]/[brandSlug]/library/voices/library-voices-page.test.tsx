@@ -384,9 +384,9 @@ describe('LibraryVoicesPage', () => {
     expect(mockUseVoiceCatalog).toHaveBeenCalledWith(
       expect.objectContaining({
         isActive: true,
+        isPaginated: true,
         limit: 12,
         page: 2,
-        pagination: true,
         providers: [VoiceProvider.ELEVENLABS],
         search: 'rachel',
         status: ['ready', 'pending'],

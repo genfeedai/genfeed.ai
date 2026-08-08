@@ -48,7 +48,6 @@ export default function OrganizationIdentityDefaultsCard() {
     | undefined;
   const { isLoading: isLoadingCatalog, voices: catalog } = useVoiceCatalog({
     isActive: true,
-    pagination: false,
   });
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),

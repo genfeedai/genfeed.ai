@@ -182,10 +182,9 @@ export function useModalGenerateIllustration({
         setIsLoadingModels(true);
         try {
           const service = await getModelsService();
-          const allModels = await service.findAll({
+          const allModels = await service.findAllPages({
             category: ModelCategory.IMAGE,
             isActive: true,
-            pagination: false,
           });
 
           setModels(allModels);

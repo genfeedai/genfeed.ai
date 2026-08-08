@@ -125,7 +125,7 @@ describe('CacheKeyGenerator', () => {
       );
 
       expect(result).toContain('category:video');
-      expect(result).toContain('scope:public');
+      expect(result).toContain(`scope:${AssetScope.PUBLIC}`);
       expect(result).toContain('search:test query');
     });
 

@@ -316,6 +316,12 @@ export class AdPerformanceService {
   async findTopPerformers(
     params: TopPerformerParams,
   ): Promise<AdPerformanceDocument[]> {
+    // An explicit non-positive limit means the caller wants nothing — return
+    // early instead of clamping up to the minimum and reading the corpus.
+    if (params.limit !== undefined && params.limit <= 0) {
+      return [];
+    }
+
     const metric = params.metric ?? 'performanceScore';
     const limit = this.resolveTopPerformerLimit(params.limit);
 

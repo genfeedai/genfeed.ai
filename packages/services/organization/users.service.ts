@@ -25,14 +25,34 @@ export class UsersService extends BaseService<User> {
     return BaseService.getDataServiceInstance(UsersService, token);
   }
 
-  public async findMeBrands(params: IQueryParams) {
+  private async findMeBrandsPage(
+    params: IQueryParams,
+  ): Promise<{ items: Brand[]; totalPages: number }> {
     return await this.instance
       .get<JsonApiResponseDocument>('me/brands', { params })
-      .then((res) =>
-        this.extractCollection<Partial<Brand>>(res.data).map(
+      .then((res) => ({
+        items: this.extractCollection<Partial<Brand>>(res.data).map(
           (b) => new Brand(b),
         ),
-      );
+        totalPages: Math.max(1, res.data.links?.pagination?.pages ?? 1),
+      }));
+  }
+
+  public async findMeBrands(params: IQueryParams): Promise<Brand[]> {
+    return (await this.findMeBrandsPage(params)).items;
+  }
+
+  /**
+   * Every brand the signed-in user can reach, across all server pages.
+   *
+   * `me/brands` is paginated server-side like any other list endpoint, so the
+   * brand switcher has to walk the pages rather than pass the ignored
+   * `pagination: false`.
+   */
+  public async findAllMeBrands(params: IQueryParams = {}): Promise<Brand[]> {
+    return await this.collectAllPages<Brand>(params, (pageQuery) =>
+      this.findMeBrandsPage(pageQuery as IQueryParams),
+    );
   }
 
   public async findMeOrganizations(): Promise<IOrganization[]> {

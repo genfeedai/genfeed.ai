@@ -289,3 +289,42 @@ test('keeps the workflow wired to exact changed selection and dynamic shards', (
     );
   }
 });
+
+test('workspace-group jobs gate on planner outputs alone, so pushes run them', () => {
+  const workflowPath = fileURLToPath(
+    new URL('../../.github/workflows/ci.yml', import.meta.url),
+  );
+  const workflow = readFileSync(workflowPath, 'utf8');
+
+  // A `github.event_name == 'pull_request'` clause in these gates silently
+  // skipped every packages/server/web test on pushes to master: red
+  // workspaces rode the trunk with no job to catch them. The planner output
+  // already carries the per-event truth (affected tasks against the PR base
+  // on pull requests, against `github.event.before` on pushes) — the gates
+  // must key off it and nothing else.
+  for (const output of [
+    'packages',
+    'server_services',
+    'web_desktop_mobile',
+    'extensions',
+  ]) {
+    assert.match(
+      workflow,
+      new RegExp(
+        `\\|\\| needs\\.test-scope\\.outputs\\.${output} == 'true'\\)`,
+      ),
+      `${output} gate must not require a pull_request event`,
+    );
+  }
+
+  // The --affected run steps need a diff base on push events too. Four
+  // workspace-group jobs plus the changed app/API shards resolve it from the
+  // PR base with a push fallback.
+  const baseFallbacks = workflow.match(
+    /github\.event\.pull_request\.base\.sha \|\| github\.event\.before/g,
+  );
+  assert.ok(
+    (baseFallbacks?.length ?? 0) >= 6,
+    'every --affected/--changed run step must fall back to github.event.before on push',
+  );
+});
