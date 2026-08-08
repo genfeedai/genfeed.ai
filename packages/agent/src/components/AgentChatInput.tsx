@@ -65,7 +65,6 @@ interface AgentChatInputProps {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
-  onBuyCredits?: () => void;
 }
 
 function mapAttachmentToTrayAsset(
@@ -104,7 +103,6 @@ export function AgentChatInput({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
-  onBuyCredits,
 }: AgentChatInputProps): ReactElement {
   const isCompact = density === 'compact';
   const isInspector = density === 'inspector';
@@ -224,7 +222,6 @@ export function AgentChatInput({
             isUploading={isUploading}
             models={models}
             onAddFiles={addFiles}
-            onBuyCredits={onBuyCredits}
             onInsertReference={handleInsertReference}
             onModelChange={onModelChange}
             onPrioritizeChange={onPrioritizeChange}

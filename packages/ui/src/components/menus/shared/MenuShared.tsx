@@ -159,9 +159,9 @@ export default function MenuShared({
   ) : null;
 
   /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
-     Width must track AppLayout's live rail (`sidebarWidth` cloned on every
-     resize). Hosts that hardcode a stale pixel value leave chrome expanding
-     while conversations/search stay glued to the old width. */
+     Fill the DesktopSidebar rail (CSS-var width). Do not pin a React pixel
+     width here — drag updates `--desktop-sidebar-width` without re-cloning
+     this tree. `sidebarWidth` remains for mobile drawer / story hosts. */
   return (
     <div
       data-testid="sidebar-shell"
@@ -173,10 +173,12 @@ export default function MenuShared({
           ? 'bg-transparent'
           : 'bg-background',
       )}
-      style={{
-        minWidth: sidebarWidth,
-        width: sidebarWidth,
-      }}
+      style={
+        // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
+        sidebarWidth
+          ? { maxWidth: '100%', width: '100%' }
+          : { width: DEFAULT_SIDEBAR_WIDTH }
+      }
     >
       <div className="flex min-w-0 flex-1 flex-col">
         <div

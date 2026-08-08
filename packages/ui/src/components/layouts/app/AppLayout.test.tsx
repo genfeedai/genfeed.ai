@@ -199,9 +199,10 @@ describe('AppLayout', () => {
     fireEvent.click(expandToggle);
 
     await waitFor(() => {
+      // Expanded width is a CSS var so drag can update without React re-renders.
       expect(screen.getByTestId('desktop-sidebar-rail')).toHaveStyle({
-        minWidth: '240px',
-        width: '240px',
+        minWidth: 'var(--desktop-sidebar-width)',
+        width: 'var(--desktop-sidebar-width)',
       });
     });
     expect(

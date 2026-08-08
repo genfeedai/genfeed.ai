@@ -7,9 +7,12 @@ import {
   type ReactElement,
   type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -68,6 +71,22 @@ export function useAppLayout({
   );
   const [agentPanelHeight, setAgentPanelHeight] =
     useState<number>(AGENT_PANEL_HEIGHT);
+  /** Layout root for CSS-var drag updates (no React re-render per pixel). */
+  const layoutRootRef = useRef<HTMLDivElement | null>(null);
+  const sidebarDragWidthRef = useRef(sidebarExpandedWidth);
+  const sidebarDragCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    sidebarDragWidthRef.current = sidebarExpandedWidth;
+  }, [sidebarExpandedWidth]);
+
+  // Drop mid-drag listeners if the shell unmounts.
+  useEffect(() => {
+    return () => {
+      sidebarDragCleanupRef.current?.();
+      sidebarDragCleanupRef.current = null;
+    };
+  }, []);
 
   const handleCloseSidebar = useCallback(() => {
     setIsSidebarOpen(false);
@@ -204,7 +223,7 @@ export function useAppLayout({
         currentApp,
         isCollapsed:
           (extraProps.isCollapsed as boolean | undefined) ?? isDesktopCollapsed,
-        // Keep menu shell width in sync with the resizable rail.
+        // Width is for mobile drawer / stories; desktop MenuShared fills the rail.
         sidebarWidth: sidebarExpandedWidth,
         onClose: (...args: unknown[]) => {
           if (extraOnClose) {
@@ -218,6 +237,8 @@ export function useAppLayout({
         onToggleCollapse: handleToggleDesktopSidebar,
       });
     },
+    // Intentionally omit sidebarExpandedWidth: desktop rail width is a CSS var
+    // updated during drag without re-cloning the menu tree every frame.
     [
       menuComponent,
       handleToggleDesktopSidebar,
@@ -285,33 +306,54 @@ export function useAppLayout({
       : '0px',
   } as CSSProperties;
 
+  const publishSidebarWidthVar = useCallback((nextWidth: number): void => {
+    const root = layoutRootRef.current;
+    if (!root) {
+      return;
+    }
+    root.style.setProperty('--desktop-sidebar-width', `${nextWidth}px`);
+  }, []);
+
   const handleSidebarResizeStart = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
       if (isDesktopCollapsed) {
         return;
       }
 
       event.preventDefault();
+      event.currentTarget.setPointerCapture(event.pointerId);
       setIsSidebarResizing(true);
       const startX = event.clientX;
-      const startWidth = sidebarExpandedWidth;
+      const startWidth = sidebarDragWidthRef.current;
 
-      const handleMouseMove = (moveEvent: MouseEvent): void => {
-        setSidebarExpandedWidth(
-          clampSidebarWidth(startWidth + moveEvent.clientX - startX),
-        );
+      const handlePointerMove = (moveEvent: PointerEvent): void => {
+        const next = clampSidebarWidth(startWidth + moveEvent.clientX - startX);
+        sidebarDragWidthRef.current = next;
+        // CSS var only — DesktopSidebar + content offsets track without
+        // re-cloning MenuShared every frame.
+        publishSidebarWidthVar(next);
       };
 
-      const handleMouseUp = (): void => {
+      const handlePointerUp = (): void => {
         setIsSidebarResizing(false);
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
+        setSidebarExpandedWidth(sidebarDragWidthRef.current);
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+        sidebarDragCleanupRef.current = null;
       };
 
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
+      sidebarDragCleanupRef.current = () => {
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+      };
+
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
     },
-    [isDesktopCollapsed, sidebarExpandedWidth],
+    [isDesktopCollapsed, publishSidebarWidthVar],
   );
 
   const handleSidebarResizeKeyDown = useCallback(
@@ -402,6 +444,7 @@ export function useAppLayout({
     isDesktopCollapsed,
     isSidebarOpen,
     isSidebarResizing,
+    layoutRootRef: layoutRootRef as RefObject<HTMLDivElement | null>,
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,

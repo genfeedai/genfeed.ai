@@ -46,6 +46,7 @@ export default function AppLayout({
     isDesktopCollapsed,
     isSidebarOpen,
     isSidebarResizing,
+    layoutRootRef,
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,
@@ -78,6 +79,7 @@ export default function AppLayout({
       items={menuItems}
     >
       <div
+        ref={layoutRootRef}
         className={cn(
           'ship-ui overflow-x-hidden bg-background',
           lockViewportHeight ? 'h-dvh overflow-hidden' : 'min-h-screen',

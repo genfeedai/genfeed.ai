@@ -115,11 +115,15 @@ export function buildBatchDiversityContext(options: {
     .slice(-8);
 
   if (prior.length > 0) {
+    // One string per caption. SecurityUtil.sanitizePromptInputArray caps
+    // each element (300–500 chars); a joined list of 8 captions was truncated
+    // mid-sentence and silently gutted diversity for later batch items.
     lines.push(
-      `Already generated in this batch (do not rewrite, paraphrase, or lightly edit):\n${prior
-        .map((caption, i) => `${i + 1}. ${caption}`)
-        .join('\n')}`,
+      'Already generated in this batch (do not rewrite, paraphrase, or lightly edit):',
     );
+    for (const [index, caption] of prior.entries()) {
+      lines.push(`${index + 1}. ${caption}`);
+    }
   }
 
   return lines;

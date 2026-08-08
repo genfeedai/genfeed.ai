@@ -5,6 +5,7 @@ import {
   isApproved,
   isChangesRequested,
   isReadyToReview,
+  isRejected,
 } from './review-state';
 
 export function formatReviewItemStatus(item: IBatchItem): string {
@@ -27,10 +28,35 @@ export function formatReviewItemStatus(item: IBatchItem): string {
     case BatchItemStatus.PENDING:
       return 'Pending';
     case BatchItemStatus.SKIPPED:
-      return 'Skipped';
+      // Backend maps reject → SKIPPED; product language is Rejected.
+      return 'Rejected';
     default:
       return String(item.status).replaceAll('_', ' ').toLowerCase();
   }
+}
+
+/** Badge status token — only when it matches the product label we show. */
+export function getReviewItemBadgeStatus(
+  item: IBatchItem,
+): 'completed' | 'failed' | 'pending' | undefined {
+  if (isApproved(item)) {
+    return 'completed';
+  }
+  if (item.reviewDecision === 'rejected' || isRejected(item)) {
+    return 'failed';
+  }
+  if (isChangesRequested(item)) {
+    return undefined;
+  }
+  if (item.status === BatchItemStatus.FAILED) {
+    return 'failed';
+  }
+  if (item.status === BatchItemStatus.PENDING) {
+    return 'pending';
+  }
+  // COMPLETED/ready, PROCESSING, etc. — use children label, not Badge's
+  // statusConfig which maps COMPLETED→"Completed" and SKIPPED→"Draft".
+  return undefined;
 }
 
 export function getReviewItemTitle(item: IBatchItem): string {

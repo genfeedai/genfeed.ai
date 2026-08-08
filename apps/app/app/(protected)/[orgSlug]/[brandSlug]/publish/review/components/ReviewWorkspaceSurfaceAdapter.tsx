@@ -51,9 +51,9 @@ export default function ReviewWorkspaceSurfaceAdapter({
   const setInspectorOpen = inspector?.setIsOpen;
   const previousActiveItemIdRef = useRef<string | null>(null);
 
-  // Auto-open the Context rail only when the selected row *changes* to a new
-  // item. Never re-open just because the operator collapsed the rail while a
-  // row is still selected.
+  // Auto-open the Context rail when the selected row *changes* to a new item.
+  // Never re-open just because the operator collapsed the rail while a row is
+  // still selected (that is what broke "collapse then click another row").
   useEffect(() => {
     const nextId = activeItem?.id ?? null;
     const previousId = previousActiveItemIdRef.current;
@@ -66,6 +66,30 @@ export default function ReviewWorkspaceSurfaceAdapter({
     setInspectorOpen(true);
     window.dispatchEvent(new CustomEvent('workspace:open-context-tab'));
   }, [activeItem?.id, setInspectorOpen]);
+
+  // Explicit "Open in Context" row action — must open even when the same row
+  // is already selected and the rail was collapsed.
+  useEffect(() => {
+    if (!setInspectorOpen) {
+      return;
+    }
+
+    const handleForceOpen = (): void => {
+      setInspectorOpen(true);
+      window.dispatchEvent(new CustomEvent('workspace:open-context-tab'));
+    };
+
+    window.addEventListener(
+      'workspace:force-open-review-context',
+      handleForceOpen,
+    );
+    return () => {
+      window.removeEventListener(
+        'workspace:force-open-review-context',
+        handleForceOpen,
+      );
+    };
+  }, [setInspectorOpen]);
 
   useEffect(() => {
     const currentContext = useAgentChatStore.getState().pageContext;

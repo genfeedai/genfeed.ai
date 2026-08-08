@@ -98,21 +98,26 @@ export function AgentChatContainer({
     isLoading: isRegistryModelsLoading,
     models: registryModels,
   } = useAgentRegistryModels(apiService);
-  const [selectedModel, setSelectedModel] = useState(() => {
-    const fromProp = model?.trim();
-    if (fromProp) {
-      return fromProp;
-    }
-    const preferred = readPreferredAgentChatModel();
-    if (preferred) {
-      return preferred;
-    }
-    // Wait for registry + settings before choosing Auto vs concrete default.
-    return UNRESOLVED_RUNTIME_AGENT_MODEL;
-  });
-  const [prioritize, setPrioritize] = useState<RouterPriority>(
-    () => readPreferredAgentChatPriority() ?? settingsPriority,
+  // SSR-safe initials — localStorage is read only after mount (hydration).
+  const [selectedModel, setSelectedModel] = useState(
+    () => model?.trim() || UNRESOLVED_RUNTIME_AGENT_MODEL,
   );
+  const [prioritize, setPrioritize] = useState<RouterPriority>(
+    RouterPriority.BALANCED,
+  );
+
+  useEffect(() => {
+    const preferredModel = readPreferredAgentChatModel();
+    if (!model?.trim() && preferredModel) {
+      setSelectedModel(preferredModel);
+    }
+    const preferredPriority = readPreferredAgentChatPriority();
+    if (preferredPriority) {
+      setPrioritize(preferredPriority);
+    }
+    // Mount-only hydrate from localStorage.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, []);
 
   useEffect(() => {
     // Prefer server settings once the user payload is present; otherwise keep
@@ -152,6 +157,11 @@ export function AgentChatContainer({
           pendingSettingsPatch.current = null;
           const token = await apiService.getToken();
           if (!token) {
+            // Do not drop the patch — re-queue so a later call can flush it.
+            pendingSettingsPatch.current = {
+              ...nextPatch,
+              ...pendingSettingsPatch.current,
+            };
             return;
           }
           await UsersService.getInstance(token).patchSettings(

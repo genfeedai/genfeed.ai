@@ -150,10 +150,10 @@ test.describe('Automate & Publish surfaces', () => {
   });
 
   test.describe('Legacy redirects', () => {
-    test('/automate/campaigns redirects to the Publish campaigns route', async ({
+    test('/publish/campaigns redirects to Automate campaigns', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(`${ORG_BRAND}/automate/campaigns`, {
+      await authenticatedPage.goto(`${ORG_BRAND}/publish/campaigns`, {
         waitUntil: 'domcontentloaded',
       });
 
@@ -162,10 +162,10 @@ test.describe('Automate & Publish surfaces', () => {
       );
     });
 
-    test('/automate/outreach-campaigns redirects to the Publish outreach route', async ({
+    test('/publish/outreach-campaigns redirects to Automate outreach', async ({
       authenticatedPage,
     }) => {
-      await authenticatedPage.goto(`${ORG_BRAND}/automate/outreach-campaigns`, {
+      await authenticatedPage.goto(`${ORG_BRAND}/publish/outreach-campaigns`, {
         waitUntil: 'domcontentloaded',
       });
 

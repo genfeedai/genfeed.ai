@@ -62,8 +62,21 @@ describe('buildBatchDiversityContext', () => {
 
     expect(lines[0]).toBe('punchy');
     expect(lines[1]).toContain('Batch item 3 of 10');
-    expect(lines[2]).toContain('1. First draft');
-    expect(lines[2]).toContain('2. Second draft');
-    expect(lines[2]).not.toContain('3.');
+    expect(lines[2]).toContain('do not rewrite');
+    expect(lines[3]).toBe('1. First draft');
+    expect(lines[4]).toBe('2. Second draft');
+    expect(lines).toHaveLength(5);
+  });
+
+  it('emits one array entry per prior caption so sanitizer caps do not gut diversity', () => {
+    const longCaption = 'x'.repeat(200);
+    const lines = buildBatchDiversityContext({
+      index: 5,
+      priorCaptions: Array.from({ length: 6 }, (_, i) => `${longCaption}-${i}`),
+      totalCount: 20,
+    });
+    // header + instruction + 6 captions (slice -8 keeps all 6)
+    expect(lines.length).toBe(8);
+    expect(lines.every((line) => line.length <= 500)).toBe(true);
   });
 });

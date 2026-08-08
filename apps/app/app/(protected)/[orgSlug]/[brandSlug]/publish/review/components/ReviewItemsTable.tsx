@@ -20,6 +20,7 @@ import { useMemo } from 'react';
 import ReviewPostHoverPreview from './ReviewPostHoverPreview';
 import {
   formatReviewItemStatus,
+  getReviewItemBadgeStatus,
   getReviewItemTitle,
   isReviewItemSelectable,
 } from './review-item.helpers';
@@ -27,7 +28,6 @@ import {
   getReviewPerformanceLabel,
   getReviewPerformanceSignal,
 } from './review-performance';
-import { isApproved } from './review-state';
 
 interface ReviewItemsTableProps {
   activeItemId: string | null;
@@ -54,6 +54,11 @@ export default function ReviewItemsTable({
         icon: <PanelRightOpen className="size-3.5" />,
         onClick: (item) => {
           onSelectItem(item.id);
+          // Force-open even when this row is already active and the rail was
+          // collapsed (selection-change effect alone is a no-op for same id).
+          window.dispatchEvent(
+            new CustomEvent('workspace:force-open-review-context'),
+          );
         },
         tooltip: 'Open in Context',
         tooltipPosition: 'left',
@@ -190,7 +195,7 @@ export default function ReviewItemsTable({
             <span className="flex flex-wrap items-center gap-1.5">
               <Badge
                 size={ComponentSize.SM}
-                status={isApproved(item) ? 'completed' : item.status}
+                status={getReviewItemBadgeStatus(item)}
               >
                 {formatReviewItemStatus(item)}
               </Badge>

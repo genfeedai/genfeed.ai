@@ -13,6 +13,7 @@ import { useMemo } from 'react';
 import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
 import ReviewDetailPanelHeader from './ReviewDetailPanelHeader';
+import { formatReviewItemStatus } from './review-item.helpers';
 import {
   isApproved,
   isChangesRequested,
@@ -37,32 +38,8 @@ interface ReviewDetailPanelProps {
 }
 
 function buildStatusLabel(item: ReviewPanelItem): string {
-  if (isApproved(item)) {
-    return 'Approved';
-  }
-
-  if (isChangesRequested(item)) {
-    return 'Changes requested';
-  }
-
-  if (item.reviewDecision === 'rejected') {
-    return 'Rejected';
-  }
-
-  switch (item.status) {
-    case BatchItemStatus.COMPLETED:
-      return 'Ready to review';
-    case BatchItemStatus.FAILED:
-      return 'Generation failed';
-    case BatchItemStatus.PROCESSING:
-      return 'Generating';
-    case BatchItemStatus.PENDING:
-      return 'Pending';
-    case BatchItemStatus.SKIPPED:
-      return 'Rejected';
-    default:
-      return item.status;
-  }
+  // Single source of truth with the table badge label.
+  return formatReviewItemStatus(item);
 }
 
 export default function ReviewDetailPanel({

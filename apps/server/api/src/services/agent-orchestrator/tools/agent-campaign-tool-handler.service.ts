@@ -1,6 +1,7 @@
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { APP_ROUTES } from '@genfeedai/constants';
 import { CampaignPlatform, CampaignType } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
@@ -49,7 +50,7 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              href: `/publish/outreach-campaigns/${campaignId}`,
+              href: `${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}/${campaignId}`,
               label: 'Open campaign',
             },
             {
@@ -156,7 +157,7 @@ export class AgentCampaignToolHandler {
         {
           ctas: [
             {
-              href: `/publish/outreach-campaigns/${campaignId}`,
+              href: `${APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS}/${campaignId}`,
               label: 'Open campaign',
             },
           ],

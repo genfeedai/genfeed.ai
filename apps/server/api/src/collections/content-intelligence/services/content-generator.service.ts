@@ -398,8 +398,10 @@ RESPOND WITH JSON:
   private buildFreeformPrompt(dto: GenerateContentDto, count: number): string {
     // Sanitize user-provided inputs to prevent prompt injection
     const safeTopic = SecurityUtil.sanitizePromptInput(dto.topic, 500);
+    // 500 matches the pattern-path cap so batch diversity captions (≤280 for X)
+    // survive as individual additionalContext lines.
     const safeContext = dto.additionalContext
-      ? SecurityUtil.sanitizePromptInputArray(dto.additionalContext, 300)
+      ? SecurityUtil.sanitizePromptInputArray(dto.additionalContext, 500)
       : [];
 
     return `Generate ${count} ${dto.platform} post variations about: "${safeTopic}"

@@ -69,7 +69,6 @@ type AgentChatPromptBarProps = {
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
   creditsAvailable?: number | null;
-  onBuyCredits?: () => void;
 };
 
 export function AgentChatPromptBar({
@@ -108,7 +107,6 @@ export function AgentChatPromptBar({
   onPrioritizeChange,
   prioritize,
   creditsAvailable = null,
-  onBuyCredits,
 }: AgentChatPromptBarProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const isInspectorComposer = composerShell?.placement === 'inspector';
@@ -195,7 +193,6 @@ export function AgentChatPromptBar({
         onPrioritizeChange={onPrioritizeChange}
         prioritize={prioritize}
         creditsAvailable={creditsAvailable}
-        onBuyCredits={onBuyCredits}
       />
     </PromptBarContainer>
   );

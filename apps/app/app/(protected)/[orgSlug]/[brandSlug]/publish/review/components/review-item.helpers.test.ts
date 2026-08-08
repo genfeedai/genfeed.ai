@@ -32,6 +32,18 @@ describe('review-item.helpers', () => {
         status: BatchItemStatus.FAILED,
       }),
     ).toBe('Failed');
+    expect(
+      formatReviewItemStatus({
+        ...baseItem,
+        status: BatchItemStatus.SKIPPED,
+      }),
+    ).toBe('Rejected');
+    expect(
+      formatReviewItemStatus({
+        ...baseItem,
+        reviewDecision: 'rejected',
+      }),
+    ).toBe('Rejected');
   });
 
   it('prefers caption, then prompt, then draft fallback for the title', () => {

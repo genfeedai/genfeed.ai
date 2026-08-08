@@ -6,8 +6,8 @@ import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import { Button } from '@ui/primitives/button';
 import type {
   KeyboardEvent as ReactKeyboardEvent,
-  MouseEvent as ReactMouseEvent,
   ReactNode,
+  PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
   SIDEBAR_DEFAULT_WIDTH,
@@ -26,11 +26,16 @@ type DesktopSidebarProps = {
   isCollapsed: boolean;
   isResizing?: boolean;
   onResizeKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
-  onResizeStart?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+  onResizeStart?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
   shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
+  /** Expanded width for aria-valuenow; visual width uses CSS var when expanded. */
   width?: number;
 };
 
+/**
+ * Left nav rail. Expanded width is driven by `--desktop-sidebar-width` on the
+ * layout root so drag can update the var without re-rendering MenuShared.
+ */
 export default function DesktopSidebar({
   ariaLabel,
   children,
@@ -42,8 +47,11 @@ export default function DesktopSidebar({
   shellChromeVariant = 'default',
   width = SIDEBAR_DEFAULT_WIDTH,
 }: DesktopSidebarProps) {
-  const targetWidth = isCollapsed ? collapsedWidth : width;
   const canResize = Boolean(onResizeStart) && !isCollapsed;
+  // Collapsed: fixed 0. Expanded: CSS var so drag only mutates the var.
+  const widthStyle = isCollapsed
+    ? collapsedWidth
+    : 'var(--desktop-sidebar-width)';
 
   return (
     <aside
@@ -59,13 +67,12 @@ export default function DesktopSidebar({
           'border-r border-border',
       )}
       style={{
-        minWidth: targetWidth,
+        minWidth: widthStyle,
         top: 'var(--desktop-titlebar-height)',
-        // Snap while dragging; ease only for collapse/expand.
         transition: isResizing
           ? 'none'
           : `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-        width: targetWidth,
+        width: widthStyle,
       }}
     >
       {children}
@@ -76,9 +83,9 @@ export default function DesktopSidebar({
           aria-valuemin={SIDEBAR_MIN_WIDTH}
           aria-valuenow={width}
           ariaLabel="Resize navigation sidebar"
-          className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize hover:bg-foreground/10"
+          className="absolute inset-y-0 right-0 z-10 w-1.5 cursor-col-resize focus-visible:bg-primary/25 focus-visible:outline-none hover:bg-foreground/10"
           onKeyDown={onResizeKeyDown}
-          onMouseDown={onResizeStart}
+          onPointerDown={onResizeStart}
           role="separator"
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}

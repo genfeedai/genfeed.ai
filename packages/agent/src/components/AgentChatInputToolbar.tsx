@@ -47,7 +47,6 @@ export interface AgentChatInputToolbarProps {
   /** Registry-backed chat catalogue (shared ModelSelectorPopover). */
   models?: readonly IModel[];
   onAddFiles?: (files: File[]) => void;
-  onBuyCredits?: () => void;
   onInsertReference: () => void;
   onModelChange?: (model: string) => void;
   /** Session Auto routing priority (maps from settings.generationPriority). */

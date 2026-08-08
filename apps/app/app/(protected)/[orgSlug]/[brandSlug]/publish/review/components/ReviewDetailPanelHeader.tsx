@@ -4,7 +4,7 @@ import { ComponentSize } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { isApproved } from './review-state';
+import { getReviewItemBadgeStatus } from './review-item.helpers';
 
 type ReviewPanelItem = IBatchItem & {
   gateOverallScore?: number;
@@ -43,10 +43,7 @@ export default function ReviewDetailPanelHeader({
         {item.platform ? (
           <PlatformBadge platform={item.platform} size={ComponentSize.SM} />
         ) : null}
-        <Badge
-          status={isApproved(item) ? 'completed' : item.status}
-          size={ComponentSize.SM}
-        >
+        <Badge status={getReviewItemBadgeStatus(item)} size={ComponentSize.SM}>
           {statusLabel}
         </Badge>
         {item.format ? (
