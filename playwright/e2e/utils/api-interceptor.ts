@@ -1437,7 +1437,7 @@ export async function setupApiMocks(
   // Register broad local fallback first so later specific mocks win. This keeps
   // route smoke tests from leaking to a real local API when a page asks for a
   // low-risk collection that does not need bespoke fixture data.
-  await page.route(createPlaywrightApiRoutePattern(), async (r) => {
+  const fallbackCollectionHandler = async (r: Route): Promise<void> => {
     const url = r.request().url();
 
     if (url.includes('/v1/health')) {
@@ -1454,7 +1454,18 @@ export async function setupApiMocks(
       contentType: 'application/json',
       status: 200,
     });
-  });
+  };
+
+  await page.route(
+    createPlaywrightApiRoutePattern(),
+    fallbackCollectionHandler,
+  );
+  // Mirror the fallback on the production API host: shared providers that
+  // resolve the default base URL (prompt bar: font-families, presets, models,
+  // tags) otherwise leak past every mock to the live API, and its error body
+  // is not a JSON:API document — each rejection then surfaced as an uncaught
+  // 'expected collection data' page error.
+  await page.route(`${PROD_API_V1}/**`, fallbackCollectionHandler);
 
   const routeApi = async (
     pathPattern: string,
