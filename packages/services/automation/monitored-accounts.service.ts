@@ -24,10 +24,9 @@ export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
     organizationId: string,
     brandId?: string,
   ): Promise<MonitoredAccount[]> {
-    return this.findAll({
+    return this.findAllPages({
       ...(brandId ? { brandId } : {}),
       organizationId,
-      pagination: false,
     });
   }
 
@@ -35,9 +34,8 @@ export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
    * Get monitored accounts for a specific bot config
    */
   async findByBotConfig(botConfigId: string): Promise<MonitoredAccount[]> {
-    return this.findAll({
+    return this.findAllPages({
       botConfigId,
-      pagination: false,
     });
   }
 
@@ -48,11 +46,10 @@ export class MonitoredAccountsService extends BaseService<MonitoredAccount> {
     organizationId: string,
     brandId?: string,
   ): Promise<MonitoredAccount[]> {
-    return this.findAll({
+    return this.findAllPages({
       ...(brandId ? { brandId } : {}),
       isActive: true,
       organizationId,
-      pagination: false,
     });
   }
 

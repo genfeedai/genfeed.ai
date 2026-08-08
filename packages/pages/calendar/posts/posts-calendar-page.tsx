@@ -79,14 +79,13 @@ export default function PostsCalendarPage({
       try {
         const postsService = await getPostsService();
 
-        const query: Record<string, string | boolean | undefined> = {
+        const query: Record<string, string | undefined> = {
           brandId: scope === PageScope.BRAND ? brandId : undefined,
           endDate: dateRange.end.toISOString(),
-          pagination: false,
           startDate: dateRange.start.toISOString(),
         };
 
-        const posts = await postsService.findAll(query);
+        const posts = await postsService.findAllPages(query);
         setPosts(posts);
 
         logger.info(`${url} success`, posts);

@@ -1,6 +1,5 @@
 'use client';
 
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -116,18 +115,18 @@ function PromptBarProviderContent({
         getTagsService(),
       ]);
 
-      const query = { limit: ITEMS_PER_PAGE, pagination: false };
+      // Every picker in the prompt bar lists its full catalog, and HTTP list
+      // endpoints are always paginated — walk the pages instead of relying on
+      // the ignored `pagination: false`.
       const dataPromises: Promise<unknown>[] = [
-        fontFamiliesService.findAll(query),
-        presetsService.findAll(query),
-        modelsService.findAll({ ...query, isActive: true }),
-        trainingsService.findAll({
-          ...query,
+        fontFamiliesService.findAllPages(),
+        presetsService.findAllPages(),
+        modelsService.findAllPages({ isActive: true }),
+        trainingsService.findAllPages({
           isActive: true,
           status: 'completed',
         }),
-        tagsService.findAll({
-          ...query,
+        tagsService.findAllPages({
           isActive: true,
         }),
       ];

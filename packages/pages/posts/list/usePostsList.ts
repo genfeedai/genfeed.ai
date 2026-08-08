@@ -329,10 +329,8 @@ export function usePostsList({
         return;
       }
 
-      const presetsData = (await presetsService.findAll({
+      const presetsData = (await presetsService.findAllPages({
         category: ModelCategory.TEXT,
-        limit: ITEMS_PER_PAGE,
-        pagination: false,
       })) as IPreset[];
 
       setPostPresets(

@@ -123,9 +123,7 @@ export function useTrainingsList({
     queryFn: async () => {
       const service = await getTrainingsService();
 
-      const query: Record<string, unknown> = {
-        pagination: false,
-      };
+      const query: Record<string, unknown> = {};
 
       if (scope === PageScope.BRAND) {
         query.brand = brandId;
@@ -140,7 +138,7 @@ export function useTrainingsList({
         }
       }
 
-      const data = await service.findAll(query);
+      const data = await service.findAllPages(query);
       logger.info('GET /trainings success', data);
       return data;
     },

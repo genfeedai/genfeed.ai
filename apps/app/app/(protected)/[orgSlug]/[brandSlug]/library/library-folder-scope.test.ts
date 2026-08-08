@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, MAX_PAGE_SIZE } from '@genfeedai/constants';
 import { PageScope } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import {
@@ -16,8 +16,8 @@ describe('Library folder scope', () => {
     expect(createLibraryFolderQuery(scope, 'brand-1', 'org-1')).toEqual({
       brand: undefined,
       isActive: true,
+      limit: MAX_PAGE_SIZE,
       organization: 'org-1',
-      pagination: false,
     });
   });
 
@@ -34,8 +34,8 @@ describe('Library folder scope', () => {
     expect(createLibraryFolderQuery(scope, 'brand-1', 'org-1')).toEqual({
       brand: 'brand-1',
       isActive: true,
+      limit: MAX_PAGE_SIZE,
       organization: undefined,
-      pagination: false,
     });
   });
 });

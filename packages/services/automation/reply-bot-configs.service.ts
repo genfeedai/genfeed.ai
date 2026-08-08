@@ -27,10 +27,9 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     organizationId: string,
     brandId?: string,
   ): Promise<ReplyBotConfig[]> {
-    return this.findAll({
+    return this.findAllPages({
       ...(brandId ? { brandId } : {}),
       organizationId,
-      pagination: false,
     });
   }
 
@@ -41,11 +40,10 @@ export class ReplyBotConfigsService extends BaseService<ReplyBotConfig> {
     organizationId: string,
     brandId?: string,
   ): Promise<ReplyBotConfig[]> {
-    return this.findAll({
+    return this.findAllPages({
       ...(brandId ? { brandId } : {}),
       isActive: true,
       organizationId,
-      pagination: false,
     });
   }
 

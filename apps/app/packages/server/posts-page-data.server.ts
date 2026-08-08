@@ -138,10 +138,8 @@ export const loadPostsPageData = cache(
     const postPresetsPromise =
       scope === PageScope.PUBLISHER
         ? PresetsService.getInstance(token)
-            .findAll({
+            .findAllPages({
               category: ModelCategory.TEXT,
-              limit: ITEMS_PER_PAGE,
-              pagination: false,
             })
             .then((presets) =>
               (presets as IPreset[]).filter((preset) =>
