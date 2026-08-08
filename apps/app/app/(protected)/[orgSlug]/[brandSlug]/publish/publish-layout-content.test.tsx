@@ -87,7 +87,9 @@ describe('PublishLayoutContent', () => {
   });
 
   it('skips the container chrome for organization-and-brand-scoped detail routes', () => {
-    usePathnameMock.mockReturnValue('/acme-org/acme-creator/publish/post-123');
+    usePathnameMock.mockReturnValue(
+      '/acme-org/acme-creator/publish/posts/post-123',
+    );
     useSearchParamsMock.mockReturnValue(new URLSearchParams(''));
 
     render(

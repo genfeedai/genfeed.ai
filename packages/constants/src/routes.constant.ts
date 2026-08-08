@@ -187,7 +187,6 @@ export const APP_ROUTES = {
   EDIT: {
     ARTICLE: '/edit/article',
     NEWSLETTER: '/edit/newsletter',
-    POST: '/edit/post',
     ROOT: '/edit',
   },
   LAB: {
@@ -251,11 +250,18 @@ export const APP_ROUTES = {
     /** @deprecated Use APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS_NEW. */
     OUTREACH_CAMPAIGNS_NEW: '/automate/outreach-campaigns/new',
     /**
-     * Canonical Publish home (all-posts list). Bare ROOT permanently redirects
+     * Canonical Publish home (dashboard). Bare ROOT permanently redirects
      * here so Overview is a complete path that does not prefix-match Review /
-     * Scheduled / etc. (same pattern as workspace/discover/library).
+     * Posts / etc. (same pattern as workspace/discover/library).
      */
     OVERVIEW: '/publish/overview',
+    /**
+     * Canonical content library + type-aware editor.
+     * - List: `/publish/posts`
+     * - Editor: `/publish/posts/:id` (social post today; article/newsletter
+     *   can share this path once kind resolution is wired)
+     */
+    POSTS: '/publish/posts',
     PUBLISHED: '/publish/published',
     /**
      * Remix is a contextual **action** (Discover/Library button), not a module
@@ -265,6 +271,7 @@ export const APP_ROUTES = {
     REMIX: '/publish/remix',
     REVIEW: '/publish/review',
     ROOT: '/publish',
+    /** Pipeline shortcut: drafts + scheduled + in-progress (not live). */
     SCHEDULED: '/publish/scheduled',
   },
   SETTINGS: {
@@ -371,7 +378,8 @@ export const LEGACY_APP_ROUTES = {
 export const ARTIFACT_EDITOR_ROUTES = {
   article: APP_ROUTES.EDIT.ARTICLE,
   newsletter: APP_ROUTES.EDIT.NEWSLETTER,
-  post: APP_ROUTES.EDIT.POST,
+  /** Social posts edit under Publish: `/publish/posts/:id`. */
+  post: APP_ROUTES.PUBLISH.POSTS,
 } as const;
 
 export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;

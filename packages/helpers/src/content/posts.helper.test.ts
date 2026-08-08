@@ -38,9 +38,8 @@ describe('PostsHelper', () => {
   });
 
   it('should build canonical publisher post hrefs', () => {
-    // Default / draft / scheduled all land on the not-posted list — bare
-    // `/publish` redirects to Overview and is not a list surface.
-    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish/scheduled');
+    // No status → Posts library. Draft/scheduled → Drafts pipeline list.
+    expect(PostsHelper.getPublisherPostsHref()).toBe('/publish/posts');
     expect(
       PostsHelper.getPublisherPostsHref({ platform: 'all', status: 'draft' }),
     ).toBe('/publish/scheduled');
@@ -53,6 +52,9 @@ describe('PostsHelper', () => {
         status: 'public',
       }),
     ).toBe('/publish/published?platform=youtube');
+    expect(PostsHelper.getPublisherPostHref('post-1')).toBe(
+      '/publish/posts/post-1',
+    );
   });
 
   it('should infer publisher status from canonical post paths', () => {
@@ -66,6 +68,9 @@ describe('PostsHelper', () => {
     ).toBe('public');
     expect(
       PostsHelper.getPublisherPostsStatusFromPathname('/publish'),
+    ).toBeNull();
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish/posts'),
     ).toBeNull();
   });
 

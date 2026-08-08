@@ -2,6 +2,7 @@
 
 import { BatchItemStatus, ComponentSize } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
+import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   formatDateInTimezone,
@@ -70,7 +71,7 @@ export default function ReviewItemsTable({
           if (!item.postId) {
             return;
           }
-          router.push(href(`/publish/${item.postId}`));
+          router.push(href(getPublisherPostHref(item.postId)));
         },
         tooltip: 'Open post detail',
         tooltipPosition: 'left',

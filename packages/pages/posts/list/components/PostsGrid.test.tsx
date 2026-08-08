@@ -126,7 +126,7 @@ describe('PostsGrid', () => {
       screen.getByRole('button', { name: /a draft post preview/i }),
     );
 
-    expect(pushMock).toHaveBeenCalledWith('/publish/post-1');
+    expect(pushMock).toHaveBeenCalledWith('/publish/posts/post-1');
   });
 
   it('uses the contextual open callback when provided', () => {

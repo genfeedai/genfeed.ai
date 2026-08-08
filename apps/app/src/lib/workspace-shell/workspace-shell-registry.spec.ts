@@ -118,7 +118,7 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
     ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
     ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
-    ['/acme/moonrise/edit/post/post-1', 'Edit', 'Post'],
+    ['/acme/moonrise/publish/posts/post-1', 'Posts', 'Post'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -162,7 +162,7 @@ describe('workspace shell trusted registry', () => {
   it.each([
     '/acme/moonrise/edit/article/article-1',
     '/acme/moonrise/edit/newsletter/newsletter-1',
-    '/acme/moonrise/edit/post/post-1',
+    '/acme/moonrise/publish/posts/post-1',
   ] as const)(
     'registers the dedicated artifact editor %s as a focused Publish surface',
     (pathname) => {
@@ -253,6 +253,7 @@ describe('workspace shell trusted registry', () => {
     for (const pathname of [
       '/acme/moonrise/library/images',
       '/acme/moonrise/publish/calendar',
+      '/acme/moonrise/publish/posts',
       '/acme/moonrise/publish/review',
       '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',

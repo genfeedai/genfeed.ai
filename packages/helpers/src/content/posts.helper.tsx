@@ -140,8 +140,7 @@ export function getPublisherPostsStatusPath(
     return APP_ROUTES.PUBLISH.PUBLISHED;
   }
 
-  // Draft + scheduled + in-progress share the "not posted" list. Bare
-  // `/publish` permanently redirects to Overview — never deep-link there.
+  // Draft + scheduled + in-progress share the Drafts pipeline list.
   if (
     normalizedStatus === PostStatus.SCHEDULED ||
     normalizedStatus === PostStatus.DRAFT
@@ -149,7 +148,13 @@ export function getPublisherPostsStatusPath(
     return APP_ROUTES.PUBLISH.SCHEDULED;
   }
 
-  return APP_ROUTES.PUBLISH.SCHEDULED;
+  // No status → canonical Posts library (all lifecycle states).
+  return APP_ROUTES.PUBLISH.POSTS;
+}
+
+/** Canonical path for a single post under Publish (type-aware editor desk). */
+export function getPublisherPostHref(postId: string): string {
+  return `${APP_ROUTES.PUBLISH.POSTS}/${postId}`;
 }
 
 export function getPublisherPostsStatusFromPathname(
@@ -169,6 +174,11 @@ export function getPublisherPostsStatusFromPathname(
 
   if (statusSegment === 'published') {
     return PostStatus.PUBLIC;
+  }
+
+  // `/publish/posts` is the unfiltered library — no status forced.
+  if (statusSegment === 'posts' || statusSegment === 'post') {
+    return null;
   }
 
   return null;
@@ -195,9 +205,14 @@ export function getPublisherPostsHref({
   status,
 }: PublisherPostsHrefOptions = {}): string {
   const params = new URLSearchParams();
-  const normalizedStatus = normalizePublisherPostsStatus(status);
+  const hasStatus =
+    status != null &&
+    String(Array.isArray(status) ? status[0] : status).length > 0;
   const normalizedPlatform = normalizePostsPlatform(platform ?? undefined);
-  const path = getPublisherPostsStatusPath(normalizedStatus);
+  // No status → canonical Posts library. Pipeline shortcuts pass status.
+  const path = hasStatus
+    ? getPublisherPostsStatusPath(status)
+    : APP_ROUTES.PUBLISH.POSTS;
 
   if (normalizedPlatform !== 'all') {
     params.set('platform', normalizedPlatform);

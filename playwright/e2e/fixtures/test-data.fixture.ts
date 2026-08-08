@@ -978,7 +978,7 @@ export const testRoutes = {
   logout: '/logout',
   overview: '/overview',
   posts: {
-    detail: (id: string) => `/publish/${id}`,
+    detail: (id: string) => `/publish/posts/${id}`,
     drafts: '/publish/drafts',
     engage: '/publish/engage',
     published: '/publish/published',

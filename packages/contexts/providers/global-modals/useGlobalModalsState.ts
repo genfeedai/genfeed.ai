@@ -6,6 +6,7 @@ import {
   ModalEnum,
   type Platform,
 } from '@genfeedai/enums';
+import { getPublisherPostHref } from '@genfeedai/helpers/content/posts.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { useAuthUser } from '@genfeedai/hooks/auth/use-auth-user/use-auth-user';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -45,7 +46,7 @@ export function useGlobalModalsState() {
   const handlePostCreated = useCallback(
     (postId: string) => {
       closeModal(ModalEnum.POST);
-      router.push(href(`/publish/${postId}`));
+      router.push(href(getPublisherPostHref(postId)));
     },
     [router, href],
   );

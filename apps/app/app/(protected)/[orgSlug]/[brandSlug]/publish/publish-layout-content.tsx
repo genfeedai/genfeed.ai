@@ -24,6 +24,7 @@ const KNOWN_SUB_ROUTES = [
   'calendar',
   'newsletters',
   'overview',
+  'posts',
   'published',
   'remix',
   'review',
@@ -134,8 +135,8 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
       ? []
       : pathSegments.slice(publishSegmentIndex + 1);
   const lastSegment = routeSuffix[0];
-  const isDetailRoute =
-    routeSuffix.length === 1 && !KNOWN_SUB_ROUTES.includes(lastSegment ?? '');
+  // Content desk (`/publish/posts/:id`) skips list chrome.
+  const isDetailRoute = routeSuffix[0] === 'posts' && routeSuffix.length === 2;
 
   const handleRefresh = useCallback(() => {
     if (typeof refreshFn === 'function') {

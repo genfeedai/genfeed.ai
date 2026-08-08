@@ -2,6 +2,7 @@
 
 import type { PageScope, ReviewDecision } from '@genfeedai/enums';
 import { AlertCategory, PostStatus } from '@genfeedai/enums';
+import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
@@ -149,7 +150,7 @@ export default function PostDetail({
         );
         notificationsService.success('Remix post created as draft');
         // Navigate to the new post
-        router.push(href(`/publish/${remixPost.id}`));
+        router.push(href(getPublisherPostHref(remixPost.id)));
       } catch (error) {
         notificationsService.error('Failed to create remix post');
         throw error;
@@ -173,7 +174,7 @@ export default function PostDetail({
       const service = await getPostsService();
       const duplicated = await service.duplicate(post.id);
       notificationsService.success('Post duplicated as draft');
-      router.push(href(`/publish/${duplicated.id}`));
+      router.push(href(getPublisherPostHref(duplicated.id)));
     } catch {
       notificationsService.error('Failed to duplicate post');
     }

@@ -7,6 +7,8 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
+import { getPublisherPostHref } from '@helpers/content/posts.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import NextLink from 'next/link';
 
@@ -22,6 +24,8 @@ interface ReviewLineagePanelProps {
 }
 
 export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
+  const { href } = useOrgUrl();
+
   return (
     <div className="space-y-3 border-b border-border px-4 py-4 last:border-b-0">
       <h3 className="text-sm font-medium text-foreground">Lineage</h3>
@@ -60,9 +64,11 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
           withWrapper={false}
         >
           <NextLink
-            href={`/automate/${item.sourceWorkflowId}${
-              item.sourceActionId ? `?opportunity=${item.sourceActionId}` : ''
-            }`}
+            href={href(
+              `/automate/${item.sourceWorkflowId}${
+                item.sourceActionId ? `?opportunity=${item.sourceActionId}` : ''
+              }`,
+            )}
           >
             Open strategy
           </NextLink>
@@ -76,7 +82,9 @@ export default function ReviewLineagePanel({ item }: ReviewLineagePanelProps) {
           variant={ButtonVariant.LINK}
           withWrapper={false}
         >
-          <NextLink href={`/publish/${item.postId}`}>Open draft</NextLink>
+          <NextLink href={href(getPublisherPostHref(item.postId))}>
+            Open draft
+          </NextLink>
         </Button>
       ) : null}
     </div>

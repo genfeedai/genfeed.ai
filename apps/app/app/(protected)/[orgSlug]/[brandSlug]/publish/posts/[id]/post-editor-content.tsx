@@ -12,7 +12,7 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
-import ArtifactEditorShell from '../../artifact-editor-shell';
+import ArtifactEditorShell from '../../../edit/artifact-editor-shell';
 import PostEditor, { POST_EDITOR_FORM_ID } from '../post-editor';
 import { usePostEditor } from '../usePostEditor';
 
@@ -26,7 +26,7 @@ export default function PostEditorContent({
 
   const backHref = resolveArtifactEditorBackHref(
     searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
-    href(APP_ROUTES.PUBLISH.OVERVIEW),
+    href(APP_ROUTES.PUBLISH.POSTS),
   );
 
   if (!post) {

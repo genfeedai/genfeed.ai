@@ -3,6 +3,7 @@
 import type { ChannelMediaKind } from '@api-types/contracts';
 import { ButtonSize, ButtonVariant, ContentFormat } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
+import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
@@ -58,7 +59,9 @@ export default function ReviewPostHoverPreview({
   // already canonicalises aliases via parsePlatform.
   const platform = item.platform?.trim() || 'unknown';
   const mediaKind = resolveMediaKind(item);
-  const postDetailHref = item.postId ? href(`/publish/${item.postId}`) : null;
+  const postDetailHref = item.postId
+    ? href(getPublisherPostHref(item.postId))
+    : null;
 
   const clearTimers = useCallback(() => {
     if (openTimerRef.current) {

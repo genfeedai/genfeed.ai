@@ -147,7 +147,6 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/analytics': 'Overview',
   '/:orgSlug/:brandSlug/edit/article/:id': 'Article',
   '/:orgSlug/:brandSlug/edit/newsletter/:id': 'Newsletter',
-  '/:orgSlug/:brandSlug/edit/post/:id': 'Post',
   '/:orgSlug/:brandSlug/library': 'Overview',
   '/:orgSlug/:brandSlug/library/avatars': 'Assets',
   '/:orgSlug/:brandSlug/library/captions': 'Assets',
@@ -163,7 +162,8 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automate/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automate/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automate/library/:type': ':type',
-  '/:orgSlug/:brandSlug/publish/:id': 'Detail',
+  '/:orgSlug/:brandSlug/publish/posts': 'Posts',
+  '/:orgSlug/:brandSlug/publish/posts/:id': 'Post',
   '/:orgSlug/:brandSlug/automate/campaigns': 'Campaigns',
   '/:orgSlug/:brandSlug/automate/campaigns/new': 'New Campaign',
   '/:orgSlug/:brandSlug/automate/campaigns/:id': 'Campaign',
@@ -223,16 +223,16 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/~/discover/ads/google': 'Ads',
   '/:orgSlug/~/discover/ads/meta': 'Ads',
   '/:orgSlug/~/discover/ads/tiktok': 'Ads',
-  // Post detail lives under the drafts library, not the module overview.
-  '/:orgSlug/:brandSlug/publish/:id': 'Drafts',
+  // Content desk lives under Posts, not Overview.
+  '/:orgSlug/:brandSlug/publish/posts/:id': 'Posts',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publish/:id': '/publish/overview',
+  '/:orgSlug/:brandSlug/publish/posts/:id': '/publish/overview',
 } as const satisfies Readonly<Record<string, string>>);
 
 const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
-  '/:orgSlug/:brandSlug/publish/:id': '/publish/scheduled',
+  '/:orgSlug/:brandSlug/publish/posts/:id': '/publish/posts',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -717,10 +717,9 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/edit/article/:id',
       '/:orgSlug/:brandSlug/edit/newsletter/:id',
-      '/:orgSlug/:brandSlug/edit/post/:id',
     ],
     {
-      fallback: '/:orgSlug/:brandSlug/publish/overview',
+      fallback: '/:orgSlug/:brandSlug/publish/posts',
       mode: 'canvas',
       productClass: 'contextual-action',
       scope: 'brand',
@@ -772,7 +771,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/:brandSlug/publish',
       '/:orgSlug/:brandSlug/publish/overview',
-      '/:orgSlug/:brandSlug/publish/:id',
+      '/:orgSlug/:brandSlug/publish/posts',
+      '/:orgSlug/:brandSlug/publish/posts/:id',
       '/:orgSlug/:brandSlug/publish/calendar',
       '/:orgSlug/:brandSlug/publish/newsletters',
       '/:orgSlug/:brandSlug/publish/published',

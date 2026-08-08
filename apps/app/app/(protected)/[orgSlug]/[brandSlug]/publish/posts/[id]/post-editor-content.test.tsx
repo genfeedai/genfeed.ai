@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { Platform, PostStatus } from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import PostEditorContent from './content';
+import PostEditorContent from './post-editor-content';
 
 const mocks = vi.hoisted(() => ({
   error: vi.fn(),
