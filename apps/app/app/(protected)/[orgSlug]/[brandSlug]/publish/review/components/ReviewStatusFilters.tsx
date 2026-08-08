@@ -20,7 +20,7 @@ const STATUS_LABELS: Record<ReviewStatusFilter, string> = {
 
 /** Same shell chrome as the batch picker / publish list sort control. */
 export const PUBLISH_HEADER_DROPDOWN_CLASS =
-  'h-8 max-w-[16rem] rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/80 hover:bg-white/[0.06] hover:text-white';
+  'h-8 max-w-[16rem] rounded-md border border-border bg-card px-3 text-sm text-foreground/80 hover:bg-hover hover:text-foreground';
 
 interface ReviewStatusFiltersProps {
   activeFilters: readonly ReviewStatusFilter[];
