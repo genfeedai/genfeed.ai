@@ -8,12 +8,12 @@ import {
   normalizePostsPlatform,
   type PublisherPostsStatus,
 } from '@helpers/content/posts.helper';
-import PostsList from '@pages/posts/list/posts-list';
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
   type PostsPublicationState,
 } from '@pages/posts/list/posts-list-query';
+import PublishPostsList from './publish-posts-list';
 
 export type PostsListSearchParams = Promise<{
   page?: string;
@@ -88,7 +88,7 @@ export async function renderPostsListPage({
 
   return (
     <ServerQueryHydrationBoundary>
-      <PostsList
+      <PublishPostsList
         initialPostPresets={initialData.postPresets}
         initialPosts={initialData.posts}
         initialPagination={initialData.pagination}

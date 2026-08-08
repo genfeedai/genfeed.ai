@@ -34,6 +34,8 @@ export interface PostsListProps extends ContentProps {
   /** `null` = all lifecycle states (canonical Posts library). */
   publicationState?: PostsPublicationState | null;
   status?: PostStatus;
+  onRewriteWithAgent?: (post: IPost) => void;
+  onSuggestScheduleWithAgent?: (post: IPost) => void;
 }
 
 export default function PostsList({
@@ -44,6 +46,8 @@ export default function PostsList({
   platform: platformParam,
   publicationState: publicationStateProp,
   status: statusProp,
+  onRewriteWithAgent,
+  onSuggestScheduleWithAgent,
 }: PostsListProps) {
   const {
     actions,
@@ -84,6 +88,8 @@ export default function PostsList({
     publicationState: publicationStateProp,
     scope,
     status: statusProp,
+    onRewriteWithAgent,
+    onSuggestScheduleWithAgent,
   });
   const publisherView: PublisherPostsView | undefined =
     statusProp === PostStatus.FAILED ? 'failed' : publicationState;

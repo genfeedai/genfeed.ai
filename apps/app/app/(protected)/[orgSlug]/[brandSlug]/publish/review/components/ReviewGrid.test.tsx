@@ -37,6 +37,7 @@ const mockItems = [
 const baseHandlers = {
   onBulkApprove: vi.fn(),
   onBulkReject: vi.fn(),
+  onBulkRewriteWithAgent: vi.fn(),
   onDiscardBatch: vi.fn(),
   onSelectItem: vi.fn(),
   onToggleSelect: vi.fn(),
@@ -117,6 +118,7 @@ describe('ReviewGrid', () => {
     const onToggleSelect = vi.fn();
     const onBulkApprove = vi.fn();
     const onBulkReject = vi.fn();
+    const onBulkRewriteWithAgent = vi.fn();
 
     render(
       <ReviewGrid
@@ -127,6 +129,7 @@ describe('ReviewGrid', () => {
         selectedIds={new Set(['item-1'])}
         onBulkApprove={onBulkApprove}
         onBulkReject={onBulkReject}
+        onBulkRewriteWithAgent={onBulkRewriteWithAgent}
         onDiscardBatch={vi.fn()}
         onSelectItem={onSelectItem}
         onToggleSelect={onToggleSelect}
@@ -137,11 +140,15 @@ describe('ReviewGrid', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Deselect item/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /rewrite with agent/i }),
+    );
 
     expect(onSelectItem).toHaveBeenCalledWith('item-1');
     expect(onToggleSelect).toHaveBeenCalledWith('item-1');
     expect(onBulkApprove).toHaveBeenCalledTimes(1);
     expect(onBulkReject).toHaveBeenCalledTimes(1);
+    expect(onBulkRewriteWithAgent).toHaveBeenCalledTimes(1);
   });
 
   it('routes the whole-batch discard action', async () => {
