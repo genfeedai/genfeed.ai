@@ -269,6 +269,7 @@ export default function AppProtectedLayoutSidebar({
         shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
         showUserProfile={surface.showUserProfile ?? true}
+        sidebarWidth={sidebarWidth}
         {...navPanelProps}
       />
     );
