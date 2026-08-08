@@ -11,12 +11,10 @@ import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
 import ReviewGrid from './ReviewGrid';
-import ReviewStatusFilters from './ReviewStatusFilters';
+import ReviewStatusFilters, {
+  PUBLISH_HEADER_DROPDOWN_CLASS,
+} from './ReviewStatusFilters';
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
-
-/** Match Publish header chrome used by PostsListToolbar sort/status controls. */
-const PUBLISH_HEADER_DROPDOWN_CLASS =
-  'h-8 max-w-[16rem] rounded-md border border-white/10 bg-white/[0.03] px-3 text-sm text-white/80 hover:bg-white/[0.06] hover:text-white';
 
 export function getBatchOptionLabel(batch: IBatchSummary): string {
   const shortId = batch.id.slice(-6);
