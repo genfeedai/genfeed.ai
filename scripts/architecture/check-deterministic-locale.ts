@@ -139,11 +139,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/publish/review/components/ReviewItemCard.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx',
     'to-locale-string',
     1,

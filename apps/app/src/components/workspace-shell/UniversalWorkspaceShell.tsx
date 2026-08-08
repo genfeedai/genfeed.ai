@@ -976,8 +976,9 @@ function UniversalWorkspaceShellContent({
         <TabsContent
           className={cn(
             'mt-0 flex min-h-0 flex-1 flex-col overflow-y-auto data-[state=inactive]:hidden',
-            // Product inspectors own the context tab; keep padding for them.
-            (productSurfaceAdapter || !isAgentOwned) && 'gap-3 p-3',
+            // Product surface adapters render edge-to-edge (own section dividers).
+            // Non-product context keeps shell padding/gap chrome.
+            !productSurfaceAdapter && !isAgentOwned && 'gap-3 p-3',
           )}
           forceMount
           value="context"
