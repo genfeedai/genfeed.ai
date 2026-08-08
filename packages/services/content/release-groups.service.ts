@@ -8,11 +8,12 @@ import type {
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   CredentialPlatform,
+  PostCategory,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type { IReleaseGroup } from '@genfeedai/interfaces';
+import type { IPaginatedResponse, IReleaseGroup } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import {
@@ -33,12 +34,24 @@ import {
  */
 export interface ReleaseGroupListQuery {
   brandId?: string;
+  contentType?: PostCategory[];
   credentialId?: string[];
-  endDate: string;
+  endDate?: string;
   executionState?: TargetExecutionState[];
+  limit?: number;
+  page?: number;
   platform?: CredentialPlatform[];
+  publicationState?: 'posted' | 'not-posted';
+  search?: string;
   source?: ReleaseTargetSource[];
-  startDate: string;
+  sort?:
+    | 'createdAt: -1'
+    | 'createdAt: 1'
+    | 'scheduledDate: -1'
+    | 'scheduledDate: 1'
+    | 'updatedAt: -1'
+    | 'updatedAt: 1';
+  startDate?: string;
   status?: ReleaseStatus[];
 }
 
@@ -67,6 +80,36 @@ export class ReleaseGroupsService extends HTTPBaseService {
     });
 
     return extractCollection<IReleaseGroup>(response.data);
+  }
+
+  async findAllPage(
+    query: ReleaseGroupListQuery,
+    signal?: AbortSignal,
+  ): Promise<IPaginatedResponse<IReleaseGroup>> {
+    const response = await this.instance.get<JsonApiResponseDocument>('', {
+      params: query,
+      signal,
+    });
+    const items = extractCollection<IReleaseGroup>(response.data);
+    const pagination = response.data.links?.pagination;
+    const page = pagination?.page ?? query.page ?? 1;
+    const pageSize = Math.max(
+      1,
+      pagination?.limit ?? query.limit ?? items.length,
+    );
+    const total = pagination?.total ?? items.length;
+    const totalPages =
+      pagination?.pages ?? Math.max(1, Math.ceil(total / pageSize));
+
+    return {
+      hasNext: page < totalPages,
+      hasPrevious: page > 1,
+      items,
+      page,
+      pageSize,
+      total,
+      totalPages,
+    };
   }
 
   async findOne(releaseId: string): Promise<IReleaseGroup> {
