@@ -345,6 +345,7 @@ describe('BatchGenerationProcessingService resume', () => {
     batchDelegate = {
       findFirst: vi.fn().mockResolvedValue({
         ...strandedBatch,
+        config: { ...strandedBatch.config },
         items: strandedItems.map((item) => ({ ...item })),
       }),
       // First claim (PENDING → PROCESSING) misses; the stale-lease reclaim wins.

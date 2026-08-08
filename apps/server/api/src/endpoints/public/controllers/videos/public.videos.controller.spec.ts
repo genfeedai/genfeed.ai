@@ -22,6 +22,7 @@ vi.mock(
 import { Readable } from 'node:stream';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { PublicVideosController } from '@api/endpoints/public/controllers/videos/public.videos.controller';
+import { AssetScope, IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -49,10 +50,10 @@ describe('PublicVideosController', () => {
   };
   const mockLoggerService = { error: vi.fn(), log: vi.fn() };
 
-  // Rows come back with the Prisma enum casing ('PUBLIC'), not the TS enum
-  // value ('public') — same trap #2269 documented for public brands.
-  const PRISMA_SCOPE_PUBLIC = 'PUBLIC';
-  const PRISMA_SCOPE_USER = 'USER';
+  // The TS enum now carries the Prisma labels verbatim, so stored rows and
+  // controller filters share one vocabulary — no casing bridge is needed.
+  const PRISMA_SCOPE_PUBLIC = AssetScope.PUBLIC;
+  const PRISMA_SCOPE_USER = AssetScope.USER;
 
   /**
    * Stands in for the database honouring the controller's scope filter.
@@ -141,9 +142,9 @@ describe('PublicVideosController', () => {
       where?: Record<string, unknown>;
     };
     expect(aggregateArg.where).toMatchObject({
-      category: 'VIDEO',
+      category: IngredientCategory.VIDEO,
       isDeleted: false,
-      scope: 'public',
+      scope: AssetScope.PUBLIC,
     });
     expect(aggregateArg.orderBy).toEqual({ createdAt: -1 });
   });
@@ -153,8 +154,8 @@ describe('PublicVideosController', () => {
     const videoId = 'c07f1f77bcf86cd799439011';
     mockVideosService.findOne.mockResolvedValue({
       id: videoId,
-      category: 'video',
-      scope: 'public',
+      category: IngredientCategory.VIDEO,
+      scope: AssetScope.PUBLIC,
     });
     const result = await controller.getVideoMetadata(mockRequest, videoId);
     expect(result).toBeDefined();

@@ -115,7 +115,10 @@ export class BatchGenerationProcessingService {
       batchId,
     )) as BatchWithConfig;
 
-    const batchConfig = (batchRecord.config ?? {}) as BatchConfig;
+    // Copied, not aliased: the resume path below bumps `resumeCount` in place,
+    // and writing that through to the fetched record would leave the caller
+    // holding a row that disagrees with what was persisted.
+    const batchConfig = { ...((batchRecord.config ?? {}) as BatchConfig) };
     const batchItems = cloneBatchItems(batchRecord.items);
 
     if (claim === 'resumed') {
