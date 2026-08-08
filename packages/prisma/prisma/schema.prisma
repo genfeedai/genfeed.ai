@@ -3913,8 +3913,8 @@ model ContentDraft {
   approvedBy           User?              @relation("content_draft_approved_by", fields: [approvedById], references: [id])
   approvedVersionPinId String?
   approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status               String             @default("draft")
+  // String column; canonical casing is the SCREAMING ContentDraftStatus domain vocabulary (#2543).
+  status               String             @default("DRAFT")
   data                 Json               @default("{}")
   // Draft payload columns — createFromSkillExecution / createFromContentEngine write
   // these as top-level fields and autoPublishAboveThreshold filters on `confidence`.
@@ -4376,8 +4376,8 @@ model CampaignTarget {
   organization    Organization     @relation(fields: [organizationId], references: [id])
   campaignId      String
   campaign        OutreachCampaign @relation(fields: [campaignId], references: [id])
-  // Drifted enum collapsed to String (lowercase canonical value). See Post.platform note.
-  status          String           @default("pending")
+  // String column; canonical casing is the SCREAMING CampaignTargetStatus domain vocabulary (#2543).
+  status          String           @default("PENDING")
   data            Json             @default("{}")
   externalId      String?
   scheduledAt     DateTime?

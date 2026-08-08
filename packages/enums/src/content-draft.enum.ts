@@ -4,10 +4,10 @@
  * `content_drafts.status` is a `String` column (rule 2 of
  * `enum_source_of_truth`), not a Prisma enum — the orphan Postgres type of the
  * same name was dropped in `20260807160000_drop_orphan_enums`. Every write goes
- * through these SCREAMING members. The column's SQL default is still the
- * lowercase `'draft'` that `20260609150437_reconcile_prod_schema` left behind,
- * along with rows that migration lowercased, so the casing is not yet uniform
- * in existing data.
+ * through these SCREAMING members, the SQL default is `'DRAFT'`, and
+ * `20260808120000_canonicalize_draft_target_status_casing` uppercased the
+ * legacy rows `20260609150437_reconcile_prod_schema` had lowercased — the
+ * column holds exactly one casing (#2543).
  *
  * @see packages/prisma/prisma/schema.prisma `model ContentDraft`
  */
