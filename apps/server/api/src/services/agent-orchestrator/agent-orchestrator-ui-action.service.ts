@@ -130,7 +130,7 @@ export class AgentOrchestratorUiActionService {
       id: threadId,
       isDeleted: false,
       organizationId: context.organizationId,
-    } as never);
+    });
     const threadStatus = String(
       (threadRecord as { status?: string | null } | null)?.status ?? '',
     ).toLowerCase();

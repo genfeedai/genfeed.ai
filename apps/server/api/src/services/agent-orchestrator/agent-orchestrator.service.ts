@@ -649,7 +649,7 @@ export class AgentOrchestratorService {
       id: threadId,
       isDeleted: false,
       organizationId,
-    } as never);
+    });
 
     if (!thread) {
       return;
