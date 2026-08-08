@@ -23,13 +23,13 @@ function parseArguments(): ParsedArguments {
 
   if (!currentService || !isPortlessService(currentService)) {
     return fail(
-      'Expected a direct service: app, api, docs, files, mcp, notifications, or website.',
+      'Expected a service: app, api, docs, files, mcp, notifications, or website.',
     );
   }
 
   if (args.shift() !== ARGUMENT_SEPARATOR || args.length === 0) {
     return fail(
-      'Usage: bun run scripts/dev/run-direct.ts <service> -- <command> [...args]',
+      'Usage: bun run scripts/dev/run-service.ts <service> -- <command> [...args]',
     );
   }
 

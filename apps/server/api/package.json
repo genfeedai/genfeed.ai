@@ -68,9 +68,7 @@
     "build": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill",
     "build:prod": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill && cd api && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
-    "dev": "bun run ../../../scripts/dev/nest-fast-dev.ts api",
-    "dev:direct": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" bun run ../../../scripts/dev/run-direct.ts api -- bun run ../../../scripts/dev/nest-fast-dev.ts api",
-    "dev:portless": "bun run ../../../scripts/dev/run-portless.ts api -- bun run dev:direct",
+    "dev": "bun run ../../../scripts/dev/run-portless.ts api -- bun run dev:process",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",
     "encrypt:credentials": "bun run scripts/backfill-credential-encryption.ts --live",
     "encrypt:credentials:dry": "bun run scripts/backfill-credential-encryption.ts",
@@ -101,7 +99,9 @@
     "test:e2e:full": "bun run scripts/api-e2e-tiers.ts full",
     "test:file": "vitest run --config vitest.config.ts",
     "test:file:cov": "vitest run --coverage --config vitest.config.ts",
-    "test:watch": "vitest watch --config vitest.config.ts"
+    "test:watch": "vitest watch --config vitest.config.ts",
+    "dev:process": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" bun run ../../../scripts/dev/run-service.ts api -- bun run ../../../scripts/dev/nest-fast-dev.ts api",
+    "dev:debug": "bun run dev:process"
   },
   "version": "1.0.0",
   "type": "module"

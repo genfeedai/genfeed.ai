@@ -116,15 +116,34 @@ bun run env:sync local --prune-legacy
 docker compose -f docker/local/docker-compose.yml up -d postgres redis
 ```
 
-Run the API/notifications and web app in separate terminals:
+Install the Portless HTTPS startup service once per machine (idempotent; may
+request administrator approval to bind port `443` and trust the local CA):
 
 ```bash
-bun run dev:app:be
+bun run dev:setup
+```
+
+Verify with `bun run dev:doctor`. Interactive development uses clean HTTPS
+routes such as `https://app.genfeed.localhost` — not fixed ports.
+
+Run the minimum backend and the app in separate terminals:
+
+```bash
+bun run dev:backend:min   # api + files + notifications
 ```
 
 ```bash
-bun run dev:app:fe
+bun run dev:app           # → https://app.genfeed.localhost/
 ```
+
+Other common entry points:
+
+| Command | Starts |
+| --- | --- |
+| `bun run dev` | Full stack (app + backend + docs + website) |
+| `bun run dev:backend` | Full backend (+ mcp + workers) |
+| `bun run dev:docs` | Docs site |
+| `bun run dev:debug:*` | Fixed-port debug only (explicit) |
 
 Use the scripts in the root and workspace `package.json` files rather than
 inventing service commands. For example, source-development Prisma migrations
@@ -136,7 +155,7 @@ bun run --cwd packages/prisma db:migrate
 
 See the
 [canonical contribution guide](https://github.com/genfeedai/genfeed.ai/blob/master/CONTRIBUTING.md)
-for focused checks and pull-request requirements.
+for focused checks, Portless hosts, and pull-request requirements.
 
 ## Troubleshooting
 

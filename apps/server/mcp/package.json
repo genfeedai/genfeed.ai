@@ -17,9 +17,7 @@
     "build": "cd .. && nest build mcp",
     "build:prod": "cd .. && nest build mcp && cd mcp && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
-    "dev:direct": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-direct.ts mcp -- bash -lc 'cd .. && nest start mcp --watch'",
-    "dev:portless": "bun run ../../../scripts/dev/run-portless.ts mcp -- bun run dev:direct",
+    "dev": "bun run ../../../scripts/dev/run-portless.ts mcp -- bun run dev:process",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project mcp-genfeed-ai ../dist",
@@ -33,7 +31,9 @@
     "test:cov": "vitest run --coverage --config vitest.config.ts",
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
-    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
+    "dev:process": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-service.ts mcp -- bash -lc 'cd .. && nest start mcp --watch'",
+    "dev:debug": "bun run dev:process"
   },
   "type": "module",
   "version": "1.0.0"

@@ -15,7 +15,7 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 
 ## Non-goals
 
-- Removing fixed-port `dev:direct` commands used for explicit debugging.
+- Removing fixed-port `dev:debug*` commands used for explicit debugging.
 - Changing deployed infrastructure or Docker/self-hosted service ports.
 - Removing temporary `local.genfeed.ai` compatibility from security allowlists.
 - Replacing production endpoint defaults.
@@ -23,7 +23,7 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 ## Interfaces
 
 - `scripts/dev/setup-portless.ts`, `scripts/dev/run-portless.ts`, `scripts/dev/portless-env.ts`, and the direct-runtime environment adapter.
-- Root `dev*`, `dev:portless:*`, and explicit `dev:direct:*` commands.
+- Root `dev*`, `dev:backend*`, `dev:app`, and explicit `dev:debug:*` commands.
 - Root `.env.local` and generated app/service env files as canonical service-origin configuration.
 - Next.js `NEXT_PUBLIC_*` values.
 - Browser extension `PLASMO_PUBLIC_*` values.
@@ -42,7 +42,7 @@ Make worktree-aware Portless HTTPS routes the only default interactive local-dev
 - THE SYSTEM SHALL keep browser API and Better Auth traffic on the app origin under `/v1` and proxy it server-side to the derived API origin.
 - THE SYSTEM SHALL derive API, app, website, files, MCP, notifications, websocket, trusted-origin, and configured OAuth redirect values from the current process's `PORTLESS_URL`.
 - THE SYSTEM SHALL keep committed local-development endpoint defaults on clean HTTPS service origins.
-- THE SYSTEM SHALL inject fixed-port endpoints only through explicit `dev:direct:*` commands and keep Docker/E2E port configuration at those boundaries.
+- THE SYSTEM SHALL inject fixed-port endpoints only through explicit `dev:debug:*` / package `dev:process` (without `PORTLESS_URL`) and keep Docker/E2E port configuration at those boundaries.
 - WHEN direct local notifications/websocket development is requested, THE SYSTEM SHALL use port `3111`.
 - THE SYSTEM SHALL preserve port `3011` for Docker, self-hosted, deployed infrastructure, health checks, and boundary-neutral tests where applicable.
 - THE SYSTEM SHALL resolve browser endpoints through public build-time variables or injected configuration without importing server-only environment access.

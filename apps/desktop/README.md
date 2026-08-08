@@ -33,10 +33,10 @@ Environment variables:
 From the repository root:
 
 ```bash
-bun dev:desktop
+bun run dev:desktop
 ```
 
-`bun dev:desktop` builds the Electron main/preload bundle, starts the embedded
+`bun run dev:desktop` builds the Electron main/preload bundle, starts the embedded
 `apps/app` Next.js shell, and launches Electron. It does not start the NestJS
 API. Browser API requests stay same-origin on the loopback shell: `apps/app`
 calls `/v1`, and its baked Next.js rewrite proxies that path to the configured
@@ -99,8 +99,8 @@ To test cloud or self-hosted API paths, run the backend separately and point the
 desktop app at it:
 
 ```bash
-bun dev:essentials
-GENFEED_DESKTOP_API_URL=http://localhost:3010/v1 bun dev:desktop
+bun run dev:backend:min
+GENFEED_DESKTOP_API_URL=http://localhost:3010/v1 bun run dev:desktop
 ```
 
 For a hosted setup, use the hosted API URL instead:

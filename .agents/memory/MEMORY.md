@@ -30,6 +30,7 @@ Keep it that way: this file is auto-loaded into every request.
 - [feedback_release_e2e_board_signal](feedback_release_e2e_board_signal.md) — release E2E red → Project Priority P0 + auto-close on green; never prose-only triage
 - [feedback_vercel_release_gate](feedback_vercel_release_gate.md) — Vercel deploys only via the release workflow
 - [feedback_library_information_architecture](feedback_library_information_architecture.md) — Library destinations live in nav; folders and asset types are filters
+- [feedback_local_dev_portless_only](feedback_local_dev_portless_only.md) — interactive local app always `https://app.genfeed.localhost/` via package `dev` (Portless); fixed ports only as `dev:debug*`
 
 ## Rules (via the `.claude/rules` symlink)
 
@@ -73,6 +74,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_card_metric_surface](project_card_metric_surface.md) — Card + MetricCard/MetricSummary only; no new metric card components
 - [project_brand_settings_voice_harness](project_brand_settings_voice_harness.md) — Brand voice vs speech voice vs brand harness IA
 - [project_qa_session_leftovers_2026-07-30](project_qa_session_leftovers_2026-07-30.md) — post-#2204 boil-the-ocean leftovers; keep QA together on master
+- [project_parallel_qa_local_bugfix_split](project_parallel_qa_local_bugfix_split.md) — **active 2026-08-08:** two Grok agents on `qa/local-bugfix`; agent surface vs other surfaces; path-scope only
 - [project_overview](project_overview.md) — monorepo structure and key context
 - [project_one_api_epic](project_one_api_epic.md) — epic #95, one NestJS API
 - [project_migration](project_migration.md) — cloud + core → genfeed.ai, complete

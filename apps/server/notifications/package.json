@@ -17,9 +17,7 @@
     "build": "cd .. && nest build notifications",
     "build:prod": "cd .. && nest build notifications && cd notifications && (bun run sentry:sourcemaps || true)",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "bun run ../../../scripts/dev/nest-fast-dev.ts notifications",
-    "dev:direct": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-direct.ts notifications -- bun run ../../../scripts/dev/nest-fast-dev.ts notifications",
-    "dev:portless": "bun run ../../../scripts/dev/run-portless.ts notifications -- bun run dev:direct",
+    "dev": "bun run ../../../scripts/dev/run-portless.ts notifications -- bun run dev:process",
     "dev:bun": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "dev:nest": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "lint": "biome lint --write src --no-errors-on-unmatched",
@@ -35,7 +33,9 @@
     "test:e2e": "vitest run --config vitest.config.ts",
     "test:watch": "vitest watch --config vitest.config.ts",
     "type-check": "tsc --noEmit -p tsconfig.typecheck.json",
-    "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch"
+    "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "dev:process": "NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" bun run ../../../scripts/dev/run-service.ts notifications -- bun run ../../../scripts/dev/nest-fast-dev.ts notifications",
+    "dev:debug": "bun run dev:process"
   },
   "version": "1.0.0",
   "type": "module"
