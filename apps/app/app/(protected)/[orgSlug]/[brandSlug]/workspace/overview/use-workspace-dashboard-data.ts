@@ -98,7 +98,7 @@ export function normalizeTimeSeries(
 export function normalizePlatformComparison(
   value: unknown,
 ): Array<Record<string, unknown>> {
-  const rows = Array.isArray(value)
+  const rows: Array<Record<string, unknown>> = Array.isArray(value)
     ? value.filter(isRecord)
     : isRecord(value)
       ? Object.entries(value).flatMap(([platform, metrics]) =>
@@ -141,10 +141,10 @@ export function useWorkspaceDashboardData(brandId: string) {
 
   const { analytics, isLoading: isAnalyticsLoading } = useAnalytics({
     autoLoad: true,
-    endDate: endDateKey,
+    endDate: endDateKey ?? undefined,
     scope: PageScope.BRAND,
     scopeId: brandId,
-    startDate: startDateKey,
+    startDate: startDateKey ?? undefined,
   });
   const { brandsLeaderboard, isLeaderboardLoading, orgsLeaderboard } =
     useLeaderboards({
@@ -164,8 +164,8 @@ export function useWorkspaceDashboardData(brandId: string) {
         const service = await getAnalyticsService();
         const value = await service.getPlatformComparison({
           brand: brandId,
-          endDate: endDateKey,
-          startDate: startDateKey,
+          endDate: endDateKey ?? undefined,
+          startDate: startDateKey ?? undefined,
         });
         return normalizePlatformComparison(value);
       },
@@ -184,8 +184,8 @@ export function useWorkspaceDashboardData(brandId: string) {
         const service = await getAnalyticsService();
         const value = await service.getTimeSeries({
           brand: brandId,
-          endDate: endDateKey,
-          startDate: startDateKey,
+          endDate: endDateKey ?? undefined,
+          startDate: startDateKey ?? undefined,
         });
         return normalizeTimeSeries(value);
       },
