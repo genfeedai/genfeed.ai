@@ -140,7 +140,7 @@ test.describe('Core Content Loop', () => {
     });
     await postsPage.gotoReview();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Publishing Inbox' }),
+      authenticatedPage.getByRole('heading', { name: /^Batch / }),
     ).toBeVisible();
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);

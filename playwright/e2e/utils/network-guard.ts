@@ -91,6 +91,15 @@ export async function setupStrictNetworkGuard(
   ]);
   const blockedRequests: BlockedRequest[] = [];
 
+  // Client crashes in a production build are otherwise invisible — the error
+  // boundary swallows the stack and CI only sees "element(s) not found".
+  // Surface every uncaught page error in the test output.
+  page.on('pageerror', (error) => {
+    console.error(
+      `[pageerror] ${error.message}\n${error.stack ?? '(no stack)'}`,
+    );
+  });
+
   await page.route('**/*', async (route: Route) => {
     const request = route.request();
     const requestUrl = request.url();
