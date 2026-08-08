@@ -1,7 +1,6 @@
 'use client';
 
 import { BatchItemStatus } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import {
   formatDateInTimezone,
@@ -15,18 +14,8 @@ import ReviewDetailPanelAside from './ReviewDetailPanelAside';
 import ReviewDetailPanelEmpty from './ReviewDetailPanelEmpty';
 import ReviewDetailPanelHeader from './ReviewDetailPanelHeader';
 import { formatReviewItemStatus } from './review-item.helpers';
-import {
-  isApproved,
-  isChangesRequested,
-  isReadyToReview,
-} from './review-state';
-
-type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
+import type { ReviewPanelItem } from './review-panel.types';
+import { isReadyToReview } from './review-state';
 
 interface ReviewDetailPanelProps {
   isActioning: boolean;
