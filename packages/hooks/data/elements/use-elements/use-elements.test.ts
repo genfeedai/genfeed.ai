@@ -1,4 +1,5 @@
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
+import type { usePromptBarContext } from '@providers/promptbar/promptbar.context';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -71,5 +72,17 @@ describe('useElements', () => {
     expect(result.current).toHaveProperty('filteredMoods');
     expect(result.current).toHaveProperty('filteredStyles');
     expect(Array.isArray(result.current.filteredCameras)).toBe(true);
+  });
+
+  it('returns an empty models array when the prompt-bar context omits models', () => {
+    vi.mocked(usePromptBarContext).mockReturnValueOnce({
+      isLoading: false,
+      tags: [],
+      trainings: [],
+    } as unknown as ReturnType<typeof usePromptBarContext>);
+
+    const { result } = renderHook(() => useElements());
+
+    expect(result.current.models).toEqual([]);
   });
 });
