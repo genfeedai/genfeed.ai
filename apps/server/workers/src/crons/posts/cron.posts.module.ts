@@ -9,6 +9,7 @@ import { WebhookClientModule } from '@api/services/webhook-client/webhook-client
 import {
   AgentArtifactReferenceService,
   AgentScopeContextService,
+  PostLifecycleService,
   PublishApprovalsService,
   SERVER_TOKENS,
 } from '@genfeedai/server';
@@ -47,10 +48,14 @@ import { SchedulerPublishStateService } from '@workers/services/scheduler-publis
     { provide: SERVER_TOKENS.logger, useExisting: LoggerService },
     { provide: SERVER_TOKENS.prisma, useExisting: PrismaService },
     {
-      inject: [PrismaService, LoggerService],
+      inject: [PrismaService, LoggerService, PostLifecycleService],
       provide: SchedulerPublishStateService,
-      useFactory: (prisma: PrismaService, logger: LoggerService) =>
-        new SchedulerPublishStateService(prisma, logger),
+      useFactory: (
+        prisma: PrismaService,
+        logger: LoggerService,
+        postLifecycleService: PostLifecycleService,
+      ) =>
+        new SchedulerPublishStateService(prisma, logger, postLifecycleService),
     },
     {
       inject: [PrismaService, LoggerService, PublishApprovalsService],

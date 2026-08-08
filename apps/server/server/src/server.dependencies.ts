@@ -146,6 +146,7 @@ export interface ServerPrisma {
   $transaction: PrismaClient['$transaction'];
   agentMessage: PrismaClient['agentMessage'];
   agentThread: PrismaClient['agentThread'];
+  activity: PrismaClient['activity'];
   article: PrismaClient['article'];
   asset: PrismaClient['asset'];
   adBulkUploadJob: PrismaClient['adBulkUploadJob'];

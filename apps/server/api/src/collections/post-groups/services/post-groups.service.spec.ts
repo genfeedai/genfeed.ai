@@ -15,7 +15,10 @@ import {
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
-import { PostPublishQueueService } from '@genfeedai/server';
+import {
+  PostLifecycleService,
+  PostPublishQueueService,
+} from '@genfeedai/server';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -114,6 +117,7 @@ type MockPostTarget = {
 
 describe('PostGroupsService', () => {
   let service: PostGroupsService;
+  let postLifecycleService: { transition: ReturnType<typeof vi.fn> };
   let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let publishApprovalsService: {
     createForCurrentPost: ReturnType<typeof vi.fn>;
@@ -194,6 +198,12 @@ describe('PostGroupsService', () => {
     postPublishQueueService = {
       enqueue: vi.fn().mockResolvedValue('target-1'),
     };
+    postLifecycleService = {
+      transition: vi.fn().mockResolvedValue({
+        kind: 'transitioned',
+        target: { id: 'target-1' },
+      }),
+    };
     publishApprovalsService = {
       createForCurrentPost: vi.fn().mockResolvedValue({
         artifactVersionPinId: 'pin-1',
@@ -231,6 +241,10 @@ describe('PostGroupsService', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: PostLifecycleService,
+          useValue: postLifecycleService,
         },
         {
           provide: PostPublishQueueService,
@@ -799,12 +813,12 @@ describe('PostGroupsService', () => {
 
     const result = await service.publishNow('org-1', 'user-1', 'group-1');
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-        }),
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
       approvalId: 'approval-1',
@@ -885,12 +899,12 @@ describe('PostGroupsService', () => {
         }),
       }),
     );
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-        }),
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1034,25 +1048,26 @@ describe('PostGroupsService', () => {
       },
     );
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        agentContextSource: 'explicit',
-        agentContextVersion: 3,
-        agentThreadId: 'thread-1',
-        scheduledDate: new Date(scheduledAt),
-        status: TargetExecutionState.SCHEDULED,
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-        targetValidationState: TargetValidationState.VALID,
-      }),
-      where: {
-        groupId: 'group-1',
-        id: 'target-1',
-        isDeleted: false,
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'user-1',
+        guard: {
+          expectedUpdatedAt: now,
+          priorExecutionStates: [TargetExecutionState.DRAFT],
+        },
+        mutation: expect.objectContaining({
+          agentContextSource: 'explicit',
+          agentContextVersion: 3,
+          agentThreadId: 'thread-1',
+          scheduledDate: new Date(scheduledAt),
+          targetValidationState: TargetValidationState.VALID,
+        }),
+        nextState: TargetExecutionState.SCHEDULED,
         organizationId: 'org-1',
-        targetExecutionState: TargetExecutionState.DRAFT,
-        updatedAt: now,
-      },
-    });
+        postId: 'target-1',
+      }),
+      prisma,
+    );
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
       actorUserId: 'user-1',
       contextVersion: 3,
@@ -1284,9 +1299,9 @@ describe('PostGroupsService', () => {
       scheduledAt,
     );
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        mutation: expect.objectContaining({
           targetReadiness: expect.objectContaining({
             canSchedule: true,
             credentialId: 'cred-x',
@@ -1294,6 +1309,7 @@ describe('PostGroupsService', () => {
           }),
         }),
       }),
+      prisma,
     );
   });
 
@@ -1367,7 +1383,7 @@ describe('PostGroupsService', () => {
         targetExecutionState: TargetExecutionState.DRAFT,
       }),
     );
-    prisma.post.updateMany.mockResolvedValue({ count: 0 });
+    postLifecycleService.transition.mockResolvedValueOnce({ kind: 'stale' });
 
     await expect(
       service.scheduleTarget(
@@ -1379,17 +1395,16 @@ describe('PostGroupsService', () => {
       ),
     ).rejects.toThrow('changed while scheduling');
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          groupId: 'group-1',
-          id: 'target-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-          targetExecutionState: TargetExecutionState.DRAFT,
-          updatedAt: now,
-        }),
+        guard: {
+          expectedUpdatedAt: now,
+          priorExecutionStates: [TargetExecutionState.DRAFT],
+        },
+        organizationId: 'org-1',
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
   });
@@ -1421,7 +1436,7 @@ describe('PostGroupsService', () => {
     ).rejects.toThrow('Version pin creation failed');
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(postLifecycleService.transition).toHaveBeenCalledTimes(1);
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
       expect.objectContaining({ transaction: prisma }),
     );
@@ -1466,13 +1481,21 @@ describe('PostGroupsService', () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
     );
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({
-        groupId: 'group-1',
-        id: 'target-1',
-        targetExecutionState: TargetExecutionState.PAUSED,
-      }),
-    ]);
+    prisma.post.findMany
+      .mockResolvedValueOnce([
+        makeTarget({
+          groupId: 'group-1',
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      ])
+      .mockResolvedValueOnce([
+        makeTarget({
+          groupId: 'group-1',
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.PAUSED,
+        }),
+      ]);
     prisma.postGroup.update.mockImplementation(({ data }) =>
       Promise.resolve(
         makeGroup({
@@ -1485,12 +1508,12 @@ describe('PostGroupsService', () => {
 
     const result = await service.pause('org-1', 'user-1', 'group-1');
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetExecutionState: TargetExecutionState.PAUSED,
-        }),
+        nextState: TargetExecutionState.PAUSED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(result.status).toBe(ReleaseStatus.PAUSED);
   });
@@ -1540,16 +1563,17 @@ describe('PostGroupsService', () => {
       { executionState: TargetExecutionState.SCHEDULED },
     );
 
-    expect(prisma.post.update).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        mutation: expect.objectContaining({
           lastAttemptAt: null,
           retryCount: 0,
-          status: TargetExecutionState.SCHEDULED,
-          targetError: expect.anything(),
-          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
+        error: null,
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
       actorUserId: 'user-1',
