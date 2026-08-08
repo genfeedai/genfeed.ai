@@ -37,7 +37,7 @@ describe('routes.constant', () => {
     }
   });
 
-  it('exposes dedicated artifact editor routes separate from the project editor', () => {
+  it('keeps legacy long-form aliases separate from the project editor', () => {
     expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');

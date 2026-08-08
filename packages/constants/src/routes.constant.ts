@@ -179,10 +179,10 @@ export const APP_ROUTES = {
     SOCIALS: '/discover/socials',
   },
   /**
-   * Dedicated artifact editor pages. Refinement belongs to the artifact, not to
-   * a module — every text artifact gets a focused, deep-linkable editor at
-   * `/edit/{type}/{id}`. Distinct from EDITOR, which is the Remotion project
-   * canvas.
+   * Legacy long-form editor aliases retained for existing deep links. New
+   * operator navigation uses the type-aware `/publish/posts/{id}` route built
+   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDIT, which is the
+   * Remotion project canvas.
    */
   EDIT: {
     ARTICLE: '/edit/article',
