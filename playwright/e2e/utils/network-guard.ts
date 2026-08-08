@@ -109,11 +109,26 @@ export async function setupStrictNetworkGuard(
 
   // Service-layer failures log the operation name and URL through the app
   // logger before rethrowing — mirror them here so a minified pageerror stack
-  // can be traced to the exact endpoint.
+  // can be traced to the exact endpoint. Render errors never reach
+  // 'pageerror' (the app's ErrorBoundary catches them and logs instead), so
+  // symbolicate chunk positions in console errors too.
   page.on('console', (message) => {
-    if (message.type() === 'error') {
-      console.error(`[console.error] ${message.text()}`);
+    if (message.type() !== 'error') {
+      return;
     }
+    const text = message.text();
+    if (!/_next\/static\/chunks\/[^\s)]+\.js:\d+:\d+/.test(text)) {
+      console.error(`[console.error] ${text}`);
+      return;
+    }
+    void (async () => {
+      const resolved = await symbolicateStack(page, text);
+      console.error(
+        `[console.error] ${text}${
+          resolved.length > 0 ? `\n  symbolicated:\n${resolved.join('\n')}` : ''
+        }`,
+      );
+    })();
   });
 
   await page.route('**/*', async (route: Route) => {
