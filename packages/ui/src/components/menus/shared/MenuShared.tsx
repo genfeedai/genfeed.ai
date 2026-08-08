@@ -3,6 +3,7 @@
 import { APP_ROUTES } from '@genfeedai/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
+import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import MenuItem from '@ui/menus/item/MenuItem';
 import SidebarLogoToggleButton from '@ui/menus/sidebar-logo-toggle/SidebarLogoToggleButton';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
@@ -17,9 +18,6 @@ import MenuSharedGroupedItems from './MenuSharedGroupedItems';
 import MenuSharedPrimaryAction from './MenuSharedPrimaryAction';
 import SidebarUserProfile from './SidebarUserProfile';
 import { useMenuShared } from './useMenuShared';
-
-/** Fallback when host does not pass an explicit rail width. */
-const DEFAULT_SIDEBAR_WIDTH = 280;
 
 export default function MenuShared({
   config,
@@ -39,7 +37,7 @@ export default function MenuShared({
   renderFooterSlot,
   showUserProfile = true,
   orgSwitcherSlot,
-  sidebarWidth = DEFAULT_SIDEBAR_WIDTH,
+  sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
 }: MenuSharedProps) {
   const { push } = useRouter();
 
@@ -177,7 +175,7 @@ export default function MenuShared({
         // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
         sidebarWidth
           ? { maxWidth: '100%', width: '100%' }
-          : { width: DEFAULT_SIDEBAR_WIDTH }
+          : { width: SIDEBAR_DEFAULT_WIDTH }
       }
     >
       <div className="flex min-w-0 flex-1 flex-col">

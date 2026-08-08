@@ -15,7 +15,8 @@ export function formatReviewItemStatus(item: IBatchItem): string {
   if (isChangesRequested(item)) {
     return 'Changes requested';
   }
-  if (item.reviewDecision === 'rejected') {
+  // isRejected covers reviewDecision=rejected and SKIPPED (backend maps reject).
+  if (isRejected(item)) {
     return 'Rejected';
   }
   switch (item.status) {
@@ -27,9 +28,6 @@ export function formatReviewItemStatus(item: IBatchItem): string {
       return 'Generating';
     case BatchItemStatus.PENDING:
       return 'Pending';
-    case BatchItemStatus.SKIPPED:
-      // Backend maps reject → SKIPPED; product language is Rejected.
-      return 'Rejected';
     default:
       return String(item.status).replaceAll('_', ' ').toLowerCase();
   }

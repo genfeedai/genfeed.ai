@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   formatReviewItemStatus,
+  getReviewItemBadgeStatus,
   getReviewItemTitle,
   isReviewItemSelectable,
 } from './review-item.helpers';
@@ -73,5 +74,45 @@ describe('review-item.helpers', () => {
         status: BatchItemStatus.PENDING,
       }),
     ).toBe(false);
+  });
+
+  it('maps badge status tokens without overriding product labels', () => {
+    expect(getReviewItemBadgeStatus(baseItem)).toBeUndefined();
+    expect(
+      getReviewItemBadgeStatus({
+        ...baseItem,
+        reviewDecision: 'approved',
+      }),
+    ).toBe('completed');
+    expect(
+      getReviewItemBadgeStatus({
+        ...baseItem,
+        reviewDecision: 'rejected',
+      }),
+    ).toBe('failed');
+    expect(
+      getReviewItemBadgeStatus({
+        ...baseItem,
+        status: BatchItemStatus.SKIPPED,
+      }),
+    ).toBe('failed');
+    expect(
+      getReviewItemBadgeStatus({
+        ...baseItem,
+        status: BatchItemStatus.FAILED,
+      }),
+    ).toBe('failed');
+    expect(
+      getReviewItemBadgeStatus({
+        ...baseItem,
+        status: BatchItemStatus.PENDING,
+      }),
+    ).toBe('pending');
+    expect(
+      getReviewItemBadgeStatus({
+        ...baseItem,
+        reviewDecision: 'request_changes',
+      }),
+    ).toBeUndefined();
   });
 });

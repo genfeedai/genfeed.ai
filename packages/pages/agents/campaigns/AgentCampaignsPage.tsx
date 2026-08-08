@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { SurfaceSummaryItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaigns';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -48,7 +49,7 @@ const STATUS_DOT_CLASSES: Record<CampaignStatus, string> = {
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '—';
   try {
-    return format(new Date(dateStr), 'MMM d, yyyy');
+    return format(new Date(dateStr), DATE_FORMATS.DISPLAY_DATE);
   } catch {
     logger.warn('Invalid date in AgentCampaignsPage', { date: dateStr });
     return '—';

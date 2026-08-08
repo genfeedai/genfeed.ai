@@ -6,6 +6,7 @@ import {
   DefinitionList,
   DefinitionTerm,
 } from '@genfeedai/ui';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 
 type ReviewPanelItem = IBatchItem & {
@@ -47,7 +48,7 @@ export default function ReviewPublishOutcomePanel({
               ? formatDateInTimezone(
                   item.postPublishedAt,
                   browserTimezone,
-                  'MMM d, yyyy h:mm a',
+                  DATE_FORMATS.DISPLAY_DATETIME,
                 )
               : 'Not published'}
           </DefinitionDetail>
@@ -59,7 +60,7 @@ export default function ReviewPublishOutcomePanel({
               ? formatDateInTimezone(
                   item.postLastAttemptAt,
                   browserTimezone,
-                  'MMM d, yyyy h:mm a',
+                  DATE_FORMATS.DISPLAY_DATETIME,
                 )
               : 'No attempts recorded'}
           </DefinitionDetail>

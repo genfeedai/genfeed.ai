@@ -601,7 +601,10 @@ describe('AgentThreadList', () => {
       'Needs input status for Needs your reply',
     );
 
-    expect(statusDot.querySelector('.bg-amber-300')).not.toBeNull();
+    // A11y contract: labelled disc with status title — color tokens live in
+    // agent-thread-list.helpers.spec (not disc CSS class coupling here).
+    expect(statusDot).toHaveAttribute('role', 'img');
+    expect(statusDot).toHaveAttribute('title', 'Needs input');
     // Status is disc-only — no text chip in the dense finalist row.
     expect(screen.queryByText('Needs input')).not.toBeInTheDocument();
   });
@@ -797,8 +800,10 @@ describe('AgentThreadList', () => {
       'Running status for Assess desktop app readiness',
     );
     expect(status).toBeInTheDocument();
+    expect(status).toHaveAttribute('role', 'img');
+    expect(status).toHaveAttribute('title', 'Running');
+    // Structural pulse ring for active work (not a color-token assertion).
     expect(status.querySelector('.animate-ping')).not.toBeNull();
-    expect(status.querySelector('.bg-violet-400')).not.toBeNull();
     // Disc-only — no text status chip.
     expect(screen.queryByText('Running')).not.toBeInTheDocument();
   });
@@ -820,6 +825,7 @@ describe('AgentThreadList', () => {
 
     expect(await screen.findByText('Background run')).toBeInTheDocument();
     const status = screen.getByLabelText('Running status for Background run');
+    expect(status).toHaveAttribute('title', 'Running');
     expect(status.querySelector('.animate-ping')).not.toBeNull();
     expect(screen.queryByText('Running')).not.toBeInTheDocument();
   });

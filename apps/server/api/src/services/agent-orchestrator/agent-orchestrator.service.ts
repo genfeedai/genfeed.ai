@@ -26,6 +26,7 @@ import type {
   ThreadResolutionResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import { applyPinnedDefaultAgentModel } from '@api/services/agent-orchestrator/utils/agent-pinned-default-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   recordAgentRunScope,
@@ -116,12 +117,10 @@ export class AgentOrchestratorService {
       // Empty defaultAgentModel = Auto (leave request.model unset for registry
       // / brand / subscription resolution). A non-empty pin is the user's
       // durable chat override when the client omits model.
-      if (!request.model?.trim()) {
-        const pinned = userSettings?.defaultAgentModel?.trim();
-        if (pinned) {
-          request = { ...request, model: pinned };
-        }
-      }
+      request = applyPinnedDefaultAgentModel(
+        request,
+        userSettings?.defaultAgentModel,
+      );
 
       const resolved = await this.contextService.resolveSystemPromptAndModel(
         request,
@@ -335,12 +334,10 @@ export class AgentOrchestratorService {
     const userSettings = await this.settingsService.findOne({
       userId: context.userId,
     });
-    if (!request.model?.trim()) {
-      const pinned = userSettings?.defaultAgentModel?.trim();
-      if (pinned) {
-        request = { ...request, model: pinned };
-      }
-    }
+    request = applyPinnedDefaultAgentModel(
+      request,
+      userSettings?.defaultAgentModel,
+    );
 
     const resolved = await this.contextService.resolveSystemPromptAndModel(
       request,

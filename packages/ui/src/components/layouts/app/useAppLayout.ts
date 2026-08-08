@@ -66,9 +66,14 @@ export function useAppLayout({
   const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] =
     useState(false);
   const [isSidebarResizing, setIsSidebarResizing] = useState(false);
-  const [sidebarExpandedWidth, setSidebarExpandedWidth] = useState(
-    SIDEBAR_DEFAULT_WIDTH,
-  );
+  // Seed from localStorage on the client so the first paint matches the
+  // persisted rail width (avoids 280 → stored width flash after mount).
+  const [sidebarExpandedWidth, setSidebarExpandedWidth] = useState(() => {
+    const persistedWidth = readPersistedSidebarWidth();
+    return persistedWidth !== null
+      ? clampSidebarWidth(persistedWidth)
+      : SIDEBAR_DEFAULT_WIDTH;
+  });
   const [agentPanelHeight, setAgentPanelHeight] =
     useState<number>(AGENT_PANEL_HEIGHT);
   /** Layout root for CSS-var drag updates (no React re-render per pixel). */

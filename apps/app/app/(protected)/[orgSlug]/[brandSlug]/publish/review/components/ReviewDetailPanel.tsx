@@ -2,6 +2,7 @@
 
 import { BatchItemStatus } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
+import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
@@ -61,13 +62,13 @@ export default function ReviewDetailPanel({
     ? formatDateInTimezone(
         item.scheduledDate,
         browserTimezone,
-        'MMM d, yyyy h:mm a',
+        DATE_FORMATS.DISPLAY_DATETIME,
       )
     : null;
   const formattedCreatedDate = formatDateInTimezone(
     item.createdAt,
     browserTimezone,
-    'MMM d, yyyy h:mm a',
+    DATE_FORMATS.DISPLAY_DATETIME,
   );
   const isReady = isReadyToReview(item);
   const statusLabel = buildStatusLabel(item);

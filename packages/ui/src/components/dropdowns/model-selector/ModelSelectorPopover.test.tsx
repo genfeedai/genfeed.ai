@@ -541,4 +541,34 @@ describe('ModelSelectorPopover', () => {
 
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it('does not open when isDisabled and marks the trigger disabled', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        isDisabled
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: /select models/i });
+    expect(trigger).toHaveAttribute('aria-disabled', 'true');
+
+    await user.click(trigger);
+
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+  });
 });

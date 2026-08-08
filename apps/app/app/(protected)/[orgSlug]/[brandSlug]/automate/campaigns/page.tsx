@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Campaigns');
 
-export default function PostsCampaignsRoute() {
+export default function AutomateCampaignsRoute() {
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
       <AgentCampaignsPage />

@@ -241,8 +241,8 @@ export default function ReviewItemsTable({
     <AppTable<IBatchItem>
       actions={rowActions}
       columns={columns}
-      emptyDescription="Switch filters or pick another batch."
-      emptyLabel="No items in this view"
+      emptyDescription="Try All statuses, or pick another batch."
+      emptyLabel="No items match these filters"
       getItemId={(item) => item.id}
       getRowClassName={(item) =>
         cn(

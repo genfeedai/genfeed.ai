@@ -31,8 +31,11 @@ const KNOWN_SUB_ROUTES = [
   'scheduled',
 ];
 
-const NEW_RELEASE_AGENT_HREF = buildAgentPromptHref(
-  'Help me put together a new release — draft the posts and pick the channels to publish them on.',
+// Primary create path is agent-first: open a new agent thread with a seeded
+// prompt so generation (and later schedule/publish tools) run in the agent,
+// not a separate compose form.
+const NEW_POST_AGENT_HREF = buildAgentPromptHref(
+  'Help me generate a new post for my brand — draft the content, pick the best channels, and prepare it for review or scheduling.',
 );
 
 type PublishLayoutState = {
@@ -217,9 +220,9 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
               variant={ButtonVariant.DEFAULT}
               withWrapper={false}
             >
-              <Link href={href(NEW_RELEASE_AGENT_HREF)}>
+              <Link href={href(NEW_POST_AGENT_HREF)}>
                 <Plus className="size-4" />
-                New release
+                New post
               </Link>
             </Button>
             <ButtonRefresh

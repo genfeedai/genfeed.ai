@@ -21,6 +21,7 @@ import type {
   SidebarNavPanel,
 } from '@genfeedai/props/navigation/menu.props';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { SIDEBAR_DEFAULT_WIDTH } from '@ui/layouts/app/app-layout.utils';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
@@ -43,9 +44,6 @@ type AppSidebarSurface = {
   showOrgSwitcher?: boolean;
   showUserProfile?: boolean;
 };
-
-/** Fallback when AppLayout has not cloned a live rail width yet. */
-const DEFAULT_SIDEBAR_WIDTH = 280;
 
 type Props = {
   shellChromeVariant: ShellChromeVariant;
@@ -99,7 +97,7 @@ export default function AppProtectedLayoutSidebar({
   currentApp,
   isCollapsed,
   onToggleCollapse,
-  sidebarWidth = DEFAULT_SIDEBAR_WIDTH,
+  sidebarWidth = SIDEBAR_DEFAULT_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
   isConversationRoute,

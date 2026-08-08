@@ -44,7 +44,7 @@ describe('PublishLayoutContent', () => {
 
     expect(screen.getByText('child content')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /new release/i }).getAttribute('href'),
+      screen.getByRole('link', { name: /new post/i }).getAttribute('href'),
     ).toContain('/acme-org/acme-creator/agent/new?prompt=');
     expect(
       screen.queryByRole('link', { name: /drafts/i }),
@@ -69,7 +69,7 @@ describe('PublishLayoutContent', () => {
 
     expect(screen.getByText('detail content')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: /new release/i }),
+      screen.queryByRole('link', { name: /new post/i }),
     ).not.toBeInTheDocument();
   });
 });

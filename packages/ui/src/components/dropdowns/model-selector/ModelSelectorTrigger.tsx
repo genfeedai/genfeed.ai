@@ -13,9 +13,9 @@ import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCo
 import { Button } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import { ChevronDown, ChevronUp, Cpu, Sparkles } from 'lucide-react';
-import type { ButtonHTMLAttributes, Ref } from 'react';
+import { type ButtonHTMLAttributes, memo, type Ref } from 'react';
 
-function ModelSelectorTrigger({
+const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
   ref,
   selectedModels,
   isAutoSelected,
@@ -131,6 +131,6 @@ function ModelSelectorTrigger({
       <ChevronIcon className={cn(SHELL_ICON_CLASS, 'text-foreground/50')} />
     </Button>
   );
-}
+});
 
 export default ModelSelectorTrigger;

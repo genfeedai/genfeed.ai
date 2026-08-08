@@ -15,7 +15,7 @@ import {
 import { ArrowUpRight, PanelRightOpen } from 'lucide-react';
 import NextLink from 'next/link';
 import type { ReactNode } from 'react';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { getReviewItemTitle } from './review-item.helpers';
 
@@ -54,11 +54,13 @@ export default function ReviewPostHoverPreview({
 
   const title = getReviewItemTitle(item);
   const caption = item.caption?.trim() || item.prompt?.trim() || title;
-  const platform = item.platform || 'twitter';
+  // Prefer stored platform; never invent twitter when missing — PlatformPreview
+  // already canonicalises aliases via parsePlatform.
+  const platform = item.platform?.trim() || 'unknown';
   const mediaKind = resolveMediaKind(item);
   const postDetailHref = item.postId ? href(`/publish/${item.postId}`) : null;
 
-  function clearTimers() {
+  const clearTimers = useCallback(() => {
     if (openTimerRef.current) {
       clearTimeout(openTimerRef.current);
       openTimerRef.current = null;
@@ -67,7 +69,13 @@ export default function ReviewPostHoverPreview({
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-  }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearTimers();
+    };
+  }, [clearTimers]);
 
   function scheduleOpen() {
     clearTimers();

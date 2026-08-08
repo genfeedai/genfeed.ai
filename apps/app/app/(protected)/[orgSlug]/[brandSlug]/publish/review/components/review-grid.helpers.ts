@@ -239,24 +239,6 @@ export function parseReviewFilters(
   return parsed.length > 0 || parts.includes('all') ? parsed : null;
 }
 
-/** Legacy single-filter helper (tests / old call sites). */
-export function parseReviewFilter(value: string | null): ReviewFilter | null {
-  if (value === 'all') {
-    return 'all';
-  }
-  const parsed = parseReviewFilters(value);
-  if (parsed == null) {
-    return null;
-  }
-  if (parsed.length === 0) {
-    return 'all';
-  }
-  if (parsed.length === 1) {
-    return parsed[0];
-  }
-  return null;
-}
-
 export function serializeReviewFilters(
   filters: readonly ReviewFilter[],
 ): string {

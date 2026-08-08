@@ -247,6 +247,16 @@ export class BatchGenerationProcessingService {
       (entry) => entry.status === BatchItemStatus.FAILED,
     ).length;
 
+    // Accumulate captions as items complete — O(1) push per item instead of
+    // re-scanning the full batch on every generation call.
+    const priorCaptions: string[] = batchItems
+      .filter(
+        (entry) =>
+          entry.status === BatchItemStatus.COMPLETED &&
+          Boolean(entry.caption?.trim()),
+      )
+      .map((entry) => entry.caption as string);
+
     // Empty/short topics → every item used `${format} content` and the model
     // rewrote the same brand hook N times. Expand once so each slot has a
     // distinct creative brief (user-supplied topics are kept first).
@@ -305,14 +315,6 @@ export class BatchGenerationProcessingService {
             }),
           { batchId, itemId: item.id },
         );
-
-        const priorCaptions = batchItems
-          .filter(
-            (entry) =>
-              entry.status === BatchItemStatus.COMPLETED &&
-              Boolean(entry.caption?.trim()),
-          )
-          .map((entry) => entry.caption as string);
 
         const generated = await this.contentGeneratorService.generateContent(
           orgId,
@@ -395,6 +397,9 @@ export class BatchGenerationProcessingService {
         item.postId = postId;
         item.status = BatchItemStatus.COMPLETED;
         completedCount++;
+        if (item.caption?.trim()) {
+          priorCaptions.push(item.caption);
+        }
 
         await this.invokeLifecycleCallback(
           'onItemCompleted',
