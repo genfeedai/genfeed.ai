@@ -89,6 +89,7 @@ describe('AgentWorkflowToolHandler system workflow catalog', () => {
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       brandsService as never,
       systemWorkflowCatalogService as never,
     );

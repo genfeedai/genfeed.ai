@@ -9,7 +9,12 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+  useAuthedService: vi.fn(() =>
+    vi.fn().mockResolvedValue({
+      findAll: vi.fn().mockResolvedValue([]),
+      findOne: vi.fn().mockResolvedValue(null),
+    }),
+  ),
 }));
 
 vi.mock('@genfeedai/services/content/posts.service', () => ({
