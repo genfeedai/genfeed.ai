@@ -20,8 +20,12 @@ interface SidebarNavigationContextType {
   activePageLabel: string;
   /** Canonical breadcrumb root, independent of sidebar discovery coverage. */
   breadcrumbRootLabel: string;
+  /** Optional app-relative href for the root segment. */
+  breadcrumbRootHref: string;
   /** Optional canonical parent between the root and current page. */
   breadcrumbParentLabel: string;
+  /** Optional app-relative href for the parent segment. */
+  breadcrumbParentHref: string;
   /** Canonical breadcrumb leaf, independent of sidebar discovery coverage. */
   breadcrumbPageLabel: string;
   /** Whether the permanent shell supplied canonical page identity. */
@@ -234,7 +238,9 @@ export function SidebarNavigationProvider({
       activeGroupId: derivedGroupId,
       activePageLabel: derivedPageLabel,
       breadcrumbPageLabel: breadcrumb?.leafLabel ?? derivedPageLabel,
+      breadcrumbParentHref: breadcrumb?.parentHref ?? '',
       breadcrumbParentLabel: breadcrumb?.parentLabel ?? '',
+      breadcrumbRootHref: breadcrumb?.rootHref ?? '',
       breadcrumbRootLabel: breadcrumb?.rootLabel ?? derivedGroupId,
       enterNestedGroup,
       exitNestedGroup,
@@ -265,7 +271,9 @@ const DEFAULT_CONTEXT: SidebarNavigationContextType = {
   activeGroupId: '',
   activePageLabel: '',
   breadcrumbPageLabel: '',
+  breadcrumbParentHref: '',
   breadcrumbParentLabel: '',
+  breadcrumbRootHref: '',
   breadcrumbRootLabel: '',
   enterNestedGroup: () => {},
   exitNestedGroup: () => {},

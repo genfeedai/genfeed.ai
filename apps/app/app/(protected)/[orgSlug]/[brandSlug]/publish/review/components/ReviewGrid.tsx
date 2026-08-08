@@ -37,18 +37,19 @@ export default function ReviewGrid({
     <div className="flex min-w-0 flex-col gap-3">
       {selectedIds.size > 0 ? (
         <Card
-          bodyClassName="flex flex-wrap items-center justify-between gap-2 p-3"
+          // Card body defaults to flex-col — force a single horizontal row.
+          bodyClassName="flex flex-row flex-wrap items-center justify-between gap-2 !p-3"
           className="bg-background-secondary"
           variant={CardVariant.DEFAULT}
         >
-          <p className="text-xs text-foreground/70">
+          <p className="shrink-0 text-xs text-foreground/70">
             <span className="font-semibold text-foreground">
               {selectedIds.size}
             </span>{' '}
             selected
           </p>
           {/* Reject left (destructive) · Approve right (primary) — same as Context. */}
-          <div className="flex items-center gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
             <Button
               className="h-7 gap-1 px-2 text-xs"
               isDisabled={isActioning}

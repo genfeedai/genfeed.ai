@@ -156,7 +156,11 @@ export interface WorkspaceShellAdapterSeam {
 export interface WorkspaceShellBreadcrumbMetadata {
   readonly leafLabel: string;
   readonly parentLabel?: string;
+  /** App-relative href for the parent segment (e.g. `/publish/scheduled`). */
+  readonly parentHref?: string;
   readonly rootLabel: string;
+  /** App-relative href for the root segment (e.g. `/publish/overview`). */
+  readonly rootHref?: string;
 }
 
 export interface WorkspaceShellRouteRegistration {

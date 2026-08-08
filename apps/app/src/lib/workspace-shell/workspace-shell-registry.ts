@@ -163,7 +163,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automate/:agentId': 'Agent',
   '/:orgSlug/:brandSlug/automate/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automate/library/:type': ':type',
-  '/:orgSlug/:brandSlug/publish/:id': 'Post',
+  '/:orgSlug/:brandSlug/publish/:id': 'Detail',
   '/:orgSlug/:brandSlug/automate/campaigns': 'Campaigns',
   '/:orgSlug/:brandSlug/automate/campaigns/new': 'New Campaign',
   '/:orgSlug/:brandSlug/automate/campaigns/:id': 'Campaign',
@@ -223,6 +223,16 @@ const BREADCRUMB_PARENT_OVERRIDES = Object.freeze({
   '/:orgSlug/~/discover/ads/google': 'Ads',
   '/:orgSlug/~/discover/ads/meta': 'Ads',
   '/:orgSlug/~/discover/ads/tiktok': 'Ads',
+  // Post detail lives under the drafts library, not the module overview.
+  '/:orgSlug/:brandSlug/publish/:id': 'Drafts',
+} as const satisfies Readonly<Record<string, string>>);
+
+const BREADCRUMB_ROOT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publish/:id': '/publish/overview',
+} as const satisfies Readonly<Record<string, string>>);
+
+const BREADCRUMB_PARENT_HREF_OVERRIDES = Object.freeze({
+  '/:orgSlug/:brandSlug/publish/:id': '/publish/scheduled',
 } as const satisfies Readonly<Record<string, string>>);
 
 function humanizeBreadcrumbLabel(value: string): string {
@@ -288,11 +298,21 @@ function getRouteBreadcrumbMetadata(
     BREADCRUMB_PARENT_OVERRIDES[
       canonicalUrl as keyof typeof BREADCRUMB_PARENT_OVERRIDES
     ];
+  const rootHref =
+    BREADCRUMB_ROOT_HREF_OVERRIDES[
+      canonicalUrl as keyof typeof BREADCRUMB_ROOT_HREF_OVERRIDES
+    ];
+  const parentHref =
+    BREADCRUMB_PARENT_HREF_OVERRIDES[
+      canonicalUrl as keyof typeof BREADCRUMB_PARENT_HREF_OVERRIDES
+    ];
 
   return Object.freeze({
     leafLabel,
     ...(parentLabel ? { parentLabel } : {}),
+    ...(parentHref ? { parentHref } : {}),
     rootLabel,
+    ...(rootHref ? { rootHref } : {}),
   });
 }
 
