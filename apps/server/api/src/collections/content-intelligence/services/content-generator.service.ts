@@ -409,8 +409,9 @@ Requirements:
 2. Platform-appropriate length (${this.getPlatformLength(dto.platform)})
 3. Include a subtle call to action
 4. Natural, conversational tone
+5. When generating multiple posts, each must use a different angle, opener, and structure — not a light rewrite of the same line
 
-${safeContext.length > 0 ? `Context: ${safeContext.join(', ')}` : ''}
+${safeContext.length > 0 ? `Context:\n${safeContext.join('\n')}` : ''}
 
 Respond with JSON array:
 [

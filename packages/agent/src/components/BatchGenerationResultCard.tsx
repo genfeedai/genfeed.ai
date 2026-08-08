@@ -1,3 +1,5 @@
+'use client';
+
 import { AGENT_CONVERSATION_SURFACE_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import type {
   AgentUiAction,
@@ -11,8 +13,9 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Badge from '@ui/display/badge/Badge';
+import PlatformPreview from '@ui/posts/platform-preview/PlatformPreview';
 import { Button } from '@ui/primitives/button';
-import { CircleCheck, CircleX, FileText, Layers } from 'lucide-react';
+import { CircleCheck, CircleX, Layers } from 'lucide-react';
 import type { ReactElement } from 'react';
 
 interface BatchGenerationResultCardProps {
@@ -52,8 +55,8 @@ function resolveReviewHref(action: AgentUiAction): string | undefined {
 }
 
 /**
- * Dense batch outcome surface — one header line + inline metrics.
- * Nested metric boxes and platform badge rows are T3 noise; drop them.
+ * Dense batch outcome surface — header metrics + Publish-style platform
+ * previews for the first drafts (same PlatformPreview as review queue).
  */
 export function BatchGenerationResultCard({
   action,
@@ -124,45 +127,44 @@ export function BatchGenerationResultCard({
       </div>
 
       {previewItems.length > 0 ? (
-        <div className="mt-2.5 space-y-1.5 border-t border-border/50 pt-2.5">
+        <div className="mt-2.5 space-y-2.5 border-t border-border/50 pt-2.5">
           {previewItems.map((item) => {
-            const platform =
-              typeof item.platform === 'string'
-                ? formatPlatformLabel(item.platform)
-                : null;
+            const caption = item.title?.trim() || 'Draft post';
+            const platform = item.platform?.trim() || 'twitter';
             const href = reviewHref
               ? `${reviewHref}${reviewHref.includes('?') ? '&' : '?'}post=${encodeURIComponent(item.id)}`
               : undefined;
+            const previewProps = {
+              caption,
+              platform,
+              title: caption,
+            };
 
-            const body = (
-              <>
-                <div className="flex size-7 shrink-0 items-center justify-center rounded border border-border/60 bg-muted/40 text-foreground/60">
-                  <FileText className="size-3.5" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="line-clamp-2 text-[13px] leading-5 text-foreground">
-                    {item.title}
-                  </p>
-                  {platform ? (
-                    <p className="mt-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {platform}
-                    </p>
-                  ) : null}
-                </div>
-              </>
-            );
+            if (href) {
+              return (
+                <a
+                  key={item.id}
+                  href={href}
+                  aria-label={`Open ${formatPlatformLabel(platform) ?? platform} draft in review`}
+                  className="block rounded-xl transition-opacity hover:opacity-95"
+                  data-testid="batch-generation-result-preview"
+                >
+                  <PlatformPreview
+                    className="max-h-[22rem] overflow-y-auto"
+                    emptyMessage="No preview available for this draft."
+                    target={previewProps}
+                  />
+                </a>
+              );
+            }
 
-            return href ? (
-              <a
-                key={item.id}
-                href={href}
-                className="flex items-start gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-accent/40"
-              >
-                {body}
-              </a>
-            ) : (
-              <div key={item.id} className="flex items-start gap-2.5 px-1 py-1">
-                {body}
+            return (
+              <div key={item.id} data-testid="batch-generation-result-preview">
+                <PlatformPreview
+                  className="max-h-[22rem] overflow-y-auto"
+                  emptyMessage="No preview available for this draft."
+                  target={previewProps}
+                />
               </div>
             );
           })}
