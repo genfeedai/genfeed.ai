@@ -1,13 +1,16 @@
 'use client';
 
 import { EMPTY_STATES } from '@genfeedai/constants';
-import { PageScope, type PostStatus } from '@genfeedai/enums';
+import { PageScope, PostStatus } from '@genfeedai/enums';
 import type { IPost, IPreset } from '@genfeedai/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import PostsGrid from '@pages/posts/list/components/PostsGrid';
 import PostsListToolbar from '@pages/posts/list/components/PostsListToolbar';
 import type { PostsListResult } from '@pages/posts/list/components/posts-query.helpers';
-import type { PostsPublicationState } from '@pages/posts/list/posts-list-query';
+import type {
+  PostsPublicationState,
+  PublisherPostsView,
+} from '@pages/posts/list/posts-list-query';
 import {
   getDefaultSort,
   usePostsList,
@@ -82,6 +85,8 @@ export default function PostsList({
     scope,
     status: statusProp,
   });
+  const publisherView: PublisherPostsView | undefined =
+    statusProp === PostStatus.FAILED ? 'failed' : publicationState;
 
   // Keep latest filter bag for toolbar handlers without re-portaling on every
   // object identity change (that looped: setFiltersNode → layout dispatch →
@@ -131,8 +136,8 @@ export default function PostsList({
         searchValue={toolbarSearchValue}
         sortValue={filterSort || getDefaultSort(status)}
         sortOptions={sortOptions}
-        publicationState={publicationState}
-        onPublicationStateChange={handlePublicationStateChange}
+        publisherView={publisherView}
+        onPublisherViewChange={handlePublicationStateChange}
         onSearchChange={setToolbarSearchValue}
         onSortChange={handleToolbarSortChange}
       />,
@@ -141,7 +146,7 @@ export default function PostsList({
     filterSort,
     handlePublicationStateChange,
     handleToolbarSortChange,
-    publicationState,
+    publisherView,
     setFiltersNode,
     setToolbarSearchValue,
     sortOptions,
@@ -169,18 +174,22 @@ export default function PostsList({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-foreground">
-            {publicationState === 'posted'
+            {publisherView === 'posted'
               ? 'Posted'
-              : publicationState === 'not-posted'
-                ? 'Not posted'
-                : 'All posts'}
+              : publisherView === 'failed'
+                ? 'Failed'
+                : publisherView === 'not-posted'
+                  ? 'Not posted'
+                  : 'All posts'}
           </h2>
           <p className="mt-1 text-sm text-foreground/55">
-            {publicationState === 'posted'
+            {publisherView === 'posted'
               ? 'Posts already live on their destination platforms.'
-              : publicationState === 'not-posted'
-                ? 'Drafts, scheduled posts, and publishing work in progress.'
-                : 'Posts across every publishing state.'}
+              : publisherView === 'failed'
+                ? 'Posts that could not be published. Fix the issue and retry.'
+                : publisherView === 'not-posted'
+                  ? 'Drafts, scheduled posts, and publishing work in progress.'
+                  : 'Posts across every publishing state.'}
           </p>
         </div>
         <p className="text-sm tabular-nums text-foreground/55">

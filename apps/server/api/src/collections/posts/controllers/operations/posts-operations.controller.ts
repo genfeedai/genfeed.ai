@@ -463,4 +463,64 @@ export class PostsOperationsController {
       throw error;
     }
   }
+
+  @Post(':postId/retry')
+  @RequiredScopes(ApiKeyScope.POSTS_SCHEDULE)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async retryPost(
+    @Req() request: Request,
+    @Param('postId') postId: string,
+    @CurrentUser() user: User,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    // Re-arming to SCHEDULED is a scheduling action, same as batchUpdate.
+    assertApiKeyPublishingScope(publicMetadata, 'schedule');
+    const post = await this.postsService.findOne({
+      id: postId,
+      isDeleted: false,
+    });
+
+    if (!post) {
+      throw new HttpException(
+        {
+          detail: 'Post not found',
+          title: `Post ${postId} not found`,
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (post.organizationId !== publicMetadata.organization) {
+      throw new HttpException(
+        {
+          detail: 'You do not have access to this post',
+          title: 'Access denied',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    if (post.status !== PostStatus.FAILED) {
+      throw new HttpException(
+        {
+          detail: 'Only failed posts can be retried',
+          title: 'Post is not failed',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const now = new Date();
+    const scheduledDate =
+      !post.scheduledDate || post.scheduledDate.getTime() < now.getTime()
+        ? now
+        : post.scheduledDate;
+    const updatedPost = await this.postsService.patch(postId, {
+      retryCount: 0,
+      scheduledDate,
+      status: PostStatus.SCHEDULED,
+    });
+
+    return serializeSingle(request, this.serializer, updatedPost);
+  }
 }

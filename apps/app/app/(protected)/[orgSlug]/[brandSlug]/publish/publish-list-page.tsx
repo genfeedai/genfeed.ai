@@ -38,7 +38,7 @@ export async function renderPostsListPage({
   showAllPublicationStates?: boolean;
 }) {
   const { page, platform, search, sort } = await searchParams;
-  // Pipeline shortcuts (Drafts / Published) pass a publication-state override.
+  // Pipeline shortcuts (Drafts / Published / Failed) pass a focused override.
   // The Posts library shows every lifecycle state and filters in the table.
   const normalizedStatus = statusOverride;
   const publicationState = showAllPublicationStates

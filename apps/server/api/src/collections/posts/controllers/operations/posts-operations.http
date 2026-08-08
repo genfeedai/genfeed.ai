@@ -128,6 +128,18 @@ Content-Type: application/json
 
 
 ########################################
+# Retry
+########################################
+
+### Retry Failed Post
+# Re-arms a failed post: status → scheduled, retryCount → 0,
+# scheduledDate → now when in the past. Keeps targetError until
+# the next publish attempt overwrites it.
+POST {{apiBaseUrl}}/posts/{{testPostId}}/retry
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
 # Test Cases
 ########################################
 

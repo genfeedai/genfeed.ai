@@ -464,4 +464,15 @@ describe('PostsService', () => {
       });
     });
   });
+
+  describe('retry', () => {
+    it('should queue a failed post for retry and map the response', async () => {
+      mockInstance.post.mockResolvedValue({ data: mockPostData });
+
+      const result = await service.retry('post-123');
+
+      expect(mockInstance.post).toHaveBeenCalledWith('/post-123/retry');
+      expect(result).toBeInstanceOf(Post);
+    });
+  });
 });

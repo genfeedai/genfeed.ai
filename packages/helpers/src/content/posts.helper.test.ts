@@ -1,4 +1,4 @@
-import { Platform } from '@genfeedai/enums';
+import { Platform, PostStatus } from '@genfeedai/enums';
 import * as PostsHelper from '@helpers/content/posts.helper';
 import { describe, expect, it } from 'vitest';
 
@@ -33,6 +33,9 @@ describe('PostsHelper', () => {
       'scheduled',
     );
     expect(PostsHelper.normalizePublisherPostsStatus('public')).toBe('public');
+    expect(PostsHelper.normalizePublisherPostsStatus(PostStatus.FAILED)).toBe(
+      PostStatus.FAILED,
+    );
     expect(PostsHelper.normalizePublisherPostsStatus('invalid')).toBe('draft');
     expect(PostsHelper.normalizePublisherPostsStatus(undefined)).toBe('draft');
   });
@@ -52,6 +55,9 @@ describe('PostsHelper', () => {
         status: 'public',
       }),
     ).toBe('/publish/published?platform=youtube');
+    expect(
+      PostsHelper.getPublisherPostsHref({ status: PostStatus.FAILED }),
+    ).toBe('/publish/failed');
     expect(PostsHelper.getPublisherPostHref('post-1')).toBe(
       '/publish/posts/post-1',
     );
@@ -72,6 +78,9 @@ describe('PostsHelper', () => {
     expect(
       PostsHelper.getPublisherPostsStatusFromPathname('/publish/posts'),
     ).toBeNull();
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish/failed'),
+    ).toBe(PostStatus.FAILED);
   });
 
   it('should get post platform tabs', () => {

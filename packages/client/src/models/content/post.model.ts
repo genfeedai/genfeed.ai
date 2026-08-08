@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/enums';
 import type {
   IBrand,
+  IChannelTargetError,
   ICredential,
   IIngredient,
   IOrganization,
@@ -44,6 +45,7 @@ export class Post extends BaseEntity implements IPost {
   public declare publicationDate: string;
   public declare publishedAt?: string;
   public declare retryCount?: number;
+  public declare targetError?: IChannelTargetError | null;
   public declare parent?: string;
   public declare children?: IPost[];
   public declare order?: number;

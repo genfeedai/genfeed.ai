@@ -1,7 +1,7 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/enums';
-import type { PostsPublicationState } from '@pages/posts/list/posts-list-query';
+import type { PublisherPostsView } from '@pages/posts/list/posts-list-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import FormSearchbar from '@ui/primitives/searchbar';
 import {
@@ -24,8 +24,8 @@ export interface PostsListToolbarProps {
   sortOptions: PostsListToolbarOption[];
   onSearchChange: (value: string) => void;
   onSortChange: (value: string) => void;
-  onPublicationStateChange?: (value: PostsPublicationState) => void;
-  publicationState?: PostsPublicationState;
+  onPublisherViewChange?: (value: PublisherPostsView) => void;
+  publisherView?: PublisherPostsView;
 }
 
 export default function PostsListToolbar({
@@ -34,8 +34,8 @@ export default function PostsListToolbar({
   sortOptions,
   onSearchChange,
   onSortChange,
-  onPublicationStateChange,
-  publicationState,
+  onPublisherViewChange,
+  publisherView,
 }: PostsListToolbarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -54,11 +54,11 @@ export default function PostsListToolbar({
         />
       </div>
 
-      {publicationState && onPublicationStateChange ? (
+      {publisherView && onPublisherViewChange ? (
         <Select
-          value={publicationState}
+          value={publisherView}
           onValueChange={(value) =>
-            onPublicationStateChange(value as PostsPublicationState)
+            onPublisherViewChange(value as PublisherPostsView)
           }
         >
           <SelectTrigger
@@ -70,6 +70,7 @@ export default function PostsListToolbar({
           <SelectContent>
             <SelectItem value="not-posted">Not posted</SelectItem>
             <SelectItem value="posted">Posted</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
           </SelectContent>
         </Select>
       ) : null}

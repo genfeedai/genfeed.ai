@@ -230,6 +230,8 @@ export const APP_ROUTES = {
   },
   PUBLISH: {
     CALENDAR: '/publish/calendar',
+    /** Posts whose latest publication attempt failed. */
+    FAILED: '/publish/failed',
     /**
      * @deprecated Canonical path is APP_ROUTES.AUTOMATE.CAMPAIGNS.
      * Legacy `/publish/campaigns` permanently redirects there.

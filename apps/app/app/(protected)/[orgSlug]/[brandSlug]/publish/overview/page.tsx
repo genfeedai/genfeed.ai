@@ -29,9 +29,11 @@ export default async function PublishOverviewRoute({
   );
   if (resolvedSearchParams.status) {
     const statusPath =
-      legacyStatus === PostStatus.PUBLIC
-        ? APP_ROUTES.PUBLISH.PUBLISHED
-        : APP_ROUTES.PUBLISH.SCHEDULED;
+      legacyStatus === PostStatus.FAILED
+        ? APP_ROUTES.PUBLISH.FAILED
+        : legacyStatus === PostStatus.PUBLIC
+          ? APP_ROUTES.PUBLISH.PUBLISHED
+          : APP_ROUTES.PUBLISH.SCHEDULED;
     const { orgSlug, brandSlug } = await params;
     const preservedFilters = new URLSearchParams();
     for (const key of ['platform', 'search', 'sort', 'page'] as const) {
