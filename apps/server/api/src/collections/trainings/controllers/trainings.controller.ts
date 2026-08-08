@@ -29,12 +29,15 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ActivitySource, IngredientStatus } from '@genfeedai/enums';
+import {
+  ActivitySource,
+  IngredientStatus,
+  TrainingStage,
+} from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { TrainingStage } from '@genfeedai/prisma';
 import { TrainingSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -80,18 +83,19 @@ export class TrainingsController extends BaseCRUDController<
    * with values PENDING | UPLOADING | TRAINING | READY | FAILED | CANCELLED.
    *
    * The studio sends lowercase app-vocab values (e.g. ?status=completed).
-   * NOTE for review: `completed` → READY and `processing` → TRAINING are
-   * semantic assumptions — confirm with Vincent before shipping to production.
+   * `completed` → READY and `processing` → TRAINING are confirmed product
+   * semantics (2026-08-08): READY is the terminal success stage and
+   * `processing` means the training stage specifically.
    */
-  private static readonly STATUS_TO_STAGE: Record<string, string> = {
-    cancelled: 'CANCELLED',
-    completed: 'READY',
-    failed: 'FAILED',
-    pending: 'PENDING',
-    processing: 'TRAINING',
-    ready: 'READY',
-    training: 'TRAINING',
-    uploading: 'UPLOADING',
+  private static readonly STATUS_TO_STAGE: Record<string, TrainingStage> = {
+    cancelled: TrainingStage.CANCELLED,
+    completed: TrainingStage.READY,
+    failed: TrainingStage.FAILED,
+    pending: TrainingStage.PENDING,
+    processing: TrainingStage.TRAINING,
+    ready: TrainingStage.READY,
+    training: TrainingStage.TRAINING,
+    uploading: TrainingStage.UPLOADING,
   };
 
   /**
