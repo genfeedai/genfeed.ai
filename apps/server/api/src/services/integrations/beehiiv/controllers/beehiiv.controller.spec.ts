@@ -5,6 +5,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnInternalServerError: vi.fn((msg: string) => ({
     errors: [{ detail: msg }],
   })),
+  returnUnauthorized: vi.fn((msg: string) => ({
+    errors: [{ detail: msg }],
+  })),
+  serializeCollection: vi.fn(
+    (_req: unknown, _serializer: unknown, data: { docs?: unknown }) =>
+      data.docs || data,
+  ),
   serializeSingle: vi.fn(
     (_req: unknown, _serializer: unknown, data: unknown) => ({ data }),
   ),
@@ -364,7 +371,7 @@ describe('BeehiivController', () => {
         ['new@example.com', 'rejected@example.com'],
         'twitter',
       );
-      expect(result.data).toHaveLength(2);
+      expect(result).toHaveLength(2);
     });
 
     it('should return internal server error when service throws', async () => {
@@ -372,12 +379,14 @@ describe('BeehiivController', () => {
         new Error('No credential'),
       );
 
-      await expect(
-        controller.createSubscribers(mockRequest, mockUser, {
-          brandId: '507f191e810c19729de860ea',
-          emails: ['new@example.com'],
-        }),
-      ).rejects.toThrow('Failed to create Beehiiv subscribers');
+      const result = await controller.createSubscribers(mockRequest, mockUser, {
+        brandId: '507f191e810c19729de860ea',
+        emails: ['new@example.com'],
+      });
+
+      expect(result).toEqual({
+        errors: [{ detail: 'Failed to create Beehiiv subscribers' }],
+      });
     });
   });
 });
