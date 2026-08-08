@@ -28,12 +28,12 @@ export default async function PublishOverviewPage({
   const legacyStatus = normalizePublisherPostsStatus(
     resolvedSearchParams.status,
   );
-  let statusPath = APP_ROUTES.PUBLISH.OVERVIEW;
-  if (legacyStatus === PostStatus.FAILED) {
-    statusPath = APP_ROUTES.PUBLISH.FAILED;
-  } else if (legacyStatus === PostStatus.PUBLIC) {
-    statusPath = APP_ROUTES.PUBLISH.PUBLISHED;
-  }
+  const statusPath =
+    legacyStatus === PostStatus.FAILED
+      ? APP_ROUTES.PUBLISH.FAILED
+      : legacyStatus === PostStatus.PUBLIC
+        ? APP_ROUTES.PUBLISH.PUBLISHED
+        : APP_ROUTES.PUBLISH.OVERVIEW;
   if (resolvedSearchParams.status) {
     const { orgSlug, brandSlug } = await params;
     const preservedFilters = new URLSearchParams();
