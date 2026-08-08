@@ -2,6 +2,7 @@ import {
   channelTargetInputSchema,
   createReleaseGroupSchema,
   deriveReleaseStatusFromTargets,
+  deriveReleaseStatusProjectionFromTargets,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
   LEGACY_POST_SCHEDULE_FIELD_MAP,
@@ -226,6 +227,15 @@ describe('deriveReleaseStatusFromTargets', () => {
     ).toBe(ReleaseStatus.PUBLISHED);
   });
 
+  test('all draft -> draft', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.DRAFT,
+        TargetExecutionState.DRAFT,
+      ]),
+    ).toBe(ReleaseStatus.DRAFT);
+  });
+
   test('some published, some failed -> partially-published', () => {
     expect(
       deriveReleaseStatusFromTargets([
@@ -326,6 +336,134 @@ describe('deriveReleaseStatusFromTargets', () => {
         TargetExecutionState.SCHEDULED,
       ]),
     ).toBe(ReleaseStatus.SCHEDULED);
+  });
+
+  test('every ordered pair follows the exhaustive aggregation matrix', () => {
+    const states = [
+      TargetExecutionState.DRAFT,
+      TargetExecutionState.SCHEDULED,
+      TargetExecutionState.PAUSED,
+      TargetExecutionState.CANCELLED,
+      TargetExecutionState.PUBLISHING,
+      TargetExecutionState.PUBLISHED,
+      TargetExecutionState.FAILED,
+      TargetExecutionState.SKIPPED,
+    ];
+    const matrix: ReleaseStatus[][] = [
+      [
+        ReleaseStatus.DRAFT,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PAUSED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.CANCELLED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.CANCELLED,
+      ],
+      Array.from({ length: states.length }, () => ReleaseStatus.PUBLISHING),
+      [
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.FAILED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.CANCELLED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.CANCELLED,
+      ],
+    ];
+
+    for (const [leftIndex, left] of states.entries()) {
+      for (const [rightIndex, right] of states.entries()) {
+        expect(
+          deriveReleaseStatusFromTargets([left, right]),
+          `${left} + ${right}`,
+        ).toBe(matrix[leftIndex]?.[rightIndex]);
+      }
+    }
+  });
+
+  test('fails closed with structured diagnostics for malformed target sets', () => {
+    expect(
+      deriveReleaseStatusProjectionFromTargets([
+        TargetExecutionState.PUBLISHED,
+        'not-a-target-state',
+      ]),
+    ).toEqual({
+      diagnostics: [
+        {
+          code: 'invalid-target-state',
+          invalidTargetIndexes: [1],
+          targetCount: 2,
+          validTargetCount: 1,
+        },
+      ],
+      status: ReleaseStatus.FAILED,
+    });
+  });
+
+  test('reports an empty target set without claiming publication', () => {
+    expect(deriveReleaseStatusProjectionFromTargets([])).toEqual({
+      diagnostics: [
+        {
+          code: 'empty-target-set',
+          invalidTargetIndexes: [],
+          targetCount: 0,
+          validTargetCount: 0,
+        },
+      ],
+      status: ReleaseStatus.DRAFT,
+    });
   });
 });
 

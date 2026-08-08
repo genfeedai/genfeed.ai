@@ -18,7 +18,7 @@ function createLifecycleService(
 }
 
 describe('SchedulerPublishStateService', () => {
-  it('persists a provider outcome and rolls mixed targets up to partial success', async () => {
+  it('persists a provider outcome and timestamps derived partial success without writing status', async () => {
     const post = {
       findMany: vi
         .fn()
@@ -80,17 +80,7 @@ describe('SchedulerPublishStateService', () => {
     );
     expect(postGroup.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          publishedAt: expect.any(Date),
-          status: ReleaseStatus.PARTIALLY_PUBLISHED,
-          statusTransitions: [
-            expect.objectContaining({
-              actorId: null,
-              from: ReleaseStatus.PUBLISHING,
-              to: ReleaseStatus.PARTIALLY_PUBLISHED,
-            }),
-          ],
-        }),
+        data: { publishedAt: expect.any(Date) },
       }),
     );
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
@@ -149,8 +139,49 @@ describe('SchedulerPublishStateService', () => {
       expect.objectContaining({ attempt: 1, groupId: 'group-1' }),
     );
     expect(postGroup.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { publishedAt: expect.any(Date) } }),
+    );
+  });
+
+  it('fails malformed target sets closed without writing a release status', async () => {
+    const post = {
+      findMany: vi
+        .fn()
+        .mockResolvedValue([{ targetExecutionState: 'not-a-target-state' }]),
+    };
+    const postGroup = {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'group-1',
+        publishedAt: null,
+      }),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+    };
+    const logger = { warn: vi.fn() };
+    const service = new SchedulerPublishStateService(
+      prisma as never,
+      logger as never,
+      createLifecycleService() as never,
+    );
+
+    await service.transition({
+      groupId: 'group-1',
+      organizationId: 'org-1',
+      postId: 'target-1',
+      update: {
+        executionState: TargetExecutionState.FAILED,
+        status: PostStatus.FAILED,
+      },
+    });
+
+    expect(postGroup.updateMany).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('release status derivation failed closed'),
       expect.objectContaining({
-        data: expect.objectContaining({ status: ReleaseStatus.PUBLISHED }),
+        code: 'invalid-target-state',
+        groupId: 'group-1',
       }),
     );
   });
