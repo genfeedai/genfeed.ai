@@ -229,13 +229,13 @@ describe('workspace shell trusted registry', () => {
     expect(resolveWorkspaceShellRoute('/acme/~/editor')).toBeNull();
   });
 
-  it('keeps contextual Remix routes inside the Publish switcher module', () => {
+  it('keeps contextual Remix as an action deep-link (Discover + Publish switcher)', () => {
     expect(
       resolveWorkspaceShellRoute('/acme/moonrise/publish/remix'),
     ).toMatchObject({
       productClass: 'contextual-action',
       surfaceKey: 'publish',
-      switcherItems: ['publish'],
+      switcherItems: ['discover', 'publish'],
     });
   });
 

@@ -91,6 +91,7 @@ describe('getThreadStatusMeta', () => {
       }),
     ).toEqual({
       label: 'Running',
+      shouldPulse: true,
       tone: 'running',
     });
   });

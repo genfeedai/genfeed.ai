@@ -10,7 +10,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/publish/review',
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => path,
+  }),
 }));
 
 const mockItems = [

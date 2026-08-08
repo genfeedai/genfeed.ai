@@ -482,6 +482,8 @@ describe('ReviewQueueContent', () => {
       });
     });
 
+    // Pin active selection before single-item actions (bulk may advance it).
+    fireEvent.click(screen.getByRole('button', { name: 'Select item-1' }));
     fireEvent.click(
       screen.getByRole('button', { name: 'Request Changes Active Item' }),
     );
@@ -493,6 +495,7 @@ describe('ReviewQueueContent', () => {
       });
     });
 
+    fireEvent.click(screen.getByRole('button', { name: 'Select item-2' }));
     fireEvent.click(screen.getByRole('button', { name: 'Reject Active Item' }));
     await waitFor(() => {
       expect(itemAction).toHaveBeenCalledWith('batch-1', {

@@ -407,7 +407,8 @@ describe('AgentThreadList', () => {
     const threadLink = screen.getByText('Linked thread').closest('a');
 
     expect(threadLink).toHaveAttribute('href', '/agent/conv-1');
-    expect(threadLink?.parentElement).toHaveClass('min-h-14');
+    // Row chrome is flex min-h-0 stretch (not a fixed min-h-14 pill).
+    expect(threadLink?.parentElement).toHaveClass('min-h-0');
   });
 
   it('does not render malformed threads without usable ids', async () => {
@@ -967,7 +968,7 @@ describe('AgentThreadList', () => {
     expect(screen.queryByText('Brand A chat')).toBeNull();
   });
 
-  it('shows an inline spinner for the active thread while a local ui action is busy', async () => {
+  it('shows a pulsing activity disc for the active thread while a local ui action is busy', async () => {
     const thread = createThread('conv-1', 'Generate launch creative');
     storeState.activeThreadId = 'conv-1';
     storeState.activeRunStatus = 'idle';
@@ -983,8 +984,11 @@ describe('AgentThreadList', () => {
     expect(
       await screen.findByText('Generate launch creative'),
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Conversation status for Generate launch creative'),
-    ).toHaveClass('animate-spin');
+    // Local UI busy is treated as running — disc + pulse, not a spinner.
+    const status = screen.getByLabelText(
+      'Running status for Generate launch creative',
+    );
+    expect(status).toBeInTheDocument();
+    expect(status.querySelector('.animate-ping')).not.toBeNull();
   });
 });
