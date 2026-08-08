@@ -16,7 +16,7 @@ import {
  * Pipeline: Review · Drafts · Published (status shortcuts into the desk)
  *
  * Campaigns / outreach → Automate. Remix → Discover/Library action only.
- * Newsletter create UX is not nav here (legacy deep link only).
+ * Newsletter writing → Agent; only its go-live lifecycle belongs here.
  */
 export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   {

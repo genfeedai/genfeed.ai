@@ -90,7 +90,7 @@ describe('NewsletterEditorContent', () => {
     mocks.patch.mockResolvedValue({ ...newsletter, label: 'Issue 1 revised' });
   });
 
-  it('loads the issue and returns to the archive it was opened from', async () => {
+  it('loads the issue and honors an explicit compatible return target', async () => {
     render(<NewsletterEditorContent artifactId="newsletter-1" />);
 
     expect(
@@ -103,11 +103,11 @@ describe('NewsletterEditorContent', () => {
     );
     expect(screen.getByText('Ready For Review')).toBeVisible();
     expect(
-      screen.getByRole('link', { name: /back to newsletters/i }),
+      screen.getByRole('link', { name: /back to agent/i }),
     ).toHaveAttribute('href', '/acme/main/publish/newsletters?status=review');
   });
 
-  it('falls back to the newsletters archive without a usable return target', async () => {
+  it('falls back to Agent without a usable return target', async () => {
     mocks.returnTo = null;
 
     render(<NewsletterEditorContent artifactId="newsletter-1" />);
@@ -116,8 +116,8 @@ describe('NewsletterEditorContent', () => {
       await screen.findByRole('heading', { level: 1, name: 'Issue 1' }),
     ).toBeVisible();
     expect(
-      screen.getByRole('link', { name: /back to newsletters/i }),
-    ).toHaveAttribute('href', '/acme/main/publish/newsletters');
+      screen.getByRole('link', { name: /back to agent/i }),
+    ).toHaveAttribute('href', '/acme/main/agent/new');
   });
 
   it('enables saving only once the issue has been edited', async () => {

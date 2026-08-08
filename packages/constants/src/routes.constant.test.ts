@@ -44,6 +44,14 @@ describe('routes.constant', () => {
     expect(APP_ROUTES.STUDIO.EDIT).toBe('/studio/edit');
   });
 
+  it('keeps the retired Publish newsletters path compatibility-only', () => {
+    expect(LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS).toBe(
+      '/publish/newsletters',
+    );
+    expect(APP_ROUTES.AGENT.NEW).toBe('/agent/new');
+    expect('NEWSLETTERS' in APP_ROUTES.PUBLISH).toBe(false);
+  });
+
   it('builds deep-linkable artifact editor paths', () => {
     expect(createArtifactEditorRoute('article', 'article-1')).toBe(
       '/edit/article/article-1',
