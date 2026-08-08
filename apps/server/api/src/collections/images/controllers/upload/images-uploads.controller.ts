@@ -13,6 +13,7 @@ import { UploadNftDto } from '@api/collections/images/dto/upload-nft.dto';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -172,7 +173,7 @@ export class ImagesUploadsController {
 
     await this.filesClientService.uploadToS3(
       ingredientData.id,
-      `${category}s`,
+      categoryToPlural(category),
       {
         contentType: validatedFile.mimetype || contentType,
         data: validatedFile.buffer,

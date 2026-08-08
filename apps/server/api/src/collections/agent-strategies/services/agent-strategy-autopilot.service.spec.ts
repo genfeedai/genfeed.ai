@@ -2,6 +2,11 @@ import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies
 import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
+import {
+  AgentAutonomyMode,
+  Platform,
+  toPrismaCredentialPlatform,
+} from '@genfeedai/enums';
 
 describe('AgentStrategyAutopilotService', () => {
   // Distinct ids per entity: the autopilot helpers read the Prisma scalar `id`,
@@ -24,7 +29,7 @@ describe('AgentStrategyAutopilotService', () => {
   const baseStrategy = {
     id: strategyId,
     agentType: 'general',
-    autonomyMode: 'auto_publish',
+    autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
     brandId,
     budgetPolicy: {
       maxRetriesPerOpportunity: 1,
@@ -113,7 +118,9 @@ describe('AgentStrategyAutopilotService', () => {
     const credentialsService = {
       findOne: vi.fn().mockResolvedValue({
         id: credentialId,
-        platform: 'twitter',
+        // Rows come back with the Prisma casing; the post created from this
+        // credential has to land back in lowercase product language.
+        platform: toPrismaCredentialPlatform(Platform.TWITTER),
       }),
     };
     const postsService = {
@@ -479,7 +486,7 @@ describe('AgentStrategyAutopilotService', () => {
 
     deps.agentStrategiesService.findOneById.mockResolvedValue({
       ...baseStrategy,
-      autonomyMode: 'manual_review',
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
       publishPolicy: {
         ...baseStrategy.publishPolicy,
         autoPublishEnabled: false,
@@ -731,7 +738,9 @@ describe('AgentStrategyAutopilotService', () => {
         isConnected: true,
         isDeleted: false,
         organizationId,
-        platform: 'twitter',
+        // Lookup crosses into the credentials table, so the query must carry
+        // the Prisma casing, not the lowercase product id on the opportunity.
+        platform: toPrismaCredentialPlatform(Platform.TWITTER),
       }),
     );
     expect(deps.postsService.create).toHaveBeenCalledTimes(1);
@@ -741,7 +750,7 @@ describe('AgentStrategyAutopilotService', () => {
         credentialId,
         description: 'Strong post draft',
         organizationId,
-        platform: 'twitter',
+        platform: Platform.TWITTER,
         userId,
       }),
     );

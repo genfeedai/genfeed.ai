@@ -27,6 +27,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { UploadValidationPipe } from '@api/helpers/pipes/upload-validation';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-validation.util';
 import {
@@ -349,7 +350,7 @@ export class AssetsOperationsController {
 
       await this.filesClientService.uploadToS3(
         assetData.id,
-        `${uploadDto.category}s`,
+        categoryToPlural(uploadDto.category),
         {
           contentType,
           data: file.buffer,
@@ -479,7 +480,7 @@ export class AssetsOperationsController {
       userId: publicMetadata.user,
     });
 
-    const destinationKey = `ingredients/${validatedCategory}s/${assetData.id}`;
+    const destinationKey = `ingredients/${categoryToPlural(validatedCategory)}/${assetData.id}`;
 
     try {
       // Extract source type and key from sourceKey (format: ingredients/{type}/{id})
@@ -496,7 +497,7 @@ export class AssetsOperationsController {
         sourceKeyOnly,
         destKeyOnly,
         sourceType,
-        `${validatedCategory}s`,
+        categoryToPlural(validatedCategory),
       );
     } catch (error) {
       this.loggerService.error(`${url} - Failed to copy file from S3`, {

@@ -68,7 +68,12 @@ describe('VoicesCatalogController', () => {
       search: 'test',
     });
     expect(result).toMatchObject({
-      docs: [{ externalVoiceId: 'external-1', provider: 'elevenlabs' }],
+      docs: [
+        {
+          externalVoiceId: 'external-1',
+          provider: DbVoiceProvider.ELEVENLABS,
+        },
+      ],
       totalDocs: 1,
     });
   });

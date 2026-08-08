@@ -181,7 +181,7 @@ export class BatchGenerationReconcileService {
           completedAt: new Date().toISOString(),
           completedCount,
           failedCount: items.length - completedCount,
-        } as Prisma.InputJsonValue,
+        } as unknown as Prisma.InputJsonValue,
         items: items as unknown as Prisma.InputJsonValue,
         status: toPrismaBatchStatus(BatchStatus.FAILED),
       },

@@ -81,7 +81,7 @@ export class BatchGenerationCreditsService {
           ...config,
           credits: ledger,
           ...(params.pricingOptions ? { pricing: params.pricingOptions } : {}),
-        } as Prisma.InputJsonValue,
+        } as unknown as Prisma.InputJsonValue,
       },
       where: scopedWhere(params.organizationId, {
         id: params.batchId,
@@ -159,7 +159,10 @@ export class BatchGenerationCreditsService {
       // under-charge, never as a double charge.
       const claimed = await this.prisma.batch.updateMany({
         data: {
-          config: { ...config, credits: ledger } as Prisma.InputJsonValue,
+          config: {
+            ...config,
+            credits: ledger,
+          } as unknown as Prisma.InputJsonValue,
         },
         where: scopedWhere(params.organizationId, {
           id: params.batchId,

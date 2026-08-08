@@ -124,7 +124,7 @@ export class BatchGenerationQueueService {
         config: {
           ...config,
           queuedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
+        } as unknown as Prisma.InputJsonValue,
       },
       where: scopedWhere(organizationId, { id: batchId }),
     });
