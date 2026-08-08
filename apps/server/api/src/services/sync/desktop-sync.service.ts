@@ -13,6 +13,14 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { FilesClientService } from '@server/services/files-microservice/client/files-client.service';
+import {
+  advanceCursorPosition,
+  buildCursorWhere,
+  decodeManifestCursor,
+  decodeThreadCursor,
+  encodeManifestCursor,
+  encodeThreadCursor,
+} from './desktop-sync-cursor.util';
 import type { DesktopBrandManifestQueryDto } from './dto/desktop-brand-manifest-query.dto';
 import type {
   DesktopAssetDto,
@@ -49,6 +57,9 @@ const DEFAULT_DESKTOP_THREAD_LIMIT = 50;
 const MAX_DESKTOP_THREAD_LIMIT = 100;
 const DEFAULT_DESKTOP_MESSAGE_LIMIT = 100;
 const MAX_DESKTOP_MESSAGE_LIMIT = 200;
+const MANIFEST_ASSET_PAGE_LIMIT = 500;
+const MANIFEST_BRAND_PAGE_LIMIT = 100;
+const MANIFEST_INGREDIENT_PAGE_LIMIT = 500;
 
 const ALLOWED_DESKTOP_MIME_TYPES = new Set([
   'image/jpeg',
@@ -179,6 +190,7 @@ export class DesktopSyncService {
       DEFAULT_DESKTOP_MESSAGE_LIMIT,
       MAX_DESKTOP_MESSAGE_LIMIT,
     );
+    const cursorPosition = decodeThreadCursor(cursor);
     const threadPage = await this.prisma.desktopThread.findMany({
       select: {
         createdAt: true,
@@ -188,12 +200,12 @@ export class DesktopSyncService {
         updatedAt: true,
         workspaceId: true,
       },
-      orderBy: { updatedAt: 'asc' },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
       take: threadLimit + 1,
       where: {
         organizationId,
         userId,
-        ...(cursor ? { updatedAt: { gt: new Date(cursor) } } : {}),
+        ...buildCursorWhere(cursorPosition),
       },
     });
     const hasMore = threadPage.length > threadLimit;
@@ -220,9 +232,10 @@ export class DesktopSyncService {
     );
     const messagesByThreadId = new Map(messageEntries);
 
-    const updatedCursor =
-      threads[threads.length - 1]?.updatedAt.toISOString() ??
-      new Date().toISOString();
+    const nextPosition = advanceCursorPosition(threads, cursorPosition);
+    const updatedCursor = nextPosition
+      ? encodeThreadCursor(nextPosition)
+      : null;
 
     return {
       data: {
@@ -338,118 +351,145 @@ export class DesktopSyncService {
     const { brandId: selectedBrandId, organizationId } =
       this.getCloudContext(user);
     const brandId = query.brandId ?? selectedBrandId;
-    const updatedAfter = query.cursor ? new Date(query.cursor) : undefined;
+    // Lossless keyset paging: each collection advances an ascending
+    // (updatedAt, id) cursor to the last row the client actually received.
+    // Advancing to "now" silently dropped every row past the page cap.
+    const positions = decodeManifestCursor(query.cursor);
 
-    const [organization, brands, ingredients, assets] = await Promise.all([
-      this.prisma.organization.findFirst({
-        select: {
-          id: true,
-          label: true,
-          slug: true,
-          updatedAt: true,
-        },
-        where: { id: organizationId, isDeleted: false },
-      }),
-      this.prisma.brand.findMany({
-        orderBy: { updatedAt: 'desc' },
-        take: 100,
-        select: {
-          backgroundColor: true,
-          defaultImageModel: true,
-          defaultImageToVideoModel: true,
-          defaultMusicModel: true,
-          defaultVideoModel: true,
-          description: true,
-          id: true,
-          isDeleted: true,
-          isDefault: true,
-          label: true,
-          organizationId: true,
-          primaryColor: true,
-          secondaryColor: true,
-          slug: true,
-          text: true,
-          updatedAt: true,
-        },
-        where: {
-          organizationId,
-          ...(brandId ? { id: brandId } : {}),
-          ...(updatedAfter ? {} : { isDeleted: false }),
-          ...(updatedAfter ? { updatedAt: { gt: updatedAfter } } : {}),
-        },
-      }),
-      this.prisma.ingredient.findMany({
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          brandId: true,
-          category: true,
-          cdnUrl: true,
-          createdAt: true,
-          fileSize: true,
-          id: true,
-          isDeleted: true,
-          metadata: {
-            select: {
-              description: true,
-              duration: true,
-              height: true,
-              label: true,
-              size: true,
-              width: true,
-            },
+    const [organization, brandPage, ingredientPage, assetPage] =
+      await Promise.all([
+        this.prisma.organization.findFirst({
+          select: {
+            id: true,
+            label: true,
+            slug: true,
+            updatedAt: true,
           },
-          mimeType: true,
-          organizationId: true,
-          s3Key: true,
-          status: true,
-          updatedAt: true,
-        },
-        take: 500,
-        where: {
-          organizationId,
-          ...(brandId ? { brandId } : {}),
-          ...(updatedAfter ? {} : { isDeleted: false }),
-          ...(updatedAfter ? { updatedAt: { gt: updatedAfter } } : {}),
-        },
-      }),
-      this.prisma.asset.findMany({
-        orderBy: { updatedAt: 'desc' },
-        select: {
-          cloudObjectKey: true,
-          createdAt: true,
-          displayName: true,
-          id: true,
-          isDeleted: true,
-          kind: true,
-          localAssetId: true,
-          mimeType: true,
-          origin: true,
-          originalFileName: true,
-          parentBrandId: true,
-          parentOrgId: true,
-          residency: true,
-          sha256: true,
-          sizeBytes: true,
-          updatedAt: true,
-          uploadPolicy: true,
-        },
-        take: 500,
-        where: {
-          parentOrgId: organizationId,
-          ...(brandId ? { parentBrandId: brandId } : {}),
-          ...(updatedAfter ? {} : { isDeleted: false }),
-          ...(updatedAfter ? { updatedAt: { gt: updatedAfter } } : {}),
-        },
-      }),
-    ]);
+          where: { id: organizationId, isDeleted: false },
+        }),
+        // tenant-scope-ignore: organizationId is pinned inline; isDeleted is deliberately unfiltered on cursor pulls so tombstones sync to the desktop client
+        this.prisma.brand.findMany({
+          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          take: MANIFEST_BRAND_PAGE_LIMIT + 1,
+          select: {
+            backgroundColor: true,
+            defaultImageModel: true,
+            defaultImageToVideoModel: true,
+            defaultMusicModel: true,
+            defaultVideoModel: true,
+            description: true,
+            id: true,
+            isDeleted: true,
+            isDefault: true,
+            label: true,
+            organizationId: true,
+            primaryColor: true,
+            secondaryColor: true,
+            slug: true,
+            text: true,
+            updatedAt: true,
+          },
+          where: {
+            organizationId,
+            ...(brandId ? { id: brandId } : {}),
+            ...(positions.brands ? {} : { isDeleted: false }),
+            ...buildCursorWhere(positions.brands),
+          },
+        }),
+        // tenant-scope-ignore: organizationId is pinned inline; isDeleted is deliberately unfiltered on cursor pulls so tombstones sync to the desktop client
+        this.prisma.ingredient.findMany({
+          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          select: {
+            brandId: true,
+            category: true,
+            cdnUrl: true,
+            createdAt: true,
+            fileSize: true,
+            id: true,
+            isDeleted: true,
+            metadata: {
+              select: {
+                description: true,
+                duration: true,
+                height: true,
+                label: true,
+                size: true,
+                width: true,
+              },
+            },
+            mimeType: true,
+            organizationId: true,
+            s3Key: true,
+            status: true,
+            updatedAt: true,
+          },
+          take: MANIFEST_INGREDIENT_PAGE_LIMIT + 1,
+          where: {
+            organizationId,
+            ...(brandId ? { brandId } : {}),
+            ...(positions.ingredients ? {} : { isDeleted: false }),
+            ...buildCursorWhere(positions.ingredients),
+          },
+        }),
+        this.prisma.asset.findMany({
+          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          select: {
+            cloudObjectKey: true,
+            createdAt: true,
+            displayName: true,
+            id: true,
+            isDeleted: true,
+            kind: true,
+            localAssetId: true,
+            mimeType: true,
+            origin: true,
+            originalFileName: true,
+            parentBrandId: true,
+            parentOrgId: true,
+            residency: true,
+            sha256: true,
+            sizeBytes: true,
+            updatedAt: true,
+            uploadPolicy: true,
+          },
+          take: MANIFEST_ASSET_PAGE_LIMIT + 1,
+          where: {
+            parentOrgId: organizationId,
+            ...(brandId ? { parentBrandId: brandId } : {}),
+            ...(positions.assets ? {} : { isDeleted: false }),
+            ...buildCursorWhere(positions.assets),
+          },
+        }),
+      ]);
+
+    const hasMoreBrands = brandPage.length > MANIFEST_BRAND_PAGE_LIMIT;
+    const brands = hasMoreBrands
+      ? brandPage.slice(0, MANIFEST_BRAND_PAGE_LIMIT)
+      : brandPage;
+    const hasMoreIngredients =
+      ingredientPage.length > MANIFEST_INGREDIENT_PAGE_LIMIT;
+    const ingredients = hasMoreIngredients
+      ? ingredientPage.slice(0, MANIFEST_INGREDIENT_PAGE_LIMIT)
+      : ingredientPage;
+    const hasMoreAssets = assetPage.length > MANIFEST_ASSET_PAGE_LIMIT;
+    const assets = hasMoreAssets
+      ? assetPage.slice(0, MANIFEST_ASSET_PAGE_LIMIT)
+      : assetPage;
+
+    const updatedCursor = encodeManifestCursor({
+      assets: advanceCursorPosition(assets, positions.assets),
+      brands: advanceCursorPosition(brands, positions.brands),
+      ingredients: advanceCursorPosition(ingredients, positions.ingredients),
+    });
 
     return {
       data: {
         assets,
         brands,
+        hasMore: hasMoreAssets || hasMoreBrands || hasMoreIngredients,
         ingredients,
         organization,
-        updatedCursor: new Date().toISOString(),
+        updatedCursor,
       },
     };
   }

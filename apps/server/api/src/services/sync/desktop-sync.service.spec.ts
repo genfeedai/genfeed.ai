@@ -44,7 +44,9 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-const { DesktopSyncService } = await import('./desktop-sync.service.ts');
+const { DesktopSyncService } = await import('./desktop-sync.service');
+const { decodeManifestCursor, decodeThreadCursor, encodeThreadCursor } =
+  await import('./desktop-sync-cursor.util');
 
 const userId = '507f191e810c19729de860ee';
 const organizationId = '607f191e810c19729de860ee';
@@ -58,8 +60,12 @@ function buildService() {
       aggregate: vi.fn().mockResolvedValue({ _sum: { sizeBytes: 0 } }),
       create: vi.fn(),
       findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       updateMany: vi.fn(),
+    },
+    brand: {
+      findMany: vi.fn().mockResolvedValue([]),
     },
     desktopMessage: {
       createMany: vi.fn().mockResolvedValue({ count: 0 }),
@@ -69,6 +75,12 @@ function buildService() {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       upsert: vi.fn(),
+    },
+    ingredient: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    organization: {
+      findFirst: vi.fn().mockResolvedValue(null),
     },
   };
   const filesClientService = {
@@ -165,7 +177,7 @@ describe('DesktopSyncService', () => {
     );
 
     expect(prisma.desktopThread.findMany).toHaveBeenCalledWith({
-      orderBy: { updatedAt: 'asc' },
+      orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
       select: {
         createdAt: true,
         id: true,
@@ -379,5 +391,315 @@ describe('DesktopSyncService', () => {
     // Soft-deleted match short-circuits before any write.
     expect(prisma.asset.create).not.toHaveBeenCalled();
     expect(prisma.asset.update).not.toHaveBeenCalled();
+  });
+
+  it('pull threads: composite cursor tie-breaks equal updatedAt rows across the page boundary', async () => {
+    const { prisma, service } = buildService();
+    const tiedAt = new Date('2026-05-01T11:00:00.000Z');
+    const makeThread = (id: string) => ({
+      createdAt: new Date('2026-05-01T10:00:00.000Z'),
+      id,
+      status: 'idle',
+      title: 'Offline plan',
+      updatedAt: tiedAt,
+      workspaceId: 'workspace-local',
+    });
+    prisma.desktopThread.findMany.mockResolvedValue([
+      makeThread('thread-1'),
+      makeThread('thread-2'),
+      makeThread('thread-3'),
+    ]);
+
+    const result = await service.pullThreads(makeUser(), undefined, {
+      limit: 2,
+    });
+
+    expect(result.data.hasMore).toBe(true);
+    expect(result.data.threads.map((t: { id: string }) => t.id)).toEqual([
+      'thread-1',
+      'thread-2',
+    ]);
+    // The cursor is the last RETURNED row — not the over-fetched probe row
+    // and never "now" — so the tied thread-3 satisfies the next request.
+    expect(decodeThreadCursor(result.data.updatedCursor ?? undefined)).toEqual({
+      id: 'thread-2',
+      updatedAt: tiedAt.toISOString(),
+    });
+
+    prisma.desktopThread.findMany.mockResolvedValue([]);
+    await service.pullThreads(makeUser(), result.data.updatedCursor as string, {
+      limit: 2,
+    });
+
+    expect(prisma.desktopThread.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId,
+          userId,
+          OR: [
+            { updatedAt: { gt: tiedAt } },
+            { id: { gt: 'thread-2' }, updatedAt: tiedAt },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('pull threads: an empty page keeps the incoming cursor instead of advancing to now', async () => {
+    const { prisma, service } = buildService();
+    prisma.desktopThread.findMany.mockResolvedValue([]);
+    const cursor = encodeThreadCursor({
+      id: 'thread-9',
+      updatedAt: '2026-05-01T09:00:00.000Z',
+    });
+
+    const result = await service.pullThreads(makeUser(), cursor);
+
+    expect(result.data.hasMore).toBe(false);
+    expect(result.data.updatedCursor).toBe(cursor);
+  });
+
+  describe('getBrandManifest', () => {
+    type SyntheticAssetRow = {
+      id: string;
+      isDeleted: boolean;
+      parentBrandId: string;
+      parentOrgId: string;
+      updatedAt: Date;
+    };
+
+    type AssetQueryArgs = {
+      take: number;
+      where: {
+        OR?: [
+          { updatedAt: { gt: Date } },
+          { id: { gt: string }; updatedAt: Date },
+        ];
+        isDeleted?: boolean;
+        parentBrandId?: string;
+        parentOrgId?: string;
+        updatedAt?: { gt: Date };
+      };
+    };
+
+    const makeAssetRow = (
+      id: string,
+      updatedAt: Date,
+      isDeleted = false,
+    ): SyntheticAssetRow => ({
+      id,
+      isDeleted,
+      parentBrandId: brandId,
+      parentOrgId: organizationId,
+      updatedAt,
+    });
+
+    // Minimal in-memory interpreter for the exact query shape the service
+    // builds, so the drain test exercises real keyset semantics.
+    const runAssetQuery = (
+      rows: SyntheticAssetRow[],
+      args: AssetQueryArgs,
+    ): SyntheticAssetRow[] => {
+      const { where } = args;
+      const matched = rows.filter((row) => {
+        if (
+          where.parentOrgId !== undefined &&
+          row.parentOrgId !== where.parentOrgId
+        ) {
+          return false;
+        }
+        if (
+          where.parentBrandId !== undefined &&
+          row.parentBrandId !== where.parentBrandId
+        ) {
+          return false;
+        }
+        if (
+          where.isDeleted !== undefined &&
+          row.isDeleted !== where.isDeleted
+        ) {
+          return false;
+        }
+        if (
+          where.updatedAt?.gt !== undefined &&
+          row.updatedAt.getTime() <= where.updatedAt.gt.getTime()
+        ) {
+          return false;
+        }
+        if (where.OR) {
+          const [beyond, tie] = where.OR;
+          const isBeyond =
+            row.updatedAt.getTime() > beyond.updatedAt.gt.getTime();
+          const isTieBreak =
+            row.updatedAt.getTime() === tie.updatedAt.getTime() &&
+            row.id > tie.id.gt;
+          if (!isBeyond && !isTieBreak) {
+            return false;
+          }
+        }
+        return true;
+      });
+      matched.sort(
+        (a, b) =>
+          a.updatedAt.getTime() - b.updatedAt.getTime() ||
+          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+      );
+      // Copies, so mid-drain dataset mutations cannot retroactively rewrite
+      // rows already delivered to the client.
+      return matched.slice(0, args.take).map((row) => ({ ...row }));
+    };
+
+    it('first pull excludes tombstones, orders ascending, and advances to the last returned row', async () => {
+      const { prisma, service } = buildService();
+      const rows = [
+        makeAssetRow('asset-0001', new Date('2026-05-01T09:00:00.000Z')),
+        makeAssetRow('asset-0002', new Date('2026-05-01T10:00:00.000Z')),
+      ];
+      prisma.asset.findMany.mockResolvedValue(rows);
+
+      const result = await service.getBrandManifest(makeUser(), {});
+
+      expect(prisma.asset.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ updatedAt: 'asc' }, { id: 'asc' }],
+          take: 501,
+          where: {
+            isDeleted: false,
+            parentBrandId: brandId,
+            parentOrgId: organizationId,
+          },
+        }),
+      );
+      expect(result.data.hasMore).toBe(false);
+      expect(decodeManifestCursor(result.data.updatedCursor)).toEqual({
+        assets: { id: 'asset-0002', updatedAt: '2026-05-01T10:00:00.000Z' },
+      });
+    });
+
+    it('tie on updatedAt at the page boundary advances by id, not past the tied rows', async () => {
+      const { prisma, service } = buildService();
+      const tiedAt = new Date('2026-05-01T09:00:00.000Z');
+      prisma.asset.findMany.mockResolvedValue(
+        Array.from({ length: 501 }, (_, i) =>
+          makeAssetRow(`asset-${String(i).padStart(4, '0')}`, tiedAt),
+        ),
+      );
+
+      const result = await service.getBrandManifest(makeUser(), {});
+
+      expect(result.data.hasMore).toBe(true);
+      expect(result.data.assets).toHaveLength(500);
+      expect(decodeManifestCursor(result.data.updatedCursor).assets).toEqual({
+        id: 'asset-0499',
+        updatedAt: tiedAt.toISOString(),
+      });
+
+      prisma.asset.findMany.mockResolvedValue([]);
+      await service.getBrandManifest(makeUser(), {
+        cursor: result.data.updatedCursor,
+      });
+
+      expect(prisma.asset.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: {
+            parentBrandId: brandId,
+            parentOrgId: organizationId,
+            OR: [
+              { updatedAt: { gt: tiedAt } },
+              { id: { gt: 'asset-0499' }, updatedAt: tiedAt },
+            ],
+          },
+        }),
+      );
+    });
+
+    it('accepts a legacy plain-ISO cursor and includes tombstones on incremental pulls', async () => {
+      const { prisma, service } = buildService();
+      prisma.asset.findMany.mockResolvedValue([]);
+      const legacy = '2026-05-01T09:00:00.000Z';
+
+      const result = await service.getBrandManifest(makeUser(), {
+        cursor: legacy,
+      });
+
+      expect(prisma.asset.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            parentBrandId: brandId,
+            parentOrgId: organizationId,
+            updatedAt: { gt: new Date(legacy) },
+          },
+        }),
+      );
+      // An empty page keeps the position instead of advancing to now.
+      expect(decodeManifestCursor(result.data.updatedCursor)).toEqual({
+        assets: { updatedAt: legacy },
+        brands: { updatedAt: legacy },
+        ingredients: { updatedAt: legacy },
+      });
+    });
+
+    it('drains 1000 changed rows losslessly across pages, re-delivering rows updated or deleted mid-drain', async () => {
+      const { prisma, service } = buildService();
+      const base = new Date('2026-05-01T00:00:00.000Z').getTime();
+      const minute = 60_000;
+      // 300 distinct timestamps, a 400-row tie cluster spanning the page
+      // boundary, then 300 distinct timestamps.
+      const dataset = Array.from({ length: 1000 }, (_, i) => {
+        const tickIndex = i < 300 ? i : i < 700 ? 300 : i;
+        return makeAssetRow(
+          `asset-${String(i).padStart(4, '0')}`,
+          new Date(base + tickIndex * minute),
+        );
+      });
+      const maxTime = base + 999 * minute;
+      prisma.asset.findMany.mockImplementation((args: AssetQueryArgs) =>
+        Promise.resolve(runAssetQuery(dataset, args)),
+      );
+
+      const deliveries: SyntheticAssetRow[] = [];
+      const firstPage = await service.getBrandManifest(makeUser(), {});
+      deliveries.push(...(firstPage.data.assets as SyntheticAssetRow[]));
+      expect(firstPage.data.hasMore).toBe(true);
+
+      // Between pages: one already-delivered row is updated and another is
+      // soft-deleted. Both must be re-delivered by later pages.
+      const updatedRow = dataset.find((row) => row.id === 'asset-0100');
+      const deletedRow = dataset.find((row) => row.id === 'asset-0200');
+      if (!updatedRow || !deletedRow) {
+        throw new Error('synthetic rows missing');
+      }
+      updatedRow.updatedAt = new Date(maxTime + 60 * minute);
+      deletedRow.isDeleted = true;
+      deletedRow.updatedAt = new Date(maxTime + 120 * minute);
+
+      let cursor = firstPage.data.updatedCursor;
+      let hasMore = firstPage.data.hasMore;
+      let pageGuard = 0;
+      while (hasMore) {
+        pageGuard++;
+        expect(pageGuard).toBeLessThan(20);
+        const page = await service.getBrandManifest(makeUser(), { cursor });
+        deliveries.push(...(page.data.assets as SyntheticAssetRow[]));
+        cursor = page.data.updatedCursor;
+        hasMore = page.data.hasMore;
+      }
+
+      const deliveryCounts = new Map<string, number>();
+      for (const row of deliveries) {
+        deliveryCounts.set(row.id, (deliveryCounts.get(row.id) ?? 0) + 1);
+      }
+      // Every one of the 1000 rows arrived — nothing skipped past the cap or
+      // lost on updatedAt ties.
+      expect(deliveryCounts.size).toBe(1000);
+      expect(deliveries).toHaveLength(1002);
+      expect(deliveryCounts.get('asset-0100')).toBe(2);
+      expect(deliveryCounts.get('asset-0200')).toBe(2);
+      const tombstoneDeliveries = deliveries.filter(
+        (row) => row.id === 'asset-0200',
+      );
+      expect(tombstoneDeliveries.at(0)?.isDeleted).toBe(false);
+      expect(tombstoneDeliveries.at(-1)?.isDeleted).toBe(true);
+    });
   });
 });

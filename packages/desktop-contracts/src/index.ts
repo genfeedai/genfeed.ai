@@ -360,12 +360,21 @@ export interface IDesktopBrandManifest {
     status?: string;
     updatedAt: string;
   }>;
+  /**
+   * True when any collection has rows beyond this page — pull again with
+   * `updatedCursor` until false to drain losslessly.
+   */
+  hasMore: boolean;
   organization?: {
     id: string;
     label: string;
     slug: string;
     updatedAt: string;
   } | null;
+  /**
+   * Opaque composite keyset cursor (per-collection ascending `updatedAt, id`
+   * positions). Store and echo verbatim; never interpret client-side.
+   */
   updatedCursor: string;
 }
 
