@@ -18,14 +18,21 @@ import {
   readPreferredAgentChatModel,
   writePreferredAgentChatModel,
 } from '@genfeedai/agent/stores/agent-preferred-model.store';
+import {
+  isAutoAgentModel,
+  toRuntimeAgentModel,
+} from '@genfeedai/agent/utils/agent-auto-model.util';
 import { findPendingGenerationAction } from '@genfeedai/agent/utils/find-pending-generation-action';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   AlertCategory,
+  fromRouterPriority,
   RouterPriority,
   toRouterPriority,
 } from '@genfeedai/enums';
+import { User } from '@genfeedai/models/auth/user.model';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import Alert from '@ui/feedback/alert/Alert';
 import {
@@ -33,12 +40,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
-
-function isAutoAgentModel(value: string | null | undefined): boolean {
-  return value?.trim() === AUTO_MODEL_OPTION_VALUE;
-}
 
 export type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 
@@ -70,15 +74,19 @@ export function AgentChatContainer({
 }: AgentChatContainerProps): ReactElement {
   const composerShell = useConversationComposerShell();
   const userContext = useOptionalUser();
+  const currentUser = userContext?.currentUser ?? null;
+  const mutateUser = userContext?.mutateUser;
   // Only treat settings as authoritative once the user payload is present —
   // otherwise an empty defaultAgentModel during load would force Auto forever.
-  const hasUserSettings = Boolean(userContext?.currentUser?.settings);
+  const hasUserSettings = Boolean(currentUser?.settings);
   const settingsDefaultModel =
-    userContext?.currentUser?.settings?.defaultAgentModel?.trim() ?? '';
+    currentUser?.settings?.defaultAgentModel?.trim() ?? '';
   const settingsPriority =
-    toRouterPriority(userContext?.currentUser?.settings?.generationPriority) ??
+    toRouterPriority(currentUser?.settings?.generationPriority) ??
     RouterPriority.BALANCED;
   const messages = useAgentChatStore((state) => state.messages);
+  const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
+  const persistSettingsInFlight = useRef(false);
   const {
     defaultModelKey,
     isLoading: isRegistryModelsLoading,
@@ -103,18 +111,71 @@ export function AgentChatContainer({
     setPrioritize(settingsPriority);
   }, [settingsPriority]);
 
-  const handleModelChange = useCallback((nextModel: string) => {
-    const trimmed = nextModel.trim();
-    if (!trimmed) {
-      return;
-    }
-    setSelectedModel(trimmed);
-    writePreferredAgentChatModel(trimmed);
-  }, []);
+  const persistChatDefaults = useCallback(
+    async (patch: {
+      defaultAgentModel?: string;
+      generationPriority?: ReturnType<typeof fromRouterPriority>;
+    }) => {
+      if (!currentUser?.id || !mutateUser || persistSettingsInFlight.current) {
+        return;
+      }
 
-  const handlePrioritizeChange = useCallback((next: RouterPriority) => {
-    setPrioritize(next);
-  }, []);
+      persistSettingsInFlight.current = true;
+      try {
+        const token = await apiService.getToken();
+        if (!token) {
+          return;
+        }
+        await UsersService.getInstance(token).patchSettings(
+          currentUser.id,
+          patch,
+        );
+        mutateUser(
+          new User({
+            ...currentUser,
+            settings: {
+              ...currentUser.settings,
+              ...patch,
+            },
+          }),
+        );
+      } catch {
+        // Preference patch is best-effort — UI already reflects the pick.
+      } finally {
+        persistSettingsInFlight.current = false;
+      }
+    },
+    [apiService, currentUser, mutateUser],
+  );
+
+  const handleModelChange = useCallback(
+    (nextModel: string) => {
+      const trimmed = nextModel.trim();
+      if (!trimmed) {
+        return;
+      }
+      setSelectedModel(trimmed);
+      writePreferredAgentChatModel(trimmed);
+      void persistChatDefaults({
+        defaultAgentModel: isAutoAgentModel(trimmed) ? '' : trimmed,
+      });
+    },
+    [persistChatDefaults],
+  );
+
+  const handlePrioritizeChange = useCallback(
+    (next: RouterPriority) => {
+      setPrioritize(next);
+      // Selecting a priority also means Auto — clear any pinned model override.
+      setSelectedModel(AUTO_MODEL_OPTION_VALUE);
+      writePreferredAgentChatModel(AUTO_MODEL_OPTION_VALUE);
+      void persistChatDefaults({
+        defaultAgentModel: '',
+        generationPriority: fromRouterPriority(next),
+      });
+    },
+    [persistChatDefaults],
+  );
 
   useEffect(() => {
     if (isRegistryModelsLoading || registryModels.length === 0) {
@@ -172,9 +233,8 @@ export function AgentChatContainer({
   ]);
 
   // Auto → omit model on the wire so the server resolves via defaults + priority.
-  const runtimeModel = isAutoAgentModel(selectedModel)
-    ? UNRESOLVED_RUNTIME_AGENT_MODEL
-    : selectedModel;
+  const runtimeModel =
+    toRuntimeAgentModel(selectedModel) || UNRESOLVED_RUNTIME_AGENT_MODEL;
 
   const container = useAgentChatContainer({
     apiService,
@@ -336,6 +396,7 @@ export function AgentChatContainer({
             onModelChange={handleModelChange}
             onPrioritizeChange={handlePrioritizeChange}
             prioritize={prioritize}
+            creditsAvailable={creditsRemaining}
             models={registryModels}
             isModelsLoading={isRegistryModelsLoading}
           />
@@ -435,6 +496,7 @@ export function AgentChatContainer({
               latestProposedPlan={container.latestProposedPlan}
               layoutMode={promptBarLayoutMode}
               onClearError={() => container.setError(null)}
+              creditsAvailable={creditsRemaining}
               onModelChange={handleModelChange}
               onPrioritizeChange={handlePrioritizeChange}
               onSend={container.handleSend}

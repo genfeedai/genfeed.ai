@@ -16,13 +16,18 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
   onToggle,
   onFavoriteToggle,
   selectionMode = 'multi',
+  isLocked = false,
+  lockReason,
 }: ModelSelectorModelItemProps) {
   const { model, brandLabel, costTier, isFavorite, variantLabel } = option;
   const isSingleSelect = selectionMode === 'single';
 
   const handleSelect = useCallback(() => {
+    if (isLocked) {
+      return;
+    }
     onToggle(model.key);
-  }, [onToggle, model.key]);
+  }, [isLocked, onToggle, model.key]);
 
   const handleFavoriteClick = useCallback(
     (e: React.MouseEvent) => {
@@ -36,9 +41,13 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
     <CommandItem
       value={`${model.label} ${brandLabel} ${model.description ?? ''}`}
       onSelect={handleSelect}
+      disabled={isLocked}
+      aria-disabled={isLocked || undefined}
+      title={isLocked ? lockReason : undefined}
       className={cn(
         'flex min-h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2 py-1.5 text-[13px] text-foreground transition-colors data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground lg:min-h-0',
         isSelected && 'bg-background-tertiary',
+        isLocked && 'cursor-not-allowed opacity-50',
       )}
     >
       <span className="size-3.5 shrink-0" aria-hidden="true" />
@@ -64,6 +73,11 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         <div className="flex items-center gap-1.5">
           <span className="truncate font-medium">{variantLabel}</span>
           <ModelSelectorCostBadge costTier={costTier} />
+          {isLocked ? (
+            <span className="rounded-full border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-destructive">
+              Credits
+            </span>
+          ) : null}
           {option.isDeprecated && (
             <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-300">
               Legacy

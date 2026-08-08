@@ -73,6 +73,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   sourceGroupLabels,
   autoSourceGroups,
   isDisabled = false,
+  creditsAvailable = null,
 }: ModelSelectorPopoverProps) {
   const isSingleSelect = selectionMode === 'single';
   const [isOpen, setIsOpen] = useState(false);
@@ -83,6 +84,22 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const hasCreditLock =
+    typeof creditsAvailable === 'number' && Number.isFinite(creditsAvailable);
+
+  const isModelCreditLocked = useCallback(
+    (model: { cost?: number | null; key: string }): boolean => {
+      if (!hasCreditLock) {
+        return false;
+      }
+      const cost =
+        typeof model.cost === 'number' && Number.isFinite(model.cost)
+          ? model.cost
+          : 0;
+      return cost > (creditsAvailable as number);
+    },
+    [creditsAvailable, hasCreditLock],
+  );
 
   const allOptions = useMemo(
     () =>
@@ -333,6 +350,11 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
 
   const handleToggle = useCallback(
     (modelKey: string) => {
+      const lockedModel = models.find((entry) => entry.key === modelKey);
+      if (lockedModel && isModelCreditLocked(lockedModel)) {
+        return;
+      }
+
       const currentValues = values.filter(
         (value) => value !== AUTO_MODEL_OPTION_VALUE,
       );
@@ -353,7 +375,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         onChange(name, [...currentValues, modelKey]);
       }
     },
-    [isSingleSelect, name, onChange, values],
+    [isModelCreditLocked, isSingleSelect, models, name, onChange, values],
   );
 
   const handleAutoSelect = useCallback(
@@ -566,6 +588,14 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                           isSelected={values.includes(
                                             option.model.key,
                                           )}
+                                          isLocked={isModelCreditLocked(
+                                            option.model,
+                                          )}
+                                          lockReason={
+                                            isModelCreditLocked(option.model)
+                                              ? `Needs ${option.model.cost} credits (you have ${creditsAvailable})`
+                                              : undefined
+                                          }
                                           onToggle={handleToggle}
                                           onFavoriteToggle={onFavoriteToggle}
                                           selectionMode={selectionMode}

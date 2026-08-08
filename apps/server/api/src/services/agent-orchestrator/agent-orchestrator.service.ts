@@ -108,6 +108,15 @@ export class AgentOrchestratorService {
       const userSettings = await this.settingsService.findOne({
         userId: context.userId,
       });
+      // Empty defaultAgentModel = Auto (leave request.model unset for registry
+      // / brand / subscription resolution). A non-empty pin is the user's
+      // durable chat override when the client omits model.
+      if (!request.model?.trim()) {
+        const pinned = userSettings?.defaultAgentModel?.trim();
+        if (pinned) {
+          request = { ...request, model: pinned };
+        }
+      }
 
       const resolved = await this.contextService.resolveSystemPromptAndModel(
         request,
@@ -312,10 +321,16 @@ export class AgentOrchestratorService {
     runId: string;
     startedAt: string;
   }> {
-    // Look up user's generation priority setting
+    // Look up user's generation priority + default chat model
     const userSettings = await this.settingsService.findOne({
       userId: context.userId,
     });
+    if (!request.model?.trim()) {
+      const pinned = userSettings?.defaultAgentModel?.trim();
+      if (pinned) {
+        request = { ...request, model: pinned };
+      }
+    }
 
     const resolved = await this.contextService.resolveSystemPromptAndModel(
       request,

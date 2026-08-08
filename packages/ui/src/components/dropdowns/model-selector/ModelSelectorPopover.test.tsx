@@ -438,4 +438,32 @@ describe('ModelSelectorPopover', () => {
       }),
     ).toBeInTheDocument();
   });
+
+  it('blocks selecting models that cost more credits than available', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            cost: 50,
+            key: 'openai/expensive',
+            label: 'Expensive Model',
+          }),
+        ]}
+        values={[]}
+        onChange={onChange}
+        creditsAvailable={5}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+    expect(screen.getByText('Credits')).toBeInTheDocument();
+    await user.click(screen.getByText('Expensive Model'));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });

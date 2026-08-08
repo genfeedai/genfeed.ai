@@ -45,6 +45,11 @@ export interface ModelSelectorPopoverProps {
   autoSourceGroups?: string[];
   /** When true, trigger/open are blocked (busy composer, etc.). */
   isDisabled?: boolean;
+  /**
+   * When set, models whose `cost` exceeds this balance are not selectable
+   * (credit lock). Null/undefined disables the lock.
+   */
+  creditsAvailable?: number | null;
 }
 
 export interface ModelSelectorProviderSidebarProps {
@@ -66,6 +71,9 @@ export interface ModelSelectorModelItemProps {
   onFavoriteToggle: (modelKey: string) => void;
   /** `single` uses a check mark instead of multi-select checkboxes. */
   selectionMode?: 'multi' | 'single';
+  /** Credit lock — row is visible but not selectable. */
+  isLocked?: boolean;
+  lockReason?: string;
 }
 
 export interface ModelSelectorFamilyItemProps {

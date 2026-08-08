@@ -74,6 +74,7 @@ function AgentChatInputToolbarInner({
   isTranscribing,
   isUploading,
   models = [],
+  creditsAvailable = null,
   onAddFiles,
   onInsertReference,
   onModelChange,
@@ -124,6 +125,7 @@ function AgentChatInputToolbarInner({
         onFavoriteToggle={onFavoriteToggle}
         onPrioritizeChange={onPrioritizeChange}
         prioritize={prioritize}
+        creditsAvailable={creditsAvailable}
         selectionMode="single"
         values={
           isAutoSelected

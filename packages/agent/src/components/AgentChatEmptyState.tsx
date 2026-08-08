@@ -51,6 +51,7 @@ type AgentChatEmptyStateProps = {
   onModelChange?: (model: string) => void;
   onPrioritizeChange?: (priority: RouterPriority) => void;
   prioritize?: RouterPriority;
+  creditsAvailable?: number | null;
 };
 
 export function AgentChatEmptyState({
@@ -81,6 +82,7 @@ export function AgentChatEmptyState({
   onModelChange,
   onPrioritizeChange,
   prioritize,
+  creditsAvailable = null,
 }: AgentChatEmptyStateProps): ReactElement {
   const isInspector = variant === 'inspector';
 
@@ -155,6 +157,7 @@ export function AgentChatEmptyState({
                 onModelChange={onModelChange}
                 onPrioritizeChange={onPrioritizeChange}
                 prioritize={prioritize}
+                creditsAvailable={creditsAvailable}
               />
             </PromptBarContainer>
           ) : null}
