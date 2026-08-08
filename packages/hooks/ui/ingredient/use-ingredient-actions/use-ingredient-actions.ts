@@ -1,3 +1,4 @@
+import { createLibraryAssetRoute } from '@genfeedai/constants';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -18,10 +19,12 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import {
   executeSilentWithActionState,
@@ -90,6 +93,7 @@ export function useIngredientActions({
   );
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
   const { brandId } = useBrand();
+  const { href } = useOrgUrl();
   const { subscribe } = useSocketManager();
 
   // Track pending asset uploads for websocket updates
@@ -488,7 +492,7 @@ export function useIngredientActions({
         },
         setActionStates,
         stateKey: 'isPortraiting',
-        url: `POST /${ingredient.category}s/${ingredient.id}/reframe [portrait]`,
+        url: `POST /${IngredientEndpoints.getEndpointFromTypeOrPath(ingredient.category)}/${ingredient.id}/reframe [portrait]`,
       });
     },
     [onRefresh, getVideosService, getImagesService],
@@ -513,7 +517,7 @@ export function useIngredientActions({
         },
         setActionStates,
         stateKey: 'isSquaring',
-        url: `POST /${ingredient.category}s/${ingredient.id}/reframe [square]`,
+        url: `POST /${IngredientEndpoints.getEndpointFromTypeOrPath(ingredient.category)}/${ingredient.id}/reframe [square]`,
       });
     },
     [onRefresh, getVideosService, getImagesService],
@@ -538,7 +542,7 @@ export function useIngredientActions({
         },
         setActionStates,
         stateKey: 'isLandscaping',
-        url: `POST /${ingredient.category}s/${ingredient.id}/reframe [landscape]`,
+        url: `POST /${IngredientEndpoints.getEndpointFromTypeOrPath(ingredient.category)}/${ingredient.id}/reframe [landscape]`,
       });
     },
     [onRefresh, getVideosService, getImagesService],
@@ -809,8 +813,10 @@ export function useIngredientActions({
       }
 
       try {
-        // Create URL to ingredient detail page
-        const url = `${EnvironmentService.apps.app}/${ingredient.category}s/${ingredient.id}`;
+        // Deep link into the Library surface that lists this asset category.
+        const url = `${EnvironmentService.apps.app}${href(
+          createLibraryAssetRoute(ingredient.category, ingredient.id),
+        )}`;
         await clipboardService.copyToClipboard(url);
         notificationsService.success('Link copied to clipboard');
       } catch (error: unknown) {
@@ -818,7 +824,7 @@ export function useIngredientActions({
         notificationsService.error('Failed to copy link');
       }
     },
-    [clipboardService, notificationsService, onShare],
+    [clipboardService, href, notificationsService, onShare],
   );
 
   /**

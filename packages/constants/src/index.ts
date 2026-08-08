@@ -10,6 +10,7 @@ export * from './error-messages.constant';
 export * from './feature-flags.constant';
 export * from './gallery.constant';
 export * from './library.constant';
+export * from './library-asset-routes.constant';
 export * from './lifecycle-emails.constant';
 export * from './locale.constant';
 export * from './media.constant';

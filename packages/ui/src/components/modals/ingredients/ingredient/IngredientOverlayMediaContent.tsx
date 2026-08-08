@@ -1,4 +1,4 @@
-import type { AssetScope } from '@genfeedai/enums';
+import { type AssetScope, formatEnumLabel } from '@genfeedai/enums';
 import type { ICredential, IImage, IIngredient } from '@genfeedai/interfaces';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
@@ -147,7 +147,7 @@ export default function IngredientOverlayMediaContent({
             <p className="text-lg mb-2">{metadataLabel}</p>
 
             <p className="text-sm text-foreground/60">
-              {localIngredient.category}
+              {formatEnumLabel(localIngredient.category)}
             </p>
           </div>
         )}

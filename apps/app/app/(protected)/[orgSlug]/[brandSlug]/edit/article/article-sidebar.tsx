@@ -1,5 +1,6 @@
 'use client';
 
+import { formatEnumLabel } from '@genfeedai/enums';
 import type { Article } from '@genfeedai/models/content/article.model';
 import type { ArticleFormState } from '@props/content/article-editor.props';
 import Card from '@ui/card/Card';
@@ -53,7 +54,9 @@ export default function ArticleSidebar({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-foreground/60">Status</span>
-              <span className="font-medium capitalize">{form.status}</span>
+              <span className="font-medium">
+                {formatEnumLabel(form.status)}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-foreground/60">Words</span>

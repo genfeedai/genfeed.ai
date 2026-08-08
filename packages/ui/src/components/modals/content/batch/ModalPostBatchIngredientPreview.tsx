@@ -1,6 +1,10 @@
 'use client';
 
-import { ComponentSize, IngredientCategory } from '@genfeedai/enums';
+import {
+  ComponentSize,
+  formatEnumLabel,
+  IngredientCategory,
+} from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -87,7 +91,9 @@ export default function ModalPostBatchIngredientPreview({
           )}
 
           <div className="flex flex-wrap gap-2">
-            <Badge size={ComponentSize.SM}>{ingredient.category}</Badge>
+            <Badge size={ComponentSize.SM}>
+              {formatEnumLabel(ingredient.category)}
+            </Badge>
             {ingredient.ingredientFormat && (
               <Badge size={ComponentSize.SM}>
                 {ingredient.ingredientFormat}

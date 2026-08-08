@@ -1,5 +1,6 @@
 'use client';
 
+import { formatEnumLabel } from '@genfeedai/enums';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import type {
   IAgentRunContent,
@@ -28,6 +29,19 @@ const STATUS_VARIANTS: Record<
   review: 'warning',
   scheduled: 'warning',
 };
+
+/**
+ * A run mixes posts (lowercase `PostStatus`, a String column) with ingredients
+ * (SCREAMING `IngredientStatus`, a Prisma enum), so the variant lookup has to be
+ * case-insensitive or every ingredient silently falls through to the default.
+ *
+ * @see .agents/memory/rules/enum_source_of_truth.md
+ */
+function getStatusVariant(
+  status: string,
+): 'success' | 'warning' | 'error' | 'secondary' {
+  return STATUS_VARIANTS[status.toLowerCase()] ?? 'secondary';
+}
 
 export default function AgentRunContentGrid({
   runId,
@@ -121,8 +135,8 @@ function ContentCard({ item }: { item: IAgentRunContentItem }) {
           {icon}
           <span className="capitalize">{item.type}</span>
         </span>
-        <Badge variant={STATUS_VARIANTS[item.status] ?? 'secondary'}>
-          {item.status}
+        <Badge variant={getStatusVariant(item.status)}>
+          {formatEnumLabel(item.status)}
         </Badge>
       </div>
 
@@ -146,7 +160,7 @@ function ContentCard({ item }: { item: IAgentRunContentItem }) {
 
       {item.category && (
         <p className="text-[10px] uppercase tracking-wide text-foreground/40">
-          {item.category}
+          {formatEnumLabel(item.category)}
         </p>
       )}
     </div>

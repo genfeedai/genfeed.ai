@@ -1,6 +1,11 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  BatchStatus,
+  ButtonSize,
+  ButtonVariant,
+  formatEnumLabel,
+} from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -54,13 +59,15 @@ type Props = {
   onOpenRecentJob: (batchJobId: string) => void;
 };
 
-function getStatusClasses(status: string): string {
+// `BatchJobSummary.status` is the Prisma `BatchStatus` enum — SCREAMING_SNAKE on
+// the wire, so the switch has to key off the enum, not a lowercase spelling.
+function getStatusClasses(status: BatchStatus): string {
   switch (status) {
-    case 'completed':
+    case BatchStatus.COMPLETED:
       return 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300';
-    case 'processing':
+    case BatchStatus.PROCESSING:
       return 'border-blue-500/30 bg-blue-500/15 text-blue-300';
-    case 'failed':
+    case BatchStatus.FAILED:
       return 'border-red-500/30 bg-red-500/15 text-red-300';
     default:
       return 'border-white/15 bg-muted/50 text-white/70';
@@ -294,7 +301,7 @@ export default function BatchComposer({
                     className={getStatusClasses(job.status)}
                     variant="ghost"
                   >
-                    {job.status}
+                    {formatEnumLabel(job.status)}
                   </Badge>
                 </div>
                 <div className="mt-4">

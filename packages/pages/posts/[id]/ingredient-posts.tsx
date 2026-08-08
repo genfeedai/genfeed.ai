@@ -1,5 +1,5 @@
 import { EMPTY_STATES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
@@ -102,8 +102,8 @@ export default function IngredientPosts({
           {/* Category */}
           {ingredient.category && (
             <div className="mt-4">
-              <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-primary/10 text-primary capitalize">
-                {ingredient.category}
+              <span className="inline-block px-3 py-1 text-sm font-medium rounded-full bg-primary/10 text-primary">
+                {formatEnumLabel(ingredient.category)}
               </span>
             </div>
           )}

@@ -1,6 +1,10 @@
 'use client';
 
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import {
+  formatEnumLabel,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import type { Ingredient } from '@models/content/ingredient.model';
@@ -83,7 +87,7 @@ function LibraryPreviewTile({
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
-          {item.category}
+          {formatEnumLabel(item.category)}
         </div>
         <div className="mt-1 text-base font-semibold tracking-[-0.03em] text-white">
           {item.metadataLabel}

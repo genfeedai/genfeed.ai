@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentRunStatus, formatEnumLabel } from '@genfeedai/enums';
 import type { AgentRunRowProps } from '@props/automation/agent-strategy.props';
 import Badge from '@ui/display/badge/Badge';
 import { TableCell, TableRow } from '@ui/primitives/table';
@@ -8,15 +9,18 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import AgentRunContentGrid from './AgentRunContentGrid';
 
+// Run statuses are persisted SCREAMING_SNAKE — key the map off the enum, never
+// a hand-written lowercase spelling that silently misses every lookup.
 const RUN_STATUS_VARIANTS: Record<
   string,
   'success' | 'warning' | 'error' | 'secondary'
 > = {
-  budget_exhausted: 'warning',
-  completed: 'success',
-  failed: 'error',
-  pending: 'secondary',
-  running: 'warning',
+  [AgentRunStatus.BUDGET_EXHAUSTED]: 'warning',
+  [AgentRunStatus.CANCELLED]: 'secondary',
+  [AgentRunStatus.COMPLETED]: 'success',
+  [AgentRunStatus.FAILED]: 'error',
+  [AgentRunStatus.PENDING]: 'secondary',
+  [AgentRunStatus.RUNNING]: 'warning',
 };
 
 function getRunMetadataString(
@@ -60,7 +64,7 @@ export default function AgentRunRow({
         </TableCell>
         <TableCell className="p-4 align-middle">
           <Badge variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}>
-            {run.status}
+            {formatEnumLabel(run.status)}
           </Badge>
         </TableCell>
         <TableCell className="p-4 align-middle text-sm">

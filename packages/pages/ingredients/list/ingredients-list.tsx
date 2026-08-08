@@ -11,6 +11,7 @@ import {
   PageScope,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import { useIngredientDeepLink } from '@hooks/data/ingredients/use-ingredient-deep-link/use-ingredient-deep-link';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
@@ -22,7 +23,7 @@ import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsList
 import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 export default function IngredientsList({
   folderNavigation = 'content',
@@ -135,6 +136,19 @@ export default function IngredientsList({
     }
     return format(new Date(cachedAt), 'PPpp');
   }, [cachedAt]);
+
+  const handleOpenDeepLinkedIngredient = useCallback(
+    (ingredient: IIngredient) => {
+      openIngredientModal(ModalEnum.INGREDIENT, ingredient);
+    },
+    [openIngredientModal],
+  );
+
+  useIngredientDeepLink({
+    ingredients: filteredIngredients,
+    isLoading,
+    onOpen: handleOpenDeepLinkedIngredient,
+  });
 
   useEffect(() => {
     const itemLabel =

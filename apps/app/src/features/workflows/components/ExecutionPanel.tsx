@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import {
@@ -198,7 +199,8 @@ export function ExecutionPanel({
                 <span
                   className={`font-medium ${getStatusColor(execution.status)}`}
                 >
-                  {getStatusIcon(execution.status)} {execution.status}
+                  {getStatusIcon(execution.status)}{' '}
+                  {formatEnumLabel(execution.status)}
                 </span>
               </div>
               <div className="mb-2 flex items-center justify-between">

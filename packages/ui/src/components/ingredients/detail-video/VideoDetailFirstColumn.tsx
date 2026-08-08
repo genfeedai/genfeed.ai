@@ -4,6 +4,7 @@ import { APP_ROUTES } from '@genfeedai/constants';
 import {
   ButtonSize,
   ButtonVariant,
+  formatEnumLabel,
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
@@ -153,20 +154,24 @@ export default function VideoDetailFirstColumn({
                   ),
               )
               .slice(0, 3)
-              .map((child) => (
-                <Button
-                  key={child.id}
-                  withWrapper={false}
-                  onClick={() => onSeeDetails?.(child as IVideo)}
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  ariaLabel={child.metadataLabel || `${child.category} Version`}
-                >
-                  <span className="text-xs">
-                    {child.metadataLabel || `${child.category} Version`}
-                  </span>
-                </Button>
-              ))}
+              .map((child) => {
+                const childLabel =
+                  child.metadataLabel ||
+                  `${formatEnumLabel(child.category) ?? 'Ingredient'} Version`;
+
+                return (
+                  <Button
+                    key={child.id}
+                    withWrapper={false}
+                    onClick={() => onSeeDetails?.(child as IVideo)}
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.SM}
+                    ariaLabel={childLabel}
+                  >
+                    <span className="text-xs">{childLabel}</span>
+                  </Button>
+                );
+              })}
 
             {childIngredients.length > 4 && (
               <Button

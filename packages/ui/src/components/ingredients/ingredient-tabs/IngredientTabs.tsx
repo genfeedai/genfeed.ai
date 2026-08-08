@@ -1,7 +1,9 @@
 'use client';
 
+import { createLibraryAssetRoute } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant, IngredientFormat } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { IngredientTabsProps } from '@genfeedai/props/content/ingredient.props';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -11,6 +13,7 @@ import {
   isImageIngredient,
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
 import IngredientTabsMetadata from '@ui/ingredients/tabs/metadata/IngredientTabsMetadata';
@@ -31,8 +34,12 @@ export default function IngredientTabs({
   onUpdate,
 }: IngredientTabsProps) {
   const getIngredientsService = useAuthedService((token) =>
-    IngredientsService.getInstance(ingredient?.category ?? '', token),
+    IngredientsService.getInstance(
+      IngredientEndpoints.getEndpointFromTypeOrPath(ingredient?.category ?? ''),
+      token,
+    ),
   );
+  const { href } = useOrgUrl();
 
   const [tab, setTab] = useState<
     'info' | 'posts' | 'metadata' | 'prompts' | 'sharing'
@@ -140,7 +147,9 @@ export default function IngredientTabs({
           />
 
           <Link
-            href={`/ingredients/${ingredient.category}s/${ingredient.id}`}
+            href={href(
+              createLibraryAssetRoute(ingredient.category, ingredient.id),
+            )}
             className="text-primary underline-offset-4 hover:underline"
           >
             <Maximize2 className="text-2xl" />
