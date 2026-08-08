@@ -100,6 +100,15 @@ export async function setupStrictNetworkGuard(
     );
   });
 
+  // Service-layer failures log the operation name and URL through the app
+  // logger before rethrowing — mirror them here so a minified pageerror stack
+  // can be traced to the exact endpoint.
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      console.error(`[console.error] ${message.text()}`);
+    }
+  });
+
   await page.route('**/*', async (route: Route) => {
     const request = route.request();
     const requestUrl = request.url();
