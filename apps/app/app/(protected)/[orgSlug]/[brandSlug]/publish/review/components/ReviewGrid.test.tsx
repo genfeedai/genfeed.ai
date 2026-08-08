@@ -1,4 +1,4 @@
-import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
+import { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ReviewGrid from './ReviewGrid';
 import {
@@ -12,26 +12,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/publish/review',
   useSearchParams: () => new URLSearchParams(),
 }));
-
-const mockBatch = {
-  brandId: 'brand-1',
-  completedCount: 1,
-  contentMix: {
-    carouselPercent: 10,
-    imagePercent: 60,
-    reelPercent: 10,
-    storyPercent: 0,
-    videoPercent: 20,
-  },
-  createdAt: '2026-03-09T10:00:00.000Z',
-  failedCount: 0,
-  id: 'batch-1',
-  items: [],
-  pendingCount: 0,
-  platforms: ['instagram'],
-  status: BatchStatus.COMPLETED,
-  totalCount: 1,
-};
 
 const mockItems = [
   {
@@ -54,6 +34,16 @@ const mockItems = [
   },
 ];
 
+const baseHandlers = {
+  onApprove: vi.fn(),
+  onBulkApprove: vi.fn(),
+  onBulkReject: vi.fn(),
+  onRequestChanges: vi.fn(),
+  onReject: vi.fn(),
+  onSelectItem: vi.fn(),
+  onToggleSelect: vi.fn(),
+};
+
 describe('ReviewGrid', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,29 +52,11 @@ describe('ReviewGrid', () => {
   it('should render without crashing', () => {
     const { container } = render(
       <ReviewGrid
-        activeFilter="ready"
         activeItem={mockItems[0]}
-        batch={mockBatch}
-        filterCounts={{
-          all: 1,
-          approved: 0,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 1,
-          skipped: 0,
-        }}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set()}
-        onApprove={vi.fn()}
-        onBulkApprove={vi.fn()}
-        onBulkReject={vi.fn()}
-        onFilterChange={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onReject={vi.fn()}
-        onSelectItem={vi.fn()}
-        onToggleSelect={vi.fn()}
+        {...baseHandlers}
       />,
     );
 
@@ -94,29 +66,11 @@ describe('ReviewGrid', () => {
   it('should display empty state when no items', () => {
     render(
       <ReviewGrid
-        activeFilter="ready"
         activeItem={null}
-        batch={mockBatch}
-        filterCounts={{
-          all: 0,
-          approved: 0,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 0,
-          skipped: 0,
-        }}
         isActioning={false}
         items={[]}
         selectedIds={new Set()}
-        onApprove={vi.fn()}
-        onBulkApprove={vi.fn()}
-        onBulkReject={vi.fn()}
-        onFilterChange={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onReject={vi.fn()}
-        onSelectItem={vi.fn()}
-        onToggleSelect={vi.fn()}
+        {...baseHandlers}
       />,
     );
 
@@ -126,72 +80,31 @@ describe('ReviewGrid', () => {
   it('should show bulk actions when items are selected', () => {
     render(
       <ReviewGrid
-        activeFilter="ready"
         activeItem={mockItems[0]}
-        batch={mockBatch}
-        filterCounts={{
-          all: 1,
-          approved: 0,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 1,
-          skipped: 0,
-        }}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set(['item-1'])}
-        onApprove={vi.fn()}
-        onBulkApprove={vi.fn()}
-        onBulkReject={vi.fn()}
-        onFilterChange={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onReject={vi.fn()}
-        onSelectItem={vi.fn()}
-        onToggleSelect={vi.fn()}
+        {...baseHandlers}
       />,
     );
 
     expect(screen.getByText('1 selected')).toBeInTheDocument();
   });
 
-  it('renders status filters in the header and a table list of posts', () => {
-    const onFilterChange = vi.fn();
-
+  it('renders a table list of posts (filters live in the publish topbar)', () => {
     render(
       <ReviewGrid
-        activeFilter="ready"
         activeItem={mockItems[0]}
-        batch={mockBatch}
-        filterCounts={{
-          all: 1,
-          approved: 0,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 1,
-          skipped: 0,
-        }}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set()}
-        onApprove={vi.fn()}
-        onBulkApprove={vi.fn()}
-        onBulkReject={vi.fn()}
-        onFilterChange={onFilterChange}
-        onRequestChanges={vi.fn()}
-        onReject={vi.fn()}
-        onSelectItem={vi.fn()}
-        onToggleSelect={vi.fn()}
+        {...baseHandlers}
       />,
     );
 
     expect(
-      screen.getByRole('navigation', { name: 'Review status filters' }),
-    ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Approved/i }));
-    expect(onFilterChange).toHaveBeenCalledWith('approved');
-
+      screen.queryByRole('navigation', { name: 'Review status filters' }),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', { name: 'Post' }),
     ).toBeInTheDocument();
@@ -204,29 +117,11 @@ describe('ReviewGrid', () => {
   it('shows publishing context in the detail panel when metadata is present', () => {
     render(
       <ReviewGrid
-        activeFilter="ready"
         activeItem={mockItems[0]}
-        batch={mockBatch}
-        filterCounts={{
-          all: 1,
-          approved: 0,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 1,
-          skipped: 0,
-        }}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set()}
-        onApprove={vi.fn()}
-        onBulkApprove={vi.fn()}
-        onBulkReject={vi.fn()}
-        onFilterChange={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onReject={vi.fn()}
-        onSelectItem={vi.fn()}
-        onToggleSelect={vi.fn()}
+        {...baseHandlers}
       />,
     );
 
@@ -317,8 +212,7 @@ describe('ReviewGrid', () => {
     expect(getVisibleReviewItems(items as never, 'skipped')).toHaveLength(1);
   });
 
-  it('routes filter, item, selection, and bulk actions', () => {
-    const onFilterChange = vi.fn();
+  it('routes item, selection, and bulk actions', () => {
     const onSelectItem = vi.fn();
     const onToggleSelect = vi.fn();
     const onBulkApprove = vi.fn();
@@ -326,25 +220,13 @@ describe('ReviewGrid', () => {
 
     render(
       <ReviewGrid
-        activeFilter="ready"
         activeItem={mockItems[0]}
-        batch={mockBatch}
-        filterCounts={{
-          all: 1,
-          approved: 0,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 1,
-          skipped: 0,
-        }}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set(['item-1'])}
         onApprove={vi.fn()}
         onBulkApprove={onBulkApprove}
         onBulkReject={onBulkReject}
-        onFilterChange={onFilterChange}
         onRequestChanges={vi.fn()}
         onReject={vi.fn()}
         onSelectItem={onSelectItem}
@@ -352,13 +234,11 @@ describe('ReviewGrid', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Approved\s*0/i }));
     fireEvent.click(screen.getByRole('button', { name: /Draft caption/i }));
     fireEvent.click(screen.getByRole('button', { name: /Deselect item/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
 
-    expect(onFilterChange).toHaveBeenCalledWith('approved');
     expect(onSelectItem).toHaveBeenCalledWith('item-1');
     expect(onToggleSelect).toHaveBeenCalledWith('item-1');
     expect(onBulkApprove).toHaveBeenCalledTimes(1);
@@ -368,7 +248,6 @@ describe('ReviewGrid', () => {
   it('shows a completed review as non-actionable with saved reviewer context', () => {
     render(
       <ReviewGrid
-        activeFilter="approved"
         activeItem={
           {
             ...mockItems[0],
@@ -399,27 +278,10 @@ describe('ReviewGrid', () => {
             sourceActionId: undefined,
           } as never
         }
-        batch={mockBatch}
-        filterCounts={{
-          all: 1,
-          approved: 1,
-          changes_requested: 0,
-          failed: 0,
-          pending: 0,
-          ready: 0,
-          skipped: 0,
-        }}
         isActioning={false}
         items={mockItems}
         selectedIds={new Set()}
-        onApprove={vi.fn()}
-        onBulkApprove={vi.fn()}
-        onBulkReject={vi.fn()}
-        onFilterChange={vi.fn()}
-        onRequestChanges={vi.fn()}
-        onReject={vi.fn()}
-        onSelectItem={vi.fn()}
-        onToggleSelect={vi.fn()}
+        {...baseHandlers}
       />,
     );
 

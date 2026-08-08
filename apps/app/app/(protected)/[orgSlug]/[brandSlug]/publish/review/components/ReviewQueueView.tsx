@@ -11,6 +11,7 @@ import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
 import ReviewGrid from './ReviewGrid';
+import ReviewStatusFilters from './ReviewStatusFilters';
 import type { ReviewFilter, ReviewFilterCounts } from './review-grid.helpers';
 
 /** Match Publish header chrome used by PostsListToolbar sort/status controls. */
@@ -57,7 +58,8 @@ interface ReviewQueueViewProps {
 
 /**
  * Review queue body only — publish layout owns Container / New release / refresh.
- * Batch picker registers into the layout action rail via PostsLayoutContext.
+ * Status filters + batch picker register into the layout action rail (first
+ * level topbar) via PostsLayoutContext.setFiltersNode.
  */
 export default function ReviewQueueView({
   activeFilter,
@@ -117,26 +119,41 @@ export default function ReviewQueueView({
       };
     }
 
-    // Same shell control as publish list sort/status (ButtonDropdown), not a
-    // bare form Select — those render a different chrome in the action rail.
+    // First-level topbar: status tabs + batch picker sit with New release /
+    // refresh (publish layout `right` rail), not a second nested page header.
     setFiltersNode(
-      <ButtonDropdown
-        className={PUBLISH_HEADER_DROPDOWN_CLASS}
-        name="review-batch"
-        onChange={(_name, value) => {
-          onBatchChange(value);
-        }}
-        options={batchOptions}
-        placeholder="Select batch"
-        tooltip="Select review batch"
-        value={activeBatchId ?? ''}
-      />,
+      <div className="flex min-w-0 items-center gap-2">
+        <ReviewStatusFilters
+          activeFilter={activeFilter}
+          filterCounts={filterCounts}
+          onFilterChange={onFilterChange}
+        />
+        <ButtonDropdown
+          className={PUBLISH_HEADER_DROPDOWN_CLASS}
+          name="review-batch"
+          onChange={(_name, value) => {
+            onBatchChange(value);
+          }}
+          options={batchOptions}
+          placeholder="Select batch"
+          tooltip="Select review batch"
+          value={activeBatchId ?? ''}
+        />
+      </div>,
     );
 
     return () => {
       setFiltersNode(null);
     };
-  }, [activeBatchId, batchOptions, onBatchChange, setFiltersNode]);
+  }, [
+    activeBatchId,
+    activeFilter,
+    batchOptions,
+    filterCounts,
+    onBatchChange,
+    onFilterChange,
+    setFiltersNode,
+  ]);
 
   if (batchesError || hasInvalidBatchPayload) {
     return (
@@ -182,17 +199,13 @@ export default function ReviewQueueView({
         />
       ) : activeBatch ? (
         <ReviewGrid
-          activeFilter={activeFilter}
           activeItem={activeItem}
-          batch={activeBatch}
-          filterCounts={filterCounts}
           isActioning={isActioning}
           items={visibleItems}
           selectedIds={selectedIds}
           onApprove={onApprove}
           onBulkApprove={onBulkApprove}
           onBulkReject={onBulkReject}
-          onFilterChange={onFilterChange}
           onRequestChanges={onRequestChanges}
           onReject={onReject}
           onSelectItem={onSelectItem}
