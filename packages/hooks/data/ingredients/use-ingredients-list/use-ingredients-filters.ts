@@ -10,6 +10,7 @@ import {
   IngredientCategory,
   IngredientFormat,
   PageScope,
+  parseIngredientCategory,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import {
@@ -50,7 +51,15 @@ export function useIngredientsFilters({
   const { filters, query, setQuery, setIsRefreshing, onRefresh } =
     useIngredientsContext();
 
-  const singularType = useMemo(() => type.slice(0, -1), [type]);
+  // Route segments are lowercase plurals (`/library/videos`), so the singular is
+  // `video` — which stopped matching `IngredientCategory.VIDEO` when the enum was
+  // harmonized to Prisma's SCREAMING_SNAKE labels (#2473). Normalize once here so
+  // downstream comparisons and the `category` query param both see a real member;
+  // unrecognized segments keep the raw singular and behave as before.
+  const singularType = useMemo(() => {
+    const singular = type.slice(0, -1);
+    return parseIngredientCategory(singular) ?? singular;
+  }, [type]);
 
   const formatFilter =
     filters.format && filters.format !== 'all' ? filters.format : undefined;

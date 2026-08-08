@@ -5,7 +5,11 @@ import {
   ITEMS_PER_PAGE,
   LIBRARY_ASSETS_REFRESH_EVENT,
 } from '@genfeedai/constants';
-import { IngredientCategory, PageScope } from '@genfeedai/enums';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  PageScope,
+} from '@genfeedai/enums';
 import type {
   IFilters,
   IFolder,
@@ -225,7 +229,7 @@ export function useIngredientsLoading({
           queryParams = {
             ...queryParams,
             isDefault: true,
-            status: queryParams.status || 'uploaded',
+            status: queryParams.status || IngredientStatus.UPLOADED,
           };
         }
 

@@ -1,4 +1,4 @@
-import { PageScope } from '@genfeedai/enums';
+import { IngredientCategory, PageScope } from '@genfeedai/enums';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -109,7 +109,7 @@ describe('useIngredientsActions', () => {
     setIngredients: mockSetIngredients,
     setQuery: mockSetQuery,
     setSelectedFolderId: vi.fn(),
-    singularType: 'video',
+    singularType: IngredientCategory.VIDEO,
     socketSubscriptionsRef,
     type: 'videos',
   };

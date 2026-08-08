@@ -1,4 +1,4 @@
-import { AssetCategory, AssetScope } from '@genfeedai/enums';
+import { ArticleStatus, AssetCategory, AssetScope } from '@genfeedai/enums';
 import type { IBrand } from '@genfeedai/interfaces';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
@@ -155,7 +155,7 @@ describe('useBrandDetail', () => {
         limit: 3,
         sortBy: 'createdAt',
         sortOrder: 'desc',
-        status: ['public'],
+        status: [ArticleStatus.PUBLISHED],
       });
     });
   });

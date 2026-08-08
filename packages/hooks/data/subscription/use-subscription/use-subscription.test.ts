@@ -1,3 +1,4 @@
+import { SubscriptionStatus } from '@genfeedai/enums';
 import { renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -96,7 +97,7 @@ describe('useSubscription', () => {
     mockUseAuthIdentity.mockReturnValue({ userId: 'user-123' });
     mockUseBrand.mockReturnValue({ organizationId: 'org-123' });
     mockOrganizationsService.findOrganizationSubscription.mockResolvedValue({
-      status: 'active',
+      status: SubscriptionStatus.ACTIVE,
     });
     mockSubscriptionsService.getCreditsBreakdown.mockResolvedValue({
       available: 100,

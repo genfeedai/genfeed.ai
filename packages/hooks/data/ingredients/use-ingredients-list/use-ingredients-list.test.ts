@@ -163,7 +163,7 @@ describe('useIngredientsList', () => {
     );
 
     expect(result.current.type).toBe('videos');
-    expect(result.current.singularType).toBe('video');
+    expect(result.current.singularType).toBe(IngredientCategory.VIDEO);
     expect(result.current.isActionsEnabled).toBe(true);
     expect(result.current.formatFilter).toBeUndefined();
   });
