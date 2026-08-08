@@ -221,7 +221,10 @@ describe('TimelineWorkGroup', () => {
       <TimelineWorkGroup
         entry={{
           ...buildSettledEntry(1),
+          // Keep a real tool step: lifecycle-only residue is suppressed
+          // entirely (#2538), so the failed run needs a product row to show.
           events: [
+            ...buildSettledEntry(1).events,
             {
               createdAt: '2026-03-18T10:00:00.000Z',
               event: AgentWorkEventType.FAILED,
