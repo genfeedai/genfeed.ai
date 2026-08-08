@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  formatEnumLabel,
   type IngredientCategory,
 } from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
@@ -35,10 +36,14 @@ export default function ChildrenPickerDropdown({
   onToggleDropdown,
   onAddChild,
 }: ChildrenPickerDropdownProps) {
+  // Categories are persisted SCREAMING_SNAKE; render them as product language.
+  const categoryLabel =
+    formatEnumLabel(parentIngredientCategory) ?? 'Ingredient';
+
   return (
     <div className="relative children-dropdown-container">
       <Button
-        label={`Add child ${parentIngredientCategory}s`}
+        label={`Add child ${categoryLabel}s`}
         onClick={onToggleDropdown}
         isDisabled={isDisabled || isSearching || isSaving}
         icon={isVideo ? <Video /> : <ImageIcon />}
@@ -49,7 +54,7 @@ export default function ChildrenPickerDropdown({
       {isDropdownOpen && (
         <div className="absolute left-0 top-full z-50 mt-2 w-[min(32rem,calc(100vw-2rem))] bg-card p-3 shadow-dropdown">
           <div className="text-xs text-foreground/70 mb-2 font-medium">
-            Select {parentIngredientCategory}s to add as children
+            Select {categoryLabel}s to add as children
           </div>
 
           {isSearching ? (
@@ -58,7 +63,7 @@ export default function ChildrenPickerDropdown({
             </div>
           ) : availableIngredients.length === 0 ? (
             <div className="text-sm text-foreground/60 py-4 text-center">
-              No available {parentIngredientCategory}s to add
+              No available {categoryLabel}s to add
             </div>
           ) : (
             <div className="grid max-h-72 grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-2 overflow-y-auto">
@@ -72,7 +77,7 @@ export default function ChildrenPickerDropdown({
                     onClick={() => onAddChild(ingredient.id)}
                     title={
                       metadata.label ||
-                      `${ingredient.category} - ${ingredient.id.slice(0, 8)}`
+                      `${formatEnumLabel(ingredient.category) ?? 'Ingredient'} - ${ingredient.id.slice(0, 8)}`
                     }
                     type="button"
                     variant={ButtonVariant.UNSTYLED}

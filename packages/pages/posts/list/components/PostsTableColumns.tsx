@@ -2,6 +2,7 @@
 
 import {
   ButtonVariant,
+  formatEnumLabel,
   IngredientCategory,
   PageScope,
   Platform,
@@ -145,7 +146,7 @@ export function buildPostsTableColumns({
             </div>
 
             <div className="text-xs text-foreground/60 flex items-center gap-2 mt-1">
-              <span className="capitalize">{post.category}</span>
+              <span>{formatEnumLabel(post.category)}</span>
               {getDimensions(ingredient) && (
                 <>
                   <span>•</span>

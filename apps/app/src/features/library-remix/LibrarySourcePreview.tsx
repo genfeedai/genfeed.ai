@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientCategory } from '@genfeedai/enums';
+import { formatEnumLabel, IngredientCategory } from '@genfeedai/enums';
 import type { IAsset, IIngredient } from '@genfeedai/interfaces';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { ImageIcon } from 'lucide-react';
@@ -19,13 +19,14 @@ function isIngredient(record: IAsset | IIngredient): record is IIngredient {
 }
 
 export function getLibrarySourceLabel(record: IAsset | IIngredient): string {
+  // Ingredient and asset categories are persisted SCREAMING_SNAKE — never show them raw.
+  const categoryLabel = formatEnumLabel(record.category) ?? 'Asset';
+
   if (isIngredient(record)) {
-    return (
-      record.metadataLabel || `${record.category} ${record.id.slice(0, 8)}`
-    );
+    return record.metadataLabel || `${categoryLabel} ${record.id.slice(0, 8)}`;
   }
 
-  return `${record.category} ${record.id.slice(0, 8)}`;
+  return `${categoryLabel} ${record.id.slice(0, 8)}`;
 }
 
 export default function LibrarySourcePreview({

@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  formatEnumLabel,
   type IngredientCategory,
 } from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
@@ -33,10 +34,13 @@ export default function ParentsPickerDropdown({
   onToggleDropdown,
   onAddParent,
 }: ParentsPickerDropdownProps) {
+  // Categories are persisted SCREAMING_SNAKE; render them as product language.
+  const categoryLabel = formatEnumLabel(ingredientCategory) ?? 'Ingredient';
+
   return (
     <div className="relative parents-dropdown-container">
       <Button
-        label={`Select parent ${ingredientCategory}s`}
+        label={`Select parent ${categoryLabel}s`}
         onClick={onToggleDropdown}
         isDisabled={isDisabled || isSearching}
         icon={isVideo ? <Video /> : <ImageIcon />}
@@ -47,7 +51,7 @@ export default function ParentsPickerDropdown({
       {isDropdownOpen && (
         <div className="absolute left-0 top-full z-50 mt-2 w-[min(32rem,calc(100vw-2rem))] bg-card p-3 shadow-dropdown">
           <div className="text-xs text-foreground/70 mb-2 font-medium">
-            Select Parent {ingredientCategory}s
+            Select Parent {categoryLabel}s
           </div>
 
           {isSearching ? (
@@ -56,7 +60,7 @@ export default function ParentsPickerDropdown({
             </div>
           ) : availableIngredients.length === 0 ? (
             <div className="text-sm text-foreground/60 py-4 text-center">
-              No available {ingredientCategory}s
+              No available {categoryLabel}s
             </div>
           ) : (
             <div className="grid max-h-72 grid-cols-[repeat(auto-fill,minmax(4rem,1fr))] gap-2 overflow-y-auto">
@@ -67,7 +71,7 @@ export default function ParentsPickerDropdown({
                   onClick={() => onAddParent(ing.id)}
                   title={
                     (ing.metadata as IMetadata)?.label ||
-                    `${ing.category} - ${ing.id.slice(0, 8)}`
+                    `${formatEnumLabel(ing.category) ?? 'Ingredient'} - ${ing.id.slice(0, 8)}`
                   }
                   type="button"
                   variant={ButtonVariant.UNSTYLED}

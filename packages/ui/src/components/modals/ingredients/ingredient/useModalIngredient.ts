@@ -1,4 +1,4 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
 import {
   useConfirmModal,
   usePostModal,
@@ -6,6 +6,7 @@ import {
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type AssetScope,
+  formatEnumLabel,
   IngredientCategory,
   IngredientStatus,
   ModalEnum,
@@ -94,7 +95,7 @@ export function useModalIngredient({
   const metadataLabel = metadata?.label;
   const ingredientTitle = metadataLabel || localIngredient?.id || 'Ingredient';
   const ingredientDescription = localIngredient
-    ? `${localIngredient.category} detail opened in context.`
+    ? `${formatEnumLabel(localIngredient.category) ?? 'Ingredient'} detail opened in context.`
     : 'Ingredient detail opened in context.';
 
   const isVideo = isVideoIngredient(localIngredient);
@@ -124,8 +125,7 @@ export function useModalIngredient({
         findAllIngredientChildren(ing.id);
       } else {
         closeModal(ModalEnum.INGREDIENT);
-        const routeType = `${ing.category.toLowerCase()}s`;
-        push(href(`/${routeType}/${ing.id}`));
+        push(href(createLibraryAssetRoute(ing.category, ing.id)));
       }
     },
     onShare: async (ing: IIngredient) => {
@@ -133,7 +133,9 @@ export function useModalIngredient({
         return;
       }
 
-      const url = `${EnvironmentService.apps.app}/${ing.category}s/${ing.id}`;
+      const url = `${EnvironmentService.apps.app}${href(
+        createLibraryAssetRoute(ing.category, ing.id),
+      )}`;
       await clipboardService.copyToClipboard(url);
 
       notificationsService.success('Link copied to clipboard');

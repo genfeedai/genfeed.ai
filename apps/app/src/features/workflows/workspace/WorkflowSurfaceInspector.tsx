@@ -3,6 +3,7 @@
 import {
   ButtonSize,
   ButtonVariant,
+  formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -373,8 +374,8 @@ export function WorkflowSurfaceInspector({
             </p>
           </div>
           {execution ? (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] capitalize text-foreground">
-              {execution.status}
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-foreground">
+              {formatEnumLabel(execution.status)}
             </span>
           ) : null}
         </div>

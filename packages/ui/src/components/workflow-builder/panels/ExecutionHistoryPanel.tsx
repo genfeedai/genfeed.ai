@@ -5,6 +5,7 @@ import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
+  formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/enums';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
@@ -121,7 +122,7 @@ function ExecutionItem({
                 variant={STATUS_VARIANTS[execution.status] || 'ghost'}
                 size={ComponentSize.SM}
               >
-                {execution.status}
+                {formatEnumLabel(execution.status)}
               </Badge>
               <span className="text-xs opacity-60">
                 <ClientDateTime

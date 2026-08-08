@@ -1,7 +1,7 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -262,7 +262,8 @@ export default function WorkflowExecutionsPage() {
                               execution.status,
                             )}`}
                           >
-                            {getStatusIcon(execution.status)} {execution.status}
+                            {getStatusIcon(execution.status)}{' '}
+                            {formatEnumLabel(execution.status)}
                           </span>
                           {etaDisplay.phaseLabel && (
                             <div className="mt-1 text-xs text-muted-foreground">

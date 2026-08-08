@@ -1,6 +1,11 @@
 'use client';
 
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  AlertCategory,
+  ButtonSize,
+  ButtonVariant,
+  formatEnumLabel,
+} from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IUser } from '@genfeedai/interfaces';
 import type { IngredientTabsMetadataProps } from '@genfeedai/interfaces/components/ingredient-tabs.interface';
@@ -147,7 +152,11 @@ export default function IngredientTabsMetadata({
     ingredient.status
       ? {
           label: 'Status',
-          value: <span className="uppercase">{ingredient.status}</span>,
+          value: (
+            <span className="uppercase">
+              {formatEnumLabel(ingredient.status)}
+            </span>
+          ),
         }
       : null,
     ingredient.ingredientFormat

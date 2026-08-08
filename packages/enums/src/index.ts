@@ -44,6 +44,7 @@ export * from './direction.enum';
 export * from './distribution.enum';
 export * from './editor.enum';
 export * from './entity.enum';
+export * from './enum-label.util';
 export * from './error.enum';
 export * from './evaluation.enum';
 export * from './fanvue.enum';

@@ -1,6 +1,8 @@
 'use client';
 
+import { createLibraryAssetRoute } from '@genfeedai/constants';
 import { AssetScope, ButtonVariant } from '@genfeedai/enums';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { IngredientTabsSharingProps } from '@genfeedai/props/content/ingredient.props';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -16,6 +18,7 @@ export default function IngredientTabsSharing({
 }: IngredientTabsSharingProps) {
   const clipboardService = ClipboardService.getInstance();
   const notificationsService = NotificationsService.getInstance();
+  const { href } = useOrgUrl();
 
   const handleCopyLink = async () => {
     if (!ingredient?.category) {
@@ -23,7 +26,9 @@ export default function IngredientTabsSharing({
     }
 
     try {
-      const url = `${EnvironmentService.apps.app}/${ingredient.category}s/${ingredient.id}`;
+      const url = `${EnvironmentService.apps.app}${href(
+        createLibraryAssetRoute(ingredient.category, ingredient.id),
+      )}`;
       await clipboardService.copyToClipboard(url);
       notificationsService.success('Link copied to clipboard');
     } catch {

@@ -1,7 +1,11 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, ByokBillingStatus } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  ByokBillingStatus,
+  formatEnumLabel,
+} from '@genfeedai/enums';
 import { getPlanEntitlementForTier } from '@genfeedai/pricing';
 import {
   BYOK_FEE_PERCENTAGE,
@@ -182,7 +186,7 @@ export default function SettingsSubscriptionPage() {
                   Status
                 </Text>
                 <Badge variant={isSubscriptionActive ? 'success' : 'warning'}>
-                  {subscription.status}
+                  {formatEnumLabel(subscription.status)}
                 </Badge>
               </div>
             </div>

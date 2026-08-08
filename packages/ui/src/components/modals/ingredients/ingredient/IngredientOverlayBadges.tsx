@@ -1,3 +1,4 @@
+import { formatEnumLabel } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 
 type Props = {
@@ -11,10 +12,10 @@ export default function IngredientOverlayBadges({ ingredient }: Props) {
         Ingredient
       </span>
       <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
-        {ingredient.category}
+        {formatEnumLabel(ingredient.category)}
       </span>
       <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
-        {ingredient.status}
+        {formatEnumLabel(ingredient.status)}
       </span>
     </>
   );

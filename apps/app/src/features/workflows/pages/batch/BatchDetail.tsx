@@ -4,6 +4,7 @@ import {
   BatchStatus,
   ButtonSize,
   ButtonVariant,
+  formatEnumLabel,
   WorkflowBatchItemStatus,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
@@ -154,7 +155,7 @@ export default function BatchDetail({
               className={getStatusClasses(activeBatchStatus.status)}
               variant="ghost"
             >
-              {activeBatchStatus.status}
+              {formatEnumLabel(activeBatchStatus.status)}
             </Badge>
           </div>
         </div>
@@ -340,7 +341,7 @@ export default function BatchDetail({
                       className={getStatusClasses(item.status)}
                       variant="ghost"
                     >
-                      {item.status}
+                      {formatEnumLabel(item.status)}
                     </Badge>
                   </div>
 

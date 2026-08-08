@@ -3,6 +3,7 @@
 import { EMPTY_STATES } from '@genfeedai/constants';
 import {
   ButtonVariant,
+  formatEnumLabel,
   IngredientCategory,
   type IngredientFormat,
   ModalEnum,
@@ -96,7 +97,7 @@ export default function IngredientsListContent({
         key: 'category',
         render: (ingredient: IIngredient) => (
           <Badge variant="outline" className="uppercase">
-            {ingredient.category}
+            {formatEnumLabel(ingredient.category)}
           </Badge>
         ),
       },

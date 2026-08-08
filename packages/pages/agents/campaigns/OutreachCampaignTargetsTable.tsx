@@ -4,6 +4,7 @@ import {
   ButtonVariant,
   CampaignTargetStatus,
   CampaignType,
+  formatEnumLabel,
 } from '@genfeedai/enums';
 import type { CampaignTarget } from '@services/automation/outreach-campaigns.service';
 import Badge from '@ui/display/badge/Badge';
@@ -65,7 +66,7 @@ export default function OutreachCampaignTargetsTable({
         key: 'status',
         render: (target: CampaignTarget) => (
           <Badge variant={targetStatusVariants[target.status] || 'secondary'}>
-            {target.status}
+            {formatEnumLabel(target.status)}
           </Badge>
         ),
       },
@@ -132,7 +133,7 @@ export default function OutreachCampaignTargetsTable({
         key: 'status',
         render: (target: CampaignTarget) => (
           <Badge variant={targetStatusVariants[target.status] || 'secondary'}>
-            {target.status}
+            {formatEnumLabel(target.status)}
           </Badge>
         ),
       },

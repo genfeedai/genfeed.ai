@@ -15,6 +15,7 @@ import {
   isAvatarSourceImageIngredient,
   isImageIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
+import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
@@ -37,7 +38,10 @@ export default function IngredientTabsInfo({
   const { organizationId, refreshBrands, selectedBrand } = useBrand();
   const { refresh: refreshSettings } = useOrganization();
   const getIngredientsService = useAuthedService((token: string) =>
-    IngredientsService.getInstance(ingredient.category, token),
+    IngredientsService.getInstance(
+      IngredientEndpoints.getEndpointFromTypeOrPath(ingredient.category),
+      token,
+    ),
   );
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),

@@ -1,5 +1,9 @@
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
+import {
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+} from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { ImagePlus, Paintbrush, RefreshCw } from 'lucide-react';
 import type { ReactElement } from 'react';
@@ -64,10 +68,12 @@ export function GenerationActionCardStatusPanel({
   }
 
   if (status === 'done' && resultUrl) {
-    const libraryHref =
+    const libraryHref = createLibraryAssetRoute(
       generationType === 'video'
-        ? `${APP_ROUTES.LIBRARY.VIDEOS}/${resultId}`
-        : `${APP_ROUTES.LIBRARY.IMAGES}/${resultId}`;
+        ? IngredientCategory.VIDEO
+        : IngredientCategory.IMAGE,
+      resultId ?? '',
+    );
     const studioHref = `${APP_ROUTES.STUDIO.EDIT}?${generationType === 'video' ? 'videoId' : 'imageId'}=${encodeURIComponent(resultId ?? '')}`;
 
     return (

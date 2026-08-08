@@ -5,8 +5,8 @@ import {
   extractThreadAssets,
   type ThreadAsset,
 } from '@genfeedai/agent/utils/extract-thread-assets';
-import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonVariant } from '@genfeedai/enums';
+import { APP_ROUTES, createLibraryAssetRoute } from '@genfeedai/constants';
+import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
@@ -33,9 +33,10 @@ type GenerationActionCanvasProps = {
 };
 
 function libraryHref(type: 'image' | 'video', id: string): string {
-  return type === 'video'
-    ? `${APP_ROUTES.LIBRARY.VIDEOS}/${id}`
-    : `${APP_ROUTES.LIBRARY.IMAGES}/${id}`;
+  return createLibraryAssetRoute(
+    type === 'video' ? IngredientCategory.VIDEO : IngredientCategory.IMAGE,
+    id,
+  );
 }
 
 function studioEditHref(type: 'image' | 'video', id: string): string {

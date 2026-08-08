@@ -1,7 +1,7 @@
 'use client';
 
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, formatEnumLabel } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Prompt } from '@models/content/prompt.model';
 import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';
@@ -142,12 +142,12 @@ function PromptsPageContent() {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <Badge variant="outline" className="capitalize">
-                          {prompt.status}
+                        <Badge variant="outline">
+                          {formatEnumLabel(prompt.status)}
                         </Badge>
                         {prompt.category && (
-                          <Badge variant="info" className="capitalize">
-                            {prompt.category}
+                          <Badge variant="info">
+                            {formatEnumLabel(prompt.category)}
                           </Badge>
                         )}
                         {prompt.model && (
