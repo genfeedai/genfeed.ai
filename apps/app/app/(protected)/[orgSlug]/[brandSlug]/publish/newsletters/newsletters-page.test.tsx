@@ -37,7 +37,7 @@ vi.mock('@/lib/analytics', () => ({
 }));
 
 const NEWSLETTER_1_EDITOR_HREF =
-  '/acme/main/edit/newsletter/newsletter-1?returnTo=%2Facme%2Fmain%2Fpublish%2Fnewsletters';
+  '/acme/main/publish/posts/newsletter-1?kind=newsletter&returnTo=%2Facme%2Fmain%2Fpublish%2Fnewsletters';
 
 const newsletters = [
   {
