@@ -67,10 +67,9 @@ export default function Modal({
         className={cn(
           'flex max-h-[calc(100vh-5rem)] flex-col',
           isFullScreen ? 'overflow-hidden' : 'overflow-auto',
-          // Error shell must set border WIDTH + color. Color-only utilities
-          // (border-destructive/50) paint nothing without `border`.
-          isError &&
-            'border-2 border-destructive bg-card text-foreground shadow-[0_0_0_1px_rgba(239,68,68,0.35)]',
+          // Error dialogs keep normal shell chrome — no red outer ring/border.
+          // Severity is carried by the message row, not the dialog frame.
+          isError && 'bg-card text-foreground',
           modalBoxClassName,
         )}
         showCloseButton={showCloseButton}
@@ -86,8 +85,19 @@ export default function Modal({
             {title && <CompoundModal.Title>{title}</CompoundModal.Title>}
 
             {error && (
-              <div className="mt-4 flex items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/15 px-4 py-3 text-sm font-medium text-destructive">
-                <TriangleAlert className="size-5 shrink-0" />
+              <div
+                className={cn(
+                  'mt-4 flex items-center gap-3 rounded-lg border border-border bg-background-secondary px-4 py-3 text-sm font-medium',
+                  isError ? 'text-foreground' : 'text-foreground',
+                )}
+                role={isError ? 'alert' : undefined}
+              >
+                <TriangleAlert
+                  className={cn(
+                    'size-5 shrink-0',
+                    isError ? 'text-amber-400' : 'text-muted-foreground',
+                  )}
+                />
                 <span>{error}</span>
               </div>
             )}
