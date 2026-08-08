@@ -377,6 +377,7 @@ function makeTarget(
     publishApprovalId: null,
     retryCount: 0,
     scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
+    status: PostStatus.SCHEDULED,
     targetAttachments: [],
     targetError: null,
     targetExecutionState: TargetExecutionState.SCHEDULED,

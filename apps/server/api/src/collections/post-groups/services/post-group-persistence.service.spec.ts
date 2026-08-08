@@ -10,6 +10,7 @@ import { PublishingProviderSetupService } from '@api/collections/publishing-setu
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
+  PostStatus,
   ReleaseAttachmentKind,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -527,6 +528,45 @@ describe('PostGroupPersistenceService', () => {
     );
   });
 
+  it('projects the parent legacy status onto attachment posts, not the target state', async () => {
+    await service.createAttachmentPosts(prisma as never, {
+      brandId: 'brand-1',
+      group: makeGroup(),
+      input: {
+        attachments: [
+          { body: 'First comment', kind: ReleaseAttachmentKind.COMMENT },
+        ],
+        baseContent: 'Launch note',
+        targets: [
+          {
+            credentialId: 'credential-1',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ],
+        timezone: 'UTC',
+        title: 'Launch',
+      },
+      parent: makeTarget({
+        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+      target: {
+        credentialId: 'credential-1',
+        platform: CredentialPlatform.TWITTER,
+      },
+      userId: 'user-1',
+    });
+
+    expect(prisma.post.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        }),
+      }),
+    );
+  });
+
   it('creates only platform-compatible thread and comment child posts', async () => {
     await service.createAttachmentPosts(prisma as never, {
       brandId: 'brand-1',
@@ -644,6 +684,7 @@ function makeTarget(
     publishApprovalId: null,
     retryCount: 0,
     scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
+    status: PostStatus.SCHEDULED,
     targetAttachments: [],
     targetError: null,
     targetExecutionState: TargetExecutionState.SCHEDULED,
