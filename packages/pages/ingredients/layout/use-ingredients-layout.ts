@@ -1,5 +1,9 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { IngredientStatus, PageScope } from '@genfeedai/enums';
+import {
+  IngredientStatus,
+  PageScope,
+  parseIngredientCategory,
+} from '@genfeedai/enums';
 import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
 import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
 import type {
@@ -302,7 +306,11 @@ export function useIngredientsLayout({
     if (!ingredientCategory) {
       return;
     }
-    const singularType = ingredientCategory.slice(0, -1);
+    // Same route-plural → enum normalization as `useIngredientsFilters`: the
+    // upload payload's `category` is validated against the SCREAMING_SNAKE
+    // Prisma labels, so the raw lowercase singular no longer passes (#2473).
+    const singular = ingredientCategory.slice(0, -1);
+    const singularType = parseIngredientCategory(singular) ?? singular;
     openUpload({
       category: singularType,
       onConfirm: () => handleRefresh(),
