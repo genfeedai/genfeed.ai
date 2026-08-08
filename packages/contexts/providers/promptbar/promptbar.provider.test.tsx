@@ -47,10 +47,10 @@ describe('PromptBarProvider', () => {
     });
 
     const services = [
-      { findAll: vi.fn().mockResolvedValue([]) },
-      { findAll: vi.fn().mockResolvedValue([]) },
+      { findAllPages: vi.fn().mockResolvedValue([]) },
+      { findAllPages: vi.fn().mockResolvedValue([]) },
       {
-        findAll: vi.fn().mockResolvedValue([
+        findAllPages: vi.fn().mockResolvedValue([
           {
             id: 'model_enabled',
             isTraining: false,
@@ -65,8 +65,8 @@ describe('PromptBarProvider', () => {
           },
         ]),
       },
-      { findAll: vi.fn().mockResolvedValue([]) },
-      { findAll: vi.fn().mockResolvedValue([]) },
+      { findAllPages: vi.fn().mockResolvedValue([]) },
+      { findAllPages: vi.fn().mockResolvedValue([]) },
     ];
 
     useAuthedServiceMock.mockImplementation(() => {
