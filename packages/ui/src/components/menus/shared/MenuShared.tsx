@@ -158,14 +158,17 @@ export default function MenuShared({
     />
   ) : null;
 
-  /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ── */
+  /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ──
+     Width must track AppLayout's live rail (`sidebarWidth` cloned on every
+     resize). Hosts that hardcode a stale pixel value leave chrome expanding
+     while conversations/search stay glued to the old width. */
   return (
     <div
       data-testid="sidebar-shell"
       data-shell-current-app={currentApp ?? 'workspace'}
       data-shell-section-label={sectionLabel ?? ''}
       className={cn(
-        'flex h-full min-h-0 flex-1 flex-shrink-0',
+        'flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0',
         shellChromeVariant === 'transparent'
           ? 'bg-transparent'
           : 'bg-background',

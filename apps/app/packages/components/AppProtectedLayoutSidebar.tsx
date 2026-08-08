@@ -44,12 +44,21 @@ type AppSidebarSurface = {
   showUserProfile?: boolean;
 };
 
+/** Fallback when AppLayout has not cloned a live rail width yet. */
+const DEFAULT_SIDEBAR_WIDTH = 280;
+
 type Props = {
   shellChromeVariant: ShellChromeVariant;
   taskContextSearchParams: TaskContextSearchParams;
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
+  /**
+   * Live rail width from AppLayout (resize + localStorage). Must be accepted
+   * here — cloneElement injects it; hardcoding 280 leaves MenuShared stuck
+   * while DesktopSidebar and --desktop-sidebar-width track the drag.
+   */
+  sidebarWidth?: MenuSharedProps['sidebarWidth'];
   isAdminRoute: boolean;
   isAnalyticsRoute: boolean;
   isConversationRoute: boolean;
@@ -90,6 +99,7 @@ export default function AppProtectedLayoutSidebar({
   currentApp,
   isCollapsed,
   onToggleCollapse,
+  sidebarWidth = DEFAULT_SIDEBAR_WIDTH,
   isAdminRoute,
   isAnalyticsRoute,
   isConversationRoute,
@@ -293,7 +303,7 @@ export default function AppProtectedLayoutSidebar({
       shellMode="workspace"
       showPrimaryItems
       showUserProfile
-      sidebarWidth={280}
+      sidebarWidth={sidebarWidth}
       shellChromeVariant={shellChromeVariant}
     />
   );
