@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   DefinitionDetail,
   DefinitionList,
@@ -12,12 +11,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import NextLink from 'next/link';
 
-type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
+import type { ReviewPanelItem } from './review-panel.types';
 
 interface ReviewLineagePanelProps {
   item: ReviewPanelItem;
