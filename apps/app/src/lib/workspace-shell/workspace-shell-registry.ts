@@ -555,6 +555,8 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     [
       '/:orgSlug/~/publish',
       '/:orgSlug/~/publish/overview',
+      '/:orgSlug/~/publish/pending',
+      '/:orgSlug/~/publish/processing',
       '/:orgSlug/~/publish/published',
       '/:orgSlug/~/publish/scheduled',
     ],
@@ -772,6 +774,8 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publish/posts/:id',
       '/:orgSlug/:brandSlug/publish/calendar',
       '/:orgSlug/:brandSlug/publish/failed',
+      '/:orgSlug/:brandSlug/publish/pending',
+      '/:orgSlug/:brandSlug/publish/processing',
       '/:orgSlug/:brandSlug/publish/published',
       '/:orgSlug/:brandSlug/publish/review',
       '/:orgSlug/:brandSlug/publish/scheduled',

@@ -1,6 +1,6 @@
 'use client';
 
-import { ComponentSize } from '@genfeedai/enums';
+import { ComponentSize, PostStatus } from '@genfeedai/enums';
 import type { PublisherPostsView } from '@pages/posts/list/posts-list-query';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import FormSearchbar from '@ui/primitives/searchbar';
@@ -69,8 +69,10 @@ export default function PostsListToolbar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="not-posted">Not posted</SelectItem>
+            <SelectItem value={PostStatus.PENDING}>Pending</SelectItem>
+            <SelectItem value={PostStatus.PROCESSING}>Publishing</SelectItem>
             <SelectItem value="posted">Posted</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value={PostStatus.FAILED}>Failed</SelectItem>
           </SelectContent>
         </Select>
       ) : null}

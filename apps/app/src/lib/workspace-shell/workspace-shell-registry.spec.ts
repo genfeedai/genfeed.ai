@@ -273,8 +273,12 @@ describe('workspace shell trusted registry', () => {
     for (const pathname of [
       '/acme/moonrise/library/images',
       '/acme/moonrise/publish/calendar',
+      '/acme/moonrise/publish/pending',
       '/acme/moonrise/publish/posts',
+      '/acme/moonrise/publish/processing',
       '/acme/moonrise/publish/review',
+      '/acme/~/publish/pending',
+      '/acme/~/publish/processing',
       '/acme/moonrise/automate/workflows/executions/run-1',
       '/acme/moonrise/settings/publishing',
       '/acme/moonrise/settings/organization/credentials',

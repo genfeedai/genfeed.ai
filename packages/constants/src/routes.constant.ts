@@ -232,6 +232,8 @@ export const APP_ROUTES = {
     CALENDAR: '/publish/calendar',
     /** Posts whose latest publication attempt failed. */
     FAILED: '/publish/failed',
+    /** Posts queued to enter the publishing pipeline. */
+    PENDING: '/publish/pending',
     /**
      * @deprecated Canonical path is APP_ROUTES.AUTOMATE.CAMPAIGNS.
      * Legacy `/publish/campaigns` permanently redirects there.
@@ -259,6 +261,8 @@ export const APP_ROUTES = {
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publish/posts',
+    /** Posts currently being sent to destination platforms. */
+    PROCESSING: '/publish/processing',
     PUBLISHED: '/publish/published',
     /**
      * Remix is a contextual **action** (Discover/Library button), not a module
