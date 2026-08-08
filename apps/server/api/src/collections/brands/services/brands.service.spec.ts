@@ -15,6 +15,7 @@ import { BrandKitAssetsService } from '@api/collections/brands/services/brand-ki
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
@@ -50,6 +51,9 @@ describe('BrandsService', () => {
   let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
+  let defaultRecurringContentService: {
+    updateScheduleFromAgentConfig: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     brandScraperService = {
@@ -90,6 +94,9 @@ describe('BrandsService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     } as unknown as LoggerService;
+    defaultRecurringContentService = {
+      updateScheduleFromAgentConfig: vi.fn().mockResolvedValue(undefined),
+    };
 
     const prisma = {
       asset: assetDelegate,
@@ -117,6 +124,7 @@ describe('BrandsService', () => {
       new BrandKitDraftService(
         brandScraperService as unknown as BrandScraperService,
       ),
+      defaultRecurringContentService as unknown as DefaultRecurringContentService,
     );
   });
 
@@ -1293,6 +1301,68 @@ describe('BrandsService', () => {
         service.updateAgentConfig(brandId, orgId, { persona: 'Rewritten' }),
       ).resolves.toBeNull();
       expect(delegate.update).not.toHaveBeenCalled();
+    });
+
+    it('propagates publishing schedule changes to default recurring workflows', async () => {
+      withStoredConfig({
+        schedule: {
+          cronExpression: '0 8 * * *',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        schedule: {
+          cronExpression: '0 12 * * *',
+          enabled: false,
+          timezone: 'Europe/Malta',
+        },
+      });
+
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).toHaveBeenCalledWith(orgId, brandId, {
+        schedule: {
+          cronExpression: '0 12 * * *',
+          enabled: false,
+          timezone: 'Europe/Malta',
+        },
+      });
+    });
+
+    it('rejects an invalid cron expression with an actionable BadRequestException', async () => {
+      withStoredConfig({ schedule: { timezone: 'UTC' } });
+      const update = service.updateAgentConfig(brandId, orgId, {
+        schedule: { cronExpression: 'not-a-cron' },
+      });
+
+      await expect(update).rejects.toThrow(BadRequestException);
+      await expect(update).rejects.toThrow('Invalid cron expression');
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejects a partial update that carries forward a stored invalid cron', async () => {
+      withStoredConfig({
+        schedule: {
+          cronExpression: 'not-a-cron',
+          enabled: true,
+          timezone: 'UTC',
+        },
+      });
+
+      const update = service.updateAgentConfig(brandId, orgId, {
+        schedule: { timezone: 'Europe/Malta' },
+      });
+
+      await expect(update).rejects.toThrow(BadRequestException);
+      expect(delegate.update).not.toHaveBeenCalled();
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).not.toHaveBeenCalled();
     });
   });
 });
