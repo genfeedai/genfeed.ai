@@ -200,7 +200,7 @@ vi.mock('./release-detail-drawer', async (importOriginal) => {
           type="button"
           onClick={() => onRescheduleRelease('2026-03-14T10:00:00.000Z')}
         >
-          Reschedule release
+          Reschedule post
         </button>
         <button
           type="button"
@@ -491,7 +491,7 @@ describe('ContentCalendarPage', () => {
     await renderLoaded();
 
     fireEvent.click(screen.getByRole('button', { name: 'open:release-1' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Reschedule release' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reschedule post' }));
 
     await waitFor(() => {
       expect(updateReleaseMock).toHaveBeenCalledWith('release-1', {

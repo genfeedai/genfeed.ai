@@ -32,7 +32,7 @@ const KNOWN_SUB_ROUTES = [
 ];
 
 const NEW_RELEASE_AGENT_HREF = buildAgentPromptHref(
-  'Help me put together a new release — draft the posts and pick the channels to publish them on.',
+  'Help me put together a new post — draft the content and pick the channels to publish it on.',
 );
 
 type PublishLayoutState = {
@@ -219,7 +219,7 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
             >
               <Link href={href(NEW_RELEASE_AGENT_HREF)}>
                 <Plus className="size-4" />
-                New release
+                New post
               </Link>
             </Button>
             <ButtonRefresh

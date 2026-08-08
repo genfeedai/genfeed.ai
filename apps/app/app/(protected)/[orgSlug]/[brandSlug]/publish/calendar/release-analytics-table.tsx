@@ -82,7 +82,7 @@ export default function ReleaseAnalyticsTable({
       <div className="overflow-x-auto bg-card shadow-sm ring-1 ring-border/60">
         <Table className="w-full border-collapse text-sm">
           <TableCaption className="sr-only">
-            Normalized analytics metrics by release target
+            Normalized analytics metrics by channel target
           </TableCaption>
           <TableHeader className="bg-muted/45 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <TableRow>
