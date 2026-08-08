@@ -26,7 +26,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { mapLegacyPostStatusToTargetExecutionState } from '@genfeedai/api-types';
+import { mapLegacyPostStatusToTargetExecutionState } from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,

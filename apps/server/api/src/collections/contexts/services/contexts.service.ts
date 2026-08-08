@@ -22,7 +22,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import {
   postExecutionStateReadFilter,
   postVisibilityReadFilter,
-} from '@genfeedai/api-types';
+} from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
   ModelCategory,

@@ -4,7 +4,7 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
-import { resolvePostVisibility } from '@genfeedai/api-types';
+import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import {
   PostCategory,
   type PostFrequency,

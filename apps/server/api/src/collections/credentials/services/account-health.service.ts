@@ -1,6 +1,6 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import type {
   AccountHealthOverride,

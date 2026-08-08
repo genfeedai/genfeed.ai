@@ -54,7 +54,7 @@ export interface IFrameInput {
 
 export interface IJobResponse {
   jobId: string;
-  visibility: PostVisibility;
+  status: string;
   type: string;
   ingredientId: string;
 }

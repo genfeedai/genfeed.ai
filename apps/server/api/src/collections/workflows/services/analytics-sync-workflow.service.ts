@@ -3,7 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueueService } from '@api/queues/core/queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
-import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import type {
   AnalyticsSyncJobData,
