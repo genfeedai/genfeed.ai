@@ -11,12 +11,7 @@ function formatCreditLabel(
   key: string,
   value: string | undefined,
 ): string | null {
-  if (
-    key !== ActivityKey.CREDITS_ADD &&
-    key !== ActivityKey.CREDITS_REMOVE &&
-    key !== 'credits-add' &&
-    key !== 'credits-remove'
-  ) {
+  if (key !== ActivityKey.CREDITS_ADD && key !== ActivityKey.CREDITS_REMOVE) {
     return null;
   }
 
@@ -26,7 +21,7 @@ function formatCreditLabel(
   }
 
   const amountLabel = amount.toLocaleString();
-  if (key === ActivityKey.CREDITS_ADD || key === 'credits-add') {
+  if (key === ActivityKey.CREDITS_ADD) {
     return `${amountLabel} credits added`;
   }
   return `${amountLabel} credits used`;
