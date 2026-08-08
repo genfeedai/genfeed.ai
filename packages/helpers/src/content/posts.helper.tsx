@@ -1,5 +1,10 @@
 import { APP_ROUTES } from '@genfeedai/constants';
-import { Platform, PostStatus } from '@genfeedai/enums';
+import {
+  Platform,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import * as formatHelper from '@helpers/formatting/format/format.helper';
 import {
   DiscordIcon,
@@ -252,6 +257,27 @@ export function getPostStatusOptions(
   return includeAll
     ? [{ label: 'All Statuses', value: '' }, ...options]
     : options;
+}
+
+export function getPostLifecycleOptions(): Array<{
+  label: string;
+  value: TargetExecutionState;
+}> {
+  return [
+    { label: 'Draft', value: TargetExecutionState.DRAFT },
+    { label: 'Scheduled', value: TargetExecutionState.SCHEDULED },
+  ];
+}
+
+export function getPostVisibilityOptions(): Array<{
+  label: string;
+  value: PostVisibility;
+}> {
+  return [
+    { label: 'Public', value: PostVisibility.PUBLIC },
+    { label: 'Private', value: PostVisibility.PRIVATE },
+    { label: 'Unlisted', value: PostVisibility.UNLISTED },
+  ];
 }
 
 const PLATFORM_ICON_MAP: Record<

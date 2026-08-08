@@ -13,7 +13,12 @@ import type {
 import { TikTokPublisherService } from '@api/services/integrations/publishers/tiktok-publisher.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -279,7 +284,7 @@ describe('TikTokPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPostIdResult);
         expect(result.platform).toBe(CredentialPlatform.TIKTOK);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toBe(
           `https://www.tiktok.com/@${mockCredential.externalHandle}/video/${mockPostIdResult}`,
         );
@@ -308,7 +313,7 @@ describe('TikTokPublisherService', () => {
 
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPublishId);
-        expect(result.status).toBe(PostStatus.PENDING);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
         expect(result.url).toBe('');
       });
 
@@ -326,7 +331,7 @@ describe('TikTokPublisherService', () => {
 
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPublishId);
-        expect(result.status).toBe(PostStatus.PENDING);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
       });
     });
 
@@ -398,7 +403,7 @@ describe('TikTokPublisherService', () => {
 
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPublishId);
-        expect(result.status).toBe(PostStatus.PENDING);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHING);
       });
     });
 
@@ -412,7 +417,7 @@ describe('TikTokPublisherService', () => {
         expect(result.error).toBe(
           'TikTok requires 2-35 images for photo posts (carousel mode)',
         );
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 
@@ -424,7 +429,7 @@ describe('TikTokPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('does not support text-only posts');
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 

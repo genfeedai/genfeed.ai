@@ -1,5 +1,5 @@
 import { Post as BasePost } from '@genfeedai/client/models';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Credential } from '@models/auth/credential.model';
@@ -96,13 +96,7 @@ export class Post extends BasePost {
     const isYouTube = this.platform === CredentialPlatform.YOUTUBE;
 
     if (isYouTube) {
-      const allowedStatuses = [
-        PostStatus.PUBLIC,
-        PostStatus.UNLISTED,
-        PostStatus.PRIVATE,
-      ];
-
-      if (!allowedStatuses.includes(this.status as PostStatus)) {
+      if (this.targetExecutionState !== TargetExecutionState.PUBLISHED) {
         return null;
       }
 
@@ -117,7 +111,7 @@ export class Post extends BasePost {
       return null;
     }
 
-    if (this.status !== PostStatus.PUBLIC) {
+    if (this.targetExecutionState !== TargetExecutionState.PUBLISHED) {
       return null;
     }
 

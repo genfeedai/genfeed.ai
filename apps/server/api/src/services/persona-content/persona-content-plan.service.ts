@@ -6,7 +6,7 @@ import {
   CredentialPlatform,
   PersonaContentFormat,
   PostCategory,
-  PostStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -141,7 +141,7 @@ export class PersonaContentPlanService {
           personaId: input.personaId,
           platform: CredentialPlatform.INSTAGRAM,
           scheduledDate: entry.scheduledDate,
-          status: PostStatus.DRAFT,
+          targetExecutionState: TargetExecutionState.DRAFT,
           userId: input.userId,
         } as unknown as Parameters<PostsService['create']>[0]);
 

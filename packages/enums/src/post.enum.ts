@@ -9,6 +9,18 @@ export enum PostStatus {
   FAILED = 'failed',
 }
 
+/**
+ * Audience visibility of a published channel target.
+ *
+ * This is deliberately independent from `TargetExecutionState`: a target can
+ * be `published` with any visibility supported by its provider.
+ */
+export enum PostVisibility {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  UNLISTED = 'unlisted',
+}
+
 export enum PostFrequency {
   DAILY = 'daily',
   WEEKLY = 'weekly',

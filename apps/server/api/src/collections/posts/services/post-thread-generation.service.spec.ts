@@ -10,7 +10,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { PostStatus, Status } from '@genfeedai/enums';
+import { PostStatus, Status, TargetExecutionState } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
@@ -111,7 +111,7 @@ describe('PostThreadGenerationService', () => {
       expect.objectContaining({
         description: 'Reply one',
         label: 'Reply one',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       }),
       expect.any(Array),
     );
@@ -121,7 +121,7 @@ describe('PostThreadGenerationService', () => {
       expect.objectContaining({
         description: 'Reply two',
         label: 'Reply two',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       }),
       expect.any(Array),
     );
@@ -146,11 +146,13 @@ describe('PostThreadGenerationService', () => {
 
     expect(postsService.patch).toHaveBeenCalledWith(
       childPosts[0].id,
-      expect.objectContaining({ status: PostStatus.DRAFT }),
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
       expect.any(Array),
     );
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[1].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
   });
 
@@ -174,11 +176,13 @@ describe('PostThreadGenerationService', () => {
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(postsService.patch).toHaveBeenCalledWith(
       childPosts[1].id,
-      expect.objectContaining({ status: PostStatus.DRAFT }),
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
       expect.any(Array),
     );
     expect(websocketService.emit).toHaveBeenCalledWith(
@@ -214,10 +218,10 @@ describe('PostThreadGenerationService', () => {
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(cleanupChildren[1].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(postsService.patch).toHaveBeenCalledWith(cleanupChildren[2].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(loggerService.error).toHaveBeenCalledWith(
       `Failed to update post ${cleanupChildren[1].id} to FAILED status`,
@@ -240,14 +244,16 @@ describe('PostThreadGenerationService', () => {
 
     expect(postsService.patch).not.toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({ status: PostStatus.DRAFT }),
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
       expect.any(Array),
     );
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[1].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
   });
 
@@ -272,21 +278,21 @@ describe('PostThreadGenerationService', () => {
       positionedChildren[0].id,
       expect.objectContaining({
         description: 'Reply one',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       }),
       expect.any(Array),
     );
     expect(postsService.patch).toHaveBeenNthCalledWith(
       2,
       positionedChildren[1].id,
-      { status: PostStatus.FAILED },
+      { targetExecutionState: TargetExecutionState.FAILED },
     );
     expect(postsService.patch).toHaveBeenNthCalledWith(
       3,
       positionedChildren[2].id,
       expect.objectContaining({
         description: 'Reply three',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       }),
       expect.any(Array),
     );
@@ -305,14 +311,14 @@ describe('PostThreadGenerationService', () => {
     );
 
     expect(postsService.patch).toHaveBeenNthCalledWith(1, childPosts[0].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(postsService.patch).toHaveBeenNthCalledWith(
       2,
       childPosts[1].id,
       expect.objectContaining({
         description: 'Reply two',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
       }),
       expect.any(Array),
     );
@@ -332,10 +338,10 @@ describe('PostThreadGenerationService', () => {
 
     expect(activitiesService.patch).not.toHaveBeenCalled();
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[1].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
   });
 
@@ -355,10 +361,10 @@ describe('PostThreadGenerationService', () => {
     );
 
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[0].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(postsService.patch).toHaveBeenCalledWith(childPosts[1].id, {
-      status: PostStatus.FAILED,
+      targetExecutionState: TargetExecutionState.FAILED,
     });
     expect(loggerService.error).toHaveBeenCalledWith(
       'Failed to mark activity as failed during thread expansion cleanup',

@@ -14,6 +14,7 @@ import {
   PageScope,
   type Platform,
   PostStatus,
+  TargetExecutionState,
   ViewType,
   WebSocketEventStatus,
 } from '@genfeedai/enums';
@@ -412,7 +413,10 @@ export function usePostsList({
   ]);
 
   const hasPublicPosts = useMemo(
-    () => posts.some((post) => post.status === PostStatus.PUBLIC),
+    () =>
+      posts.some(
+        (post) => post.targetExecutionState === TargetExecutionState.PUBLISHED,
+      ),
     [posts],
   );
 
@@ -621,7 +625,10 @@ export function usePostsList({
   const processingPostIds = useMemo(
     () =>
       posts
-        .filter((post) => post.status === PostStatus.PROCESSING)
+        .filter(
+          (post) =>
+            post.targetExecutionState === TargetExecutionState.PUBLISHING,
+        )
         .map((post) => post.id)
         .sort(),
     [posts],

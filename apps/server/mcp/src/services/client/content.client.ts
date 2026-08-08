@@ -1,4 +1,8 @@
-import { PostStatus } from '@genfeedai/enums';
+import {
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type {
   ArticleResource,
   PostResource,
@@ -17,7 +21,12 @@ import type {
   TrendingTopic,
   TrendingTopicsParams,
 } from '@mcp/shared/interfaces/post.interface';
-import { toPlatform, toPostStatus } from '@mcp/tools/tool-validators';
+import {
+  toPlatform,
+  toPostStatus,
+  toPostVisibility,
+  toTargetExecutionState,
+} from '@mcp/tools/tool-validators';
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
 
@@ -167,6 +176,7 @@ export class ContentClient {
               customMessage: params.customMessage,
               platforms: params.platforms,
               scheduleAt: params.scheduleAt,
+              visibility: params.visibility,
             },
             type: 'posts',
           },
@@ -178,6 +188,11 @@ export class ContentClient {
             contentId: params.contentId,
             createdAt: post.attributes?.createdAt || new Date().toISOString(),
             id: post.id,
+            executionState:
+              toTargetExecutionState(
+                post.attributes?.targetExecutionState ??
+                  post.attributes?.executionState,
+              ) ?? TargetExecutionState.PUBLISHING,
             platform:
               toPlatform(post.attributes?.platform) ??
               params.platforms[index] ??
@@ -186,6 +201,9 @@ export class ContentClient {
             publishedUrl: post.attributes?.publishedUrl,
             scheduledAt: post.attributes?.scheduledAt,
             status: toPostStatus(post.attributes?.status) ?? PostStatus.PENDING,
+            visibility:
+              toPostVisibility(post.attributes?.visibility) ??
+              PostVisibility.PUBLIC,
           }));
         }
 
@@ -194,6 +212,11 @@ export class ContentClient {
             contentId: params.contentId,
             createdAt: posts?.attributes?.createdAt || new Date().toISOString(),
             id: posts?.id,
+            executionState:
+              toTargetExecutionState(
+                posts?.attributes?.targetExecutionState ??
+                  posts?.attributes?.executionState,
+              ) ?? TargetExecutionState.PUBLISHING,
             platform:
               toPlatform(posts?.attributes?.platform) ?? params.platforms[0],
             publishedAt: posts?.attributes?.publishedAt,
@@ -201,6 +224,9 @@ export class ContentClient {
             scheduledAt: posts?.attributes?.scheduledAt,
             status:
               toPostStatus(posts?.attributes?.status) ?? PostStatus.PENDING,
+            visibility:
+              toPostVisibility(posts?.attributes?.visibility) ??
+              PostVisibility.PUBLIC,
           },
         ];
       },
@@ -230,11 +256,19 @@ export class ContentClient {
             contentId: post.attributes?.contentId,
             createdAt: post.attributes?.createdAt,
             id: post.id,
+            executionState:
+              toTargetExecutionState(
+                post.attributes?.targetExecutionState ??
+                  post.attributes?.executionState,
+              ) ?? TargetExecutionState.DRAFT,
             platform: toPlatform(post.attributes?.platform),
             publishedAt: post.attributes?.publishedAt,
             publishedUrl: post.attributes?.publishedUrl,
             scheduledAt: post.attributes?.scheduledAt,
             status: toPostStatus(post.attributes?.status) ?? PostStatus.PENDING,
+            visibility:
+              toPostVisibility(post.attributes?.visibility) ??
+              PostVisibility.PUBLIC,
           })) || []
         );
       },

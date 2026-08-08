@@ -12,10 +12,15 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@genfeedai/api-types';
+import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -66,8 +71,11 @@ export class PublicPostsController {
     };
 
     const matchQuery: PrismaWhereQuery = {
+      AND: [
+        postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+        postVisibilityReadFilter(PostVisibility.PUBLIC),
+      ],
       isDeleted: false,
-      status: PostStatus.PUBLIC,
     };
 
     // Filter by ingredient if provided
@@ -181,12 +189,15 @@ export class PublicPostsController {
     }
 
     this.logger.log(url, { params: { postId } });
-    // Posts carry no `scope` column — `status` is their visibility, and this
-    // matches what the public list endpoint above returns.
+    // Public detail uses the same independent lifecycle and audience filters
+    // as the list endpoint above.
     const post = await this.postsService.findOne(
       {
+        AND: [
+          postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          postVisibilityReadFilter(PostVisibility.PUBLIC),
+        ],
         id: postId,
-        status: PostStatus.PUBLIC,
       },
       [],
     );

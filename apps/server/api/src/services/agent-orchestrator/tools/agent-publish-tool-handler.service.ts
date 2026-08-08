@@ -10,7 +10,7 @@ import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent
 import {
   CredentialPlatform,
   IngredientCategory,
-  PostStatus,
+  PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -116,6 +116,7 @@ export class AgentPublishToolHandler {
       platforms,
       scheduledAt,
       sourceActionId,
+      visibility,
     } = input;
 
     if (credentials.length === 0) {
@@ -160,6 +161,7 @@ export class AgentPublishToolHandler {
       sourceActionId,
       threadId: ctx.threadId,
       userId: ctx.userId,
+      visibility,
     });
     const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
     const release = await this.postGroupsService.create(
@@ -186,6 +188,7 @@ export class AgentPublishToolHandler {
           order,
           platform: credential.platform as CredentialPlatform,
           ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
+          visibility,
         })),
         timezone: 'UTC',
         title: baseContent.slice(0, 100),
@@ -368,6 +371,7 @@ export class AgentPublishToolHandler {
     description: string;
     scheduledAt?: string;
     title: string;
+    visibility: PostVisibility;
   }): AgentUiAction {
     const selectedPlatforms =
       params.defaultPlatforms && params.defaultPlatforms.length > 0
@@ -389,6 +393,7 @@ export class AgentPublishToolHandler {
       textContent: params.defaultCaption,
       title: params.title,
       type: 'publish_post_card' as const,
+      visibility: params.visibility,
     };
   }
 
@@ -398,6 +403,7 @@ export class AgentPublishToolHandler {
       contentId: string;
       platforms?: string[];
       scheduledAt?: string;
+      visibility: PostVisibility;
     },
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
@@ -472,6 +478,7 @@ export class AgentPublishToolHandler {
             params.scheduledAt != null
               ? 'Schedule selected content'
               : 'Publish selected content',
+          visibility: params.visibility,
         }),
       ],
       success: true,
@@ -502,6 +509,17 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const parsedVisibility = z
+      .nativeEnum(PostVisibility)
+      .safeParse(params.visibility ?? PostVisibility.PUBLIC);
+    if (!parsedVisibility.success) {
+      return {
+        creditsUsed: 0,
+        error: 'visibility must be public, private, or unlisted.',
+        success: false,
+      };
+    }
+    const visibility = parsedVisibility.data;
     const contentId =
       typeof params.contentId === 'string' && params.contentId.trim().length > 0
         ? params.contentId.trim()
@@ -547,6 +565,7 @@ export class AgentPublishToolHandler {
             contentId,
             platforms,
             scheduledAt: requestedScheduledAt,
+            visibility,
           },
           ctx,
         );
@@ -601,6 +620,7 @@ export class AgentPublishToolHandler {
         platforms,
         scheduledAt,
         sourceActionId,
+        visibility,
       });
     }
 
@@ -621,15 +641,17 @@ export class AgentPublishToolHandler {
       label: ((params.content as string) || '').substring(0, 100),
       organizationId: ctx.organizationId,
       source: 'agent',
-      status: PostStatus.DRAFT,
+      targetExecutionState: TargetExecutionState.DRAFT,
       userId: ctx.userId,
+      visibility,
     } as never);
 
     return {
       creditsUsed: 0,
       data: {
         id: String(post.id),
-        status: PostStatus.DRAFT,
+        executionState: TargetExecutionState.DRAFT,
+        visibility,
       },
       success: true,
     };

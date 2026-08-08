@@ -1,6 +1,7 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import type {
   AccountHealthOverride,
   AccountHealthRiskLevel,
@@ -326,7 +327,7 @@ export class AccountHealthService {
         where: {
           credentialId: credential.id,
           isDeleted: false,
-          status: PostStatus.PUBLIC,
+          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
         },
       }),
       this.prisma.post.count({
@@ -334,7 +335,7 @@ export class AccountHealthService {
           createdAt: { gte: since },
           credentialId: credential.id,
           isDeleted: false,
-          status: PostStatus.FAILED,
+          ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
         },
       }),
     ]);

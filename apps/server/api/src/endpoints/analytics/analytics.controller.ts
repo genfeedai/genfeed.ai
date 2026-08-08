@@ -42,11 +42,12 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
 import {
   BotStatus,
   CredentialPlatform,
   IngredientCategory,
-  PostStatus,
+  TargetExecutionState,
   WorkflowStatus,
 } from '@genfeedai/enums';
 import {
@@ -221,7 +222,12 @@ export class AnalyticsController {
       ),
       this.modelsService.findAll({ where: { isDeleted: false } }, options),
       this.postsService.findAll(
-        { where: { isDeleted: false, status: PostStatus.PENDING } },
+        {
+          where: {
+            isDeleted: false,
+            ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHING),
+          },
+        },
         options,
       ),
     ]);

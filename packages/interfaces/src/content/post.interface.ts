@@ -1,4 +1,9 @@
-import type { CredentialPlatform, PostCategory } from '@genfeedai/enums';
+import type {
+  CredentialPlatform,
+  PostCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { IPostAnalyticsSummary } from '../analytics/analytics.interface';
 import type {
   IBaseEntity,
@@ -30,6 +35,8 @@ export interface IPost extends IBaseEntity {
   description?: string;
   tags?: ITag[];
   status: string;
+  targetExecutionState: TargetExecutionState;
+  visibility?: PostVisibility;
   scheduledDate?: string | null;
   uploadedAt: string;
   publicationDate: string;
@@ -65,7 +72,8 @@ export interface IPostPlatformConfig {
   description: string;
   overrideSchedule: boolean;
   customScheduledDate: string;
-  status: string;
+  targetExecutionState: TargetExecutionState;
+  visibility: PostVisibility;
   enabled: boolean;
   isCredentialValid?: boolean;
   category?: PostCategory;

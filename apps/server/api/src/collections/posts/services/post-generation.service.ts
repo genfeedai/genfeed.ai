@@ -32,10 +32,10 @@ import {
   CredentialPlatform,
   ModelCategory,
   PostCategory,
-  PostStatus,
   PromptTemplateKey,
   Status,
   SystemPromptKey,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   AccountPublishingContext,
@@ -241,7 +241,7 @@ export class PostGenerationService {
         organizationId: publicMetadata.organization,
         parentId: dto.format === 'thread' && i > 0 ? rootPostId : undefined,
         platform: context.account.platform,
-        status: PostStatus.PROCESSING,
+        targetExecutionState: TargetExecutionState.PUBLISHING,
         userId: publicMetadata.user,
       });
 
@@ -471,7 +471,7 @@ export class PostGenerationService {
             {
               description: postText,
               label: this.extractLabelFromTweet(postText),
-              status: PostStatus.DRAFT,
+              targetExecutionState: TargetExecutionState.DRAFT,
             },
             [
               { path: 'ingredients', select: ['id', 'cdnUrl'] },
@@ -566,7 +566,7 @@ export class PostGenerationService {
   ): Promise<void> {
     try {
       await this.postsService.patch(postId, {
-        status: PostStatus.FAILED,
+        targetExecutionState: TargetExecutionState.FAILED,
       });
 
       await this.websocketService.emit(WebSocketPaths.post(postId), {

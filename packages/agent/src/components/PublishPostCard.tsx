@@ -1,7 +1,14 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant, PostVisibility } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { Calendar, CircleCheck, Send } from 'lucide-react';
 import {
@@ -62,6 +69,9 @@ export function PublishPostCard({
   );
   const [selectedPlatforms, setSelectedPlatforms] =
     useState<string[]>(initialPlatforms);
+  const [visibility, setVisibility] = useState<PostVisibility>(
+    action.visibility ?? PostVisibility.PUBLIC,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const selectedPlatformSet = useMemo(
@@ -122,6 +132,7 @@ export function PublishPostCard({
         platforms: selectedPlatforms,
         scheduledAt: normalizedScheduledAt,
         sourceActionId: action.id,
+        visibility,
       });
       setIsSubmitted(true);
     } catch {
@@ -138,6 +149,7 @@ export function PublishPostCard({
     onUiAction,
     scheduledAt,
     selectedPlatforms,
+    visibility,
   ]);
 
   if (isSubmitted) {
@@ -211,6 +223,25 @@ export function PublishPostCard({
             );
           })}
         </div>
+      </div>
+
+      <div className="mb-4">
+        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+          Visibility
+        </span>
+        <Select
+          value={visibility}
+          onValueChange={(value) => setVisibility(value as PostVisibility)}
+        >
+          <SelectTrigger aria-label="Post visibility">
+            <SelectValue placeholder="Select visibility" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={PostVisibility.PUBLIC}>Public</SelectItem>
+            <SelectItem value={PostVisibility.PRIVATE}>Private</SelectItem>
+            <SelectItem value={PostVisibility.UNLISTED}>Unlisted</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="mb-4">

@@ -7,7 +7,8 @@ import {
   BatchItemStatus,
   BatchStatus,
   ContentFormat,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { CredentialPlatform } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -163,8 +164,9 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
         credentialId: 'cred-instagram-1',
         organizationId: 'org-1',
         platform: 'instagram',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
         userId: 'user-1',
+        visibility: PostVisibility.PUBLIC,
       }),
     );
   });
@@ -178,7 +180,8 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
       expect.objectContaining({
         brandId: 'brand-1',
         platform: 'instagram',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        visibility: PostVisibility.PUBLIC,
       }),
     );
     expect(postsService.create.mock.calls[0]?.[0]).not.toHaveProperty(

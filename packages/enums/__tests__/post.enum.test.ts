@@ -4,6 +4,7 @@ import {
   PostEntityModel,
   PostFrequency,
   PostStatus,
+  PostVisibility,
 } from '../src/post.enum';
 
 describe('post.enum', () => {
@@ -21,6 +22,16 @@ describe('post.enum', () => {
       expect(PostStatus.PROCESSING).toBe('processing');
       expect(PostStatus.PENDING).toBe('pending');
       expect(PostStatus.FAILED).toBe('failed');
+    });
+  });
+
+  describe('PostVisibility', () => {
+    it('keeps audience visibility independent from lifecycle', () => {
+      expect(Object.values(PostVisibility)).toEqual([
+        'public',
+        'private',
+        'unlisted',
+      ]);
     });
   });
 

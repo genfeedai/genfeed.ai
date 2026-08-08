@@ -15,7 +15,12 @@ import type {
 import { YouTubePublisherService } from '@api/services/integrations/publishers/youtube-publisher.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -285,7 +290,7 @@ describe('YouTubePublisherService', () => {
 
         expect(result.success).toBe(false);
         // Text-only posts fail at the supportsTextOnly check or image check
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 
@@ -297,7 +302,7 @@ describe('YouTubePublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('YouTube does not support image posts');
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 
@@ -313,7 +318,7 @@ describe('YouTubePublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockVideoId);
         expect(result.platform).toBe(CredentialPlatform.YOUTUBE);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toBe(
           `https://www.youtube.com/watch?v=${mockVideoId}`,
         );
@@ -491,7 +496,7 @@ describe('YouTubePublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -538,7 +543,7 @@ describe('YouTubePublisherService', () => {
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         }),
       );
     });

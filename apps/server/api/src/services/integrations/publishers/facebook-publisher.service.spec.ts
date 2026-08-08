@@ -16,7 +16,12 @@ import type {
   PublishContext,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -232,7 +237,7 @@ describe('FacebookPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('does not support text-only posts');
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 
@@ -248,7 +253,7 @@ describe('FacebookPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPostIdResult);
         expect(result.platform).toBe(CredentialPlatform.FACEBOOK);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toContain(mockPostIdResult);
         expect(facebookService.uploadImage).toHaveBeenCalledWith(
           mockPageId,
@@ -583,7 +588,7 @@ describe('FacebookPublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -630,7 +635,7 @@ describe('FacebookPublisherService', () => {
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         }),
       );
     });

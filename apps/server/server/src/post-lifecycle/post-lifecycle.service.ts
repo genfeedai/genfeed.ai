@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import type { IChannelTargetError } from '@genfeedai/interfaces';
 import { type Post, Prisma } from '@genfeedai/prisma';
 import {
@@ -70,7 +70,7 @@ export function canTransitionPostLifecycle(
 
 export type PostLifecycleMutation = Omit<
   Prisma.PostUpdateManyMutationInput,
-  'organizationId' | 'status' | 'targetExecutionState'
+  'organizationId' | 'status' | 'targetExecutionState' | 'visibility'
 >;
 
 export interface PostLifecycleTransitionGuard {
@@ -84,12 +84,12 @@ export interface PostLifecycleTransitionInput {
   error?: IChannelTargetError | null;
   groupId?: string;
   guard?: PostLifecycleTransitionGuard;
-  legacyStatus?: PostStatus;
   mutation?: PostLifecycleMutation;
   nextState: TargetExecutionState;
   organizationId: string;
   postId: string;
   reason?: string;
+  visibility?: PostVisibility;
 }
 
 export type PostLifecycleTransitionResult =
@@ -247,8 +247,10 @@ export class PostLifecycleService {
         ...(input.error !== undefined && {
           targetError: input.error ? this.toJson(input.error) : Prisma.JsonNull,
         }),
-        status: input.legacyStatus ?? this.toLegacyStatus(input.nextState),
         targetExecutionState: input.nextState,
+        ...(input.visibility !== undefined && {
+          visibility: input.visibility,
+        }),
       },
       where: scopedWhere(input.organizationId, {
         ...(input.groupId ? { groupId: input.groupId } : {}),
@@ -305,7 +307,7 @@ export class PostLifecycleService {
   ): Promise<Post | null> {
     const hasMutation =
       input.error !== undefined ||
-      input.legacyStatus !== undefined ||
+      input.visibility !== undefined ||
       Boolean(input.mutation && Object.keys(input.mutation).length > 0);
     if (!hasMutation) {
       return target;
@@ -317,8 +319,8 @@ export class PostLifecycleService {
         ...(input.error !== undefined && {
           targetError: input.error ? this.toJson(input.error) : Prisma.JsonNull,
         }),
-        ...(input.legacyStatus !== undefined && {
-          status: input.legacyStatus,
+        ...(input.visibility !== undefined && {
+          visibility: input.visibility,
         }),
       },
       where: scopedWhere(input.organizationId, {
@@ -370,24 +372,6 @@ export class PostLifecycleService {
       requestedState: input.nextState,
     });
     return { kind: 'stale' };
-  }
-
-  private toLegacyStatus(state: TargetExecutionState): PostStatus {
-    switch (state) {
-      case TargetExecutionState.DRAFT:
-        return PostStatus.DRAFT;
-      case TargetExecutionState.PUBLISHING:
-        return PostStatus.PROCESSING;
-      case TargetExecutionState.PUBLISHED:
-        return PostStatus.PUBLIC;
-      case TargetExecutionState.FAILED:
-        return PostStatus.FAILED;
-      case TargetExecutionState.CANCELLED:
-      case TargetExecutionState.PAUSED:
-      case TargetExecutionState.SCHEDULED:
-      case TargetExecutionState.SKIPPED:
-        return PostStatus.SCHEDULED;
-    }
   }
 
   private isSerializationFailure(error: unknown): boolean {

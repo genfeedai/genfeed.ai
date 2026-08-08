@@ -13,7 +13,11 @@ import {
   TwitterService,
 } from '@api/services/integrations/twitter/services/twitter.service';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -217,7 +221,7 @@ export class TwitterPublisherService extends BasePublisherService {
           await this.postsService.patch(child.id.toString(), {
             externalId: childExternalId,
             publicationDate: new Date(),
-            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           });
 
           this.logger.log(`${url} published thread child`, {
@@ -237,7 +241,7 @@ export class TwitterPublisherService extends BasePublisherService {
 
           // Mark child as failed but continue with other children
           await this.postsService.patch(child.id.toString(), {
-            status: PostStatus.FAILED,
+            targetExecutionState: TargetExecutionState.FAILED,
           });
         }
       } catch (error: unknown) {
@@ -249,7 +253,7 @@ export class TwitterPublisherService extends BasePublisherService {
 
         // Mark child as failed but continue with other children
         await this.postsService.patch(child.id.toString(), {
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         });
       }
     }

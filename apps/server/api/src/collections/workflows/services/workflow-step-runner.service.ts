@@ -20,7 +20,8 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import {
   CredentialPlatform,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
   WorkflowStatus,
   WorkflowStepCategory,
   WorkflowStepStatus,
@@ -452,6 +453,11 @@ export class WorkflowStepRunnerService extends BaseService<
       string,
       unknown
     >;
+    const requestedVisibility = Object.values(PostVisibility).includes(
+      visibility as PostVisibility,
+    )
+      ? (visibility as PostVisibility)
+      : PostVisibility.PUBLIC;
 
     if (this.postsService) {
       const postsService = this.postsService;
@@ -469,8 +475,9 @@ export class WorkflowStepRunnerService extends BaseService<
               schedule === 'immediate'
                 ? new Date()
                 : (config.scheduledAt as Date),
-            status: (visibility as PostStatus) || PostStatus.SCHEDULED,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
             userId: workflow.userId,
+            visibility: requestedVisibility,
           } as never),
         ),
       );

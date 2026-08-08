@@ -1,4 +1,10 @@
-import type { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
+import type {
+  PostCategory,
+  PostFrequency,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 
 export interface components {
   schemas: {
@@ -32,9 +38,11 @@ export interface components {
       repeatFrequency?: PostFrequency;
       repeatInterval?: number;
       scheduledDate?: string;
-      status: PostStatus;
+      status?: PostStatus;
+      targetExecutionState?: TargetExecutionState;
       tags?: string[];
       timezone?: string;
+      visibility?: PostVisibility;
     };
     UpdatePostDto: {
       category?: PostCategory;
@@ -66,8 +74,10 @@ export interface components {
       repeatInterval?: number;
       scheduledDate?: string;
       status?: PostStatus;
+      targetExecutionState?: TargetExecutionState;
       tags?: string[];
       timezone?: string;
+      visibility?: PostVisibility;
     };
   };
 }

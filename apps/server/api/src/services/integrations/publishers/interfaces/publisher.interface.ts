@@ -2,18 +2,23 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  type PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 
 /**
  * Result of a publish operation
  */
 export interface PublishResult {
+  executionState: TargetExecutionState;
   success: boolean;
   externalId: string | null;
   externalShortcode?: string | null;
   platform: CredentialPlatform | string;
   url: string;
-  status: PostStatus;
   error?: string;
 }
 
@@ -34,6 +39,8 @@ export interface PublishContext {
    * JSON so a stale or unknown key can never reach a provider API.
    */
   settings: ChannelTargetSettings;
+  /** Canonical audience axis resolved before provider execution. */
+  visibility?: PostVisibility;
 }
 
 /**
