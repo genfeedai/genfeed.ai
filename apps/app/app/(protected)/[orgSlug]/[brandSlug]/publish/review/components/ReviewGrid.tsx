@@ -5,7 +5,6 @@ import type { IBatchItem } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Check, Sparkles, X } from 'lucide-react';
 
-import ReviewDetailPanel from './ReviewDetailPanel';
 import ReviewItemsTable from './ReviewItemsTable';
 
 interface ReviewGridProps {
@@ -13,29 +12,23 @@ interface ReviewGridProps {
   isActioning: boolean;
   items: IBatchItem[];
   selectedIds: Set<string>;
-  onApprove: (itemId: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
-  onRequestChanges: (itemId: string, feedback?: string) => void;
-  onReject: (itemId: string, feedback?: string) => void;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
 }
 
 /**
- * Review body: table + detail. Batch picker and status filters live in the
- * Publish topbar action rail (ReviewQueueView → setFiltersNode).
+ * Table-only review canvas. Item detail + decisions live in the agent
+ * Context rail via ReviewWorkspaceSurfaceAdapter.
  */
 export default function ReviewGrid({
   activeItem,
   isActioning,
   items,
   selectedIds,
-  onApprove,
   onBulkApprove,
   onBulkReject,
-  onRequestChanges,
-  onReject,
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
@@ -81,41 +74,28 @@ export default function ReviewGrid({
         </div>
       ) : null}
 
-      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
-        <section className="min-w-0">
-          {items.length === 0 ? (
-            <div className="flex min-h-[280px] flex-col items-center justify-center rounded-card bg-card p-8 text-center shadow-border">
-              <div className="rounded-card border border-border bg-background p-3">
-                <Sparkles className="size-5 text-muted-foreground" />
-              </div>
-              <p className="mt-3 text-sm font-medium text-foreground">
-                No items in this view
-              </p>
-              <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                Switch filters or pick another batch.
-              </p>
-            </div>
-          ) : (
-            <ReviewItemsTable
-              activeItemId={activeItem?.id ?? null}
-              items={items}
-              selectedIds={selectedIds}
-              onSelectItem={onSelectItem}
-              onToggleSelect={onToggleSelect}
-            />
-          )}
-        </section>
-
-        <ReviewDetailPanel
-          isActioning={isActioning}
-          isSelected={activeItem ? selectedIds.has(activeItem.id) : false}
-          item={activeItem}
-          onApprove={onApprove}
-          onReject={onReject}
-          onRequestChanges={onRequestChanges}
+      {items.length === 0 ? (
+        <div className="flex min-h-[280px] flex-col items-center justify-center rounded-card bg-card p-8 text-center shadow-border">
+          <div className="rounded-card border border-border bg-background p-3">
+            <Sparkles className="size-5 text-muted-foreground" />
+          </div>
+          <p className="mt-3 text-sm font-medium text-foreground">
+            No items in this view
+          </p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Switch filters or pick another batch. Use the agent sidebar to
+            triage the queue when nothing is selected.
+          </p>
+        </div>
+      ) : (
+        <ReviewItemsTable
+          activeItemId={activeItem?.id ?? null}
+          items={items}
+          selectedIds={selectedIds}
+          onSelectItem={onSelectItem}
           onToggleSelect={onToggleSelect}
         />
-      </div>
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import ReviewGrid from './ReviewGrid';
 import ReviewStatusFilters, {
   PUBLISH_HEADER_DROPDOWN_CLASS,
 } from './ReviewStatusFilters';
+import ReviewWorkspaceSurfaceAdapter from './ReviewWorkspaceSurfaceAdapter';
 import type {
   ReviewFilterCounts,
   ReviewStatusFilter,
@@ -199,19 +200,27 @@ export default function ReviewQueueView({
           className="max-w-xl mx-auto"
         />
       ) : activeBatch ? (
-        <ReviewGrid
-          activeItem={activeItem}
-          isActioning={isActioning}
-          items={visibleItems}
-          selectedIds={selectedIds}
-          onApprove={onApprove}
-          onBulkApprove={onBulkApprove}
-          onBulkReject={onBulkReject}
-          onRequestChanges={onRequestChanges}
-          onReject={onReject}
-          onSelectItem={onSelectItem}
-          onToggleSelect={onToggleSelect}
-        />
+        <>
+          <ReviewWorkspaceSurfaceAdapter
+            activeItem={activeItem}
+            isActioning={isActioning}
+            isSelected={activeItem ? selectedIds.has(activeItem.id) : false}
+            onApprove={onApprove}
+            onReject={onReject}
+            onRequestChanges={onRequestChanges}
+            onToggleSelect={onToggleSelect}
+          />
+          <ReviewGrid
+            activeItem={activeItem}
+            isActioning={isActioning}
+            items={visibleItems}
+            selectedIds={selectedIds}
+            onBulkApprove={onBulkApprove}
+            onBulkReject={onBulkReject}
+            onSelectItem={onSelectItem}
+            onToggleSelect={onToggleSelect}
+          />
+        </>
       ) : (
         <Card
           variant={CardVariant.DEFAULT}

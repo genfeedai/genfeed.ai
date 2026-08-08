@@ -107,7 +107,8 @@ export default function ReviewDetailPanel({
     <section className="rounded-card bg-card shadow-border">
       <ReviewDetailPanelHeader item={item} statusLabel={statusLabel} />
 
-      <div className="grid gap-4 p-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(280px,1fr)]">
+      {/* Single column — lives in the agent Context rail, not a page split. */}
+      <div className="grid gap-4 p-4">
         <div className="min-w-0 space-y-3">
           {/* Post-first: caption is primary. Media only when present. */}
           <InsetSurface className="p-4" tone="contrast">
