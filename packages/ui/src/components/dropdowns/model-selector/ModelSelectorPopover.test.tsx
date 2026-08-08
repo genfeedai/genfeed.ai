@@ -505,13 +505,14 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    // Default catalog hides legacy rows.
-    expect(screen.getByText('Current Model')).toBeInTheDocument();
-    expect(screen.queryByText('Old Model')).not.toBeInTheDocument();
+    // Default catalog hides legacy rows. Single-variant families render the
+    // label twice (row + subtitle), so assert by count, not uniqueness.
+    expect(screen.getAllByText('Current Model').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Old Model')).toHaveLength(0);
 
     await user.click(screen.getByRole('button', { name: 'Legacy models' }));
-    expect(screen.getByText('Old Model')).toBeInTheDocument();
-    expect(screen.queryByText('Current Model')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Old Model').length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Current Model')).toHaveLength(0);
   });
 
   it('blocks selecting models that cost more credits than available', async () => {
