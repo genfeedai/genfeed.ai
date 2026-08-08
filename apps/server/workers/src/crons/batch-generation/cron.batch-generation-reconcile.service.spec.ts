@@ -7,7 +7,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CronBatchGenerationReconcileService', () => {
   let service: CronBatchGenerationReconcileService;
-  let reconcileService: { findStrandedBatches: ReturnType<typeof vi.fn> };
+  let reconcileService: {
+    findStrandedBatches: ReturnType<typeof vi.fn>;
+    reconcileSettlementShortfalls: ReturnType<typeof vi.fn>;
+  };
   let queueService: { queueBatch: ReturnType<typeof vi.fn> };
   let logger: {
     error: ReturnType<typeof vi.fn>;
@@ -31,7 +34,10 @@ describe('CronBatchGenerationReconcileService', () => {
   ];
 
   beforeEach(async () => {
-    reconcileService = { findStrandedBatches: vi.fn().mockResolvedValue([]) };
+    reconcileService = {
+      findStrandedBatches: vi.fn().mockResolvedValue([]),
+      reconcileSettlementShortfalls: vi.fn().mockResolvedValue(undefined),
+    };
     queueService = { queueBatch: vi.fn().mockResolvedValue('job-1') };
     logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
 
@@ -86,5 +92,13 @@ describe('CronBatchGenerationReconcileService', () => {
 
     expect(queueService.queueBatch).not.toHaveBeenCalled();
     expect(logger.log).not.toHaveBeenCalled();
+  });
+
+  it('delegates settlement shortfall reconciliation to the API service', async () => {
+    await service.reconcileSettlementShortfalls();
+
+    expect(
+      reconcileService.reconcileSettlementShortfalls,
+    ).toHaveBeenCalledOnce();
   });
 });

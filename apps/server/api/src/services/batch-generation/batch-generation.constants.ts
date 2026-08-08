@@ -21,3 +21,6 @@ export const BATCH_MAX_RESUME_ATTEMPTS = 3;
 
 /** Upper bound on batches reconciled per sweep, so one tick stays bounded. */
 export const BATCH_RECONCILE_SWEEP_LIMIT = 50;
+
+/** Upper bound on durable credit shortfalls retried per settlement sweep. */
+export const BATCH_SETTLEMENT_SHORTFALL_SWEEP_LIMIT = 50;

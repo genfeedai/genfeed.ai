@@ -20,7 +20,10 @@ describe('BatchGenerationReconcileService', () => {
     findMany: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
-  let creditsService: { settleBatchCredits: ReturnType<typeof vi.fn> };
+  let creditsService: {
+    retrySettlementShortfall: ReturnType<typeof vi.fn>;
+    settleBatchCredits: ReturnType<typeof vi.fn>;
+  };
 
   const pendingItem = {
     format: ContentFormat.IMAGE,
@@ -47,6 +50,7 @@ describe('BatchGenerationReconcileService', () => {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     creditsService = {
+      retrySettlementShortfall: vi.fn().mockResolvedValue(true),
       settleBatchCredits: vi.fn().mockResolvedValue({
         additionalCredits: 0,
         isAlreadySettled: false,
@@ -229,5 +233,43 @@ describe('BatchGenerationReconcileService', () => {
     await expect(service.findStrandedBatches()).resolves.toEqual([]);
     expect(batchDelegate.updateMany).not.toHaveBeenCalled();
     expect(creditsService.settleBatchCredits).not.toHaveBeenCalled();
+  });
+
+  it('retries settlement from each durable shortfall marker', async () => {
+    batchDelegate.findMany.mockResolvedValue([
+      {
+        id: 'batch-shortfall-1',
+        organizationId: 'org-1',
+        settlementShortfall: 7,
+        settlementShortfallSeq: 2,
+        userId: 'user-1',
+      },
+    ]);
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(batchDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          settlementShortfall: { gt: 0 },
+        },
+      }),
+    );
+    expect(creditsService.retrySettlementShortfall).toHaveBeenCalledWith({
+      batchId: 'batch-shortfall-1',
+      organizationId: 'org-1',
+      settlementShortfall: 7,
+      settlementShortfallSeq: 2,
+      userId: 'user-1',
+    });
+  });
+
+  it('does not retry settlement when the marker is already clear', async () => {
+    batchDelegate.findMany.mockResolvedValue([]);
+
+    await service.reconcileSettlementShortfalls();
+
+    expect(creditsService.retrySettlementShortfall).not.toHaveBeenCalled();
   });
 });
