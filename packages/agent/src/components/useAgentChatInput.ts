@@ -790,21 +790,13 @@ export function useAgentChatInput({
   const isDragActive = dragState?.isActive ?? false;
   const canSendMessage = !isEmpty || hasCompletedAttachments;
 
-  // Empty composer → voice (when org Voice Control is on); content → send.
-  // Never both: mic next to an empty disabled send is noise.
-  const shouldShowSendButton =
-    !showStop &&
-    !isTranscribing &&
-    (!isEmpty || hasCompletedAttachments || isListening);
+  // Always keep the send control mounted (disabled when empty). Hiding it
+  // left a dead corner and forced a mic/send swap that felt broken.
+  const shouldShowSendButton = !showStop && !isTranscribing;
+  // Mic lives in the tool row independently of send. Org Voice Control is
+  // the product gate; browser MediaRecorder is the capability gate.
   const shouldShowVoiceInput =
-    isVoiceControlEnabled &&
-    !showStop &&
-    !isListening &&
-    !isTranscribing &&
-    isSupported &&
-    isEmpty &&
-    !hasAttachments &&
-    !shouldShowSendButton;
+    isVoiceControlEnabled && isSupported && !showStop && !isTranscribing;
 
   return {
     actionFeedback,
