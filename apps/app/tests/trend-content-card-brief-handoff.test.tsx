@@ -83,7 +83,11 @@ describe('TrendContentCard brief handoff', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'More trend actions' }));
+    // Radix opens the dropdown on pointerdown, which jsdom does not synthesize
+    // from a click — fire both, as the other overflow-menu specs do.
+    const trigger = screen.getByRole('button', { name: 'More trend actions' });
+    fireEvent.pointerDown(trigger);
+    fireEvent.click(trigger);
     fireEvent.click(
       await screen.findByRole('menuitem', { name: 'Save brief' }),
     );

@@ -2,7 +2,10 @@ import type { AgentStrategyDocument } from '@api/collections/agent-strategies/sc
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
-import { AgentAutonomyMode } from '@genfeedai/enums';
+import {
+  AgentAutonomyMode,
+  normalizeAgentAutonomyMode,
+} from '@genfeedai/enums';
 
 export const DEFAULT_EVENT_OPPORTUNITY_COST = 12;
 export const DEFAULT_IMAGE_OPPORTUNITY_COST = 24;
@@ -129,8 +132,12 @@ export function buildImagePrompt(
 }
 
 export function shouldAutoPublish(strategy: AgentStrategyDocument): boolean {
+  // `autonomyMode` rides an unmigrated policy JSON blob, so stored strategies
+  // still carry the pre-SCREAMING `auto_publish` spelling — a case-sensitive
+  // comparison would silently route every one of them to manual review.
   return (
-    strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH &&
+    normalizeAgentAutonomyMode(strategy.autonomyMode) ===
+      AgentAutonomyMode.AUTO_PUBLISH &&
     Boolean(strategy.publishPolicy?.autoPublishEnabled)
   );
 }

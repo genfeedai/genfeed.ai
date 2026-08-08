@@ -77,14 +77,21 @@ function LibraryVoicesContent() {
   const [isSavingOrgDefault, setIsSavingOrgDefault] = useState(false);
   const [isSavingBrandDefault, setIsSavingBrandDefault] = useState(false);
 
-  const providerQuery = useMemo(
-    () =>
-      typeof query.provider === 'string' &&
-      Object.values(VoiceProvider).includes(query.provider as VoiceProvider)
-        ? [query.provider as VoiceProvider]
-        : undefined,
-    [query.provider],
-  );
+  // The `?provider=` filter key is product language and may be lower-cased in a
+  // shared link, while VoiceProvider mirrors the SCREAMING_SNAKE Prisma labels
+  // the API filters on — match case-insensitively and send the enum member.
+  const providerQuery = useMemo(() => {
+    if (typeof query.provider !== 'string') {
+      return undefined;
+    }
+
+    const normalized = query.provider.trim().toUpperCase();
+    const match = Object.values(VoiceProvider).find(
+      (provider) => provider === normalized,
+    );
+
+    return match ? [match] : undefined;
+  }, [query.provider]);
 
   const statusQuery = useMemo(() => {
     if (Array.isArray(query.status)) {

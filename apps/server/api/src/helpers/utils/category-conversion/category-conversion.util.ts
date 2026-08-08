@@ -1,3 +1,4 @@
+import type { AssetCategory } from '@genfeedai/enums';
 import { IngredientCategory } from '@genfeedai/enums';
 
 /**
@@ -28,10 +29,14 @@ export function categoryToString(
 /**
  * Converts a category to its plural form used in URL paths, cache tags, and
  * S3 keys. e.g., IngredientCategory.VIDEO → "videos", IngredientCategory.IMAGE
- * → "images", IngredientCategory.MUSIC → "musics"
+ * → "images", IngredientCategory.MUSIC → "musics", AssetCategory.LOGO → "logos"
+ *
+ * The lower-casing is load-bearing: category enums are SCREAMING_SNAKE to match
+ * their Prisma labels, while the storage/URL convention is lowercase plural.
+ * Interpolating the raw enum value produces keys like "LOGOs".
  */
 export function categoryToPlural(
-  category: IngredientCategory | string,
+  category: AssetCategory | IngredientCategory | string,
 ): string {
   return `${String(category).toLowerCase()}s`;
 }

@@ -3006,8 +3006,9 @@ describe('AgentOrchestratorService', () => {
               textContent: 'Hook one',
             }),
           ]),
+          // `/publish/drafts` is a dead path the card builder normalizes.
           primaryCta: expect.objectContaining({
-            href: '/publish/drafts',
+            href: '/publish/review',
             label: 'Review Draft',
           }),
           summaryText: 'Generated content for this request.',

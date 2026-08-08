@@ -50,3 +50,22 @@ export enum AgentAutonomyMode {
   SUPERVISED = 'SUPERVISED',
   AUTO_PUBLISH = 'AUTO_PUBLISH',
 }
+
+/**
+ * Resolves an autonomy mode from persisted settings JSON. The values were
+ * lower-cased before the SCREAMING migration and organization settings are an
+ * unmigrated JSON blob, so a case-sensitive match would silently downgrade a
+ * stored `auto_publish` to SUPERVISED. Unknown values fall back to SUPERVISED.
+ */
+export function normalizeAgentAutonomyMode(value: unknown): AgentAutonomyMode {
+  if (typeof value !== 'string') {
+    return AgentAutonomyMode.SUPERVISED;
+  }
+
+  const normalized = value.trim().toUpperCase();
+
+  return (
+    Object.values(AgentAutonomyMode).find((mode) => mode === normalized) ??
+    AgentAutonomyMode.SUPERVISED
+  );
+}
