@@ -17,6 +17,7 @@
  * consume BYOK_FEE_PERCENTAGE and BYOK_FREE_THRESHOLD_CREDITS from this package.
  */
 
+export * from './live-model-pricing';
 export * from './plans-pricing';
 export * from './pricing-config';
 export * from './provider-pricing';
