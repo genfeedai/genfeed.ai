@@ -187,7 +187,7 @@ export class PostGenerationService {
       return;
     }
 
-    await this.trendReferenceCorpusService.recordDraftRemixLineage({
+    await this.trendReferenceCorpusService.recordPostRemixLineage({
       brandId: params.publicMetadata.brand,
       draftType: params.draftType,
       generatedBy: 'posts-generation',

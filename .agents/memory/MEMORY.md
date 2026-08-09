@@ -64,6 +64,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [scheduler-target-analytics](spec-scheduler-target-analytics.md) · [decisions](decisions-scheduler-target-analytics.md) — #1975
 - [post-visibility-lifecycle](spec-post-visibility-lifecycle.md) · [decisions](decisions-post-visibility-lifecycle.md) — #2641
 - [publish-list-projection](spec-publish-list-projection.md) · [decisions](decisions-publish-list-projection.md) — #2642
+- [retire-orphaned-content-drafts](spec-retire-orphaned-content-drafts.md) · [decisions](decisions-retire-orphaned-content-drafts.md) — #2643
 - [brand-social-visual-enrichment](spec-brand-social-visual-enrichment.md) · [decisions](decisions-brand-social-visual-enrichment.md)
 - [mcp-instagram-meta-inspiration-remix](spec-mcp-instagram-meta-inspiration-remix.md) · [decisions](decisions-mcp-instagram-meta-inspiration-remix.md)
 - [local-development-host](spec-local-development-host.md) · [decisions](decisions-local-development-host.md)

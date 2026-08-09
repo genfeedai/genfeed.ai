@@ -6,7 +6,7 @@ import type {
   BatchContentRequest,
   BatchStatus,
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
-import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import type { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -207,7 +207,7 @@ describe('BatchContentService', () => {
             skillSlug: 'skill',
             type: 'text',
           },
-        ] as ContentDraft[],
+        ] as GeneratedContent[],
         status: 'completed',
         total: 2,
       };
@@ -264,7 +264,7 @@ describe('BatchContentService', () => {
         { confidence: 0.5, content: 'mid', skillSlug: 'skill' },
         { confidence: 0.9, content: 'best', skillSlug: 'skill' },
         { confidence: 0.1, content: 'worst', skillSlug: 'skill' },
-      ] as unknown as ContentDraft[]);
+      ] as unknown as GeneratedContent[]);
 
       expect(result[0].content).toBe('best');
       expect(result[1].content).toBe('mid');
@@ -285,7 +285,7 @@ describe('BatchContentService', () => {
           content: 'this is a much longer piece of content',
           skillSlug: 'skill',
         },
-      ] as unknown as ContentDraft[]);
+      ] as unknown as GeneratedContent[]);
 
       expect(result[0].content).toBe('this is a much longer piece of content');
       expect(result[0].metadata?.rank).toBe(1);
@@ -302,7 +302,7 @@ describe('BatchContentService', () => {
       const result = service.rankDrafts([
         { content: 'no score', skillSlug: 'skill' },
         { confidence: 0.5, content: 'has score', skillSlug: 'skill' },
-      ] as unknown as ContentDraft[]);
+      ] as unknown as GeneratedContent[]);
 
       expect(result[0].content).toBe('has score');
       expect(result[1].content).toBe('no score');
@@ -334,7 +334,7 @@ describe('BatchContentService', () => {
           metadata: { source: 'test' },
           skillSlug: 'skill',
         },
-      ] as unknown as ContentDraft[]);
+      ] as unknown as GeneratedContent[]);
 
       expect(result[0].metadata).toEqual({ rank: 1, source: 'test' });
     });

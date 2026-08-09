@@ -1,12 +1,11 @@
-import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { type ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
+import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import {
-  ContentDraftStatus,
   ContentPlanItemStatus,
   ContentPlanItemType,
   ContentPlanStatus,
@@ -20,7 +19,7 @@ import { Injectable } from '@nestjs/common';
 export interface ExecutionResult {
   itemId: string;
   status: ContentPlanItemStatus;
-  contentDraftId?: string;
+  postId?: string;
   error?: string;
 }
 
@@ -31,7 +30,7 @@ export class ContentExecutionService {
   constructor(
     private readonly contentPlansService: ContentPlansService,
     private readonly contentPlanItemsService: ContentPlanItemsService,
-    private readonly contentDraftsService: ContentDraftsService,
+    private readonly reviewablePostsService: ReviewablePostsService,
     private readonly skillExecutorService: SkillExecutorService,
     private readonly contentOrchestrationService: ContentOrchestrationService,
     private readonly logger: LoggerService,
@@ -196,7 +195,7 @@ export class ContentExecutionService {
   private async executeSkillItem(
     organizationId: string,
     brandId: string,
-    _userId: string,
+    userId: string,
     item: ContentPlanItemDocument,
   ): Promise<ExecutionResult> {
     const itemId = String(item.id);
@@ -220,12 +219,13 @@ export class ContentExecutionService {
       },
     );
 
-    const draft = await this.contentDraftsService.createFromContentEngine({
+    const post = await this.reviewablePostsService.create({
       brandId,
       confidence: result.draft.confidence,
       content: result.draft.content,
+      contentRunId: result.runId,
       generatedBy: `content-engine:${skillSlug}`,
-      isDeleted: false,
+      idempotencyKey: `content-plan-item:${itemId}`,
       mediaUrls: result.draft.mediaUrls ?? [],
       metadata: {
         ...result.draft.metadata,
@@ -235,11 +235,11 @@ export class ContentExecutionService {
       organizationId,
       platforms: itemPlatforms,
       skillSlug,
-      status: ContentDraftStatus.READY,
       type: result.draft.type,
+      userId,
     });
 
-    const draftId = String(draft.id);
+    const postId = String(post.id);
 
     await this.contentPlanItemsService.updateStatus(
       organizationId,
@@ -247,13 +247,13 @@ export class ContentExecutionService {
       ContentPlanItemStatus.COMPLETED,
       {
         confidence: result.draft.confidence,
-        contentDraftId: draftId,
+        postId,
       },
     );
 
     return {
-      contentDraftId: draftId,
       itemId,
+      postId,
       status: ContentPlanItemStatus.COMPLETED,
     };
   }
@@ -267,7 +267,6 @@ export class ContentExecutionService {
     const itemId = String(item.id);
     const itemPlatforms = item.platforms ?? [];
     const itemPrompt = item.prompt ?? undefined;
-    const itemTopic = item.topic ?? undefined;
 
     if (!item.pipelineSteps || item.pipelineSteps.length === 0) {
       throw new Error(
@@ -338,39 +337,51 @@ export class ContentExecutionService {
       throw new Error(errorMsg);
     }
 
-    const draft = await this.contentDraftsService.createFromContentEngine({
-      brandId,
-      content: item.prompt ?? item.topic ?? '',
-      generatedBy: 'content-engine:media-pipeline',
-      isDeleted: false,
-      mediaUrls: pipelineResult.steps
-        .filter((s) => s.result?.url)
-        .map((s) => s.result?.url)
-        .filter((url): url is string => Boolean(url)),
-      metadata: {
-        contentPlanItemId: itemId,
-        pipelineStatus: pipelineResult.status,
-        postIds: pipelineResult.postIds,
-      },
-      organizationId,
-      platforms: itemPlatforms,
-      skillSlug: 'media-pipeline',
-      status: ContentDraftStatus.READY,
-      type: 'media',
-    });
-
-    const draftId = String(draft.id);
+    const existingPostId = pipelineResult.postIds[0];
+    const postId = existingPostId
+      ? String(
+          (
+            await this.reviewablePostsService.requireOwnedPost(
+              String(existingPostId),
+              organizationId,
+              brandId,
+            )
+          ).id,
+        )
+      : String(
+          (
+            await this.reviewablePostsService.create({
+              brandId,
+              content: item.prompt ?? item.topic ?? '',
+              generatedBy: 'content-engine:media-pipeline',
+              idempotencyKey: `content-plan-item:${itemId}`,
+              mediaUrls: pipelineResult.steps
+                .filter((step) => step.result?.url)
+                .map((step) => step.result?.url)
+                .filter((url): url is string => Boolean(url)),
+              metadata: {
+                contentPlanItemId: itemId,
+                pipelineStatus: pipelineResult.status,
+              },
+              organizationId,
+              platforms: itemPlatforms,
+              skillSlug: 'media-pipeline',
+              type: 'media',
+              userId,
+            })
+          ).id,
+        );
 
     await this.contentPlanItemsService.updateStatus(
       organizationId,
       itemId,
       ContentPlanItemStatus.COMPLETED,
-      { contentDraftId: draftId },
+      { postId },
     );
 
     return {
-      contentDraftId: draftId,
       itemId,
+      postId,
       status: ContentPlanItemStatus.COMPLETED,
     };
   }

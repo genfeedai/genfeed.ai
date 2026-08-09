@@ -16,25 +16,27 @@ export class ContentGatewayController {
 
   @Post('signal')
   routeSignal(@CurrentUser() user: User, @Body() dto: RouteSignalDto) {
-    const { organization } = getPublicMetadata(user);
+    const { organization, user: userId } = getPublicMetadata(user);
 
     return this.contentGatewayService.routeSignal({
       brandId: dto.brandId,
-      organizationId: dto.organizationId ?? organization,
+      organizationId: organization,
       payload: dto.payload,
       type: dto.type,
+      userId,
     });
   }
 
   @Post('execute')
   executeSkill(@CurrentUser() user: User, @Body() dto: ExecuteSkillDto) {
-    const { organization } = getPublicMetadata(user);
+    const { organization, user: userId } = getPublicMetadata(user);
 
     return this.contentGatewayService.processManualRequest(
       organization,
       dto.brandId,
       dto.skillSlug,
       dto.params,
+      userId,
     );
   }
 }

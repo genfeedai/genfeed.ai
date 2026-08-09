@@ -120,7 +120,7 @@ Tweet 3: Tech innovation is changing the world.`,
     getRenderedPrompt: vi.fn().mockResolvedValue('Generated prompt template'),
   };
   const mockTrendReferenceCorpusService = {
-    recordDraftRemixLineage: vi.fn().mockResolvedValue(undefined),
+    recordPostRemixLineage: vi.fn().mockResolvedValue(undefined),
   };
   const mockWebsocketService = {
     emit: vi.fn().mockResolvedValue(undefined),
@@ -148,7 +148,7 @@ Tweet 3: Tech innovation is changing the world.`,
     mockTemplatesService.getRenderedPrompt.mockResolvedValue(
       'Generated prompt template',
     );
-    mockTrendReferenceCorpusService.recordDraftRemixLineage.mockResolvedValue(
+    mockTrendReferenceCorpusService.recordPostRemixLineage.mockResolvedValue(
       undefined,
     );
     mockWebsocketService.emit.mockResolvedValue(undefined);
@@ -257,7 +257,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       expect(
-        mockTrendReferenceCorpusService.recordDraftRemixLineage,
+        mockTrendReferenceCorpusService.recordPostRemixLineage,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId,
@@ -286,7 +286,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
 
       expect(
-        mockTrendReferenceCorpusService.recordDraftRemixLineage,
+        mockTrendReferenceCorpusService.recordPostRemixLineage,
       ).toHaveBeenCalledWith(
         expect.objectContaining({
           brandId,

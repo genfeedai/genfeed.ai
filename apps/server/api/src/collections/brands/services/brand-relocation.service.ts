@@ -164,7 +164,6 @@ const RELOCATION_RESOURCE_LABELS: Record<
     singular: 'content performance record',
     plural: 'content performance records',
   },
-  contentDraft: { singular: 'content draft', plural: 'content drafts' },
   contentPlan: { singular: 'content plan', plural: 'content plans' },
   contentPlanItem: {
     singular: 'content plan item',

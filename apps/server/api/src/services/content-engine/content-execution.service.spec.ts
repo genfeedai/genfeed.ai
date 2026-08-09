@@ -1,6 +1,5 @@
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import {
-  ContentDraftStatus,
   ContentPlanItemStatus,
   ContentPlanItemType,
   ContentPlanStatus,
@@ -30,7 +29,7 @@ describe('ContentExecutionService', () => {
   let service: ContentExecutionService;
   let mockContentPlansService: Record<string, ReturnType<typeof vi.fn>>;
   let mockContentPlanItemsService: Record<string, ReturnType<typeof vi.fn>>;
-  let mockContentDraftsService: Record<string, ReturnType<typeof vi.fn>>;
+  let mockReviewablePostsService: Record<string, ReturnType<typeof vi.fn>>;
   let mockSkillExecutorService: Record<string, ReturnType<typeof vi.fn>>;
   let mockContentOrchestrationService: Record<string, ReturnType<typeof vi.fn>>;
   let mockLogger: Record<string, ReturnType<typeof vi.fn>>;
@@ -40,7 +39,7 @@ describe('ContentExecutionService', () => {
   const userId = 'test-object-id';
   const planId = 'test-object-id';
 
-  const mockDraft = { _id: 'test-object-id' };
+  const mockPost = { id: 'test-object-id' };
 
   beforeEach(() => {
     mockContentPlansService = {
@@ -55,8 +54,9 @@ describe('ContentExecutionService', () => {
       updateStatus: vi.fn().mockResolvedValue(undefined),
     };
 
-    mockContentDraftsService = {
-      createFromContentEngine: vi.fn().mockResolvedValue(mockDraft),
+    mockReviewablePostsService = {
+      create: vi.fn().mockResolvedValue(mockPost),
+      requireOwnedPost: vi.fn().mockResolvedValue(mockPost),
     };
 
     mockSkillExecutorService = {
@@ -74,11 +74,11 @@ describe('ContentExecutionService', () => {
     };
 
     service = new ContentExecutionService(
-      mockContentPlansService as any,
-      mockContentPlanItemsService as any,
-      mockContentDraftsService as any,
-      mockSkillExecutorService as any,
-      mockContentOrchestrationService as any,
+      mockContentPlansService as never,
+      mockContentPlanItemsService as never,
+      mockReviewablePostsService as never,
+      mockSkillExecutorService as never,
+      mockContentOrchestrationService as never,
       mockLogger as unknown as LoggerService,
     );
   });
@@ -329,7 +329,7 @@ describe('ContentExecutionService', () => {
         orgId,
         String(item.id),
         ContentPlanItemStatus.COMPLETED,
-        expect.objectContaining({ contentDraftId: String(mockDraft.id) }),
+        expect.objectContaining({ postId: mockPost.id }),
       );
     });
 
@@ -356,7 +356,7 @@ describe('ContentExecutionService', () => {
       );
     });
 
-    it('should create a content draft with correct fields', async () => {
+    it('should create a canonical reviewable post with correct fields', async () => {
       const item = makeItem({ platforms: ['twitter'], skillSlug: 'seo-blog' });
       mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
       mockSkillExecutorService.execute.mockResolvedValue({
@@ -367,21 +367,21 @@ describe('ContentExecutionService', () => {
           metadata: { keywords: ['seo'] },
           type: 'text',
         },
+        runId: 'run-seo-blog',
         source: 'cache',
       });
 
       await service.executePlan(orgId, brandId, planId, userId);
 
-      expect(
-        mockContentDraftsService.createFromContentEngine,
-      ).toHaveBeenCalledWith(
+      expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           confidence: 0.88,
           content: 'SEO blog content',
+          contentRunId: 'run-seo-blog',
           generatedBy: 'content-engine:seo-blog',
           platforms: ['twitter'],
           skillSlug: 'seo-blog',
-          status: ContentDraftStatus.READY,
+          userId,
         }),
       );
     });
@@ -468,7 +468,7 @@ describe('ContentExecutionService', () => {
       );
     });
 
-    it('should create a draft with mediaUrls from pipeline steps', async () => {
+    it('should create a reviewable post with mediaUrls from pipeline steps', async () => {
       mockContentOrchestrationService.generateAndPublish.mockResolvedValue({
         postIds: [],
         status: 'completed',
@@ -480,16 +480,34 @@ describe('ContentExecutionService', () => {
 
       await service.executePlan(orgId, brandId, planId, userId);
 
-      expect(
-        mockContentDraftsService.createFromContentEngine,
-      ).toHaveBeenCalledWith(
+      expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           generatedBy: 'content-engine:media-pipeline',
           mediaUrls: ['https://cdn.example.com/video.mp4'],
           skillSlug: 'media-pipeline',
-          status: ContentDraftStatus.READY,
+          userId,
         }),
       );
+    });
+
+    it('reuses only a post owned by the same organization and brand', async () => {
+      mockContentOrchestrationService.generateAndPublish.mockResolvedValue({
+        postIds: ['post-from-pipeline'],
+        status: 'completed',
+        steps: [],
+      });
+      mockReviewablePostsService.requireOwnedPost.mockResolvedValue({
+        id: 'post-from-pipeline',
+      });
+
+      await service.executePlan(orgId, brandId, planId, userId);
+
+      expect(mockReviewablePostsService.requireOwnedPost).toHaveBeenCalledWith(
+        'post-from-pipeline',
+        orgId,
+        brandId,
+      );
+      expect(mockReviewablePostsService.create).not.toHaveBeenCalled();
     });
 
     it('should fail the item when pipeline status is "failed"', async () => {

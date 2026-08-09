@@ -542,7 +542,6 @@ model User {
   userSubscription         UserSubscription?
   subscriptionAttributions SubscriptionAttribution[]
   distributions            Distribution[]
-  contentDrafts            ContentDraft[]            @relation("content_draft_approved_by")
   creatorAnalyses          CreatorAnalysis[]
   profiles                 Profile[]
   contextBases             ContextBase[]
@@ -667,7 +666,6 @@ model Organization {
   contentPlans                  ContentPlan[]
   contentPlanItems              ContentPlanItem[]
   contentPerformances           ContentPerformance[]
-  contentDrafts                 ContentDraft[]
   contentPatterns               ContentPattern[]
   creativePatterns              CreativePattern[]
   patternPlaybooks              PatternPlaybook[]
@@ -814,7 +812,6 @@ model Brand {
   clipProjects               ClipProject[]
   editorProjects             EditorProject[]
   contentPerformances        ContentPerformance[]
-  contentDrafts              ContentDraft[]
   contentPlanItems           ContentPlanItem[]
   creativePatterns           CreativePattern[]
   trends                     Trend[]
@@ -1812,7 +1809,6 @@ model ContentVersionPin {
   provenance      Json         @default("{}")
   createdAt       DateTime     @default(now())
 
-  reviewedContentDrafts ContentDraft[]
   reviewedNewsletters   Newsletter[]
   reviewedPosts         Post[]
   publishApprovals      PublishApproval[]
@@ -3343,7 +3339,6 @@ model ContentRun {
 
   posts               Post[]
   contentPerformances ContentPerformance[]
-  contentDrafts       ContentDraft[]
 
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, status, createdAt(sort: Desc)], map: "content_runs_org_brand_deleted_status_created_at_idx")
@@ -3886,45 +3881,6 @@ model CreativePattern {
   @@map("creative_patterns")
 }
 
-model ContentDraft {
-  id                   String             @id @default(cuid())
-  organizationId       String
-  organization         Organization       @relation(fields: [organizationId], references: [id])
-  brandId              String?
-  brand                Brand?             @relation(fields: [brandId], references: [id])
-  contentRunId         String?
-  contentRun           ContentRun?        @relation(fields: [contentRunId], references: [id])
-  approvedById         String?
-  approvedBy           User?              @relation("content_draft_approved_by", fields: [approvedById], references: [id])
-  approvedVersionPinId String?
-  approvedVersionPin   ContentVersionPin? @relation(fields: [approvedVersionPinId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: Cascade)
-  // String column; canonical casing is the SCREAMING ContentDraftStatus domain vocabulary (#2543).
-  status               String             @default("DRAFT")
-  data                 Json               @default("{}")
-  // Draft payload columns — createFromSkillExecution / createFromContentEngine write
-  // these as top-level fields and autoPublishAboveThreshold filters on `confidence`.
-  // They were absent from the model (incomplete Mongo→Prisma migration): the create
-  // data was cast to Record<string,unknown> so it compiled, but Prisma rejected the
-  // unknown args at runtime. Adding them makes the content-drafts path actually work.
-  type                 String?
-  content              String?
-  generatedBy          String?
-  skillSlug            String?
-  confidence           Float?
-  mediaUrls            String[]           @default([])
-  platforms            String[]           @default([])
-  metadata             Json?
-  isDeleted            Boolean            @default(false)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-
-  trendRemixLineages TrendRemixLineage[]
-
-  @@index([organizationId, brandId, isDeleted])
-  @@index([approvedVersionPinId], map: "content_drafts_approvedVersionPinId_idx")
-  @@map("content_drafts")
-}
-
 model ContentPlan {
   id             String       @id @default(cuid())
   organizationId String
@@ -4250,8 +4206,6 @@ model TrendRemixLineage {
   organization   Organization  @relation(fields: [organizationId], references: [id])
   brandId        String?
   brand          Brand?        @relation(fields: [brandId], references: [id])
-  contentDraftId String?
-  contentDraft   ContentDraft? @relation(fields: [contentDraftId], references: [id])
   postId         String?
   post           Post?         @relation(fields: [postId], references: [id])
   data           Json          @default("{}")
@@ -4263,7 +4217,6 @@ model TrendRemixLineage {
   sourceReferences TrendSourceReference[] @relation("remix_lineage_source_refs")
 
   @@index([organizationId, brandId, isDeleted], map: "trend_remix_lineages_org_brand_deleted_idx")
-  @@index([contentDraftId, isDeleted], map: "trend_remix_lineages_content_draft_deleted_idx")
   @@index([postId, isDeleted], map: "trend_remix_lineages_post_deleted_idx")
   @@map("trend_remix_lineages")
 }

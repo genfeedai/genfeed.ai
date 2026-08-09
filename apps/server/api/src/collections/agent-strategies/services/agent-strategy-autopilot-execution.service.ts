@@ -4,7 +4,12 @@ import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-st
 import {
   buildImagePrompt,
   documentId,
+  draftContent as getDraftContent,
+  draftGenerationSettings as getDraftGenerationSettings,
   draftId as getDraftId,
+  draftMediaUrls as getDraftMediaUrls,
+  draftMetadata as getDraftMetadata,
+  draftTargetSettings as getDraftTargetSettings,
   opportunityId as getOpportunityId,
   strategyBrandId as getStrategyBrandId,
   strategyId as getStrategyId,
@@ -21,11 +26,10 @@ import type {
   PublishGateResult,
 } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
-import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
-import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { OptimizersService } from '@api/collections/optimizers/services/optimizers.service';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import type { PostCreateInput } from '@api/collections/posts/services/posts.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -35,11 +39,11 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
-  ContentDraftStatus,
   ContentFormat,
   fromPrismaCredentialPlatform,
   IngredientCategory,
   PostCategory,
+  ReviewDecision,
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
@@ -53,7 +57,6 @@ export class AgentStrategyAutopilotExecutionService {
     private readonly opportunitiesService: AgentStrategyOpportunitiesService,
     private readonly activitiesService: ActivitiesService,
     private readonly contentGatewayService: ContentGatewayService,
-    private readonly contentDraftsService: ContentDraftsService,
     private readonly optimizersService: OptimizersService,
     private readonly evaluationsOperationsService: EvaluationsOperationsService,
     private readonly credentialsService: CredentialsService,
@@ -90,6 +93,7 @@ export class AgentStrategyAutopilotExecutionService {
       organizationId: strategyOrganizationId,
       platform: targetPlatform,
       strategy,
+      userId,
     });
     if (!draft) {
       await this.opportunitiesService.updateStatus(
@@ -107,14 +111,14 @@ export class AgentStrategyAutopilotExecutionService {
       opportunity,
       strategy,
     });
-    const draftContent = draft.content ?? '';
+    const draftContent = getDraftContent(draft);
 
     const gate = await this.evaluateDraft(
       strategy,
       strategyOrganizationId,
       format,
       draftContent,
-      draft.mediaUrls?.[0],
+      getDraftMediaUrls(draft)[0],
       targetPlatform,
     );
 
@@ -164,7 +168,8 @@ export class AgentStrategyAutopilotExecutionService {
     organizationId: string;
     platform: string;
     strategy: AgentStrategyDocument;
-  }): Promise<ContentDraftDocument | undefined> {
+    userId: string;
+  }): Promise<PostDocument | undefined> {
     const generation = await this.contentGatewayService.processManualRequest(
       input.organizationId,
       getStrategyBrandId(input.strategy) ?? '',
@@ -184,19 +189,20 @@ export class AgentStrategyAutopilotExecutionService {
             topic: input.opportunity.topic,
             variationsCount: 1,
           },
+      input.userId,
     );
 
-    return generation.drafts[0];
+    return generation.posts[0];
   }
 
   private async persistAutopilotMetadata(input: {
-    draft: ContentDraftDocument;
+    draft: PostDocument;
     format: string;
     opportunity: AgentStrategyOpportunityDocument;
     strategy: AgentStrategyDocument;
   }): Promise<Record<string, unknown>> {
     const metadata: Record<string, unknown> = {
-      ...((input.draft.metadata ?? {}) as Record<string, unknown>),
+      ...getDraftMetadata(input.draft),
       autopilotFormat: input.format,
       autopilotOpportunityId: getOpportunityId(input.opportunity),
       autopilotSourceType: input.opportunity.sourceType,
@@ -205,8 +211,15 @@ export class AgentStrategyAutopilotExecutionService {
       goalProfile: input.strategy.goalProfile,
     };
 
-    await this.contentDraftsService.patch(getDraftId(input.draft), {
-      metadata,
+    await this.postsService.patch(getDraftId(input.draft), {
+      agentStrategyId: getStrategyId(input.strategy),
+      targetSettings: {
+        ...getDraftTargetSettings(input.draft),
+        generation: {
+          ...getDraftGenerationSettings(input.draft),
+          metadata,
+        },
+      },
     });
 
     return metadata;
@@ -230,7 +243,7 @@ export class AgentStrategyAutopilotExecutionService {
 
   private async reviseAndReEvaluate(input: {
     autopilotMetadata: Record<string, unknown>;
-    draft: ContentDraftDocument;
+    draft: PostDocument;
     draftContent: string;
     format: string;
     gate: PublishGateResult;
@@ -258,11 +271,17 @@ export class AgentStrategyAutopilotExecutionService {
       input.userId,
     );
 
-    await this.contentDraftsService.patch(draftId, {
-      content: optimization.optimized,
-      metadata: {
-        ...input.autopilotMetadata,
-        revisionInstructions: input.gate.revisionInstructions,
+    await this.postsService.patch(draftId, {
+      description: optimization.optimized,
+      targetSettings: {
+        ...getDraftTargetSettings(input.draft),
+        generation: {
+          ...getDraftGenerationSettings(input.draft),
+          metadata: {
+            ...input.autopilotMetadata,
+            revisionInstructions: input.gate.revisionInstructions,
+          },
+        },
       },
     });
 
@@ -276,11 +295,11 @@ export class AgentStrategyAutopilotExecutionService {
     );
 
     if (revisedGate.decision !== 'approved') {
-      await this.contentDraftsService.reject(
-        draftId,
-        input.organizationId,
-        revisedGate.reasons.join(' '),
-      );
+      await this.postsService.patch(draftId, {
+        reviewDecision: ReviewDecision.REJECTED,
+        reviewFeedback: revisedGate.reasons.join(' '),
+        reviewedAt: new Date(),
+      });
       await this.opportunitiesService.updateStatus(
         getOpportunityId(input.opportunity),
         input.organizationId,
@@ -300,17 +319,17 @@ export class AgentStrategyAutopilotExecutionService {
   }
 
   private async handleGateRejection(input: {
-    draft: ContentDraftDocument;
+    draft: PostDocument;
     gate: PublishGateResult;
     opportunity: AgentStrategyOpportunityDocument;
     organizationId: string;
   }): Promise<{ contentGenerated: number; creditsUsed: number }> {
     if (input.gate.decision === 'discard' || input.gate.decision === 'hold') {
-      await this.contentDraftsService.reject(
-        getDraftId(input.draft),
-        input.organizationId,
-        input.gate.reasons.join(' '),
-      );
+      await this.postsService.patch(getDraftId(input.draft), {
+        reviewDecision: ReviewDecision.REJECTED,
+        reviewFeedback: input.gate.reasons.join(' '),
+        reviewedAt: new Date(),
+      });
     }
 
     await this.opportunitiesService.updateStatus(
@@ -353,7 +372,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     const publishResult = await this.publishTextDraft(
       strategy,
-      draftId,
+      input.draft,
       draftContent,
       opportunity.platformCandidates,
       userId,
@@ -374,8 +393,6 @@ export class AgentStrategyAutopilotExecutionService {
         creditsUsed: opportunity.estimatedCreditCost,
       };
     }
-
-    await this.contentDraftsService.approve(draftId, organizationId, userId);
 
     const reviewHandoff = await this.createPublishingInboxHandoff({
       draftContent,
@@ -422,8 +439,6 @@ export class AgentStrategyAutopilotExecutionService {
     } = input;
     const draftId = getDraftId(draft);
 
-    await this.contentDraftsService.approve(draftId, organizationId, userId);
-
     const reviewHandoff =
       format === 'image'
         ? await this.createPublishingInboxHandoff({
@@ -431,7 +446,7 @@ export class AgentStrategyAutopilotExecutionService {
             draftId,
             format: ContentFormat.IMAGE,
             gate,
-            mediaUrl: draft.mediaUrls?.[0],
+            mediaUrl: getDraftMediaUrls(draft)[0],
             opportunity,
             organizationId,
             platform,
@@ -637,6 +652,7 @@ export class AgentStrategyAutopilotExecutionService {
             ),
             opportunityTopic: input.opportunity.topic,
             platform: input.platform,
+            postId: input.draftId,
             prompt: input.draftContent,
             sourceActionId: getOpportunityId(input.opportunity),
             sourceWorkflowId: getStrategyId(input.strategy),
@@ -649,13 +665,23 @@ export class AgentStrategyAutopilotExecutionService {
     );
 
     const reviewItem = batch.items[0];
+    const linkedPost =
+      (await this.postsService.findOne(
+        scopedWhere(input.organizationId, { id: input.draftId }),
+      )) ?? ({ targetSettings: {} } as PostDocument);
 
-    // TODO: metadata nested field patch — retrieve current then spread when contentDraftsService supports it
-    await this.contentDraftsService.patch(input.draftId, {
-      metadata: {
-        reviewBatchId: batch.id,
-        reviewItemId: reviewItem?.id,
-        reviewPostId: reviewItem?.postId,
+    await this.postsService.patch(input.draftId, {
+      targetSettings: {
+        ...getDraftTargetSettings(linkedPost),
+        generation: {
+          ...getDraftGenerationSettings(linkedPost),
+          metadata: {
+            ...getDraftMetadata(linkedPost),
+            reviewBatchId: batch.id,
+            reviewItemId: reviewItem?.id,
+            reviewPostId: reviewItem?.postId,
+          },
+        },
       },
     });
 
@@ -756,12 +782,14 @@ export class AgentStrategyAutopilotExecutionService {
 
   private async publishTextDraft(
     strategy: AgentStrategyDocument,
-    draftId: string,
+    draft: PostDocument,
     content: string,
     platforms: string[],
     userId: string,
   ): Promise<{ postIds: string[]; published: boolean }> {
     const createdPostIds: string[] = [];
+    const draftId = getDraftId(draft);
+    let reusedDraft = false;
 
     for (const platform of platforms) {
       // `credentials.platform` is the SCREAMING Prisma enum; the opportunity
@@ -779,31 +807,36 @@ export class AgentStrategyAutopilotExecutionService {
         continue;
       }
 
-      const post = await this.postsService.create({
-        brandId: getStrategyBrandId(strategy) ?? '',
-        category: PostCategory.TEXT,
-        credentialId: documentId(credential),
-        description: content,
-        organizationId: getStrategyOrganizationId(strategy),
-        // ...and back out again: `posts.platform` is a lowercase String
-        // column, so the SCREAMING credential label cannot ride through.
-        platform: fromPrismaCredentialPlatform(credential.platform),
-        scheduledDate: new Date(),
-        targetExecutionState: TargetExecutionState.PUBLISHING,
-        userId: userId,
-        // Pre-existing shape: ingredients/label ride the service defaults.
-      } as PostCreateInput);
+      const post = reusedDraft
+        ? await this.postsService.create({
+            agentStrategyId: getStrategyId(strategy),
+            brandId: getStrategyBrandId(strategy) ?? '',
+            category: PostCategory.TEXT,
+            contentRunId: draft.contentRunId ?? undefined,
+            credentialId: documentId(credential),
+            description: content,
+            organizationId: getStrategyOrganizationId(strategy),
+            platform: fromPrismaCredentialPlatform(credential.platform),
+            promptUsed: draft.promptUsed ?? undefined,
+            scheduledDate: new Date(),
+            source: draft.source ?? undefined,
+            targetAttachments: draft.targetAttachments,
+            targetExecutionState: TargetExecutionState.PUBLISHING,
+            targetSettings: draft.targetSettings,
+            userId,
+          } as PostCreateInput)
+        : await this.postsService.patch(draftId, {
+            credentialId: documentId(credential),
+            platform: fromPrismaCredentialPlatform(credential.platform),
+            scheduledDate: new Date(),
+            targetExecutionState: TargetExecutionState.PUBLISHING,
+          });
 
       createdPostIds.push(documentId(post));
+      reusedDraft = true;
     }
 
     if (createdPostIds.length > 0) {
-      await this.contentDraftsService.patch(draftId, {
-        metadata: {
-          publishedPostIds: createdPostIds,
-        },
-        status: ContentDraftStatus.PUBLISHED,
-      });
       return {
         postIds: createdPostIds,
         published: true,

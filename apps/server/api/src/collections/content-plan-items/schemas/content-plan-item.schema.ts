@@ -20,7 +20,7 @@ export interface ContentPlanPipelineStep {
 
 export interface ContentPlanItemData {
   confidence?: number;
-  contentDraftId?: string | null;
+  postId?: string | null;
   error?: string | null;
   pipelineSteps?: ContentPlanPipelineStep[];
   platforms?: string[];

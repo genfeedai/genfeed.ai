@@ -1,7 +1,7 @@
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
-  type ContentDraft,
+  type GeneratedContent,
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
@@ -65,7 +65,7 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
   async execute(
     context: SkillExecutionContext,
     params: Record<string, unknown>,
-  ): Promise<ContentDraft> {
+  ): Promise<GeneratedContent> {
     const sourceContent = this.resolveContent(params);
     if (!sourceContent) {
       throw new Error(`${GEO_SKILL_SLUG} requires content`);

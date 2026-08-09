@@ -28,10 +28,10 @@ describe('ContentGatewayController', () => {
           useValue: {
             processManualRequest: vi
               .fn()
-              .mockResolvedValue({ drafts: [], runs: ['run-2'] }),
+              .mockResolvedValue({ posts: [], runs: ['run-2'] }),
             routeSignal: vi
               .fn()
-              .mockResolvedValue({ drafts: [], runs: ['run-1'] }),
+              .mockResolvedValue({ posts: [], runs: ['run-1'] }),
           },
         },
       ],
@@ -73,10 +73,11 @@ describe('ContentGatewayController', () => {
       'brand-1',
       'content-writing',
       { prompt: 'x' },
+      '507f1f77bcf86cd799439011',
     );
   });
 
-  it('uses organization from user metadata if dto omits organizationId', async () => {
+  it('uses organization from authenticated user metadata', async () => {
     await controller.routeSignal(mockUser, {
       brandId: 'brand-2',
       payload: {},
@@ -86,22 +87,6 @@ describe('ContentGatewayController', () => {
     expect(contentGatewayService.routeSignal).toHaveBeenCalledWith(
       expect.objectContaining({
         organizationId: '507f1f77bcf86cd799439012',
-      }),
-    );
-  });
-
-  it('prefers dto.organizationId over user metadata when provided', async () => {
-    const customOrgId = '507f1f77bcf86cd799439099';
-    await controller.routeSignal(mockUser, {
-      brandId: 'brand-3',
-      organizationId: customOrgId,
-      payload: {},
-      type: 'webhook',
-    });
-
-    expect(contentGatewayService.routeSignal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        organizationId: customOrgId,
       }),
     );
   });
@@ -132,6 +117,7 @@ describe('ContentGatewayController', () => {
       'brand-5',
       'video-gen',
       params,
+      '507f1f77bcf86cd799439011',
     );
   });
 });

@@ -2,7 +2,7 @@ import { ManagedInferenceProvider } from '@api/endpoints/v1/managed-inference/dt
 import { ManagedInferenceClientService } from '@api/endpoints/v1/managed-inference/managed-inference-client.service';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import type {
-  ContentDraft,
+  GeneratedContent,
   SkillExecutionContext,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
@@ -47,7 +47,7 @@ export class ImageGenerationHandler implements SkillHandler {
   async execute(
     context: SkillExecutionContext,
     params: Record<string, unknown>,
-  ): Promise<ContentDraft> {
+  ): Promise<GeneratedContent> {
     const prompt = typeof params.prompt === 'string' ? params.prompt : '';
     if (!prompt) {
       throw new Error('image-generation requires a prompt');

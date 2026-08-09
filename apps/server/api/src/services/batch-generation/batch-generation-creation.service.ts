@@ -152,7 +152,8 @@ export class BatchGenerationCreationService {
     }
 
     await this.validateIngredientOwnership(dto, orgId);
-    const batchItems = await this.createManualReviewItems(dto, userId, orgId);
+    const { createdPostIds, items: batchItems } =
+      await this.createManualReviewItems(dto, userId, orgId);
 
     const config: BatchConfig = {
       completedAt: new Date().toISOString(),
@@ -191,11 +192,16 @@ export class BatchGenerationCreationService {
       })) as BatchWithConfig;
       createdBatchId = batch.id;
 
-      await this.linkManualReviewPosts(batch.id, batchItems, orgId);
+      await this.linkManualReviewPosts(
+        batch.id,
+        batchItems,
+        orgId,
+        dto.brandId,
+      );
     } catch (error: unknown) {
       await this.compensateManualReviewCreation(
         createdBatchId,
-        batchItems,
+        createdPostIds,
         orgId,
       );
       throw error;
@@ -221,15 +227,38 @@ export class BatchGenerationCreationService {
           .filter((id): id is string => Boolean(id)),
       ),
     ];
-    if (ingredientIds.length === 0) return;
+    if (ingredientIds.length > 0) {
+      const ownedIngredients = await this.prisma.ingredient.findMany({
+        select: { id: true },
+        where: scopedWhere(orgId, { id: { in: ingredientIds } }),
+      });
+      if (ownedIngredients.length !== ingredientIds.length) {
+        throw new BadRequestException(
+          'One or more ingredient IDs do not belong to this organization',
+        );
+      }
+    }
 
-    const ownedIngredients = await this.prisma.ingredient.findMany({
-      select: { id: true },
-      where: scopedWhere(orgId, { id: { in: ingredientIds } }),
-    });
-    if (ownedIngredients.length !== ingredientIds.length) {
+    const suppliedPostIds = dto.items
+      .map((item) => item.postId)
+      .filter((id): id is string => Boolean(id));
+    const existingPostIds = [...new Set(suppliedPostIds)];
+    if (existingPostIds.length === 0) return;
+    if (existingPostIds.length !== suppliedPostIds.length) {
       throw new BadRequestException(
-        'One or more ingredient IDs do not belong to this organization',
+        'A Post can appear only once in a manual review batch',
+      );
+    }
+    const ownedPosts = await this.prisma.post.findMany({
+      select: { id: true },
+      where: scopedWhere(orgId, {
+        brandId: dto.brandId,
+        id: { in: existingPostIds },
+      }),
+    });
+    if (ownedPosts.length !== existingPostIds.length) {
+      throw new BadRequestException(
+        'One or more post IDs do not belong to this organization and brand',
       );
     }
   }
@@ -238,39 +267,46 @@ export class BatchGenerationCreationService {
     dto: CreateManualReviewBatchDto,
     userId: string,
     orgId: string,
-  ): Promise<BatchItemFull[]> {
+  ): Promise<{ createdPostIds: string[]; items: BatchItemFull[] }> {
     const batchItems: BatchItemFull[] = [];
+    const createdPostIds: string[] = [];
     try {
       for (const reviewItem of dto.items) {
         const contentRunId = reviewItem.contentRunId
           ? String(reviewItem.contentRunId)
           : undefined;
-        const post = await this.postsService.create({
-          brandId: dto.brandId,
-          contentRunId,
-          creativeVersion: reviewItem.creativeVersion,
-          description:
-            reviewItem.caption ??
-            reviewItem.prompt ??
-            'Review this asset before publishing',
-          hookVersion: reviewItem.hookVersion,
-          ingredients: reviewItem.ingredientId ? [reviewItem.ingredientId] : [],
-          label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
-          organizationId: orgId,
-          platform: reviewItem.platform,
-          publishIntent: reviewItem.publishIntent,
-          promptUsed: reviewItem.prompt,
-          scheduleSlot: reviewItem.scheduleSlot,
-          sourceActionId: reviewItem.sourceActionId,
-          sourceWorkflowId: reviewItem.sourceWorkflowId,
-          sourceWorkflowName: reviewItem.sourceWorkflowName,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          userId: userId,
-          variantId: reviewItem.variantId,
-          visibility: PostVisibility.PUBLIC,
-        } as PostCreateInput);
+        let postId = reviewItem.postId;
+        if (!postId) {
+          const post = await this.postsService.create({
+            brandId: dto.brandId,
+            contentRunId,
+            creativeVersion: reviewItem.creativeVersion,
+            description:
+              reviewItem.caption ??
+              reviewItem.prompt ??
+              'Review this asset before publishing',
+            hookVersion: reviewItem.hookVersion,
+            ingredients: reviewItem.ingredientId
+              ? [reviewItem.ingredientId]
+              : [],
+            label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
+            organizationId: orgId,
+            platform: reviewItem.platform,
+            publishIntent: reviewItem.publishIntent,
+            promptUsed: reviewItem.prompt,
+            scheduleSlot: reviewItem.scheduleSlot,
+            sourceActionId: reviewItem.sourceActionId,
+            sourceWorkflowId: reviewItem.sourceWorkflowId,
+            sourceWorkflowName: reviewItem.sourceWorkflowName,
+            targetExecutionState: TargetExecutionState.DRAFT,
+            userId: userId,
+            variantId: reviewItem.variantId,
+            visibility: PostVisibility.PUBLIC,
+          } as PostCreateInput);
 
-        const postId = String((post as Record<string, unknown>).id ?? post.id);
+          postId = String((post as Record<string, unknown>).id ?? post.id);
+          createdPostIds.push(postId);
+        }
 
         batchItems.push({
           id: crypto.randomUUID(),
@@ -298,16 +334,21 @@ export class BatchGenerationCreationService {
         });
       }
     } catch (error: unknown) {
-      await this.compensateManualReviewCreation(undefined, batchItems, orgId);
+      await this.compensateManualReviewCreation(
+        undefined,
+        createdPostIds,
+        orgId,
+      );
       throw error;
     }
-    return batchItems;
+    return { createdPostIds, items: batchItems };
   }
 
   private async linkManualReviewPosts(
     batchId: string,
     batchItems: BatchItemFull[],
     orgId: string,
+    brandId: string,
   ): Promise<void> {
     const results = await Promise.all(
       batchItems.map(async (item) => {
@@ -318,7 +359,7 @@ export class BatchGenerationCreationService {
             reviewBatchId: batchId,
             reviewItemId: item.id,
           },
-          where: scopedWhere(orgId, { id: item.postId }),
+          where: scopedWhere(orgId, { brandId, id: item.postId }),
         });
       }),
     );
@@ -333,17 +374,14 @@ export class BatchGenerationCreationService {
 
   private async compensateManualReviewCreation(
     batchId: string | undefined,
-    batchItems: BatchItemFull[],
+    createdPostIds: string[],
     orgId: string,
   ): Promise<void> {
     try {
-      const postIds = batchItems.flatMap((item) =>
-        item.postId ? [item.postId] : [],
-      );
-      if (postIds.length > 0) {
+      if (createdPostIds.length > 0) {
         await this.prisma.post.updateMany({
           data: { isDeleted: true },
-          where: scopedWhere(orgId, { id: { in: postIds } }),
+          where: scopedWhere(orgId, { id: { in: createdPostIds } }),
         });
       }
       if (batchId) {

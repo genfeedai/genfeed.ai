@@ -28,7 +28,6 @@ export * from './campaign.enum';
 export * from './caption.enum';
 export * from './card.enum';
 export * from './component-size.enum';
-export * from './content-draft.enum';
 export * from './content-engine.enum';
 export * from './content-intelligence.enum';
 export * from './content-schedule.enum';

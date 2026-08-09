@@ -119,7 +119,7 @@ export class ContentPlanItemsService {
     organizationId: string,
     itemId: string,
     status: ContentPlanItemStatus,
-    updates?: { contentDraftId?: string; error?: string; confidence?: number },
+    updates?: { error?: string; confidence?: number; postId?: string },
   ): Promise<ContentPlanItemDocument> {
     const existing = await this.prisma.contentPlanItem.findFirst({
       where: scopedWhere(organizationId, { id: itemId }),
@@ -134,7 +134,7 @@ export class ContentPlanItemsService {
         data: this.buildDataPayload(
           {
             confidence: updates?.confidence,
-            contentDraftId: updates?.contentDraftId,
+            postId: updates?.postId,
             error: updates?.error,
             status,
           },
@@ -164,7 +164,7 @@ export class ContentPlanItemsService {
       ...doc,
       brand: doc.brandId,
       confidence: asNumber(data.confidence),
-      contentDraftId: asString(data.contentDraftId) ?? null,
+      postId: asString(data.postId) ?? null,
       data,
       error: asString(data.error) ?? null,
       organization: doc.organizationId,
@@ -185,7 +185,7 @@ export class ContentPlanItemsService {
   private buildDataPayload(
     data: Partial<
       CreateContentPlanItemInput & {
-        contentDraftId?: string;
+        postId?: string;
         error?: string;
         status?: ContentPlanItemStatus;
       }
@@ -226,8 +226,8 @@ export class ContentPlanItemsService {
       payload.confidence = data.confidence;
     }
 
-    if (data.contentDraftId !== undefined) {
-      payload.contentDraftId = data.contentDraftId;
+    if (data.postId !== undefined) {
+      payload.postId = data.postId;
     }
 
     if (data.error !== undefined) {
