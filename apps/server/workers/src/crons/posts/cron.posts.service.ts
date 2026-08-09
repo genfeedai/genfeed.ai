@@ -270,45 +270,12 @@ export class CronPostsService {
       return true;
     }
 
-    if (guard?.expectedWorkflowExecutionId) {
-      this.logger.warn(
-        'Skipped guarded publish fallback without a durable tenant identity',
-        {
-          expectedWorkflowExecutionId: guard.expectedWorkflowExecutionId,
-          postId: post.id.toString(),
-        },
-      );
-      return false;
-    }
-
-    await this.postsService.patch(post.id.toString(), {
-      ...(update.error !== undefined && { targetError: update.error }),
-      ...(update.externalId !== undefined && {
-        externalId: update.externalId,
-      }),
-      ...(update.externalShortcode !== undefined && {
-        externalShortcode: update.externalShortcode,
-      }),
-      ...(update.lastAttemptAt !== undefined && {
-        lastAttemptAt: update.lastAttemptAt,
-      }),
-      ...(update.publicationDate !== undefined && {
-        publicationDate: update.publicationDate,
-      }),
-      ...(update.publishedAt !== undefined && {
-        publishedAt: update.publishedAt,
-      }),
-      ...(update.retryCount !== undefined && {
-        retryCount: update.retryCount,
-      }),
-      status: update.status,
-      targetExecutionState: update.executionState,
-      ...(update.url !== undefined && { url: update.url }),
-      ...(update.workflowExecutionId !== undefined && {
-        workflowExecutionId: update.workflowExecutionId,
-      }),
-    } as never);
-    return true;
+    this.logger.warn('Skipped stale or unauthorized publish transition', {
+      expectedWorkflowExecutionId: guard?.expectedWorkflowExecutionId,
+      postId: post.id.toString(),
+      requestedState: update.executionState,
+    });
+    return false;
   }
 
   private createTargetError(

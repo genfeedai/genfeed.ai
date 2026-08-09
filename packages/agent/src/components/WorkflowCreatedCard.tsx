@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Clock, ExternalLink } from 'lucide-react';
@@ -7,10 +10,7 @@ import { type ReactElement, useCallback, useState } from 'react';
 
 interface WorkflowCreatedCardProps {
   action: AgentUiAction;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }
 
 export function WorkflowCreatedCard({

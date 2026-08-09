@@ -1,7 +1,11 @@
 import { type PageScope, PostStatus } from '@genfeedai/enums';
 
 export type PostsPublicationState = 'posted' | 'not-posted';
-export type PublisherPostsView = PostsPublicationState | 'failed';
+export type PublisherPostsView =
+  | PostsPublicationState
+  | PostStatus.FAILED
+  | PostStatus.PENDING
+  | PostStatus.PROCESSING;
 
 export interface PostsListQueryKeyInput {
   adminBrand: string;

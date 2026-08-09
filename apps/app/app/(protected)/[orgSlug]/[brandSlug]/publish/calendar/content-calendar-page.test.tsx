@@ -354,7 +354,7 @@ describe('ContentCalendarPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'open:article-9' }));
 
     expect(pushMock).toHaveBeenCalledWith(
-      '/acme-org/acme-creator/edit/article/article-9?returnTo=%2Facme-org%2Facme-creator%2Fpublish%2Fcalendar',
+      '/acme-org/acme-creator/publish/posts/article-9?kind=article&returnTo=%2Facme-org%2Facme-creator%2Fpublish%2Fcalendar',
     );
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('closed');
   });

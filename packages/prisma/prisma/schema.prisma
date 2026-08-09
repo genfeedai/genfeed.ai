@@ -1942,6 +1942,8 @@ model Post {
   url                            String?
   // Drifted enum collapsed to String (lowercase canonical value). See platform note.
   status                         String             @default("scheduled")
+  // Editorial shape. Thread bodies stay in linked Post rows (`parentId`/`order`).
+  format                         String             @default("standard")
   label                          String?
   description                    String
   category                       PostCategory       @default(TEXT)

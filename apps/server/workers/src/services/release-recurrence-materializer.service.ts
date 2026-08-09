@@ -1,4 +1,5 @@
 import {
+  deriveReleaseStatusProjectionFromTargets,
   previewRecurrenceOccurrences,
   type RecurrenceInput,
   recurrenceInputSchema,
@@ -52,23 +53,38 @@ export class ReleaseRecurrenceMaterializerService {
   async shouldMaterialize(
     input: Pick<MaterializeRecurrenceInput, 'groupId' | 'organizationId'>,
   ): Promise<boolean> {
-    const group = await this.prisma.postGroup.findFirst({
-      select: { recurrence: true, status: true },
-      where: {
-        id: input.groupId,
-        isDeleted: false,
-        organizationId: input.organizationId,
-      },
-    });
+    const [group, targets] = await Promise.all([
+      this.prisma.postGroup.findFirst({
+        select: { recurrence: true },
+        where: {
+          id: input.groupId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+        },
+      }),
+      this.prisma.post.findMany({
+        select: { targetExecutionState: true },
+        where: {
+          groupId: input.groupId,
+          isDeleted: false,
+          organizationId: input.organizationId,
+          parentId: null,
+        },
+      }),
+    ]);
     if (!group?.recurrence) {
       return false;
     }
 
     const recurrence = this.asRecord(group.recurrence);
+    const status = this.deriveReleaseStatus(
+      input.groupId,
+      targets.map((target) => target.targetExecutionState),
+    );
     return (
       recurrence.isExhausted !== true &&
       recurrence.isPaused !== true &&
-      TERMINAL_RELEASE_STATES.has(group.status)
+      TERMINAL_RELEASE_STATES.has(status)
     );
   }
 
@@ -110,7 +126,16 @@ export class ReleaseRecurrenceMaterializerService {
         organizationId: input.organizationId,
       },
     });
-    if (!group?.recurrence || !TERMINAL_RELEASE_STATES.has(group.status)) {
+    if (!group?.recurrence) {
+      return { status: 'not_applicable' };
+    }
+
+    const targets = await this.loadTargets(tx, group.id, input.organizationId);
+    const status = this.deriveReleaseStatus(
+      group.id,
+      targets.map((target) => target.targetExecutionState),
+    );
+    if (!TERMINAL_RELEASE_STATES.has(status)) {
       return { status: 'not_applicable' };
     }
 
@@ -124,11 +149,6 @@ export class ReleaseRecurrenceMaterializerService {
       throw new Error(
         `Scheduler release ${group.id} has an invalid recurrence rule.`,
       );
-    }
-
-    const targets = await this.loadTargets(tx, group.id, input.organizationId);
-    if (targets.length === 0) {
-      throw new Error(`Scheduler release ${group.id} has no channel targets.`);
     }
 
     const startAt = this.resolveSourceSchedule(group.scheduledAt, targets);
@@ -513,6 +533,20 @@ export class ReleaseRecurrenceMaterializerService {
 
   private readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private deriveReleaseStatus(
+    groupId: string,
+    targetStates: readonly unknown[],
+  ): ReleaseStatus {
+    const projection = deriveReleaseStatusProjectionFromTargets(targetStates);
+    for (const diagnostic of projection.diagnostics) {
+      this.logger.warn(
+        `${this.logContext} release status derivation failed closed`,
+        { ...diagnostic, groupId },
+      );
+    }
+    return projection.status;
   }
 
   private isRetryableConcurrencyFailure(error: unknown): boolean {

@@ -5,8 +5,20 @@ import {
 } from '@genfeedai/enums';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
+function createLifecycleService(
+  kind: 'stale' | 'transitioned' = 'transitioned',
+) {
+  return {
+    transition: vi
+      .fn()
+      .mockResolvedValue(
+        kind === 'stale' ? { kind } : { kind, target: { id: 'target-1' } },
+      ),
+  };
+}
+
 describe('SchedulerPublishStateService', () => {
-  it('persists a provider outcome and rolls mixed targets up to partial success', async () => {
+  it('persists a provider outcome and timestamps derived partial success without writing status', async () => {
     const post = {
       findMany: vi
         .fn()
@@ -28,11 +40,13 @@ describe('SchedulerPublishStateService', () => {
     const prisma = {
       $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
     };
+    const postLifecycleService = createLifecycleService();
     const service = new SchedulerPublishStateService(
       prisma as never,
       {
         warn: vi.fn(),
       } as never,
+      postLifecycleService as never,
     );
     const publishedAt = new Date('2026-07-16T00:10:00.000Z');
 
@@ -50,35 +64,23 @@ describe('SchedulerPublishStateService', () => {
       },
     });
 
-    expect(post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        legacyStatus: PostStatus.PUBLIC,
+        mutation: expect.objectContaining({
           externalId: 'provider-1',
           publishedAt,
-          status: PostStatus.PUBLIC,
-          targetExecutionState: TargetExecutionState.PUBLISHED,
           url: 'https://social.example/provider-1',
         }),
-        where: expect.objectContaining({
-          groupId: 'group-1',
-          id: 'target-1',
-          organizationId: 'org-1',
-        }),
+        nextState: TargetExecutionState.PUBLISHED,
+        organizationId: 'org-1',
+        postId: 'target-1',
       }),
+      expect.objectContaining({ post, postGroup }),
     );
     expect(postGroup.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          publishedAt: expect.any(Date),
-          status: ReleaseStatus.PARTIALLY_PUBLISHED,
-          statusTransitions: [
-            expect.objectContaining({
-              actorId: null,
-              from: ReleaseStatus.PUBLISHING,
-              to: ReleaseStatus.PARTIALLY_PUBLISHED,
-            }),
-          ],
-        }),
+        data: { publishedAt: expect.any(Date) },
       }),
     );
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
@@ -114,9 +116,11 @@ describe('SchedulerPublishStateService', () => {
         ),
     };
     const logger = { warn: vi.fn() };
+    const postLifecycleService = createLifecycleService();
     const service = new SchedulerPublishStateService(
       prisma as never,
       logger as never,
+      postLifecycleService as never,
     );
 
     await service.transition({
@@ -135,14 +139,59 @@ describe('SchedulerPublishStateService', () => {
       expect.objectContaining({ attempt: 1, groupId: 'group-1' }),
     );
     expect(postGroup.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { publishedAt: expect.any(Date) } }),
+    );
+  });
+
+  it('fails malformed target sets closed without writing a release status', async () => {
+    const post = {
+      findMany: vi
+        .fn()
+        .mockResolvedValue([{ targetExecutionState: 'not-a-target-state' }]),
+    };
+    const postGroup = {
+      findFirst: vi.fn().mockResolvedValue({
+        id: 'group-1',
+        publishedAt: null,
+      }),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
+    };
+    const logger = { warn: vi.fn() };
+    const service = new SchedulerPublishStateService(
+      prisma as never,
+      logger as never,
+      createLifecycleService() as never,
+    );
+
+    await service.transition({
+      groupId: 'group-1',
+      organizationId: 'org-1',
+      postId: 'target-1',
+      update: {
+        executionState: TargetExecutionState.FAILED,
+        status: PostStatus.FAILED,
+      },
+    });
+
+    expect(postGroup.updateMany).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('release status derivation failed closed'),
       expect.objectContaining({
-        data: expect.objectContaining({ status: ReleaseStatus.PUBLISHED }),
+        code: 'invalid-target-state',
+        groupId: 'group-1',
       }),
     );
   });
 
   it('transitions with canonical tenant identifiers', async () => {
-    const service = new SchedulerPublishStateService({} as never, {} as never);
+    const service = new SchedulerPublishStateService(
+      {} as never,
+      {} as never,
+      createLifecycleService() as never,
+    );
     const transition = vi.spyOn(service, 'transition').mockResolvedValue(true);
 
     const grouped = await service.transitionPost(
@@ -183,9 +232,11 @@ describe('SchedulerPublishStateService', () => {
     const prisma = {
       $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
     };
+    const postLifecycleService = createLifecycleService();
     const service = new SchedulerPublishStateService(
       prisma as never,
       { warn: vi.fn() } as never,
+      postLifecycleService as never,
     );
 
     const applied = await service.transitionPost(
@@ -199,23 +250,21 @@ describe('SchedulerPublishStateService', () => {
     );
 
     expect(applied).toBe(true);
-    expect(post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        mutation: expect.objectContaining({
           url: 'https://www.youtube.com/watch?v=video-1',
           workflowExecutionId: 'execution-1',
         }),
-        where: expect.not.objectContaining({ groupId: expect.anything() }),
       }),
+      expect.anything(),
     );
     expect(postGroup.findFirst).not.toHaveBeenCalled();
     expect(postGroup.updateMany).not.toHaveBeenCalled();
   });
 
   it('ignores an outcome from a stale workflow execution', async () => {
-    const post = {
-      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-    };
+    const post = {};
     const postGroup = {
       findFirst: vi.fn(),
       updateMany: vi.fn(),
@@ -224,9 +273,11 @@ describe('SchedulerPublishStateService', () => {
       $transaction: vi.fn(async (callback) => callback({ post, postGroup })),
     };
     const logger = { warn: vi.fn() };
+    const postLifecycleService = createLifecycleService('stale');
     const service = new SchedulerPublishStateService(
       prisma as never,
       logger as never,
+      postLifecycleService as never,
     );
 
     const applied = await service.transition({
@@ -244,13 +295,14 @@ describe('SchedulerPublishStateService', () => {
     });
 
     expect(applied).toBe(false);
-    expect(post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          targetExecutionState: { in: [TargetExecutionState.PUBLISHING] },
-          workflowExecutionId: 'execution-current',
-        }),
+        guard: {
+          expectedWorkflowExecutionId: 'execution-current',
+          priorExecutionStates: [TargetExecutionState.PUBLISHING],
+        },
       }),
+      expect.anything(),
     );
     expect(postGroup.findFirst).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalledWith(

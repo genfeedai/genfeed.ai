@@ -1,14 +1,11 @@
-import { deriveReleaseStatusFromTargets } from '@api-types/contracts/scheduler.contract';
+import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
 import {
   PostStatus,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
-import type {
-  IChannelTargetError,
-  IScheduleStatusTransition,
-} from '@genfeedai/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import type { IChannelTargetError } from '@genfeedai/interfaces';
+import { PostLifecycleService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { PrismaService } from '@libs/prisma/prisma.service';
 
@@ -51,8 +48,6 @@ type SchedulerPublishStateInput = {
 type SchedulerGroupRow = {
   id: string;
   publishedAt: Date | null;
-  status: string;
-  statusTransitions: Prisma.JsonValue;
 };
 
 export class SchedulerPublishStateService {
@@ -61,6 +56,7 @@ export class SchedulerPublishStateService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    private readonly postLifecycleService: PostLifecycleService,
   ) {}
 
   async transitionPost(
@@ -91,61 +87,46 @@ export class SchedulerPublishStateService {
       try {
         const applied = await this.prisma.$transaction(
           async (tx) => {
-            const updated = await tx.post.updateMany({
-              data: {
-                ...(input.update.error !== undefined && {
-                  targetError: input.update.error
-                    ? this.toJson(input.update.error)
-                    : Prisma.JsonNull,
-                }),
-                ...(input.update.externalId !== undefined && {
-                  externalId: input.update.externalId,
-                }),
-                ...(input.update.externalShortcode !== undefined && {
-                  externalShortcode: input.update.externalShortcode,
-                }),
-                ...(input.update.lastAttemptAt !== undefined && {
-                  lastAttemptAt: input.update.lastAttemptAt,
-                }),
-                ...(input.update.publicationDate !== undefined && {
-                  publicationDate: input.update.publicationDate,
-                }),
-                ...(input.update.publishedAt !== undefined && {
-                  publishedAt: input.update.publishedAt,
-                }),
-                ...(input.update.retryCount !== undefined && {
-                  retryCount: input.update.retryCount,
-                }),
-                status: input.update.status,
-                targetExecutionState: input.update.executionState,
-                ...(input.update.url !== undefined && {
-                  url: input.update.url,
-                }),
-                ...(input.update.workflowExecutionId !== undefined && {
-                  workflowExecutionId: input.update.workflowExecutionId,
-                }),
-              },
-              where: {
-                ...(input.groupId ? { groupId: input.groupId } : {}),
-                id: input.postId,
-                isDeleted: false,
+            const transition = await this.postLifecycleService.transition(
+              {
+                error: input.update.error,
+                groupId: input.groupId,
+                guard: input.guard,
+                legacyStatus: input.update.status,
+                mutation: {
+                  ...(input.update.externalId !== undefined && {
+                    externalId: input.update.externalId,
+                  }),
+                  ...(input.update.externalShortcode !== undefined && {
+                    externalShortcode: input.update.externalShortcode,
+                  }),
+                  ...(input.update.lastAttemptAt !== undefined && {
+                    lastAttemptAt: input.update.lastAttemptAt,
+                  }),
+                  ...(input.update.publicationDate !== undefined && {
+                    publicationDate: input.update.publicationDate,
+                  }),
+                  ...(input.update.publishedAt !== undefined && {
+                    publishedAt: input.update.publishedAt,
+                  }),
+                  ...(input.update.retryCount !== undefined && {
+                    retryCount: input.update.retryCount,
+                  }),
+                  ...(input.update.url !== undefined && {
+                    url: input.update.url,
+                  }),
+                  ...(input.update.workflowExecutionId !== undefined && {
+                    workflowExecutionId: input.update.workflowExecutionId,
+                  }),
+                },
+                nextState: input.update.executionState,
                 organizationId: input.organizationId,
-                ...(input.guard?.expectedWorkflowExecutionId
-                  ? {
-                      workflowExecutionId:
-                        input.guard.expectedWorkflowExecutionId,
-                    }
-                  : {}),
-                ...(input.guard?.priorExecutionStates?.length
-                  ? {
-                      targetExecutionState: {
-                        in: [...input.guard.priorExecutionStates],
-                      },
-                    }
-                  : {}),
+                postId: input.postId,
+                reason: input.reason,
               },
-            });
-            if (updated.count !== 1) {
+              tx,
+            );
+            if (transition.kind === 'stale') {
               this.logger.warn(
                 `${this.logContext} ignored stale publish transition`,
                 {
@@ -168,8 +149,6 @@ export class SchedulerPublishStateService {
                 select: {
                   id: true,
                   publishedAt: true,
-                  status: true,
-                  statusTransitions: true,
                 },
                 where: {
                   id: input.groupId,
@@ -193,45 +172,36 @@ export class SchedulerPublishStateService {
               );
             }
 
-            const status = deriveReleaseStatusFromTargets(
-              targets.map((target) =>
-                this.readExecutionState(target.targetExecutionState),
-              ),
+            const projection = deriveReleaseStatusProjectionFromTargets(
+              targets.map((target) => target.targetExecutionState),
             );
-            const statusChanged = status !== group.status;
-            const now = new Date();
-            const terminalPublished =
-              status === ReleaseStatus.PUBLISHED ||
-              status === ReleaseStatus.PARTIALLY_PUBLISHED;
-            const updatedGroup = await tx.postGroup.updateMany({
-              data: {
-                ...(terminalPublished && !group.publishedAt
-                  ? { publishedAt: now }
-                  : {}),
-                status,
-                ...(statusChanged && {
-                  statusTransitions: this.toJson([
-                    ...this.readTransitions(group.statusTransitions),
-                    {
-                      actorId: null,
-                      at: now.toISOString(),
-                      from: group.status,
-                      ...(input.reason ? { reason: input.reason } : {}),
-                      to: status,
-                    },
-                  ]),
-                }),
-              },
-              where: {
-                id: input.groupId,
-                isDeleted: false,
-                organizationId: input.organizationId,
-              },
-            });
-            if (updatedGroup.count !== 1) {
-              throw new Error(
-                `Scheduler release ${input.groupId} is no longer available.`,
+            for (const diagnostic of projection.diagnostics) {
+              this.logger.warn(
+                `${this.logContext} release status derivation failed closed`,
+                {
+                  ...diagnostic,
+                  groupId: group.id,
+                  postId: input.postId,
+                },
               );
+            }
+            const terminalPublished =
+              projection.status === ReleaseStatus.PUBLISHED ||
+              projection.status === ReleaseStatus.PARTIALLY_PUBLISHED;
+            if (terminalPublished && !group.publishedAt) {
+              const updatedGroup = await tx.postGroup.updateMany({
+                data: { publishedAt: new Date() },
+                where: {
+                  id: input.groupId,
+                  isDeleted: false,
+                  organizationId: input.organizationId,
+                },
+              });
+              if (updatedGroup.count !== 1) {
+                throw new Error(
+                  `Scheduler release ${input.groupId} is no longer available.`,
+                );
+              }
             }
             return true;
           },
@@ -253,16 +223,6 @@ export class SchedulerPublishStateService {
       }
     }
     return false;
-  }
-
-  private readExecutionState(value: string): TargetExecutionState {
-    const state = Object.values(TargetExecutionState).find(
-      (candidate) => candidate === value,
-    );
-    if (!state) {
-      throw new Error(`Unknown scheduler target execution state: ${value}`);
-    }
-    return state;
   }
 
   private readIdentifier(value: unknown): string | undefined {
@@ -290,20 +250,6 @@ export class SchedulerPublishStateService {
     return undefined;
   }
 
-  private readTransitions(
-    value: Prisma.JsonValue,
-  ): IScheduleStatusTransition[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-    return value
-      .filter(
-        (entry) =>
-          Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry),
-      )
-      .map((entry) => entry as unknown as IScheduleStatusTransition);
-  }
-
   private isSerializationFailure(error: unknown): boolean {
     return (
       error !== null &&
@@ -311,9 +257,5 @@ export class SchedulerPublishStateService {
       'code' in error &&
       (error as { code?: unknown }).code === 'P2034'
     );
-  }
-
-  private toJson(value: unknown): Prisma.InputJsonValue {
-    return value as Prisma.InputJsonValue;
   }
 }

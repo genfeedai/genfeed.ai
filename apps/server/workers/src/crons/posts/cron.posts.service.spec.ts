@@ -154,7 +154,7 @@ describe('CronPostsService', () => {
       markQueued: vi.fn().mockResolvedValue(undefined),
     };
     schedulerPublishStateService = {
-      transitionPost: vi.fn().mockResolvedValue(false),
+      transitionPost: vi.fn().mockResolvedValue(true),
     };
     postRepeatSchedulerService = {
       materializeRecurrence: vi.fn().mockResolvedValue(undefined),
@@ -459,7 +459,10 @@ describe('CronPostsService', () => {
     expect(
       agentArtifactReferenceService.assertVersionPinCurrent.mock
         .invocationCallOrder[0],
-    ).toBeLessThan(postsService.patch.mock.invocationCallOrder[0] ?? 0);
+    ).toBeLessThan(
+      schedulerPublishStateService.transitionPost.mock.invocationCallOrder[0] ??
+        0,
+    );
   });
 
   it('fails closed on a stale version pin before PROCESSING or provider side effects', async () => {
@@ -680,18 +683,20 @@ describe('CronPostsService', () => {
       }),
     );
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
-    expect(postsService.patch).toHaveBeenCalledWith(
-      'post-1',
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
       expect.objectContaining({
         lastAttemptAt: expect.any(Date),
         status: PostStatus.FAILED,
-        targetExecutionState: 'failed',
-        targetError: expect.objectContaining({
+        executionState: 'failed',
+        error: expect.objectContaining({
           code: 'publish_validation_failed',
           isRetryable: false,
           message: 'Agent context is stale.',
         }),
       }),
+      'Agent context is stale.',
+      undefined,
     );
     expect(
       publishEventWebhookService.emitLegacyPostFailed,

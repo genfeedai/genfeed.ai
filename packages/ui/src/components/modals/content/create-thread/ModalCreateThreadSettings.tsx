@@ -46,7 +46,7 @@ export default function ModalCreateThreadSettings({
 
       <div className="grid grid-cols-2 gap-4">
         <FormControl
-          label="Scheduled Date"
+          label="Scheduled Date (Optional)"
           error={form.formState.errors.scheduledDate?.message}
         >
           <FormDateTimePicker
