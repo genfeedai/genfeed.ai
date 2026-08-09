@@ -95,6 +95,41 @@ describe('ReleaseGroupsService', () => {
     });
   });
 
+  it('preserves canonical Publish list pagination metadata', async () => {
+    const document = {
+      data: [],
+      links: {
+        pagination: { limit: 12, page: 2, pages: 4, total: 41 },
+      },
+    };
+    const releases = [{ id: 'release-13', targets: [] }];
+    mockGet.mockResolvedValue({ data: document });
+    mockExtractCollection.mockReturnValue(releases);
+    const query = {
+      brandId: 'brand-1',
+      limit: 12,
+      page: 2,
+      publicationState: 'posted' as const,
+      sort: 'createdAt: -1' as const,
+    };
+
+    await expect(
+      new ReleaseGroupsService('token').findAllPage(query),
+    ).resolves.toEqual({
+      hasNext: true,
+      hasPrevious: true,
+      items: releases,
+      page: 2,
+      pageSize: 12,
+      total: 41,
+      totalPages: 4,
+    });
+    expect(mockGet).toHaveBeenCalledWith('', {
+      params: query,
+      signal: undefined,
+    });
+  });
+
   it('loads one release with normalized target relationships', async () => {
     const document = { data: { id: 'release-1' } };
     const release = { id: 'release-1', targets: [] };

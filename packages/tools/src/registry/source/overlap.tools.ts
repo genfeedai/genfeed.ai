@@ -80,6 +80,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             'Optional text content or caption to reuse for the publish confirmation card.',
           type: 'string',
         },
+        visibility: {
+          description:
+            'Audience visibility, independent from draft, schedule, or publish lifecycle.',
+          enum: ['public', 'private', 'unlisted'],
+          type: 'string',
+        },
       },
       type: 'object',
     },

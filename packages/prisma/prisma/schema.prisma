@@ -1941,7 +1941,11 @@ model Post {
   groupId                        String?
   url                            String?
   // Drifted enum collapsed to String (lowercase canonical value). See platform note.
-  status                         String             @default("scheduled")
+  status                         String             @default("draft")
+  // Audience visibility is independent from targetExecutionState. Optional for
+  // the expand phase so legacy rows can be classified by the dry-run backfill
+  // before a later contract migration makes the field required.
+  visibility                     String?
   // Editorial shape. Thread bodies stay in linked Post rows (`parentId`/`order`).
   format                         String             @default("standard")
   label                          String?

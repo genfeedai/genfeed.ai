@@ -5,7 +5,11 @@ import { SourcePostsService } from '@api/collections/source-posts/services/sourc
 import { SOURCE_CORPUS_CONFIG_LIMITS } from '@api/collections/workflows/registry/node-registry';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import {
   HookGeneratorExecutor,
   PromptConstructorExecutor,
@@ -163,7 +167,7 @@ export class WorkflowContentExecutorRegistrarService {
         organizationId: context.organizationId,
         platform: credential.platform as CredentialPlatform,
         source: 'workflow-post-generator',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
         timezone,
         userId: context.userId,
       });

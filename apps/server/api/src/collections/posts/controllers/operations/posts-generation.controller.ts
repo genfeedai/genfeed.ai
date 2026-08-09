@@ -35,8 +35,8 @@ import {
   CredentialPlatform,
   PostCategory,
   PostRepurposeMode,
-  PostStatus,
   parsePlatform,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -262,7 +262,7 @@ export class PostsGenerationController {
         parentId: postId,
         platform:
           parsePlatform(originalPost.platform) ?? CredentialPlatform.TWITTER,
-        status: PostStatus.PROCESSING,
+        targetExecutionState: TargetExecutionState.PUBLISHING,
         userId: publicMetadata.user,
       });
       createdPosts.push(childPost);

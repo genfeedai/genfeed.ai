@@ -1,6 +1,10 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { PostStatus } from '@genfeedai/enums';
+import {
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 
@@ -11,7 +15,13 @@ type YoutubeUploadStatus =
   | 'scheduled'
   | 'failed';
 
-const STATUS_MAP: Record<YoutubeUploadStatus, PostStatus> = {
+const VISIBILITY_MAP: Partial<Record<YoutubeUploadStatus, PostVisibility>> = {
+  private: PostVisibility.PRIVATE,
+  public: PostVisibility.PUBLIC,
+  unlisted: PostVisibility.UNLISTED,
+};
+
+const LEGACY_STATUS_MAP: Record<YoutubeUploadStatus, PostStatus> = {
   failed: PostStatus.FAILED,
   private: PostStatus.PRIVATE,
   public: PostStatus.PUBLIC,
@@ -127,7 +137,13 @@ export class YoutubeUploadCompletionService implements OnModuleInit {
       const updateData: Record<string, unknown> = {
         error: error || undefined,
         externalId: result?.externalId || undefined,
-        status: STATUS_MAP[status] ?? PostStatus.FAILED,
+        targetExecutionState:
+          status === 'failed'
+            ? TargetExecutionState.FAILED
+            : status === 'scheduled'
+              ? TargetExecutionState.SCHEDULED
+              : TargetExecutionState.PUBLISHED,
+        ...(VISIBILITY_MAP[status] && { visibility: VISIBILITY_MAP[status] }),
       };
 
       if (PUBLISHED_STATUSES.includes(status)) {
@@ -185,7 +201,13 @@ function buildYoutubeWebhookPostSnapshot(
     publicationDate: PUBLISHED_STATUSES.includes(data.status)
       ? parseCompletionTimestamp(data.timestamp)
       : undefined,
-    status: STATUS_MAP[data.status] ?? PostStatus.FAILED,
+    status: LEGACY_STATUS_MAP[data.status],
+    targetExecutionState: PUBLISHED_STATUSES.includes(data.status)
+      ? TargetExecutionState.PUBLISHED
+      : data.status === 'scheduled'
+        ? TargetExecutionState.SCHEDULED
+        : TargetExecutionState.FAILED,
+    visibility: VISIBILITY_MAP[data.status] ?? PostVisibility.PUBLIC,
     url: data.result?.videoUrl,
     user: data.userId,
   };

@@ -11,6 +11,7 @@ import { PublishEventWebhookService } from '@api/services/webhook-client/webhook
 import {
   CredentialPlatform,
   PostStatus,
+  PostVisibility,
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
@@ -19,10 +20,10 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { SchedulerPublishStateService } from '@workers/services/scheduler-publish-state.service';
 
-const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostStatus> = {
-  private: PostStatus.PRIVATE,
-  public: PostStatus.PUBLIC,
-  unlisted: PostStatus.UNLISTED,
+const YOUTUBE_PRIVACY_STATUS_MAP: Record<string, PostVisibility> = {
+  private: PostVisibility.PRIVATE,
+  public: PostVisibility.PUBLIC,
+  unlisted: PostVisibility.UNLISTED,
 };
 
 @Injectable()
@@ -68,15 +69,18 @@ export class CronYoutubeStatusService {
             externalId: { not: null },
             isDeleted: false,
             platform: CredentialPlatform.YOUTUBE,
-            // Only check non-public statuses (PRIVATE, UNLISTED, SCHEDULED)
-            // Once PUBLIC, no need to keep checking
-            status: {
-              in: [
-                PostStatus.PRIVATE,
-                PostStatus.UNLISTED,
-                PostStatus.SCHEDULED, // Videos waiting to be uploaded
-              ],
-            },
+            OR: [
+              {
+                visibility: {
+                  in: [PostVisibility.PRIVATE, PostVisibility.UNLISTED],
+                },
+              },
+              {
+                visibility: null,
+                status: { in: [PostStatus.PRIVATE, PostStatus.UNLISTED] },
+              },
+              { targetExecutionState: TargetExecutionState.PUBLISHING },
+            ],
           },
         },
         options,
@@ -136,13 +140,17 @@ export class CronYoutubeStatusService {
         YOUTUBE_PRIVACY_STATUS_MAP[videoStatus.privacyStatus] ?? null;
 
       // Update if status doesn't match
-      if (targetStatus && post.status !== targetStatus) {
+      if (
+        targetStatus &&
+        (post.visibility !== targetStatus ||
+          post.targetExecutionState !== TargetExecutionState.PUBLISHED)
+      ) {
         const updateData: Record<string, unknown> = {
-          status: targetStatus,
+          visibility: targetStatus,
         };
 
         // Set publicationDate when video becomes public for the first time
-        if (targetStatus === PostStatus.PUBLIC && !post.publicationDate) {
+        if (targetStatus === PostVisibility.PUBLIC && !post.publicationDate) {
           updateData.publicationDate = new Date();
         }
 
@@ -151,34 +159,29 @@ export class CronYoutubeStatusService {
           targetStatus,
           `YouTube reports ${videoStatus.privacyStatus} - syncing post from ${post.status} to ${targetStatus}`,
           async (provenance) => {
-            const isPublished = targetStatus === PostStatus.PUBLIC;
-            const publishedAt = isPublished
-              ? ((updateData.publicationDate as Date | undefined) ??
-                post.publicationDate ??
-                new Date())
-              : undefined;
+            const publishedAt =
+              (updateData.publicationDate as Date | undefined) ??
+              post.publicationDate ??
+              new Date();
             const grouped =
               await this.schedulerPublishStateService.transitionPost(
                 post,
                 {
                   error: null,
-                  executionState: isPublished
-                    ? TargetExecutionState.PUBLISHED
-                    : TargetExecutionState.PUBLISHING,
-                  ...(publishedAt && {
-                    publicationDate: publishedAt,
-                    publishedAt,
-                  }),
-                  status: targetStatus,
-                  ...(isPublished && {
-                    url: `https://www.youtube.com/watch?v=${post.externalId}`,
-                  }),
+                  executionState: TargetExecutionState.PUBLISHED,
+                  publicationDate: publishedAt,
+                  publishedAt,
+                  url: `https://www.youtube.com/watch?v=${post.externalId}`,
+                  visibility: targetStatus,
                   workflowExecutionId: provenance.executionId,
                 },
                 `YouTube reports ${videoStatus.privacyStatus}`,
                 {
                   expectedWorkflowExecutionId: provenance.executionId,
-                  priorExecutionStates: [TargetExecutionState.PUBLISHING],
+                  priorExecutionStates: [
+                    TargetExecutionState.PUBLISHING,
+                    TargetExecutionState.PUBLISHED,
+                  ],
                 },
               );
             if (!grouped) {
@@ -192,9 +195,7 @@ export class CronYoutubeStatusService {
         );
         if (
           transitioned &&
-          [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED].includes(
-            targetStatus,
-          )
+          Object.values(PostVisibility).includes(targetStatus)
         ) {
           void this.publishEventWebhookService.emitLegacyPostPublished({
             externalProviderId: post.externalId,
@@ -209,7 +210,7 @@ export class CronYoutubeStatusService {
           {
             newStatus: targetStatus,
             postId: post.id,
-            previousStatus: post.status,
+            previousVisibility: post.visibility,
             youtubePrivacyStatus: videoStatus.privacyStatus,
           },
         );

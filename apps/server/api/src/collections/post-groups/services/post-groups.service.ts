@@ -21,7 +21,6 @@ import type {
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
-  PostStatus,
   PublishApprovalStatus,
   ReleaseStatus,
   TargetExecutionState,
@@ -173,23 +172,28 @@ export class PostGroupsService {
     );
   }
 
-  list(
-    organizationId: string,
-    query: PostGroupsQueryDto,
-  ): Promise<IReleaseGroup[]> {
+  list(organizationId: string, query: PostGroupsQueryDto) {
     return this.persistenceService.listReleaseGroups({
       ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...(query.contentType?.length ? { categories: query.contentType } : {}),
       ...(query.credentialId?.length
         ? { credentialIds: query.credentialId }
         : {}),
-      endDate: new Date(query.endDate),
+      ...(query.endDate ? { endDate: new Date(query.endDate) } : {}),
       ...(query.executionState?.length
         ? { executionStates: query.executionState }
         : {}),
+      ...(query.limit ? { limit: query.limit } : {}),
       organizationId,
+      ...(query.page ? { page: query.page } : {}),
       ...(query.platform?.length ? { platforms: query.platform } : {}),
+      ...(query.publicationState
+        ? { publicationState: query.publicationState }
+        : {}),
+      ...(query.search?.trim() ? { search: query.search.trim() } : {}),
+      ...(query.sort ? { sort: query.sort } : {}),
       ...(query.source?.length ? { sources: query.source } : {}),
-      startDate: new Date(query.startDate),
+      ...(query.startDate ? { startDate: new Date(query.startDate) } : {}),
       ...(query.status?.length ? { statuses: query.status } : {}),
     });
   }
@@ -229,6 +233,12 @@ export class PostGroupsService {
         scheduledDate: scheduledDate.toISOString(),
         settings: this.contractService.asRecord(target.targetSettings),
         timezone: target.timezone,
+        visibility:
+          target.visibility ??
+          this.contractService.toPostVisibility(
+            target.visibility,
+            target.status,
+          ),
       };
       const credentials = await this.persistenceService.resolveCredentials(
         tx,
@@ -251,6 +261,7 @@ export class PostGroupsService {
         platform: targetInput.platform,
         publishMode: 'scheduled',
         settings: targetInput.settings ?? {},
+        visibility: targetInput.visibility,
       });
       if (!validation.valid) {
         throw this.contractService.invalidTargetException(
@@ -281,7 +292,6 @@ export class PostGroupsService {
                 target.targetExecutionState as TargetExecutionState,
               ],
             },
-            legacyStatus: PostStatus.SCHEDULED,
             mutation: {
               ...(provenance?.agentContextSource && {
                 agentContextSource: provenance.agentContextSource,
@@ -435,7 +445,6 @@ export class PostGroupsService {
             {
               actorId: userId,
               groupId: existing.id,
-              legacyStatus: this.contractService.toPostStatus(input.status),
               mutation: targetUpdate,
               nextState,
               organizationId,
@@ -567,6 +576,9 @@ export class PostGroupsService {
         }),
         ...(input.settings !== undefined && {
           targetSettings: this.contractService.toJson(input.settings),
+        }),
+        ...(input.visibility !== undefined && {
+          visibility: input.visibility,
         }),
         ...(input.timezone !== undefined && { timezone: input.timezone }),
         ...(input.url !== undefined && { url: input.url }),
@@ -810,6 +822,12 @@ export class PostGroupsService {
           platform: target.platform,
           publishMode: 'publish_now',
           settings: this.contractService.asRecord(target.targetSettings),
+          visibility:
+            target.visibility ??
+            this.contractService.toPostVisibility(
+              target.visibility,
+              target.status,
+            ),
         });
 
         if (!validation.valid) {
@@ -842,7 +860,6 @@ export class PostGroupsService {
           {
             actorId: userId,
             groupId: group.id,
-            legacyStatus: PostStatus.SCHEDULED,
             mutation: { scheduledDate },
             nextState: TargetExecutionState.SCHEDULED,
             organizationId,

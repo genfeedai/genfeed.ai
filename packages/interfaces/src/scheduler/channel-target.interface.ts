@@ -1,5 +1,7 @@
 import type {
   CredentialPlatform,
+  PostCategory,
+  PostVisibility,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
@@ -90,6 +92,8 @@ export interface IChannelTarget extends IBaseEntity {
   /** Release group this target belongs to. */
   releaseId: string;
   platform: CredentialPlatform;
+  /** Content category used by canonical Publish list filters. */
+  category?: PostCategory;
   /** Credential used to publish; relation is hydrated in serialized responses. */
   credentialId: string;
   credential?: ICredential;
@@ -99,6 +103,8 @@ export interface IChannelTarget extends IBaseEntity {
   timezone: string;
   /** Provider-specific overrides for this target. */
   settings: ChannelTargetSettings;
+  /** Audience visibility, independent from publish execution lifecycle. */
+  visibility: PostVisibility;
   validationState: TargetValidationState;
   /** Non-empty when `validationState` is `WARNING` or `INVALID`. */
   validationIssues: string[];

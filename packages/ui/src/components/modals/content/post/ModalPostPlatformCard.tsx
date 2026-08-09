@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, PostVisibility } from '@genfeedai/enums';
 import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -95,22 +95,21 @@ export default function ModalPostPlatformCard({
         <FormControl label="YouTube Visibility">
           <SelectField
             name={`youtubeStatus-${config.credentialId || config.platform}`}
-            value={config.status || 'unlisted'}
+            value={config.visibility}
             onChange={(event) => {
               if (!isEnabled) {
                 return;
               }
 
               updatePlatformConfig(config.credentialId, {
-                status: event.target.value,
+                visibility: event.target.value as PostVisibility,
               });
             }}
             isDisabled={!isEnabled || isLoading}
           >
-            <option value="public">Public</option>
-            <option value="private">Private</option>
-            <option value="unlisted">Unlisted</option>
-            <option value="scheduled">Scheduled</option>
+            <option value={PostVisibility.PUBLIC}>Public</option>
+            <option value={PostVisibility.PRIVATE}>Private</option>
+            <option value={PostVisibility.UNLISTED}>Unlisted</option>
           </SelectField>
         </FormControl>
       )}

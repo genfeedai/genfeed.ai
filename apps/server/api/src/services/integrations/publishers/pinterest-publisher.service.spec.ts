@@ -14,7 +14,12 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PinterestPublisherService } from '@api/services/integrations/publishers/pinterest-publisher.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -315,7 +320,7 @@ describe('PinterestPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPinId);
         expect(result.platform).toBe(CredentialPlatform.PINTEREST);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toBe(`https://www.pinterest.com/pin/${mockPinId}`);
         expect(pinterestService.createPin).toHaveBeenCalledWith(
           expect.stringContaining('decrypted-'),
@@ -328,7 +333,13 @@ describe('PinterestPublisherService', () => {
       });
 
       it('should handle post without label', async () => {
-        const postWithoutLabel = { ...mockImagePost, label: undefined };
+        const postWithoutLabel = {
+          ...mockImagePost,
+          // Simulates a legacy row persisted before `label` became a
+          // required PostEntity field; the service still falls back to
+          // "Untitled" for these at runtime.
+          label: undefined as unknown as string,
+        };
         const context = createPublishContext(postWithoutLabel);
 
         pinterestService.createPin.mockResolvedValue('pin-123');
@@ -407,7 +418,7 @@ describe('PinterestPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toBe('Pinterest only supports image posts');
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 

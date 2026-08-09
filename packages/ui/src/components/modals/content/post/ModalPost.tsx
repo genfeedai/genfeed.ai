@@ -2,7 +2,13 @@ import {
   type PostModalSchema,
   postModalSchema,
 } from '@genfeedai/client/schemas';
-import { ModalEnum, Platform, PostFormat, PostStatus } from '@genfeedai/enums';
+import {
+  ModalEnum,
+  Platform,
+  PostFormat,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
@@ -70,7 +76,8 @@ export default function ModalPost({
       label: '',
       parentId: parentPost?.id || '',
       scheduledDate: '',
-      status: PostStatus.DRAFT,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      visibility: PostVisibility.PUBLIC,
     }),
     [credential?.id, credentials, ingredient, parentPost?.id, postFormat],
   );
@@ -93,7 +100,8 @@ export default function ModalPost({
         entity?.platform ||
         entity?.credential?.platform;
 
-      const isScheduling = formData.status === PostStatus.SCHEDULED;
+      const isScheduling =
+        formData.targetExecutionState === TargetExecutionState.SCHEDULED;
       if (isScheduling && !formData.scheduledDate) {
         notificationsService.error(
           'Choose a scheduled date before scheduling this post',
@@ -122,7 +130,8 @@ export default function ModalPost({
           ...(formData.scheduledDate
             ? { scheduledDate: formData.scheduledDate }
             : {}),
-          status: formData.status as PostStatus,
+          targetExecutionState: formData.targetExecutionState,
+          visibility: formData.visibility,
         });
 
         notificationsService.success('Post updated successfully');
@@ -140,7 +149,8 @@ export default function ModalPost({
           ...(formData.scheduledDate
             ? { scheduledDate: formData.scheduledDate }
             : {}),
-          status: formData.status as PostStatus,
+          targetExecutionState: formData.targetExecutionState,
+          visibility: formData.visibility,
         });
 
         notificationsService.success(
@@ -190,7 +200,11 @@ export default function ModalPost({
         'scheduledDate',
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',
       );
-      form.setValue('status', post.status || PostStatus.DRAFT);
+      form.setValue(
+        'targetExecutionState',
+        post.targetExecutionState ?? TargetExecutionState.DRAFT,
+      );
+      form.setValue('visibility', post.visibility ?? PostVisibility.PUBLIC);
       form.setValue('credentialId', post.credential?.id ?? '');
       form.setValue(
         'ingredients',
