@@ -13,7 +13,9 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [PostGroupsController],
-  exports: [PostGroupsService],
+  // PostGroupPersistenceService is exported for the post-repurpose flow, which
+  // creates draft channel targets and needs the shared group-status recalc.
+  exports: [PostGroupPersistenceService, PostGroupsService],
   imports: [
     forwardRef(() => QueuesModule),
     // Readiness derivation is shared with every read surface. This is a

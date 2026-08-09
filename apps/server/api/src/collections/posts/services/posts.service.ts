@@ -39,6 +39,7 @@ import {
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
+  type TargetValidationState,
 } from '@genfeedai/enums';
 import type {
   AgentContentMentionItem,
@@ -110,6 +111,10 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  targetExecutionState?: TargetExecutionState;
+  targetSettings?: Record<string, unknown>;
+  targetValidationIssues?: string[];
+  targetValidationState?: TargetValidationState;
   userId?: string;
 };
 

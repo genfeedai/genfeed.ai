@@ -324,19 +324,17 @@ export class AccountHealthService {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
     const [publishedPosts, recentFailures] = await Promise.all([
       this.prisma.post.count({
-        where: {
+        where: scopedWhere(credential.organizationId, {
           credentialId: credential.id,
-          isDeleted: false,
           ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
-        },
+        }),
       }),
       this.prisma.post.count({
-        where: {
+        where: scopedWhere(credential.organizationId, {
           createdAt: { gte: since },
           credentialId: credential.id,
-          isDeleted: false,
           ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
-        },
+        }),
       }),
     ]);
 

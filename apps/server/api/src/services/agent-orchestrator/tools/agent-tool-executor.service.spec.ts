@@ -810,6 +810,7 @@ describe('AgentToolExecutorService', () => {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
     };
+    const postRepurposeService = { repurpose: vi.fn() };
     const publishHandler = new AgentPublishToolHandler(
       postGroupsService as never,
       postsService as never,
@@ -817,6 +818,8 @@ describe('AgentToolExecutorService', () => {
       ingredientsService as never,
       credentialsService as never,
       agentScopeContextService as never,
+      postRepurposeService as never,
+      creditsUtilsService as never,
     );
     const instagramInspirationHandler =
       new AgentInstagramInspirationToolHandler(
@@ -992,6 +995,7 @@ describe('AgentToolExecutorService', () => {
       organizationsService,
       postAnalyticsService,
       postGroupsService,
+      postRepurposeService,
       postsService,
       recurringWorkflowId,
       service,
@@ -1278,6 +1282,183 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('repurposes a post deterministically at no credit cost', async () => {
+    const { creditsUtilsService, postRepurposeService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockResolvedValue({
+      adjustments: [
+        {
+          code: 'channel_repurpose.caption_truncated',
+          message: 'Caption shortened to fit the X (Twitter) limit of 280.',
+        },
+      ],
+      draft: { id: 'repurposed-draft-1' },
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'deterministic',
+        platform: 'twitter',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        data: expect.objectContaining({
+          id: 'repurposed-draft-1',
+          mode: 'deterministic',
+          platform: 'twitter',
+          status: 'draft',
+        }),
+        isBillingDelegated: true,
+        success: true,
+      }),
+    );
+    expect(postRepurposeService.repurpose).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'deterministic',
+        organizationId: 'c7a123456789012345678901',
+        platform: 'twitter',
+        postId: 'source-post-1',
+        userId: 'c7a123456789012345678902',
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('bills the agent-mode repurpose rewrite and returns the review reference', async () => {
+    const { creditsUtilsService, postRepurposeService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockResolvedValue({
+      adjustments: [],
+      draft: { id: 'repurposed-draft-2' },
+      reviewBatchId: 'batch-1',
+      reviewItemId: 'item-1',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'agent',
+        platform: 'linkedin',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 1,
+        data: expect.objectContaining({
+          id: 'repurposed-draft-2',
+          mode: 'agent',
+          reviewBatchId: 'batch-1',
+          reviewItemId: 'item-1',
+        }),
+        isBillingDelegated: true,
+        success: true,
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'c7a123456789012345678901',
+      'c7a123456789012345678902',
+      1,
+      expect.stringContaining('source-post-1'),
+      expect.anything(),
+    );
+  });
+
+  it('returns the actionable validation detail when repurposing rejects', async () => {
+    const { postRepurposeService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockRejectedValue(
+      new BadRequestException({
+        detail: 'X (Twitter) does not support carousel media.',
+        title: 'Post cannot be repurposed to this channel',
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'deterministic',
+        platform: 'twitter',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        error: 'X (Twitter) does not support carousel media.',
+        success: false,
+      }),
+    );
+  });
+
+  it('withholds internal repurpose failures from model-visible output', async () => {
+    const { loggerService, postRepurposeService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockRejectedValue(
+      new Error('Prisma connection detail with internal host'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'agent',
+        platform: 'twitter',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).not.toContain('Prisma');
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('Prisma connection detail'),
+      'AgentPublishToolHandler',
+    );
+  });
+
+  it('requires postId, platform, and mode before repurposing', async () => {
+    const { postRepurposeService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      { platform: 'twitter', postId: 'source-post-1' },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('mode');
+    expect(postRepurposeService.repurpose).not.toHaveBeenCalled();
   });
 
   it('logs unexpected canonical scheduling failures without exposing internal details', async () => {
