@@ -129,7 +129,10 @@ describe('PostsGrid', () => {
       screen.getByRole('button', { name: /a draft post preview/i }),
     );
 
-    expect(pushMock).toHaveBeenCalledWith('/publish/posts/post-1');
+    // `useOrgUrl` scopes the href to the active org/brand route params.
+    expect(pushMock).toHaveBeenCalledWith(
+      '/genfeed-ai/paperclip/publish/posts/post-1',
+    );
   });
 
   it('uses the contextual open callback when provided', () => {

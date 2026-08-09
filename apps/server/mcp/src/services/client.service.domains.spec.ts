@@ -530,17 +530,19 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       const result = await service.createBatch({
+        brandId: 'brand-1',
         count: 3,
-        prompt: 'Daily post ideas',
-        type: 'images',
+        platforms: ['instagram'],
+        topics: ['Daily post ideas'],
       });
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/batches', {
         data: {
           attributes: {
+            brandId: 'brand-1',
             count: 3,
-            prompt: 'Daily post ideas',
-            type: 'images',
+            platforms: ['instagram'],
+            topics: ['Daily post ideas'],
           },
           type: 'batches',
         },
@@ -555,7 +557,11 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       await expect(
-        service.createBatch({ count: 1, prompt: 'x', type: 'images' }),
+        service.createBatch({
+          brandId: 'brand-1',
+          count: 1,
+          platforms: ['instagram'],
+        }),
       ).rejects.toThrow('Insufficient credits');
     });
 

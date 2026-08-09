@@ -30,6 +30,7 @@ apps/app/packages/**/*.js.map
 .DS_Store
 coverage/
 coverage-all/
+coverage-cron/
 apps/*/.vitest-reports/
 .vercel
 out/
