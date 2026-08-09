@@ -204,6 +204,40 @@ describe('InstagramPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const imageMediaInfo: MediaInfo = {
+      hasIngredients: true,
+      ingredientIds: [mockIngredientId],
+      isCarousel: false,
+      isImagePost: true,
+      mediaUrls: [
+        `https://api.test.com/ingredients/images/${mockIngredientId}`,
+      ],
+    };
+
+    it('should pass a caption exactly at the 2200-character Instagram limit', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(2200),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(2201),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('Instagram');
+      expect(result.error).toContain('2201');
+      expect(result.error).toContain('2200');
+    });
+  });
+
   describe('publish', () => {
     describe('text-only posts (not supported)', () => {
       it('should return failed result for text-only posts', async () => {

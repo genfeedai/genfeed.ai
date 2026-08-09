@@ -29,6 +29,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
+import { useActivityMessageFormatter } from '@/hooks/i18n/useActivityMessageFormatter';
 import {
   getActivityBadge,
   getCredentialBadge,
@@ -639,6 +640,7 @@ function CredentialHealthSurface({
 }
 
 function ActivitySurface({ activityHref }: { activityHref: string }) {
+  const activityMessageFormatter = useActivityMessageFormatter();
   const { filteredActivities, isError, isLoading, refresh } = useActivities({
     limit: 5,
     scope: PageScope.ORGANIZATION,
@@ -686,7 +688,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
               >
                 <div className="min-w-0">
                   <p className="line-clamp-1 text-sm font-medium text-foreground">
-                    {getActivityDescription(activity)}
+                    {getActivityDescription(activity, activityMessageFormatter)}
                   </p>
                   <ClientFormattedDate
                     className="mt-1 block text-xs text-foreground/45"

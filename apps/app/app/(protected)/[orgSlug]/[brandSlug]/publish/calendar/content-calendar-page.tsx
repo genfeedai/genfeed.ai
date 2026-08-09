@@ -484,6 +484,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         onRescheduleTarget={handleRescheduleTarget}
         onRetryTarget={handleRetryTarget}
         pendingAction={pendingAction}
+        reconnectHref={href(APP_ROUTES.SETTINGS.SOCIAL)}
         release={selectedRelease}
       />
       {selectedRelease ? (

@@ -355,6 +355,13 @@ describe('AgentThreadList', () => {
       expect(screen.getByText('Archived thread')).toBeInTheDocument();
     });
 
+    const archivedTitle = screen.getByText('Archived thread');
+    const archivedRow = archivedTitle.closest('[data-archived="true"]');
+
+    expect(archivedRow).toHaveClass('bg-muted/50');
+    expect(archivedRow).not.toHaveClass('opacity-40');
+    expect(archivedTitle).toHaveClass('text-foreground/65');
+
     fireEvent.pointerDown(
       screen.getByRole('button', { name: 'Conversation list actions' }),
     );

@@ -30,7 +30,6 @@ export default function MenuShared({
   currentApp,
   sectionLabel,
   isCollapsed,
-  shellChromeVariant = 'default',
   onToggleCollapse,
   showPrimaryItems = true,
   conversationActions,
@@ -165,12 +164,7 @@ export default function MenuShared({
       data-testid="sidebar-shell"
       data-shell-current-app={currentApp ?? 'workspace'}
       data-shell-section-label={sectionLabel ?? ''}
-      className={cn(
-        'flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0',
-        shellChromeVariant === 'transparent'
-          ? 'bg-transparent'
-          : 'bg-background',
-      )}
+      className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-shrink-0 bg-background"
       style={
         // Mobile drawer / standalone hosts size the shell; desktop rail is 100%.
         sidebarWidth
@@ -181,10 +175,7 @@ export default function MenuShared({
       <div className="flex min-w-0 flex-1 flex-col">
         <div
           data-testid="sidebar-header-shell"
-          className={cn(
-            'flex h-12 flex-shrink-0 items-center gap-1.5 px-3',
-            shellChromeVariant === 'default' && 'border-b border-border',
-          )}
+          className="flex h-12 flex-shrink-0 items-center gap-1.5 border-b border-border px-3"
         >
           {sharedCollapseControl}
           {orgSwitcherSlot ? (

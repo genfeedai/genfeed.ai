@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import { ActivityKey } from '@genfeedai/enums';
+import type { IActivity } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  activities: [] as IActivity[],
   activityIsError: false,
   accessState: { organizationId: 'org_1' } as {
     organizationId?: string;
@@ -63,6 +66,10 @@ const mocks = vi.hoisted(() => ({
   },
   overviewRefresh: vi.fn(async () => undefined),
   overviewIsError: false,
+  translate: vi.fn(
+    (id: string, params: Record<string, string>) =>
+      `catalog:${id}:${params.subject}`,
+  ),
   // `null` keeps the upcoming-schedule fetch pending so synchronous tests see
   // a stable loading panel with no post-test state updates.
   upcomingReleases: null as unknown[] | null,
@@ -87,12 +94,12 @@ vi.mock('@providers/access-state/access-state.provider', () => ({
 
 vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
   useActivities: () => ({
-    activities: [],
+    activities: mocks.activities,
     activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
     clearCompletedActivities: vi.fn(),
     error: null,
     filter: '',
-    filteredActivities: [],
+    filteredActivities: mocks.activities,
     isError: mocks.activityIsError,
     isLoading: false,
     isRefreshing: false,
@@ -101,6 +108,10 @@ vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
     setFilter: vi.fn(),
     toggleActivityRead: vi.fn(),
   }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => mocks.translate,
 }));
 
 vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
@@ -143,6 +154,7 @@ const { default: OperationalHomeContent } = await import('./content');
 describe('OperationalHomeContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.activities = [];
     mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
     mocks.brandState.brands = [
@@ -232,6 +244,35 @@ describe('OperationalHomeContent', () => {
     expect(
       await screen.findByText('Nothing is scheduled for the next 7 days.'),
     ).toBeInTheDocument();
+  });
+
+  it('resolves overview activity descriptions through the message catalog', () => {
+    mocks.activities = [
+      {
+        createdAt: '2026-08-08T12:00:00.000Z',
+        id: 'activity-1',
+        isDeleted: false,
+        isRead: false,
+        key: ActivityKey.IMAGE_PROCESSING,
+        source: 'image-generate',
+        updatedAt: '2026-08-08T12:00:00.000Z',
+        value: 'image-1',
+      } as IActivity,
+    ];
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText('catalog:activity.lifecycle.processing:image'),
+    ).toBeInTheDocument();
+    expect(mocks.translate).toHaveBeenCalledWith(
+      'activity.lifecycle.processing',
+      expect.objectContaining({
+        articleSubject: 'an image',
+        operation: 'generate',
+        subject: 'image',
+      }),
+    );
   });
 
   it('uses the access-state organization fallback for connection status', () => {

@@ -158,6 +158,7 @@ export default function ContentCalendar<T extends CalendarItem>({
   getEventColor,
   getEventBadge,
   getEventChannels,
+  getEventIndicators,
   isItemDraggable,
   onEventDrop,
   initialView = 'week',
@@ -263,8 +264,10 @@ export default function ContentCalendar<T extends CalendarItem>({
       const item = info.event.extendedProps.item as T | undefined;
       const badge = item && getEventBadge ? getEventBadge(item) : null;
       const channels = item && getEventChannels ? getEventChannels(item) : [];
+      const indicators =
+        item && getEventIndicators ? getEventIndicators(item) : [];
 
-      if (!badge && channels.length === 0) {
+      if (!badge && channels.length === 0 && indicators.length === 0) {
         return true;
       }
 
@@ -308,6 +311,32 @@ export default function ContentCalendar<T extends CalendarItem>({
       title.textContent = info.event.title;
       container.appendChild(title);
 
+      if (indicators.length > 0) {
+        const indicatorGroup = document.createElement('span');
+        const indicatorLabels = indicators.map((indicator) => indicator.label);
+        indicatorGroup.className = 'gen-calendar-event-indicators';
+        indicatorGroup.setAttribute(
+          'aria-label',
+          `Channels: ${indicatorLabels.join(', ')}`,
+        );
+        indicatorGroup.setAttribute('role', 'group');
+        indicatorGroup.title = indicatorLabels.join(', ');
+
+        const indicator = document.createElement('span');
+        indicator.className = 'gen-calendar-event-indicator';
+        indicator.textContent = indicators[0]?.shortLabel ?? '';
+        indicatorGroup.appendChild(indicator);
+
+        if (indicators.length > 1) {
+          const remainder = document.createElement('span');
+          remainder.className = 'gen-calendar-event-indicator-more';
+          remainder.textContent = `+${indicators.length - 1}`;
+          indicatorGroup.appendChild(remainder);
+        }
+
+        container.appendChild(indicatorGroup);
+      }
+
       if (badge) {
         const badgeNode = document.createElement('span');
         badgeNode.className = `gen-calendar-event-badge gen-calendar-event-badge--${badge.tone}`;
@@ -317,7 +346,7 @@ export default function ContentCalendar<T extends CalendarItem>({
 
       return { domNodes: [container] };
     },
-    [getEventBadge, getEventChannels],
+    [getEventBadge, getEventChannels, getEventIndicators],
   );
 
   const handleDatesSet = useCallback(

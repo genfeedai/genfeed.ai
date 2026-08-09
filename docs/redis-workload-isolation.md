@@ -78,6 +78,21 @@ Password and TLS always fall back to the base config when a per-workload URL
 omits them, so a single injected `REDIS_PASSWORD` secret still covers every
 workload.
 
+## BullMQ connection profiles
+
+Queue producers and workers intentionally use different ioredis failure
+behavior:
+
+| Profile | Runtime | Redis outage behavior |
+|---|---|---|
+| Producer | API, Bull Board, development, and tests | Fails commands immediately (`maxRetriesPerRequest: 0`, offline queue disabled) so callers receive a prompt error and a missing local Redis instance is visible. |
+| Worker | Production and staging consumer services (`workers` and `files`) | Keeps commands pending (`maxRetriesPerRequest: null`, offline queue enabled) and reconnects forever with BullMQ's exponential 1–20 second delay so a transient Redis restart does not require a service redeploy. |
+
+Staging selects the worker profile deliberately: the Redis-restart chaos check
+must exercise the same reconnect path that production uses. The profile builder
+and environment selection live in
+`packages/libs/redis/redis-connection.utils.ts`.
+
 ## Rollout
 
 Because every override falls back to the base config, services can be deployed in
@@ -110,7 +125,8 @@ any order:
 ## Verification
 
 - Unit: `packages/libs/redis/redis-connection.utils.spec.ts` (workload → DB /
-  endpoint resolution, `db` inclusion in ioredis + BullMQ options),
+  endpoint resolution, `db` inclusion in ioredis + BullMQ options, producer vs
+  worker profile selection, and bounded worker reconnect delay),
   `apps/server/api/.../cache-client.service.spec.ts`, and
   `apps/server/api/.../rate-limit-client.service.spec.ts` (rate limit resolves
   its own workload, not the cache one; exposes `isReady` for fail-open gating).

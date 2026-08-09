@@ -188,6 +188,7 @@ vi.mock('./release-detail-drawer', async (importOriginal) => {
       onRescheduleTarget,
       onRetryTarget,
       pendingAction,
+      reconnectHref,
       release,
     }: {
       error: string | null;
@@ -195,9 +196,11 @@ vi.mock('./release-detail-drawer', async (importOriginal) => {
       onRescheduleTarget: (targetId: string, scheduledDate: string) => void;
       onRetryTarget: (targetId: string) => void;
       pendingAction: string | null;
+      reconnectHref: string;
       release: { id: string } | null;
     }) => (
       <div data-testid="release-drawer">
+        <span data-testid="reconnect-href">{reconnectHref}</span>
         <span data-testid="drawer-release">{release?.id ?? 'closed'}</span>
         <span data-testid="drawer-pending">{pendingAction ?? 'idle'}</span>
         {error ? <span data-testid="drawer-error">{error}</span> : null}
@@ -327,6 +330,9 @@ describe('ContentCalendarPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'open:release-1' }));
 
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('release-1');
+    expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
+      '/acme-org/acme-creator/settings/social',
+    );
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',
     );
