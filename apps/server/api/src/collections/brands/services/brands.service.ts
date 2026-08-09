@@ -20,7 +20,10 @@ import {
 } from '@api/collections/brands/services/brand-relocation.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
-import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -30,6 +33,7 @@ import {
 import {
   CACHE_PATTERNS,
   CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
@@ -510,9 +514,26 @@ export class BrandsService extends BaseService<
         typeof mergedSchedule?.cronExpression === 'string'
           ? mergedSchedule.cronExpression.trim()
           : '';
+      const mergedTimezone =
+        typeof mergedSchedule?.timezone === 'string'
+          ? mergedSchedule.timezone.trim()
+          : '';
+
+      // The timezone is half of the schedule. Validating the cron against a
+      // hardcoded 'UTC' accepts an unknown IANA zone here and then throws
+      // inside the scheduler — or, worse, silently reverts to the default
+      // cadence while the settings UI keeps showing the stored value. Reject
+      // the zone first so the error names the field the user actually got
+      // wrong, then parse the cron in that same zone.
+      if (mergedTimezone && !isSchedulableTimezone(mergedTimezone)) {
+        throw new BadRequestException(
+          `Invalid timezone "${mergedTimezone}". Use an IANA timezone name, for example "Europe/Berlin".`,
+        );
+      }
+
       if (mergedCron) {
         try {
-          computeNextRunAtOrThrow(mergedCron, 'UTC');
+          computeNextRunAtOrThrow(mergedCron, mergedTimezone || 'UTC');
         } catch {
           throw new BadRequestException(
             `Invalid cron expression "${mergedCron}". Use a valid cron schedule, for example "0 9 * * 1-5" for weekdays at 9:00 AM.`,
@@ -521,18 +542,53 @@ export class BrandsService extends BaseService<
       }
     }
 
-    const updatedBrand = (await this.delegate.update({
-      where: { id: brandId },
+    // Scope the WRITE, not just the lookup above. `update({ where: { id } })`
+    // is a cross-tenant write primitive: the read and the write are separate
+    // statements, so an id that resolved under this org at read time is still
+    // written unconditionally. `updateMany` + `scopedWhere` puts the tenant
+    // predicate in the mutating statement itself, and a zero count reports
+    // "not found for this org" through the same contract as the read.
+    const result = await this.delegate.updateMany({
       data: {
         agentConfig: updatedConfig as Record<string, unknown>,
       },
-    })) as BrandDocument;
+      where: scopedWhere(orgId, { id: brandId }),
+    });
+
+    if (result.count !== 1) {
+      return null;
+    }
+
+    const updatedBrand = (await this.delegate.findFirst({
+      where: scopedWhere(orgId, { id: brandId }),
+    })) as BrandDocument | null;
+
+    if (!updatedBrand) {
+      return null;
+    }
+
+    // `updateMany` bypasses `BaseService.patch()`, so nothing else busts the
+    // caches this write invalidates. `agentConfig` is embedded in the
+    // assembled agent brand context (`brand-ctx:{orgId}`), so a stale entry
+    // keeps the agent running the previous voice/schedule after the save.
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+    );
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.BRANDS,
+      SCOPED_CACHE_TAGS.BRAND_CONTEXT(orgId),
+    ]);
+    await this.accessBootstrapCacheService.invalidateForOrganization(orgId);
 
     if (hasScheduleUpdate) {
+      // The config is already persisted. A scheduler outage must not surface
+      // as a failed save: take the documented degraded path, which writes the
+      // schedule columns and lets `onModuleInit` reconcile the trigger.
       await this.defaultRecurringContentService.updateScheduleFromAgentConfig(
         orgId,
         brandId,
         updatedConfig,
+        { isSchedulerRequired: false },
       );
     }
 

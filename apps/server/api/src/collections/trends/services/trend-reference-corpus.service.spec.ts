@@ -999,4 +999,40 @@ describe('TrendReferenceCorpusService', () => {
       }),
     );
   });
+
+  it('scopes the lineage lookup to the organization, not postId alone', async () => {
+    // A `postId`-only lookup selects another tenant's lineage row, and the
+    // update that follows keys off `existing.id` — a cross-tenant write
+    // primitive. Both statements must carry the organization predicate.
+    prisma.trendRemixLineage.findFirst.mockResolvedValueOnce({
+      id: 'lineage_1',
+    });
+
+    await service.recordPostRemixLineage({
+      brandId: 'brand_1',
+      generatedBy: 'test',
+      metadata: { trendId: 'trend_1' },
+      organizationId: 'org_1',
+      platforms: ['tiktok'],
+      postId: 'post_1',
+    });
+
+    expect(prisma.trendRemixLineage.findFirst).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+        organizationId: 'org_1',
+        postId: 'post_1',
+      },
+    });
+    expect(prisma.trendRemixLineage.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'lineage_1',
+          isDeleted: false,
+          organizationId: 'org_1',
+        },
+      }),
+    );
+    expect(prisma.trendRemixLineage.create).not.toHaveBeenCalled();
+  });
 });

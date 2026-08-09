@@ -1270,9 +1270,9 @@ describe('BrandsService', () => {
     const brandId = 'brand-1';
     const orgId = 'org-1';
 
-    /** The `agentConfig` JSON handed to `prisma.brand.update`. */
+    /** The `agentConfig` JSON handed to `prisma.brand.updateMany`. */
     function persistedConfig(): Record<string, unknown> {
-      const call = delegate.update.mock.calls[0]?.[0] as {
+      const call = delegate.updateMany.mock.calls[0]?.[0] as {
         data: { agentConfig: Record<string, unknown> };
       };
       return call.data.agentConfig;
@@ -1280,7 +1280,7 @@ describe('BrandsService', () => {
 
     function withStoredConfig(agentConfig: Record<string, unknown>): void {
       delegate.findFirst.mockResolvedValue({ agentConfig, id: brandId });
-      delegate.update.mockResolvedValue({ agentConfig, id: brandId });
+      delegate.updateMany.mockResolvedValue({ count: 1 });
     }
 
     it('leaves omitted top-level keys unchanged', async () => {
@@ -1377,7 +1377,70 @@ describe('BrandsService', () => {
       await expect(
         service.updateAgentConfig(brandId, orgId, { persona: 'Rewritten' }),
       ).resolves.toBeNull();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The read and the write are separate statements. `update({ where: { id } })`
+     * writes unconditionally once the read resolved, so the tenant predicate has
+     * to sit inside the mutating statement itself.
+     */
+    it('carries the organization predicate on the write, not only on the lookup', async () => {
+      withStoredConfig({ persona: 'Original' });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        persona: 'Rewritten',
+      });
+
       expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: { agentConfig: { persona: 'Rewritten' } },
+        where: { id: brandId, isDeleted: false, organizationId: orgId },
+      });
+    });
+
+    it('returns null when the scoped write matches no row in the organization', async () => {
+      // A brand that resolved at read time but is gone — or was never this
+      // org's — at write time must not fall through to a re-read of someone
+      // else's row.
+      delegate.findFirst.mockResolvedValue({
+        agentConfig: { persona: 'Original' },
+        id: brandId,
+      });
+      delegate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.updateAgentConfig(brandId, orgId, { persona: 'Rewritten' }),
+      ).resolves.toBeNull();
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    });
+
+    /**
+     * `updateMany` bypasses `BaseService.patch()`, so this write is the only
+     * thing that can bust its own caches. `agentConfig` is embedded in the
+     * assembled agent brand context, which is why the org-scoped tag is busted
+     * alongside the single-brand key.
+     */
+    it('busts the brand and agent-context caches after the scoped write', async () => {
+      withStoredConfig({ persona: 'Original' });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        persona: 'Rewritten',
+      });
+
+      expect(cacheInvalidationService.invalidate).toHaveBeenCalledWith(
+        CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+      );
+      expect(cacheInvalidationService.invalidateByTags).toHaveBeenCalledWith([
+        CACHE_TAGS.BRANDS,
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(orgId),
+      ]);
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith(orgId);
     });
 
     it('propagates publishing schedule changes to default recurring workflows', async () => {
@@ -1397,15 +1460,23 @@ describe('BrandsService', () => {
         },
       });
 
+      // The config is already committed by the time the scheduler is called, so
+      // a scheduler outage takes the degraded path instead of surfacing as a
+      // failed save on an update that in fact persisted.
       expect(
         defaultRecurringContentService.updateScheduleFromAgentConfig,
-      ).toHaveBeenCalledWith(orgId, brandId, {
-        schedule: {
-          cronExpression: '0 12 * * *',
-          enabled: false,
-          timezone: 'Europe/Malta',
+      ).toHaveBeenCalledWith(
+        orgId,
+        brandId,
+        {
+          schedule: {
+            cronExpression: '0 12 * * *',
+            enabled: false,
+            timezone: 'Europe/Malta',
+          },
         },
-      });
+        { isSchedulerRequired: false },
+      );
     });
 
     it('rejects an invalid cron expression with an actionable BadRequestException', async () => {
@@ -1416,7 +1487,7 @@ describe('BrandsService', () => {
 
       await expect(update).rejects.toThrow(BadRequestException);
       await expect(update).rejects.toThrow('Invalid cron expression');
-      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
       expect(
         defaultRecurringContentService.updateScheduleFromAgentConfig,
       ).not.toHaveBeenCalled();
@@ -1436,10 +1507,52 @@ describe('BrandsService', () => {
       });
 
       await expect(update).rejects.toThrow(BadRequestException);
-      expect(delegate.update).not.toHaveBeenCalled();
+      expect(delegate.updateMany).not.toHaveBeenCalled();
       expect(
         defaultRecurringContentService.updateScheduleFromAgentConfig,
       ).not.toHaveBeenCalled();
+    });
+
+    /**
+     * The timezone is half of the schedule. Validating the cron against a
+     * hardcoded 'UTC' accepted an unknown IANA zone here and let it explode
+     * later inside the scheduler.
+     */
+    it('rejects an unknown timezone before persisting the schedule', async () => {
+      withStoredConfig({
+        schedule: { cronExpression: '0 8 * * *', timezone: 'UTC' },
+      });
+
+      const update = service.updateAgentConfig(brandId, orgId, {
+        schedule: { timezone: 'Mars/Olympus_Mons' },
+      });
+
+      await expect(update).rejects.toThrow(BadRequestException);
+      await expect(update).rejects.toThrow('Invalid timezone');
+      expect(delegate.updateMany).not.toHaveBeenCalled();
+      expect(
+        defaultRecurringContentService.updateScheduleFromAgentConfig,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('accepts a valid IANA timezone paired with a cron valid in that zone', async () => {
+      withStoredConfig({ schedule: { cronExpression: '0 8 * * *' } });
+
+      await service.updateAgentConfig(brandId, orgId, {
+        schedule: { timezone: 'Australia/Eucla' },
+      });
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: {
+          agentConfig: {
+            schedule: {
+              cronExpression: '0 8 * * *',
+              timezone: 'Australia/Eucla',
+            },
+          },
+        },
+        where: { id: brandId, isDeleted: false, organizationId: orgId },
+      });
     });
   });
 });

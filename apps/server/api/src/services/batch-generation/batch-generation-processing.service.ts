@@ -25,6 +25,7 @@ import {
   BatchItemStatus,
   BatchStatus,
   ContentIntelligencePlatform,
+  fromPrismaCredentialPlatform,
   PostVisibility,
   TargetExecutionState,
   toPrismaCredentialPlatform,
@@ -49,7 +50,12 @@ type BatchProcessingCounts = {
  */
 type BatchClaimOutcome = 'busy' | 'claimed' | 'resumed';
 
-/** Posts store lowercase platform strings (String column, not Prisma enum). */
+/**
+ * Fallback for platform ids the credential mapper does not recognise (product
+ * ids with no credential platform, e.g. `product_hunt`). Canonical spellings
+ * come from {@link fromPrismaCredentialPlatform} — this only normalises
+ * separators and casing so an unmapped value is at least stored consistently.
+ */
 function toPostPlatform(platform: string): string {
   return platform.trim().toLowerCase().replace(/-/g, '_');
 }
@@ -355,12 +361,18 @@ export class BatchGenerationProcessingService {
           typeof item.platform === 'string' && item.platform.trim().length > 0
             ? item.platform.trim()
             : undefined;
-        const platformForPost = platformRaw
-          ? toPostPlatform(platformRaw)
-          : undefined;
         const platformForCredential = platformRaw
           ? toPrismaCredentialPlatform(platformRaw)
           : undefined;
+        // Derive the post spelling from the same mapper the credential lookup
+        // uses, so one item cannot persist a post platform that disagrees with
+        // the credential it was matched against. Lowercasing the raw input
+        // instead produced `dev_to` where the domain value is `devto`, and left
+        // the alias `x` unresolved to `twitter` — two spellings for one
+        // platform in `posts.platform`, which every downstream filter misses.
+        const platformForPost =
+          fromPrismaCredentialPlatform(platformForCredential) ??
+          (platformRaw ? toPostPlatform(platformRaw) : undefined);
 
         // Prefer a connected brand credential for the item platform so drafts
         // land on a real target. credentialId remains nullable for untargeted

@@ -749,6 +749,33 @@ describe('DefaultRecurringContentService', () => {
     );
   });
 
+  /**
+   * A stored zone can predate validation, or arrive with a brand copied between
+   * environments. `WorkflowSchedulerService` throws on an unknown IANA zone,
+   * which would take every default recurring workflow for the brand down with
+   * it — fall back to UTC instead of propagating the bad value.
+   */
+  it('falls back to UTC when the stored timezone is not a known IANA zone', async () => {
+    const { committed, prisma } = createFakePrisma({
+      brand: {
+        ...buildBrand(),
+        agentConfig: {
+          schedule: {
+            cronExpression: '0 18 * * *',
+            timezone: 'Mars/Olympus_Mons',
+          },
+        },
+      },
+    });
+    const service = createService(prisma);
+
+    await service.ensureDefaultBundle(buildParams());
+
+    expect(committed.every((row) => row.timezone === 'UTC')).toBe(true);
+    // The cron is still validated — in the resolved zone, not the rejected one.
+    expect(committed.every((row) => row.schedule === '0 18 * * *')).toBe(true);
+  });
+
   it('propagates config changes through the workflow scheduler update path', async () => {
     const { prisma } = createFakePrisma({
       brand: buildBrand(),

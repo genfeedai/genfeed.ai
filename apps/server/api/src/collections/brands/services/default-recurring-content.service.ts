@@ -1,5 +1,8 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { computeNextRunAtOrThrow } from '@api/collections/cron-jobs/utils/cron-schedule.util';
+import {
+  computeNextRunAtOrThrow,
+  isSchedulableTimezone,
+} from '@api/collections/cron-jobs/utils/cron-schedule.util';
 import type { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -61,6 +64,7 @@ type UpdateDefaultRecurringScheduleOptions = {
 };
 
 const DEFAULT_RECURRING_SCHEDULE = '0 8 * * *';
+const DEFAULT_RECURRING_TIMEZONE = 'UTC';
 const DEFAULT_RECURRING_TYPES: DefaultRecurringContentType[] = [
   'post',
   'newsletter',
@@ -625,26 +629,38 @@ export class DefaultRecurringContentService {
         ? schedule.cronExpression.trim()
         : '';
 
+    const configuredTimezone =
+      typeof schedule.timezone === 'string' ? schedule.timezone.trim() : '';
+
+    // A stored timezone can predate validation, or come from a brand copied
+    // between environments. `WorkflowSchedulerService` throws on an unknown
+    // IANA zone, which would take down every default recurring workflow for
+    // the brand — fall back to UTC instead, and validate the cron in the zone
+    // it will actually run in rather than in a hardcoded 'UTC'.
+    const timezone = isSchedulableTimezone(configuredTimezone)
+      ? configuredTimezone
+      : DEFAULT_RECURRING_TIMEZONE;
+
     return {
-      cronExpression: this.isValidCronExpression(configuredCron)
+      cronExpression: this.isValidCronExpression(configuredCron, timezone)
         ? configuredCron
         : DEFAULT_RECURRING_SCHEDULE,
       isEnabled:
         typeof schedule.enabled === 'boolean' ? schedule.enabled : true,
-      timezone:
-        (typeof schedule.timezone === 'string'
-          ? schedule.timezone.trim()
-          : '') || 'UTC',
+      timezone,
     };
   }
 
-  private isValidCronExpression(cronExpression: string): boolean {
+  private isValidCronExpression(
+    cronExpression: string,
+    timezone: string,
+  ): boolean {
     if (!cronExpression) {
       return false;
     }
 
     try {
-      computeNextRunAtOrThrow(cronExpression, 'UTC');
+      computeNextRunAtOrThrow(cronExpression, timezone);
       return true;
     } catch {
       return false;
