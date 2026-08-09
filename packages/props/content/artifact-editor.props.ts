@@ -1,25 +1,24 @@
-import type {
-  PostFormat,
-  PostVisibility,
-  TargetExecutionState,
-} from '@genfeedai/enums';
 import type { Newsletter } from '@genfeedai/models/content/newsletter.model';
 import type { NewslettersService } from '@genfeedai/services/content/newsletters.service';
 import type { ReactNode } from 'react';
 
 /**
  * Contracts for the dedicated artifact editor pages at `/edit/{type}/{id}`.
- * Refinement belongs to the artifact, so every text artifact shares one shell
- * and one back-navigation contract regardless of which list opened it.
+ * Refinement belongs to the artifact, so every text artifact shares one shell.
+ * Back-link is optional — workspace breadcrumbs already cover list return on
+ * publish routes; keep the explicit link only when the page has no breadcrumb.
  */
 export interface ArtifactEditorBackLinkProps {
   backHref: string;
   backLabel: string;
 }
 
-export interface ArtifactEditorShellProps extends ArtifactEditorBackLinkProps {
+export interface ArtifactEditorShellProps {
   actions?: ReactNode;
   artifactLabel: string;
+  /** Optional; omit when the workspace breadcrumb already covers list return. */
+  backHref?: string;
+  backLabel?: string;
   badges?: ReactNode;
   children: ReactNode;
   description?: string;
@@ -63,16 +62,3 @@ export interface NewsletterEditorProps {
 export type NewsletterContextPreview = Awaited<
   ReturnType<NewslettersService['getContext']>
 >;
-
-export interface PostEditorFormState {
-  description: string;
-  format: PostFormat;
-  label: string;
-  scheduledDate: string;
-  targetExecutionState: TargetExecutionState;
-  threadSegments: Array<{
-    description: string;
-    id?: string;
-  }>;
-  visibility: PostVisibility;
-}

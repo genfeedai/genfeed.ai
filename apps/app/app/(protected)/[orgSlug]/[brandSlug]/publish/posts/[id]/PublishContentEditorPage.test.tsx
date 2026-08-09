@@ -1,19 +1,26 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PublishContentEditorPage from './PublishContentEditorPage';
 
 const mocks = vi.hoisted(() => ({
-  params: new Map<string, string>(),
+  articleFindOne: vi.fn(),
+  newsletterFindOne: vi.fn(),
+  postFindOne: vi.fn(),
 }));
 
 interface EditorMockProps {
   artifactId: string;
 }
 
+interface PostDetailMockProps {
+  postId: string;
+  presentation?: string;
+  scope: string;
+}
+
 interface ShellMockProps {
-  backHref: string;
   children: ReactNode;
   title: string;
 }
@@ -36,72 +43,148 @@ vi.mock(
   }),
 );
 
-vi.mock('./post-editor-content', () => ({
-  default: ({ artifactId }: EditorMockProps) => (
-    <div data-testid="post-editor">{artifactId}</div>
+vi.mock('@pages/posts/detail/post-detail', () => ({
+  default: ({ postId, presentation, scope }: PostDetailMockProps) => (
+    <div
+      data-testid="post-detail"
+      data-presentation={presentation}
+      data-scope={scope}
+    >
+      {postId}
+    </div>
   ),
 }));
 
 vi.mock('../../../edit/artifact-editor-shell', () => ({
-  default: ({ backHref, children, title }: ShellMockProps) => (
+  default: ({ children, title }: ShellMockProps) => (
     <div>
-      <a href={backHref}>Back to posts</a>
       <h1>{title}</h1>
       {children}
     </div>
   ),
 }));
 
-vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({
-    href: (path: string) => `/acme/main${path}`,
-  }),
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => {
+    return async () => factory('token');
+  },
 }));
 
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => ({
-    get: (key: string) => mocks.params.get(key) ?? null,
-  }),
+vi.mock('@services/content/posts.service', () => ({
+  PostsService: {
+    getInstance: () => ({ findOne: mocks.postFindOne }),
+  },
 }));
+
+vi.mock('@services/content/articles.service', () => ({
+  ArticlesService: {
+    getInstance: () => ({ findOne: mocks.articleFindOne }),
+  },
+}));
+
+vi.mock('@services/content/newsletters.service', () => ({
+  NewslettersService: {
+    getInstance: () => ({ findOne: mocks.newsletterFindOne }),
+  },
+}));
+
+// react-query needs a provider in real app; use a minimal inline mock of useQuery
+// that runs the queryFn immediately so we do not depend on QueryClient setup.
+vi.mock('@tanstack/react-query', async () => {
+  const React = await import('react');
+  return {
+    useQuery: ({
+      queryFn,
+      queryKey,
+    }: {
+      queryFn: (ctx: { signal: AbortSignal }) => Promise<unknown>;
+      queryKey: unknown[];
+    }) => {
+      const [state, setState] = React.useState<{
+        data: unknown;
+        isError: boolean;
+        isLoading: boolean;
+      }>({ data: undefined, isError: false, isLoading: true });
+
+      React.useEffect(() => {
+        let cancelled = false;
+        const controller = new AbortController();
+        void queryFn({ signal: controller.signal })
+          .then((data) => {
+            if (!cancelled) {
+              setState({ data, isError: false, isLoading: false });
+            }
+          })
+          .catch(() => {
+            if (!cancelled) {
+              setState({ data: undefined, isError: true, isLoading: false });
+            }
+          });
+        return () => {
+          cancelled = true;
+          controller.abort();
+        };
+        // queryKey[1] is contentId
+      }, [queryKey[1]]);
+
+      return state;
+    },
+  };
+});
 
 describe('PublishContentEditorPage', () => {
   beforeEach(() => {
-    mocks.params.clear();
+    vi.clearAllMocks();
+    mocks.postFindOne.mockRejectedValue(new Error('miss'));
+    mocks.articleFindOne.mockRejectedValue(new Error('miss'));
+    mocks.newsletterFindOne.mockRejectedValue(new Error('miss'));
   });
 
-  it.each([
-    [null, 'post-editor'],
-    ['post', 'post-editor'],
-    ['article', 'article-editor'],
-    ['newsletter', 'newsletter-editor'],
-  ] as const)(
-    'renders the %s kind with the canonical content id',
-    (kind, testId) => {
-      if (kind) {
-        mocks.params.set('kind', kind);
-      }
+  it('mounts PostDetail when the id is a post (no kind query)', async () => {
+    mocks.postFindOne.mockResolvedValue({ id: 'content-1' });
 
-      render(<PublishContentEditorPage contentId="content-1" />);
+    render(<PublishContentEditorPage contentId="content-1" />);
 
-      expect(screen.getByTestId(testId)).toHaveTextContent('content-1');
-    },
-  );
-
-  it('shows a stable empty state for unsupported kind metadata', () => {
-    mocks.params.set('kind', 'video');
-    mocks.params.set('returnTo', '/acme/main/publish/posts?status=draft');
-
-    render(<PublishContentEditorPage contentId="wrong-id" />);
-
-    expect(
-      screen.getByRole('heading', { name: 'Content not found' }),
-    ).toBeVisible();
-    expect(screen.getByRole('link', { name: 'Back to posts' })).toHaveAttribute(
-      'href',
-      '/acme/main/publish/posts?status=draft',
+    expect(await screen.findByTestId('post-detail')).toHaveTextContent(
+      'content-1',
     );
-    expect(screen.queryByTestId('post-editor')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('article-editor')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('newsletter-editor')).not.toBeInTheDocument();
+    expect(screen.getByTestId('post-detail')).toHaveAttribute(
+      'data-presentation',
+      'page',
+    );
+  });
+
+  it('mounts the article editor when the id is an article, without ?kind=', async () => {
+    mocks.articleFindOne.mockResolvedValue({ id: 'article-1' });
+
+    render(<PublishContentEditorPage contentId="article-1" />);
+
+    expect(await screen.findByTestId('article-editor')).toHaveTextContent(
+      'article-1',
+    );
+    expect(screen.queryByTestId('post-detail')).not.toBeInTheDocument();
+  });
+
+  it('mounts the newsletter editor when the id is a newsletter', async () => {
+    mocks.newsletterFindOne.mockResolvedValue({ id: 'nl-1' });
+
+    render(<PublishContentEditorPage contentId="nl-1" />);
+
+    expect(await screen.findByTestId('newsletter-editor')).toHaveTextContent(
+      'nl-1',
+    );
+  });
+
+  it('shows not found when no entity owns the id', async () => {
+    render(<PublishContentEditorPage contentId="missing" />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole('heading', { name: 'Content not found' }),
+      ).toBeVisible();
+    });
+    expect(
+      screen.getByText(/no post, article, or newsletter matches this id/i),
+    ).toBeVisible();
   });
 });

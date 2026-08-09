@@ -38,6 +38,23 @@ function parseDate(value: string | Date | null | undefined): Date | undefined {
   return typeof value === 'string' ? new Date(value) : value;
 }
 
+/**
+ * react-day-picker only builds year options between startMonth and endMonth.
+ * With captionLayout="dropdown" and no bounds it defaults to "100 years ago
+ * → end of this year", which blocks scheduling into next year. Prefer caller
+ * min/max; otherwise open a wide navigation window.
+ */
+function resolveNavigationBounds(
+  minDate: Date | undefined,
+  maxDate: Date | undefined,
+): { startMonth: Date; endMonth: Date } {
+  const now = new Date();
+  return {
+    endMonth: maxDate ?? new Date(now.getFullYear() + 10, 11, 31),
+    startMonth: minDate ?? new Date(now.getFullYear() - 100, 0, 1),
+  };
+}
+
 export default function Datepicker({
   label,
   value = null,
@@ -62,6 +79,15 @@ export default function Datepicker({
   ].filter((matcher): matcher is { before: Date } | { after: Date } =>
     Boolean(matcher),
   );
+  const { endMonth, startMonth } = resolveNavigationBounds(minDate, maxDate);
+  const hasMonthAndYearDropdowns = showYearDropdown && showMonthDropdown;
+  const captionLayout = hasMonthAndYearDropdowns
+    ? 'dropdown'
+    : showYearDropdown
+      ? 'dropdown-years'
+      : showMonthDropdown
+        ? 'dropdown-months'
+        : 'label';
 
   const handleSelect = (date: Date | undefined) => {
     onChange(date ?? null);
@@ -91,12 +117,11 @@ export default function Datepicker({
             mode="single"
             selected={selectedDate}
             onSelect={handleSelect}
-            startMonth={minDate}
-            endMonth={maxDate}
-            captionLayout={
-              showYearDropdown && showMonthDropdown ? 'dropdown' : 'label'
-            }
+            startMonth={startMonth}
+            endMonth={endMonth}
+            captionLayout={captionLayout}
             disabled={isDisabled || disabledDays}
+            defaultMonth={selectedDate}
           />
         </PopoverContent>
       </Popover>

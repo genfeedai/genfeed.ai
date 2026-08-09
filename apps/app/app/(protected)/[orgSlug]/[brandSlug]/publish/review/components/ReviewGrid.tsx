@@ -4,21 +4,19 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Check, Sparkles, Trash2, X } from 'lucide-react';
+import { Check, Sparkles, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import ReviewItemsTable from './ReviewItemsTable';
 
 interface ReviewGridProps {
   activeItem: IBatchItem | null;
-  canDiscardBatch: boolean;
   isActioning: boolean;
   items: IBatchItem[];
   selectedIds: Set<string>;
   onBulkApprove: () => void;
   onBulkReject: () => void;
   onBulkRewriteWithAgent: () => void;
-  onDiscardBatch: () => void;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
 }
@@ -26,17 +24,16 @@ interface ReviewGridProps {
 /**
  * Table-only review canvas. Item detail + decisions live in the agent
  * Context rail via ReviewWorkspaceSurfaceAdapter.
+ * Batch-level discard lives in the publish action rail (ReviewQueueView).
  */
 export default function ReviewGrid({
   activeItem,
-  canDiscardBatch,
   isActioning,
   items,
   selectedIds,
   onBulkApprove,
   onBulkReject,
   onBulkRewriteWithAgent,
-  onDiscardBatch,
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
@@ -44,21 +41,6 @@ export default function ReviewGrid({
 
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      {canDiscardBatch ? (
-        <div className="flex justify-end">
-          <Button
-            className="h-8 gap-1.5 px-3 text-xs"
-            icon={<Trash2 className="size-3.5" />}
-            isDisabled={isActioning}
-            label="Discard batch"
-            onClick={onDiscardBatch}
-            size={ButtonSize.SM}
-            variant={ButtonVariant.DESTRUCTIVE}
-            withWrapper={false}
-          />
-        </div>
-      ) : null}
-
       {selectedIds.size > 0 ? (
         <Card
           // Card body defaults to flex-col — force a single horizontal row.

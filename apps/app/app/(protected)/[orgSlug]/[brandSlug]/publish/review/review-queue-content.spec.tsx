@@ -5,6 +5,7 @@ import {
   renderHook,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -76,24 +77,20 @@ vi.mock('@/hooks/use-open-agent-composer', () => ({
 
 vi.mock('./components/ReviewGrid', () => ({
   default: ({
-    canDiscardBatch,
     isActioning,
     items,
     onBulkApprove,
     onBulkReject,
     onBulkRewriteWithAgent,
-    onDiscardBatch,
     onSelectItem,
     onToggleSelect,
     selectedIds,
   }: {
-    canDiscardBatch: boolean;
     isActioning: boolean;
     items: Array<{ id: string }>;
     onBulkApprove: () => void;
     onBulkReject: () => void;
     onBulkRewriteWithAgent: () => void;
-    onDiscardBatch: () => void;
     onSelectItem: (itemId: string) => void;
     onToggleSelect: (itemId: string) => void;
     selectedIds: Set<string>;
@@ -102,11 +99,6 @@ vi.mock('./components/ReviewGrid', () => ({
       <div>Review Grid</div>
       <div>Actioning: {String(isActioning)}</div>
       <div>Selected count: {selectedIds.size}</div>
-      {canDiscardBatch ? (
-        <button type="button" onClick={onDiscardBatch}>
-          Discard batch
-        </button>
-      ) : null}
       {items.length === 0 ? <div>No items in this view</div> : null}
       {items.map((item) => (
         <button
@@ -687,6 +679,18 @@ describe('ReviewQueueContent', () => {
     });
   });
 
+  async function clickDiscardBatchFromActionRail(
+    user: ReturnType<typeof userEvent.setup>,
+  ) {
+    // Discard batch lives in the publish layout action rail (filtersNode),
+    // not the page body — render the portaled node before clicking.
+    await screen.findByText('Review Grid');
+    render(latestFiltersNode());
+    await user.click(
+      await screen.findByRole('button', { name: 'Discard batch' }),
+    );
+  }
+
   it('requires confirmation before discarding a review batch', async () => {
     const user = userEvent.setup();
     const cancelBatch = vi.fn();
@@ -695,9 +699,7 @@ describe('ReviewQueueContent', () => {
     mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
 
     render(<ReviewQueueContent />);
-    await user.click(
-      await screen.findByRole('button', { name: 'Discard batch' }),
-    );
+    await clickDiscardBatchFromActionRail(user);
 
     expect(itemAction).not.toHaveBeenCalled();
     expect(cancelBatch).not.toHaveBeenCalled();
@@ -728,9 +730,7 @@ describe('ReviewQueueContent', () => {
     mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
 
     render(<ReviewQueueContent />);
-    await user.click(
-      await screen.findByRole('button', { name: 'Discard batch' }),
-    );
+    await clickDiscardBatchFromActionRail(user);
     await act(async () => latestConfirm().onConfirm());
 
     expect(itemAction).toHaveBeenCalledWith('batch-1', {
@@ -772,9 +772,7 @@ describe('ReviewQueueContent', () => {
     mocks.getBatchesService.mockResolvedValue({ cancelBatch, itemAction });
 
     const { rerender } = render(<ReviewQueueContent />);
-    await user.click(
-      await screen.findByRole('button', { name: 'Discard batch' }),
-    );
+    await clickDiscardBatchFromActionRail(user);
     await act(async () => latestConfirm().onConfirm());
 
     mocks.useQuery.mockReset();
@@ -785,8 +783,12 @@ describe('ReviewQueueContent', () => {
     rerender(<ReviewQueueContent />);
 
     expect(screen.getByText('No items in this view')).toBeVisible();
+    // Action rail re-registers without Discard once nothing is reviewable.
+    // Scope to the latest portaled node — prior portal renders can still be
+    // mounted from earlier clicks in this test file/document.
+    const { container: rail } = render(latestFiltersNode());
     expect(
-      screen.queryByRole('button', { name: 'Discard batch' }),
+      within(rail).queryByRole('button', { name: 'Discard batch' }),
     ).not.toBeInTheDocument();
     expect(mocks.notificationSuccess).toHaveBeenCalledWith(
       'Review batch discarded',

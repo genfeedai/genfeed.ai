@@ -5,9 +5,12 @@ import Badge from '@ui/display/badge/Badge';
 import ArtifactEditorBackLink from './artifact-editor-back-link';
 
 /**
- * Chrome shared by every dedicated artifact editor page. Owns the back link to
- * the list the artifact was opened from, the artifact identity, and the action
- * rail — so each editor body only renders the fields it actually edits.
+ * Chrome shared by every dedicated artifact editor page. Owns optional back
+ * navigation (when breadcrumbs do not cover it), artifact identity, and the
+ * action rail — so each editor body only renders the fields it actually edits.
+ *
+ * Compact layout: one header strip with identity + title on the left and
+ * actions on the right. No tall multi-row sub-topbar.
  */
 export default function ArtifactEditorShell({
   actions,
@@ -20,35 +23,48 @@ export default function ArtifactEditorShell({
   isDirty = false,
   title,
 }: ArtifactEditorShellProps) {
+  const hasBackLink = Boolean(backHref && backLabel);
+
   return (
     <div className="flex flex-col">
       <div className="border-white/[0.08] border-b bg-card">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-6 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <ArtifactEditorBackLink backHref={backHref} backLabel={backLabel} />
-
-            {actions ? (
-              <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        <div className="mx-auto flex max-w-7xl items-start justify-between gap-4 px-6 py-3">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            {hasBackLink ? (
+              <ArtifactEditorBackLink
+                backHref={backHref as string}
+                backLabel={backLabel as string}
+              />
             ) : null}
+
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="gen-label rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-foreground/55">
+                {artifactLabel}
+              </span>
+              {badges}
+              {/* variant, not status — a status badge would relabel itself. */}
+              {isDirty ? (
+                <Badge variant="warning">Unsaved changes</Badge>
+              ) : null}
+            </div>
+
+            <div className="min-w-0">
+              <h1 className="truncate font-semibold text-foreground text-lg leading-tight">
+                {title}
+              </h1>
+              {description ? (
+                <p className="mt-0.5 text-muted-foreground text-xs leading-snug">
+                  {description}
+                </p>
+              ) : null}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="gen-label rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-foreground/55">
-              {artifactLabel}
-            </span>
-            {badges}
-            {/* variant, not status — a status badge would relabel itself. */}
-            {isDirty ? <Badge variant="warning">Unsaved changes</Badge> : null}
-          </div>
-
-          <div>
-            <h1 className="font-semibold text-foreground text-xl">{title}</h1>
-            {description ? (
-              <p className="mt-1 text-muted-foreground text-sm">
-                {description}
-              </p>
-            ) : null}
-          </div>
+          {actions ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2 pt-0.5">
+              {actions}
+            </div>
+          ) : null}
         </div>
       </div>
 

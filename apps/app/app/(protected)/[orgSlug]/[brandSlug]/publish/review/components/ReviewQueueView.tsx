@@ -1,13 +1,19 @@
 'use client';
 
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
-import { CardVariant, PageScope } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardVariant,
+  PageScope,
+} from '@genfeedai/enums';
 import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
-import { ClipboardCheck, TriangleAlert } from 'lucide-react';
+import { Button } from '@ui/primitives/button';
+import { ClipboardCheck, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 
 import ReviewGrid from './ReviewGrid';
@@ -63,8 +69,8 @@ interface ReviewQueueViewProps {
 
 /**
  * Review queue body only — publish layout owns Container / New post / refresh.
- * Status filters + batch picker register into the layout action rail (first
- * level topbar) via PostsLayoutContext.setFiltersNode.
+ * Status filters, batch picker, and Discard batch register into the layout
+ * action rail (sub topbar) via PostsLayoutContext.setFiltersNode.
  */
 export default function ReviewQueueView({
   activeFilters,
@@ -127,8 +133,8 @@ export default function ReviewQueueView({
       };
     }
 
-    // First-level topbar: two matching dropdowns (status + batch) beside
-    // New release / refresh — no chip rail.
+    // Sub topbar action rail: status + batch (+ discard) beside New content /
+    // refresh — same vertical level, no page-body orphan row.
     setFiltersNode(
       <div className="flex min-w-0 items-center gap-2">
         <ReviewStatusFilters
@@ -147,6 +153,18 @@ export default function ReviewQueueView({
           tooltip="Select review batch"
           value={activeBatchId ?? ''}
         />
+        {canDiscardBatch ? (
+          <Button
+            className="h-8 shrink-0 gap-1.5 px-3 text-xs"
+            icon={<Trash2 className="size-3.5" />}
+            isDisabled={isActioning}
+            label="Discard batch"
+            onClick={onDiscardBatch}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DESTRUCTIVE}
+            withWrapper={false}
+          />
+        ) : null}
       </div>,
     );
 
@@ -157,8 +175,11 @@ export default function ReviewQueueView({
     activeBatchId,
     activeFilters,
     batchOptions,
+    canDiscardBatch,
     filterCounts,
+    isActioning,
     onBatchChange,
+    onDiscardBatch,
     onFilterChange,
     setFiltersNode,
   ]);
@@ -218,14 +239,12 @@ export default function ReviewQueueView({
           />
           <ReviewGrid
             activeItem={activeItem}
-            canDiscardBatch={canDiscardBatch}
             isActioning={isActioning}
             items={visibleItems}
             selectedIds={selectedIds}
             onBulkApprove={onBulkApprove}
             onBulkReject={onBulkReject}
             onBulkRewriteWithAgent={onBulkRewriteWithAgent}
-            onDiscardBatch={onDiscardBatch}
             onSelectItem={onSelectItem}
             onToggleSelect={onToggleSelect}
           />

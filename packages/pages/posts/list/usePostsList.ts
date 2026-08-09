@@ -476,8 +476,9 @@ export function usePostsList({
   );
 
   /**
-   * Editing lives under Publish at `/publish/posts/:id` (type-aware content
-   * desk). Carry the current list URL back for return navigation.
+   * Full post surface at `/publish/posts/:id` — same PostDetail as the list
+   * sheet (threads, @grok, first comment, media). Not the thin form-only shell.
+   * Carry the list URL for optional return navigation.
    */
   const handleEditPost = useCallback(
     (post: IPost) => {
