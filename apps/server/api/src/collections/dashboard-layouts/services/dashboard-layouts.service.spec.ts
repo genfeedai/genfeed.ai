@@ -4,6 +4,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
+import type { PersistedDashboardLayoutDocument } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +13,7 @@ vi.mock('@genfeedai/agent/dashboard', () => ({
   sanitizeLayoutForPersistence: vi.fn(),
 }));
 
-const sanitizedDocument = {
+const sanitizedDocument: PersistedDashboardLayoutDocument = {
   blocks: [],
   version: 'genfeed.dashboard.openui.v1',
 };

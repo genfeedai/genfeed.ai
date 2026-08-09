@@ -116,7 +116,8 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
     ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
     ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
-    ['/acme/moonrise/publish/posts/post-1', 'Posts', 'Content'],
+    // /publish/posts/:id has its own case below: it carries parent and root
+    // hrefs that this flat {leafLabel, rootLabel} shape cannot express.
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -146,7 +147,7 @@ describe('workspace shell trusted registry', () => {
       resolveWorkspaceShellRoute('/acme/moonrise/publish/posts/post-1')
         ?.breadcrumb,
     ).toEqual({
-      leafLabel: 'Post',
+      leafLabel: 'Content',
       parentHref: '/publish/posts',
       parentLabel: 'Posts',
       rootHref: '/publish/overview',

@@ -3251,6 +3251,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'entityModel',
       'externalId',
       'externalShortcode',
+      'format',
       'generationId',
       'groupId',
       'hookVersion',
