@@ -22,7 +22,7 @@ import {
 } from '@api/services/byok/byok-provider-map.util';
 import { IAuthPublicMetadata } from '@api/shared/interfaces/auth/auth-public-metadata.interface';
 import { type ByokProvider, PricingType } from '@genfeedai/enums';
-import { getDeserializer } from '@genfeedai/helpers';
+import { applyMargin, getDeserializer } from '@genfeedai/helpers';
 import type { CreditsConfig } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -256,6 +256,7 @@ export class CreditsGuard implements CanActivate {
               minCost: model.minCost,
               modelKey: normalized,
               pricingType: model.pricingType,
+              providerCostUsd: model.providerCostUsd,
             });
 
             // If model label indicates training, override cost to flat training cost
@@ -636,25 +637,66 @@ export class CreditsGuard implements CanActivate {
   }
 
   /**
-   * Calculate dynamic cost based on model pricing type
-   * @param model Model with pricing configuration
-   * @param width Output width in pixels (for per-megapixel)
-   * @param height Output height in pixels (for per-megapixel)
-   * @param duration Output duration in seconds (for per-second)
-   * @returns Calculated cost in credits
+   * Resolve credits for a generation.
+   *
+   * Preferred path: `providerCostUsd` (raw provider list) × units × live
+   * `applyMargin` (admin `PlatformSetting.marginMultiplier` is hydrated into
+   * the process). Changing margin in admin re-prices the next request without
+   * rewriting every Model row.
+   *
+   * `providerCostUsd` unit semantics follow `pricingType`:
+   * - FLAT → USD per run
+   * - PER_SECOND → USD per output second
+   * - PER_MEGAPIXEL → USD per megapixel
+   *
+   * Fallback: legacy `cost` / `costPerUnit` (pre-baked credits) when
+   * `providerCostUsd` is missing — discovery drafts and old rows.
    */
   private calculateDynamicCost(
     model: {
       cost?: number | null;
-      pricingType?: string | null;
       costPerUnit?: number | null;
+      defaultDuration?: number | null;
       minCost?: number | null;
+      pricingType?: string | null;
+      providerCostUsd?: number | null;
     },
     width?: number,
     height?: number,
     duration?: number,
   ): number {
     const pricingType = model.pricingType || PricingType.FLAT;
+    const providerCostUsd =
+      typeof model.providerCostUsd === 'number' && model.providerCostUsd > 0
+        ? model.providerCostUsd
+        : null;
+
+    if (providerCostUsd !== null && pricingType !== 'per-token') {
+      const units = this.resolveProviderCostUnits(
+        pricingType,
+        model.defaultDuration,
+        width,
+        height,
+        duration,
+      );
+      const providerTotalUsd = providerCostUsd * units;
+      const credits = applyMargin(providerTotalUsd);
+
+      this.loggerService.debug(
+        'Credits guard: providerCostUsd × applyMargin (live margin)',
+        {
+          credits,
+          duration,
+          pricingType,
+          providerCostUsd,
+          providerTotalUsd,
+          units,
+        },
+      );
+
+      return credits;
+    }
+
     let baseCost = model.cost || 0;
 
     switch (pricingType) {
@@ -663,7 +705,7 @@ export class CreditsGuard implements CanActivate {
           const megapixels = (width * height) / 1_000_000;
           baseCost = Math.ceil(megapixels * model.costPerUnit);
           this.loggerService.debug(
-            'Credits guard: Per-megapixel cost calculated',
+            'Credits guard: Per-megapixel cost calculated (legacy costPerUnit)',
             {
               calculatedCost: baseCost,
               costPerUnit: model.costPerUnit,
@@ -680,7 +722,7 @@ export class CreditsGuard implements CanActivate {
         if (duration && model.costPerUnit) {
           baseCost = Math.ceil(duration * model.costPerUnit);
           this.loggerService.debug(
-            'Credits guard: Per-second cost calculated',
+            'Credits guard: Per-second cost calculated (legacy costPerUnit)',
             {
               calculatedCost: baseCost,
               costPerUnit: model.costPerUnit,
@@ -700,7 +742,7 @@ export class CreditsGuard implements CanActivate {
         break;
     }
 
-    // Apply minimum cost floor
+    // Apply minimum cost floor (legacy baked credits only)
     const minCost = model.minCost || 0;
     if (minCost > 0 && baseCost < minCost) {
       this.loggerService.debug('Credits guard: Minimum cost floor applied', {
@@ -712,5 +754,39 @@ export class CreditsGuard implements CanActivate {
     }
 
     return baseCost;
+  }
+
+  /**
+   * How many provider-cost units this request consumes.
+   * Missing duration falls back to model.defaultDuration, then 1.
+   */
+  private resolveProviderCostUnits(
+    pricingType: string,
+    defaultDuration?: number | null,
+    width?: number,
+    height?: number,
+    duration?: number,
+  ): number {
+    if (pricingType === PricingType.PER_SECOND) {
+      if (typeof duration === 'number' && duration > 0) {
+        return duration;
+      }
+      if (typeof defaultDuration === 'number' && defaultDuration > 0) {
+        return defaultDuration;
+      }
+      return 1;
+    }
+
+    if (
+      pricingType === PricingType.PER_MEGAPIXEL &&
+      typeof width === 'number' &&
+      typeof height === 'number' &&
+      width > 0 &&
+      height > 0
+    ) {
+      return (width * height) / 1_000_000;
+    }
+
+    return 1;
   }
 }

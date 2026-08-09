@@ -106,7 +106,7 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(freeActiveRows).toEqual([]);
   });
 
-  it('seeds Seedance 2.5 as the default video model with per-second pricing', () => {
+  it('seeds Seedance 2.5 as the default video model with provider USD for live margin', () => {
     const videoDefaults = UNIFIED_MODEL_CATALOG.filter(
       (entry) => entry.category === ModelCategory.VIDEO && entry.isDefault,
     );
@@ -114,10 +114,18 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(videoDefaults).toHaveLength(1);
     expect(videoDefaults[0]?.key).toBe('bytedance/seedance-2.5');
     expect(videoDefaults[0]?.isActive).toBe(true);
-    expect(videoDefaults[0]?.cost).toBeGreaterThan(0);
-    // Guard against accidental undercharge: unit cost must stay high.
-    expect(videoDefaults[0]?.costPerUnit).toBeGreaterThanOrEqual(80);
     expect(videoDefaults[0]?.pricingType).toBe('per-second');
-    expect(videoDefaults[0]?.minCost).toBeGreaterThanOrEqual(200);
+    // Bill time multiplies this USD/s by duration then applyMargin(admin).
+    expect(videoDefaults[0]?.providerCostUsd).toBeGreaterThanOrEqual(0.2);
+  });
+
+  it('seeds curated media rows with providerCostUsd for live-margin billing', () => {
+    const curatedWithUsd = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.isActive && entry.providerCostUsd != null,
+    );
+    expect(curatedWithUsd.length).toBeGreaterThanOrEqual(5);
+    for (const row of curatedWithUsd) {
+      expect(row.providerCostUsd).toBeGreaterThan(0);
+    }
   });
 });

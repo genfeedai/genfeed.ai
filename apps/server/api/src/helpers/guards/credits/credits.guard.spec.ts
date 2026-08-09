@@ -114,6 +114,61 @@ describe('CreditsGuard', () => {
     });
   });
 
+  it('bills from providerCostUsd × applyMargin so admin margin applies live', async () => {
+    const { applyMargin, setRuntimeMarginMultiplier } = await import(
+      '@genfeedai/helpers'
+    );
+    setRuntimeMarginMultiplier(1);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    // $0.15 provider → applyMargin = 50 credits at multiplier 1.0
+    modelsService.findOne.mockResolvedValue({
+      cost: 999,
+      key: 'priced-model',
+      pricingType: 'flat',
+      providerCostUsd: 0.15,
+    });
+
+    await guard.canActivate(createContext({ model: 'priced-model' }));
+
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, applyMargin(0.15, 1));
+
+    // Raise admin margin → next bill uses new credits without rewriting Model.
+    setRuntimeMarginMultiplier(1.2);
+    await guard.canActivate(createContext({ model: 'priced-model' }));
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenLastCalledWith(orgId, applyMargin(0.15, 1.2));
+
+    setRuntimeMarginMultiplier(1);
+  });
+
+  it('scales providerCostUsd by duration for per-second video models', async () => {
+    const { applyMargin, setRuntimeMarginMultiplier } = await import(
+      '@genfeedai/helpers'
+    );
+    setRuntimeMarginMultiplier(1);
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
+    modelsService.findOne.mockResolvedValue({
+      cost: 400,
+      costPerUnit: 80,
+      defaultDuration: 5,
+      key: 'bytedance/seedance-2.5',
+      pricingType: 'per-second',
+      providerCostUsd: 0.24,
+    });
+
+    await guard.canActivate(
+      createContext({ duration: 10, model: 'bytedance/seedance-2.5' }),
+    );
+
+    // 10s × $0.24/s = $2.40 provider → applyMargin
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, applyMargin(2.4, 1));
+  });
+
   it('multiplies credits by 2 for high resolution via data.attributes', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
     modelsService.findOne.mockResolvedValue({ cost: 10, key: 'img-model' });

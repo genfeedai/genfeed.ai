@@ -126,21 +126,17 @@ describe('ModelCatalogSeedService', () => {
     );
   });
 
-  it('writes per-second pricing fields for Seedance 2.5', async () => {
+  it('writes providerCostUsd for live-margin bill time on Seedance 2.5', async () => {
     await service.reconcileCatalog();
 
     const call = callForKey('bytedance/seedance-2.5');
     expect(call?.create).toMatchObject({
-      cost: 400,
-      costPerUnit: 80,
-      minCost: 200,
       pricingType: 'per-second',
+      providerCostUsd: 0.24,
     });
     expect(call?.update).toMatchObject({
-      cost: 400,
-      costPerUnit: 80,
-      minCost: 200,
       pricingType: 'per-second',
+      providerCostUsd: 0.24,
     });
   });
 

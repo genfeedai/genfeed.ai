@@ -50,12 +50,18 @@ export interface ModelCatalogSeedEntry {
   label: string;
   maxOutputs?: number;
   maxReferences?: number;
-  /** Floor credits charged for a run (with PER_SECOND). */
+  /** Floor credits charged for a run (legacy path only). */
   minCost?: number;
   outputCostPerMillionTokens?: number;
-  /** How `cost` / `costPerUnit` are interpreted at bill time. */
+  /** How `cost` / `costPerUnit` / `providerCostUsd` are interpreted at bill time. */
   pricingType?: string;
   provider: ModelProvider;
+  /**
+   * Raw provider list price in USD. Preferred bill-time input for
+   * `applyMargin` (live admin margin). Unit follows pricingType
+   * (per run, per second, or per megapixel).
+   */
+  providerCostUsd?: number;
   recommendedFor?: readonly string[];
   succeededBy?: string;
   supportsFeatures?: readonly string[];
@@ -128,6 +134,12 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     }
     if ('pricingType' in (curated ?? {}) && curated?.pricingType) {
       entry.pricingType = curated.pricingType;
+    }
+    if (
+      'providerCostUsd' in (curated ?? {}) &&
+      curated?.providerCostUsd != null
+    ) {
+      entry.providerCostUsd = curated.providerCostUsd;
     }
     if (curated?.providerConfig) {
       entry.config = curated.providerConfig;

@@ -9,23 +9,24 @@ import { MODEL_KEYS } from './model-keys.constant';
 /**
  * Curated media defaults for the model registry seed.
  *
- * Cost notes (USD list / provider, last review 2026-08):
- * - FLUX Schnell ~$0.003 — cheapest production image model; preferred when
- *   `prioritize=cost` / Lowest Cost.
- * - Nano Banana ~$0.039 — quality-biased platform default for balanced runs.
- *   Do not treat as the "cheap" pick; it is ~13× Schnell.
- * - Seedance 2.5 — **expensive.** BytePlus 5s examples ≈ $0.51 (480p) /
- *   $1.16 (720p) without video input (~$0.10–$0.23 per output second). We
- *   seed **per-second** credits at the 720p-safe unit so longer / higher-res
- *   runs do not undercharge. Prefer short drafts (default 5s).
+ * **Bill-time path (preferred):** store raw provider USD in `providerCostUsd`.
+ * Credits guard multiplies by units and runs `applyMargin`, which reads the
+ * live admin `PlatformSetting.marginMultiplier`. Change margin → next generate
+ * re-prices without rewriting model rows.
  *
- * `cost` is **credits** written to `Model.cost` (flat fallback when duration
- * is missing). For PER_SECOND rows, also set costPerUnit + pricingType.
+ * **providerCostUsd unit** follows `pricingType`:
+ * - FLAT → USD per run/image
+ * - PER_SECOND → USD per output second
+ *
+ * `cost` / `costPerUnit` remain as display/legacy fallbacks (pre-baked credits
+ * at margin 1.0). Prefer updating `providerCostUsd` when list prices change.
+ *
+ * List prices last reviewed 2026-08.
  */
 export const SELF_HOSTED_MODELS = [
   {
     category: ModelCategory.IMAGE,
-    cost: 0.039,
+    cost: 13,
     costTier: CostTier.MEDIUM,
     description: 'Replicate Nano Banana image generation model',
     isDefault: true,
@@ -34,10 +35,11 @@ export const SELF_HOSTED_MODELS = [
     label: 'Nano Banana',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'nano-banana', owner: 'google' },
+    providerCostUsd: 0.039,
   },
   {
     category: ModelCategory.IMAGE,
-    cost: 0.134,
+    cost: 45,
     costTier: CostTier.HIGH,
     description: 'Replicate Nano Banana Pro image generation model',
     isDefault: false,
@@ -46,10 +48,11 @@ export const SELF_HOSTED_MODELS = [
     label: 'Nano Banana Pro',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'nano-banana-pro', owner: 'google' },
+    providerCostUsd: 0.134,
   },
   {
     category: ModelCategory.IMAGE,
-    cost: 0.039,
+    cost: 13,
     costTier: CostTier.MEDIUM,
     description: 'Replicate Nano Banana 2 image generation model',
     isDefault: false,
@@ -58,10 +61,11 @@ export const SELF_HOSTED_MODELS = [
     label: 'Nano Banana 2',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'nano-banana-2', owner: 'google' },
+    providerCostUsd: 0.039,
   },
   {
     category: ModelCategory.IMAGE,
-    cost: 0.003,
+    cost: 2,
     costTier: CostTier.LOW,
     description: 'Replicate FLUX Schnell image generation model',
     isDefault: false,
@@ -70,13 +74,11 @@ export const SELF_HOSTED_MODELS = [
     label: 'FLUX Schnell',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'flux-schnell', owner: 'black-forest-labs' },
+    providerCostUsd: 0.003,
   },
   /**
-   * Default video model. Credits are intentional and high:
-   * - costPerUnit 80 ≈ applyMargin($0.24/s) — covers 720p BytePlus band
-   * - cost 400 = 5s × 80 (flat fallback if duration is omitted at bill time)
-   * - minCost 200 ≈ floor for a short 480p clip with margin
-   * Do not lower these without re-checking Replicate/BytePlus list prices.
+   * Default video. providerCostUsd is **per second** (720p-safe ~$0.24/s).
+   * 5s → applyMargin(1.20) ≈ 400 credits at margin 1.0.
    */
   {
     category: ModelCategory.VIDEO,
@@ -93,16 +95,15 @@ export const SELF_HOSTED_MODELS = [
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'seedance-2.5', owner: 'bytedance' },
+    providerCostUsd: 0.24,
   },
   /**
    * Seedream 5 Pro — Replicate list $0.045/img (1K) / $0.09/img (2K).
-   * Seed at 2K list price so higher-res runs do not undercharge.
-   * Flat USD-style cost matches other curated image rows; discovery can
-   * reprice via applyMargin when operators re-sync.
+   * Seed at 2K list so higher-res runs do not undercharge.
    */
   {
     category: ModelCategory.IMAGE,
-    cost: 0.09,
+    cost: 30,
     costTier: CostTier.HIGH,
     description:
       'ByteDance Seedream 5 Pro — flagship image (1K/2K, up to 10 reference images).',
@@ -112,12 +113,11 @@ export const SELF_HOSTED_MODELS = [
     label: 'Seedream 5 Pro',
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'seedream-5-pro', owner: 'bytedance' },
+    providerCostUsd: 0.09,
   },
   /**
-   * Video upscaler — billed per second of output; cost scales with resolution/
-   * fps/pro tier. Unit is intentionally above the VIDEO_UPSCALE category
-   * default (40) so 4K/pro paths are not free. Not the category default
-   * (Topaz remains the empty-registry fallback).
+   * Video upscaler — USD per output second (conservative mid band).
+   * Not the category default (Topaz remains empty-registry fallback).
    */
   {
     category: ModelCategory.VIDEO_UPSCALE,
@@ -134,5 +134,6 @@ export const SELF_HOSTED_MODELS = [
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'video-upscaler', owner: 'bytedance' },
+    providerCostUsd: 0.05,
   },
 ] as const;

@@ -115,6 +115,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.costPerUnit != null ? { costPerUnit: entry.costPerUnit } : {}),
       ...(entry.minCost != null ? { minCost: entry.minCost } : {}),
       ...(entry.pricingType ? { pricingType: entry.pricingType } : {}),
+      ...(entry.providerCostUsd != null
+        ? { providerCostUsd: entry.providerCostUsd }
+        : {}),
     };
 
     const updateData: Prisma.ModelUpdateInput = {
@@ -124,11 +127,14 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       // may have been priced or disabled deliberately, and the seed's 0 for an
       // uncurated key would hand out free generations.
       ...(entry.cost > 0 ? { cost: entry.cost } : {}),
-      // Per-second / unit pricing for expensive video models must not lag the
-      // catalog — undercharging long runs loses money.
+      // Unit pricing + provider USD must not lag the catalog — bill time prefers
+      // providerCostUsd × live applyMargin.
       ...(entry.costPerUnit != null ? { costPerUnit: entry.costPerUnit } : {}),
       ...(entry.minCost != null ? { minCost: entry.minCost } : {}),
       ...(entry.pricingType ? { pricingType: entry.pricingType } : {}),
+      ...(entry.providerCostUsd != null
+        ? { providerCostUsd: entry.providerCostUsd }
+        : {}),
       // Defaults are the one exception — the router needs a live selection.
       ...(entry.isDefault ? { isActive: true, isDefault: true } : {}),
     };
