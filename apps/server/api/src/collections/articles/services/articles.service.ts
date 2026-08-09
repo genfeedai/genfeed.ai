@@ -45,11 +45,7 @@ import {
   invalidateCollectionQueryCache,
   paginatedQueryCacheTag,
 } from '@api/shared/utils/query-cache/query-cache.util';
-import {
-  ArticleScope,
-  ArticleStatus,
-  PromptTemplateKey,
-} from '@genfeedai/enums';
+import { ArticleScope, PromptTemplateKey } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -305,8 +301,17 @@ export class ArticlesService extends BaseService<
         ...updateArticleDto,
       });
 
+      // `toArticlePersistenceData` normalizes legacy inputs (`public`, lowercase
+      // spellings) to the persisted PUBLISHED label, so the raw DTO value is not
+      // a reliable publish signal. Branch on the normalized status instead —
+      // comparing the raw DTO lets a legacy update persist PUBLISHED while
+      // silently skipping scope, publishedAt, and the Discord notification.
+      const isPublishingUpdate = ArticleFilterUtil.isPublicArticleStatus(
+        updateArticleDto.status,
+      );
+
       // If status is being changed to PUBLISHED, handle publishing logic
-      if (updateArticleDto.status === ArticleStatus.PUBLISHED) {
+      if (isPublishingUpdate) {
         await this.applyPublishStateTransition({
           id,
           organizationId,
@@ -343,7 +348,7 @@ export class ArticlesService extends BaseService<
       await this.sendArticlePublishedNotification(
         result,
         organizationId,
-        updateArticleDto.status,
+        isPublishingUpdate,
       );
 
       return result;
@@ -397,17 +402,20 @@ export class ArticlesService extends BaseService<
 
   /**
    * Send a Discord notification when an article was just published.
-   * No-op unless the status is PUBLIC, the supporting services are wired, and
-   * the organization has Discord notifications enabled. Never throws — a failed
-   * notification must not fail the update. Extracted from `update`.
+   * No-op unless the update normalized to PUBLISHED, the supporting services are
+   * wired, and the organization has Discord notifications enabled. Never throws —
+   * a failed notification must not fail the update. Extracted from `update`.
+   *
+   * Takes the already-normalized publish signal rather than the raw DTO status so
+   * legacy `public` input notifies exactly like canonical `PUBLISHED` input.
    */
   private async sendArticlePublishedNotification(
     result: ArticleDocument,
     organizationId: string,
-    status?: ArticleStatus,
+    isPublishingUpdate: boolean,
   ): Promise<void> {
     if (
-      status !== ArticleStatus.PUBLISHED ||
+      !isPublishingUpdate ||
       !this.notificationsService ||
       !this.organizationSettingsService ||
       !this.configService
