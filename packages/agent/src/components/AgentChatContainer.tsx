@@ -457,6 +457,7 @@ export function AgentChatContainer({
             isCreatingFollowUpTasks={container.isCreatingFollowUpTasks}
             isEmpty={container.isEmpty}
             isGenerating={container.isGenerating}
+            isWideLayout={isWideLayout}
             isReadOnly={isReadOnly}
             isStreamingActive={container.isStreamingActive}
             isSubmittingInputRequest={container.isSubmittingInputRequest}
