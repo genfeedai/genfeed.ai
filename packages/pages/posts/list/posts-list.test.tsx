@@ -43,7 +43,7 @@ const emptyListQueryResult: MockQueryResult = {
 function queryResult(options: { queryKey?: readonly unknown[] }) {
   const key = String(options?.queryKey?.[0] ?? '');
 
-  if (key !== 'posts') {
+  if (key !== 'posts-list') {
     return emptyListQueryResult;
   }
 
@@ -159,14 +159,36 @@ vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
 vi.mock('@pages/posts/list/components/PostsGrid', () => ({
   __esModule: true,
   default: ({
+    items,
     onOpenPostDetail,
+    primaryAction,
+    posts,
   }: {
+    items?: IPost[];
     onOpenPostDetail?: (post: IPost) => void;
-  }) => (
-    <button type="button" onClick={() => onOpenPostDetail?.(postFixture)}>
-      Posts grid
-    </button>
-  ),
+    primaryAction?: { onClick: (post: IPost) => void };
+    posts?: IPost[];
+  }) => {
+    const gridPosts = posts ?? items ?? [];
+
+    return (
+      <>
+        <button type="button" onClick={() => onOpenPostDetail?.(postFixture)}>
+          Posts grid
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (gridPosts[0] && primaryAction) {
+              primaryAction.onClick(gridPosts[0]);
+            }
+          }}
+        >
+          Edit grid card
+        </button>
+      </>
+    );
+  },
 }));
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
@@ -233,7 +255,9 @@ describe('PostsList', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
+    // An explicit `status` prop opts out of the publisher `not-posted` default,
+    // so the list header describes every lifecycle state.
+    expect(screen.getByRole('heading', { name: 'All posts' })).toBeVisible();
     // Sidebar agent owns generation — no floating posts prompt bar.
     expect(
       screen.queryByPlaceholderText(/ai productivity tips/i),
