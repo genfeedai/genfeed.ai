@@ -3,11 +3,16 @@ import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
+import { RepurposePostDto } from '@api/collections/posts/dto/repurpose-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
-import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -16,6 +21,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -23,12 +29,14 @@ import {
 import { ScoreSeoDto } from '@api/services/seo/dto/score-seo.dto';
 import { SeoScorerService } from '@api/services/seo/seo-scorer.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
+import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
   ActivitySource,
   CredentialPlatform,
   PostCategory,
-  PostStatus,
+  PostRepurposeMode,
   parsePlatform,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
@@ -58,9 +66,54 @@ export class PostsGenerationController {
   constructor(
     private readonly logger: LoggerService,
     private readonly postGenerationService: PostGenerationService,
+    private readonly postRepurposeService: PostRepurposeService,
     private readonly postsService: PostsService,
     private readonly seoScorerService: SeoScorerService,
   ) {}
+
+  /**
+   * Repurpose an existing post into a draft for another channel (#2588).
+   *
+   * Deterministic mode adapts the caption through the channel capability
+   * catalog with no LLM involved; agent mode rewrites it with the content
+   * engine and lands the draft in the review queue. Credits are deferred and
+   * only finalized for agent mode, so deterministic repurposing stays free.
+   */
+  @Post(':postId/repurpose')
+  @Credits({
+    description: 'Post repurpose (agent rewrite)',
+    source: ActivitySource.POST_ENHANCEMENT,
+  })
+  @DeferCreditsUntilModelResolution()
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async repurposePost(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('postId') postId: string,
+    @Body() dto: RepurposePostDto,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+
+    const result = await this.postRepurposeService.repurpose({
+      credentialId: dto.credentialId,
+      mode: dto.mode,
+      organizationId: publicMetadata.organization,
+      platform: dto.platform,
+      postId,
+      userId: publicMetadata.user,
+    });
+
+    if (dto.mode === PostRepurposeMode.AGENT) {
+      finalizeDeferredTextCredits(request, BATCH_CAPTION_BASE_CREDITS);
+    }
+
+    return serializeSingle(request, this.serializer, {
+      ...result.draft,
+      repurposeAdjustments: result.adjustments,
+    });
+  }
 
   @Post('account-generations')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -209,7 +262,7 @@ export class PostsGenerationController {
         parentId: postId,
         platform:
           parsePlatform(originalPost.platform) ?? CredentialPlatform.TWITTER,
-        status: PostStatus.PROCESSING,
+        targetExecutionState: TargetExecutionState.PUBLISHING,
         userId: publicMetadata.user,
       });
       createdPosts.push(childPost);

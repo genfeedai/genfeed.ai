@@ -7,7 +7,11 @@
  * Foundation for epic #1123, issue #1125.
  */
 
-import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostVisibility,
+  TargetValidationState,
+} from '@genfeedai/enums';
 import { z } from 'zod';
 import { publishingProviderReadinessSchema } from './publishing-readiness.contract';
 
@@ -164,6 +168,7 @@ export const validateChannelTargetSettingsInputSchema = z.object({
   platform: z.union([z.nativeEnum(CredentialPlatform), z.string().min(1)]),
   publishMode: channelPublishModeSchema.optional(),
   settings: channelTargetSettingsSchema.optional(),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 });
 
 export const channelValidationIssueSchema = z.object({
@@ -823,6 +828,7 @@ export function validateChannelTargetSettings(
   errors.push(...validateMedia(parsedInput.data, capability));
   errors.push(...validatePublishMode(parsedInput.data, capability));
   errors.push(...validateSettings(parsedInput.data, capability));
+  errors.push(...validateVisibility(parsedInput.data, capability));
   errors.push(...validateProviderConstraints(parsedInput.data, capability));
   warnings.push(...collectMediaWarnings(parsedInput.data, capability));
 
@@ -834,6 +840,54 @@ export function validateChannelTargetSettings(
     validationState: resolveValidationState(errors, warnings),
     warnings,
   };
+}
+
+const PLATFORM_VISIBILITY_CAPABILITIES: Readonly<
+  Partial<Record<CredentialPlatform, readonly PostVisibility[]>>
+> = {
+  [CredentialPlatform.MASTODON]: [
+    PostVisibility.PUBLIC,
+    PostVisibility.PRIVATE,
+    PostVisibility.UNLISTED,
+  ],
+  [CredentialPlatform.TIKTOK]: [PostVisibility.PUBLIC, PostVisibility.PRIVATE],
+  [CredentialPlatform.YOUTUBE]: [
+    PostVisibility.PUBLIC,
+    PostVisibility.PRIVATE,
+    PostVisibility.UNLISTED,
+  ],
+};
+
+/** Supported canonical audience visibility values for a platform. */
+export function getSupportedPostVisibilities(
+  platform: CredentialPlatform | string,
+): readonly PostVisibility[] {
+  const normalized = normalizeCredentialPlatform(platform);
+  if (!normalized) {
+    return [];
+  }
+  return (
+    PLATFORM_VISIBILITY_CAPABILITIES[normalized] ?? [PostVisibility.PUBLIC]
+  );
+}
+
+function validateVisibility(
+  input: ValidateChannelTargetSettingsInput,
+  capability: ChannelCapability,
+): ChannelValidationIssue[] {
+  const visibility = input.visibility ?? PostVisibility.PUBLIC;
+  const supported = getSupportedPostVisibilities(capability.platform);
+  if (supported.includes(visibility)) {
+    return [];
+  }
+  return [
+    {
+      code: 'channel_target.unsupported_visibility',
+      field: 'visibility',
+      message: `${capability.label} does not support ${visibility} visibility.`,
+      severity: 'error',
+    },
+  ];
 }
 
 export type ChannelTargetSettingValue = string | number | boolean | string[];

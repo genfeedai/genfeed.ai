@@ -1,10 +1,16 @@
-import type { Platform, PostStatus } from '@genfeedai/enums';
+import type {
+  Platform,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 
 export interface PublishContentParams {
   contentId: string;
   platforms: Platform[];
   customMessage?: string;
   scheduleAt?: string;
+  visibility?: PostVisibility;
 }
 
 export interface PostResponse {
@@ -12,6 +18,8 @@ export interface PostResponse {
   contentId: string;
   platform?: Platform;
   status: PostStatus;
+  executionState: TargetExecutionState;
+  visibility: PostVisibility;
   publishedUrl?: string;
   scheduledAt?: string;
   publishedAt?: string;

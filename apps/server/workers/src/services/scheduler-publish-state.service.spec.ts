@@ -1,5 +1,5 @@
 import {
-  PostStatus,
+  PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -59,14 +59,13 @@ describe('SchedulerPublishStateService', () => {
         executionState: TargetExecutionState.PUBLISHED,
         externalId: 'provider-1',
         publishedAt,
-        status: PostStatus.PUBLIC,
         url: 'https://social.example/provider-1',
+        visibility: PostVisibility.PRIVATE,
       },
     });
 
     expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        legacyStatus: PostStatus.PUBLIC,
         mutation: expect.objectContaining({
           externalId: 'provider-1',
           publishedAt,
@@ -75,6 +74,7 @@ describe('SchedulerPublishStateService', () => {
         nextState: TargetExecutionState.PUBLISHED,
         organizationId: 'org-1',
         postId: 'target-1',
+        visibility: PostVisibility.PRIVATE,
       }),
       expect.objectContaining({ post, postGroup }),
     );
@@ -129,7 +129,7 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       update: {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
+        visibility: PostVisibility.PUBLIC,
       },
     });
 
@@ -172,7 +172,6 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       update: {
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
       },
     });
 
@@ -202,7 +201,7 @@ describe('SchedulerPublishStateService', () => {
       },
       {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
+        visibility: PostVisibility.PUBLIC,
       },
       'Provider confirmed publication',
     );
@@ -216,7 +215,7 @@ describe('SchedulerPublishStateService', () => {
       reason: 'Provider confirmed publication',
       update: {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
+        visibility: PostVisibility.PUBLIC,
       },
     });
   });
@@ -243,7 +242,7 @@ describe('SchedulerPublishStateService', () => {
       { id: 'legacy-post-1', organizationId: 'org-1' },
       {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
+        visibility: PostVisibility.PUBLIC,
         url: 'https://www.youtube.com/watch?v=video-1',
         workflowExecutionId: 'execution-1',
       },
@@ -290,7 +289,7 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       update: {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
+        visibility: PostVisibility.PUBLIC,
       },
     });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import type { IEvaluation } from '@genfeedai/client/models';
-import { PostStatus } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/enums';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { IImage, IVideo } from '@genfeedai/interfaces';
@@ -64,7 +64,8 @@ export default function PostDetailSidebar({
     newEvaluation ?? (post.evaluation as IEvaluation | undefined);
 
   const isPublished =
-    Boolean(post.publicationDate) || post.status === PostStatus.PUBLIC;
+    Boolean(post.publicationDate) ||
+    post.targetExecutionState === TargetExecutionState.PUBLISHED;
   const hasReviewLineage =
     Boolean(reviewSummary?.reviewBatchId) ||
     Boolean(reviewSummary?.reviewItemId) ||

@@ -25,7 +25,8 @@ import {
   BatchItemStatus,
   BatchStatus,
   ContentIntelligencePlatform,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
@@ -389,8 +390,9 @@ export class BatchGenerationProcessingService {
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)
             : undefined,
-          status: PostStatus.DRAFT,
+          targetExecutionState: TargetExecutionState.DRAFT,
           userId: batchRecord.userId,
+          visibility: PostVisibility.PUBLIC,
         } as PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);

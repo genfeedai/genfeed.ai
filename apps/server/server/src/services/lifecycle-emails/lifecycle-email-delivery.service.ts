@@ -1,11 +1,12 @@
 import { randomBytes } from 'node:crypto';
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import {
   buildLifecycleSystemEmailAction,
   getLifecycleSystemEmailDefinition,
   renderLifecycleSystemEmailParagraphs,
 } from '@genfeedai/constants';
-import { PostStatus, SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { LifecycleEmailJobData } from '@genfeedai/queue-contracts';
 import {
   buildSystemEmailHtml,
@@ -252,11 +253,15 @@ export class LifecycleEmailDeliveryService {
   }
 
   private async hasActivated(userId: string): Promise<boolean> {
+    // tenant-scope-ignore: activation is a per-person lifecycle signal, not a
+    // per-tenant one. A user can belong to several organizations and this asks
+    // whether they have ever published anywhere, so scoping it to one
+    // organization would under-report and re-send activation email.
     const publishedPost = await this.prisma.post.findFirst({
       select: { id: true },
       where: {
         isDeleted: false,
-        status: PostStatus.PUBLIC,
+        ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
         userId,
       },
     });

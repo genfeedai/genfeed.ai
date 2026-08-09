@@ -22,6 +22,7 @@ import {
   Eye,
   List,
   Pencil,
+  Repeat2,
   Sparkles,
   Trash2,
 } from 'lucide-react';
@@ -39,6 +40,7 @@ export interface PostDetailHeaderProps {
   onCreateRemix?: () => void;
   onDuplicate?: () => void;
   onExpandToThread?: (count: 2 | 3 | 5) => void;
+  onRepurpose?: () => void;
 }
 
 function getPostLabel(post: IPost): string {
@@ -67,6 +69,7 @@ export default function PostDetailHeader({
   onCreateRemix,
   onDuplicate: _onDuplicate,
   onExpandToThread,
+  onRepurpose,
 }: PostDetailHeaderProps) {
   const isEditable = scope === PageScope.PUBLISHER && !isPublished;
   const canCreateRemix = post.status === PostStatus.PUBLIC;
@@ -149,6 +152,17 @@ export default function PostDetailHeader({
             variant={ButtonVariant.SECONDARY}
             onClick={onCreateRemix}
             icon={<Copy className="size-4" />}
+          />
+        )}
+
+        {onRepurpose && (
+          <Button
+            label="Repurpose"
+            tooltip="Create a draft of this post for another channel"
+            tooltipPosition="left"
+            variant={ButtonVariant.SECONDARY}
+            onClick={onRepurpose}
+            icon={<Repeat2 className="size-4" />}
           />
         )}
 

@@ -19,7 +19,8 @@ import {
   BatchItemStatus,
   BatchStatus,
   ContentFormat,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -263,9 +264,10 @@ export class BatchGenerationCreationService {
           sourceActionId: reviewItem.sourceActionId,
           sourceWorkflowId: reviewItem.sourceWorkflowId,
           sourceWorkflowName: reviewItem.sourceWorkflowName,
-          status: PostStatus.DRAFT,
+          targetExecutionState: TargetExecutionState.DRAFT,
           userId: userId,
           variantId: reviewItem.variantId,
+          visibility: PostVisibility.PUBLIC,
         } as PostCreateInput);
 
         const postId = String((post as Record<string, unknown>).id ?? post.id);

@@ -6,9 +6,11 @@ import {
   ButtonVariant,
   Platform,
   PostFormat,
-  PostStatus,
 } from '@genfeedai/enums';
-import { getPostStatusOptions } from '@helpers/content/posts.helper';
+import {
+  getPostLifecycleOptions,
+  getPostVisibilityOptions,
+} from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
@@ -223,30 +225,27 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
           />
         </FormControl>
 
-        {isX && (
-          <FormControl
-            label="Publishing status"
-            error={form.formState.errors.status?.message}
-            helpText="Choose Scheduled after selecting a date to use the existing publishing queue."
-          >
-            <SelectField name="status" control={form.control}>
-              <option value={PostStatus.DRAFT}>
-                {translate('postEditor.status.draft')}
+        <FormControl
+          label="Lifecycle"
+          error={form.formState.errors.targetExecutionState?.message}
+          helpText="Choose Scheduled after selecting a date to use the existing publishing queue."
+        >
+          <SelectField name="targetExecutionState" control={form.control}>
+            {getPostLifecycleOptions().map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
-              <option value={PostStatus.SCHEDULED}>
-                {translate('postEditor.status.scheduled')}
-              </option>
-            </SelectField>
-          </FormControl>
-        )}
+            ))}
+          </SelectField>
+        </FormControl>
 
         {isYouTube && (
           <FormControl
-            label="Status"
-            error={form.formState.errors.status?.message}
+            label="Visibility"
+            error={form.formState.errors.visibility?.message}
           >
-            <SelectField name="status" control={form.control}>
-              {getPostStatusOptions().map((option) => (
+            <SelectField name="visibility" control={form.control}>
+              {getPostVisibilityOptions().map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

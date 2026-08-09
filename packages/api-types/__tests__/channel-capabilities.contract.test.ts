@@ -1,13 +1,18 @@
 import {
   channelTargetValidationResultSchema,
   getChannelCapability,
+  getSupportedPostVisibilities,
   listChannelCapabilities,
   PRODUCTIZED_SCHEDULER_PLATFORMS,
   resolveChannelStatusIssue,
   resolveChannelTargetSettings,
   validateChannelTargetSettings,
 } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, TargetValidationState } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostVisibility,
+  TargetValidationState,
+} from '@genfeedai/enums';
 import { describe, expect, test } from 'vitest';
 
 describe('channel capability catalog', () => {
@@ -113,6 +118,37 @@ describe('channel capability catalog', () => {
 });
 
 describe('validateChannelTargetSettings', () => {
+  test('declares visibility without expanding provider capabilities', () => {
+    expect(getSupportedPostVisibilities(CredentialPlatform.YOUTUBE)).toEqual([
+      PostVisibility.PUBLIC,
+      PostVisibility.PRIVATE,
+      PostVisibility.UNLISTED,
+    ]);
+    expect(getSupportedPostVisibilities(CredentialPlatform.TIKTOK)).toEqual([
+      PostVisibility.PUBLIC,
+      PostVisibility.PRIVATE,
+    ]);
+    expect(getSupportedPostVisibilities(CredentialPlatform.INSTAGRAM)).toEqual([
+      PostVisibility.PUBLIC,
+    ]);
+  });
+
+  test('rejects unsupported visibility at the shared provider boundary', () => {
+    const result = validateChannelTargetSettings({
+      platform: CredentialPlatform.INSTAGRAM,
+      visibility: PostVisibility.PRIVATE,
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.unsupported_visibility',
+          field: 'visibility',
+        }),
+      ]),
+    );
+  });
+
   test('accepts a valid YouTube target', () => {
     const result = validateChannelTargetSettings({
       caption: 'Launch video',

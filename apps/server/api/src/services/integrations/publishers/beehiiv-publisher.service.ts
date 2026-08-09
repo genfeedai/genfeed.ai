@@ -7,7 +7,7 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -99,7 +99,7 @@ export class BeehiivPublisherService extends BasePublisherService {
         postUrl,
       );
       return status === 'draft'
-        ? { ...publishResult, status: PostStatus.DRAFT }
+        ? { ...publishResult, isProviderDraft: true }
         : publishResult;
     } catch (error: unknown) {
       this.logger.error(`${url} failed to publish`, {

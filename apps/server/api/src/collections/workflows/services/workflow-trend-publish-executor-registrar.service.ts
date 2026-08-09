@@ -15,7 +15,8 @@ import {
   type CredentialPlatform,
   Platform,
   PostCategory,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { buildTrendDigestHtml } from '@genfeedai/helpers';
 import type {
@@ -444,8 +445,11 @@ export class WorkflowTrendPublishExecutorRegistrarService {
             organizationId: organizationId,
             platform: credential.platform as CredentialPlatform,
             scheduledDate: scheduledFor ?? undefined,
-            status: scheduledFor ? PostStatus.SCHEDULED : PostStatus.DRAFT,
+            targetExecutionState: scheduledFor
+              ? TargetExecutionState.SCHEDULED
+              : TargetExecutionState.DRAFT,
             userId: userId,
+            visibility: PostVisibility.PUBLIC,
           });
 
           postIds.push(post.id.toString());

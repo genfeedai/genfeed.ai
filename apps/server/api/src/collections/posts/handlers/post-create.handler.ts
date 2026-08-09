@@ -9,6 +9,11 @@ import type { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
+import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
+import {
+  mapLegacyPostStatusToTargetExecutionState,
+  mapLegacyPostStatusToVisibility,
+} from '@api-types/contracts/scheduler.contract';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -18,6 +23,7 @@ import {
   IngredientCategory,
   PostCategory,
   PostStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -74,6 +80,16 @@ export async function createPost({
   dependencies,
   publicMetadata,
 }: PostCreateParams): Promise<PostDocument> {
+  const requestedExecutionState =
+    createPostDto.targetExecutionState ??
+    mapLegacyPostStatusToTargetExecutionState(
+      createPostDto.status ?? PostStatus.SCHEDULED,
+    );
+  const requestedVisibility =
+    createPostDto.visibility ??
+    mapLegacyPostStatusToVisibility(
+      createPostDto.status ?? PostStatus.SCHEDULED,
+    );
   const credential = await dependencies.credentialsService.findOne({
     id: createPostDto.credentialId,
     isConnected: true,
@@ -103,7 +119,20 @@ export async function createPost({
     : false;
 
   if (
-    createPostDto.status === PostStatus.SCHEDULED &&
+    !domainPlatform ||
+    !getSupportedPostVisibilities(domainPlatform).includes(requestedVisibility)
+  ) {
+    throw new HttpException(
+      {
+        detail: `${credential.platform} does not support ${requestedVisibility} visibility.`,
+        title: 'Unsupported post visibility',
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+
+  if (
+    requestedExecutionState === TargetExecutionState.SCHEDULED &&
     createPostDto.category === PostCategory.TEXT &&
     !isTextOnlyPlatform
   ) {
@@ -117,7 +146,7 @@ export async function createPost({
   }
 
   if (
-    createPostDto.status === PostStatus.SCHEDULED &&
+    requestedExecutionState === TargetExecutionState.SCHEDULED &&
     !isTextOnlyPlatform &&
     (!createPostDto.ingredients || createPostDto.ingredients.length === 0)
   ) {
@@ -190,9 +219,9 @@ export async function createPost({
     publicMetadata.organization,
   );
 
-  let effectiveStatus = createPostDto.status;
+  let effectiveExecutionState = requestedExecutionState;
   let warmupHoldReason: string | undefined;
-  if (createPostDto.status === PostStatus.SCHEDULED) {
+  if (requestedExecutionState === TargetExecutionState.SCHEDULED) {
     const publishGate =
       await dependencies.accountHealthService.evaluateScheduledPublishGate({
         brandId: publicMetadata.brand,
@@ -201,7 +230,7 @@ export async function createPost({
       });
 
     if (publishGate.holdPublishing) {
-      effectiveStatus = PostStatus.PENDING;
+      effectiveExecutionState = TargetExecutionState.PAUSED;
       warmupHoldReason = publishGate.reason;
     }
   }
@@ -230,9 +259,10 @@ export async function createPost({
     publicationDate: createPostDto.publicationDate,
     reviewFeedback: warmupHoldReason,
     scheduledDate: createPostDto.scheduledDate,
-    status: effectiveStatus,
+    targetExecutionState: effectiveExecutionState,
     tags: createPostDto.tags || [],
     userId: publicMetadata.user,
+    visibility: requestedVisibility,
   });
 
   await dependencies.activitiesService.create(

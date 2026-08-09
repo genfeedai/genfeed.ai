@@ -426,7 +426,8 @@ export abstract class BaseService<
    *   credentialId: '...', // Required - TypeScript enforces this
    *   label: '...',
    *   description: '...',
-   *   status: PostStatus.DRAFT,
+   *   targetExecutionState: TargetExecutionState.DRAFT,
+   *   visibility: PostVisibility.PUBLIC,
    * });
    * ```
    */
@@ -463,7 +464,7 @@ export abstract class BaseService<
    * // Type-safe with @genfeedai/api-types
    * const post = await postsService.patch(id, {
    *   description: 'Updated description',
-   *   status: PostStatus.SCHEDULED,
+   *   targetExecutionState: TargetExecutionState.SCHEDULED,
    * });
    * ```
    */

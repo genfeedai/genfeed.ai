@@ -8,13 +8,19 @@ import {
   LEGACY_POST_SCHEDULE_FIELD_MAP,
   mapLegacyPostStatusToReleaseStatus,
   mapLegacyPostStatusToTargetExecutionState,
+  mapLegacyPostStatusToVisibility,
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+  projectLegacyPostStatus,
   recurrenceInputSchema,
+  resolvePostVisibility,
   updateChannelTargetSchema,
   updateRecurrenceSeriesSchema,
 } from '@api-types/contracts/scheduler.contract';
 import {
   PostFrequency,
   PostStatus,
+  PostVisibility,
   ReleaseAttachmentKind,
   ReleaseStatus,
   TargetExecutionState,
@@ -88,6 +94,12 @@ describe('createReleaseGroupSchema', () => {
 });
 
 describe('channelTargetInputSchema', () => {
+  test('defaults audience visibility independently from lifecycle', () => {
+    expect(channelTargetInputSchema.parse(validTarget).visibility).toBe(
+      PostVisibility.PUBLIC,
+    );
+  });
+
   test('preserves IANA timezone strings (never coerced to an offset)', () => {
     const result = channelTargetInputSchema.parse(validTarget);
     expect(result.timezone).toBe('Europe/Amsterdam');
@@ -517,6 +529,64 @@ describe('legacy Post schedule migration', () => {
       const state = mapLegacyPostStatusToTargetExecutionState(status);
       expect(Object.values(TargetExecutionState).includes(state)).toBe(true);
     }
+  });
+
+  test.each([
+    [PostStatus.PUBLIC, PostVisibility.PUBLIC],
+    [PostStatus.PRIVATE, PostVisibility.PRIVATE],
+    [PostStatus.UNLISTED, PostVisibility.UNLISTED],
+    [PostStatus.SCHEDULED, PostVisibility.PUBLIC],
+  ])('maps legacy %s into visibility %s', (status, visibility) => {
+    expect(mapLegacyPostStatusToVisibility(status)).toBe(visibility);
+  });
+
+  test('preserves an explicit visibility and falls back for legacy rows', () => {
+    expect(
+      resolvePostVisibility(PostVisibility.PRIVATE, PostStatus.PUBLIC),
+    ).toBe(PostVisibility.PRIVATE);
+    expect(resolvePostVisibility(null, PostStatus.UNLISTED)).toBe(
+      PostVisibility.UNLISTED,
+    );
+  });
+
+  test('projects compatibility status without coupling canonical writes', () => {
+    expect(
+      projectLegacyPostStatus(
+        TargetExecutionState.PUBLISHED,
+        PostVisibility.PRIVATE,
+      ),
+    ).toBe(PostStatus.PRIVATE);
+    expect(
+      projectLegacyPostStatus(
+        TargetExecutionState.PUBLISHING,
+        PostVisibility.PUBLIC,
+      ),
+    ).toBe(PostStatus.PROCESSING);
+  });
+
+  test('limits lifecycle compatibility reads to unclassified rows', () => {
+    expect(
+      postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+    ).toEqual({
+      OR: [
+        { targetExecutionState: { in: [TargetExecutionState.PUBLISHED] } },
+        {
+          status: {
+            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+          },
+          visibility: null,
+        },
+      ],
+    });
+  });
+
+  test('limits visibility compatibility reads to unclassified rows', () => {
+    expect(postVisibilityReadFilter(PostVisibility.PRIVATE)).toEqual({
+      OR: [
+        { visibility: PostVisibility.PRIVATE },
+        { status: { in: [PostStatus.PRIVATE] }, visibility: null },
+      ],
+    });
   });
 
   test('unknown status falls back to draft', () => {
