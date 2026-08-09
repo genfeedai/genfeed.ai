@@ -21,7 +21,7 @@ const entryPath = fileURLToPath(new URL('../src/index.ts', import.meta.url));
 
 describe('CLI entry point', () => {
   let originalArgv: string[];
-  let originalExitCode: number | string | undefined;
+  let originalExitCode: typeof process.exitCode;
 
   beforeEach(() => {
     vi.resetModules();
