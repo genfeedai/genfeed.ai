@@ -57,7 +57,7 @@ jobs:
       - name: Pull Vercel production environment
         run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
-      - name: Validate production frontend environment
+      - name: Validate and inject production frontend environment
         run: |
           env_file=".vercel/.env.production.local"
           if [ ! -f "$env_file" ]; then
@@ -75,18 +75,13 @@ jobs:
             printf 'NEXT_PUBLIC_POSTHOG_KEY=%s\n' "$NEXT_PUBLIC_POSTHOG_KEY"
             printf 'NEXT_PUBLIC_POSTHOG_HOST=%s\n' "$NEXT_PUBLIC_POSTHOG_HOST"
           } >> "${env_file}.tmp"
-          mv "${env_file}.tmp" "$env_file"
 
           if [ "$VERCEL_PROJECT_ID" = "prj_1iMHTqANXgCLd3wALOFcWNtgrdAc" ]; then
-            cloud_value="$(awk -F= '$1 == "NEXT_PUBLIC_GENFEED_CLOUD" { print substr($0, index($0, "=") + 1); exit }' "$env_file")"
-            cloud_value="${cloud_value#\"}"
-            cloud_value="${cloud_value%\"}"
-            cloud_value="${cloud_value#\'}"
-            cloud_value="${cloud_value%\'}"
-            if [ "$cloud_value" != "1" ]; then
-              echo "::error::app.genfeed.ai requires NEXT_PUBLIC_GENFEED_CLOUD=1 in its Vercel Production environment."
-              exit 1
-            fi
+            awk '!/^NEXT_PUBLIC_GENFEED_CLOUD=/' "${env_file}.tmp" > "${env_file}.app"
+            printf 'NEXT_PUBLIC_GENFEED_CLOUD=1\n' >> "${env_file}.app"
+            mv "${env_file}.app" "$env_file"
+          else
+            mv "${env_file}.tmp" "$env_file"
           fi
 
       - name: Preserve runner PATH for local Vercel build
