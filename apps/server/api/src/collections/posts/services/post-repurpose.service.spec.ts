@@ -57,7 +57,7 @@ describe('PostRepurposeService', () => {
 
   const contentGeneratorService = { generateContent: vi.fn() };
   const batchGenerationService = { createManualReviewBatch: vi.fn() };
-  const postGroupPersistenceService = { recalculateAndHydrate: vi.fn() };
+  const postGroupPersistenceService = { hydrateWithDerivedStatus: vi.fn() };
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -130,7 +130,7 @@ describe('PostRepurposeService', () => {
       );
       expect(result.draft.id).toBe('draft_1');
       expect(
-        postGroupPersistenceService.recalculateAndHydrate,
+        postGroupPersistenceService.hydrateWithDerivedStatus,
       ).not.toHaveBeenCalled();
     });
 
@@ -184,8 +184,8 @@ describe('PostRepurposeService', () => {
         }),
       );
       expect(
-        postGroupPersistenceService.recalculateAndHydrate,
-      ).toHaveBeenCalledWith(prisma, organizationId, groupId, userId);
+        postGroupPersistenceService.hydrateWithDerivedStatus,
+      ).toHaveBeenCalledWith(prisma, organizationId, groupId);
     });
 
     it('rejects incompatible media with an actionable message', async () => {

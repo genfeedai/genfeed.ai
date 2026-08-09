@@ -515,11 +515,13 @@ export class PostRepurposeService {
       return;
     }
 
-    await this.postGroupPersistenceService.recalculateAndHydrate(
+    // Release status is derived from target execution states rather than
+    // stored, so re-hydrating the group is what refreshes it after the new
+    // draft target lands. The hydrated group itself is not needed here.
+    await this.postGroupPersistenceService.hydrateWithDerivedStatus(
       this.prisma,
       params.organizationId,
       source.groupId,
-      params.userId,
     );
   }
 
