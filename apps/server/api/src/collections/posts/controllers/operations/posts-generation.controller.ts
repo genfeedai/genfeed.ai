@@ -35,7 +35,6 @@ import {
   CredentialPlatform,
   PostCategory,
   PostRepurposeMode,
-  PostStatus,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';

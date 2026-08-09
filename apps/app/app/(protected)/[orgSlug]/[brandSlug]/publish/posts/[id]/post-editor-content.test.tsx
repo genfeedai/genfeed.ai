@@ -170,7 +170,7 @@ describe('PostEditorContent', () => {
     expect(mocks.success).toHaveBeenCalledWith('Post updated successfully');
   });
 
-  it('omits an empty scheduled date from the update payload', async () => {
+  it('refuses to save a scheduled post that has no scheduled date', async () => {
     mocks.findOne.mockResolvedValue({ ...post, scheduledDate: null });
     const { container } = render(<PostEditorContent artifactId="post-1" />);
 
@@ -187,15 +187,12 @@ describe('PostEditorContent', () => {
 
     fireEvent.submit(form);
 
-    await waitFor(() => {
-      expect(mocks.patch).toHaveBeenCalledWith('post-1', {
-        description: 'Original body',
-        format: PostFormat.STANDARD,
-        label: 'Launch post revised',
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-        visibility: PostVisibility.PUBLIC,
-      });
-    });
+    // A SCHEDULED target with no date is rejected before the payload is built,
+    // so nothing is sent at all rather than sent with the date omitted.
+    await screen.findByText(
+      'Choose a scheduled date before scheduling this post',
+    );
+    expect(mocks.patch).not.toHaveBeenCalled();
   });
 
   it('edits linked thread segments through the canonical post service', async () => {

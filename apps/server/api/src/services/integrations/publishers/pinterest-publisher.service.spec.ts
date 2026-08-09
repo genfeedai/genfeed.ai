@@ -333,7 +333,13 @@ describe('PinterestPublisherService', () => {
       });
 
       it('should handle post without label', async () => {
-        const postWithoutLabel = { ...mockImagePost, label: undefined };
+        const postWithoutLabel = {
+          ...mockImagePost,
+          // Simulates a legacy row persisted before `label` became a
+          // required PostEntity field; the service still falls back to
+          // "Untitled" for these at runtime.
+          label: undefined as unknown as string,
+        };
         const context = createPublishContext(postWithoutLabel);
 
         pinterestService.createPin.mockResolvedValue('pin-123');

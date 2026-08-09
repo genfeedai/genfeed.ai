@@ -172,23 +172,28 @@ export class PostGroupsService {
     );
   }
 
-  list(
-    organizationId: string,
-    query: PostGroupsQueryDto,
-  ): Promise<IReleaseGroup[]> {
+  list(organizationId: string, query: PostGroupsQueryDto) {
     return this.persistenceService.listReleaseGroups({
       ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...(query.contentType?.length ? { categories: query.contentType } : {}),
       ...(query.credentialId?.length
         ? { credentialIds: query.credentialId }
         : {}),
-      endDate: new Date(query.endDate),
+      ...(query.endDate ? { endDate: new Date(query.endDate) } : {}),
       ...(query.executionState?.length
         ? { executionStates: query.executionState }
         : {}),
+      ...(query.limit ? { limit: query.limit } : {}),
       organizationId,
+      ...(query.page ? { page: query.page } : {}),
       ...(query.platform?.length ? { platforms: query.platform } : {}),
+      ...(query.publicationState
+        ? { publicationState: query.publicationState }
+        : {}),
+      ...(query.search?.trim() ? { search: query.search.trim() } : {}),
+      ...(query.sort ? { sort: query.sort } : {}),
       ...(query.source?.length ? { sources: query.source } : {}),
-      startDate: new Date(query.startDate),
+      ...(query.startDate ? { startDate: new Date(query.startDate) } : {}),
       ...(query.status?.length ? { statuses: query.status } : {}),
     });
   }
