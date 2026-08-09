@@ -70,6 +70,10 @@ export function useAgentThreadList({
   const previousBrandIdRef = useRef(brandId);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  // When the operator picks Recent/Archived, keep that choice even if the open
+  // thread is archived — auto-switch only applies until the next manual toggle
+  // or a different thread is selected.
+  const userPinnedViewRef = useRef<AgentThreadStatus | null>(null);
   const activeThreadStatus = useAgentChatStore((s) => {
     if (!s.activeThreadId) {
       return null;
@@ -318,10 +322,14 @@ export function useAgentThreadList({
   }, [activeThreadId, isActive, threads, loadThreads, viewStatus]);
 
   // Deep-linking into an archived thread must not leave the sidebar on Active
-  // ("No threads"). Only auto-enter archived view — never force Active so
-  // operators can still browse the archive while a live thread is open.
+  // ("No threads"). Only auto-enter archived when the operator has not pinned
+  // a list view (Recent/Archived menu) for this open thread.
   useEffect(() => {
     if (!isActive || !activeThreadId || !activeThreadStatus) {
+      return;
+    }
+
+    if (userPinnedViewRef.current != null) {
       return;
     }
 
@@ -332,6 +340,16 @@ export function useAgentThreadList({
       setViewStatus(AgentThreadStatus.ARCHIVED);
     }
   }, [activeThreadId, activeThreadStatus, isActive, viewStatus]);
+
+  // New open thread clears the manual pin so a deep link can auto-switch again.
+  const previousActiveForViewRef = useRef(activeThreadId);
+  useEffect(() => {
+    if (previousActiveForViewRef.current === activeThreadId) {
+      return;
+    }
+    previousActiveForViewRef.current = activeThreadId;
+    userPinnedViewRef.current = null;
+  }, [activeThreadId]);
 
   const handleSelect = useCallback(
     async (thread: AgentThread) => {
@@ -652,11 +670,14 @@ export function useAgentThreadList({
     !authError && !shouldShowLoadFailureState && !isLoading;
 
   const handleToggleView = useCallback(() => {
-    setViewStatus((current) =>
-      current === AgentThreadStatus.ACTIVE
-        ? AgentThreadStatus.ARCHIVED
-        : AgentThreadStatus.ACTIVE,
-    );
+    setViewStatus((current) => {
+      const next =
+        current === AgentThreadStatus.ACTIVE
+          ? AgentThreadStatus.ARCHIVED
+          : AgentThreadStatus.ACTIVE;
+      userPinnedViewRef.current = next;
+      return next;
+    });
   }, []);
 
   const handleRetryLoad = useCallback(() => {
