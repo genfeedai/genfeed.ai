@@ -2,7 +2,10 @@ import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
 } from '@genfeedai/interfaces';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import {
+  AgentArtifactReferenceService,
+  type AgentArtifactReferenceTransaction,
+} from '@genfeedai/server';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@genfeedai/serializers', () => {
@@ -252,7 +255,7 @@ describe('AgentArtifactReferenceService', () => {
     await service.createOrReuseVersionPin({
       createdByUserId: userId,
       reference: reference('post'),
-      transaction,
+      transaction: transaction as unknown as AgentArtifactReferenceTransaction,
     });
 
     expect(transaction.post.findFirst).toHaveBeenCalled();
