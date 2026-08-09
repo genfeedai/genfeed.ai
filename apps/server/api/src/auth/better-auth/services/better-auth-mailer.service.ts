@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import {
   buildSystemEmailHtml,
@@ -42,6 +43,26 @@ export function resolveBrowserAuthActionUrl(
   }
 }
 
+const AUTH_LINK_CORRELATION_ID_LENGTH = 12;
+
+/**
+ * One-way correlation id for a delivered auth link.
+ *
+ * The plaintext token in a magic-link / reset URL is a bearer credential —
+ * whoever reads it can complete the action. It must therefore never reach a log
+ * sink, including under `NODE_ENV=development`: dev logs still flow through file
+ * and shared console transports, so "development" is not a privacy boundary.
+ * A truncated SHA-256 digest keeps the only thing operators actually need — the
+ * ability to tie a delivery log line to one specific issuance — while being
+ * useless as a credential and non-reversible back to the token.
+ */
+export function buildAuthLinkCorrelationId(token: string): string {
+  return createHash('sha256')
+    .update(token)
+    .digest('hex')
+    .slice(0, AUTH_LINK_CORRELATION_ID_LENGTH);
+}
+
 /**
  * Delivers Better Auth transactional emails through the existing notifications
  * pipeline (Redis → notifications service → Resend), so first-party auth reuses
@@ -60,6 +81,7 @@ export class BetterAuthMailerService {
   async sendMagicLink({
     email,
     metadata,
+    token,
     url,
   }: IBetterAuthMagicLinkParams): Promise<void> {
     const purpose = metadata?.intent === 'signup' ? 'sign-up' : 'sign-in';
@@ -72,24 +94,17 @@ export class BetterAuthMailerService {
 
     await this.notificationsService.sendEmail(email, subject, html);
 
-    // Log delivery without the recipient address (PII) — just the domain.
+    // Log delivery without the recipient address (PII) — just the domain — and
+    // without the action URL, which carries the bearer token.
     this.logger.log('Magic-link email dispatched', {
       ...this.context,
       emailDomain: email.split('@')[1] ?? 'unknown',
+      linkId: buildAuthLinkCorrelationId(token),
     });
-
-    // Local QA: tokens are stored hashed, so the plaintext URL is only
-    // available at send time. Surface it in non-production logs so agents
-    // and developers can complete magic-link login without the inbox.
-    if (this.configService.isDevelopment) {
-      this.logger.log('Magic-link URL (local only)', {
-        ...this.context,
-        url: actionUrl,
-      });
-    }
   }
 
   async sendVerificationEmail({
+    token,
     url,
     user,
   }: IBetterAuthVerificationEmailParams): Promise<void> {
@@ -101,10 +116,12 @@ export class BetterAuthMailerService {
     this.logger.log('Verification email dispatched', {
       ...this.context,
       emailDomain: user.email.split('@')[1] ?? 'unknown',
+      linkId: buildAuthLinkCorrelationId(token),
     });
   }
 
   async sendResetPassword({
+    token,
     url,
     user,
   }: IBetterAuthResetPasswordParams): Promise<void> {
@@ -117,14 +134,8 @@ export class BetterAuthMailerService {
     this.logger.log('Password reset email dispatched', {
       ...this.context,
       emailDomain: user.email.split('@')[1] ?? 'unknown',
+      linkId: buildAuthLinkCorrelationId(token),
     });
-
-    if (this.configService.isDevelopment) {
-      this.logger.log('Password-reset URL (local only)', {
-        ...this.context,
-        url: actionUrl,
-      });
-    }
   }
 
   private resolveActionUrl(url: string): string {
