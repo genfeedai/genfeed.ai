@@ -66,8 +66,6 @@ const REQUEST_TIMEOUT_MS = 15_000;
  * - /retainer, /dfy, /fleet are high-ticket pitch pages: deliberately kept out
  *   of nav/footer (direct-send sales collateral + ad landing pages) but listed
  *   in the sitemap so a shared link stays indexable.
- * - /download is unlinked from nav/footer until the first desktop build ships;
- *   link it once the download works and drop this entry.
  */
 const ORPHAN_ALLOWLIST = new Set<string>([
   '/llms.txt',
@@ -75,7 +73,6 @@ const ORPHAN_ALLOWLIST = new Set<string>([
   '/retainer',
   '/dfy',
   '/fleet',
-  '/download',
 ]);
 
 /**
