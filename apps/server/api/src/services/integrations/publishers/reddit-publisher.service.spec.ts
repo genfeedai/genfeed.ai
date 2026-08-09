@@ -95,19 +95,6 @@ describe('RedditPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Mock post with video
-  const mockVideoPost = {
-    id: mockPostId,
-    brandId: mockBrandId,
-    category: PostCategory.VIDEO,
-    description: '<p>Test video post</p>',
-    ingredients: [mockIngredientId],
-    isDeleted: false,
-    organizationId: mockOrganizationId,
-    status: PostStatus.DRAFT,
-    userId: mockUserId,
-  } as unknown as PostEntity;
-
   // Create publish context helper
   const createPublishContext = (
     post: PostEntity,

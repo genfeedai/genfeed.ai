@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 describe('publish-list-page', () => {
-  it('hydrates the posts list query cache for hot posts routes', () => {
+  it('hydrates canonical release queries for Publish routes and retains the admin compatibility list', () => {
     const source = readFileSync(
       join(
         process.cwd(),
@@ -14,6 +14,11 @@ describe('publish-list-page', () => {
 
     expect(source).toContain('ServerQueryHydrationBoundary');
     expect(source).toContain('prefetchServerQuery');
+    expect(source).toContain('buildReleasePostsListQueryKey');
+    expect(source).toContain('normalizeReleasePostContentTypes');
+    expect(source).toContain('contentTypes={contentTypes}');
+    expect(source).toContain('initialData.releases');
+    expect(source).toContain('ReleasePostsList');
     expect(source).toContain('buildPostsListQueryKey');
     expect(source).toContain('initialData.posts');
   });

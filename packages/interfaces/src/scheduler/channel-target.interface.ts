@@ -1,5 +1,6 @@
 import type {
   CredentialPlatform,
+  PostCategory,
   PostVisibility,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
@@ -91,6 +92,8 @@ export interface IChannelTarget extends IBaseEntity {
   /** Release group this target belongs to. */
   releaseId: string;
   platform: CredentialPlatform;
+  /** Content category used by canonical Publish list filters. */
+  category?: PostCategory;
   /** Credential used to publish; relation is hydrated in serialized responses. */
   credentialId: string;
   credential?: ICredential;

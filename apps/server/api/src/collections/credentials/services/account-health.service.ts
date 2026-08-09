@@ -320,6 +320,8 @@ export class AccountHealthService {
 
   private async buildSignals(
     credential: Credential,
+    // Credential.organizationId is nullable in the schema; the caller always
+    // resolves the credential inside a known organization, so scope on that.
     organizationId: string,
     overrides: Partial<AccountHealthSignals> | undefined,
   ): Promise<AccountHealthSignals> {
