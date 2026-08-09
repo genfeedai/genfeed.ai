@@ -1,4 +1,5 @@
-import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 
 export type ContentSignalType =
   | 'cron'
@@ -12,9 +13,15 @@ export interface ContentSignal {
   organizationId: string;
   payload?: Record<string, unknown>;
   type: ContentSignalType;
+  userId?: string;
 }
 
 export interface ContentGatewayResult {
-  drafts: ContentDraftDocument[];
+  posts: PostDocument[];
+  runs: string[];
+}
+
+export interface ContentGatewayResponse {
+  posts: JsonApiCollectionResponse;
   runs: string[];
 }

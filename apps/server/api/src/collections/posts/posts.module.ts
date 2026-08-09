@@ -24,6 +24,7 @@ import { PostGenerationService } from '@api/collections/posts/services/post-gene
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
@@ -60,6 +61,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostLifecycleModule,
     PostRepurposeService,
     PostsService,
+    ReviewablePostsService,
   ],
   imports: [
     forwardRef(() => ActivitiesModule),
@@ -93,6 +95,7 @@ import { PostAnalyticsCollectionStateService } from '@server/analytics/services/
     PostRepurposeService,
     PostThreadGenerationService,
     PostsService,
+    ReviewablePostsService,
   ],
 })
 export class PostsModule {}

@@ -3,6 +3,7 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ContentGatewayController } from '@api/services/content-gateway/content-gateway.controller';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Request } from 'express';
 
 describe('ContentGatewayController', () => {
   let controller: ContentGatewayController;
@@ -18,6 +19,9 @@ describe('ContentGatewayController', () => {
       user: '507f1f77bcf86cd799439011',
     },
   } as unknown as User;
+  const mockRequest = {
+    originalUrl: '/content-gateway/signal',
+  } as Request;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -28,10 +32,10 @@ describe('ContentGatewayController', () => {
           useValue: {
             processManualRequest: vi
               .fn()
-              .mockResolvedValue({ drafts: [], runs: ['run-2'] }),
+              .mockResolvedValue({ posts: [], runs: ['run-2'] }),
             routeSignal: vi
               .fn()
-              .mockResolvedValue({ drafts: [], runs: ['run-1'] }),
+              .mockResolvedValue({ posts: [], runs: ['run-1'] }),
           },
         },
       ],
@@ -45,7 +49,7 @@ describe('ContentGatewayController', () => {
   });
 
   it('routes a signal', async () => {
-    const result = await controller.routeSignal(mockUser, {
+    const result = await controller.routeSignal(mockRequest, mockUser, {
       brandId: 'brand-1',
       payload: {},
       type: 'cron',
@@ -62,7 +66,7 @@ describe('ContentGatewayController', () => {
   });
 
   it('executes a manual skill', async () => {
-    await controller.executeSkill(mockUser, {
+    await controller.executeSkill(mockRequest, mockUser, {
       brandId: 'brand-1',
       params: { prompt: 'x' },
       skillSlug: 'content-writing',
@@ -73,11 +77,12 @@ describe('ContentGatewayController', () => {
       'brand-1',
       'content-writing',
       { prompt: 'x' },
+      '507f1f77bcf86cd799439011',
     );
   });
 
-  it('uses organization from user metadata if dto omits organizationId', async () => {
-    await controller.routeSignal(mockUser, {
+  it('uses organization from authenticated user metadata', async () => {
+    await controller.routeSignal(mockRequest, mockUser, {
       brandId: 'brand-2',
       payload: {},
       type: 'manual',
@@ -90,25 +95,9 @@ describe('ContentGatewayController', () => {
     );
   });
 
-  it('prefers dto.organizationId over user metadata when provided', async () => {
-    const customOrgId = '507f1f77bcf86cd799439099';
-    await controller.routeSignal(mockUser, {
-      brandId: 'brand-3',
-      organizationId: customOrgId,
-      payload: {},
-      type: 'webhook',
-    });
-
-    expect(contentGatewayService.routeSignal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        organizationId: customOrgId,
-      }),
-    );
-  });
-
   it('passes payload through to service.routeSignal', async () => {
     const payload = { skillSlugs: ['video-gen', 'thumbnail'] };
-    await controller.routeSignal(mockUser, {
+    await controller.routeSignal(mockRequest, mockUser, {
       brandId: 'brand-1',
       payload,
       type: 'cron',
@@ -121,7 +110,7 @@ describe('ContentGatewayController', () => {
 
   it('passes params through to processManualRequest', async () => {
     const params = { format: 'reel', tone: 'casual' };
-    await controller.executeSkill(mockUser, {
+    await controller.executeSkill(mockRequest, mockUser, {
       brandId: 'brand-5',
       params,
       skillSlug: 'video-gen',
@@ -132,6 +121,35 @@ describe('ContentGatewayController', () => {
       'brand-5',
       'video-gen',
       params,
+      '507f1f77bcf86cd799439011',
     );
+  });
+
+  it('serializes posts before returning the gateway response', async () => {
+    contentGatewayService.routeSignal.mockResolvedValueOnce({
+      posts: [
+        {
+          description: 'Safe response',
+          id: 'post-1',
+          targetSettings: { internal: true },
+        },
+      ],
+      runs: ['run-1'],
+    });
+
+    const result = await controller.routeSignal(mockRequest, mockUser, {
+      brandId: 'brand-1',
+      payload: {},
+      type: 'manual',
+    });
+
+    expect(result.posts.data[0]).toMatchObject({
+      attributes: { description: 'Safe response' },
+      id: 'post-1',
+      type: 'post',
+    });
+    expect(result.posts.data[0]).not.toMatchObject({
+      attributes: { targetSettings: expect.anything() },
+    });
   });
 });

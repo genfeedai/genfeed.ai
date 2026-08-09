@@ -967,9 +967,9 @@ describe('TrendReferenceCorpusService', () => {
   });
 
   it('resolves metadata source URLs before creating org-scoped remix lineage', async () => {
-    await service.recordDraftRemixLineage({
+    await service.recordPostRemixLineage({
       brandId: 'brand_1',
-      contentDraftId: 'draft_1',
+      postId: 'post_1',
       generatedBy: 'test',
       metadata: {
         sourceUrl: 'https://example.com/a?utm=1',

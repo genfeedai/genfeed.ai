@@ -17,8 +17,8 @@ import {
 
 /**
  * Parity with `CreateBatchDto.count` (`@Max(100)`): a manual review handoff can
- * never legitimately exceed the size of a generated batch. Each item becomes one
- * sequential post `create` in `batch-generation-creation.service.ts`.
+ * never legitimately exceed the size of a generated batch. Each item either
+ * links one existing Post or creates one sequential Post.
  */
 const MAX_REVIEW_ITEMS = 100;
 
@@ -38,6 +38,15 @@ class ManualReviewBatchItemDto {
   @IsOptional()
   @IsEntityId()
   ingredientId?: string;
+
+  @ApiProperty({
+    description:
+      'Existing canonical draft Post to link instead of creating a duplicate',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  postId?: string;
 
   @ApiProperty({
     description: 'Display title for the linked draft post',

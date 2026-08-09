@@ -6,7 +6,7 @@ import type {
   BatchContentResult,
   BatchStatus,
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
-import { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
@@ -87,7 +87,7 @@ export class BatchContentService {
     return status;
   }
 
-  rankDrafts(drafts: ContentDraft[]): ContentDraft[] {
+  rankDrafts(drafts: GeneratedContent[]): GeneratedContent[] {
     const ranked = [...drafts]
       .sort((left, right) => {
         const rightConfidence = right.confidence ?? Number.NEGATIVE_INFINITY;

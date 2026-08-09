@@ -1,7 +1,7 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
-  type ContentDraft,
+  type GeneratedContent,
   type SkillExecutionContext,
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
@@ -42,7 +42,7 @@ export class TrendRemixHandler implements SkillHandler {
   async execute(
     context: SkillExecutionContext,
     params: Record<string, unknown>,
-  ): Promise<ContentDraft> {
+  ): Promise<GeneratedContent> {
     const platform =
       typeof params.platform === 'string'
         ? params.platform

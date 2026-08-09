@@ -1,5 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
+import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import type {
@@ -16,7 +16,7 @@ export class ContentGatewayService {
     private readonly brandsService: BrandsService,
     private readonly skillsService: SkillsService,
     private readonly skillExecutorService: SkillExecutorService,
-    private readonly contentDraftsService: ContentDraftsService,
+    private readonly reviewablePostsService: ReviewablePostsService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -31,7 +31,7 @@ export class ContentGatewayService {
     );
 
     const runs: string[] = [];
-    const drafts: ContentGatewayResult['drafts'] = [];
+    const posts: ContentGatewayResult['posts'] = [];
 
     for (const skillSlug of enabledSkillSlugs) {
       const execution = await this.skillExecutorService.executeSkill(
@@ -46,27 +46,28 @@ export class ContentGatewayService {
 
       runs.push(execution.runId);
 
-      const createdDrafts =
-        await this.contentDraftsService.createFromSkillExecution(
-          signal.organizationId,
-          signal.brandId,
+      const createdPosts =
+        await this.reviewablePostsService.createFromSkillExecution({
+          brandId: signal.brandId,
+          drafts: execution.drafts,
+          organizationId: signal.organizationId,
+          runId: execution.runId,
           skillSlug,
-          execution.runId,
-          execution.drafts,
-        );
+          userId: signal.userId,
+        });
 
-      drafts.push(...createdDrafts);
+      posts.push(...createdPosts);
     }
 
     this.logger.log('Signal routed through ContentGateway', {
       brandId: signal.brandId,
-      drafts: drafts.length,
+      posts: posts.length,
       organizationId: signal.organizationId,
       runs: runs.length,
       signalType: signal.type,
     });
 
-    return { drafts, runs };
+    return { posts, runs };
   }
 
   async processManualRequest(
@@ -74,6 +75,7 @@ export class ContentGatewayService {
     brandId: string,
     skillSlug: string,
     params?: Record<string, unknown>,
+    userId?: string,
   ): Promise<ContentGatewayResult> {
     await this.assertBrand(organizationId, brandId);
 
@@ -87,16 +89,17 @@ export class ContentGatewayService {
       params,
     );
 
-    const drafts = await this.contentDraftsService.createFromSkillExecution(
-      organizationId,
+    const posts = await this.reviewablePostsService.createFromSkillExecution({
       brandId,
+      drafts: execution.drafts,
+      organizationId,
+      runId: execution.runId,
       skillSlug,
-      execution.runId,
-      execution.drafts,
-    );
+      userId,
+    });
 
     return {
-      drafts,
+      posts,
       runs: [execution.runId],
     };
   }

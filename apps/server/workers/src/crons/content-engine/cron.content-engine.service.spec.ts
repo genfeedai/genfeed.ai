@@ -2,14 +2,12 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { ContentReviewService } from '@api/services/content-engine/content-review.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronContentEngineService } from '@workers/crons/content-engine/cron.content-engine.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockBrand = {
-  _id: 'brand-id-1',
   agentConfig: {
     autoPublish: { enabled: true },
     strategy: {
@@ -19,22 +17,19 @@ const mockBrand = {
       platforms: ['instagram', 'tiktok'],
     },
   },
+  id: 'brand-id-1',
   isActive: true,
   isDeleted: false,
-  organization: { toString: () => 'org-id-1' },
-  user: { toString: () => 'user-id-1' },
+  organizationId: 'org-id-1',
+  userId: 'user-id-1',
 };
 
 const mockPlan = {
-  _id: 'plan-id-1',
+  id: 'plan-id-1',
 };
 
 const mockExecutionResult = {
-  results: [
-    { contentDraftId: 'draft-id-1' },
-    { contentDraftId: 'draft-id-2' },
-    { contentDraftId: null },
-  ],
+  results: [{ postId: 'post-id-1' }, { postId: 'post-id-2' }, {}],
   summary: { completed: 2, failed: 0, total: 3 },
 };
 
@@ -43,9 +38,6 @@ describe('CronContentEngineService', () => {
   let mockBrandsService: { find: ReturnType<typeof vi.fn> };
   let mockContentPlannerService: { generatePlan: ReturnType<typeof vi.fn> };
   let mockContentExecutionService: { executePlan: ReturnType<typeof vi.fn> };
-  let mockContentReviewService: {
-    autoApproveIfEligible: ReturnType<typeof vi.fn>;
-  };
   let mockCacheService: {
     acquireLock: ReturnType<typeof vi.fn>;
     releaseLock: ReturnType<typeof vi.fn>;
@@ -74,10 +66,6 @@ describe('CronContentEngineService', () => {
       executePlan: vi.fn().mockResolvedValue(mockExecutionResult),
     };
 
-    mockContentReviewService = {
-      autoApproveIfEligible: vi.fn().mockResolvedValue(undefined),
-    };
-
     mockCacheService = {
       acquireLock: vi.fn().mockResolvedValue(true),
       releaseLock: vi.fn().mockResolvedValue(undefined),
@@ -99,7 +87,6 @@ describe('CronContentEngineService', () => {
           provide: ContentExecutionService,
           useValue: mockContentExecutionService,
         },
-        { provide: ContentReviewService, useValue: mockContentReviewService },
         { provide: CacheService, useValue: mockCacheService },
         { provide: LoggerService, useValue: mockLogger },
       ],
@@ -174,26 +161,11 @@ describe('CronContentEngineService', () => {
       );
     });
 
-    it('should call autoApproveIfEligible for each draft with id', async () => {
-      await service.processContentEngine();
-
-      // Should be called for draft-id-1 and draft-id-2, but NOT null
-      expect(
-        mockContentReviewService.autoApproveIfEligible,
-      ).toHaveBeenCalledTimes(2);
-      expect(
-        mockContentReviewService.autoApproveIfEligible,
-      ).toHaveBeenCalledWith('org-id-1', 'brand-id-1', 'draft-id-1');
-      expect(
-        mockContentReviewService.autoApproveIfEligible,
-      ).toHaveBeenCalledWith('org-id-1', 'brand-id-1', 'draft-id-2');
-    });
-
     it('should continue processing remaining brands when one brand fails', async () => {
       const brand2 = {
         ...mockBrand,
-        _id: 'brand-id-2',
-        organization: { toString: () => 'org-id-2' },
+        id: 'brand-id-2',
+        organizationId: 'org-id-2',
       };
       mockBrandsService.find.mockResolvedValue([mockBrand, brand2]);
       mockContentPlannerService.generatePlan

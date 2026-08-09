@@ -1,4 +1,4 @@
-import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import type { GeneratedContent } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 
 export interface BatchContentRequest {
   organizationId: string;
@@ -9,7 +9,7 @@ export interface BatchContentRequest {
 }
 
 export interface BatchContentResult {
-  results: ContentDraft[];
+  results: GeneratedContent[];
   summary: {
     total: number;
     completed: number;
@@ -31,7 +31,7 @@ export interface BatchStatus {
   total: number;
   completed: number;
   failed: number;
-  results: ContentDraft[];
+  results: GeneratedContent[];
   status: BatchLifecycleStatus;
 }
 

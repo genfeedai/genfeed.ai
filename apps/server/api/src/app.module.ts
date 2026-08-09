@@ -26,7 +26,6 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CaptionsModule } from '@api/collections/captions/captions.module';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
 import { ClipResultsModule } from '@api/collections/clip-results/clip-results.module';
-import { ContentDraftsModule } from '@api/collections/content-drafts/content-drafts.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { ContentPlanItemsModule } from '@api/collections/content-plan-items/content-plan-items.module';
@@ -272,7 +271,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     ClipProjectsModule,
     EditorProjectsModule,
     ClipResultsModule,
-    ContentDraftsModule,
     ContentPlanItemsModule,
     ContentPlansModule,
     ContentIntelligenceModule,

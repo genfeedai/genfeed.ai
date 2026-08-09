@@ -13,6 +13,6 @@ export const contentPlanItemAttributes = createEntityAttributes([
   'skillSlug',
   'pipelineSteps',
   'confidence',
-  'contentDraftId',
+  'postId',
   'error',
 ]);

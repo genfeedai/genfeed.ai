@@ -1,13 +1,20 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
+import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import {
   ExecuteSkillDto,
   RouteSignalDto,
 } from '@api/services/content-gateway/dto/content-gateway.dto';
-import { Body, Controller, Post } from '@nestjs/common';
+import type {
+  ContentGatewayResponse,
+  ContentGatewayResult,
+} from '@api/services/content-gateway/interfaces/content-gateway.interfaces';
+import { PostSerializer } from '@genfeedai/serializers';
+import { Body, Controller, Post, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 
 @ApiTags('ContentGateway')
 @Controller('content-gateway')
@@ -15,26 +22,50 @@ export class ContentGatewayController {
   constructor(private readonly contentGatewayService: ContentGatewayService) {}
 
   @Post('signal')
-  routeSignal(@CurrentUser() user: User, @Body() dto: RouteSignalDto) {
-    const { organization } = getPublicMetadata(user);
+  async routeSignal(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: RouteSignalDto,
+  ): Promise<ContentGatewayResponse> {
+    const { organization, user: userId } = getPublicMetadata(user);
 
-    return this.contentGatewayService.routeSignal({
+    const result = await this.contentGatewayService.routeSignal({
       brandId: dto.brandId,
-      organizationId: dto.organizationId ?? organization,
+      organizationId: organization,
       payload: dto.payload,
       type: dto.type,
+      userId,
     });
+    return this.serializeResult(request, result);
   }
 
   @Post('execute')
-  executeSkill(@CurrentUser() user: User, @Body() dto: ExecuteSkillDto) {
-    const { organization } = getPublicMetadata(user);
+  async executeSkill(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: ExecuteSkillDto,
+  ): Promise<ContentGatewayResponse> {
+    const { organization, user: userId } = getPublicMetadata(user);
 
-    return this.contentGatewayService.processManualRequest(
+    const result = await this.contentGatewayService.processManualRequest(
       organization,
       dto.brandId,
       dto.skillSlug,
       dto.params,
+      userId,
     );
+    return this.serializeResult(request, result);
+  }
+
+  private serializeResult(
+    request: Request,
+    result: ContentGatewayResult,
+  ): ContentGatewayResponse {
+    return {
+      posts: serializeCollection(request, PostSerializer, {
+        docs: result.posts,
+      }),
+      runs: result.runs,
+    };
   }
 }

@@ -387,7 +387,7 @@
     {
       "delegate": "contentPlanItem",
       "file": "apps/server/api/src/collections/content-plan-items/services/content-plan-items.service.ts",
-      "fingerprint": "a06b454e147f17159add",
+      "fingerprint": "2600c973c4a3268d72be",
       "method": "update",
       "model": "ContentPlanItem",
       "reason": "missing-is-deleted"
@@ -395,7 +395,7 @@
     {
       "delegate": "contentPlanItem",
       "file": "apps/server/api/src/collections/content-plan-items/services/content-plan-items.service.ts",
-      "fingerprint": "ad3fc4ed1b0a8fd84e04",
+      "fingerprint": "c117352f3feec18cc95a",
       "method": "update",
       "model": "ContentPlanItem",
       "reason": "missing-organization-id"
@@ -2367,14 +2367,6 @@
       "method": "update",
       "model": "TrendPreferences",
       "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "trendRemixLineage",
-      "file": "apps/server/api/src/collections/trends/services/trend-reference-corpus.service.ts",
-      "fingerprint": "9b3280ffb80746659d9c",
-      "method": "findFirst",
-      "model": "TrendRemixLineage",
-      "reason": "unresolved-where"
     },
     {
       "delegate": "watchlist",

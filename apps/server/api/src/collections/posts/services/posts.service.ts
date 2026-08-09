@@ -38,6 +38,7 @@ import {
   PostStatus,
   PostVisibility,
   parsePlatform,
+  type ReviewDecision,
   TargetExecutionState,
   type TargetValidationState,
 } from '@genfeedai/enums';
@@ -111,16 +112,24 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  targetAttachments?: Prisma.InputJsonValue;
   targetExecutionState?: TargetExecutionState;
-  targetSettings?: Record<string, unknown>;
+  targetIdempotencyKey?: string;
+  targetSettings?: Prisma.InputJsonValue;
   targetValidationIssues?: string[];
   targetValidationState?: TargetValidationState;
   userId?: string;
 };
 
 type PostUpdateInput = Partial<UpdatePostDto> & {
+  agentStrategyId?: string;
   brandId?: string;
   organizationId?: string;
+  platform?: CredentialPlatform;
+  reviewDecision?: ReviewDecision;
+  reviewFeedback?: string;
+  reviewedAt?: Date;
+  targetSettings?: Prisma.InputJsonValue;
   userId?: string;
 };
 

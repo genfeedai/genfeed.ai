@@ -6,7 +6,7 @@ export interface SkillExecutionContext {
   memory?: Record<string, unknown>;
 }
 
-export interface ContentDraft {
+export interface GeneratedContent {
   type: string;
   content: string;
   mediaUrls?: string[];
@@ -16,7 +16,7 @@ export interface ContentDraft {
   confidence?: number;
 }
 
-export interface ContentDraftInput {
+export interface GeneratedContentInput {
   type: string;
   content: string;
   mediaUrls?: string[];
@@ -26,9 +26,10 @@ export interface ContentDraftInput {
 }
 
 export interface SkillExecutionResult {
-  draft: ContentDraft;
+  draft: GeneratedContent;
   duration: number;
   creditsUsed: number;
+  runId: string;
   source: 'byok' | 'hosted' | 'managed';
 }
 
@@ -40,12 +41,12 @@ export interface GatewayExecutionContext {
 
 export interface GatewayExecutionResult {
   runId: string;
-  drafts: ContentDraftInput[];
+  drafts: GeneratedContentInput[];
 }
 
 export interface SkillHandler {
   execute(
     context: SkillExecutionContext,
     params: Record<string, unknown>,
-  ): Promise<ContentDraft>;
+  ): Promise<GeneratedContent>;
 }

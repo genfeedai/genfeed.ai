@@ -41,7 +41,6 @@ exports[`Connection-Model Mapping > should match the full model→connection sna
   "Caption": "CLOUD",
   "ClipProject": "CLIPS",
   "ClipResult": "CLIPS",
-  "ContentDraft": "CLOUD",
   "ContentPattern": "CLOUD",
   "ContentPerformance": "CLOUD",
   "ContentPlan": "CLOUD",

@@ -41,6 +41,7 @@ function createMockSkillExecutor(
         type: 'text',
       },
       duration: 120,
+      runId: 'run-1',
       source: 'hosted',
     } satisfies SkillExecutionResult),
     ...overrides,

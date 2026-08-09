@@ -2,7 +2,10 @@ import type {
   AgentArtifactRecordKind,
   AgentArtifactReference,
 } from '@genfeedai/interfaces';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import {
+  AgentArtifactReferenceService,
+  type AgentArtifactReferenceTransaction,
+} from '@genfeedai/server';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 vi.mock('@genfeedai/serializers', () => {
@@ -14,7 +17,6 @@ vi.mock('@genfeedai/serializers', () => {
   return {
     ArticleSerializer: serializer,
     AssetSerializer: serializer,
-    ContentDraftSerializer: serializer,
     IngredientSerializer: serializer,
     NewsletterSerializer: serializer,
     PostSerializer: serializer,
@@ -50,7 +52,6 @@ function createPrismaMock() {
     article: delegate(),
     asset: delegate(),
     brand: delegate(),
-    contentDraft: delegate(),
     contentVersionPin: delegate(),
     ingredient: delegate(),
     member: delegate(),
@@ -99,15 +100,6 @@ describe('AgentArtifactReferenceService', () => {
     {
       fixture: {
         brandId,
-        content: 'Draft',
-        id: 'content-draft-1',
-        organizationId: orgId,
-      },
-      kind: 'content-draft',
-    },
-    {
-      fixture: {
-        brandId,
         id: 'ingredient-1',
         organizationId: orgId,
         sources: [],
@@ -137,9 +129,7 @@ describe('AgentArtifactReferenceService', () => {
   ])(
     'resolves and serializes an authorized $kind record',
     async ({ fixture, kind }) => {
-      prisma[
-        kind === 'content-draft' ? 'contentDraft' : kind
-      ].findFirst.mockResolvedValue(fixture);
+      prisma[kind].findFirst.mockResolvedValue(fixture);
       if (kind === 'asset') {
         prisma.brand.findFirst.mockResolvedValue({
           id: brandId,
@@ -265,7 +255,7 @@ describe('AgentArtifactReferenceService', () => {
     await service.createOrReuseVersionPin({
       createdByUserId: userId,
       reference: reference('post'),
-      transaction,
+      transaction: transaction as unknown as AgentArtifactReferenceTransaction,
     });
 
     expect(transaction.post.findFirst).toHaveBeenCalled();

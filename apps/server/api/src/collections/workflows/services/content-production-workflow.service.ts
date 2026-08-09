@@ -4,7 +4,6 @@ import { ContentSchedulesService } from '@api/collections/content-schedules/serv
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { ContentReviewService } from '@api/services/content-engine/content-review.service';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
@@ -69,7 +68,6 @@ export class ContentProductionWorkflowService {
     private readonly brandsService: BrandsService,
     private readonly contentPlannerService: ContentPlannerService,
     private readonly contentExecutionService: ContentExecutionService,
-    private readonly contentReviewService: ContentReviewService,
     private readonly prisma: PrismaService,
     private readonly contentPipelineQueueService: ContentPipelineQueueService,
     private readonly contentSchedulesService: ContentSchedulesService,
@@ -284,7 +282,10 @@ export class ContentProductionWorkflowService {
     organizationId: string,
   ): Promise<void> {
     const brandId = String(brand.id);
-    const userId = this.optionalString(brand.userId) ?? organizationId;
+    const userId = this.optionalString(brand.userId);
+    if (!userId) {
+      throw new Error(`Brand ${brandId} has no canonical user owner`);
+    }
     const strategy = this.readRecord(
       this.readRecord(brand.agentConfig).strategy,
     );
@@ -310,22 +311,12 @@ export class ContentProductionWorkflowService {
       },
     );
 
-    const result = await this.contentExecutionService.executePlan(
+    await this.contentExecutionService.executePlan(
       organizationId,
       brandId,
       String(plan.id),
       userId,
     );
-
-    for (const executionResult of result.results) {
-      if (executionResult.contentDraftId) {
-        await this.contentReviewService.autoApproveIfEligible(
-          organizationId,
-          brandId,
-          executionResult.contentDraftId,
-        );
-      }
-    }
   }
 
   private async processPersona(
