@@ -225,6 +225,7 @@ describe('PostGroupPersistenceService', () => {
         {
           credentialId: 'credential-1',
           platform: CredentialPlatform.TWITTER,
+          visibility: PostVisibility.PUBLIC,
         },
       ],
     );
@@ -246,6 +247,7 @@ describe('PostGroupPersistenceService', () => {
         {
           credentialId: 'credential-1',
           platform: CredentialPlatform.TWITTER,
+          visibility: PostVisibility.PUBLIC,
         },
       ]),
     ).rejects.toThrow(BadRequestException);
@@ -565,6 +567,7 @@ describe('PostGroupPersistenceService', () => {
           {
             credentialId: 'credential-1',
             platform: CredentialPlatform.TWITTER,
+            visibility: PostVisibility.PUBLIC,
           },
         ],
         timezone: 'UTC',
@@ -578,6 +581,7 @@ describe('PostGroupPersistenceService', () => {
       target: {
         credentialId: 'credential-1',
         platform: CredentialPlatform.TWITTER,
+        visibility: PostVisibility.PUBLIC,
       },
       userId: 'user-1',
     });
@@ -616,6 +620,7 @@ describe('PostGroupPersistenceService', () => {
           {
             credentialId: 'credential-1',
             platform: CredentialPlatform.TWITTER,
+            visibility: PostVisibility.PUBLIC,
           },
         ],
         timezone: 'UTC',
@@ -631,6 +636,7 @@ describe('PostGroupPersistenceService', () => {
         ],
         credentialId: 'credential-1',
         platform: CredentialPlatform.TWITTER,
+        visibility: PostVisibility.PUBLIC,
       },
       userId: 'user-1',
     });

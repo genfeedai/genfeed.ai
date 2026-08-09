@@ -577,14 +577,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 2,
-      "file": "apps/server/api/src/collections/dashboard-layouts/services/dashboard-layouts.service.spec.ts",
-      "fingerprint": "37cb7c83a3465499cc0d",
-      "message": "Type '{ blocks: never[]; version: string; }' is not assignable to type 'PersistedDashboardLayoutDocument'.   Types of property 'version' are incompatible.     Type 'string' is not assignable to type '\"genfeed.dashboard.openui.v1\"'.",
-      "workspace": "api"
-    },
-    {
       "code": 2345,
       "count": 1,
       "file": "apps/server/api/src/collections/distributions/controllers/distributions.controller.spec.ts",
@@ -1470,30 +1462,6 @@
       "file": "apps/server/api/src/collections/posts/services/post-generation.service.spec.ts",
       "fingerprint": "e16fa3b1d232d4d0e2b7",
       "message": "Type '\"twitter\"' is not assignable to type 'HookPlatform'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/posts/services/post-generation.service.spec.ts",
-      "fingerprint": "1a4c7e8b33acfab0a7b1",
-      "message": "Argument of type '{ description: string; id: string; brandId: string; credentialId: string; organizationId: string; platform: CredentialPlatform; userId: string; }' is not assignable to parameter of type 'PostDocument'.   Type '{ description: string; id: string; brandId: string; credentialId: string; organizationId: string; platform: Platform; userId: string; }' is missing the following properties from type 'PostDocument': isDeleted, status, label, source, and 72 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/posts/services/post-generation.service.spec.ts",
-      "fingerprint": "898ffe7b1c0708a3fab7",
-      "message": "Argument of type '{ id: string; brandId: string; credentialId: string; description: string; organizationId: string; platform: CredentialPlatform; userId: string; }' is not assignable to parameter of type 'PostDocument'.   Type '{ id: string; brandId: string; credentialId: string; description: string; organizationId: string; platform: Platform; userId: string; }' is missing the following properties from type 'PostDocument': isDeleted, status, label, source, and 72 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2740,
-      "count": 6,
-      "file": "apps/server/api/src/collections/posts/services/post-generation.service.spec.ts",
-      "fingerprint": "8df74fa2e890dbdc8aa7",
-      "message": "Type '{ id: string; brandId: string; credentialId: string; description: string; organizationId: string; platform: Platform; userId: string; }' is missing the following properties from type 'PostDocument': isDeleted, status, label, source, and 72 more.",
       "workspace": "api"
     },
     {
