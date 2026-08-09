@@ -2,15 +2,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   posthogCapture: vi.fn(),
+  posthogImport: vi.fn(),
   posthogInit: vi.fn(),
 }));
 
-vi.mock('posthog-js', () => ({
-  default: {
-    capture: mocks.posthogCapture,
-    init: mocks.posthogInit,
-  },
-}));
+vi.mock('posthog-js', () => {
+  mocks.posthogImport();
+  return {
+    default: {
+      capture: mocks.posthogCapture,
+      init: mocks.posthogInit,
+    },
+  };
+});
 
 type WebsitePosthogClientModule = typeof import('./posthog-client');
 
@@ -45,7 +49,7 @@ function dispatchTrackedCta(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test_key');
+  vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_testkey');
 });
 
 afterEach(() => {
@@ -61,8 +65,12 @@ describe('isWebsiteAnalyticsEnabled', () => {
     expect(client.isWebsiteAnalyticsEnabled()).toBe(true);
   });
 
-  it('is disabled when no PostHog key is configured', async () => {
-    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', '');
+  it.each([
+    ['a placeholder', '-'],
+    ['an empty value', ''],
+    ['a non-PostHog value', 'project_123'],
+  ])('is disabled when the key is %s', async (_label, key) => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', key);
     const client = await loadClient();
     expect(client.isWebsiteAnalyticsEnabled()).toBe(false);
   });
@@ -76,7 +84,7 @@ describe('initWebsiteAnalytics', () => {
 
     expect(mocks.posthogInit).toHaveBeenCalledTimes(1);
     expect(mocks.posthogInit).toHaveBeenCalledWith(
-      'phc_test_key',
+      'phc_testkey',
       expect.objectContaining({
         api_host: 'https://eu.i.posthog.com',
         autocapture: {
@@ -94,12 +102,17 @@ describe('initWebsiteAnalytics', () => {
     );
   });
 
-  it('never loads the SDK when no key is configured', async () => {
-    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', '');
+  it.each([
+    ['a placeholder', '-'],
+    ['empty', ''],
+    ['a non-PostHog value', 'project_123'],
+  ])('never loads the SDK when the key is %s', async (_label, key) => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', key);
     const client = await loadClient();
     client.initWebsiteAnalytics();
     await flushInit();
 
+    expect(mocks.posthogImport).not.toHaveBeenCalled();
     expect(mocks.posthogInit).not.toHaveBeenCalled();
   });
 

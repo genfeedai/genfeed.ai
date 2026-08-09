@@ -42,6 +42,7 @@ jobs:
       VERCEL_ORG_ID: team_hFVCbNU4RnfEpQOeSWRxmhEJ
       VERCEL_PROJECT_ID: ${{ matrix.project_id }}
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      NEXT_PUBLIC_POSTHOG_HOST: https://eu.i.posthog.com
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
     steps:
       - uses: actions/checkout@v5
@@ -55,6 +56,38 @@ jobs:
 
       - name: Pull Vercel production environment
         run: vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
+
+      - name: Validate production frontend environment
+        run: |
+          env_file=".vercel/.env.production.local"
+          if [ ! -f "$env_file" ]; then
+            echo "::error::Vercel production environment file is missing."
+            exit 1
+          fi
+
+          if ! printf '%s' "$NEXT_PUBLIC_POSTHOG_KEY" | grep -Eq '^phc_[A-Za-z0-9]+$'; then
+            echo "::error::NEXT_PUBLIC_POSTHOG_KEY must be a valid PostHog project token."
+            exit 1
+          fi
+
+          awk '!/^(NEXT_PUBLIC_POSTHOG_KEY|NEXT_PUBLIC_POSTHOG_HOST)=/' "$env_file" > "${env_file}.tmp"
+          {
+            printf 'NEXT_PUBLIC_POSTHOG_KEY=%s\n' "$NEXT_PUBLIC_POSTHOG_KEY"
+            printf 'NEXT_PUBLIC_POSTHOG_HOST=%s\n' "$NEXT_PUBLIC_POSTHOG_HOST"
+          } >> "${env_file}.tmp"
+          mv "${env_file}.tmp" "$env_file"
+
+          if [ "$VERCEL_PROJECT_ID" = "prj_1iMHTqANXgCLd3wALOFcWNtgrdAc" ]; then
+            cloud_value="$(awk -F= '$1 == "NEXT_PUBLIC_GENFEED_CLOUD" { print substr($0, index($0, "=") + 1); exit }' "$env_file")"
+            cloud_value="${cloud_value#\"}"
+            cloud_value="${cloud_value%\"}"
+            cloud_value="${cloud_value#\'}"
+            cloud_value="${cloud_value%\'}"
+            if [ "$cloud_value" != "1" ]; then
+              echo "::error::app.genfeed.ai requires NEXT_PUBLIC_GENFEED_CLOUD=1 in its Vercel Production environment."
+              exit 1
+            fi
+          fi
 
       - name: Preserve runner PATH for local Vercel build
         run: |
