@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { ConfigService } from '@videos/config/config.service';
 
 const { existsSyncMock, fsMock, readFileSyncMock } = vi.hoisted(() => {
@@ -20,7 +19,10 @@ const { existsSyncMock, fsMock, readFileSyncMock } = vi.hoisted(() => {
 vi.mock('node:fs', () => ({ default: fsMock, ...fsMock }));
 vi.mock('fs', () => ({ default: fsMock, ...fsMock }));
 
-/** Env keys this suite mutates; each is restored between tests. */
+/**
+ * Env keys this suite controls. Every one is cleared before each test so an
+ * ambient value from the developer's shell cannot mask a getter's fallback.
+ */
 const MUTATED_KEYS = [
   'AWS_ACCESS_KEY_ID',
   'AWS_REGION',
@@ -29,31 +31,20 @@ const MUTATED_KEYS = [
   'COMFYUI_OUTPUT_PATH',
   'COMFYUI_URL',
   'GENFEEDAI_API_KEY',
-  'NODE_ENV',
   'REDIS_URL',
 ] as const;
 
 describe('ConfigService (Videos)', () => {
-  const originalValues = new Map<string, string | undefined>();
-
   beforeEach(() => {
     for (const key of MUTATED_KEYS) {
-      originalValues.set(key, process.env[key]);
-      delete process.env[key];
+      vi.stubEnv(key, undefined);
     }
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     existsSyncMock.mockReturnValue(false);
   });
 
   afterEach(() => {
-    for (const [key, value] of originalValues) {
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
-    }
-    originalValues.clear();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -70,7 +61,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.COMFYUI_URL = 'http://comfyui:8188';
+      vi.stubEnv('COMFYUI_URL', 'http://comfyui:8188');
       expect(new ConfigService().COMFYUI_URL).toBe('http://comfyui:8188');
     });
   });
@@ -83,7 +74,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.COMFYUI_OUTPUT_PATH = '/custom/comfy/output';
+      vi.stubEnv('COMFYUI_OUTPUT_PATH', '/custom/comfy/output');
       expect(new ConfigService().COMFYUI_OUTPUT_PATH).toBe(
         '/custom/comfy/output',
       );
@@ -96,7 +87,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.REDIS_URL = 'redis://redis:6379';
+      vi.stubEnv('REDIS_URL', 'redis://redis:6379');
       expect(new ConfigService().REDIS_URL).toBe('redis://redis:6379');
     });
   });
@@ -107,7 +98,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.GENFEEDAI_API_KEY = 'videos-api-key';
+      vi.stubEnv('GENFEEDAI_API_KEY', 'videos-api-key');
       expect(new ConfigService().API_KEY).toBe('videos-api-key');
     });
   });
@@ -123,10 +114,10 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('returns the configured values', () => {
-      process.env.AWS_ACCESS_KEY_ID = 'AKIA-TEST';
-      process.env.AWS_SECRET_ACCESS_KEY = 'secret-test';
-      process.env.AWS_S3_BUCKET = 'videos-bucket';
-      process.env.AWS_REGION = 'eu-west-1';
+      vi.stubEnv('AWS_ACCESS_KEY_ID', 'AKIA-TEST');
+      vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'secret-test');
+      vi.stubEnv('AWS_S3_BUCKET', 'videos-bucket');
+      vi.stubEnv('AWS_REGION', 'eu-west-1');
 
       const service = new ConfigService();
 
@@ -148,7 +139,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('reports the development environment', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       const service = new ConfigService();
 
       expect(service.isDevelopment).toBe(true);
@@ -156,7 +147,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('reports the production environment', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       const service = new ConfigService();
 
       expect(service.isProduction).toBe(true);
@@ -164,7 +155,7 @@ describe('ConfigService (Videos)', () => {
     });
 
     it('reports the staging environment', () => {
-      process.env.NODE_ENV = 'staging';
+      vi.stubEnv('NODE_ENV', 'staging');
       const service = new ConfigService();
 
       expect(service.isStaging).toBe(true);
@@ -190,7 +181,7 @@ describe('ConfigService (Videos)', () => {
       readFileSyncMock.mockReturnValue(
         Buffer.from('COMFYUI_URL=http://from-file:8188\n'),
       );
-      process.env.COMFYUI_URL = 'http://from-process:8188';
+      vi.stubEnv('COMFYUI_URL', 'http://from-process:8188');
 
       expect(new ConfigService().COMFYUI_URL).toBe('http://from-process:8188');
     });
