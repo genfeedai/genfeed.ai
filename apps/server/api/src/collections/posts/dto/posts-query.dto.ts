@@ -1,6 +1,11 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsDateString,
@@ -68,6 +73,26 @@ export class PostsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEnum(PostStatus)
   status?: PostStatus;
+
+  @ApiProperty({
+    description: 'Filter posts by canonical target execution state',
+    enum: TargetExecutionState,
+    enumName: 'TargetExecutionState',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(TargetExecutionState)
+  executionState?: TargetExecutionState;
+
+  @ApiProperty({
+    description: 'Filter posts by audience visibility',
+    enum: PostVisibility,
+    enumName: 'PostVisibility',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PostVisibility)
+  visibility?: PostVisibility;
 
   @ApiProperty({
     description: 'Filter posts by credential ID',

@@ -17,9 +17,9 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
-  PostStatus,
   RouterPriority,
   Status,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
@@ -545,7 +545,7 @@ export class AgentOnboardingToolHandler {
         this.postsService.findOne(
           {
             organizationId,
-            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           },
           [],
         ),

@@ -4,7 +4,7 @@ import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import type { CacheService } from '@api/services/cache/services/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { PostCategory, PostStatus } from '@genfeedai/enums';
+import { PostCategory, TargetExecutionState } from '@genfeedai/enums';
 import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -91,7 +91,7 @@ function planBatchWrites(
         credentialId: target.credentialId,
         platform: target.platform,
         scheduledDate,
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       };
 
       writes.push(
@@ -99,7 +99,7 @@ function planBatchWrites(
           data: cascadeData,
           where: scopedWhere(organizationId, {
             parentId: postId,
-            status: { not: PostStatus.PUBLIC },
+            targetExecutionState: { not: TargetExecutionState.PUBLISHED },
           }),
         }),
       );
@@ -114,7 +114,7 @@ function planBatchWrites(
       description: item.text,
       platform: target.platform,
       scheduledDate,
-      status: PostStatus.SCHEDULED,
+      targetExecutionState: TargetExecutionState.SCHEDULED,
       ...(item.timezone !== undefined && { timezone: item.timezone }),
     });
 

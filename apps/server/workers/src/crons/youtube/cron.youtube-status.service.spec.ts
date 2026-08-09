@@ -5,7 +5,11 @@ import {
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
-import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
+import {
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronYoutubeStatusService } from '@workers/crons/youtube/cron.youtube-status.service';
@@ -124,14 +128,18 @@ describe('CronYoutubeStatusService', () => {
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
       expect.objectContaining({
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
         url: 'https://www.youtube.com/watch?v=video-4',
+        visibility: PostVisibility.PUBLIC,
         workflowExecutionId: 'execution-1',
       }),
       'YouTube reports public',
       {
         expectedWorkflowExecutionId: 'execution-1',
-        priorExecutionStates: [TargetExecutionState.PUBLISHING],
+        priorExecutionStates: [
+          TargetExecutionState.PUBLISHING,
+          TargetExecutionState.PUBLISHED,
+        ],
       },
     );
     expect(postsService.patch).not.toHaveBeenCalled();
@@ -168,7 +176,10 @@ describe('CronYoutubeStatusService', () => {
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
       post,
-      expect.objectContaining({ status: PostStatus.PUBLIC }),
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PUBLIC,
+      }),
       'YouTube reports public',
       expect.any(Object),
     );

@@ -1,4 +1,8 @@
-import { PostStatus, TargetExecutionState } from '@genfeedai/enums';
+import {
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConflictException, HttpStatus } from '@nestjs/common';
 import {
   canTransitionPostLifecycle,
@@ -122,20 +126,20 @@ describe('PostLifecycleService', () => {
     const result = await service.transition({
       actorId: 'user-1',
       groupId: 'group-1',
-      legacyStatus: PostStatus.PROCESSING,
       mutation: { lastAttemptAt: new Date('2026-08-08T20:01:00.000Z') },
       nextState: TargetExecutionState.PUBLISHING,
       organizationId: 'org-1',
       postId: 'post-1',
       reason: 'Provider execution started',
+      visibility: PostVisibility.PRIVATE,
     });
 
     expect(result.kind).toBe('transitioned');
     expect(transaction.post.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: PostStatus.PROCESSING,
           targetExecutionState: TargetExecutionState.PUBLISHING,
+          visibility: PostVisibility.PRIVATE,
         }),
         where: expect.objectContaining({
           groupId: 'group-1',
@@ -154,6 +158,8 @@ describe('PostLifecycleService', () => {
         userId: 'user-1',
       }),
     });
+    const persistedData = transaction.post.updateMany.mock.calls[0]?.[0]?.data;
+    expect(persistedData).not.toHaveProperty('status');
     expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Function), {
       isolationLevel: 'Serializable',
     });
@@ -247,11 +253,11 @@ describe('PostLifecycleService', () => {
 
     const result = await service.transition(
       {
-        legacyStatus: PostStatus.PENDING,
         mutation: { externalId: 'provider-pending-1' },
         nextState: TargetExecutionState.PUBLISHING,
         organizationId: 'org-1',
         postId: 'post-1',
+        visibility: PostVisibility.UNLISTED,
       },
       transaction as never,
     );
@@ -261,7 +267,7 @@ describe('PostLifecycleService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           externalId: 'provider-pending-1',
-          status: PostStatus.PENDING,
+          visibility: PostVisibility.UNLISTED,
         }),
         where: expect.objectContaining({
           isDeleted: false,

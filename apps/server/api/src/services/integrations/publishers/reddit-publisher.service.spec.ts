@@ -14,7 +14,12 @@ import type {
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -85,19 +90,6 @@ describe('RedditPublisherService', () => {
     ingredients: [mockIngredientId],
     isDeleted: false,
     label: 'Image Post Title',
-    organizationId: mockOrganizationId,
-    status: PostStatus.DRAFT,
-    userId: mockUserId,
-  } as unknown as PostEntity;
-
-  // Mock post with video
-  const mockVideoPost = {
-    id: mockPostId,
-    brandId: mockBrandId,
-    category: PostCategory.VIDEO,
-    description: '<p>Test video post</p>',
-    ingredients: [mockIngredientId],
-    isDeleted: false,
     organizationId: mockOrganizationId,
     status: PostStatus.DRAFT,
     userId: mockUserId,
@@ -308,7 +300,7 @@ describe('RedditPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPostIdResult);
         expect(result.platform).toBe(CredentialPlatform.REDDIT);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toBe(
           `https://www.reddit.com/r/${mockSubreddit}/comments/${mockPostIdResult}`,
         );
@@ -324,7 +316,13 @@ describe('RedditPublisherService', () => {
       });
 
       it('should handle post without label', async () => {
-        const postWithoutLabel = { ...mockTextPost, label: undefined };
+        const postWithoutLabel = {
+          ...mockTextPost,
+          // Simulates a legacy row persisted before `label` became a
+          // required PostEntity field; the service still falls back to
+          // "Untitled" for these at runtime.
+          label: undefined as unknown as string,
+        };
         const context = createPublishContext(postWithoutLabel);
 
         redditService.submitPost.mockResolvedValue('post-123');
@@ -653,7 +651,7 @@ describe('RedditPublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -700,7 +698,7 @@ describe('RedditPublisherService', () => {
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         }),
       );
     });

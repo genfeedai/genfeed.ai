@@ -1,6 +1,7 @@
 import { AccountHealthService } from '@api/collections/credentials/services/account-health.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const now = new Date('2026-06-30T10:00:00.000Z');
@@ -179,7 +180,7 @@ describe('AccountHealthService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           credentialId: 'credential-1',
-          status: PostStatus.PUBLIC,
+          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
         }),
       }),
     );

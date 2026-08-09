@@ -1,4 +1,4 @@
-import { PostStatus } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { PostPublishJobData } from '@genfeedai/queue-contracts';
 import { ScheduledPostQueueService } from '@workers/services/scheduled-post-queue.service';
 
@@ -48,7 +48,13 @@ describe('ScheduledPostQueueService', () => {
           children: expect.objectContaining({
             where: {
               isDeleted: false,
-              status: PostStatus.SCHEDULED,
+              OR: expect.arrayContaining([
+                {
+                  targetExecutionState: {
+                    in: [TargetExecutionState.SCHEDULED],
+                  },
+                },
+              ]),
             },
           }),
         }),
@@ -63,6 +69,18 @@ describe('ScheduledPostQueueService', () => {
                   },
                 },
               ],
+            },
+            {
+              OR: expect.arrayContaining([
+                {
+                  targetExecutionState: {
+                    in: [
+                      TargetExecutionState.SCHEDULED,
+                      TargetExecutionState.PUBLISHING,
+                    ],
+                  },
+                },
+              ]),
             },
           ],
           OR: [
@@ -79,7 +97,6 @@ describe('ScheduledPostQueueService', () => {
           ],
           isDeleted: false,
           parentId: null,
-          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
         },
       }),
       expect.objectContaining({ limit: 50, page: 1 }),
@@ -97,19 +114,28 @@ describe('ScheduledPostQueueService', () => {
     await expect(service.findQueuedPost(job)).resolves.toBeNull();
     expect(postsService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: {
+        where: expect.objectContaining({
           id: 'post-1',
           isDeleted: false,
           organizationId: 'org-1',
           parentId: null,
-          status: { in: [PostStatus.SCHEDULED, PostStatus.PROCESSING] },
-        },
+          OR: expect.arrayContaining([
+            {
+              targetExecutionState: {
+                in: [
+                  TargetExecutionState.SCHEDULED,
+                  TargetExecutionState.PUBLISHING,
+                ],
+              },
+            },
+          ]),
+        }),
       }),
       expect.objectContaining({ limit: 1, page: 1 }),
     );
     const query = postsService.findAll.mock.calls[0]?.[0];
     expect(query?.where).not.toHaveProperty('AND');
-    expect(query?.where).not.toHaveProperty('OR');
+    expect(query?.where).toHaveProperty('OR');
   });
 
   it('marks an approval queued before preserving its bound queue identity', async () => {

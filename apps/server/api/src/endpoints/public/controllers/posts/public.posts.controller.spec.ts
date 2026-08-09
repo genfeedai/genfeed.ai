@@ -5,7 +5,16 @@ import { PublicPostsController } from '@api/endpoints/public/controllers/posts/p
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import { AssetScope, IngredientStatus, PostStatus } from '@genfeedai/enums';
+import {
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@api-types/contracts/scheduler.contract';
+import {
+  AssetScope,
+  IngredientStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -182,8 +191,11 @@ describe('PublicPostsController', () => {
         where: Record<string, unknown>;
       };
       expect(callArgs.where).toEqual({
+        AND: [
+          postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+          postVisibilityReadFilter(PostVisibility.PUBLIC),
+        ],
         isDeleted: false,
-        status: PostStatus.PUBLIC,
       });
       expect(callArgs.where.scope).toBeUndefined();
     });
@@ -268,50 +280,34 @@ describe('PublicPostsController', () => {
   });
 
   describe('getPostMetadata', () => {
-    // Rows carry the Prisma enum casing ('PUBLIC'), not the TS value.
-    const PRISMA_STATUS_PUBLIC = 'PUBLIC';
-    const PRISMA_STATUS_DRAFT = 'DRAFT';
-
-    /**
-     * Stands in for the database honouring the controller's status filter, so
-     * a controller that fetches any post by id fails here instead of passing
-     * on a mock that ignores the filter.
-     */
-    const statusFilteringFindOne =
-      (storedStatus: string) =>
-      async (filter: Record<string, unknown>): Promise<unknown> => {
-        const requested = filter.status;
-
-        if (typeof requested !== 'string') {
-          throw new Error('Public post lookups must constrain status');
-        }
-
-        return requested.toUpperCase() === storedStatus
-          ? { id: filter.id, status: storedStatus, title: 'Test Post' }
-          : null;
-      };
-
     it('should return post metadata for valid id', async () => {
       const postId = 'c07f191e810c19729de860ee'.toString();
 
-      postsService.findOne.mockImplementation(
-        statusFilteringFindOne(PRISMA_STATUS_PUBLIC) as never,
-      );
+      postsService.findOne.mockResolvedValue({
+        id: postId,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        title: 'Test Post',
+        visibility: PostVisibility.PUBLIC,
+      } as never);
 
       const result = await controller.getPostMetadata(mockRequest, postId);
 
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
+          AND: [
+            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            postVisibilityReadFilter(PostVisibility.PUBLIC),
+          ],
           id: postId,
-          status: PostStatus.PUBLIC,
         },
         [],
       );
       expect(result).toEqual({
         data: {
           id: postId,
-          status: PRISMA_STATUS_PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
           title: 'Test Post',
+          visibility: PostVisibility.PUBLIC,
         },
       });
     });
@@ -322,9 +318,7 @@ describe('PublicPostsController', () => {
         '@api/helpers/utils/response/response.util'
       );
 
-      postsService.findOne.mockImplementation(
-        statusFilteringFindOne(PRISMA_STATUS_DRAFT) as never,
-      );
+      postsService.findOne.mockResolvedValue(null);
 
       await controller.getPostMetadata(mockRequest, postId);
 
@@ -372,8 +366,11 @@ describe('PublicPostsController', () => {
 
       expect(postsService.findOne).toHaveBeenCalledWith(
         {
+          AND: [
+            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            postVisibilityReadFilter(PostVisibility.PUBLIC),
+          ],
           id: postId,
-          status: PostStatus.PUBLIC,
         },
         [],
       );

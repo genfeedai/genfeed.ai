@@ -1,7 +1,7 @@
 'use client';
 
 import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
-import { PostStatus } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { IPost, PostQuickActionKey } from '@genfeedai/interfaces';
 import type {
   PostsService,
@@ -128,15 +128,15 @@ export function usePostDetailActions({
     setIsSavingSchedule(true);
 
     try {
-      const updates: { scheduledDate: string; status?: PostStatus } = {
+      const updates: {
+        scheduledDate: string;
+        targetExecutionState: TargetExecutionState;
+      } = {
         scheduledDate: scheduleDraft,
+        targetExecutionState: scheduleDraft
+          ? TargetExecutionState.SCHEDULED
+          : TargetExecutionState.DRAFT,
       };
-
-      if (scheduleDraft) {
-        updates.status = PostStatus.SCHEDULED;
-      } else {
-        updates.status = PostStatus.DRAFT;
-      }
 
       await updateActivePost(updates, 'Schedule updated', true);
       await fetchPost(true);

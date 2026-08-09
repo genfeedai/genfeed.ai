@@ -1,14 +1,17 @@
 'use client';
 
 import type { PageScope, ReviewDecision } from '@genfeedai/enums';
-import { AlertCategory, PostStatus } from '@genfeedai/enums';
+import { AlertCategory, PostRepurposeMode, PostStatus } from '@genfeedai/enums';
 import { getPublisherPostHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import PostDetailContent from '@pages/posts/detail/components/PostDetailContent';
 import PostDetailHeader from '@pages/posts/detail/components/PostDetailHeader';
 import type { PostReviewSummary } from '@props/components/post-detail-sidebar.props';
-import { usePostRemixModal } from '@providers/global-modals/global-modals.provider';
+import {
+  usePostRemixModal,
+  usePostRepurposeModal,
+} from '@providers/global-modals/global-modals.provider';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
@@ -40,6 +43,7 @@ export default function PostDetail({
   const router = useRouter();
   const { href } = useOrgUrl();
   const { openPostRemixModal } = usePostRemixModal();
+  const { openPostRepurposeModal } = usePostRepurposeModal();
   const hookData = usePostDetail({ postId, scope });
 
   const {
@@ -159,6 +163,48 @@ export default function PostDetail({
   }, [
     post,
     openPostRemixModal,
+    getPostsService,
+    notificationsService,
+    router,
+    href,
+  ]);
+
+  // Handler for repurposing the post to another channel (#2588)
+  const handleRepurpose = useCallback(() => {
+    if (!post) {
+      return;
+    }
+
+    openPostRepurposeModal(
+      { id: post.id, label: post.label, platform: post.platform },
+      async (platform, mode) => {
+        try {
+          const service = await getPostsService();
+          const draft = await service.repurpose(post.id, { mode, platform });
+          if (mode === PostRepurposeMode.AGENT) {
+            notificationsService.success(
+              'Rewritten draft sent to the review queue',
+            );
+            router.push(
+              href(
+                draft.reviewBatchId
+                  ? `/publish/review?batch=${draft.reviewBatchId}&filter=ready`
+                  : '/publish/review',
+              ),
+            );
+          } else {
+            notificationsService.success('Repurposed draft created');
+            router.push(href(getPublisherPostHref(draft.id)));
+          }
+        } catch (error) {
+          notificationsService.error('Failed to repurpose post');
+          throw error;
+        }
+      },
+    );
+  }, [
+    post,
+    openPostRepurposeModal,
     getPostsService,
     notificationsService,
     router,
@@ -316,6 +362,7 @@ export default function PostDetail({
           onCreateRemix={handleCreateRemix}
           onDuplicate={handleDuplicate}
           onExpandToThread={handleExpandToThread}
+          onRepurpose={handleRepurpose}
         />
 
         <div

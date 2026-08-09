@@ -12,7 +12,7 @@ import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interf
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { BatchesService } from '@services/batch/batches.service';
-import { BrandsService } from '@services/social/brands.service';
+import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
@@ -32,17 +32,18 @@ import { useMemo } from 'react';
 import { isReadyToReview } from '../review/components/review-state';
 
 async function fetchPublicationTotal(
-  getBrands: () => Promise<BrandsService>,
+  getReleaseGroups: () => Promise<ReleaseGroupsService>,
   brandId: string,
   publicationState: 'posted' | 'not-posted',
 ): Promise<number> {
-  const service = await getBrands();
-  const page = await service.findBrandPostsPage(brandId, {
+  const service = await getReleaseGroups();
+  const page = await service.findAllPage({
+    brandId,
     limit: 1,
     page: 1,
     publicationState,
   });
-  return page.total ?? page.items?.length ?? 0;
+  return page.total;
 }
 
 export default function PublishOverviewPage() {
@@ -51,8 +52,8 @@ export default function PublishOverviewPage() {
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
   );
-  const getBrandsService = useAuthedService((token: string) =>
-    BrandsService.getInstance(token),
+  const getReleaseGroupsService = useAuthedService((token: string) =>
+    ReleaseGroupsService.getInstance(token),
   );
 
   const { data: batches = [], isLoading: isBatchesLoading } = useQuery({
@@ -67,14 +68,22 @@ export default function PublishOverviewPage() {
     enabled: Boolean(brandId),
     queryKey: ['publish-overview-not-posted-total', brandId],
     queryFn: () =>
-      fetchPublicationTotal(getBrandsService, brandId as string, 'not-posted'),
+      fetchPublicationTotal(
+        getReleaseGroupsService,
+        brandId as string,
+        'not-posted',
+      ),
   });
 
   const { data: publishedTotal = 0, isLoading: isPublishedLoading } = useQuery({
     enabled: Boolean(brandId),
     queryKey: ['publish-overview-published-total', brandId],
     queryFn: () =>
-      fetchPublicationTotal(getBrandsService, brandId as string, 'posted'),
+      fetchPublicationTotal(
+        getReleaseGroupsService,
+        brandId as string,
+        'posted',
+      ),
   });
 
   const reviewPulse = useMemo(() => {

@@ -415,7 +415,9 @@ export class FileQueueService {
             postId: data.postId,
             room: data.room,
             scheduledDate: data.scheduledDate,
-            status: data.status,
+            // The Files service names its provider-facing YouTube privacy
+            // field `status`; the value is visibility, never lifecycle.
+            status: data.visibility,
             tags: data.tags,
             title: data.title,
             type: 'upload-youtube',
