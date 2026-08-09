@@ -44,14 +44,14 @@ describe('escapeDrawtextValue', () => {
     expect(escapeDrawtextValue("a\\'")).toBe("a\\\\\\'");
   });
 
-  it('leaves no odd-length backslash run before an escaped quote', () => {
+  it('leaves an odd-length backslash run before an escaped quote', () => {
     const escaped = escapeDrawtextValue("a\\'");
     const trailing = escaped.slice(0, escaped.lastIndexOf("'"));
     const backslashes = trailing.match(/\\*$/)?.[0].length ?? 0;
 
-    // Even count => every backslash is itself escaped => the quote stays
-    // escaped rather than terminating the value.
-    expect(backslashes % 2).toBe(0);
+    // Pairs preserve literal backslashes and the final unpaired backslash
+    // escapes the quote instead of letting it terminate the option value.
+    expect(backslashes % 2).toBe(1);
   });
 
   it('escapes a lone trailing backslash', () => {
