@@ -58,6 +58,15 @@ const MODE_OPTIONS = [
   },
 ] as const;
 
+/**
+ * Assembled as one sentence rather than JSX fragments split around the label,
+ * so the copy stays a single translatable unit with a placeholder once shared
+ * packages gain a message catalog.
+ */
+function buildRepurposeHint(sourceLabel?: string | null): string {
+  return `Create a draft of “${sourceLabel || 'this post'}” for another channel. Nothing is published or scheduled automatically.`;
+}
+
 export default function ModalPostRepurpose({
   source,
   isOpen,
@@ -121,10 +130,7 @@ export default function ModalPostRepurpose({
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-foreground/70 bg-background/50 p-3">
           <Repeat2 className="size-5 text-primary" />
-          <span>
-            Create a draft of &ldquo;{source.label || 'this post'}&rdquo; for
-            another channel. Nothing is published or scheduled automatically.
-          </span>
+          <span>{buildRepurposeHint(source.label)}</span>
         </div>
 
         <FormControl label="Target channel" isRequired>
