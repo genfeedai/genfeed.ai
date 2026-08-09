@@ -7,7 +7,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupPersistenceService } from '@api/collections/post-groups/services/post-group-persistence.service';
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
-import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostStatus,
@@ -46,7 +46,6 @@ describe('PostGroupPersistenceService', () => {
       create: ReturnType<typeof vi.fn>;
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
-      groupBy: ReturnType<typeof vi.fn>;
     };
     postGroup: {
       findFirst: ReturnType<typeof vi.fn>;
@@ -65,7 +64,6 @@ describe('PostGroupPersistenceService', () => {
         create: vi.fn().mockResolvedValue(undefined),
         findFirst: vi.fn(),
         findMany: vi.fn().mockResolvedValue([]),
-        groupBy: vi.fn().mockResolvedValue([]),
       },
       postGroup: {
         findFirst: vi.fn(),
@@ -258,7 +256,6 @@ describe('PostGroupPersistenceService', () => {
       id: 'group-target',
       scheduledAt: null,
     });
-    prisma.post.groupBy.mockResolvedValue([{ groupId: 'group-target' }]);
     prisma.post.findMany.mockResolvedValue([
       makeTarget({
         groupId: 'group-target',
@@ -276,35 +273,12 @@ describe('PostGroupPersistenceService', () => {
       statuses: [ReleaseStatus.SCHEDULED, ReleaseStatus.FAILED],
     });
 
-    expect(prisma.post.groupBy).toHaveBeenCalledWith({
-      by: ['groupId'],
-      where: {
-        brandId: 'brand-1',
-        groupId: { not: null },
-        isDeleted: false,
-        organizationId: 'org-1',
-        parentId: null,
-        scheduledDate: {
-          gte: new Date('2026-07-20T00:00:00.000Z'),
-          lte: new Date('2026-07-27T00:00:00.000Z'),
-        },
-      },
-    });
     expect(prisma.postGroup.findMany).toHaveBeenCalledWith({
       orderBy: { id: 'asc' },
       where: {
         brandId: 'brand-1',
         isDeleted: false,
         organizationId: 'org-1',
-        OR: [
-          {
-            scheduledAt: {
-              gte: new Date('2026-07-20T00:00:00.000Z'),
-              lte: new Date('2026-07-27T00:00:00.000Z'),
-            },
-          },
-          { id: { in: ['group-target'] } },
-        ],
       },
     });
     expect(prisma.post.findMany).toHaveBeenCalledWith({
@@ -315,28 +289,33 @@ describe('PostGroupPersistenceService', () => {
         { id: 'asc' },
       ],
       where: {
-        groupId: { in: ['group-target'] },
+        brandId: 'brand-1',
         isDeleted: false,
         organizationId: 'org-1',
         parentId: null,
       },
     });
-    expect(result).toEqual([
-      expect.objectContaining({
-        id: 'group-target',
-        status: ReleaseStatus.FAILED,
-        targetSummary: {
-          [TargetExecutionState.FAILED]: 1,
-          total: 1,
-        },
-        targets: [expect.objectContaining({ id: 'target-1' })],
-      }),
-    ]);
+    expect(result).toMatchObject({
+      docs: [
+        expect.objectContaining({
+          id: 'group-target',
+          status: ReleaseStatus.FAILED,
+          targetSummary: {
+            [TargetExecutionState.FAILED]: 1,
+            total: 1,
+          },
+          targets: [expect.objectContaining({ id: 'target-1' })],
+        }),
+      ],
+      limit: 1,
+      page: 1,
+      totalDocs: 1,
+      totalPages: 1,
+    });
     expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
   });
 
   it('sorts releases by earliest effective schedule and uses the id as a stable tie-breaker', async () => {
-    prisma.post.groupBy.mockResolvedValue([]);
     prisma.post.findMany.mockResolvedValue([
       makeTarget({
         groupId: 'group-target',
@@ -365,7 +344,7 @@ describe('PostGroupPersistenceService', () => {
       startDate: new Date('2026-07-20T00:00:00.000Z'),
     });
 
-    expect(result.map((release) => release.id)).toEqual([
+    expect(result.docs.map((release) => release.id)).toEqual([
       'group-target',
       'group-a',
       'group-b',
@@ -373,7 +352,6 @@ describe('PostGroupPersistenceService', () => {
   });
 
   it('filters calendar reads by derived target status instead of persisted group status', async () => {
-    prisma.post.groupBy.mockResolvedValue([]);
     prisma.postGroup.findMany.mockResolvedValue([
       makeGroup({ status: ReleaseStatus.SCHEDULED }),
     ]);
@@ -388,7 +366,7 @@ describe('PostGroupPersistenceService', () => {
         startDate: new Date('2026-07-20T00:00:00.000Z'),
         statuses: [ReleaseStatus.SCHEDULED],
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
 
     expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -398,17 +376,18 @@ describe('PostGroupPersistenceService', () => {
   });
 
   it('narrows the calendar to releases owning a target that matches the platform, credential, and execution-state filters', async () => {
-    prisma.post.groupBy
-      .mockResolvedValueOnce([{ groupId: 'group-target' }])
-      .mockResolvedValueOnce([{ groupId: 'group-target' }]);
     prisma.postGroup.findMany.mockResolvedValue([
       makeGroup({ id: 'group-target' }),
     ]);
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: 'group-target' }),
+      makeTarget({
+        groupId: 'group-target',
+        platform: CredentialPlatform.INSTAGRAM,
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
     ]);
 
-    await service.listReleaseGroups({
+    const result = await service.listReleaseGroups({
       brandId: 'brand-1',
       credentialIds: ['credential-1'],
       endDate: new Date('2026-07-27T00:00:00.000Z'),
@@ -418,111 +397,69 @@ describe('PostGroupPersistenceService', () => {
       startDate: new Date('2026-07-20T00:00:00.000Z'),
     });
 
-    // The window is already enforced on the release, so the target-attribute
-    // pass deliberately omits `scheduledDate`.
-    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(2, {
-      by: ['groupId'],
-      where: {
-        brandId: 'brand-1',
-        credentialId: { in: ['credential-1'] },
-        groupId: { not: null },
-        isDeleted: false,
-        organizationId: 'org-1',
-        parentId: null,
-        platform: { in: [CredentialPlatform.INSTAGRAM] },
-        targetExecutionState: { in: [TargetExecutionState.FAILED] },
-      },
-    });
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          id: { in: ['group-target'] },
-        }),
-      }),
-    );
+    expect(result.docs).toEqual([
+      expect.objectContaining({ id: 'group-target' }),
+    ]);
   });
 
-  it('translates derived source filters back into the provenance columns they come from', async () => {
-    prisma.post.groupBy
-      .mockResolvedValueOnce([{ groupId: 'group-target' }])
-      .mockResolvedValueOnce([{ groupId: 'group-target' }]);
+  it('filters the canonical projection by derived manual and workflow provenance', async () => {
     prisma.postGroup.findMany.mockResolvedValue([
-      makeGroup({ id: 'group-target' }),
+      makeGroup({ id: 'group-agent' }),
+      makeGroup({ id: 'group-manual' }),
+      makeGroup({ id: 'group-workflow' }),
     ]);
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: 'group-target' }),
+      makeTarget({ agentRunId: 'run-1', groupId: 'group-agent', id: 'agent' }),
+      makeTarget({ groupId: 'group-manual', id: 'manual' }),
+      makeTarget({
+        groupId: 'group-workflow',
+        id: 'workflow',
+        workflowExecutionId: 'execution-1',
+      }),
     ]);
 
-    await service.listReleaseGroups({
+    const result = await service.listReleaseGroups({
       endDate: new Date('2026-07-27T00:00:00.000Z'),
       organizationId: 'org-1',
       sources: [ReleaseTargetSource.MANUAL, ReleaseTargetSource.WORKFLOW],
       startDate: new Date('2026-07-20T00:00:00.000Z'),
     });
 
-    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(2, {
-      by: ['groupId'],
-      where: {
-        groupId: { not: null },
-        isDeleted: false,
-        OR: [
-          {
-            agentContextSource: null,
-            agentRunId: null,
-            agentStrategyId: null,
-            agentThreadId: null,
-            workflowExecutionId: null,
-          },
-          { workflowExecutionId: { not: null } },
-        ],
-        organizationId: 'org-1',
-        parentId: null,
-      },
-    });
+    expect(result.docs.map((release) => release.id)).toEqual([
+      'group-manual',
+      'group-workflow',
+    ]);
   });
 
   it('excludes workflow-executed targets from the agent source filter', async () => {
-    prisma.post.groupBy
-      .mockResolvedValueOnce([{ groupId: 'group-target' }])
-      .mockResolvedValueOnce([{ groupId: 'group-target' }]);
     prisma.postGroup.findMany.mockResolvedValue([
       makeGroup({ id: 'group-target' }),
     ]);
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: 'group-target' }),
+      makeTarget({
+        agentRunId: 'run-1',
+        groupId: 'group-target',
+        workflowExecutionId: 'execution-1',
+      }),
     ]);
 
-    await service.listReleaseGroups({
+    const result = await service.listReleaseGroups({
       endDate: new Date('2026-07-27T00:00:00.000Z'),
       organizationId: 'org-1',
       sources: [ReleaseTargetSource.AGENT],
       startDate: new Date('2026-07-20T00:00:00.000Z'),
     });
 
-    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        where: expect.objectContaining({
-          OR: [
-            {
-              OR: [
-                { agentRunId: { not: null } },
-                { agentThreadId: { not: null } },
-                { agentStrategyId: { not: null } },
-                { agentContextSource: { not: null } },
-              ],
-              workflowExecutionId: null,
-            },
-          ],
-        }),
-      }),
-    );
+    expect(result).toMatchObject({ docs: [], totalDocs: 0 });
   });
 
-  it('returns nothing and skips the release query when no target matches the filters', async () => {
-    prisma.post.groupBy
-      .mockResolvedValueOnce([{ groupId: 'group-target' }])
-      .mockResolvedValueOnce([]);
+  it('returns an empty page when no target matches the filters', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ id: 'group-target' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-target' }),
+    ]);
 
     await expect(
       service.listReleaseGroups({
@@ -531,27 +468,23 @@ describe('PostGroupPersistenceService', () => {
         platforms: [CredentialPlatform.TIKTOK],
         startDate: new Date('2026-07-20T00:00:00.000Z'),
       }),
-    ).resolves.toEqual([]);
-    expect(prisma.postGroup.findMany).not.toHaveBeenCalled();
+    ).resolves.toMatchObject({ docs: [], totalDocs: 0 });
   });
 
-  it('skips the target-attribute pass entirely when no target filter is requested', async () => {
-    prisma.post.groupBy.mockResolvedValue([]);
-    prisma.postGroup.findMany.mockResolvedValue([]);
+  it('returns all projected releases when no target filter is requested', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
+    prisma.post.findMany.mockResolvedValue([makeTarget()]);
 
-    await service.listReleaseGroups({
+    const result = await service.listReleaseGroups({
       endDate: new Date('2026-07-27T00:00:00.000Z'),
       organizationId: 'org-1',
       startDate: new Date('2026-07-20T00:00:00.000Z'),
       statuses: [ReleaseStatus.SCHEDULED],
     });
 
-    expect(prisma.post.groupBy).toHaveBeenCalledTimes(1);
-    expect(prisma.postGroup.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.not.objectContaining({ id: expect.anything() }),
-      }),
-    );
+    expect(result.docs).toEqual([expect.objectContaining({ id: 'group-1' })]);
+    expect(prisma.postGroup.findMany).toHaveBeenCalledOnce();
+    expect(prisma.post.findMany).toHaveBeenCalledOnce();
   });
 
   it('copies independent lifecycle and visibility onto attachment posts', async () => {
