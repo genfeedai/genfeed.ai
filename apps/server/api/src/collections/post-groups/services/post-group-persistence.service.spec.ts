@@ -322,6 +322,16 @@ describe('PostGroupPersistenceService', () => {
         id: 'target-early',
         scheduledDate: new Date('2026-07-20T09:00:00.000Z'),
       }),
+      makeTarget({
+        groupId: 'group-a',
+        id: 'target-a',
+        scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
+      }),
+      makeTarget({
+        groupId: 'group-b',
+        id: 'target-b',
+        scheduledDate: new Date('2026-07-20T10:00:00.000Z'),
+      }),
     ]);
     prisma.postGroup.findMany.mockResolvedValue([
       makeGroup({
