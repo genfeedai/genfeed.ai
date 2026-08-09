@@ -303,6 +303,52 @@ describe('InvitationService', () => {
 
       expect(prisma.invitation.create).not.toHaveBeenCalled();
     });
+
+    // #2715 — the invitee is a third party with no account and no relationship
+    // to this log sink, and the delivery-failure branch is the one most likely
+    // to be shipped to an aggregator, retained, and read widely.
+    it('redacts the invitee email to its domain when delivery fails', async () => {
+      const { logger, notificationsService, prisma, service } = buildService();
+      prisma.role.findFirst.mockResolvedValue({ id: roleId, key: roleKey });
+      prisma.organization.findFirst.mockResolvedValue({
+        id: orgId,
+        label: 'Acme',
+      });
+      prisma.user.findFirst.mockResolvedValue(null);
+      prisma.invitation.updateMany.mockResolvedValue({ count: 0 });
+      prisma.invitation.create.mockImplementation((args: unknown) => {
+        const data = (args as { data: Partial<InvitationRow> }).data;
+        return Promise.resolve(makeInvitation(data));
+      });
+
+      const deliveryError = new Error('smtp unavailable');
+      const sendEmail = notificationsService.sendEmail as unknown as MockFn;
+      sendEmail.mockRejectedValue(deliveryError);
+      const errorLog = logger.error as unknown as MockFn;
+
+      // A delivery failure must stay non-fatal — the invitation row is committed.
+      const result = await service.createInvitation({
+        email: 'invitee@example.com',
+        invitedByUserId: userId,
+        organizationId: orgId,
+      });
+
+      expect(result.status).toBe('pending');
+      expect(errorLog).toHaveBeenCalledWith(
+        'Failed to send invitation email',
+        deliveryError,
+        {
+          emailDomain: 'example.com',
+          invitationId: 'inv_123',
+          organizationId: orgId,
+          service: 'InvitationService',
+        },
+      );
+      expect(JSON.stringify(errorLog.mock.calls)).not.toContain(
+        'invitee@example.com',
+      );
+      expect(JSON.stringify(errorLog.mock.calls)).not.toContain('invitee');
+    });
   });
 
   describe('listInvitations', () => {
