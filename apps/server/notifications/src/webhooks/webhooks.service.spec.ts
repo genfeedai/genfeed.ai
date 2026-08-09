@@ -1,6 +1,7 @@
 import { EventsService } from '@libs/events/events.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { WebhookNotification } from '@notifications/shared/interfaces/webhooks.interface';
 import { WebhooksService } from '@notifications/webhooks/webhooks.service';
 
 describe('WebhooksService (Notifications)', () => {
@@ -51,7 +52,7 @@ describe('WebhooksService (Notifications)', () => {
         event: 'payment.success',
         metadata: { userId: 'user-123' },
         service: 'stripe',
-      };
+      } satisfies WebhookNotification;
 
       await service.handleWebhookNotification(notification);
 
@@ -74,8 +75,8 @@ describe('WebhooksService (Notifications)', () => {
         data: { result: 'success' },
         event: 'generation.complete',
         metadata: { userId: 'user-456' },
-        service: 'openai',
-      };
+        service: 'replicate',
+      } satisfies WebhookNotification;
 
       await service.handleWebhookNotification(notification);
 
@@ -90,7 +91,7 @@ describe('WebhooksService (Notifications)', () => {
         data: {},
         event: 'ping',
         service: 'stripe',
-      };
+      } satisfies WebhookNotification;
 
       await service.handleWebhookNotification(notification);
 
@@ -106,14 +107,14 @@ describe('WebhooksService (Notifications)', () => {
         data: {},
         event: 'ping',
         service: 'stripe',
-        status: 'processed',
-      };
+        status: 'completed',
+      } satisfies WebhookNotification;
 
       await service.handleWebhookNotification(notification);
 
       expect(eventsService.emit).toHaveBeenCalledWith(
         'webhook.notification',
-        expect.objectContaining({ status: 'processed' }),
+        expect.objectContaining({ status: 'completed' }),
       );
     });
 

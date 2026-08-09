@@ -318,8 +318,8 @@ describe('DiscordService', () => {
       });
 
       const payload = lastSendPayload();
-      const row = payload.components?.[0] as {
-        components: Array<{ data: { label?: string } }>;
+      const row = payload.components?.[0] as unknown as {
+        components: ReadonlyArray<{ data: { label?: string } }>;
       };
       const labels = row.components.map((button) => button.data.label);
       expect(labels).toContain('View Video');

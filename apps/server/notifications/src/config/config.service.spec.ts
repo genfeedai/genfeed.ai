@@ -18,10 +18,11 @@ describe('ConfigService (Notifications)', () => {
     fs.existsSync = vi.fn().mockReturnValue(false);
 
     // Set minimal required env vars to avoid validation errors
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     process.env = originalEnv;
     vi.clearAllMocks();
   });
@@ -32,14 +33,14 @@ describe('ConfigService (Notifications)', () => {
   });
 
   it('should get environment variable', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
     service = new ConfigService();
 
     expect(service.get('NODE_ENV')).toBe('development');
   });
 
   it('should detect development environment', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
     service = new ConfigService();
 
     expect(service.isDevelopment).toBe(true);
@@ -48,7 +49,7 @@ describe('ConfigService (Notifications)', () => {
   });
 
   it('should detect production environment', () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     service = new ConfigService();
 
     expect(service.isProduction).toBe(true);
@@ -57,7 +58,7 @@ describe('ConfigService (Notifications)', () => {
   });
 
   it('should detect staging environment', () => {
-    process.env.NODE_ENV = 'staging';
+    vi.stubEnv('NODE_ENV', 'staging');
     service = new ConfigService();
 
     expect(service.isStaging).toBe(true);
@@ -116,7 +117,7 @@ describe('ConfigService (Notifications)', () => {
 
   describe('production configuration warnings', () => {
     it('warns about unconfigured optional services in production', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       delete process.env.SENTRY_DSN;
       delete process.env.TELEGRAM_BOT_TOKEN;
       delete process.env.DISCORD_BOT_TOKEN;
@@ -129,7 +130,7 @@ describe('ConfigService (Notifications)', () => {
     });
 
     it('boots without warnings when providers are configured', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       process.env.DISCORD_BOT_TOKEN = 'discord-token';
       process.env.SENTRY_DSN = 'https://key@sentry.io/1';
       process.env.TELEGRAM_BOT_TOKEN = 'tg-token';

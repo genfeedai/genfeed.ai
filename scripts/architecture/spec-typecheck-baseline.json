@@ -5465,22 +5465,6 @@
       "workspace": "notifications"
     },
     {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/notifications/src/services/discord/discord.service.spec.ts",
-      "fingerprint": "b31b17d38b87a7dc2ba8",
-      "message": "Property 'sendWebhookMessage' does not exist on type 'DiscordService'.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2724,
-      "count": 1,
-      "file": "apps/server/notifications/src/services/genfeed/genfeed.module.spec.ts",
-      "fingerprint": "aa0bb86952216a60027a",
-      "message": "'\"@notifications/services/genfeed/genfeed.module\"' has no exported member named 'GenfeedModule'. Did you mean 'GenFeedModule'?",
-      "workspace": "notifications"
-    },
-    {
       "code": 2540,
       "count": 3,
       "file": "apps/server/notifications/src/services/terminal/terminal.service.spec.ts",
@@ -5502,22 +5486,6 @@
       "file": "apps/server/notifications/src/webhooks/webhooks.controller.spec.ts",
       "fingerprint": "0ca8c34061f34a60952b",
       "message": "Object literal may only specify known properties, and 'id' does not exist in type 'WebhookNotification'.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/notifications/src/webhooks/webhooks.service.spec.ts",
-      "fingerprint": "6a6fcf10a6d4b22b2902",
-      "message": "Argument of type '{ data: { amount: number; }; event: string; metadata: { userId: string; }; service: string; }' is not assignable to parameter of type 'WebhookNotification'.   Types of property 'service' are incompatible.     Type 'string' is not assignable to type '\"replicate\" | \"heygen\" | \"kling\" | \"leonardoai\" | \"stripe\" | \"better_auth\" | \"vercel\"'.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/notifications/src/webhooks/webhooks.service.spec.ts",
-      "fingerprint": "c403a76551ea609f205c",
-      "message": "Argument of type '{ data: { result: string; }; event: string; metadata: { userId: string; }; service: string; }' is not assignable to parameter of type 'WebhookNotification'.   Types of property 'service' are incompatible.     Type 'string' is not assignable to type '\"replicate\" | \"heygen\" | \"kling\" | \"leonardoai\" | \"stripe\" | \"better_auth\" | \"vercel\"'.",
       "workspace": "notifications"
     },
     {

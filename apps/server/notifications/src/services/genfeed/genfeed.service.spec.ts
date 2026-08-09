@@ -45,9 +45,7 @@ describe('GenFeedService', () => {
       put: vi.fn(),
     };
     mockedAxios.create = vi.fn().mockReturnValue(apiClient);
-    mockedAxios.isAxiosError = vi
-      .fn()
-      .mockReturnValue(false) as unknown as typeof axios.isAxiosError;
+    vi.mocked(axios.isAxiosError).mockReturnValue(false);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -141,7 +139,7 @@ describe('GenFeedService', () => {
         response: { status: 401 },
       });
       apiClient.post.mockRejectedValue(error);
-      (mockedAxios.isAxiosError as unknown as Mock).mockReturnValue(true);
+      vi.mocked(axios.isAxiosError).mockReturnValue(true);
 
       await expect(
         service.generateResponse({ prompt: 'hello' }),

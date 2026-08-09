@@ -36,7 +36,7 @@ describe('NodePtyAdapter', () => {
     cols: 80,
     command: '/bin/bash',
     cwd: '/workspace',
-    env: { TERM: 'xterm-256color' },
+    env: { NODE_ENV: 'test', TERM: 'xterm-256color' },
     name: 'xterm-256color',
     rows: 24,
   };
@@ -105,7 +105,7 @@ describe('NodePtyAdapter', () => {
       expect(spawn).toHaveBeenCalledWith('/bin/bash', ['-l'], {
         cols: 80,
         cwd: '/workspace',
-        env: { TERM: 'xterm-256color' },
+        env: { NODE_ENV: 'test', TERM: 'xterm-256color' },
         name: 'xterm-256color',
         rows: 24,
       });
