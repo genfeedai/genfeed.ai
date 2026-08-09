@@ -35,7 +35,7 @@ jobs:
           fi
 
       - name: Checkout the dispatched master commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
@@ -103,7 +103,7 @@ jobs:
       RELEASE_DIR: ${{ github.workspace }}/.package-release
     steps:
       - name: Checkout the preflighted commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0

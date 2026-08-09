@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Node.js 22.x
         uses: actions/setup-node@v5
@@ -103,7 +103,7 @@ jobs:
       STRIPE_SECRET_KEY: test-mock-key
       BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -174,7 +174,7 @@ jobs:
       STRIPE_SECRET_KEY: test-mock-key
       BETTER_AUTH_SECRET: test-better-auth-secret
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -219,7 +219,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -291,7 +291,7 @@ jobs:
     needs: [e2e-frontend]
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -397,7 +397,7 @@ jobs:
       BETTER_AUTH_SECRET: e2e-hermetic-better-auth-secret
       E2E_API_ENDPOINT: http://localhost:3010/v1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -539,7 +539,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout workflow helpers
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 

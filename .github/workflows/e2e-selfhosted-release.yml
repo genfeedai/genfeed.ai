@@ -82,7 +82,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
       - name: Checkout released source and matching tests
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.release.outputs.release_tag }}
 
@@ -278,7 +278,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # Always use master reporter so a broken released tag still files P0.
           ref: master
@@ -342,7 +342,7 @@ jobs:
       issues: write
     steps:
       - name: Checkout failure reporter
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           # Always use master reporter so green auto-close works even when the
           # released tag predates this automation.

@@ -43,7 +43,7 @@ jobs:
     steps:
       # Full history: the base commit has to be present locally for `git show`
       # to read the pre-change catalog out of it.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false

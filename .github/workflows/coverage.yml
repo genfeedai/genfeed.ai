@@ -37,7 +37,7 @@ jobs:
           - packages/utils
           - packages/workflows
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -127,7 +127,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -162,7 +162,7 @@ jobs:
     needs: coverage-app
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -210,7 +210,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -246,7 +246,7 @@ jobs:
     needs: coverage-api
     if: always()
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
@@ -299,7 +299,7 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
