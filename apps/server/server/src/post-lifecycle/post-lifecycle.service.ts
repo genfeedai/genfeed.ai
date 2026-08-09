@@ -69,7 +69,7 @@ export function canTransitionPostLifecycle(
 }
 
 export type PostLifecycleMutation = Omit<
-  Prisma.PostUpdateManyMutationInput,
+  Prisma.PostUncheckedUpdateManyInput,
   'organizationId' | 'status' | 'targetExecutionState'
 >;
 
