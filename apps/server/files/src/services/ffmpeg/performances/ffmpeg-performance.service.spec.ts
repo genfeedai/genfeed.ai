@@ -1,6 +1,7 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs';
+import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
 import { FFmpegConfigService } from '@files/services/ffmpeg/config/ffmpeg.config';
 import {
   FFmpegPerformanceService,
@@ -38,6 +39,16 @@ describe('FFmpegPerformanceService', () => {
             error: vi.fn(),
             log: vi.fn(),
             warn: vi.fn(),
+          },
+        },
+        {
+          provide: BinaryValidationService,
+          useValue: {
+            getBinaryPaths: vi.fn().mockReturnValue({
+              ffmpegPath: '/usr/bin/ffmpeg',
+              ffprobePath: '/usr/bin/ffprobe',
+            }),
+            validateBinaries: vi.fn().mockResolvedValue(undefined),
           },
         },
         {

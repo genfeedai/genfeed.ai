@@ -1,7 +1,9 @@
-import { ActivitySource } from '@genfeedai/enums';
+import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
+import { ActivitySource, CreditTransactionCategory } from '@genfeedai/enums';
 import type { CreditDeductionJobData } from '@genfeedai/queue-contracts';
 import { CreditDeductionProcessor } from '@workers/processors/api/queues/credit-deduction/credit-deduction.processor';
 import type { Job } from 'bullmq';
+import { UnrecoverableError } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('CreditDeductionProcessor', () => {
@@ -10,24 +12,47 @@ describe('CreditDeductionProcessor', () => {
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
     getOrganizationCreditsBalance: ReturnType<typeof vi.fn>;
   };
+  let creditTransactionsService: {
+    createTransactionEntry: ReturnType<typeof vi.fn>;
+  };
+  let notificationsService: {
+    sendLowCreditsAlert: ReturnType<typeof vi.fn>;
+  };
+  let publisher: { set: ReturnType<typeof vi.fn> };
+  let redisService: { getPublisher: ReturnType<typeof vi.fn> };
+  let logger: {
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     creditsUtilsService = {
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(5000),
     };
+    creditTransactionsService = {
+      createTransactionEntry: vi.fn().mockResolvedValue(undefined),
+    };
+    notificationsService = {
+      sendLowCreditsAlert: vi.fn().mockResolvedValue(undefined),
+    };
+    publisher = { set: vi.fn().mockResolvedValue('OK') };
+    redisService = { getPublisher: vi.fn().mockReturnValue(publisher) };
+    logger = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
 
     processor = new CreditDeductionProcessor(
       creditsUtilsService as never,
-      { createTransactionEntry: vi.fn() } as never,
-      { sendLowCreditsAlert: vi.fn() } as never,
-      { getPublisher: vi.fn() } as never,
-      {
-        debug: vi.fn(),
-        error: vi.fn(),
-        log: vi.fn(),
-        warn: vi.fn(),
-      } as never,
+      creditTransactionsService as never,
+      notificationsService as never,
+      redisService as never,
+      logger as never,
     );
   });
 
@@ -73,5 +98,126 @@ describe('CreditDeductionProcessor', () => {
         referenceType: 'fleet:voice-clone',
       },
     );
+  });
+
+  function buildJob(
+    data: Partial<CreditDeductionJobData>,
+  ): Job<CreditDeductionJobData> {
+    return {
+      attemptsMade: 0,
+      data: {
+        amount: 10,
+        description: 'Image generation',
+        organizationId: 'org-1',
+        source: ActivitySource.IMAGE_GENERATION,
+        type: 'deduct-credits',
+        userId: 'user-1',
+        ...data,
+      },
+      id: 'job-1',
+      opts: { attempts: 3 },
+    } as Job<CreditDeductionJobData>;
+  }
+
+  it('throws an UnrecoverableError when a deduction job has no userId', async () => {
+    await expect(
+      processor.process(buildJob({ userId: undefined })),
+    ).rejects.toThrow(UnrecoverableError);
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('sends a low-credits alert once when the balance drops below the threshold', async () => {
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
+
+    await processor.process(buildJob({}));
+
+    expect(publisher.set).toHaveBeenCalledWith(
+      'low-credits-notified:org-1',
+      '1',
+      'EX',
+      86400,
+      'NX',
+    );
+    expect(notificationsService.sendLowCreditsAlert).toHaveBeenCalledWith(
+      'org-1',
+      500,
+    );
+  });
+
+  it('debounces the low-credits alert when the redis key is already set', async () => {
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
+    publisher.set.mockResolvedValue(null);
+
+    await processor.process(buildJob({}));
+
+    expect(notificationsService.sendLowCreditsAlert).not.toHaveBeenCalled();
+    expect(logger.debug).toHaveBeenCalled();
+  });
+
+  it('skips the low-credits alert when redis is unavailable', async () => {
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(500);
+    redisService.getPublisher.mockReturnValue(null);
+
+    await processor.process(buildJob({}));
+
+    expect(notificationsService.sendLowCreditsAlert).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('never fails the job when the low-credits check fails', async () => {
+    creditsUtilsService.getOrganizationCreditsBalance.mockRejectedValue(
+      new Error('balance lookup failed'),
+    );
+
+    await expect(processor.process(buildJob({}))).resolves.toBeUndefined();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('records BYOK usage as a zero-balance-change ledger entry', async () => {
+    creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(1234);
+
+    await processor.process(
+      buildJob({
+        amount: 3,
+        description: 'BYOK image call',
+        type: 'record-byok-usage',
+      }),
+    );
+
+    expect(
+      creditTransactionsService.createTransactionEntry,
+    ).toHaveBeenCalledWith(
+      'org-1',
+      CreditTransactionCategory.BYOK_USAGE,
+      3,
+      1234,
+      1234,
+      ActivitySource.IMAGE_GENERATION,
+      '[BYOK] BYOK image call',
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('converts BusinessLogicException into an UnrecoverableError', async () => {
+    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
+      new BusinessLogicException('insufficient credits'),
+    );
+
+    await expect(processor.process(buildJob({}))).rejects.toThrow(
+      UnrecoverableError,
+    );
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('rethrows transient errors so BullMQ retries', async () => {
+    creditsUtilsService.deductCreditsFromOrganization.mockRejectedValue(
+      new Error('db timeout'),
+    );
+
+    await expect(processor.process(buildJob({}))).rejects.toThrow('db timeout');
   });
 });
