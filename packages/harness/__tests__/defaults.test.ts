@@ -111,21 +111,37 @@ describe('CORE_CONTENT_HARNESS_PACK', () => {
     ]);
   });
 
-  it('ignores blank strings and skips empty profile lists', () => {
+  it('skips trim-checked blanks and empty profile lists', () => {
     const contribution = contribute({
-      brandName: '   ',
       intent: { contentType: 'reply', objective: 'retention' },
-      personaProfile: { label: '  ' },
+      personaProfile: { label: '  ', topics: [] },
       voiceProfile: {
         audience: [],
+        doNotSoundLike: [],
+        messagingPillars: [],
         sampleOutput: '   ',
-        tone: '  ',
+        values: [],
       },
     });
 
     expect(contribution.systemDirectives).toEqual([]);
     expect(contribution.styleDirectives).toEqual([]);
     expect(contribution.providerHints).toEqual([]);
+  });
+
+  it('still emits directives for whitespace-only brand and tone (truthiness, not trim, gates them)', () => {
+    // Documents current behavior: brandName/topic/offer/tone/style are gated on
+    // raw truthiness, so whitespace-only values produce a directive with a
+    // blank interpolation. Only persona label and sampleOutput are trim-gated.
+    const contribution = contribute({
+      brandName: '   ',
+      intent: { contentType: 'reply', objective: 'retention' },
+      voiceProfile: { tone: '  ' },
+    });
+
+    expect(contribution.systemDirectives).toHaveLength(1);
+    expect(contribution.systemDirectives?.[0]).toContain('Write as');
+    expect(contribution.styleDirectives).toEqual(['Tone:   .']);
   });
 
   it('appends profile contribution values and merges sources', () => {

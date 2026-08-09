@@ -45,7 +45,10 @@ describe('plan lookups', () => {
 
   it('finds plans by tier and throws for a missing tier', () => {
     expect(getPlanByTier('scale').label).toBe(PLAN_LABELS.scale);
-    expect(() => getPlanByTier('missing' as never)).toThrow(
+    const missingTier = 'missing' as unknown as Parameters<
+      typeof getPlanByTier
+    >[0];
+    expect(() => getPlanByTier(missingTier)).toThrow(
       'Missing pricing plan for tier: missing',
     );
   });
