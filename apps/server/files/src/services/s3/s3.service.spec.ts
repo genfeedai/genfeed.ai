@@ -1,5 +1,4 @@
 import { ConfigService } from '@files/config/config.service';
-import { FILES_TMP_ROOT } from '@files/constants/path.constants';
 import { S3Service } from '@files/services/s3/s3.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';

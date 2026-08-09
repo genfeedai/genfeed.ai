@@ -1,6 +1,6 @@
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Bot, User } from 'lucide-react';
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useAgentWorkflowStore } from '../store';
 import { PHASE_LABELS, WORKFLOW_PHASES, type WorkflowPhase } from '../types';
 
@@ -63,7 +63,14 @@ function MessageBubble({
 }
 
 function PhaseSection({ phase }: { phase: WorkflowPhase }) {
-  const messages = useAgentWorkflowStore((s) => s.getPhaseMessages(phase));
+  // `getPhaseMessages` allocates a fresh array per call, so it must not be
+  // invoked inside the store selector — the snapshot would never be
+  // referentially stable and `useSyncExternalStore` would re-render forever.
+  const allMessages = useAgentWorkflowStore((s) => s.messages);
+  const messages = useMemo(
+    () => allMessages.filter((m) => m.phase === phase),
+    [allMessages, phase],
+  );
 
   if (messages.length === 0) return null;
 

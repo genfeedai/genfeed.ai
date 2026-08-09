@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildFlux2DevPrompt,
+  buildFlux2DevPulidLoraPrompt,
   buildFlux2DevPulidPrompt,
   buildFlux2DevPulidUpscalePrompt,
   buildFlux2KleinPrompt,
   buildFluxDevPrompt,
+  buildPulidFluxPrompt,
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
   type Flux2PulidUpscaleParams,
@@ -485,5 +487,166 @@ describe('buildFlux2DevPulidUpscalePrompt', () => {
     it('upscale variant has 2 extra nodes (UpscaleModelLoader + ImageUpscaleWithModel)', () => {
       expect(Object.keys(upscale).length).toBe(Object.keys(base).length + 2);
     });
+  });
+});
+
+describe('buildPulidFluxPrompt (legacy Flux 1 + PuLID)', () => {
+  const graph = buildPulidFluxPrompt({
+    faceImage: 'face.png',
+    prompt: 'a portrait',
+    seed: 7,
+  });
+
+  it('loads a single Flux 1 checkpoint rather than a split UNET/CLIP pair', () => {
+    expect(graph['1'].class_type).toBe('CheckpointLoaderSimple');
+    expect(graph['1'].inputs.ckpt_name).toBe('flux1-dev.safetensors');
+  });
+
+  it('wires the PuLID chain into ApplyPulid', () => {
+    expect(graph['6']).toEqual({
+      class_type: 'ApplyPulid',
+      inputs: {
+        end_at: 1.0,
+        eva_clip: ['3', 0],
+        face_analysis: ['4', 0],
+        image: ['5', 0],
+        method: 'fidelity',
+        model: ['1', 0],
+        pulid: ['2', 0],
+        start_at: 0.0,
+        weight: 0.8,
+      },
+    });
+  });
+
+  it('loads the supplied face image', () => {
+    expect(graph['5'].inputs.image).toBe('face.png');
+  });
+
+  it('samples from the PuLID-patched model with the given seed', () => {
+    expect(graph['10'].inputs).toMatchObject({
+      cfg: 1.0,
+      model: ['6', 0],
+      seed: 7,
+      steps: 20,
+    });
+  });
+
+  it('decodes through the checkpoint VAE and saves', () => {
+    expect(graph['11'].inputs.vae).toEqual(['1', 2]);
+    expect(graph['12'].inputs.filename_prefix).toBe('genfeed-pulid-flux');
+  });
+
+  it('defaults dimensions to 1024x1024', () => {
+    expect(graph['9'].inputs).toMatchObject({ height: 1024, width: 1024 });
+  });
+
+  it('passes explicit overrides through', () => {
+    const custom = buildPulidFluxPrompt({
+      cfg: 2.5,
+      faceImage: 'f.png',
+      height: 768,
+      prompt: 'p',
+      pulidStrength: 0.35,
+      seed: 99,
+      steps: 12,
+      width: 512,
+    });
+
+    expect(custom['9'].inputs).toMatchObject({ height: 768, width: 512 });
+    expect(custom['10'].inputs).toMatchObject({
+      cfg: 2.5,
+      seed: 99,
+      steps: 12,
+    });
+    expect(custom['6'].inputs.weight).toBe(0.35);
+  });
+
+  it('generates a random seed when none is supplied', () => {
+    const seed = buildPulidFluxPrompt({ faceImage: 'f.png', prompt: 'p' })['10']
+      .inputs.seed as number;
+
+    expect(Number.isInteger(seed)).toBe(true);
+    expect(seed).toBeGreaterThanOrEqual(0);
+    expect(seed).toBeLessThan(2 ** 32);
+  });
+});
+
+describe('buildFlux2DevPulidLoraPrompt', () => {
+  const graph = buildFlux2DevPulidLoraPrompt({
+    faceImage: 'face.png',
+    loraPath: 'my-style.safetensors',
+    prompt: 'a portrait',
+    seed: 11,
+  });
+
+  it('inserts a LoraLoader between the split loaders and PuLID', () => {
+    expect(graph['3']).toEqual({
+      class_type: 'LoraLoader',
+      inputs: {
+        clip: ['2', 0],
+        lora_name: 'my-style.safetensors',
+        model: ['1', 0],
+        strength_clip: 0.8,
+        strength_model: 0.8,
+      },
+    });
+  });
+
+  it('applies the configured LoRA strength to both model and clip', () => {
+    const strong = buildFlux2DevPulidLoraPrompt({
+      faceImage: 'f.png',
+      loraPath: 'l.safetensors',
+      loraStrength: 0.25,
+      prompt: 'p',
+    });
+
+    expect(strong['3'].inputs.strength_model).toBe(0.25);
+    expect(strong['3'].inputs.strength_clip).toBe(0.25);
+  });
+
+  it('samples from the LoRA + PuLID patched model', () => {
+    expect(graph['14'].inputs).toMatchObject({
+      latent_image: ['13', 0],
+      negative: ['11', 0],
+      positive: ['10', 0],
+      seed: 11,
+    });
+  });
+
+  it('honours PuLID method and window overrides', () => {
+    const custom = buildFlux2DevPulidLoraPrompt({
+      faceImage: 'f.png',
+      loraPath: 'l.safetensors',
+      prompt: 'p',
+      pulidEndAt: 0.7,
+      pulidMethod: 'style',
+      pulidStartAt: 0.2,
+      pulidStrength: 0.55,
+    });
+
+    expect(custom['8'].inputs).toMatchObject({
+      end_at: 0.7,
+      method: 'style',
+      start_at: 0.2,
+      weight: 0.55,
+    });
+  });
+
+  it('produces a graph whose node references all resolve', () => {
+    const ids = new Set(Object.keys(graph));
+
+    for (const node of Object.values(graph)) {
+      for (const value of Object.values(node.inputs)) {
+        if (Array.isArray(value) && typeof value[0] === 'string') {
+          expect(ids.has(value[0])).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('ends in a SaveImage node fed by the VAE decode', () => {
+    expect(graph['16'].class_type).toBe('SaveImage');
+    expect(graph['16'].inputs.images).toEqual(['15', 0]);
   });
 });

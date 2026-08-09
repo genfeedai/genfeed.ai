@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
@@ -11,8 +12,54 @@ const packageRoot = (name: string) =>
 const packageSrc = (name: string) =>
   path.resolve(repoRoot, `./packages/${name}/src`);
 
+// `@ui/*` is a two-entry fallback in packages/pages/tsconfig.json:
+// `../ui/src/*` first, then `../ui/src/components/*`. Vite aliases take a single
+// string replacement, so mirror the fallback with a resolver instead of
+// hardcoding one prefix per directory — the hardcoded list silently missed
+// `@ui/components/*` and every other `src/`-level directory.
+const uiSrc = packageSrc('ui');
+const moduleSuffixes = [
+  '',
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '/index.ts',
+  '/index.tsx',
+];
+
+const resolveUiSubpath = (subpath: string): string => {
+  const bases = [
+    path.resolve(uiSrc, subpath),
+    path.resolve(uiSrc, './components', subpath),
+  ];
+
+  for (const base of bases) {
+    for (const suffix of moduleSuffixes) {
+      const candidate = `${base}${suffix}`;
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    }
+  }
+
+  return bases[1];
+};
+
+const uiSubpathResolver = {
+  enforce: 'pre' as const,
+  name: 'genfeed-ui-subpath-resolver',
+  resolveId(source: string) {
+    const match = /^@ui\/(.+)$/.exec(source);
+    if (!match) {
+      return null;
+    }
+    return resolveUiSubpath(match[1]);
+  },
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [uiSubpathResolver, react()],
   resolve: {
     alias: [
       {
@@ -334,10 +381,6 @@ export default defineConfig({
       {
         find: /^@ui$/,
         replacement: path.resolve(packageSrc('ui'), './components'),
-      },
-      {
-        find: /^@ui\/(.*)$/,
-        replacement: path.resolve(packageSrc('ui'), './components/$1'),
       },
       {
         find: /^@utils$/,

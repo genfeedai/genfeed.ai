@@ -357,4 +357,138 @@ describe('FFmpegTransformService', () => {
       );
     });
   });
+
+  describe('reverseVideo', () => {
+    it('should call core.executeFFmpeg with a reverse filter', async () => {
+      const onProgress = vi.fn();
+      await service.reverseVideo('/in/video.mp4', '/out/video.mp4', onProgress);
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-vf', 'reverse', '-af', 'areverse']),
+        onProgress,
+      );
+    });
+  });
+
+  describe('mirrorVideo', () => {
+    it('should call core.executeFFmpeg with an hflip filter', async () => {
+      await service.mirrorVideo('/in/video.mp4', '/out/video.mp4');
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-vf', 'hflip', '-c:a', 'copy']),
+        undefined,
+      );
+    });
+  });
+
+  describe('applyPortraitBlur', () => {
+    it('should apply a boxblur filter with the default blur amount', async () => {
+      await service.applyPortraitBlur('/in/video.mp4', '/out/video.mp4');
+
+      expect(mockCore.ensureOutputDir).toHaveBeenCalledWith('/out/video.mp4');
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-vf', 'boxblur=50:50']),
+      );
+    });
+
+    it('should apply a custom blur amount', async () => {
+      await service.applyPortraitBlur('/in/video.mp4', '/out/video.mp4', 10);
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-vf', 'boxblur=10:10']),
+      );
+    });
+  });
+
+  describe('createPortraitWithBlur', () => {
+    it('should build a blurred-background overlay filter', async () => {
+      await service.createPortraitWithBlur('/in/video.mp4', '/out/video.mp4', {
+        height: 1920,
+        width: 1080,
+      });
+
+      expect(mockCore.ensureOutputDir).toHaveBeenCalledWith('/out/video.mp4');
+      const args = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterIdx = args.indexOf('-filter_complex');
+      expect(filterIdx).toBeGreaterThan(-1);
+      expect(args[filterIdx + 1]).toContain('scale=1080:1920');
+      expect(args).toContain('[v]');
+    });
+  });
+
+  describe('convertVideoToAudio', () => {
+    it('should use default codec, bitrate, and format', async () => {
+      await service.convertVideoToAudio('/in/video.mp4', '/out/audio.mp3');
+
+      expect(mockCore.ensureOutputDir).toHaveBeenCalledWith('/out/audio.mp3');
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          '-acodec',
+          'libmp3lame',
+          '-ab',
+          '128k',
+          '-f',
+          'mp3',
+        ]),
+      );
+    });
+
+    it('should use custom codec, bitrate, and format when provided', async () => {
+      await service.convertVideoToAudio('/in/video.mp4', '/out/audio.aac', {
+        audioBitrate: '192k',
+        audioCodec: 'aac',
+        format: 'adts',
+      });
+
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledWith(
+        expect.arrayContaining(['-acodec', 'aac', '-ab', '192k', '-f', 'adts']),
+      );
+    });
+  });
+
+  describe('videoToGif', () => {
+    it('should generate a palette, produce the gif, then clean up the palette file', async () => {
+      await service.videoToGif('/in/video.mp4', '/out/video.gif');
+
+      expect(mockCore.ensureOutputDir).toHaveBeenCalledWith('/out/video.gif');
+      expect(mockCore.executeFFmpeg).toHaveBeenCalledTimes(2);
+
+      const paletteArgs = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(paletteArgs).toContain('/out/video.gif.palette.png');
+
+      const gifArgs = mockCore.executeFFmpeg.mock.calls[1][0] as string[];
+      expect(gifArgs).toContain('-lavfi');
+      expect(gifArgs).toContain('/out/video.gif');
+
+      expect(mockCore.cleanupTempFiles).toHaveBeenCalledWith(
+        '/out/video.gif.palette.png',
+      );
+    });
+
+    it('should include startTime and duration trims when provided', async () => {
+      await service.videoToGif('/in/video.mp4', '/out/video.gif', {
+        duration: '3',
+        startTime: '1',
+      });
+
+      const paletteArgs = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(paletteArgs).toEqual(
+        expect.arrayContaining(['-ss', '1', '-t', '3']),
+      );
+
+      const gifArgs = mockCore.executeFFmpeg.mock.calls[1][0] as string[];
+      expect(gifArgs).toEqual(expect.arrayContaining(['-ss', '1', '-t', '3']));
+    });
+
+    it('should use custom width and fps', async () => {
+      await service.videoToGif('/in/video.mp4', '/out/video.gif', {
+        fps: 20,
+        width: 720,
+      });
+
+      const paletteArgs = mockCore.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = paletteArgs.find((a) => a.includes('palettegen')) ?? '';
+      expect(filterArg).toContain('fps=20,scale=720');
+    });
+  });
 });

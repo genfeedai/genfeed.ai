@@ -87,6 +87,12 @@ describe('CronModelWatcherService', () => {
           },
         },
         {
+          provide: PlatformMarginService,
+          useValue: {
+            hydrate: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: LoggerService,
           useValue: {
             debug: vi.fn(),

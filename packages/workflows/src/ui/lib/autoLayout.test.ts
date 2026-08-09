@@ -20,6 +20,12 @@ function makeEdge(source: string, target: string, targetHandle?: string): Edge {
   };
 }
 
+function nodeById(result: Node[], id: string): Node {
+  const node = result.find((n) => n.id === id);
+  if (!node) throw new Error(`Expected a laid-out node with id "${id}"`);
+  return node;
+}
+
 function overlaps(a: Node, b: Node, gap = 0): boolean {
   const aw = a.measured?.width ?? 280;
   const ah = a.measured?.height ?? 200;
@@ -128,9 +134,8 @@ describe('getLayoutedNodes', () => {
     const edges = [makeEdge('a', 'b')];
 
     const result = getLayoutedNodes(nodes, edges, { rankSpacing: 0 });
-    const byId = new Map(result.map((n) => [n.id, n]));
-    const a = byId.get('a')!;
-    const b = byId.get('b')!;
+    const a = nodeById(result, 'a');
+    const b = nodeById(result, 'b');
 
     expect(overlaps(a, b)).toBe(false);
     expect(b.position.x - a.position.x).toBeGreaterThanOrEqual(280);
@@ -143,9 +148,8 @@ describe('getLayoutedNodes', () => {
     const edges = [makeEdge('a', 'sink'), makeEdge('b', 'sink')];
 
     const result = getLayoutedNodes(nodes, edges, { nodeSpacing: 0 });
-    const byId = new Map(result.map((n) => [n.id, n]));
-    const a = byId.get('a')!;
-    const b = byId.get('b')!;
+    const a = nodeById(result, 'a');
+    const b = nodeById(result, 'b');
 
     expect(overlaps(a, b)).toBe(false);
     expect(Math.abs(b.position.y - a.position.y)).toBeGreaterThanOrEqual(200);
