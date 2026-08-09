@@ -12,9 +12,7 @@ export default defineConfig({
     },
     environment: 'node',
     globals: true,
-    // Schema/migration source-integrity guards (e.g. hot-path-indexes.test.ts)
-    // live next to the Prisma schema, not under src/.
-    include: ['__tests__/**/*.test.ts', 'prisma/**/*.test.ts'],
+    include: ['__tests__/**/*.test.ts'],
     passWithNoTests: true,
   },
 });

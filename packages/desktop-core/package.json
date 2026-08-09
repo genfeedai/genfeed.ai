@@ -2,6 +2,9 @@
   "main": "src/index.ts",
   "name": "@genfeedai/desktop-core",
   "private": true,
+  "scripts": {
+    "test": "vitest run"
+  },
   "sideEffects": false,
   "type": "module",
   "types": "src/index.ts",

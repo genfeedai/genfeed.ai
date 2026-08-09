@@ -33,7 +33,8 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run build",
+    "test": "vitest run"
   },
   "sideEffects": false,
   "type": "module",
