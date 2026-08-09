@@ -72,7 +72,7 @@ export class ModelsService extends BaseService<
       return document as ModelDocument;
     }
 
-    const { config: _config, ...model } = document;
+    const { config: _config, ...model } = document as ModelDocument;
     // Virtual cost / costPerUnit / minCost: when providerCostUsd is present,
     // project live credits via applyMargin (admin marginMultiplier). DB still
     // stores providerCostUsd + optional baked fallbacks; UI/API always see
