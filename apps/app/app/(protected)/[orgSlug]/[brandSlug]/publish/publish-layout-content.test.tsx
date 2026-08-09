@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PublishLayoutContent from './publish-layout-content';
 
@@ -18,7 +19,9 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  openModal: openModalMock,
+  // Referenced lazily: vi.mock is hoisted above the const declarations above,
+  // so reading openModalMock eagerly here hits the temporal dead zone.
+  openModal: (...args: unknown[]) => openModalMock(...args),
 }));
 
 vi.mock('@ui/lazy/modal/LazyModal', () => ({
@@ -81,15 +84,18 @@ describe('PublishLayoutContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('seeds the agent composer without leaving Publish', () => {
+  it('seeds the agent composer without leaving Publish', async () => {
+    const user = userEvent.setup();
     render(
       <PublishLayoutContent>
         <div>child content</div>
       </PublishLayoutContent>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /new content/i }));
-    fireEvent.click(screen.getByRole('button', { name: /post with agent/i }));
+    // The New content menu is a pointer-driven dropdown, so fireEvent.click on
+    // the trigger never opens it — drive it through userEvent.
+    await user.click(screen.getByRole('button', { name: /new content/i }));
+    await user.click(screen.getByRole('button', { name: /post with agent/i }));
 
     expect(openAgentComposerMock).toHaveBeenCalledTimes(1);
     expect(openAgentComposerMock).toHaveBeenCalledWith(
@@ -99,19 +105,34 @@ describe('PublishLayoutContent', () => {
     );
   });
 
-  it('opens first-class X long-form and thread composers', () => {
+  it('opens first-class X long-form and thread composers', async () => {
+    const user = userEvent.setup();
     render(
       <PublishLayoutContent>
         <div>child content</div>
       </PublishLayoutContent>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /new content/i }));
-    fireEvent.click(screen.getByRole('button', { name: /x long post/i }));
+    await user.click(
+      await screen.findByRole('button', { name: /new content/i }),
+    );
+    await user.click(
+      await screen.findByRole('button', { name: /x long post/i }),
+    );
     expect(openModalMock).toHaveBeenCalledWith('modal-post-long-form');
 
-    fireEvent.click(screen.getByRole('button', { name: /new content/i }));
-    fireEvent.click(screen.getByRole('button', { name: /x thread/i }));
+    // openModal is mocked, so no modal takes over and the menu stays open —
+    // it marks the rest of the page aria-hidden, which would hide the trigger
+    // from the next query. Dismiss it before reopening.
+    await user.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(document.body).not.toHaveAttribute('data-scroll-locked');
+    });
+
+    await user.click(
+      await screen.findByRole('button', { name: /new content/i }),
+    );
+    await user.click(await screen.findByRole('button', { name: /x thread/i }));
     expect(openModalMock).toHaveBeenCalledWith('modal-thread-create');
   });
 
