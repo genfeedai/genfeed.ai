@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   posthogGetFeatureFlagResult: vi.fn(),
   posthogGroup: vi.fn(),
   posthogIdentify: vi.fn(),
+  posthogImport: vi.fn(),
   posthogInit: vi.fn(),
   posthogOnFeatureFlags: vi.fn(),
   posthogReset: vi.fn(),
@@ -18,17 +19,20 @@ vi.mock('@genfeedai/config/deployment', () => ({
   isSaaS: mocks.isSaaS,
 }));
 
-vi.mock('posthog-js', () => ({
-  default: {
-    capture: mocks.posthogCapture,
-    getFeatureFlagResult: mocks.posthogGetFeatureFlagResult,
-    group: mocks.posthogGroup,
-    identify: mocks.posthogIdentify,
-    init: mocks.posthogInit,
-    onFeatureFlags: mocks.posthogOnFeatureFlags,
-    reset: mocks.posthogReset,
-  },
-}));
+vi.mock('posthog-js', () => {
+  mocks.posthogImport();
+  return {
+    default: {
+      capture: mocks.posthogCapture,
+      getFeatureFlagResult: mocks.posthogGetFeatureFlagResult,
+      group: mocks.posthogGroup,
+      identify: mocks.posthogIdentify,
+      init: mocks.posthogInit,
+      onFeatureFlags: mocks.posthogOnFeatureFlags,
+      reset: mocks.posthogReset,
+    },
+  };
+});
 
 type PosthogClientModule = typeof import('./posthog-client');
 
@@ -47,11 +51,12 @@ async function flushInit(): Promise<void> {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   mocks.isSaaS.mockReturnValue(true);
   mocks.posthogOnFeatureFlags.mockReturnValue(
     mocks.posthogFeatureFlagUnsubscribe,
   );
-  vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_test_key');
+  vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', 'phc_testkey');
 });
 
 describe('isAnalyticsEnabled', () => {
@@ -72,8 +77,12 @@ describe('isAnalyticsEnabled', () => {
     expect(client.isAnalyticsEnabled()).toBe(false);
   });
 
-  it('is disabled when no PostHog key is configured', async () => {
-    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', '');
+  it.each([
+    ['a placeholder', '-'],
+    ['an empty value', ''],
+    ['a non-PostHog value', 'project_123'],
+  ])('is disabled when the key is %s', async (_label, key) => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', key);
     const client = await loadClient();
     expect(client.isAnalyticsEnabled()).toBe(false);
   });
@@ -86,7 +95,7 @@ describe('initAnalytics', () => {
     await flushInit();
     expect(mocks.posthogInit).toHaveBeenCalledTimes(1);
     expect(mocks.posthogInit).toHaveBeenCalledWith(
-      'phc_test_key',
+      'phc_testkey',
       expect.objectContaining({
         api_host: 'https://eu.i.posthog.com',
         autocapture: false,
@@ -101,7 +110,7 @@ describe('initAnalytics', () => {
     await flushInit();
 
     expect(mocks.posthogInit).toHaveBeenCalledWith(
-      'phc_test_key',
+      'phc_testkey',
       expect.objectContaining({ api_host: 'https://eu.i.posthog.com' }),
     );
   });
@@ -209,6 +218,20 @@ describe('initAnalytics', () => {
     const client = await loadClient();
     client.initAnalytics();
     await flushInit();
+    expect(mocks.posthogInit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['a placeholder', '-'],
+    ['empty', ''],
+    ['a non-PostHog value', 'project_123'],
+  ])('never imports the SDK when the key is %s', async (_label, key) => {
+    vi.stubEnv('NEXT_PUBLIC_POSTHOG_KEY', key);
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+
+    expect(mocks.posthogImport).not.toHaveBeenCalled();
     expect(mocks.posthogInit).not.toHaveBeenCalled();
   });
 
