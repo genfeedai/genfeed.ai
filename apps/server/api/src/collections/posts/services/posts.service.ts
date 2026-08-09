@@ -34,11 +34,11 @@ import {
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
+  type PersistedReviewDecision,
   PostFormat,
   PostStatus,
   PostVisibility,
   parsePlatform,
-  type ReviewDecision,
   TargetExecutionState,
   type TargetValidationState,
 } from '@genfeedai/enums';
@@ -126,7 +126,7 @@ type PostUpdateInput = Partial<UpdatePostDto> & {
   brandId?: string;
   organizationId?: string;
   platform?: CredentialPlatform;
-  reviewDecision?: ReviewDecision;
+  reviewDecision?: PersistedReviewDecision;
   reviewFeedback?: string;
   reviewedAt?: Date;
   targetSettings?: Prisma.InputJsonValue;

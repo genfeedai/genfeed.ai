@@ -20,6 +20,7 @@ import {
   BatchStatus,
   ContentFormat,
   PostVisibility,
+  ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IBatchSummary } from '@genfeedai/interfaces';
@@ -324,6 +325,7 @@ export class BatchGenerationCreationService {
           postId,
           publishIntent: reviewItem.publishIntent,
           prompt: reviewItem.prompt,
+          reviewDecision: ReviewDecision.UNSET,
           reviewEvents: [],
           scheduleSlot: reviewItem.scheduleSlot,
           sourceActionId: reviewItem.sourceActionId,
@@ -430,6 +432,7 @@ export class BatchGenerationCreationService {
           createdAt: now,
           format: format as ContentFormat,
           platform: platforms[index % platforms.length],
+          reviewDecision: ReviewDecision.UNSET,
           scheduledDate: timeSlots[index]?.toISOString(),
           status: BatchItemStatus.PENDING,
         });

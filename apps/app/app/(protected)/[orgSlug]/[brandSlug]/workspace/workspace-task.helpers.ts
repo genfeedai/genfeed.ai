@@ -1,4 +1,5 @@
 import { APP_ROUTES } from '@genfeedai/constants';
+import type { ReviewDecision } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { Task, type TaskEvent } from '@services/management/tasks.service';
 import { buildTaskLaunchHref } from '@/lib/navigation/operator-shell';
@@ -13,7 +14,7 @@ export interface ReviewInboxItem {
   format?: string;
   id: string;
   platform?: string;
-  reviewDecision?: 'approved' | 'pending' | 'request_changes' | string;
+  reviewDecision: ReviewDecision;
   summary: string;
 }
 

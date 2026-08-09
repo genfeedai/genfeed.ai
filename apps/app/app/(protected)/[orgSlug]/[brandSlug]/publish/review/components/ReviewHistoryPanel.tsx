@@ -1,5 +1,6 @@
 'use client';
 
+import { ReviewDecision } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
@@ -42,9 +43,11 @@ export default function ReviewHistoryPanel({
           >
             <div className="flex items-start justify-between gap-4">
               <p className="text-sm font-medium capitalize text-foreground">
-                {event.decision === 'request_changes'
+                {event.decision === ReviewDecision.REQUEST_CHANGES
                   ? 'Changes requested'
-                  : event.decision}
+                  : event.decision === ReviewDecision.UNSET
+                    ? 'Not reviewed'
+                    : event.decision}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDateInTimezone(
