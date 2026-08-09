@@ -124,7 +124,9 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
 type PostUpdateInput = Partial<UpdatePostDto> & {
   brandId?: string;
   organizationId?: string;
+  platform?: CredentialPlatform;
   reviewDecision?: ReviewDecision;
+  reviewFeedback?: string;
   reviewedAt?: Date;
   targetSettings?: Prisma.InputJsonValue;
   userId?: string;

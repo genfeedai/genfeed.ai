@@ -47,9 +47,14 @@ import {
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
+import type { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+}
 
 @Injectable()
 export class AgentStrategyAutopilotExecutionService {
@@ -213,13 +218,13 @@ export class AgentStrategyAutopilotExecutionService {
 
     await this.postsService.patch(getDraftId(input.draft), {
       agentStrategyId: getStrategyId(input.strategy),
-      targetSettings: {
+      targetSettings: toPrismaJson({
         ...getDraftTargetSettings(input.draft),
         generation: {
           ...getDraftGenerationSettings(input.draft),
           metadata,
         },
-      },
+      }),
     });
 
     return metadata;
@@ -273,7 +278,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     await this.postsService.patch(draftId, {
       description: optimization.optimized,
-      targetSettings: {
+      targetSettings: toPrismaJson({
         ...getDraftTargetSettings(input.draft),
         generation: {
           ...getDraftGenerationSettings(input.draft),
@@ -282,7 +287,7 @@ export class AgentStrategyAutopilotExecutionService {
             revisionInstructions: input.gate.revisionInstructions,
           },
         },
-      },
+      }),
     });
 
     const revisedGate = await this.evaluateDraft(
