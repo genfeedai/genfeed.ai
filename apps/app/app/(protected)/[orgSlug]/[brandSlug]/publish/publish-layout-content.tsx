@@ -17,8 +17,11 @@ import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
 
 function buildNewPostAgentPrompt(brandLabel?: string | null): string {
-  const brandClause = brandLabel?.trim()
-    ? `my brand "${brandLabel.trim()}" (already selected in the workspace — do not ask which brand to use)`
+  const trimmedLabel = brandLabel?.trim();
+  // Brand labels are user-supplied — quote via JSON.stringify so a `"` in the
+  // name cannot break out of the clause and restructure the prompt.
+  const brandClause = trimmedLabel
+    ? `my brand ${JSON.stringify(trimmedLabel)} (already selected in the workspace — do not ask which brand to use)`
     : 'my currently selected brand (do not ask which brand to use)';
 
   return `Help me generate a new post for ${brandClause} — draft the content, pick the best channels, and prepare it for review or scheduling.`;

@@ -8,10 +8,12 @@ const useRouterMock = vi.fn();
 const useSearchParamsMock = vi.fn();
 const openAgentComposerMock = vi.fn();
 
+const brandMock = vi.hoisted(() => ({ label: 'Acme Creator' }));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
-    selectedBrand: { id: 'brand-1', label: 'Acme Creator' },
+    selectedBrand: { id: 'brand-1', label: brandMock.label },
   })),
 }));
 
@@ -36,6 +38,7 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 describe('PublishLayoutContent', () => {
   beforeEach(() => {
+    brandMock.label = 'Acme Creator';
     openAgentComposerMock.mockReset();
     usePathnameMock.mockReturnValue('/publish/scheduled');
     useRouterMock.mockReturnValue({ refresh: vi.fn() });
@@ -84,6 +87,24 @@ describe('PublishLayoutContent', () => {
         /generate a new post for my brand "Acme Creator".*do not ask which brand/i,
       ),
     );
+  });
+
+  it('keeps the prompt well-formed when the brand label contains a quote', () => {
+    brandMock.label = 'The "Real" Deal';
+
+    render(
+      <PublishLayoutContent>
+        <div>child content</div>
+      </PublishLayoutContent>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /new post/i }));
+
+    const prompt = openAgentComposerMock.mock.calls[0][0] as string;
+    expect(prompt).toContain(
+      'my brand "The \\"Real\\" Deal" (already selected',
+    );
+    expect(prompt).toContain('do not ask which brand to use)');
   });
 
   it('skips the container chrome for organization-and-brand-scoped detail routes', () => {
