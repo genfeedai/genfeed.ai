@@ -29,6 +29,7 @@ import { PostsGenerationController } from '@api/collections/posts/controllers/op
 import { PostsOperationsController } from '@api/collections/posts/controllers/operations/posts-operations.controller';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
@@ -332,6 +333,10 @@ Tweet 3: Tech innovation is changing the world.`,
         { provide: LoggerService, useValue: mockLoggerService },
         PostGenerationService,
         {
+          provide: PostRepurposeService,
+          useValue: { repurpose: vi.fn() },
+        },
+        {
           provide: PostThreadGenerationService,
           useValue: mockPostThreadGenerationService,
         },
@@ -382,6 +387,7 @@ Tweet 3: Tech innovation is changing the world.`,
     ['generateAccountContent', 'account-generations'],
     ['expandToThread', ':postId/thread-expansions'],
     ['enhancePost', ':postId/enhancements'],
+    ['repurposePost', ':postId/repurpose'],
     ['scoreSeo', ':postId/seo-scores'],
     ['generateHookVariations', 'hook-generations'],
   ] as const)(
@@ -419,6 +425,7 @@ Tweet 3: Tech innovation is changing the world.`,
   it.each([
     'expandToThread',
     'enhancePost',
+    'repurposePost',
     'scoreSeo',
     'generateHookVariations',
   ] as const)(

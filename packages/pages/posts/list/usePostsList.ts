@@ -13,6 +13,7 @@ import {
   ModelCategory,
   PageScope,
   type Platform,
+  PostRepurposeMode,
   PostStatus,
   ViewType,
   WebSocketEventStatus,
@@ -51,6 +52,7 @@ import {
   useConfirmDeleteModal,
   useIngredientOverlay,
   usePostRemixModal,
+  usePostRepurposeModal,
 } from '@providers/global-modals/global-modals.provider';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
@@ -137,6 +139,7 @@ export function usePostsList({
   const { openIngredientOverlay } = useIngredientOverlay();
   const { openConfirmDelete } = useConfirmDeleteModal();
   const { openPostRemixModal } = usePostRemixModal();
+  const { openPostRepurposeModal } = usePostRepurposeModal();
 
   const getOrganizationsService = useAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
@@ -521,6 +524,40 @@ export function usePostsList({
     [getPostsService, notificationsService, openPostRemixModal, router, href],
   );
 
+  const handleRepurposePost = useCallback(
+    (post: IPost) => {
+      openPostRepurposeModal(
+        { id: post.id, label: post.label, platform: post.platform },
+        async (platform, mode) => {
+          const service = await getPostsService();
+          const draft = await service.repurpose(post.id, { mode, platform });
+          if (mode === PostRepurposeMode.AGENT) {
+            notificationsService.success(
+              'Rewritten draft sent to the review queue',
+            );
+            router.push(
+              href(
+                draft.reviewBatchId
+                  ? `/publish/review?batch=${draft.reviewBatchId}&filter=ready`
+                  : '/publish/review',
+              ),
+            );
+          } else {
+            notificationsService.success('Repurposed draft created');
+            router.push(href(getPublisherPostHref(draft.id)));
+          }
+        },
+      );
+    },
+    [
+      getPostsService,
+      notificationsService,
+      openPostRepurposeModal,
+      router,
+      href,
+    ],
+  );
+
   const handleRetryPost = useCallback(
     async (post: IPost) => {
       try {
@@ -565,6 +602,7 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRepurpose: handleRepurposePost,
         onRewriteWithAgent,
         onRetry: handleRetryPost,
         onSuggestScheduleWithAgent,
@@ -577,6 +615,7 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      handleRepurposePost,
       onRewriteWithAgent,
       handleRetryPost,
       onSuggestScheduleWithAgent,
@@ -602,6 +641,7 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRepurpose: handleRepurposePost,
         onRewriteWithAgent,
         onRetry: handleRetryPost,
         onSuggestScheduleWithAgent,
@@ -614,6 +654,7 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      handleRepurposePost,
       onRewriteWithAgent,
       handleRetryPost,
       onSuggestScheduleWithAgent,

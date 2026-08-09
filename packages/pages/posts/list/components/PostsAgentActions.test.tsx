@@ -14,6 +14,7 @@ const baseHandlers = {
   onEdit: vi.fn(),
   onOpenPlatformUrl: vi.fn(),
   onRemix: vi.fn(),
+  onRepurpose: vi.fn(),
   onRetry: vi.fn(),
   onViewIngredient: vi.fn(),
 };

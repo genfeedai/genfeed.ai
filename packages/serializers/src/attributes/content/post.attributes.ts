@@ -48,6 +48,8 @@ export const postAttributes = createEntityAttributes([
   'externalId',
   'externalShortcode',
   'groupId',
+  'originalPostId',
+  'repurposeAdjustments',
   'url',
   'retryCount',
   'lastAttemptAt',

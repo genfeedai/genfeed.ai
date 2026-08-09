@@ -41,6 +41,9 @@ export interface IPost extends IBaseEntity {
   publishedAt?: string;
   retryCount?: number;
   targetError?: IChannelTargetError | null;
+  originalPostId?: string | null;
+  reviewBatchId?: string | null;
+  reviewItemId?: string | null;
   reviewVersionPinId?: string | null;
   publishApprovalId?: string | null;
   publishApproval?: IPublishApproval | null;
