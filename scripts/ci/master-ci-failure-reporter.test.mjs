@@ -242,6 +242,8 @@ test('tests-gate runs on master pushes as well as pull requests', () => {
 test('a red master gate files the tracker and a green one resolves it', () => {
   const report = ciJob('master-failure-report');
   assert.match(report, /needs: \[tests-gate\]/);
+  assert.match(report, /group: master-ci-failure-tracker/);
+  assert.match(report, /cancel-in-progress: false/);
   assert.match(report, /!cancelled\(\)/);
   assert.match(report, /github\.event_name == 'push'/);
   assert.match(report, /needs\.tests-gate\.result == 'failure'/);
@@ -250,6 +252,16 @@ test('a red master gate files the tracker and a green one resolves it', () => {
 
   const resolve = ciJob('master-failure-resolve');
   assert.match(resolve, /needs: \[tests-gate\]/);
+  assert.match(resolve, /group: master-ci-failure-tracker/);
+  assert.match(resolve, /cancel-in-progress: false/);
+  // Without a status function the implicit `success()` spans the transitive
+  // needs graph, where skipped test lanes are routine — the resolve arm was
+  // skipped on every green master push until this was pinned (#2625).
+  assert.match(
+    resolve,
+    /!cancelled\(\)/,
+    'master-failure-resolve must opt out of transitive skip propagation (#2625)',
+  );
   assert.match(resolve, /github\.event_name == 'push'/);
   assert.match(resolve, /needs\.tests-gate\.result == 'success'/);
   assert.match(resolve, /issues: write/);
