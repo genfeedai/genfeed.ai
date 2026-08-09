@@ -84,6 +84,14 @@ function getOrgPostsStatusOverride(segments?: string[]) {
     return PostStatus.SCHEDULED;
   }
 
+  if (segment === 'pending') {
+    return PostStatus.PENDING;
+  }
+
+  if (segment === 'processing') {
+    return PostStatus.PROCESSING;
+  }
+
   return undefined;
 }
 

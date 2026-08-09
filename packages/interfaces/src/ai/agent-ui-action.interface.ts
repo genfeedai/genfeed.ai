@@ -21,6 +21,7 @@ export type AgentUiActionType =
   | 'credits_balance_card'
   | 'studio_handoff_card'
   | 'brand_create_card'
+  | 'brand_identity_confirmation_card'
   | 'workflow_execute_card'
   | 'trending_topics_card'
   | 'content_calendar_card'
@@ -55,7 +56,7 @@ export interface AgentUiActionCta {
 export type AgentUiActionHandler = (
   action: string,
   payload?: Record<string, unknown>,
-) => void | Promise<void>;
+) => boolean | void | Promise<boolean | undefined> | Promise<void>;
 
 export interface AgentUiActionOutputVariant {
   id: string;

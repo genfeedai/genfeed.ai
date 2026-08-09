@@ -4,7 +4,7 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a starter brand from conversational onboarding details (name, handle, niche, voice).',
+      'Propose a starter brand identity from conversational onboarding details. Creation requires confirmation through the returned in-product action card.',
     name: 'create_brand',
     parameters: {
       properties: {
@@ -13,15 +13,23 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
           type: 'string',
         },
         handle: {
-          description: 'Brand handle, with or without @ prefix',
+          description: 'Legacy alias for the proposed brand slug',
+          type: 'string',
+        },
+        label: {
+          description: 'Proposed brand display name',
           type: 'string',
         },
         name: {
-          description: 'Brand display name',
+          description: 'Legacy alias for the proposed brand display name',
           type: 'string',
         },
         niche: {
           description: 'Primary niche for content',
+          type: 'string',
+        },
+        slug: {
+          description: 'Proposed URL-safe brand slug',
           type: 'string',
         },
         voice: {
@@ -30,6 +38,31 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
         },
       },
       required: [],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Propose a new label and slug for the active thread brand. Renaming requires confirmation through the returned in-product action card.',
+    name: 'rename_brand',
+    parameters: {
+      properties: {
+        description: {
+          description: 'Optional updated brand description',
+          type: 'string',
+        },
+        label: {
+          description: 'Proposed new brand display name',
+          type: 'string',
+        },
+        slug: {
+          description: 'Proposed new URL-safe brand slug',
+          type: 'string',
+        },
+      },
+      required: ['label'],
       type: 'object',
     },
     requiredRole: 'user',

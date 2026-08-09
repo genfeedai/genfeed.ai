@@ -337,7 +337,10 @@ export class ContentExecutionService {
       throw new Error(errorMsg);
     }
 
-    const existingPostId = pipelineResult.postIds[0];
+    // `postIds` is optional on PipelineResultV2 — a run that published nothing
+    // omits it entirely, so read it defensively and fall through to creating a
+    // reviewable post rather than assuming the array exists.
+    const existingPostId = pipelineResult.postIds?.[0];
     const postId = existingPostId
       ? String(
           (

@@ -21,12 +21,32 @@ export enum PostVisibility {
   UNLISTED = 'unlisted',
 }
 
+/**
+ * How a post is repurposed to another channel. Product-language lowercase on
+ * purpose: the mode is a request discriminator, never a persisted DB status.
+ */
+export enum PostRepurposeMode {
+  AGENT = 'agent',
+  DETERMINISTIC = 'deterministic',
+}
+
 export enum PostFrequency {
   DAILY = 'daily',
   WEEKLY = 'weekly',
   MONTHLY = 'monthly',
   YEARLY = 'yearly',
   NEVER = 'never',
+}
+
+/**
+ * Editorial shape of a social post. Thread segments remain canonical Post
+ * records linked through `parentId`; this field records the intended editing
+ * and publishing experience without duplicating their bodies into JSON.
+ */
+export enum PostFormat {
+  STANDARD = 'standard',
+  LONG_FORM = 'long-form',
+  THREAD = 'thread',
 }
 
 /**

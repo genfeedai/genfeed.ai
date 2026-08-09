@@ -13,6 +13,7 @@ import type {
 } from '@genfeedai/enums';
 import type {
   IPublishApproval,
+  IReleaseGroup,
   PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
@@ -111,10 +112,6 @@ export type SchedulerPostAnalytics = {
   updatedAt: Date;
 };
 
-/**
- * Canonical Calendar and Publish-list read-model query. `statuses` narrows the
- * derived release status; target facets must all match the same channel target.
- */
 export type PublishListPublicationState = 'posted' | 'not-posted';
 
 export type ReleaseGroupListSort =
@@ -125,6 +122,12 @@ export type ReleaseGroupListSort =
   | 'updatedAt: -1'
   | 'updatedAt: 1';
 
+/**
+ * Canonical Calendar and Publish-list read-model query. `statuses` narrows the
+ * derived release status; the remaining target facets are target-scoped — a
+ * release matches when **at least one** of its channel targets satisfies all of
+ * them.
+ */
 export type ReleaseGroupListQuery = {
   brandId?: string;
   categories?: PostCategory[];

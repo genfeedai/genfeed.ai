@@ -57,12 +57,12 @@ export default function ModalCreateThread({
 
   const form = useForm<ThreadModalSchema>({
     defaultValues: {
-      credentialId: credential?.id,
+      credentialId: credential?.id || credentials[0]?.id,
       globalTitle: '',
       ingredient: ingredient?.id,
       posts: [{ description: '' }, { description: '' }],
       scheduledDate: '',
-      targetExecutionState: TargetExecutionState.SCHEDULED,
+      targetExecutionState: TargetExecutionState.DRAFT,
       visibility: PostVisibility.PUBLIC,
     },
     mode: 'onChange',
@@ -103,7 +103,7 @@ export default function ModalCreateThread({
         description: post.description.trim(),
         ingredients: data.ingredient ? [data.ingredient] : [],
         label: data.globalTitle || `Thread ${index + 1}/${data.posts.length}`,
-        scheduledDate: data.scheduledDate,
+        ...(data.scheduledDate ? { scheduledDate: data.scheduledDate } : {}),
         targetExecutionState: data.targetExecutionState,
         visibility: data.visibility,
       }));

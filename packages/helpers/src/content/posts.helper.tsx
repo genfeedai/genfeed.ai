@@ -123,10 +123,13 @@ export function getPostsPlatformLabel(
   return 'Post';
 }
 
-// Publisher navigation has three destinations: not posted, posted, and failed.
+// Publisher navigation uses canonical PostStatus values for focused lifecycle
+// destinations. Draft and scheduled still share the broader not-posted view.
 const PUBLISHER_POST_STATUSES = [
   PostStatus.DRAFT,
   PostStatus.FAILED,
+  PostStatus.PENDING,
+  PostStatus.PROCESSING,
   PostStatus.SCHEDULED,
   PostStatus.PUBLIC,
 ] as const;
@@ -151,7 +154,15 @@ export function getPublisherPostsStatusPath(
     return APP_ROUTES.PUBLISH.FAILED;
   }
 
-  // Draft + scheduled + in-progress share the Drafts pipeline list.
+  if (normalizedStatus === PostStatus.PENDING) {
+    return APP_ROUTES.PUBLISH.PENDING;
+  }
+
+  if (normalizedStatus === PostStatus.PROCESSING) {
+    return APP_ROUTES.PUBLISH.PROCESSING;
+  }
+
+  // Draft + scheduled share the broader not-posted pipeline list.
   if (
     normalizedStatus === PostStatus.SCHEDULED ||
     normalizedStatus === PostStatus.DRAFT
@@ -191,6 +202,14 @@ export function getPublisherPostsStatusFromPathname(
     return PostStatus.FAILED;
   }
 
+  if (statusSegment === 'pending') {
+    return PostStatus.PENDING;
+  }
+
+  if (statusSegment === 'processing') {
+    return PostStatus.PROCESSING;
+  }
+
   // `/publish/posts` is the unfiltered library — no status forced.
   if (statusSegment === 'posts' || statusSegment === 'post') {
     return null;
@@ -208,6 +227,8 @@ export function normalizePublisherPostsStatus(
     status === PostStatus.SCHEDULED ||
     status === PostStatus.PUBLIC ||
     status === PostStatus.FAILED ||
+    status === PostStatus.PENDING ||
+    status === PostStatus.PROCESSING ||
     status === PostStatus.DRAFT
   ) {
     return status;

@@ -7,9 +7,11 @@ import {
 } from './sidebar-navigation-context';
 
 const pathnameState = vi.hoisted(() => ({ value: '/workspace' }));
+const searchParamsState = vi.hoisted(() => ({ value: '' }));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathnameState.value,
+  useSearchParams: () => new URLSearchParams(searchParamsState.value),
 }));
 
 function NavigationState() {
@@ -50,6 +52,10 @@ function renderNavigation(items: MenuItemConfig[]) {
 }
 
 describe('SidebarNavigationProvider', () => {
+  beforeEach(() => {
+    searchParamsState.value = '';
+  });
+
   it('uses explicit match paths to derive the active breadcrumb page', () => {
     pathnameState.value = '/acme/brand/workspace';
 
@@ -117,6 +123,34 @@ describe('SidebarNavigationProvider', () => {
 
     expect(
       screen.getByText('none|Images|none|Images|derived|1'),
+    ).toBeInTheDocument();
+  });
+
+  it('prefers a query-specific Pipeline item over the generic Posts item', () => {
+    pathnameState.value = '/acme/brand/publish/posts';
+    searchParamsState.value = 'publicationState=posted&platform=linkedin';
+
+    renderNavigation([
+      { href: '/publish/posts', label: 'Posts' },
+      {
+        group: 'Pipeline',
+        href: '/publish/posts?publicationState=not-posted',
+        label: 'Drafts',
+        matchSearchParams: {
+          publicationState: 'not-posted',
+          status: null,
+        },
+      },
+      {
+        group: 'Pipeline',
+        href: '/publish/posts?publicationState=posted',
+        label: 'Published',
+        matchSearchParams: { publicationState: 'posted', status: null },
+      },
+    ]);
+
+    expect(
+      screen.getByText('Pipeline|Published|Pipeline|Published|derived|2'),
     ).toBeInTheDocument();
   });
 

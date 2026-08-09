@@ -1,7 +1,33 @@
+import {
+  PUBLISH_POSTS_PUBLICATION_STATES,
+  type PublishPostsPublicationState,
+} from '@genfeedai/constants';
 import { type PageScope, PostStatus } from '@genfeedai/enums';
 
-export type PostsPublicationState = 'posted' | 'not-posted';
-export type PublisherPostsView = PostsPublicationState | 'failed';
+export type PostsPublicationState = PublishPostsPublicationState;
+export type PublisherPostsView =
+  | PostsPublicationState
+  | PostStatus.FAILED
+  | PostStatus.PENDING
+  | PostStatus.PROCESSING;
+
+export function parsePostsPublicationState(
+  value?: string | null,
+): PostsPublicationState | undefined {
+  return PUBLISH_POSTS_PUBLICATION_STATES.includes(
+    value as PostsPublicationState,
+  )
+    ? (value as PostsPublicationState)
+    : undefined;
+}
+
+export function parsePostsStatus(
+  value?: string | null,
+): PostStatus | undefined {
+  return Object.values(PostStatus).includes(value as PostStatus)
+    ? (value as PostStatus)
+    : undefined;
+}
 
 export interface PostsListQueryKeyInput {
   adminBrand: string;

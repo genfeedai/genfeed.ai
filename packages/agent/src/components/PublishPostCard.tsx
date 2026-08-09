@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, PostVisibility } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -19,12 +22,26 @@ import {
   useState,
 } from 'react';
 
+/**
+ * Field labels and visibility options held as data so the copy stays one
+ * translatable set — `packages/agent` ships without a message catalog.
+ */
+const COPY = {
+  caption: 'Caption',
+  platforms: 'Platforms',
+  scheduleForLater: 'Schedule for later',
+  visibility: 'Visibility',
+};
+
+const VISIBILITY_OPTIONS: { label: string; value: PostVisibility }[] = [
+  { label: 'Public', value: PostVisibility.PUBLIC },
+  { label: 'Private', value: PostVisibility.PRIVATE },
+  { label: 'Unlisted', value: PostVisibility.UNLISTED },
+];
+
 interface PublishPostCardProps {
   action: AgentUiAction;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }
 
 function toDatetimeLocalValue(value: string | undefined): string {
@@ -187,7 +204,7 @@ export function PublishPostCard({
           htmlFor="publish-caption"
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
         >
-          Caption
+          {COPY.caption}
         </label>
         <Textarea
           id="publish-caption"
@@ -200,7 +217,7 @@ export function PublishPostCard({
 
       <div className="mb-3">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          Platforms
+          {COPY.platforms}
         </span>
         <div className="flex flex-wrap gap-2">
           {availablePlatforms.map((platform) => {
@@ -227,7 +244,7 @@ export function PublishPostCard({
 
       <div className="mb-4">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-          Visibility
+          {COPY.visibility}
         </span>
         <Select
           value={visibility}
@@ -237,9 +254,11 @@ export function PublishPostCard({
             <SelectValue placeholder="Select visibility" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={PostVisibility.PUBLIC}>Public</SelectItem>
-            <SelectItem value={PostVisibility.PRIVATE}>Private</SelectItem>
-            <SelectItem value={PostVisibility.UNLISTED}>Unlisted</SelectItem>
+            {VISIBILITY_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -250,7 +269,7 @@ export function PublishPostCard({
           className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
         >
           <Calendar className="mr-1 inline size-3" />
-          Schedule for later
+          {COPY.scheduleForLater}
         </label>
         <Input
           id="publish-schedule"

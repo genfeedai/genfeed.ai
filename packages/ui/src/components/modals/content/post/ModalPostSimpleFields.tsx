@@ -104,7 +104,7 @@ export default function ModalPostSimpleFields({
         />
       </FormControl>
 
-      {hasIngredients && (
+      {(hasIngredients || selectedPlatform === Platform.TWITTER) && (
         <>
           <FormControl
             label="Scheduled Date (Optional)"

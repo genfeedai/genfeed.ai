@@ -9,13 +9,14 @@ import type {
   AgentInputRequest,
   AgentProposedPlan,
   AgentUiAction,
+  AgentUiActionHandler,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { ConversationComposerSendOptions } from '@genfeedai/agent/models/conversation-composer.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import type { AgentSocketConnectionState } from '@genfeedai/agent/stores/agent-chat.store';
 import type { RouterPriority } from '@genfeedai/enums';
-import type { AgentUiActionHandler, IModel } from '@genfeedai/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import type {
   AttachmentItem,
   ChatAttachment,

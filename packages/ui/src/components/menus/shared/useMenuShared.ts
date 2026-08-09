@@ -38,6 +38,30 @@ export function useMenuShared({
     routeScope,
   } = useMenuRouteResolution();
 
+  const isConfiguredItemActive = useCallback(
+    (item: MenuItemConfig) => {
+      if (!item.href) {
+        return false;
+      }
+
+      if (
+        item.hrefScope &&
+        item.hrefScope !== 'global' &&
+        item.hrefScope !== routeScope
+      ) {
+        return false;
+      }
+
+      const itemPathname = item.href.split('?')[0] ?? item.href;
+      if (item.isExactMatch && pathname !== itemPathname) {
+        return false;
+      }
+
+      return isActive(item.href, item.matchSearchParams);
+    },
+    [isActive, pathname, routeScope],
+  );
+
   const primaryItems = useMemo(
     () => config.items.filter((item) => item.isPrimary),
     [config.items],
@@ -55,30 +79,35 @@ export function useMenuShared({
 
   const isActiveItem = useCallback(
     (item: MenuItemConfig) => {
-      if (!item.href) {
+      if (!isConfiguredItemActive(item) || !item.href) {
         return false;
       }
 
-      if (
-        item.hrefScope &&
-        item.hrefScope !== 'global' &&
-        item.hrefScope !== routeScope
-      ) {
-        return false;
+      if (item.matchSearchParams) {
+        return true;
       }
 
-      // Root items that share a path prefix with their siblings (e.g. an
-      // "Overview"/"General" at /settings sitting above /settings/members)
-      // must match the current route exactly, otherwise they light up on every
-      // descendant route. `pathname` is already normalized to the config-level
-      // path, so compare against the item's config href directly.
-      if (item.isExactMatch) {
-        return pathname === item.href;
-      }
+      const itemPathname = item.href.split('?')[0] ?? item.href;
+      const hasMoreSpecificQueryMatch = config.items.some((candidate) => {
+        if (
+          candidate === item ||
+          !candidate.href ||
+          !candidate.matchSearchParams
+        ) {
+          return false;
+        }
 
-      return isActive(item.href);
+        const candidatePathname =
+          candidate.href.split('?')[0] ?? candidate.href;
+        return (
+          candidatePathname === itemPathname &&
+          isConfiguredItemActive(candidate)
+        );
+      });
+
+      return !hasMoreSpecificQueryMatch;
     },
-    [isActive, pathname, routeScope],
+    [config.items, isConfiguredItemActive],
   );
 
   // Group items by their group field, preserving order

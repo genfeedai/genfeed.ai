@@ -33,6 +33,7 @@ const MAX_DEPTH = 3;
 const MAX_TABLE_ROWS = 100;
 const MAX_CHART_ROWS = 200;
 const MAX_IMAGE_ITEMS = 24;
+const MAX_DASHBOARD_DOCUMENT_BYTES = 64 * 1024;
 
 const BLOCK_TYPES = [
   'metric_card',
@@ -92,6 +93,7 @@ export type DashboardOpenUIComponent =
   (typeof DASHBOARD_OPENUI_COMPONENTS)[number];
 
 export type DashboardValidationIssueCode =
+  | 'document_too_large'
   | 'invalid_document'
   | 'invalid_props'
   | 'max_depth_exceeded'
@@ -144,6 +146,22 @@ function fail(
   message: string,
 ): never {
   throw new DashboardValidationError(createIssue(code, path, message));
+}
+
+function assertDocumentSize(input: unknown, path: FieldPath): void {
+  const serialized = JSON.stringify(input);
+  if (serialized === undefined) {
+    fail('invalid_document', path, 'dashboard document must be serializable');
+  }
+
+  const byteLength = new TextEncoder().encode(serialized).byteLength;
+  if (byteLength > MAX_DASHBOARD_DOCUMENT_BYTES) {
+    fail(
+      'document_too_large',
+      path,
+      `dashboard document must be ${MAX_DASHBOARD_DOCUMENT_BYTES} bytes or fewer`,
+    );
+  }
 }
 
 function isRecord(value: unknown): value is DashboardRecord {
@@ -1012,6 +1030,7 @@ export function parseAgentDashboardBlocks(
     if (!Array.isArray(input)) {
       fail('invalid_document', 'blocks', 'dashboard blocks must be an array');
     }
+    assertDocumentSize(input, 'blocks');
     if (input.length > MAX_TOP_LEVEL_BLOCKS) {
       fail(
         'too_many_blocks',
@@ -1199,6 +1218,7 @@ export function parseDashboardOpenUIDocument(
   input: unknown,
 ): DashboardBlocksParseResult {
   try {
+    assertDocumentSize(input, 'document');
     const components = parseOpenUIComponents(input);
     if (components.length > MAX_TOP_LEVEL_BLOCKS) {
       fail(

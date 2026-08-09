@@ -39,6 +39,7 @@ export * from './credit.enum';
 export * from './crm.enum';
 export * from './cron.enum';
 export * from './crud-action.enum';
+export * from './desktop-os.enum';
 export * from './direction.enum';
 export * from './distribution.enum';
 export * from './editor.enum';

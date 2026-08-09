@@ -1,6 +1,5 @@
-import { APP_ROUTES, createBrandAppRoute } from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
-import { normalizePublisherPostsStatus } from '@helpers/content/posts.helper';
+import { createBrandAppRoute } from '@genfeedai/constants';
+import { getPublisherPostsStatusPath } from '@helpers/content/posts.helper';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { redirect } from 'next/navigation';
@@ -24,16 +23,8 @@ export default async function PublishOverviewRoute({
 }) {
   const resolvedSearchParams = await searchParams;
 
-  const legacyStatus = normalizePublisherPostsStatus(
-    resolvedSearchParams.status,
-  );
   if (resolvedSearchParams.status) {
-    const statusPath =
-      legacyStatus === PostStatus.FAILED
-        ? APP_ROUTES.PUBLISH.FAILED
-        : legacyStatus === PostStatus.PUBLIC
-          ? APP_ROUTES.PUBLISH.PUBLISHED
-          : APP_ROUTES.PUBLISH.SCHEDULED;
+    const statusPath = getPublisherPostsStatusPath(resolvedSearchParams.status);
     const { orgSlug, brandSlug } = await params;
     const preservedFilters = new URLSearchParams();
     for (const key of ['platform', 'search', 'sort', 'page'] as const) {

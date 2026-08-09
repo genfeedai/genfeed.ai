@@ -48,6 +48,7 @@ import type {
   PostMetadataOverlayProps,
 } from '@genfeedai/props/modals/modal.props';
 import type { ModalPostRemixProps } from '@genfeedai/props/modals/modal-post-remix.props';
+import type { ModalPostRepurposeProps } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 
@@ -231,6 +232,11 @@ export const LazyModalPost = dynamic(
   () => import('@ui/modals/content/post/ModalPost'),
   { ssr: false },
 ) as ComponentType<ModalPostProps>;
+
+export const LazyModalPostRepurpose = dynamic(
+  () => import('@ui/modals/content/repurpose/ModalPostRepurpose'),
+  { ssr: false },
+) as ComponentType<ModalPostRepurposeProps>;
 
 export const LazyModalPostRemix = dynamic(
   () => import('@ui/modals/content/remix/ModalPostRemix'),

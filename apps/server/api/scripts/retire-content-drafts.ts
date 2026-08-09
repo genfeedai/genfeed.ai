@@ -314,7 +314,10 @@ async function main(): Promise<void> {
     adapter: new PrismaPg({ connectionString }),
     log: ['error'],
   });
-  const artifactReferences = new AgentArtifactReferenceService(prisma as never);
+  // PrismaClient structurally satisfies the service's narrowed delegate view
+  // (`Pick<Prisma.TransactionClient, …> & Pick<ServerPrisma, 'agentMessage'>`),
+  // so this needs no assertion — the type-assertion ratchet bans new ones.
+  const artifactReferences = new AgentArtifactReferenceService(prisma);
   const counts: Record<string, number> = {};
   let blockerCount = 0;
   let rowsClassified = 0;

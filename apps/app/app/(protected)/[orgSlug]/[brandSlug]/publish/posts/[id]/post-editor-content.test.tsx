@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import {
   Platform,
+  PostFormat,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
@@ -10,18 +11,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PostEditorContent from './post-editor-content';
 
 const mocks = vi.hoisted(() => ({
+  delete: vi.fn(),
   error: vi.fn(),
   findOne: vi.fn(),
   loggerError: vi.fn(),
   patch: vi.fn(),
+  post: vi.fn(),
   returnTo: '/acme/main/publish?status=draft' as string | null,
   success: vi.fn(),
 }));
 
+// Mirrors the shipped `common.json` copy for the ids this editor resolves, so
+// the assertions below keep checking real strings. The catalog itself is
+// guarded by apps/app/i18n/messages.test.ts.
+const POST_EDITOR_COPY: Record<string, string> = {
+  'postEditor.content': 'Content',
+  'postEditor.format.longForm': 'Long post',
+  'postEditor.format.standard': 'Standard post',
+  'postEditor.format.thread': 'Thread',
+  'postEditor.status.draft': 'Draft',
+  'postEditor.status.scheduled': 'Scheduled',
+  'postEditor.thread.help':
+    'Replies publish in this order through the existing schedule.',
+  'postEditor.thread.postIndex': 'Post {index}',
+  'postEditor.thread.title': 'Thread replies',
+};
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    Object.entries(values ?? {}).reduce(
+      (text, [name, value]) => text.replace(`{${name}}`, String(value)),
+      POST_EDITOR_COPY[key] ?? key,
+    ),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
+    delete: mocks.delete,
     findOne: mocks.findOne,
     patch: mocks.patch,
+    post: mocks.post,
   }),
 }));
 
@@ -62,6 +91,9 @@ vi.mock('@ui/primitives/date-time-picker', () => ({
 
 const post = {
   description: 'Original body',
+  children: [],
+  credential: { id: 'credential-1' },
+  format: PostFormat.STANDARD,
   id: 'post-1',
   label: 'Launch post',
   platform: Platform.TWITTER,
@@ -128,6 +160,7 @@ describe('PostEditorContent', () => {
     await waitFor(() => {
       expect(mocks.patch).toHaveBeenCalledWith('post-1', {
         description: 'Original body',
+        format: PostFormat.STANDARD,
         label: 'Launch post revised',
         scheduledDate: '2026-03-11T10:00:00.000Z',
         targetExecutionState: TargetExecutionState.SCHEDULED,
@@ -157,9 +190,46 @@ describe('PostEditorContent', () => {
     await waitFor(() => {
       expect(mocks.patch).toHaveBeenCalledWith('post-1', {
         description: 'Original body',
+        format: PostFormat.STANDARD,
         label: 'Launch post revised',
         targetExecutionState: TargetExecutionState.SCHEDULED,
         visibility: PostVisibility.PUBLIC,
+      });
+    });
+  });
+
+  it('edits linked thread segments through the canonical post service', async () => {
+    const threadPost = {
+      ...post,
+      children: [
+        {
+          description: 'Original reply',
+          id: 'reply-1',
+          order: 1,
+        },
+      ],
+      format: PostFormat.THREAD,
+    };
+    mocks.findOne.mockResolvedValue(threadPost);
+    const { container } = render(<PostEditorContent artifactId="post-1" />);
+
+    expect(await screen.findByText('Thread replies')).toBeVisible();
+    // The segment label carries a live character counter alongside the word
+    // "Content", so match the prefix rather than the whole accessible name.
+    fireEvent.change(screen.getByLabelText(/^Content/), {
+      target: { value: 'Revised reply' },
+    });
+
+    const form = container.querySelector('#post-editor-form');
+    if (!form) {
+      throw new Error('Post editor form did not render');
+    }
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mocks.patch).toHaveBeenCalledWith('reply-1', {
+        description: 'Revised reply',
+        format: PostFormat.THREAD,
       });
     });
   });

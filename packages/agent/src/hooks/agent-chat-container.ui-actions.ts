@@ -39,10 +39,10 @@ export async function handleAgentUiAction(
   action: string,
   payload: Record<string, unknown> | undefined,
   deps: HandleUiActionDeps,
-): Promise<void> {
+): Promise<boolean> {
   if (deps.isReadOnly) {
     deps.setError('Archived threads are read-only.');
-    return;
+    return false;
   }
 
   if (action === 'send_prompt') {
@@ -51,12 +51,12 @@ export async function handleAgentUiAction(
 
     if (!prompt) {
       deps.setError('No follow-up prompt is available for this action.');
-      return;
+      return false;
     }
 
     deps.followLatestTurn('smooth');
     void deps.sendMessage(prompt);
-    return;
+    return true;
   }
 
   if (action === 'apply_to_draft') {
@@ -64,12 +64,12 @@ export async function handleAgentUiAction(
 
     if (!text.trim()) {
       deps.setError('No generated text is available for this action.');
-      return;
+      return false;
     }
 
     if (typeof window === 'undefined') {
       deps.setError('Draft updates are only available in the browser.');
-      return;
+      return false;
     }
 
     const pageContext = useAgentChatStore.getState().pageContext;
@@ -93,21 +93,21 @@ export async function handleAgentUiAction(
 
     if (!wasHandled) {
       deps.setError('Open a writing surface before applying text to a draft.');
-      return;
+      return false;
     }
 
     deps.setError(null);
-    return;
+    return true;
   }
 
   if (!deps.activeThreadId) {
     deps.setError('No active thread selected.');
-    return;
+    return false;
   }
 
   if (deps.isBusy || deps.activeUiAction) {
     deps.setError('A UI action is already in progress.');
-    return;
+    return false;
   }
 
   deps.setActiveUiAction(action);
@@ -210,10 +210,12 @@ export async function handleAgentUiAction(
         uiBlocksState?.blockIds,
       );
     }
+    return true;
   } catch (err) {
     deps.setError(
       err instanceof Error ? err.message : 'Failed to respond to UI action',
     );
+    return false;
   } finally {
     deps.setActiveUiAction(null);
   }

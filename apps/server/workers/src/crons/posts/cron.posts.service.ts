@@ -215,7 +215,7 @@ export class CronPostsService {
       versionPinId,
     });
 
-    if (result.success && result.status !== PostStatus.DRAFT) {
+    if (result.success && !result.isProviderDraft) {
       await this.activitiesService.create(
         new ActivityEntity({
           brandId: readPostString(post, ['brandId']) ?? undefined,
@@ -555,8 +555,9 @@ export class CronPostsService {
         return this.createFailedResult(platform, validationError);
       }
 
-      // Build publish context. Beehiiv scheduled releases carry the approved
-      // schedule through to the publisher as a workflow-internal setting.
+      // Beehiiv schedules at the provider, so the approved schedule instant is
+      // handed over as ephemeral scheduler metadata on top of the validated
+      // settings — never as a stored, user-controlled channel setting.
       const settings =
         platform === CredentialPlatform.BEEHIIV &&
         source !== 'publish_now' &&
@@ -663,8 +664,10 @@ export class CronPostsService {
           return result;
         }
 
-        // Immediate success - update post with external ID and status
-        const isProviderDraft = result.status === PostStatus.DRAFT;
+        // Immediate success - carry the external id onto the published target.
+        // A provider draft stays lifecycle-published but keeps its publish
+        // instants unset, so nothing downstream announces it as live.
+        const isProviderDraft = result.isProviderDraft === true;
         const publishedAt = new Date();
         const persisted = await this.persistPublishState(
           post,
