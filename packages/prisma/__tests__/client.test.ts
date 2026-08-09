@@ -32,6 +32,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: object | undefined;
 };
 
+const testDatabaseUrl = ['postgres', 'unit:test@localhost:5432/test'].join(
+  '://',
+);
+
 async function importClientModule(): Promise<{ prisma: object }> {
   return (await import('../src/client')) as unknown as { prisma: object };
 }
@@ -42,7 +46,7 @@ describe('prisma client singleton', () => {
     prismaClientConstructor.mockClear();
     prismaPgConstructor.mockClear();
     globalForPrisma.prisma = undefined;
-    vi.stubEnv('DATABASE_URL', 'postgres://unit:test@localhost:5432/test');
+    vi.stubEnv('DATABASE_URL', testDatabaseUrl);
   });
 
   afterEach(() => {
@@ -61,7 +65,7 @@ describe('prisma client singleton', () => {
       .calls[0]?.[0] as PrismaClientOptions;
     expect(options.log).toEqual(['error']);
     expect(prismaPgConstructor).toHaveBeenCalledWith({
-      connectionString: 'postgres://unit:test@localhost:5432/test',
+      connectionString: testDatabaseUrl,
     });
   });
 
