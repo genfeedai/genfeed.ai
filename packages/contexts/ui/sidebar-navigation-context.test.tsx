@@ -150,7 +150,7 @@ describe('SidebarNavigationProvider', () => {
     ]);
 
     expect(
-      screen.getByText('Pipeline|Published|none|Published|derived|2'),
+      screen.getByText('Pipeline|Published|Pipeline|Published|derived|2'),
     ).toBeInTheDocument();
   });
 
