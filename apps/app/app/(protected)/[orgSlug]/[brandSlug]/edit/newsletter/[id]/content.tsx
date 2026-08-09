@@ -40,7 +40,7 @@ export default function NewsletterEditorContent({
 
   const backHref = resolveArtifactEditorBackHref(
     searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
-    href(APP_ROUTES.PUBLISH.NEWSLETTERS),
+    href(APP_ROUTES.AGENT.NEW),
   );
 
   if (!newsletter) {
@@ -48,7 +48,7 @@ export default function NewsletterEditorContent({
       <ArtifactEditorShell
         artifactLabel="Newsletter"
         backHref={backHref}
-        backLabel="Back to newsletters"
+        backLabel="Back to Agent"
         title={isLoading ? 'Loading newsletter…' : 'Newsletter not found'}
       >
         {isLoading ? (
@@ -79,7 +79,7 @@ export default function NewsletterEditorContent({
       }
       artifactLabel="Newsletter"
       backHref={backHref}
-      backLabel="Back to newsletters"
+      backLabel="Back to Agent"
       badges={
         <Badge status={newsletter.status}>
           {formatNewsletterStatusLabel(newsletter.status)}
