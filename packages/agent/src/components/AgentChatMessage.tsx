@@ -242,7 +242,7 @@ export function AgentChatMessage({
     <div
       id={messageAnchorId}
       className={cn(
-        'mb-2 flex min-w-0 w-full motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
+        'mb-2 flex min-w-0 w-full scroll-mt-4 motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out',
         isUser ? 'justify-end' : 'justify-start',
       )}
       style={{
