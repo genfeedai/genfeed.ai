@@ -38,6 +38,13 @@ export default defineConfig({
         ),
       },
       {
+        find: '@genfeedai/config',
+        replacement: path.resolve(
+          serviceDir,
+          '../../../packages/config/src/index.ts',
+        ),
+      },
+      {
         find: '@genfeedai/storage/path-containment',
         replacement: path.resolve(
           serviceDir,

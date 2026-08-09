@@ -22,6 +22,51 @@ const postFixture = {
 
 let resourceData: IPost[] = [];
 
+type MockQueryResult = {
+  data: unknown;
+  isLoading: boolean;
+  refetch: () => void;
+};
+
+let cachedQueryPosts: IPost[] | null = null;
+let cachedPostsQueryResult: MockQueryResult | null = null;
+
+const emptyListQueryResult: MockQueryResult = {
+  data: [],
+  isLoading: false,
+  refetch: resourceRefreshMock,
+};
+
+// Every hook in the tree shares this mock, so discriminate on the query key.
+// Handing the posts payload to AdminOrgBrandFilter's organizations query made
+// it call `.map` on an object.
+function queryResult(options: { queryKey?: readonly unknown[] }) {
+  const key = String(options?.queryKey?.[0] ?? '');
+
+  if (key !== 'posts') {
+    return emptyListQueryResult;
+  }
+
+  if (cachedQueryPosts !== resourceData || cachedPostsQueryResult === null) {
+    cachedQueryPosts = resourceData;
+    cachedPostsQueryResult = {
+      data: {
+        pagination: {
+          page: 1,
+          pageSize: 12,
+          total: resourceData.length,
+          totalPages: 1,
+        },
+        posts: resourceData,
+      },
+      isLoading: false,
+      refetch: resourceRefreshMock,
+    };
+  }
+
+  return cachedPostsQueryResult;
+}
+
 type MockTableAction = {
   onClick: (post: IPost) => void;
   tooltip?: string;
@@ -67,20 +112,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
+// The query result must keep a stable identity across renders — a fresh object
+// per render feeds identity-keyed effects in usePostsList and re-renders forever.
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({
-    data: {
-      pagination: {
-        page: 1,
-        pageSize: 12,
-        total: resourceData.length,
-        totalPages: 1,
-      },
-      posts: resourceData,
-    },
-    isLoading: false,
-    refetch: resourceRefreshMock,
-  }),
+  useQuery: () => queryResult(),
   useQueryClient: () => ({
     setQueryData: vi.fn(),
   }),
