@@ -1,14 +1,16 @@
 # Desktop App
 
-`apps/desktop/app` is the Electron native shell for the macOS-first installed app release. It embeds the real `apps/app` Next.js frontend and provides desktop-local backend actions through typed IPC.
+`apps/desktop/app` is the Electron native shell for the macOS-first installed app release. It runs the real `apps/app` Next.js frontend and provides desktop-local backend actions through typed IPC.
 
 There is no desktop-local React/Next.js renderer. Development and release builds
 run the canonical `apps/app` codebase, while Electron owns native lifecycle,
 PGlite, BYOK generation, sync/session services, terminal, tray, and updates.
 
-The desktop app must be useful by itself. A fresh source checkout can run the
-desktop shell in local/offline mode without starting the NestJS API, and a
-downloaded desktop build should not require cloning this repository.
+Installed builds load the HTTPS app origin derived from
+`GENFEED_DESKTOP_AUTH_URL` first, then start the bundled app shell on
+`http://127.0.0.1:3230` when the hosted app is unavailable. A fresh source
+checkout still runs the bundled shell directly, and a downloaded desktop build
+never requires cloning this repository.
 
 ## Development
 
@@ -30,6 +32,11 @@ Environment variables:
 - `GENFEED_DESKTOP_APP_PORT` (optional): loopback port for the embedded app;
   defaults to `3230`
 
+The hosted `apps/app` runtime accepts
+`GENFEED_DESKTOP_MINIMUM_VERSION` (default `0.1.0`). Desktop requests below
+that semantic version receive HTTP `426` before the app shell renders; ordinary
+web requests are unaffected.
+
 From the repository root:
 
 ```bash
@@ -46,13 +53,15 @@ Genfeed Connect sign-in opens the system browser with PKCE. The callback returns
 through `genfeedai-desktop://auth`; Electron exchanges the code for a main-only
 `gf_` API key and an exact signed Better Auth session cookie. Electron stores
 both together using the existing encrypted session store and installs the
-HttpOnly cookie as a host-only cookie on `http://127.0.0.1:<appPort>`. The API
-key is never exposed to `apps/app`; main only adds it to trusted shell requests
-as `x-genfeed-desktop-token`. Sign-out removes the cookie and key together.
+HttpOnly cookie as a host-only cookie on the selected app origin. The API key is
+never exposed to `apps/app`; main only adds it to trusted shell requests as
+`x-genfeed-desktop-token`. Every trusted shell request also carries the app
+version so the hosted app can require a safe minimum version. Sign-out removes
+the cookie and key together.
 
 The first visible desktop paint is owned by Electron, not by `apps/app`: a black
-launch screen with an animated Genfeed mark is shown while the embedded app
-shell boots. If the shell cannot start, Electron keeps the same black surface
+launch screen with an animated Genfeed mark is shown while the selected app
+shell boots. If neither shell can start, Electron keeps the same black surface
 and shows a short failure message instead of exposing an unstyled renderer.
 
 Generation defaults to Genfeed Cloud after desktop sign-in. Users without

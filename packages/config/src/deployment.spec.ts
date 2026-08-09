@@ -13,6 +13,11 @@ import {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  delete (
+    globalThis as typeof globalThis & {
+      __GENFEED_RUNTIME_CONFIG__?: { clientSurface?: string };
+    }
+  ).__GENFEED_RUNTIME_CONFIG__;
 });
 
 describe('envFlag', () => {
@@ -58,6 +63,17 @@ describe('deployment axes', () => {
 
     expect(getClientSurface()).toBe(expected);
     expect(isDesktopClient()).toBe(expected === 'desktop');
+  });
+
+  it('resolves the desktop surface from request-injected runtime config', () => {
+    (
+      globalThis as typeof globalThis & {
+        __GENFEED_RUNTIME_CONFIG__?: { clientSurface?: 'desktop' | 'web' };
+      }
+    ).__GENFEED_RUNTIME_CONFIG__ = { clientSurface: 'desktop' };
+
+    expect(getClientSurface()).toBe('desktop');
+    expect(isDesktopClient()).toBe(true);
   });
 
   it.each([

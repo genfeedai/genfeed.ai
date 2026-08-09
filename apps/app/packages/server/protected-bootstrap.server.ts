@@ -5,10 +5,11 @@ import {
   isDesktopClient,
   isSelfHostedDeployment,
 } from '@genfeedai/config/deployment';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { cache } from 'react';
 
 const isServerBootstrapBypassed = cache(async (): Promise<boolean> => {
@@ -46,8 +47,20 @@ export function hasUsableServerAuthToken(token: string): boolean {
   return Boolean(token) || isSelfHostedDeployment();
 }
 
-export function shouldSkipCloudBootstrap(token: string): boolean {
-  return isDesktopClient() && !token;
+export const isDesktopServerRequest = cache(async (): Promise<boolean> => {
+  if (isDesktopClient()) {
+    return true;
+  }
+
+  const requestHeaders = await headers();
+  return Boolean(requestHeaders.get(DESKTOP_HTTP_HEADERS.version)?.trim());
+});
+
+export function shouldSkipCloudBootstrap(
+  token: string,
+  isDesktopSurface = isDesktopClient(),
+): boolean {
+  return isDesktopSurface && !token;
 }
 
 export const loadProtectedBootstrap = cache(
@@ -58,7 +71,7 @@ export const loadProtectedBootstrap = cache(
 
     const token = await getServerAuthToken();
 
-    if (shouldSkipCloudBootstrap(token)) {
+    if (shouldSkipCloudBootstrap(token, await isDesktopServerRequest())) {
       return null;
     }
 

@@ -6,7 +6,13 @@ import type {
   IDesktopEnvironment,
   IDesktopSession,
 } from '@genfeedai/desktop-contracts';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import { app, type BrowserWindow } from 'electron';
+import {
+  resolveBundledAppUrl,
+  resolveExternalDevAppUrl,
+  resolveRemoteAppUrl,
+} from './app-shell-origin.util';
 
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,7 +44,7 @@ async function waitForServer(url: string, timeoutMs = 60_000): Promise<void> {
 
 export class DesktopAppShellService {
   private appServerProcess: ChildProcess | null = null;
-  private _appUrl: URL | null = null;
+  private activeAppUrl: URL | null = null;
   private headersRegistered = false;
   private started = false;
 
@@ -48,41 +54,20 @@ export class DesktopAppShellService {
     private readonly getDataDir: () => string,
   ) {}
 
-  /**
-   * Resolve once so navigation, preload arguments, and the server share the
-   * exact same trusted loopback origin.
-   */
-  private get appUrl(): URL {
-    if (!this._appUrl) {
-      const appUrl = new URL(
-        this.isExternalDevServer()
-          ? process.env.GENFEED_DESKTOP_APP_URL || this.environment.appEndpoint
-          : this.environment.appEndpoint,
-      );
-
-      if (
-        appUrl.hostname !== '127.0.0.1' ||
-        appUrl.password ||
-        appUrl.protocol !== 'http:' ||
-        appUrl.username
-      ) {
-        throw new Error(
-          'Desktop app shell origin must be an HTTP 127.0.0.1 loopback URL.',
-        );
-      }
-
-      this._appUrl = appUrl;
+  get appOrigin(): string {
+    if (!this.activeAppUrl) {
+      throw new Error('Desktop app shell has not selected an active origin.');
     }
 
-    return this._appUrl;
-  }
-
-  get appOrigin(): string {
-    return this.appUrl.origin;
+    return this.activeAppUrl.origin;
   }
 
   private isExternalDevServer(): boolean {
     return !app.isPackaged && Boolean(process.env.GENFEED_DESKTOP_APP_URL);
+  }
+
+  private get bundledAppUrl(): URL {
+    return resolveBundledAppUrl(this.environment.appEndpoint);
   }
 
   private getBundledShellRoot(): string {
@@ -137,8 +122,8 @@ export class DesktopAppShellService {
       ELECTRON_RUN_AS_NODE: '1',
       GENFEED_DESKTOP_APP_PORT: String(this.environment.appPort),
       GENFEED_DESKTOP_DATA_DIR: this.getDataDir(),
-      HOSTNAME: this.appUrl.hostname,
-      NEXT_PUBLIC_API_ENDPOINT: `${this.appOrigin}/v1`,
+      HOSTNAME: this.bundledAppUrl.hostname,
+      NEXT_PUBLIC_API_ENDPOINT: `${this.bundledAppUrl.origin}/v1`,
       NEXT_PUBLIC_API_URL: '/v1',
       NEXT_PUBLIC_CDN_URL: this.environment.cdnUrl,
       NEXT_PUBLIC_DESKTOP_SHELL: '1',
@@ -207,21 +192,22 @@ export class DesktopAppShellService {
         };
         const session = this.getSession();
 
-        delete nextHeaders['x-genfeed-desktop-token'];
-        delete nextHeaders['x-genfeed-desktop-user-email'];
-        delete nextHeaders['x-genfeed-desktop-user-id'];
-        delete nextHeaders['x-genfeed-desktop-user-name'];
+        delete nextHeaders[DESKTOP_HTTP_HEADERS.token];
+        delete nextHeaders[DESKTOP_HTTP_HEADERS.userEmail];
+        delete nextHeaders[DESKTOP_HTTP_HEADERS.userId];
+        delete nextHeaders[DESKTOP_HTTP_HEADERS.userName];
+        nextHeaders[DESKTOP_HTTP_HEADERS.version] = app.getVersion();
 
         if (session) {
-          nextHeaders['x-genfeed-desktop-token'] = session.token;
-          nextHeaders['x-genfeed-desktop-user-id'] = session.userId;
+          nextHeaders[DESKTOP_HTTP_HEADERS.token] = session.token;
+          nextHeaders[DESKTOP_HTTP_HEADERS.userId] = session.userId;
 
           if (session.userEmail) {
-            nextHeaders['x-genfeed-desktop-user-email'] = session.userEmail;
+            nextHeaders[DESKTOP_HTTP_HEADERS.userEmail] = session.userEmail;
           }
 
           if (session.userName) {
-            nextHeaders['x-genfeed-desktop-user-name'] = session.userName;
+            nextHeaders[DESKTOP_HTTP_HEADERS.userName] = session.userName;
           }
         }
 
@@ -235,10 +221,32 @@ export class DesktopAppShellService {
       return this.appOrigin;
     }
 
-    if (!this.isExternalDevServer()) {
-      this.startBundledServer();
+    if (this.isExternalDevServer()) {
+      this.activeAppUrl = resolveExternalDevAppUrl(
+        process.env.GENFEED_DESKTOP_APP_URL || this.environment.appEndpoint,
+      );
+      await waitForServer(this.appOrigin);
+      this.started = true;
+      return this.appOrigin;
     }
 
+    if (app.isPackaged) {
+      const remoteAppUrl = resolveRemoteAppUrl(this.environment.authEndpoint);
+
+      try {
+        await waitForServer(remoteAppUrl.origin, 5_000);
+        this.activeAppUrl = remoteAppUrl;
+        this.started = true;
+        return this.appOrigin;
+      } catch {
+        process.stderr.write(
+          `[desktop-app] remote shell unavailable at ${remoteAppUrl.origin}; starting bundled fallback.\n`,
+        );
+      }
+    }
+
+    this.activeAppUrl = this.bundledAppUrl;
+    this.startBundledServer();
     await waitForServer(this.appOrigin);
     this.started = true;
 

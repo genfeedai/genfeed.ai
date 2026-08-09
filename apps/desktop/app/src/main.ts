@@ -594,7 +594,6 @@ const createWindow = async (): Promise<void> => {
 
   try {
     await mainWindow.loadURL(buildDesktopLoadingScreenUrl());
-    await appShellService.start();
     await loadCanonicalApp(
       mainWindow,
       appShellService.buildInitialUrl(sessionService.getSession()),
@@ -1410,6 +1409,7 @@ app.whenReady().then(async () => {
     // Electron data root; using PGlite's directory would nest them under the DB.
     () => app.getPath('userData'),
   );
+  await appShellService.start();
   sessionService = new DesktopSessionService(
     kvService,
     environment,

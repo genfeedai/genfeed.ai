@@ -3,6 +3,7 @@ import '@styles/globals.css';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestLocale } from '@helpers/ui/locale/locale.helper';
@@ -12,6 +13,7 @@ import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import ServiceWorkerRegistrar from '@/components/pwa/ServiceWorkerRegistrar';
@@ -39,10 +41,11 @@ export const metadata: Metadata = createAppMetadata({
 
 export const viewport: Viewport = pwaConfig.viewport;
 
-function createRuntimeConfigScript(): string {
+function createRuntimeConfigScript(clientSurface: 'desktop' | 'web'): string {
   const config = {
     apiEndpoint: process.env.NEXT_PUBLIC_API_ENDPOINT,
     betterAuthEnabled: isBetterAuthEnabled(),
+    clientSurface,
   };
 
   return `globalThis.__GENFEED_RUNTIME_CONFIG__=${JSON.stringify(
@@ -51,11 +54,14 @@ function createRuntimeConfigScript(): string {
 }
 
 export default async function RootLayout({ children }: LayoutProps) {
-  const [initialTheme, locale] = await Promise.all([
+  const [initialTheme, locale, requestHeaders] = await Promise.all([
     resolveRequestTheme(),
     resolveRequestLocale(),
+    headers(),
   ]);
-  const isDesktopShell = isDesktopClient();
+  const isDesktopShell =
+    isDesktopClient() ||
+    Boolean(requestHeaders.get(DESKTOP_HTTP_HEADERS.version)?.trim());
   const bodyClassName = isDesktopShell
     ? 'gf-app gf-desktop-shell gf-studio-app'
     : 'gf-app gf-studio-app';
@@ -67,7 +73,9 @@ export default async function RootLayout({ children }: LayoutProps) {
       bodyClassName={bodyClassName}
       lang={locale}
     >
-      <RuntimeConfigScript source={createRuntimeConfigScript()} />
+      <RuntimeConfigScript
+        source={createRuntimeConfigScript(isDesktopShell ? 'desktop' : 'web')}
+      />
       {/* Locale and messages are inherited from i18n/request.ts rather than
           passed here, so server components keep resolving copy on the server
           and only what client components actually read crosses the boundary. */}
