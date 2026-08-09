@@ -1,4 +1,3 @@
-import process from 'node:process';
 import { ConfigService } from '@voices/config/config.service';
 
 const { existsSyncMock, fsMock, readFileSyncMock } = vi.hoisted(() => {
@@ -20,7 +19,10 @@ const { existsSyncMock, fsMock, readFileSyncMock } = vi.hoisted(() => {
 vi.mock('node:fs', () => ({ default: fsMock, ...fsMock }));
 vi.mock('fs', () => ({ default: fsMock, ...fsMock }));
 
-/** Env keys this suite mutates; each is restored between tests. */
+/**
+ * Env keys this suite controls. Every one is cleared before each test so an
+ * ambient value from the developer's shell cannot mask a getter's fallback.
+ */
 const MUTATED_KEYS = [
   'AWS_ACCESS_KEY_ID',
   'AWS_REGION',
@@ -29,7 +31,6 @@ const MUTATED_KEYS = [
   'DATASETS_PATH',
   'GENFEEDAI_API_KEY',
   'GENFEEDAI_MICROSERVICES_FILES_URL',
-  'NODE_ENV',
   'REDIS_URL',
   'TTS_INFERENCE_URL',
   'VOICE_MODELS_PATH',
@@ -37,26 +38,16 @@ const MUTATED_KEYS = [
 ] as const;
 
 describe('ConfigService (Voices)', () => {
-  const originalValues = new Map<string, string | undefined>();
-
   beforeEach(() => {
     for (const key of MUTATED_KEYS) {
-      originalValues.set(key, process.env[key]);
-      delete process.env[key];
+      vi.stubEnv(key, undefined);
     }
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     existsSyncMock.mockReturnValue(false);
   });
 
   afterEach(() => {
-    for (const [key, value] of originalValues) {
-      if (value === undefined) {
-        delete process.env[key];
-      } else {
-        process.env[key] = value;
-      }
-    }
-    originalValues.clear();
+    vi.unstubAllEnvs();
     vi.clearAllMocks();
   });
 
@@ -75,7 +66,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.TTS_INFERENCE_URL = 'http://tts:9000';
+      vi.stubEnv('TTS_INFERENCE_URL', 'http://tts:9000');
       expect(new ConfigService().TTS_INFERENCE_URL).toBe('http://tts:9000');
     });
   });
@@ -86,7 +77,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.REDIS_URL = 'redis://redis:6379';
+      vi.stubEnv('REDIS_URL', 'redis://redis:6379');
       expect(new ConfigService().REDIS_URL).toBe('redis://redis:6379');
     });
   });
@@ -97,7 +88,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.GENFEEDAI_API_KEY = 'voices-api-key';
+      vi.stubEnv('GENFEEDAI_API_KEY', 'voices-api-key');
       expect(new ConfigService().API_KEY).toBe('voices-api-key');
     });
   });
@@ -110,7 +101,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.GENFEEDAI_MICROSERVICES_FILES_URL = 'https://files.test';
+      vi.stubEnv('GENFEEDAI_MICROSERVICES_FILES_URL', 'https://files.test');
       expect(new ConfigService().FILES_SERVICE_URL).toBe('https://files.test');
     });
   });
@@ -123,7 +114,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.VOICE_TRAINING_BINARY_PATH = '/opt/bin/train';
+      vi.stubEnv('VOICE_TRAINING_BINARY_PATH', '/opt/bin/train');
       expect(new ConfigService().VOICE_TRAINING_BINARY_PATH).toBe(
         '/opt/bin/train',
       );
@@ -136,7 +127,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.VOICE_MODELS_PATH = '/data/models';
+      vi.stubEnv('VOICE_MODELS_PATH', '/data/models');
       expect(new ConfigService().VOICE_MODELS_PATH).toBe('/data/models');
     });
   });
@@ -152,10 +143,10 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured values', () => {
-      process.env.AWS_S3_BUCKET = 'voices-bucket';
-      process.env.AWS_ACCESS_KEY_ID = 'AKIA-TEST';
-      process.env.AWS_SECRET_ACCESS_KEY = 'secret-test';
-      process.env.AWS_REGION = 'eu-west-1';
+      vi.stubEnv('AWS_S3_BUCKET', 'voices-bucket');
+      vi.stubEnv('AWS_ACCESS_KEY_ID', 'AKIA-TEST');
+      vi.stubEnv('AWS_SECRET_ACCESS_KEY', 'secret-test');
+      vi.stubEnv('AWS_REGION', 'eu-west-1');
 
       const service = new ConfigService();
 
@@ -172,7 +163,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('returns the configured value', () => {
-      process.env.DATASETS_PATH = '/mnt/datasets';
+      vi.stubEnv('DATASETS_PATH', '/mnt/datasets');
       expect(new ConfigService().DATASETS_PATH).toBe('/mnt/datasets');
     });
   });
@@ -188,7 +179,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('reports the production environment', () => {
-      process.env.NODE_ENV = 'production';
+      vi.stubEnv('NODE_ENV', 'production');
       const service = new ConfigService();
 
       expect(service.isProduction).toBe(true);
@@ -196,7 +187,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('reports the staging environment', () => {
-      process.env.NODE_ENV = 'staging';
+      vi.stubEnv('NODE_ENV', 'staging');
       const service = new ConfigService();
 
       expect(service.isStaging).toBe(true);
@@ -204,7 +195,7 @@ describe('ConfigService (Voices)', () => {
     });
 
     it('reports the development environment', () => {
-      process.env.NODE_ENV = 'development';
+      vi.stubEnv('NODE_ENV', 'development');
       const service = new ConfigService();
 
       expect(service.isDevelopment).toBe(true);
@@ -230,7 +221,7 @@ describe('ConfigService (Voices)', () => {
       readFileSyncMock.mockReturnValue(
         Buffer.from('VOICE_MODELS_PATH=/from-file\n'),
       );
-      process.env.VOICE_MODELS_PATH = '/from-process';
+      vi.stubEnv('VOICE_MODELS_PATH', '/from-process');
 
       expect(new ConfigService().VOICE_MODELS_PATH).toBe('/from-process');
     });
