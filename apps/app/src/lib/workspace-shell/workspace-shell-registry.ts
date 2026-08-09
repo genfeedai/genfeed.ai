@@ -160,7 +160,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/:brandSlug/automate/content-runs/:runId': 'Content Run',
   '/:orgSlug/:brandSlug/automate/library/:type': ':type',
   '/:orgSlug/:brandSlug/publish/posts': 'Posts',
-  '/:orgSlug/:brandSlug/publish/posts/:id': 'Post',
+  '/:orgSlug/:brandSlug/publish/posts/:id': 'Content',
   '/:orgSlug/:brandSlug/automate/campaigns': 'Campaigns',
   '/:orgSlug/:brandSlug/automate/campaigns/new': 'New Campaign',
   '/:orgSlug/:brandSlug/automate/campaigns/:id': 'Campaign',
