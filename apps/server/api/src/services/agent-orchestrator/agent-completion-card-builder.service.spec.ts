@@ -198,7 +198,7 @@ describe('AgentCompletionCardBuilderService', () => {
     ]);
   });
 
-  it('uses the ready-for-review fallback when a content action has no assets', () => {
+  it('does not mint Done for an empty content preview card', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: false,
       toolCalls: [],
@@ -211,11 +211,13 @@ describe('AgentCompletionCardBuilderService', () => {
       ],
     });
 
-    expect(result.uiActions[0]).toMatchObject({
-      outcomeBullets: ['Ready for review'],
-      outputVariants: [],
-      type: 'completion_summary_card',
-    });
+    expect(result.uiActions).toEqual([
+      {
+        id: 'empty-content-preview',
+        title: 'Draft',
+        type: 'content_preview_card',
+      },
+    ]);
   });
 
   it('builds the generic completed-tool card and formats tool names', () => {

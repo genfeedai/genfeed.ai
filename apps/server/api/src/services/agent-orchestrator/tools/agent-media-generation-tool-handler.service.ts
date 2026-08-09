@@ -299,9 +299,11 @@ export class AgentMediaGenerationToolHandler {
       return `${cdnBaseUrl}/${s3Key.replace(/^\/+/, '')}`;
     }
 
-    return id
-      ? `${this.configService.ingredientsEndpoint}/${endpoint}/${id}`
-      : undefined;
+    // Do not invent a gallery path from id alone — that is not a renderable
+    // media URL and produces blank preview squares in chat.
+    void endpoint;
+    void id;
+    return undefined;
   }
   async aiAction(
     params: Record<string, unknown>,
@@ -599,34 +601,38 @@ export class AgentMediaGenerationToolHandler {
         ctx,
       );
     } catch (error) {
-      // Graceful timeout handling: if the 3-minute polling times out or
-      // the endpoint errors, return a partial result with a gallery link
+      // Timeout / hard failure: do NOT report success with an empty preview —
+      // that produced "Image generated." + a blank square in chat.
+      const message = (error as Error).message || 'Image generation failed';
       this.loggerService.warn(
-        `generateImage failed for org=${ctx.organizationId}: ${(error as Error).message}`,
+        `generateImage failed for org=${ctx.organizationId}: ${message}`,
       );
 
-      return {
-        creditsUsed: 0,
-        data: { status: Status.PROCESSING },
-        isBillingDelegated: true,
-        nextActions: [
-          {
-            ctas: [{ href: '/library/images', label: 'Check gallery' }],
-            description: `Image is still processing: "${promptPreview}"`,
-            id: `image-gen-pending-${Date.now()}`,
-            title: 'Image processing',
-            type: 'content_preview_card',
-          },
-        ],
-        success: true,
-      };
+      return this.buildImageGenerationIncompleteResult({
+        error: message,
+        promptPreview,
+        status: Status.PROCESSING,
+      });
     }
 
     const id = this.readResponseEnvelopeString(response, 'id');
     const cdnUrl = this.readResponseAssetUrl(response, 'images', id);
 
+    if (!id || !cdnUrl) {
+      this.loggerService.warn(
+        `generateImage returned no renderable asset for org=${ctx.organizationId} id=${id ?? 'none'}`,
+      );
+      return this.buildImageGenerationIncompleteResult({
+        error: id
+          ? 'Image generation finished without a usable CDN URL.'
+          : 'Image generation did not return an asset id.',
+        promptPreview,
+        status: Status.PROCESSING,
+      });
+    }
+
     // Fire-and-forget quality check — don't block the generation response
-    if (id && this.contentQualityScorerService) {
+    if (this.contentQualityScorerService) {
       this.contentQualityScorerService
         .scoreAndTag(id, 'image', {
           organizationId: ctx.organizationId,
@@ -636,12 +642,10 @@ export class AgentMediaGenerationToolHandler {
         );
     }
 
-    if (id) {
-      await this.onboardingHandler.completeJourneyMission(
-        ctx,
-        'generate_first_image',
-      );
-    }
+    await this.onboardingHandler.completeJourneyMission(
+      ctx,
+      'generate_first_image',
+    );
 
     const onboardingStatus =
       await this.onboardingHandler.checkOnboardingStatus(ctx);
@@ -650,20 +654,50 @@ export class AgentMediaGenerationToolHandler {
       creditsUsed: 0, // endpoint handles credits via CreditsInterceptor
       data: { id, status: Status.GENERATED, url: cdnUrl },
       isBillingDelegated: true,
-      nextActions: id
-        ? [
-            {
-              ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
-              description: `Image generated from: "${promptPreview}"`,
-              id: `image-gen-${id}`,
-              images: cdnUrl ? [cdnUrl] : [],
-              title: 'Image generated',
-              type: 'content_preview_card',
-            },
-            ...(onboardingStatus.nextActions ?? []),
-          ]
-        : [],
+      nextActions: [
+        {
+          ctas: [{ href: `/g/image/${id}`, label: 'View in gallery' }],
+          description: `Image generated from: "${promptPreview}"`,
+          id: `image-gen-${id}`,
+          images: [cdnUrl],
+          title: 'Image generated',
+          type: 'content_preview_card',
+        },
+        ...(onboardingStatus.nextActions ?? []),
+      ],
       success: true,
+    };
+  }
+
+  /**
+   * Incomplete image generation must not mint a content_preview_card without
+   * images — the completion-summary builder treats those as "Generated content"
+   * and the UI paints a blank square under "Image generated."
+   */
+  private buildImageGenerationIncompleteResult(params: {
+    error: string;
+    promptPreview: string;
+    status: string;
+  }): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      data: { status: params.status },
+      error: params.error,
+      isBillingDelegated: true,
+      nextActions: [
+        {
+          id: `image-gen-incomplete-${Date.now()}`,
+          primaryCta: {
+            href: '/library/images',
+            label: 'Check gallery',
+          },
+          status: 'failed',
+          summaryText: `Image was not ready: "${params.promptPreview}". ${params.error}`,
+          title: 'Image not ready',
+          type: 'completion_summary_card',
+        },
+      ],
+      success: false,
     };
   }
 

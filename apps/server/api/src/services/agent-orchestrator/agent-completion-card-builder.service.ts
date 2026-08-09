@@ -153,6 +153,35 @@ export class AgentCompletionCardBuilderService {
     return trimmed;
   }
 
+  private contentPreviewHasRenderableOutput(action: AgentUiAction): boolean {
+    if ((action.images?.length ?? 0) > 0) {
+      return true;
+    }
+    if ((action.videos?.length ?? 0) > 0) {
+      return true;
+    }
+    if ((action.audio?.length ?? 0) > 0) {
+      return true;
+    }
+    if ((action.tweets?.length ?? 0) > 0) {
+      return true;
+    }
+    if (action.textContent?.trim()) {
+      return true;
+    }
+    if (
+      action.ingredients?.some(
+        (ingredient) =>
+          Boolean(ingredient.url) ||
+          ingredient.type === 'image' ||
+          ingredient.type === 'video',
+      )
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   private buildContentCompletionOutputVariants(
     uiActions: AgentUiAction[],
   ): NonNullable<AgentUiAction['outputVariants']> {
@@ -289,14 +318,23 @@ export class AgentCompletionCardBuilderService {
       };
     }
 
-    const contentActions = params.uiActions.filter(
-      (action) =>
-        action.type === 'content_preview_card' ||
+    const contentActions = params.uiActions.filter((action) => {
+      if (
         action.type === 'batch_generation_card' ||
         action.type === 'batch_generation_result_card' ||
         action.type === 'clip_run_card' ||
-        action.type === 'clip_workflow_run_card',
-    );
+        action.type === 'clip_workflow_run_card'
+      ) {
+        return true;
+      }
+
+      // Empty "still processing" previews must not mint a Done card.
+      if (action.type === 'content_preview_card') {
+        return this.contentPreviewHasRenderableOutput(action);
+      }
+
+      return false;
+    });
 
     if (contentActions.length > 0) {
       const textCount = contentActions.reduce(
@@ -343,10 +381,14 @@ export class AgentCompletionCardBuilderService {
           : null,
       ].filter((bullet): bullet is string => Boolean(bullet));
 
+      // No real assets/text on the content cards → nothing to celebrate.
+      if (outcomeBullets.length === 0) {
+        return null;
+      }
+
       return {
         id: `completion-summary-${contentActions[0].id}`,
-        outcomeBullets:
-          outcomeBullets.length > 0 ? outcomeBullets : ['Ready for review'],
+        outcomeBullets,
         outputVariants:
           this.buildContentCompletionOutputVariants(contentActions),
         primaryCta: this.buildCompletionPrimaryCta(
