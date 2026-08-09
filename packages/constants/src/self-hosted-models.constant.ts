@@ -1,10 +1,20 @@
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import { CostTier, ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { MODEL_KEYS } from './model-keys.constant';
 
+/**
+ * Curated media defaults for the model registry seed.
+ *
+ * Cost notes (USD / image, Replicate list price at last review):
+ * - FLUX Schnell ~$0.003 — cheapest production image model; preferred when
+ *   `prioritize=cost` / Lowest Cost.
+ * - Nano Banana ~$0.039 — quality-biased platform default for balanced runs.
+ *   Do not treat as the "cheap" pick; it is ~13× Schnell.
+ */
 export const SELF_HOSTED_MODELS = [
   {
     category: ModelCategory.IMAGE,
     cost: 0.039,
+    costTier: CostTier.MEDIUM,
     description: 'Replicate Nano Banana image generation model',
     isDefault: true,
     isHighlighted: true,
@@ -16,6 +26,7 @@ export const SELF_HOSTED_MODELS = [
   {
     category: ModelCategory.IMAGE,
     cost: 0.134,
+    costTier: CostTier.HIGH,
     description: 'Replicate Nano Banana Pro image generation model',
     isDefault: false,
     isHighlighted: false,
@@ -27,6 +38,7 @@ export const SELF_HOSTED_MODELS = [
   {
     category: ModelCategory.IMAGE,
     cost: 0.039,
+    costTier: CostTier.MEDIUM,
     description: 'Replicate Nano Banana 2 image generation model',
     isDefault: false,
     isHighlighted: false,
@@ -38,6 +50,7 @@ export const SELF_HOSTED_MODELS = [
   {
     category: ModelCategory.IMAGE,
     cost: 0.003,
+    costTier: CostTier.LOW,
     description: 'Replicate FLUX Schnell image generation model',
     isDefault: false,
     isHighlighted: true,

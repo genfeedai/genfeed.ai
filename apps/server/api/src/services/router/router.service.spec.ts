@@ -308,6 +308,40 @@ describe('RouterService', () => {
         expect(result.reason).toContain('cost');
       });
 
+      it('picks the cheaper numeric cost when costTier is missing (Lowest Cost)', async () => {
+        // Mirrors production registry drift: nano-banana isDefault + highlighted,
+        // flux-schnell is ~13× cheaper, both with null costTier until re-seeded.
+        const nanoBanana = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.039,
+          costTier: undefined,
+          isDefault: true,
+          isHighlighted: true,
+          key: 'google/nano-banana',
+        });
+        const fluxSchnell = createMockModel({
+          category: ModelCategory.IMAGE,
+          cost: 0.003,
+          costTier: undefined,
+          isDefault: false,
+          isHighlighted: true,
+          key: 'black-forest-labs/flux-schnell',
+        });
+
+        modelsService.findAllActive.mockResolvedValue([
+          nanoBanana,
+          fluxSchnell,
+        ]);
+
+        const result = await service.selectModel({
+          category: ModelCategory.IMAGE,
+          prioritize: 'cost',
+          prompt: 'A simple brand logo mark',
+        });
+
+        expect(result.selectedModel).toBe('black-forest-labs/flux-schnell');
+      });
+
       it('should prefer default models slightly', async () => {
         const defaultModel = createMockModel({
           category: ModelCategory.IMAGE,

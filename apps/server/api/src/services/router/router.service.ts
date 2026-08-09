@@ -253,7 +253,12 @@ export class RouterService {
     score += this.scoreDimensions(model, options);
     score += this.scoreFeatures(model, options);
     score += this.scoreComplexity(model, analysis);
-    score += this.scoreModelFlags(model);
+    // Default/highlighted badges must not override Lowest Cost — those flags
+    // currently mark quality-biased platform defaults (e.g. nano-banana), not
+    // the cheapest row.
+    if (prioritize !== 'cost') {
+      score += this.scoreModelFlags(model);
+    }
 
     return score;
   }
@@ -265,8 +270,8 @@ export class RouterService {
     if (prioritize === 'speed' && model.speedTier === 'fast') {
       return 50;
     }
-    if (prioritize === 'cost' && model.costTier === 'low') {
-      return 50;
+    if (prioritize === 'cost') {
+      return this.scoreCostPriority(model);
     }
     if (prioritize === 'quality' && model.qualityTier === 'ultra') {
       return 50;
@@ -275,6 +280,56 @@ export class RouterService {
       return 30;
     }
     return 0;
+  }
+
+  /**
+   * Cost priority: prefer low tiers, then fall back to numeric provider/list
+   * cost so registries with null costTier (common before re-seed) still pick
+   * FLUX Schnell ($0.003) over Nano Banana ($0.039).
+   */
+  private scoreCostPriority(model: ModelDocument): number {
+    if (model.costTier === 'low') {
+      return 50;
+    }
+    if (model.costTier === 'medium') {
+      return 25;
+    }
+    if (model.costTier === 'high') {
+      return 5;
+    }
+
+    const unitCost = this.readNumericCost(model);
+    if (unitCost === null) {
+      return 0;
+    }
+
+    // Cheaper → higher. Map typical image prices ($0.001–$0.50) into ~55–10.
+    // log10 keeps extremes from collapsing the rank table.
+    const scaled = 55 - Math.log10(unitCost * 1000 + 1) * 18;
+    return Math.max(0, Math.min(55, scaled));
+  }
+
+  private readNumericCost(model: ModelDocument): number | null {
+    const candidates: unknown[] = [
+      model.costPerUnit,
+      model.minCost,
+      model.providerCostUsd,
+      model.cost,
+    ];
+
+    for (const value of candidates) {
+      if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+        return value;
+      }
+      if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return parsed;
+        }
+      }
+    }
+
+    return null;
   }
 
   /**
