@@ -42,12 +42,16 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams('range=30d'),
 }));
 
+// `dateRange` is a dependency of the fetch effect, so a fresh object per render
+// would refetch forever and pin the table in its loading skeleton.
+const stableDateRange = {
+  endDate: new Date('2026-03-12T00:00:00.000Z'),
+  startDate: new Date('2026-03-01T00:00:00.000Z'),
+};
+
 vi.mock('@contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: () => ({
-    dateRange: {
-      endDate: new Date('2026-03-12T00:00:00.000Z'),
-      startDate: new Date('2026-03-01T00:00:00.000Z'),
-    },
+    dateRange: stableDateRange,
     filters: contextFilters,
     refreshTrigger: 0,
     setFilter: setFilterMock,
