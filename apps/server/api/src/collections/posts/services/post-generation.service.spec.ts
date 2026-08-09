@@ -15,8 +15,8 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   CredentialPlatform,
-  PostStatus,
   SystemPromptKey,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -331,7 +331,9 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockActivitiesService.patch).toHaveBeenCalled();
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(mockPost.id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
       );
     });
 
@@ -353,11 +355,15 @@ Tweet 3: Tech innovation is changing the world.`,
       // Both placeholder posts are driven out of PROCESSING into FAILED.
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(mockPost.id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(secondPost.id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
       );
     });
   });

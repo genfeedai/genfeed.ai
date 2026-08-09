@@ -3,12 +3,9 @@ import {
   previewRecurrenceOccurrences,
   type RecurrenceInput,
   recurrenceInputSchema,
+  resolvePostVisibility,
 } from '@api-types/contracts';
-import {
-  PostStatus,
-  ReleaseStatus,
-  TargetExecutionState,
-} from '@genfeedai/enums';
+import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import type { PublishApprovalsService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -388,7 +385,6 @@ export class ReleaseRecurrenceMaterializerService {
         sourceActionId: sourceTarget.sourceActionId,
         sourceWorkflowId: sourceTarget.sourceWorkflowId,
         sourceWorkflowName: sourceTarget.sourceWorkflowName,
-        status: PostStatus.SCHEDULED,
         targetAttachments: this.copyJson(sourceTarget.targetAttachments),
         targetExecutionState: TargetExecutionState.SCHEDULED,
         targetIdempotencyKey: this.targetKey(
@@ -402,6 +398,10 @@ export class ReleaseRecurrenceMaterializerService {
         targetValidationState: sourceTarget.targetValidationState,
         timezone: sourceTarget.timezone,
         userId: sourceTarget.userId,
+        visibility: resolvePostVisibility(
+          sourceTarget.visibility,
+          sourceTarget.status,
+        ),
         workflowExecutionId: context.input.workflowExecutionId,
       },
     });
@@ -471,10 +471,13 @@ export class ReleaseRecurrenceMaterializerService {
         sourceActionId: sourceChild.sourceActionId,
         sourceWorkflowId: sourceChild.sourceWorkflowId,
         sourceWorkflowName: sourceChild.sourceWorkflowName,
-        status: PostStatus.SCHEDULED,
         targetExecutionState: TargetExecutionState.SCHEDULED,
         timezone: sourceChild.timezone,
         userId: sourceChild.userId,
+        visibility: resolvePostVisibility(
+          sourceChild.visibility,
+          sourceChild.status,
+        ),
         workflowExecutionId: context.input.workflowExecutionId,
       },
     });

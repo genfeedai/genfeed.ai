@@ -48,6 +48,7 @@ import {
   IngredientCategory,
   PostCategory,
   PostStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -1214,6 +1215,7 @@ Tweet 3: Tech innovation is changing the world.`,
         retryCount: 3,
         scheduledDate,
         status: PostStatus.FAILED,
+        targetExecutionState: TargetExecutionState.FAILED,
         targetError,
       };
       const updatedPost = {
@@ -1221,6 +1223,7 @@ Tweet 3: Tech innovation is changing the world.`,
         retryCount: 0,
         scheduledDate: new Date(),
         status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
       };
       mockPostsService.findOne.mockResolvedValueOnce(failedPost);
       mockPostsService.patch.mockResolvedValueOnce(updatedPost);
@@ -1238,7 +1241,7 @@ Tweet 3: Tech innovation is changing the world.`,
         expect.objectContaining({
           retryCount: 0,
           scheduledDate: expect.any(Date),
-          status: PostStatus.SCHEDULED,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
       );
       const updatePayload = mockPostsService.patch.mock.calls[0]?.[1];

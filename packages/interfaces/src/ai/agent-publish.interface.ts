@@ -1,3 +1,4 @@
+import type { PostVisibility } from '@genfeedai/enums';
 import type { ValidatedAgentScope } from './agent-scope-context.interface';
 
 export interface AgentPublishCredential {
@@ -23,6 +24,7 @@ export interface PublishConfirmedContentInput {
   platforms: string[];
   scheduledAt?: string;
   sourceActionId: string;
+  visibility: PostVisibility;
 }
 
 export interface ScheduleCanonicalPostInput {
@@ -41,4 +43,5 @@ export interface AgentPublishIdempotencyInput {
   sourceActionId: string;
   threadId?: string;
   userId: string;
+  visibility: PostVisibility;
 }

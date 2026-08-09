@@ -12,6 +12,7 @@ export const channelTargetAttributes = createEntityAttributes([
   'scheduledAt',
   'timezone',
   'settings',
+  'visibility',
   'validationState',
   'validationIssues',
   'readiness',

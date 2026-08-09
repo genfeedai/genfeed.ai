@@ -11,7 +11,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
 import {
   CredentialPlatform,
-  PostStatus,
+  PostVisibility,
   TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
@@ -119,7 +119,7 @@ export class CronTiktokStatusService {
             externalId: { not: null }, // Has publish_id
             isDeleted: false,
             platform: CredentialPlatform.TIKTOK,
-            status: PostStatus.PENDING,
+            targetExecutionState: TargetExecutionState.PUBLISHING,
           },
         },
         options,
@@ -263,8 +263,8 @@ export class CronTiktokStatusService {
                   externalId: postId,
                   publicationDate: publishedAt,
                   publishedAt,
-                  status: PostStatus.PUBLIC,
                   url: postUrl,
+                  visibility: PostVisibility.PUBLIC,
                   workflowExecutionId: provenance.executionId,
                 },
                 `TikTok moderation completed - post ${postId} is live`,
@@ -402,7 +402,6 @@ export class CronTiktokStatusService {
           {
             error: targetError,
             executionState: TargetExecutionState.FAILED,
-            status: PostStatus.FAILED,
             workflowExecutionId: provenance.executionId,
           },
           reason,

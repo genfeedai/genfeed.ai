@@ -4,6 +4,8 @@ import type {
   PostCategory,
   PostFormat,
   PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   IBrand,
@@ -37,6 +39,8 @@ export class Post extends BaseEntity implements IPost {
   public declare category: PostCategory;
   public declare format?: PostFormat;
   public declare status: PostStatus;
+  public declare targetExecutionState: TargetExecutionState;
+  public declare visibility: PostVisibility;
   public declare platform?: CredentialPlatform;
   public declare externalId?: string;
   public declare externalShortcode?: string;

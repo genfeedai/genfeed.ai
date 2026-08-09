@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { Platform, PostFormat, PostStatus } from '@genfeedai/enums';
+import {
+  Platform,
+  PostFormat,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PostEditorContent from './post-editor-content';
@@ -157,7 +163,8 @@ describe('PostEditorContent', () => {
         format: PostFormat.STANDARD,
         label: 'Launch post revised',
         scheduledDate: '2026-03-11T10:00:00.000Z',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        visibility: PostVisibility.PUBLIC,
       });
     });
     expect(mocks.success).toHaveBeenCalledWith('Post updated successfully');
@@ -185,7 +192,8 @@ describe('PostEditorContent', () => {
         description: 'Original body',
         format: PostFormat.STANDARD,
         label: 'Launch post revised',
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        visibility: PostVisibility.PUBLIC,
       });
     });
   });

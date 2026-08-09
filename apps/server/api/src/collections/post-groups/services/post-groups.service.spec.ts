@@ -9,6 +9,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
   CredentialPlatform,
+  PostVisibility,
   PublishApprovalStatus,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -112,6 +113,7 @@ type MockPostTarget = {
   timezone: string;
   updatedAt: Date;
   url: string | null;
+  visibility: PostVisibility;
   workflowExecutionId: string | null;
 };
 
@@ -405,7 +407,6 @@ describe('PostGroupsService', () => {
           agentThreadId: 'thread-1',
           groupId: 'group-1',
           source: 'agent',
-          status: TargetExecutionState.SCHEDULED,
           sourceActionId: 'publish-card-1',
           targetExecutionState: TargetExecutionState.SCHEDULED,
           targetValidationState: TargetValidationState.VALID,
@@ -1748,6 +1749,7 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
     timezone: 'UTC',
     updatedAt: new Date('2026-07-08T22:25:13.000Z'),
     url: null,
+    visibility: PostVisibility.PUBLIC,
     workflowExecutionId: 'execution-1',
     ...overrides,
   };

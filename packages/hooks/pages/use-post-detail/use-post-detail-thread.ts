@@ -1,6 +1,11 @@
 'use client';
 
-import { PostCategory, PostStatus, Status } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostVisibility,
+  Status,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -127,7 +132,8 @@ export function usePostDetailThread({
         label: 'Thread reply',
         order: newPostOrder,
         parentId: post.id,
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
+        visibility: post.visibility ?? PostVisibility.PUBLIC,
       });
 
       if (grokTweetToUpdate) {
@@ -345,7 +351,8 @@ export function usePostDetailThread({
             label: 'Grok feedback request',
             order: currentChildren.length + 1,
             parentId: post.id,
-            status: PostStatus.DRAFT,
+            targetExecutionState: TargetExecutionState.DRAFT,
+            visibility: post.visibility ?? PostVisibility.PUBLIC,
           });
 
           setPost((prevPost) => {
@@ -425,7 +432,8 @@ export function usePostDetailThread({
             label: 'First comment',
             order: currentChildren.length + 1,
             parentId: post.id,
-            status: PostStatus.DRAFT,
+            targetExecutionState: TargetExecutionState.DRAFT,
+            visibility: post.visibility ?? PostVisibility.PUBLIC,
           });
 
           setPost((prevPost) => {

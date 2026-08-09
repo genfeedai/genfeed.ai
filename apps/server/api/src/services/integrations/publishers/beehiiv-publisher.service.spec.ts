@@ -3,7 +3,7 @@ import {
   type PublishContext,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -139,7 +139,7 @@ describe('BeehiivPublisherService', () => {
         expect.anything(),
         expect.objectContaining({ status: 'draft' }),
       );
-      expect(result.status).toBe(PostStatus.DRAFT);
+      expect(result.isProviderDraft).toBe(true);
     });
 
     it('creates a provider draft from resolved channel settings', async () => {
@@ -153,7 +153,7 @@ describe('BeehiivPublisherService', () => {
         expect.anything(),
         expect.objectContaining({ status: 'draft' }),
       );
-      expect(result.status).toBe(PostStatus.DRAFT);
+      expect(result.isProviderDraft).toBe(true);
     });
 
     it('passes the workflow-approved schedule only with confirmed status', async () => {

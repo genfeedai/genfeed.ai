@@ -38,13 +38,14 @@ export type PostUpdateInput = UpdatePostRequest;
  *   credentialId,
  *   label: 'My Post',
  *   description: 'Content here',
- *   status: PostStatus.DRAFT,
+ *   targetExecutionState: TargetExecutionState.DRAFT,
+ *   visibility: PostVisibility.PUBLIC,
  *   ingredients: [],
  * });
  *
  * // Update with type-safe partial payload
  * await service.patch(post.id, {
- *   status: PostStatus.SCHEDULED,
+ *   targetExecutionState: TargetExecutionState.SCHEDULED,
  *   scheduledDate: '2024-12-01T10:00:00Z',
  * });
  * ```
@@ -208,7 +209,8 @@ export class PostsService extends BaseService<
       ingredients: string[];
       label: string;
       scheduledDate?: string;
-      status: CreatePostRequest['status'];
+      targetExecutionState?: CreatePostRequest['targetExecutionState'];
+      visibility?: CreatePostRequest['visibility'];
     }>;
   }): Promise<Post[]> {
     const [rootInput, ...replyInputs] = data.posts;

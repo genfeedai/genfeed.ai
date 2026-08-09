@@ -3,7 +3,7 @@
  * Used by FileQueueService for type-safe job processing
  */
 
-import type { JobState } from '@genfeedai/enums';
+import type { JobState, PostVisibility } from '@genfeedai/enums';
 import type {
   IEditorRenderCorrelation,
   IEditorRenderJobParams,
@@ -97,7 +97,7 @@ export interface IYoutubeUploadData {
   title: string;
   description: string;
   tags?: string[];
-  status: string;
+  visibility: PostVisibility;
   scheduledDate?: Date;
   websocketUrl?: string;
 }

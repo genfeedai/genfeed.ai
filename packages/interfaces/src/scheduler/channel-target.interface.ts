@@ -1,5 +1,6 @@
 import type {
   CredentialPlatform,
+  PostVisibility,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
   TargetAnalyticsCollectionState,
@@ -99,6 +100,8 @@ export interface IChannelTarget extends IBaseEntity {
   timezone: string;
   /** Provider-specific overrides for this target. */
   settings: ChannelTargetSettings;
+  /** Audience visibility, independent from publish execution lifecycle. */
+  visibility: PostVisibility;
   validationState: TargetValidationState;
   /** Non-empty when `validationState` is `WARNING` or `INVALID`. */
   validationIssues: string[];

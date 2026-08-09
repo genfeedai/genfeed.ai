@@ -1,5 +1,9 @@
 import type { IAuthPublicMetadata } from '@api/auth/interfaces/authenticated-user.interface';
-import { ApiKeyScope, PostStatus } from '@genfeedai/enums';
+import {
+  ApiKeyScope,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import {
   CURATED_ACTION_CATALOG,
@@ -58,13 +62,15 @@ export function assertApiKeyPublishingScope(
 
 export function assertApiKeyPostStatusPublishingScope(
   context: ApiKeyPublishingContext,
-  status: PostStatus,
+  status: PostStatus | TargetExecutionState | undefined,
 ): void {
   assertApiKeyPublishingScope(
     context,
-    status === PostStatus.DRAFT
+    status === PostStatus.DRAFT || status === TargetExecutionState.DRAFT
       ? 'draft'
-      : status === PostStatus.SCHEDULED
+      : status === undefined ||
+          status === PostStatus.SCHEDULED ||
+          status === TargetExecutionState.SCHEDULED
         ? 'schedule'
         : 'publish',
   );

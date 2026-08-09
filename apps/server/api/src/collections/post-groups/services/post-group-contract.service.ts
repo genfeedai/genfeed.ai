@@ -14,6 +14,7 @@ import {
   deriveReleaseStatusProjectionFromTargets,
   type ReleaseAttachmentInput,
   type ReleaseMediaReferenceInput,
+  resolvePostVisibility,
   type UpdateChannelTargetInput,
   type UpdateReleaseGroupInput,
   updateChannelTargetSchema,
@@ -73,6 +74,10 @@ const SCHEDULABLE_TARGET_STATES = new Set<string>([
 @Injectable()
 export class PostGroupContractService {
   private readonly logger = new Logger(PostGroupContractService.name);
+
+  toPostVisibility(visibility: string | null, legacyStatus: string) {
+    return resolvePostVisibility(visibility, legacyStatus);
+  }
 
   parseCreateInput(
     body: unknown,
@@ -135,6 +140,7 @@ export class PostGroupContractService {
       platform: target.platform,
       publishMode,
       settings: target.settings ?? {},
+      visibility: target.visibility,
     });
   }
 
@@ -179,7 +185,7 @@ export class PostGroupContractService {
     input: UpdateChannelTargetInput,
   ): ChannelTargetValidationResult | undefined {
     const validation =
-      input.settings !== undefined
+      input.settings !== undefined || input.visibility !== undefined
         ? validateChannelTargetSettings({
             credentialId: existing.credentialId,
             platform: existing.platform,
@@ -190,6 +196,7 @@ export class PostGroupContractService {
                   ? 'scheduled'
                   : undefined,
             settings: input.settings,
+            visibility: input.visibility ?? existing.visibility ?? undefined,
           })
         : undefined;
 
@@ -496,6 +503,7 @@ export class PostGroupContractService {
       retryCount: target.retryCount,
       scheduledAt: this.toIso(target.scheduledDate),
       settings: this.asRecord(target.targetSettings),
+      visibility: resolvePostVisibility(target.visibility, target.status),
       source: this.toTargetSource(target),
       timezone: target.timezone,
       updatedAt: target.updatedAt.toISOString(),
