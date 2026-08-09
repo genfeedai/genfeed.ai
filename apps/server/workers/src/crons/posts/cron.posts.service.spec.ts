@@ -844,6 +844,14 @@ describe('CronPostsService', () => {
         url: 'https://x.com/example/status/tweet-1',
       }),
     );
+    expect(publishApprovalsService.completeExecution).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      executionStartedAt: '2026-07-07T09:56:00.000Z',
+      isSuccessful: true,
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      versionPinId: 'pin-1',
+    });
   });
 
   it('omits the legacy eligibility timestamp for publish-now provider execution', async () => {

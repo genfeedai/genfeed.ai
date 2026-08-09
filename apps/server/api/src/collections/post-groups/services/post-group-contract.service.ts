@@ -24,6 +24,7 @@ import { getSchedulerAnalyticsCapability } from '@api-types/contracts/scheduler-
 import { buildReleaseAnalyticsComparison } from '@api-types/contracts/scheduler-analytics-comparison.contract';
 import {
   CredentialPlatform,
+  PostCategory,
   PostStatus,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -486,6 +487,7 @@ export class PostGroupContractService {
         target.id,
       ),
       createdAt: target.createdAt.toISOString(),
+      category: target.category ?? PostCategory.TEXT,
       credentialId: target.credentialId,
       error: this.asTargetError(target.targetError),
       executionState: target.targetExecutionState as TargetExecutionState,

@@ -44,8 +44,8 @@ export class PostGroupsController {
     @Query() query: PostGroupsQueryDto,
   ) {
     const { organization } = getPublicMetadata(user);
-    const docs = await this.postGroupsService.list(organization, query);
-    return serializeCollection(req, ReleaseGroupSerializer, { docs });
+    const data = await this.postGroupsService.list(organization, query);
+    return serializeCollection(req, ReleaseGroupSerializer, data);
   }
 
   @Post()
