@@ -199,6 +199,19 @@ export default function DownloadContent({
                   </Button>
                 )}
               </div>
+
+              {/*
+                The cask is pushed to the tap by the same release job that
+                publishes the disk image, so it only exists once a build does.
+              */}
+              {hasMacBuild ? (
+                <p className="mt-4 text-xs text-surface/50">
+                  Prefer Homebrew?{' '}
+                  <span className="font-mono text-surface/75">
+                    brew install --cask genfeedai/tap/genfeed
+                  </span>
+                </p>
+              ) : null}
             </NeuralGridItem>
 
             <NeuralGridItem

@@ -29,6 +29,7 @@
       "gatekeeperAssess": false,
       "hardenedRuntime": true,
       "icon": "build/icon.icns",
+      "minimumSystemVersion": "13.0",
       "target": [
         "dmg",
         "zip"
