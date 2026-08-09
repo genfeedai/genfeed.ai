@@ -360,6 +360,8 @@ export default defineConfig({
     include: [
       'packages/pages/analytics/overview/analytics-overview.test.tsx',
       'brands/components/**/*.test.tsx',
+      'research/**/*.test.ts',
+      'research/**/*.test.tsx',
       'studio/generate/utils/**/*.test.ts',
       'studio/fastlane/**/*.test.ts',
       'studio/fastlane/**/*.test.tsx',

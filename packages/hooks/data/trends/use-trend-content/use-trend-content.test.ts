@@ -88,6 +88,8 @@ describe('useTrendContent', () => {
       platform: 'tiktok',
       refresh: true,
     });
-    expect(result.current.items).toEqual([refreshedItem]);
+    await waitFor(() => {
+      expect(result.current.items).toEqual([refreshedItem]);
+    });
   });
 });
