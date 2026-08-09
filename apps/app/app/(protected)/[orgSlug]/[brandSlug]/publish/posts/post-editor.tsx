@@ -30,6 +30,28 @@ import { type UseFormReturn, useFieldArray } from 'react-hook-form';
 
 export const POST_EDITOR_FORM_ID = 'post-editor-form';
 
+/**
+ * Option lists and section copy held as data, mirroring `getPostStatusOptions`,
+ * so the labels stay one translatable set instead of inline JSX fragments.
+ */
+const X_FORMAT_OPTIONS: { label: string; value: PostFormat }[] = [
+  { label: 'Standard post', value: PostFormat.STANDARD },
+  { label: 'Long post', value: PostFormat.LONG_FORM },
+  { label: 'Thread', value: PostFormat.THREAD },
+];
+
+const X_STATUS_OPTIONS: { label: string; value: PostStatus }[] = [
+  { label: 'Draft', value: PostStatus.DRAFT },
+  { label: 'Scheduled', value: PostStatus.SCHEDULED },
+];
+
+const COPY = {
+  segmentContent: 'Content',
+  threadRepliesHint:
+    'Replies publish in this order through the existing schedule.',
+  threadRepliesTitle: 'Thread replies',
+};
+
 type PostEditorProps = {
   form: UseFormReturn<PostEditorFormState>;
   post: Post;
@@ -89,9 +111,11 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
             helpText="Long posts use one body; threads publish each segment as a linked reply."
           >
             <SelectField name="format" control={form.control}>
-              <option value={PostFormat.STANDARD}>Standard post</option>
-              <option value={PostFormat.LONG_FORM}>Long post</option>
-              <option value={PostFormat.THREAD}>Thread</option>
+              {X_FORMAT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </SelectField>
           </FormControl>
         )}
@@ -122,9 +146,11 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-medium">Thread replies</h3>
+                <h3 className="text-sm font-medium">
+                  {COPY.threadRepliesTitle}
+                </h3>
                 <p className="text-xs text-foreground/60">
-                  Replies publish in this order through the existing schedule.
+                  {COPY.threadRepliesHint}
                 </p>
               </div>
               <Button
@@ -156,7 +182,7 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium text-sm">
-                      Post {index + 2}
+                      {`Post ${index + 2}`}
                     </span>
                     <Button
                       type="button"
@@ -172,7 +198,7 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
                   <FormControl
                     label={
                       <div className="flex w-full items-center justify-between gap-2">
-                        <span>Content</span>
+                        <span>{COPY.segmentContent}</span>
                         <span className="text-xs text-foreground/60">
                           {currentLength} / 280
                         </span>
@@ -218,8 +244,11 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
             helpText="Choose Scheduled after selecting a date to use the existing publishing queue."
           >
             <SelectField name="status" control={form.control}>
-              <option value={PostStatus.DRAFT}>Draft</option>
-              <option value={PostStatus.SCHEDULED}>Scheduled</option>
+              {X_STATUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </SelectField>
           </FormControl>
         )}

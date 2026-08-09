@@ -9,7 +9,7 @@ describe('posts contract', () => {
   it('accepts an explicit X long-form format', () => {
     expect(
       createPostSchema.safeParse({
-        credentialId: 'credential-1',
+        credentialId: 'cmptu23g70001zixnzwbzwp2e',
         description: 'A long X post body',
         format: PostFormat.LONG_FORM,
         ingredients: [],
