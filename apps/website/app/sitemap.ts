@@ -182,6 +182,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
       url: 'https://genfeed.ai/self-hosted',
     },
+    // Unlinked from nav/footer until the first desktop build ships, but kept
+    // indexable so the download link can be shared directly.
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.6,
+      url: 'https://genfeed.ai/download',
+    },
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
