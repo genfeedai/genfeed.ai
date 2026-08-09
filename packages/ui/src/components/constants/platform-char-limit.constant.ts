@@ -8,3 +8,4 @@ export const PLATFORM_CHAR_LIMITS: Record<string, number> = {
 };
 
 export const DEFAULT_CHAR_LIMIT = 5000;
+export const X_LONG_FORM_CHAR_LIMIT = 25_000;

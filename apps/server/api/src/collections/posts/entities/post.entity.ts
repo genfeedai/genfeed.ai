@@ -2,6 +2,7 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   CredentialPlatform,
   PostCategory,
+  PostFormat,
   PostStatus,
   type ReviewDecision,
 } from '@genfeedai/enums';
@@ -45,6 +46,7 @@ export class PostEntity extends BaseEntity {
   declare readonly label: string;
   declare readonly description: string;
   declare readonly category: PostCategory;
+  declare readonly format: PostFormat;
   declare readonly status: PostStatus;
   declare readonly tags?: string[];
   declare readonly scheduledDate: Date;

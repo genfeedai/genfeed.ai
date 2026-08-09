@@ -5,7 +5,11 @@ import {
   ARTIFACT_EDITOR_RETURN_PARAM,
   resolveArtifactEditorBackHref,
 } from '@genfeedai/constants';
-import { ButtonVariant, formatPlatformLabel } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  formatPlatformLabel,
+  PostFormat,
+} from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ArtifactEditorPageProps } from '@props/content/artifact-editor.props';
 import Badge from '@ui/display/badge/Badge';
@@ -66,10 +70,15 @@ export default function PostEditorContent({
       badges={
         <>
           <Badge>{formatPlatformLabel(post.platform) ?? post.platform}</Badge>
+          {post.format && post.format !== PostFormat.STANDARD && (
+            <Badge>
+              {post.format === PostFormat.LONG_FORM ? 'Long post' : 'Thread'}
+            </Badge>
+          )}
           <Badge status={post.status}>{post.status}</Badge>
         </>
       }
-      description="Update the details for this scheduled post."
+      description="Edit the content and scheduling details for this post."
       isDirty={isDirty}
       title={post.label || 'Edit Post'}
     >

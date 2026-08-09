@@ -36,6 +36,7 @@ export enum ModalEnum {
   MUSIC = 'modal-music',
   ONBOARDING = 'modal-onboarding',
   POST = 'modal-post',
+  POST_LONG_FORM = 'modal-post-long-form',
   POST_BATCH = 'modal-post-batch',
   POST_METADATA = 'modal-post-metadata',
   POST_REMIX = 'modal-post-remix',
