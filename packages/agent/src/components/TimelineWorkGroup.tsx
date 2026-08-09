@@ -34,22 +34,43 @@ export function TimelineWorkGroup({
 
   const terminalStatus = useMemo(() => {
     const source = entry.events;
-    if (source.some((event) => event.status === AgentWorkEventStatus.FAILED)) {
-      return 'failed' as const;
-    }
-    if (
-      source.some((event) => event.status === AgentWorkEventStatus.CANCELLED)
-    ) {
-      return 'cancelled' as const;
-    }
     if (source.some((event) => isActiveWorkEvent(event))) {
       return 'live' as const;
     }
+
+    // Prefer the last non-lifecycle tool/step — intermediate create_post
+    // failures must not paint the whole group Failed when a later step
+    // (or a successful recovery path) completed.
+    const toolEvents = source.filter(
+      (event) => !isGenericRunLifecycleEvent(event),
+    );
+    const lastTool = toolEvents.at(-1);
+
+    if (lastTool?.status === AgentWorkEventStatus.FAILED) {
+      return 'failed' as const;
+    }
+    if (lastTool?.status === AgentWorkEventStatus.CANCELLED) {
+      return 'cancelled' as const;
+    }
     if (
-      source.some((event) => event.status === AgentWorkEventStatus.COMPLETED) ||
-      source.every((event) => isGenericRunLifecycleEvent(event))
+      toolEvents.some(
+        (event) => event.status === AgentWorkEventStatus.COMPLETED,
+      ) ||
+      toolEvents.length === 0
     ) {
       return 'completed' as const;
+    }
+    if (
+      toolEvents.some((event) => event.status === AgentWorkEventStatus.FAILED)
+    ) {
+      return 'failed' as const;
+    }
+    if (
+      toolEvents.some(
+        (event) => event.status === AgentWorkEventStatus.CANCELLED,
+      )
+    ) {
+      return 'cancelled' as const;
     }
     return 'live' as const;
   }, [entry.events]);

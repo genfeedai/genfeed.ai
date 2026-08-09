@@ -21,6 +21,8 @@ const CONFIG_PATTERNS: Array<{
   title: string;
   summary: string;
   recovery: string;
+  /** When true, include a scrubbed slice of the raw error as detail. */
+  includeRawDetail?: boolean;
 }> = [
   {
     match:
@@ -64,6 +66,7 @@ const CONFIG_PATTERNS: Array<{
       'The agent could not save a post or related record (schema or database out of sync).',
     recovery:
       'Apply pending database migrations, restart the API, then retry. If it persists, report the tool name and time.',
+    includeRawDetail: true,
   },
   {
     match:
@@ -126,8 +129,15 @@ export function formatAgentError(
   // any secrets before they could reach the UI detail field.
   for (const pattern of CONFIG_PATTERNS) {
     if (pattern.match.test(original)) {
+      const cleaned = scrubSecrets(original);
+      const maxDetail = 240;
+      const detail = pattern.includeRawDetail
+        ? cleaned.length > maxDetail
+          ? `${cleaned.slice(0, maxDetail - 1)}…`
+          : cleaned
+        : null;
       return {
-        detail: null,
+        detail,
         isConfigurationError: true,
         recovery: pattern.recovery,
         summary: pattern.summary,
