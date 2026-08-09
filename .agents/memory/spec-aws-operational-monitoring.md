@@ -30,7 +30,7 @@ Provide actionable AWS production visibility without running monitoring servers 
 ## Key Decisions
 
 - Use standard AWS metrics first; they carry no custom metric storage charge.
-- Keep the baseline incremental monitoring target below USD 5/month while GPU instances are stopped.
+- Keep the account-specific baseline incremental monitoring target below USD 9/month while GPU instances are stopped.
 - Use static thresholds initially; anomaly-detection alarms cost three alarm metrics each and the existing ones never received data.
 - Treat missing data as breaching only for resources expected to be continuously available. Treat it as non-breaching for expected-zero traffic and stopped fleet instances.
 - Bound custom metrics to aggregate queue health and fleet host/GPU health; never dimension by job, tenant, or content.
@@ -47,8 +47,8 @@ Provide actionable AWS production visibility without running monitoring servers 
 ## Acceptance Criteria
 
 - WHEN an ALB target group has no healthy target for two consecutive periods THE SYSTEM SHALL notify operations.
-- WHEN a running ECS service sustains CPU or memory utilization above 80 percent THE SYSTEM SHALL notify operations.
-- WHEN a required ECS service stops reporting its expected live task count THE SYSTEM SHALL represent it as unavailable.
+- WHEN the API or workers sustain CPU or memory utilization above 80 percent THE SYSTEM SHALL notify operations.
+- WHEN an internal files or workers service stops reporting its expected live task count THE SYSTEM SHALL represent it as unavailable; public service availability is covered by ALB target health.
 - WHEN RDS or Redis crosses an approved capacity threshold THE SYSTEM SHALL notify operations with the resource identity.
 - WHEN an intentionally parked ECS service or stopped fleet instance publishes no telemetry THE SYSTEM SHALL remain non-alarming.
 - WHEN an operator opens the production dashboard THE SYSTEM SHALL show availability, latency, errors, task health, CPU, memory, database, and cache pressure using no more than 50 metrics.

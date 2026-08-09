@@ -121,7 +121,7 @@ describe('QueueMetricsService', () => {
     };
 
     expect(command.input.Namespace).toBe('Genfeed/Queues');
-    expect(command.input.MetricData).toHaveLength(7);
+    expect(command.input.MetricData).toHaveLength(5);
     expect(command.input.MetricData).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ MetricName: 'Heartbeat', Value: 1 }),

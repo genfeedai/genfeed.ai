@@ -10,7 +10,7 @@ type: project
 
 ### 1. CloudWatch standard metrics with bounded custom signals — selected
 
-Uses the metrics ALB, ECS, RDS, ElastiCache, and EC2 already publish, one native dashboard, static alarms, and only a few aggregate queue/GPU custom metrics. This is the smallest operational surface, uses the existing OpenTofu stack, and targets less than USD 5/month incremental cost while the fleet is stopped.
+Uses the metrics ALB, ECS, RDS, ElastiCache, and EC2 already publish, one native production dashboard, static alarms, and only a few aggregate queue/GPU custom metrics. Account billing shows that free-tier offsets no longer apply, so the selected coverage is trimmed to an estimated USD 8.60/month while the fleet is stopped.
 
 ### 2. ECS Container Insights
 
@@ -22,11 +22,11 @@ Adds PromQL and cross-source dashboards, but introduces a second metric pipeline
 
 ## Selected boundaries
 
-- Dashboard: one custom dashboard, at most 50 metric references.
+- Dashboard: one custom production dashboard with 38 metric references; the private fleet console owns fleet visualization instead of a second USD 3/month CloudWatch dashboard.
 - Alarms: standard resolution; no anomaly detection in the baseline.
 - Alerts: reuse the confirmed production SNS topic instead of creating an email subscription requiring manual confirmation.
-- ECS: monitor only services whose desired count is greater than zero.
-- Queues: aggregate health only; no per-queue or per-job dimensions in the initial baseline, and one Redis marker per five-minute window prevents replica duplication.
+- ECS: dashboard all active services; alarm on ALB availability for public services, live tasks for internal services, and saturation for the API/workers.
+- Queues: five aggregate metrics only; no per-queue or per-job dimensions, and one Redis marker per five-minute window prevents replica duplication.
 - Fleet: private ownership, missing data ignored while stopped, custom GPU metrics published only while running.
 - Cost: AWS Budget and anomaly thresholds are finalized after the follow-up account billing review; monitoring resources must remain independently attributable in Cost Explorer.
 

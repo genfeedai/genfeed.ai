@@ -4,6 +4,16 @@ locals {
     if service.desired > 0
   }
 
+  availability_alarm_services = {
+    for name, service in local.active_services : name => service
+    if contains(["files", "workers"], name)
+  }
+
+  saturation_alarm_services = {
+    for name, service in local.active_services : name => service
+    if contains(["api", "workers"], name)
+  }
+
   public_target_group_suffixes = merge(
     { api = aws_lb_target_group.api.arn_suffix },
     { for name, target_group in aws_lb_target_group.public_backend : name => target_group.arn_suffix },
@@ -92,32 +102,9 @@ resource "aws_cloudwatch_metric_alarm" "alb_target_latency" {
   ok_actions    = local.alarm_actions
 }
 
-resource "aws_cloudwatch_metric_alarm" "alb_target_connections" {
-  for_each = local.public_target_group_suffixes
-
-  alarm_name          = "${local.name_prefix}-alb-${each.key}-connection-errors"
-  alarm_description   = "${each.key} had a target connection error. Runbook: ${local.runbook_base}#alb-errors-and-latency"
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = 1
-  metric_name         = "TargetConnectionErrorCount"
-  namespace           = "AWS/ApplicationELB"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = 1
-  treat_missing_data  = "notBreaching"
-
-  dimensions = {
-    LoadBalancer = aws_lb.main.arn_suffix
-    TargetGroup  = each.value
-  }
-
-  alarm_actions = local.alarm_actions
-  ok_actions    = local.alarm_actions
-}
-
 # ── ECS service availability and saturation ────────────────────────
 resource "aws_cloudwatch_metric_alarm" "ecs_live_tasks" {
-  for_each = local.active_services
+  for_each = local.availability_alarm_services
 
   alarm_name          = "${local.name_prefix}-ecs-${each.key}-live-tasks"
   alarm_description   = "${each.key} has fewer live tasks than its desired count. Runbook: ${local.runbook_base}#ecs-service-health"
@@ -141,7 +128,7 @@ resource "aws_cloudwatch_metric_alarm" "ecs_live_tasks" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ecs_cpu" {
-  for_each = local.active_services
+  for_each = local.saturation_alarm_services
 
   alarm_name          = "${local.name_prefix}-ecs-${each.key}-cpu"
   alarm_description   = "${each.key} CPU utilization exceeded 80 percent for fifteen minutes. Runbook: ${local.runbook_base}#ecs-service-health"
@@ -165,7 +152,7 @@ resource "aws_cloudwatch_metric_alarm" "ecs_cpu" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ecs_memory" {
-  for_each = local.active_services
+  for_each = local.saturation_alarm_services
 
   alarm_name          = "${local.name_prefix}-ecs-${each.key}-memory"
   alarm_description   = "${each.key} memory utilization exceeded 80 percent for fifteen minutes. Runbook: ${local.runbook_base}#ecs-service-health"
@@ -257,40 +244,6 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections" {
   ok_actions          = local.alarm_actions
 }
 
-resource "aws_cloudwatch_metric_alarm" "rds_read_latency" {
-  alarm_name          = "${local.name_prefix}-rds-read-latency"
-  alarm_description   = "RDS read latency exceeded 50 ms for fifteen minutes. Runbook: ${local.runbook_base}#rds-postgresql"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
-  datapoints_to_alarm = 3
-  metric_name         = "ReadLatency"
-  namespace           = "AWS/RDS"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 0.05
-  treat_missing_data  = "notBreaching"
-  dimensions          = { DBInstanceIdentifier = data.aws_db_instance.genfeed.id }
-  alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
-}
-
-resource "aws_cloudwatch_metric_alarm" "rds_write_latency" {
-  alarm_name          = "${local.name_prefix}-rds-write-latency"
-  alarm_description   = "RDS write latency exceeded 50 ms for fifteen minutes. Runbook: ${local.runbook_base}#rds-postgresql"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
-  datapoints_to_alarm = 3
-  metric_name         = "WriteLatency"
-  namespace           = "AWS/RDS"
-  period              = 300
-  statistic           = "Average"
-  threshold           = 0.05
-  treat_missing_data  = "notBreaching"
-  dimensions          = { DBInstanceIdentifier = data.aws_db_instance.genfeed.id }
-  alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
-}
-
 # ── Redis/BullMQ backing store ──────────────────────────────────────
 resource "aws_cloudwatch_metric_alarm" "redis_memory" {
   alarm_name          = "${local.name_prefix}-redis-memory"
@@ -342,7 +295,7 @@ resource "aws_cloudwatch_metric_alarm" "redis_evictions" {
   ok_actions          = local.alarm_actions
 }
 
-# ── Aggregate BullMQ health (seven fixed custom metrics) ───────────
+# ── Aggregate BullMQ health (five fixed custom metrics) ────────────
 resource "aws_cloudwatch_metric_alarm" "queue_metrics_heartbeat" {
   alarm_name          = "${local.name_prefix}-queues-heartbeat"
   alarm_description   = "Workers stopped publishing aggregate queue metrics for fifteen minutes. Runbook: ${local.runbook_base}#redis-and-bullmq"
@@ -355,23 +308,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_metrics_heartbeat" {
   statistic           = "Minimum"
   threshold           = 1
   treat_missing_data  = "breaching"
-  dimensions          = { Service = "workers" }
-  alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
-}
-
-resource "aws_cloudwatch_metric_alarm" "queue_waiting" {
-  alarm_name          = "${local.name_prefix}-queues-waiting"
-  alarm_description   = "Aggregate BullMQ waiting jobs exceeded 100 for fifteen minutes. Runbook: ${local.runbook_base}#redis-and-bullmq"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 3
-  datapoints_to_alarm = 3
-  metric_name         = "WaitingJobs"
-  namespace           = "Genfeed/Queues"
-  period              = 300
-  statistic           = "Maximum"
-  threshold           = 100
-  treat_missing_data  = "notBreaching"
   dimensions          = { Service = "workers" }
   alarm_actions       = local.alarm_actions
   ok_actions          = local.alarm_actions
@@ -394,22 +330,6 @@ resource "aws_cloudwatch_metric_alarm" "queue_oldest_waiting" {
   ok_actions          = local.alarm_actions
 }
 
-resource "aws_cloudwatch_metric_alarm" "queue_failed" {
-  alarm_name          = "${local.name_prefix}-queues-failed"
-  alarm_description   = "One or more BullMQ jobs failed in five minutes. Runbook: ${local.runbook_base}#redis-and-bullmq"
-  comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = 1
-  metric_name         = "FailedJobs5m"
-  namespace           = "Genfeed/Queues"
-  period              = 300
-  statistic           = "Sum"
-  threshold           = 1
-  treat_missing_data  = "notBreaching"
-  dimensions          = { Service = "workers" }
-  alarm_actions       = local.alarm_actions
-  ok_actions          = local.alarm_actions
-}
-
 resource "aws_cloudwatch_metric_alarm" "queue_stalled" {
   alarm_name          = "${local.name_prefix}-queues-stalled"
   alarm_description   = "One or more BullMQ jobs stalled in five minutes. Runbook: ${local.runbook_base}#redis-and-bullmq"
@@ -426,7 +346,7 @@ resource "aws_cloudwatch_metric_alarm" "queue_stalled" {
   ok_actions          = local.alarm_actions
 }
 
-# The dashboard references 43 metrics, below the 50-metric free-tier boundary.
+# The dashboard references 38 metrics, below its 50-metric pricing boundary.
 resource "aws_cloudwatch_dashboard" "production" {
   dashboard_name = local.name_prefix
 
@@ -517,8 +437,6 @@ resource "aws_cloudwatch_dashboard" "production" {
             period  = 300
             metrics = [
               ["Genfeed/Queues", "WaitingJobs", "Service", "workers", { label = "Waiting", stat = "Maximum" }],
-              ["Genfeed/Queues", "ActiveJobs", "Service", "workers", { label = "Active", stat = "Maximum" }],
-              ["Genfeed/Queues", "DelayedJobs", "Service", "workers", { label = "Delayed", stat = "Maximum" }],
               ["Genfeed/Queues", "OldestWaitingAgeSeconds", "Service", "workers", { label = "Oldest waiting seconds", stat = "Maximum" }],
               ["Genfeed/Queues", "FailedJobs5m", "Service", "workers", { label = "Failed / 5m", stat = "Sum" }],
               ["Genfeed/Queues", "StalledJobs5m", "Service", "workers", { label = "Stalled / 5m", stat = "Sum" }],
@@ -531,7 +449,6 @@ resource "aws_cloudwatch_dashboard" "production" {
           { name = "HealthyHostCount", title = "ALB healthy targets", stat = "Minimum" },
           { name = "HTTPCode_Target_5XX_Count", title = "ALB target 5xx", stat = "Sum" },
           { name = "TargetResponseTime", title = "ALB target response time", stat = "p95" },
-          { name = "TargetConnectionErrorCount", title = "ALB target connection errors", stat = "Sum" },
           ] : {
           type   = "metric"
           x      = (index % 2) * 12

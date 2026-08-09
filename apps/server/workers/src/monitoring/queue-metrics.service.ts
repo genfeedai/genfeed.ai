@@ -33,8 +33,6 @@ const MONITORED_QUEUE_NAMES = [
 ] as const;
 
 interface QueueSnapshot {
-  active: number;
-  delayed: number;
   failedEvents: number;
   oldestWaitingAgeSeconds: number;
   stalledEvents: number;
@@ -102,8 +100,6 @@ export class QueueMetricsService implements OnModuleDestroy {
 
       const totals = snapshots.reduce<QueueSnapshot>(
         (aggregate, snapshot) => ({
-          active: aggregate.active + snapshot.active,
-          delayed: aggregate.delayed + snapshot.delayed,
           failedEvents: aggregate.failedEvents + snapshot.failedEvents,
           oldestWaitingAgeSeconds: Math.max(
             aggregate.oldestWaitingAgeSeconds,
@@ -113,8 +109,6 @@ export class QueueMetricsService implements OnModuleDestroy {
           waiting: aggregate.waiting + snapshot.waiting,
         }),
         {
-          active: 0,
-          delayed: 0,
           failedEvents: 0,
           oldestWaitingAgeSeconds: 0,
           stalledEvents: 0,
@@ -168,7 +162,7 @@ export class QueueMetricsService implements OnModuleDestroy {
   ): Promise<QueueSnapshot> {
     const now = Date.now();
     const [counts, waitingJobs, events] = await Promise.all([
-      queue.getJobCounts(),
+      queue.getJobCounts('waiting'),
       queue.getWaiting(0, 0),
       redis.xrange(
         queue.toKey('events'),
@@ -179,8 +173,6 @@ export class QueueMetricsService implements OnModuleDestroy {
     const oldestWaitingTimestamp = waitingJobs[0]?.timestamp;
 
     return {
-      active: counts.active ?? 0,
-      delayed: counts.delayed ?? 0,
       failedEvents: this.countEvents(events, 'failed'),
       oldestWaitingAgeSeconds: oldestWaitingTimestamp
         ? Math.max(0, (now - oldestWaitingTimestamp) / 1000)
@@ -209,8 +201,6 @@ export class QueueMetricsService implements OnModuleDestroy {
     const metrics: MetricDatum[] = [
       { MetricName: 'Heartbeat', Unit: 'Count', Value: 1 },
       { MetricName: 'WaitingJobs', Unit: 'Count', Value: snapshot.waiting },
-      { MetricName: 'ActiveJobs', Unit: 'Count', Value: snapshot.active },
-      { MetricName: 'DelayedJobs', Unit: 'Count', Value: snapshot.delayed },
       {
         MetricName: 'OldestWaitingAgeSeconds',
         Unit: 'Seconds',
