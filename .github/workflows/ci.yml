@@ -1104,13 +1104,25 @@ jobs:
 
   # Auto-close open master-ci-failure trackers when a master push is green so a
   # recovered trunk cannot keep a stale P0 on the board.
+  #
+  # `!cancelled()` is load-bearing HERE TOO, and for a less obvious reason than
+  # on the failure arm: skip propagation is transitive. `tests-gate` runs under
+  # `always()` and reports `success`, but its own needs include lanes that are
+  # routinely skipped (extensions, the app/api full shards, changed coverage) —
+  # and a dependent whose `if:` carries no status function inherits the implicit
+  # `success()` over that graph, so this job was skipped on EVERY green master
+  # push from #2580 until 2026-08-09. #2625 stayed open through five green
+  # pushes because of it. Do not drop the status function to "simplify" this
+  # condition; `always()` is the wrong one (a cancelled run would close a
+  # tracker that nothing re-verified).
   master-failure-resolve:
     name: Resolve master CI failure
     runs-on: ubuntu-latest
     timeout-minutes: 5
     needs: [tests-gate]
     if: >-
-      github.event_name == 'push'
+      !cancelled()
+      && github.event_name == 'push'
       && needs.tests-gate.result == 'success'
     permissions:
       contents: read
