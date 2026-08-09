@@ -6,6 +6,7 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { SnapchatPublisherService } from '@api/services/integrations/publishers/snapchat-publisher.service';
 import { SnapchatService } from '@api/services/integrations/snapchat/services/snapchat.service';
@@ -39,6 +40,12 @@ describe('SnapchatPublisherService', () => {
     platform: CredentialPlatform.SNAPCHAT,
   };
 
+  const mockOrganization = {
+    id: orgId,
+    isDeleted: false,
+    name: 'Test Organization',
+  } as unknown as OrganizationDocument;
+
   const makeContext = (
     overrides: Partial<PublishContext> = {},
   ): PublishContext => ({
@@ -46,6 +53,7 @@ describe('SnapchatPublisherService', () => {
     brandId,
     credential: mockCredential as never,
     isDraft: false,
+    organization: mockOrganization,
     organizationId: orgId,
     post: {
       category: PostCategory.IMAGE,

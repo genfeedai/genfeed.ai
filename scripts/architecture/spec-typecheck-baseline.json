@@ -3827,14 +3827,6 @@
     {
       "code": 2322,
       "count": 1,
-      "file": "apps/server/api/src/services/integrations/publishers/ghost-publisher.service.spec.ts",
-      "fingerprint": "63266225a2d3c6996447",
-      "message": "Type '{ post: PostEntity; credential: CredentialDocument; organization?: { isDeleted: boolean; userId: string; label: string; ... 13 more ...; proactiveWelcomeDismissed: boolean; } | undefined; ... 4 more ...; settings: ChannelTargetSettings; }' is not assignable to type 'PublishContext'.   Types of property 'organization' are incompatible.     Type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; } | undefined' is not assignable to type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; }'.       Type 'undefined' is not assignable to type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
       "file": "apps/server/api/src/services/integrations/publishers/instagram-publisher.service.spec.ts",
       "fingerprint": "07c0de0f32191015bef6",
       "message": "Type 'null' is not assignable to type 'string'.",
@@ -3865,27 +3857,11 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/publishers/mastodon-publisher.service.spec.ts",
-      "fingerprint": "4625dbbef18f4e060d93",
-      "message": "Type '{ post: PostEntity; credential: CredentialDocument; organization?: { isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; ... 10 more ...; proactiveWelcomeDismissed: boolean; } | undefined; ... 4 more ...; settings: ChannelTargetSettings; }' is not assignable to type 'PublishContext'.   Types of property 'organization' are incompatible.     Type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; } | undefined' is not assignable to type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; }'.       Type 'undefined' is not assignable to type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2304,
       "count": 4,
       "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
       "fingerprint": "bf31dbe6daf86ef3886f",
       "message": "Cannot find name 'CredentialEntity'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/publishers/pinterest-publisher.service.spec.ts",
-      "fingerprint": "66dde887c073d4886c43",
-      "message": "Argument of type '{ label: undefined; ingredients: string[]; brandId: string; credentialId?: string | null; organizationId: string; userId: string; groupId?: string | null; children?: string[]; agentContextSource?: string; ... 61 more ...; updatedAt: Date; }' is not assignable to parameter of type 'PostEntity'.   Types of property 'label' are incompatible.     Type 'undefined' is not assignable to type 'string'.",
       "workspace": "api"
     },
     {
@@ -3918,22 +3894,6 @@
       "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
       "fingerprint": "40dfa5a29601a27f74a2",
       "message": "Argument of type 'PostEntity' is not assignable to parameter of type 'PostDocument'.   Type 'PostEntity' is missing the following properties from type 'PostDocument': source, entityModel, seoBreakdown, seoScore, and 19 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/publishers/reddit-publisher.service.spec.ts",
-      "fingerprint": "e53d29497e36ab7a45c6",
-      "message": "Argument of type '{ label: undefined; ingredients: string[]; brandId: string; credentialId?: string | null; organizationId: string; userId: string; groupId?: string | null; children?: string[]; agentContextSource?: string; ... 61 more ...; updatedAt: Date; }' is not assignable to parameter of type 'PostEntity'.   Types of property 'label' are incompatible.     Type 'undefined' is not assignable to type 'string'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/services/integrations/publishers/snapchat-publisher.service.spec.ts",
-      "fingerprint": "1149c03c189127116218",
-      "message": "Type '{ post: PostEntity; credential: CredentialDocument; organization?: { isDeleted: boolean; userId: string; label: string; ... 13 more ...; proactiveWelcomeDismissed: boolean; } | undefined; ... 4 more ...; settings: ChannelTargetSettings; }' is not assignable to type 'PublishContext'.   Types of property 'organization' are incompatible.     Type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; } | undefined' is not assignable to type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; }'.       Type 'undefined' is not assignable to type '{ isDeleted: boolean; userId: string; label: string; createdAt: Date; id: string; updatedAt: Date; category: OrganizationCategory; slug: string; isDefault: boolean; ... 7 more ...; proactiveWelcomeDismissed: boolean; }'.",
       "workspace": "api"
     },
     {
@@ -4174,14 +4134,6 @@
       "file": "apps/server/api/src/services/integrations/tiktok/controllers/tiktok.controller.spec.ts",
       "fingerprint": "798aa3905299550504e2",
       "message": "Conversion of type 'JsonApiSingleResponse<unknown>' to type '{ url: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Property 'url' is missing in type 'JsonApiSingleResponse<unknown>' but required in type '{ url: string; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/services/integrations/tiktok/services/tiktok.service.spec.ts",
-      "fingerprint": "3af3d632301b4dd3fe1a",
-      "message": "Argument of type '{ label: string; }' is not assignable to parameter of type 'PostEntity'.   Type '{ label: string; }' is missing the following properties from type 'PostEntity': ingredients, brandId, organizationId, userId, and 21 more.",
       "workspace": "api"
     },
     {

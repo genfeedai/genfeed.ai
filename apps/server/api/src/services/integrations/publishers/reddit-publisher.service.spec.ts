@@ -329,7 +329,13 @@ describe('RedditPublisherService', () => {
       });
 
       it('should handle post without label', async () => {
-        const postWithoutLabel = { ...mockTextPost, label: undefined };
+        const postWithoutLabel = {
+          ...mockTextPost,
+          // Simulates a legacy row persisted before `label` became a
+          // required PostEntity field; the service still falls back to
+          // "Untitled" for these at runtime.
+          label: undefined as unknown as string,
+        };
         const context = createPublishContext(postWithoutLabel);
 
         redditService.submitPost.mockResolvedValue('post-123');
