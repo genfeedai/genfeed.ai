@@ -250,7 +250,6 @@ describe('FFmpegPerformanceService', () => {
             codec_type: 'video',
             height: 1080,
             index: 0,
-            r_frame_rate: '30/1',
             width: 1920,
           },
         ],
@@ -392,9 +391,23 @@ describe('FFmpegPerformanceService', () => {
     it('should estimate processing time based on input', async () => {
       const inputPath = '/path/to/video.mp4';
       const probeData = {
-        format: { duration: '120', size: '10485760' },
-        streams: [{ codec_type: 'video', height: 1080, width: 1920 }],
-      };
+        format: {
+          bit_rate: '1000000',
+          duration: '120',
+          filename: inputPath,
+          size: '10485760',
+        },
+        streams: [
+          {
+            codec_long_name: 'H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10',
+            codec_name: 'h264',
+            codec_type: 'video',
+            height: 1080,
+            index: 0,
+            width: 1920,
+          },
+        ],
+      } satisfies FFprobeData;
 
       // Mock probe execution
       vi.spyOn(service, 'probe').mockResolvedValue(probeData);
