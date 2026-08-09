@@ -40,7 +40,7 @@ import {
   fromPrismaCredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
+  TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
@@ -789,7 +789,7 @@ export class AgentStrategyAutopilotExecutionService {
         // column, so the SCREAMING credential label cannot ride through.
         platform: fromPrismaCredentialPlatform(credential.platform),
         scheduledDate: new Date(),
-        status: PostStatus.PENDING,
+        targetExecutionState: TargetExecutionState.PUBLISHING,
         userId: userId,
         // Pre-existing shape: ingredients/label ride the service defaults.
       } as PostCreateInput);

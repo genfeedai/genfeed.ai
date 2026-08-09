@@ -1,5 +1,12 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostFormat,
+  PostFrequency,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
@@ -57,6 +64,18 @@ export class CreatePostDto {
   readonly description!: string;
 
   @ApiProperty({
+    default: PostFormat.STANDARD,
+    description:
+      'Editorial shape of the post. Thread segment bodies are linked Post records.',
+    enum: PostFormat,
+    enumName: 'PostFormat',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PostFormat)
+  readonly format?: PostFormat;
+
+  @ApiProperty({
     description:
       'Type of media being published (image or video) - automatically derived from ingredient if not provided',
     enum: PostCategory,
@@ -69,12 +88,38 @@ export class CreatePostDto {
 
   @ApiProperty({
     default: PostStatus.SCHEDULED,
-    description: 'The current status of the post',
+    deprecated: true,
+    description:
+      'Legacy combined status. Use targetExecutionState and visibility.',
     enum: PostStatus,
     enumName: 'PostStatus',
+    required: false,
   })
+  @IsOptional()
   @IsEnum(PostStatus)
-  readonly status!: PostStatus;
+  readonly status?: PostStatus;
+
+  @ApiProperty({
+    description:
+      'Canonical channel-target publish lifecycle. New clients should use this instead of status.',
+    enum: TargetExecutionState,
+    enumName: 'TargetExecutionState',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(TargetExecutionState)
+  readonly targetExecutionState?: TargetExecutionState;
+
+  @ApiProperty({
+    default: PostVisibility.PUBLIC,
+    description: 'Audience visibility, independent from publish lifecycle',
+    enum: PostVisibility,
+    enumName: 'PostVisibility',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PostVisibility)
+  readonly visibility?: PostVisibility;
 
   @ApiProperty({
     description: 'Optional tags/hashtags to include with the post',

@@ -6,7 +6,7 @@ import {
   PageScope,
   Platform,
   PostCategory,
-  PostStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { ICredential, IPost } from '@genfeedai/interfaces';
 import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
@@ -183,8 +183,12 @@ export function usePostDetailState({
   const hasChildren = sortedChildren.length > 0;
 
   const isPublished = useMemo(
-    () => !!(post?.publicationDate || post?.status === PostStatus.PUBLIC),
-    [post?.publicationDate, post?.status],
+    () =>
+      !!(
+        post?.publicationDate ||
+        post?.targetExecutionState === TargetExecutionState.PUBLISHED
+      ),
+    [post?.publicationDate, post?.targetExecutionState],
   );
 
   const isEditable = useMemo(
@@ -380,11 +384,18 @@ export function usePostDetailState({
     }
 
     const isPostPublished =
-      post.publicationDate || post.status === PostStatus.PUBLIC;
+      post.publicationDate ||
+      post.targetExecutionState === TargetExecutionState.PUBLISHED;
     if (isPostPublished && viewMode !== 'preview') {
       setViewMode('preview');
     }
-  }, [post?.id, post?.publicationDate, post?.status, viewMode, post]);
+  }, [
+    post?.id,
+    post?.publicationDate,
+    post?.targetExecutionState,
+    viewMode,
+    post,
+  ]);
 
   // Update active post handler
   const updateActivePost = useCallback(

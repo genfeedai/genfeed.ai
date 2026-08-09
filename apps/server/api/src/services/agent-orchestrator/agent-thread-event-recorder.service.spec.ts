@@ -107,6 +107,25 @@ describe('AgentThreadEventRecorderService', () => {
         mockAgentThreadEngineService.appendEventEffect,
       ).not.toHaveBeenCalled();
     });
+
+    it('uses an idempotency key for retries without changing run attribution', async () => {
+      await serviceWithEngine.recordAssistantFinalized({
+        content: 'done',
+        context,
+        idempotencyKey: 'brand-confirmation-1',
+        metadata: {},
+        threadId: 'thread-1',
+      });
+
+      expect(
+        mockAgentThreadEngineService.appendEventEffect,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          commandId: 'assistant-finalized:thread-1:brand-confirmation-1',
+          runId: undefined,
+        }),
+      );
+    });
   });
 
   describe('recordPlanUpserted', () => {
@@ -368,6 +387,24 @@ describe('AgentThreadEventRecorderService', () => {
       expect(
         mockAgentThreadEngineService.appendEventEffect,
       ).not.toHaveBeenCalled();
+    });
+
+    it('uses an idempotency key for retries without changing run attribution', async () => {
+      await serviceWithEngine.recordRunCompleted({
+        context,
+        detail: 'all good',
+        idempotencyKey: 'brand-confirmation-1',
+        threadId: 'thread-1',
+      });
+
+      expect(
+        mockAgentThreadEngineService.appendEventEffect,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          commandId: 'run-completed:thread-1:brand-confirmation-1',
+          runId: undefined,
+        }),
+      );
     });
   });
 

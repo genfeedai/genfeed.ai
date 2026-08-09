@@ -2,7 +2,12 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  type PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 
 /**
  * Ephemeral scheduler metadata added only after stored target settings have
@@ -16,12 +21,12 @@ export const WORKFLOW_APPROVED_SCHEDULE_SETTING =
  * Result of a publish operation
  */
 export interface PublishResult {
+  executionState: TargetExecutionState;
   success: boolean;
   externalId: string | null;
   externalShortcode?: string | null;
   platform: CredentialPlatform | string;
   url: string;
-  status: PostStatus;
   error?: string;
   /**
    * Stable machine code set by pre-publish validation failures (never by
@@ -30,6 +35,16 @@ export interface PublishResult {
    * `IChannelTargetError.code` instead of a message-pattern classification.
    */
   errorCode?: string;
+  /**
+   * Set when the provider accepted the content but parked it as a draft on
+   * its side (e.g. a Beehiiv draft execution mode) instead of making it live.
+   *
+   * This is a provider execution outcome, not a lifecycle or audience axis:
+   * the target still reaches `TargetExecutionState.PUBLISHED` because the
+   * provider record exists, but nothing is announced — no publish webhook, no
+   * published activity, no repeat scheduling, and no publish timestamps.
+   */
+  isProviderDraft?: boolean;
 }
 
 /**
@@ -59,6 +74,8 @@ export interface PublishContext {
    * JSON so a stale or unknown key can never reach a provider API.
    */
   settings: ChannelTargetSettings;
+  /** Canonical audience axis resolved before provider execution. */
+  visibility?: PostVisibility;
 }
 
 /**

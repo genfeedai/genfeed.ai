@@ -1,6 +1,7 @@
 import { PostGroupsQueryDto } from '@api/collections/post-groups/dto/post-groups-query.dto';
 import {
   CredentialPlatform,
+  PostCategory,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
@@ -12,6 +13,22 @@ const CREDENTIAL_ID = '7f1c9ad2-6a5b-4c3d-8e2f-0b1a2c3d4e5f';
 const OTHER_CREDENTIAL_ID = '2b8e4f61-9c07-4a11-93d5-6e7f8a9b0c1d';
 
 describe('PostGroupsQueryDto', () => {
+  it('accepts paginated Publish list filters without a calendar window', async () => {
+    const query = plainToInstance(PostGroupsQueryDto, {
+      contentType: PostCategory.POST,
+      limit: '24',
+      page: '2',
+      publicationState: 'posted',
+      search: 'launch',
+      sort: 'createdAt: -1',
+    });
+
+    await expect(validate(query)).resolves.toEqual([]);
+    expect(query.contentType).toEqual([PostCategory.POST]);
+    expect(query.limit).toBe(24);
+    expect(query.page).toBe(2);
+  });
+
   it('accepts a bounded ISO window and normalizes one status to an array', async () => {
     const query = plainToInstance(PostGroupsQueryDto, {
       endDate: '2026-07-27T00:00:00.000Z',
@@ -63,6 +80,18 @@ describe('PostGroupsQueryDto', () => {
   });
 
   it.each([
+    {
+      name: 'an unsupported list sort',
+      value: {
+        sort: 'status: -1',
+      },
+    },
+    {
+      name: 'an unknown content type',
+      value: {
+        contentType: 'newsletter',
+      },
+    },
     {
       name: 'a malformed start date',
       value: {

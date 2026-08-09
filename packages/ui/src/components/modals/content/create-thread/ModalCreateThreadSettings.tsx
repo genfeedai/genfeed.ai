@@ -1,6 +1,6 @@
 'use client';
 
-import { getPostStatusOptions } from '@genfeedai/helpers/content/posts.helper';
+import { getPostLifecycleOptions } from '@genfeedai/helpers/content/posts.helper';
 import type { ModalCreateThreadSettingsProps } from '@genfeedai/props/modals/modal.props';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
@@ -46,7 +46,7 @@ export default function ModalCreateThreadSettings({
 
       <div className="grid grid-cols-2 gap-4">
         <FormControl
-          label="Scheduled Date"
+          label="Scheduled Date (Optional)"
           error={form.formState.errors.scheduledDate?.message}
         >
           <FormDateTimePicker
@@ -59,11 +59,11 @@ export default function ModalCreateThreadSettings({
         </FormControl>
 
         <FormControl
-          label="Status"
-          error={form.formState.errors.status?.message}
+          label="Lifecycle"
+          error={form.formState.errors.targetExecutionState?.message}
         >
-          <SelectField name="status" control={form.control}>
-            {getPostStatusOptions().map((option) => (
+          <SelectField name="targetExecutionState" control={form.control}>
+            {getPostLifecycleOptions().map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

@@ -1,6 +1,10 @@
 'use client';
 
-import { PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { FastlaneScheduleTarget } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { PostsService } from '@services/content/posts.service';
@@ -64,12 +68,13 @@ export function useFastlaneSchedule(): UseFastlaneScheduleReturn {
               label: asset.idea.hook.slice(0, 100),
               description: editedCaption,
               category,
-              status: PostStatus.SCHEDULED,
+              targetExecutionState: TargetExecutionState.SCHEDULED,
               scheduledDate: target.scheduledDate ?? nowIso,
               timezone,
               groupId,
               source: 'fastlane',
               isShareToFeedSelected: true,
+              visibility: PostVisibility.PUBLIC,
             };
 
             return { asset, target, payload };

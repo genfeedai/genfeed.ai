@@ -1,7 +1,7 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { YoutubeUploadCompletionService } from '@api/services/integrations/youtube/services/modules/youtube-upload-completion.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
-import { PostStatus } from '@genfeedai/enums';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -87,7 +87,8 @@ describe('YoutubeUploadCompletionService', () => {
         'post-123',
         expect.objectContaining({
           externalId: 'yt-vid-1',
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+          visibility: PostVisibility.PUBLIC,
         }),
       );
     });
@@ -124,7 +125,8 @@ describe('YoutubeUploadCompletionService', () => {
         'post-456',
         expect.objectContaining({
           externalId: 'yt-vid-2',
-          status: PostStatus.PRIVATE,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+          visibility: PostVisibility.PRIVATE,
         }),
       );
     });
@@ -151,7 +153,8 @@ describe('YoutubeUploadCompletionService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         'post-789',
         expect.objectContaining({
-          status: PostStatus.UNLISTED,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+          visibility: PostVisibility.UNLISTED,
         }),
       );
     });
@@ -203,7 +206,7 @@ describe('YoutubeUploadCompletionService', () => {
         'post-fail',
         expect.objectContaining({
           error: 'Upload quota exceeded',
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -238,7 +241,7 @@ describe('YoutubeUploadCompletionService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         'post-sched',
         expect.objectContaining({
-          status: PostStatus.SCHEDULED,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
       );
     });

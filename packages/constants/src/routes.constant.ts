@@ -179,10 +179,10 @@ export const APP_ROUTES = {
     SOCIALS: '/discover/socials',
   },
   /**
-   * Dedicated artifact editor pages. Refinement belongs to the artifact, not to
-   * a module — every text artifact gets a focused, deep-linkable editor at
-   * `/edit/{type}/{id}`. Distinct from EDITOR, which is the Remotion project
-   * canvas.
+   * Legacy long-form editor aliases retained for existing deep links. New
+   * operator navigation uses the type-aware `/publish/posts/{id}` route built
+   * by `createArtifactEditorRoute`. Distinct from STUDIO.EDIT, which is the
+   * Remotion project canvas.
    */
   EDIT: {
     ARTICLE: '/edit/article',
@@ -232,6 +232,8 @@ export const APP_ROUTES = {
     CALENDAR: '/publish/calendar',
     /** Posts whose latest publication attempt failed. */
     FAILED: '/publish/failed',
+    /** Posts queued to enter the publishing pipeline. */
+    PENDING: '/publish/pending',
     /**
      * @deprecated Canonical path is APP_ROUTES.AUTOMATE.CAMPAIGNS.
      * Legacy `/publish/campaigns` permanently redirects there.
@@ -259,6 +261,8 @@ export const APP_ROUTES = {
      *   can share this path once kind resolution is wired)
      */
     POSTS: '/publish/posts',
+    /** Posts currently being sent to destination platforms. */
+    PROCESSING: '/publish/processing',
     PUBLISHED: '/publish/published',
     /**
      * Remix is a contextual **action** (Discover/Library button), not a module
@@ -376,11 +380,10 @@ export const LEGACY_APP_ROUTES = {
   TASKS: '/tasks',
 } as const;
 
-/** Artifact type → dedicated editor route root. */
+/** Artifact type → canonical Publish editor route root. */
 export const ARTIFACT_EDITOR_ROUTES = {
-  article: APP_ROUTES.EDIT.ARTICLE,
-  newsletter: APP_ROUTES.EDIT.NEWSLETTER,
-  /** Social posts edit under Publish: `/publish/posts/:id`. */
+  article: APP_ROUTES.PUBLISH.POSTS,
+  newsletter: APP_ROUTES.PUBLISH.POSTS,
   post: APP_ROUTES.PUBLISH.POSTS,
 } as const;
 
@@ -391,6 +394,9 @@ export type ArtifactEditorType = keyof typeof ARTIFACT_EDITOR_ROUTES;
  * back-navigation returns to that list instead of a hardcoded default.
  */
 export const ARTIFACT_EDITOR_RETURN_PARAM = 'returnTo';
+
+/** Query parameter identifying the editor surface hosted by Publish. */
+export const ARTIFACT_EDITOR_KIND_PARAM = 'kind';
 
 type NestedRouteValue<T> = T extends string
   ? T
@@ -433,7 +439,11 @@ export function createArtifactEditorRoute(
   artifactType: ArtifactEditorType,
   artifactId: string,
 ): string {
-  return `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
+  const editorRoute = `${ARTIFACT_EDITOR_ROUTES[artifactType]}/${artifactId}`;
+
+  return artifactType === 'post'
+    ? editorRoute
+    : `${editorRoute}?${ARTIFACT_EDITOR_KIND_PARAM}=${artifactType}`;
 }
 
 /** Append the originating list to an artifact editor href. */

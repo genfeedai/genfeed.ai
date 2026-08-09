@@ -1,6 +1,11 @@
 'use client';
 
-import { PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostFormat,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import type { PostEditorFormState } from '@props/content/artifact-editor.props';
@@ -21,19 +26,34 @@ export interface UsePostEditorReturn {
 
 const DEFAULT_POST_EDITOR_VALUES: PostEditorFormState = {
   description: '',
+  format: PostFormat.STANDARD,
   label: '',
   scheduledDate: '',
-  status: PostStatus.SCHEDULED,
+  targetExecutionState: TargetExecutionState.SCHEDULED,
+  threadSegments: [],
+  visibility: PostVisibility.PUBLIC,
 };
 
 function createFormState(post: Post): PostEditorFormState {
   return {
     description: post.description || '',
+    format:
+      post.children?.length && post.format !== PostFormat.THREAD
+        ? PostFormat.THREAD
+        : post.format || PostFormat.STANDARD,
     label: post.label || '',
     scheduledDate: post.scheduledDate
       ? new Date(post.scheduledDate).toISOString()
       : '',
-    status: (post.status as PostStatus) || PostStatus.SCHEDULED,
+    targetExecutionState:
+      post.targetExecutionState ?? TargetExecutionState.SCHEDULED,
+    threadSegments: [...(post.children || [])]
+      .sort((left, right) => (left.order || 0) - (right.order || 0))
+      .map((child) => ({
+        description: child.description || '',
+        id: child.id,
+      })),
+    visibility: post.visibility ?? PostVisibility.PUBLIC,
   };
 }
 
@@ -94,19 +114,129 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
   }, [getPostsService, notificationsService, postId, reset]);
 
   const handleSave = useCallback(async () => {
+    form.clearErrors(['description', 'scheduledDate', 'threadSegments']);
+    const draft = form.getValues();
+    const threadCredentialId = post?.credential?.id;
+    const rootLimit =
+      post?.platform === CredentialPlatform.TWITTER
+        ? draft.format === PostFormat.LONG_FORM
+          ? 25_000
+          : 280
+        : Number.POSITIVE_INFINITY;
+
+    if (!draft.description.trim()) {
+      form.setError('description', {
+        message: 'Post content is required',
+        type: 'validate',
+      });
+      return;
+    }
+
+    if (draft.description.length > rootLimit) {
+      form.setError('description', {
+        message: `Post content must be ${rootLimit.toLocaleString()} characters or fewer`,
+        type: 'validate',
+      });
+      return;
+    }
+
+    if (
+      draft.targetExecutionState === TargetExecutionState.SCHEDULED &&
+      !draft.scheduledDate
+    ) {
+      form.setError('scheduledDate', {
+        message: 'Choose a scheduled date before scheduling this post',
+        type: 'validate',
+      });
+      return;
+    }
+
+    if (draft.format === PostFormat.THREAD) {
+      if (!threadCredentialId) {
+        notificationsService.error(
+          'Connect an X account before saving thread replies',
+        );
+        return;
+      }
+
+      if (draft.threadSegments.length === 0) {
+        form.setError('threadSegments', {
+          message: 'Add at least one reply to create a thread',
+          type: 'validate',
+        });
+        return;
+      }
+
+      const invalidSegmentIndex = draft.threadSegments.findIndex(
+        (segment) =>
+          !segment.description.trim() || segment.description.length > 280,
+      );
+      if (invalidSegmentIndex >= 0) {
+        form.setError(`threadSegments.${invalidSegmentIndex}.description`, {
+          message: 'Thread replies must contain 1–280 characters',
+          type: 'validate',
+        });
+        return;
+      }
+    }
+
     await form.handleSubmit(async (values: PostEditorFormState) => {
       setIsSaving(true);
 
       try {
         const service = await getPostsService();
-        const updated = await service.patch(postId, {
+        await service.patch(postId, {
           description: values.description.trim(),
+          format: values.format,
           label: values.label.trim(),
           ...(values.scheduledDate
             ? { scheduledDate: values.scheduledDate }
             : {}),
-          status: values.status,
+          targetExecutionState: values.targetExecutionState,
+          visibility: values.visibility,
         });
+
+        if (values.format === PostFormat.THREAD && post) {
+          if (!threadCredentialId) {
+            throw new Error('X credential is required to save thread replies');
+          }
+
+          const originalChildren = post.children || [];
+          const submittedIds = new Set(
+            values.threadSegments.flatMap((segment) =>
+              segment.id ? [segment.id] : [],
+            ),
+          );
+
+          for (const child of originalChildren) {
+            if (!submittedIds.has(child.id)) {
+              await service.delete(child.id);
+            }
+          }
+
+          for (const [index, segment] of values.threadSegments.entries()) {
+            if (segment.id) {
+              await service.patch(segment.id, {
+                description: segment.description.trim(),
+                format: PostFormat.THREAD,
+              });
+              continue;
+            }
+
+            await service.post(`${postId}/replies`, {
+              credentialId: threadCredentialId,
+              description: segment.description.trim(),
+              format: PostFormat.THREAD,
+              ingredients: [],
+              label: `Thread ${index + 2}/${values.threadSegments.length + 1}`,
+              scheduledDate: values.scheduledDate || undefined,
+              targetExecutionState: values.targetExecutionState,
+              visibility: values.visibility,
+            });
+          }
+        }
+
+        const updated = await service.findOne(postId);
 
         setPost(updated);
         reset(createFormState(updated));
@@ -118,7 +248,7 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
         setIsSaving(false);
       }
     })();
-  }, [form, getPostsService, notificationsService, postId, reset]);
+  }, [form, getPostsService, notificationsService, post, postId, reset]);
 
   return {
     form,

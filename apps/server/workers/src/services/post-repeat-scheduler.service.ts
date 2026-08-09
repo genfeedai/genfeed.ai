@@ -4,10 +4,11 @@ import {
   SYSTEM_WORKFLOW_ACTION_IDS,
   SystemWorkflowProvenanceService,
 } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { resolvePostVisibility } from '@api-types/contracts/scheduler.contract';
 import {
   PostCategory,
   type PostFrequency,
-  PostStatus,
+  TargetExecutionState,
   WorkflowExecutionTrigger,
 } from '@genfeedai/enums';
 import { PublishApprovalsService } from '@genfeedai/server';
@@ -110,10 +111,11 @@ export class PostRepeatSchedulerService {
         repeatFrequency: post.repeatFrequency as PostFrequency,
         repeatInterval: post.repeatInterval,
         scheduledDate: nextDate,
-        status: PostStatus.SCHEDULED,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
         tags: post.tags,
         ...(timezone ? { timezone } : {}),
         userId: actorUserId,
+        visibility: resolvePostVisibility(post.visibility, post.status),
       };
 
       const newPost = await this.postsService.create(postData);
@@ -233,8 +235,12 @@ export class PostRepeatSchedulerService {
           parentId: newParentId,
           platform: originalParent.platform as never,
           scheduledDate: newScheduledDate,
-          status: PostStatus.SCHEDULED,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
           userId: originalParent.userId,
+          visibility: resolvePostVisibility(
+            originalParent.visibility,
+            originalParent.status,
+          ),
         });
       } catch (error: unknown) {
         this.logger.error(`${url} failed to clone child for repeat`, {

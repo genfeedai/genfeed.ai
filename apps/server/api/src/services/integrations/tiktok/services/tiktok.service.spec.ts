@@ -1,6 +1,13 @@
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
+import {
+  PostCategory,
+  PostFormat,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -13,6 +20,44 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
     encrypt: vi.fn((val: string) => val),
   },
 }));
+
+const mockPostTimestamp = new Date('2026-01-01T00:00:00.000Z');
+
+/** Builds a complete, valid PostEntity fixture — `uploadVideo` only reads
+ * `label` and `description`, but the parameter type is the full entity. */
+function buildMockPost(overrides: Partial<PostEntity> = {}): PostEntity {
+  return {
+    brandId: 'brand-id',
+    category: PostCategory.VIDEO,
+    createdAt: mockPostTimestamp,
+    description: 'Test video description',
+    externalId: '',
+    format: PostFormat.STANDARD,
+    id: 'post-id',
+    ingredients: ['ingredient-id'],
+    isAnalyticsEnabled: false,
+    isDeleted: false,
+    isRepeat: false,
+    isShareToFeedSelected: false,
+    label: 'Test video',
+    maxRepeats: 0,
+    nextScheduledDate: mockPostTimestamp,
+    organizationId: 'org-id',
+    publicationDate: mockPostTimestamp,
+    repeatCount: 0,
+    repeatDaysOfWeek: [],
+    repeatEndDate: mockPostTimestamp,
+    repeatFrequency: 'never',
+    repeatInterval: 0,
+    scheduledDate: mockPostTimestamp,
+    status: PostStatus.DRAFT,
+    targetExecutionState: TargetExecutionState.DRAFT,
+    timezone: 'UTC',
+    updatedAt: mockPostTimestamp,
+    userId: 'user-id',
+    ...overrides,
+  };
+}
 
 describe('TiktokService', () => {
   let service: TiktokService;
@@ -74,7 +119,7 @@ describe('TiktokService', () => {
 
   describe('uploadVideo', () => {
     it('sends request and returns data', async () => {
-      const mockPost = { label: 'Test video' };
+      const mockPost = buildMockPost({ label: 'Test video' });
 
       // Mock credential selection to avoid token refresh during publish flow.
       vi.spyOn(service, 'getValidCredential').mockResolvedValue({
@@ -119,7 +164,7 @@ describe('TiktokService', () => {
     });
 
     it('throws on non-200 response', async () => {
-      const mockPost = { label: 'Test video' };
+      const mockPost = buildMockPost({ label: 'Test video' });
 
       // Mock credential selection to avoid token refresh during publish flow.
       vi.spyOn(service, 'getValidCredential').mockResolvedValue({

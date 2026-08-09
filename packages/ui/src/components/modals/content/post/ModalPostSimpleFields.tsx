@@ -1,7 +1,10 @@
 'use client';
 
 import { AlertCategory, Platform } from '@genfeedai/enums';
-import { getPostStatusOptions } from '@genfeedai/helpers/content/posts.helper';
+import {
+  getPostLifecycleOptions,
+  getPostVisibilityOptions,
+} from '@genfeedai/helpers/content/posts.helper';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -101,7 +104,7 @@ export default function ModalPostSimpleFields({
         />
       </FormControl>
 
-      {hasIngredients && (
+      {(hasIngredients || selectedPlatform === Platform.TWITTER) && (
         <>
           <FormControl
             label="Scheduled Date (Optional)"
@@ -118,17 +121,32 @@ export default function ModalPostSimpleFields({
           </FormControl>
 
           <FormControl
-            label="Status"
-            error={form.formState.errors.status?.message}
+            label="Lifecycle"
+            error={form.formState.errors.targetExecutionState?.message}
           >
-            <SelectField name="status" control={form.control}>
-              {getPostStatusOptions().map((option) => (
+            <SelectField name="targetExecutionState" control={form.control}>
+              {getPostLifecycleOptions().map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
               ))}
             </SelectField>
           </FormControl>
+
+          {selectedPlatform === Platform.YOUTUBE && (
+            <FormControl
+              label="Visibility"
+              error={form.formState.errors.visibility?.message}
+            >
+              <SelectField name="visibility" control={form.control}>
+                {getPostVisibilityOptions().map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </SelectField>
+            </FormControl>
+          )}
         </>
       )}
     </div>

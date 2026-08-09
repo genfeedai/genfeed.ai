@@ -10,7 +10,11 @@ const POSTHOG_HOST =
  * Next.js loads this module once in the browser. Community and self-hosted
  * builds without a project token never download the analytics SDK.
  */
-if (POSTHOG_KEY && typeof window !== 'undefined') {
+if (
+  POSTHOG_KEY &&
+  /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY) &&
+  typeof window !== 'undefined'
+) {
   void import('posthog-js')
     .then(({ default: posthog }) => {
       posthog.init(POSTHOG_KEY, buildDocsPosthogOptions(POSTHOG_HOST));

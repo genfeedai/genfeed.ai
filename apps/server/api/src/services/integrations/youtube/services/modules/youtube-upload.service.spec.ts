@@ -4,7 +4,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { YoutubeAuthService } from '@api/services/integrations/youtube/services/modules/youtube-auth.service';
 import { YoutubeUploadService } from '@api/services/integrations/youtube/services/modules/youtube-upload.service';
 import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-resolution.service';
-import { PostStatus } from '@genfeedai/enums';
+import { PostStatus, PostVisibility } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -210,14 +210,14 @@ describe('YoutubeUploadService', () => {
     });
   });
 
-  it('should default to PRIVATE for unknown status', async () => {
+  it('should default unknown legacy visibility to PUBLIC', async () => {
     const post = createPost({ status: 'some-unknown-status' });
 
     await service.uploadVideo(orgId, brandId, videoId, post);
 
     const insertCall = mockVideosInsert.mock.calls[0][0];
     expect(insertCall.requestBody.status).toEqual({
-      privacyStatus: PostStatus.PRIVATE,
+      privacyStatus: PostVisibility.PUBLIC,
     });
   });
 
@@ -282,11 +282,14 @@ describe('YoutubeUploadService', () => {
         unknown
       >;
 
-    it('prefers the requested privacy over the one derived from post status', async () => {
-      const post = createPost({ status: PostStatus.PUBLIC });
+    it('prefers canonical visibility over legacy status and provider settings', async () => {
+      const post = createPost({
+        status: PostStatus.PUBLIC,
+        visibility: PostVisibility.UNLISTED,
+      });
 
       await service.uploadVideo(orgId, brandId, videoId, post, {
-        privacyStatus: 'unlisted',
+        privacyStatus: 'private',
       });
 
       expect(statusOf()).toEqual({ privacyStatus: 'unlisted' });
@@ -299,11 +302,10 @@ describe('YoutubeUploadService', () => {
       const post = createPost({
         scheduledDate: futureDate,
         status: PostStatus.SCHEDULED,
+        visibility: PostVisibility.PRIVATE,
       });
 
-      await service.uploadVideo(orgId, brandId, videoId, post, {
-        privacyStatus: 'private',
-      });
+      await service.uploadVideo(orgId, brandId, videoId, post);
 
       expect(statusOf()).toEqual({ privacyStatus: 'private' });
     });
@@ -313,11 +315,10 @@ describe('YoutubeUploadService', () => {
       const post = createPost({
         scheduledDate: futureDate,
         status: PostStatus.SCHEDULED,
+        visibility: PostVisibility.PUBLIC,
       });
 
-      await service.uploadVideo(orgId, brandId, videoId, post, {
-        privacyStatus: 'public',
-      });
+      await service.uploadVideo(orgId, brandId, videoId, post);
 
       expect(statusOf()).toEqual({
         privacyStatus: PostStatus.PRIVATE,

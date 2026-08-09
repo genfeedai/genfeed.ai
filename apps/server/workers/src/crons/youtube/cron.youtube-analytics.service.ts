@@ -2,7 +2,8 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueueService } from '@api/queues/core/queue.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@api-types/contracts';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import {
   ANALYTICS_YOUTUBE_QUEUE,
   YouTubeAnalyticsJobData,
@@ -42,9 +43,7 @@ export class CronYoutubeAnalyticsService {
             externalId: { not: null },
             isDeleted: false,
             platform: CredentialPlatform.YOUTUBE,
-            status: {
-              in: [PostStatus.PUBLIC],
-            },
+            ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
           },
         },
         { customLabels, pagination: false },

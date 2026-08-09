@@ -7,6 +7,7 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import {
   CredentialPlatform,
   PostStatus,
+  PostVisibility,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetAnalyticsCapability,
@@ -123,6 +124,19 @@ describe('PostGroupContractService', () => {
         ],
       }),
     );
+  });
+
+  it('projects release status from targets instead of the persisted group value', () => {
+    const release = service.toReleaseGroup(
+      makeGroup({ status: ReleaseStatus.PUBLISHED }),
+      [
+        makeTarget({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
+      ],
+    );
+
+    expect(release.status).toBe(ReleaseStatus.FAILED);
   });
 
   it('maps only an exact target analytics snapshot into the release contract', () => {
@@ -404,6 +418,7 @@ function makeTarget(
     timezone: 'UTC',
     updatedAt: new Date('2026-07-19T10:00:00.000Z'),
     url: null,
+    visibility: PostVisibility.PUBLIC,
     workflowExecutionId: null,
     ...overrides,
   };

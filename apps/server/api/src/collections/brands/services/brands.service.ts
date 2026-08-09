@@ -349,6 +349,53 @@ export class BrandsService extends BaseService<
     return brand;
   }
 
+  async updateIdentityForOrganization(
+    brandId: string,
+    organizationId: string,
+    identity: { description: string; label: string; slug: string },
+  ): Promise<BrandDocument> {
+    const result = await this.delegate.updateMany({
+      data: identity,
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    if (result.count !== 1) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    const updated = await this.delegate.findFirst({
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    if (!updated) {
+      throw new NotFoundException('Brand', brandId);
+    }
+
+    await this.cacheInvalidationService.invalidate(
+      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
+    );
+    await this.accessBootstrapCacheService.invalidateForOrganization(
+      organizationId,
+    );
+    await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+
+    return updated as BrandDocument;
+  }
+
+  async findCreateByIdentityConfirmationSource(
+    organizationId: string,
+    userId: string,
+    sourceActionId: string,
+  ): Promise<BrandDocument | null> {
+    return this.delegate.findFirst({
+      where: scopedWhere(organizationId, {
+        agentConfig: {
+          equals: sourceActionId,
+          path: ['brandIdentityConfirmation', 'createSourceActionId'],
+        },
+        userId,
+      }),
+    }) as Promise<BrandDocument | null>;
+  }
+
   findOneBySlug(
     params: Record<string, unknown>,
   ): Promise<BrandDocument | null> {

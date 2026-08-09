@@ -154,7 +154,7 @@ describe('CronPostsService', () => {
       markQueued: vi.fn().mockResolvedValue(undefined),
     };
     schedulerPublishStateService = {
-      transitionPost: vi.fn().mockResolvedValue(false),
+      transitionPost: vi.fn().mockResolvedValue(true),
     };
     postRepeatSchedulerService = {
       materializeRecurrence: vi.fn().mockResolvedValue(undefined),
@@ -459,7 +459,10 @@ describe('CronPostsService', () => {
     expect(
       agentArtifactReferenceService.assertVersionPinCurrent.mock
         .invocationCallOrder[0],
-    ).toBeLessThan(postsService.patch.mock.invocationCallOrder[0] ?? 0);
+    ).toBeLessThan(
+      schedulerPublishStateService.transitionPost.mock.invocationCallOrder[0] ??
+        0,
+    );
   });
 
   it('fails closed on a stale version pin before PROCESSING or provider side effects', async () => {
@@ -500,7 +503,9 @@ describe('CronPostsService', () => {
     );
     expect(postsService.patch).not.toHaveBeenCalledWith(
       'post-1',
-      expect.objectContaining({ status: PostStatus.PROCESSING }),
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.PUBLISHING,
+      }),
     );
     expect(credentialsService.findOne).not.toHaveBeenCalled();
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
@@ -675,23 +680,24 @@ describe('CronPostsService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         error: 'Agent context is stale.',
-        status: PostStatus.FAILED,
+        executionState: TargetExecutionState.FAILED,
         success: false,
       }),
     );
     expect(publisherFactory.getPublisher).not.toHaveBeenCalled();
-    expect(postsService.patch).toHaveBeenCalledWith(
-      'post-1',
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenCalledWith(
+      post,
       expect.objectContaining({
         lastAttemptAt: expect.any(Date),
-        status: PostStatus.FAILED,
-        targetExecutionState: 'failed',
-        targetError: expect.objectContaining({
+        executionState: TargetExecutionState.FAILED,
+        error: expect.objectContaining({
           code: 'publish_validation_failed',
           isRetryable: false,
           message: 'Agent context is stale.',
         }),
       }),
+      'Agent context is stale.',
+      undefined,
     );
     expect(
       publishEventWebhookService.emitLegacyPostFailed,
@@ -732,9 +738,9 @@ describe('CronPostsService', () => {
       dailyLimit: 10,
     });
     const publish = vi.fn().mockResolvedValue({
+      executionState: TargetExecutionState.PUBLISHED,
       externalId: 'beehiiv-post-1',
       platform: CredentialPlatform.BEEHIIV,
-      status: PostStatus.PUBLIC,
       success: true,
       url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
     });
@@ -779,6 +785,75 @@ describe('CronPostsService', () => {
     });
   });
 
+  it('carries the provider shortcode into the publish webhook', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brand: 'brand-1',
+      children: [],
+      credential: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organization: 'org-1',
+      platform: CredentialPlatform.TWITTER,
+      reviewVersionPinId: 'pin-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      user: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.TWITTER,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi.fn().mockResolvedValue({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'tweet-1',
+        externalShortcode: 'tweet-short',
+        platform: CredentialPlatform.TWITTER,
+        success: true,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        externalProviderId: 'tweet-1',
+        externalShortcode: 'tweet-short',
+        platform: CredentialPlatform.TWITTER,
+        post,
+        url: 'https://x.com/example/status/tweet-1',
+      }),
+    );
+    expect(publishApprovalsService.completeExecution).toHaveBeenCalledWith({
+      approvalId: 'approval-1',
+      executionStartedAt: '2026-07-07T09:56:00.000Z',
+      isSuccessful: true,
+      operationId: 'operation-1',
+      organizationId: 'org-1',
+      versionPinId: 'pin-1',
+    });
+  });
+
   it('omits the legacy eligibility timestamp for publish-now provider execution', async () => {
     schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {
@@ -809,9 +884,10 @@ describe('CronPostsService', () => {
       dailyLimit: 10,
     });
     const publish = vi.fn().mockResolvedValue({
+      executionState: TargetExecutionState.PUBLISHED,
       externalId: 'beehiiv-post-1',
+      isProviderDraft: true,
       platform: CredentialPlatform.BEEHIIV,
-      status: PostStatus.DRAFT,
       success: true,
       url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
     });
@@ -841,11 +917,16 @@ describe('CronPostsService', () => {
       expect.objectContaining({
         executionState: TargetExecutionState.PUBLISHED,
         externalId: 'beehiiv-post-1',
-        status: PostStatus.DRAFT,
       }),
       undefined,
       expect.any(Object),
     );
+    // A provider draft is lifecycle-published but never publicly live, so the
+    // publish instants stay unset instead of being carried on a status field.
+    const draftUpdate =
+      schedulerPublishStateService.transitionPost.mock.calls[1]?.[1];
+    expect(draftUpdate).not.toHaveProperty('publishedAt');
+    expect(draftUpdate).not.toHaveProperty('publicationDate');
     expect(
       publishEventWebhookService.emitLegacyPostPublished,
     ).not.toHaveBeenCalled();
@@ -886,7 +967,7 @@ describe('CronPostsService', () => {
       publish: vi.fn().mockResolvedValue({
         externalId: 'tweet-1',
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
         success: true,
         url: 'https://x.com/example/status/tweet-1',
       }),
@@ -932,7 +1013,10 @@ describe('CronPostsService', () => {
     });
 
     expect(result).toEqual(
-      expect.objectContaining({ success: true, status: PostStatus.PUBLIC }),
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        success: true,
+      }),
     );
     expect(
       postRepeatSchedulerService.materializeRecurrence,
@@ -973,7 +1057,7 @@ describe('CronPostsService', () => {
       publish: vi.fn().mockResolvedValue({
         externalId: null,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
         success: true,
         url: '',
       }),
@@ -994,7 +1078,6 @@ describe('CronPostsService', () => {
       expect.objectContaining({
         executionState: TargetExecutionState.PUBLISHED,
         externalId: null,
-        status: PostStatus.PUBLIC,
         workflowExecutionId: 'execution-1',
       }),
       undefined,
@@ -1044,7 +1127,7 @@ describe('CronPostsService', () => {
         error: '429 rate limit',
         externalId: null,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.FAILED,
+        executionState: TargetExecutionState.FAILED,
         success: false,
         url: '',
       }),
@@ -1060,7 +1143,10 @@ describe('CronPostsService', () => {
     });
 
     expect(result).toEqual(
-      expect.objectContaining({ status: PostStatus.SCHEDULED, success: false }),
+      expect.objectContaining({
+        executionState: TargetExecutionState.SCHEDULED,
+        success: false,
+      }),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,
@@ -1072,7 +1158,6 @@ describe('CronPostsService', () => {
         }),
         executionState: TargetExecutionState.SCHEDULED,
         retryCount: 1,
-        status: PostStatus.SCHEDULED,
         workflowExecutionId: 'execution-1',
       }),
       '429 rate limit',
@@ -1122,9 +1207,9 @@ describe('CronPostsService', () => {
       publish: vi.fn().mockResolvedValue({
         error: validationError,
         errorCode: 'caption_too_long',
+        executionState: TargetExecutionState.FAILED,
         externalId: null,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.FAILED,
         success: false,
         url: '',
       }),
@@ -1140,7 +1225,10 @@ describe('CronPostsService', () => {
     });
 
     expect(result).toEqual(
-      expect.objectContaining({ status: PostStatus.FAILED, success: false }),
+      expect.objectContaining({
+        executionState: TargetExecutionState.FAILED,
+        success: false,
+      }),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,
@@ -1151,7 +1239,6 @@ describe('CronPostsService', () => {
           isRetryable: false,
         }),
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
         workflowExecutionId: 'execution-1',
       }),
       validationError,
@@ -1222,7 +1309,6 @@ describe('CronPostsService', () => {
           isRetryable: false,
         }),
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
       }),
       'Beehiiv rejected the connected credential.',
       expect.any(Object),
@@ -1281,7 +1367,7 @@ describe('CronPostsService', () => {
         error: 'Provider validation failed',
         externalId: null,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.FAILED,
+        executionState: TargetExecutionState.FAILED,
         success: false,
         url: '',
       }),
@@ -1358,8 +1444,8 @@ describe('CronPostsService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         error: 'The provider account has no usable access credential.',
+        executionState: TargetExecutionState.FAILED,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.FAILED,
         success: false,
       }),
     );
@@ -1373,7 +1459,6 @@ describe('CronPostsService', () => {
           message: 'The provider account has no usable access credential.',
         }),
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
       }),
       'The provider account has no usable access credential.',
       // Hard failures carry no transition guard.
@@ -1424,7 +1509,7 @@ describe('CronPostsService', () => {
       publish: vi.fn().mockResolvedValue({
         externalId: 'tweet-1',
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
         success: true,
         url: 'https://x.com/example/status/tweet-1',
       }),
@@ -1542,7 +1627,7 @@ describe('CronPostsService', () => {
         externalId: 'ghost-post-1',
         externalShortcode: null,
         platform: CredentialPlatform.GHOST,
-        status: PostStatus.PUBLIC,
+        executionState: TargetExecutionState.PUBLISHED,
         success: true,
         url: 'https://example.ghost.io/ghost-post-1',
       }),
@@ -1567,7 +1652,9 @@ describe('CronPostsService', () => {
     // should proceed all the way through to a successful publish.
     expect(postsService.patch).not.toHaveBeenCalledWith(
       'post-1',
-      expect.objectContaining({ status: PostStatus.FAILED }),
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
     );
     expect(
       publishEventWebhookService.emitLegacyPostFailed,

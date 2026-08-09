@@ -5,7 +5,8 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
@@ -44,7 +45,8 @@ function platformConfig(
     label: 'Instagram launch',
     overrideSchedule: false,
     platform: CredentialPlatform.INSTAGRAM,
-    status: 'scheduled',
+    targetExecutionState: TargetExecutionState.SCHEDULED,
+    visibility: PostVisibility.PUBLIC,
     ...overrides,
   };
 }
@@ -202,7 +204,7 @@ describe('ModalPostPlatformsTab', () => {
         platformConfig({
           credentialId: 'cred-youtube',
           platform: CredentialPlatform.YOUTUBE,
-          status: PostStatus.UNLISTED,
+          visibility: PostVisibility.UNLISTED,
         }),
       ],
       [],

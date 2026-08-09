@@ -22,6 +22,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { Repeat2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReleaseAnalyticsTable from './release-analytics-table';
@@ -110,6 +111,7 @@ function TargetHistory({
 
 export default function ReleaseDetailDrawer({
   error,
+  onAddChannel,
   onClose,
   onRescheduleRelease,
   onRescheduleTarget,
@@ -221,7 +223,20 @@ export default function ReleaseDetailDrawer({
           ) : null}
 
           <section className="space-y-4">
-            <h3 className="font-medium text-foreground">Targets</h3>
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-medium text-foreground">Targets</h3>
+              {onAddChannel && targets.length > 0 ? (
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.SECONDARY}
+                  onClick={onAddChannel}
+                  isDisabled={pendingAction !== null}
+                  icon={<Repeat2 className="size-4" />}
+                  label="Add channel"
+                  tooltip="Adapt this post's content into a draft for another channel"
+                />
+              ) : null}
+            </div>
             {targets.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 This post has no channel targets.

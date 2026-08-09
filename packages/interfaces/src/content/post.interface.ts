@@ -1,4 +1,10 @@
-import type { CredentialPlatform, PostCategory } from '@genfeedai/enums';
+import type {
+  CredentialPlatform,
+  PostCategory,
+  PostFormat,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { IPostAnalyticsSummary } from '../analytics/analytics.interface';
 import type {
   IBaseEntity,
@@ -17,6 +23,7 @@ import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 export interface IPost extends IBaseEntity {
   ingredients: IIngredient[];
   category: PostCategory;
+  format?: PostFormat;
   credential?: ICredential;
   user: IUser;
   organization: IOrganization;
@@ -30,12 +37,17 @@ export interface IPost extends IBaseEntity {
   description?: string;
   tags?: ITag[];
   status: string;
+  targetExecutionState: TargetExecutionState;
+  visibility?: PostVisibility;
   scheduledDate?: string | null;
   uploadedAt: string;
   publicationDate: string;
   publishedAt?: string;
   retryCount?: number;
   targetError?: IChannelTargetError | null;
+  originalPostId?: string | null;
+  reviewBatchId?: string | null;
+  reviewItemId?: string | null;
   reviewVersionPinId?: string | null;
   publishApprovalId?: string | null;
   publishApproval?: IPublishApproval | null;
@@ -65,7 +77,8 @@ export interface IPostPlatformConfig {
   description: string;
   overrideSchedule: boolean;
   customScheduledDate: string;
-  status: string;
+  targetExecutionState: TargetExecutionState;
+  visibility: PostVisibility;
   enabled: boolean;
   isCredentialValid?: boolean;
   category?: PostCategory;

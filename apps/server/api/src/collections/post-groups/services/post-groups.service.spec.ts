@@ -9,13 +9,18 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ApiKeyScope,
   CredentialPlatform,
+  PostCategory,
+  PostVisibility,
   PublishApprovalStatus,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
   TargetValidationState,
 } from '@genfeedai/enums';
-import { PostPublishQueueService } from '@genfeedai/server';
+import {
+  PostLifecycleService,
+  PostPublishQueueService,
+} from '@genfeedai/server';
 import type { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -78,15 +83,19 @@ type MockPostTarget = {
   agentStrategyId: string | null;
   agentThreadId: string | null;
   brandId: string | null;
+  category: PostCategory;
   createdAt: Date;
   credentialId: string;
+  description: string;
   externalId: string | null;
   externalShortcode: string | null;
-  groupId: string;
+  groupId: string | null;
   id: string;
   isDeleted: boolean;
+  label: string | null;
   lastAttemptAt: Date | null;
   order: number;
+  organizationId: string;
   platform: string;
   publishedAt: Date | null;
   retryCount: number;
@@ -109,11 +118,14 @@ type MockPostTarget = {
   timezone: string;
   updatedAt: Date;
   url: string | null;
+  userId: string;
+  visibility: PostVisibility;
   workflowExecutionId: string | null;
 };
 
 describe('PostGroupsService', () => {
   let service: PostGroupsService;
+  let postLifecycleService: { transition: ReturnType<typeof vi.fn> };
   let postPublishQueueService: { enqueue: ReturnType<typeof vi.fn> };
   let publishApprovalsService: {
     createForCurrentPost: ReturnType<typeof vi.fn>;
@@ -194,6 +206,12 @@ describe('PostGroupsService', () => {
     postPublishQueueService = {
       enqueue: vi.fn().mockResolvedValue('target-1'),
     };
+    postLifecycleService = {
+      transition: vi.fn().mockResolvedValue({
+        kind: 'transitioned',
+        target: { id: 'target-1' },
+      }),
+    };
     publishApprovalsService = {
       createForCurrentPost: vi.fn().mockResolvedValue({
         artifactVersionPinId: 'pin-1',
@@ -233,6 +251,10 @@ describe('PostGroupsService', () => {
           },
         },
         {
+          provide: PostLifecycleService,
+          useValue: postLifecycleService,
+        },
+        {
           provide: PostPublishQueueService,
           useValue: postPublishQueueService,
         },
@@ -259,17 +281,15 @@ describe('PostGroupsService', () => {
         startDate: '2026-07-20T00:00:00.000Z',
         status: [ReleaseStatus.SCHEDULED],
       }),
-    ).resolves.toEqual([]);
+    ).resolves.toEqual(expect.objectContaining({ docs: [], totalDocs: 0 }));
 
-    expect(prisma.post.groupBy).toHaveBeenCalledWith(
+    expect(prisma.post.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           brandId: 'brand-1',
           organizationId: 'org-1',
-          scheduledDate: {
-            gte: new Date('2026-07-20T00:00:00.000Z'),
-            lte: new Date('2026-07-27T00:00:00.000Z'),
-          },
+          isDeleted: false,
+          parentId: null,
         }),
       }),
     );
@@ -278,34 +298,122 @@ describe('PostGroupsService', () => {
         where: expect.objectContaining({
           brandId: 'brand-1',
           organizationId: 'org-1',
-          status: { in: [ReleaseStatus.SCHEDULED] },
         }),
+      }),
+    );
+    expect(
+      prisma.postGroup.findMany.mock.calls[0]?.[0]?.where,
+    ).not.toHaveProperty('status');
+  });
+
+  it('applies target-scoped calendar filters to the canonical projection', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ scheduledAt: new Date('2026-07-21T09:00:00.000Z') }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        credentialId: 'credential-1',
+        platform: CredentialPlatform.INSTAGRAM,
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
+    ]);
+
+    await expect(
+      service.list('org-1', {
+        contentType: [PostCategory.POST],
+        credentialId: ['credential-1'],
+        endDate: '2026-07-27T00:00:00.000Z',
+        executionState: [TargetExecutionState.FAILED],
+        platform: [CredentialPlatform.INSTAGRAM],
+        source: [ReleaseTargetSource.WORKFLOW],
+        startDate: '2026-07-20T00:00:00.000Z',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        docs: [expect.objectContaining({ id: 'group-1' })],
+        totalDocs: 1,
       }),
     );
   });
 
-  it('forwards the target-scoped calendar filters to persistence', async () => {
-    prisma.post.groupBy.mockResolvedValue([{ groupId: 'group-1' }]);
+  it('projects legacy ungrouped targets without admitting orphaned grouped targets', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: null, id: 'legacy-target-1' }),
+      makeTarget({ groupId: 'deleted-group', id: 'orphan-target-1' }),
+    ]);
 
-    await service.list('org-1', {
-      credentialId: ['credential-1'],
-      endDate: '2026-07-27T00:00:00.000Z',
-      executionState: [TargetExecutionState.FAILED],
-      platform: [CredentialPlatform.INSTAGRAM],
-      source: [ReleaseTargetSource.WORKFLOW],
-      startDate: '2026-07-20T00:00:00.000Z',
-    });
-
-    expect(prisma.post.groupBy).toHaveBeenNthCalledWith(
-      2,
+    await expect(
+      service.list('org-1', { limit: 20, page: 1 }),
+    ).resolves.toEqual(
       expect.objectContaining({
-        where: expect.objectContaining({
-          credentialId: { in: ['credential-1'] },
-          OR: [{ workflowExecutionId: { not: null } }],
-          organizationId: 'org-1',
-          platform: { in: [CredentialPlatform.INSTAGRAM] },
-          targetExecutionState: { in: [TargetExecutionState.FAILED] },
-        }),
+        docs: [
+          expect.objectContaining({
+            id: 'legacy-target-1',
+            targets: [expect.objectContaining({ id: 'legacy-target-1' })],
+          }),
+        ],
+        totalDocs: 1,
+      }),
+    );
+  });
+
+  it('treats a partially published release as posted and not as not-posted', async () => {
+    prisma.postGroup.findMany.mockResolvedValue([makeGroup()]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({
+        id: 'target-published',
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
+      makeTarget({
+        id: 'target-failed',
+        targetExecutionState: TargetExecutionState.FAILED,
+      }),
+    ]);
+
+    await expect(
+      service.list('org-1', { publicationState: 'posted' }),
+    ).resolves.toEqual(expect.objectContaining({ totalDocs: 1 }));
+    await expect(
+      service.list('org-1', { publicationState: 'not-posted' }),
+    ).resolves.toEqual(expect.objectContaining({ totalDocs: 0 }));
+  });
+
+  it('paginates equal sort values with the release id as a stable tie-breaker', async () => {
+    const createdAt = new Date('2026-07-08T22:25:13.000Z');
+    prisma.postGroup.findMany.mockResolvedValue([
+      makeGroup({ createdAt, id: 'group-b' }),
+      makeGroup({ createdAt, id: 'group-a' }),
+    ]);
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ groupId: 'group-b', id: 'target-b' }),
+      makeTarget({ groupId: 'group-a', id: 'target-a' }),
+    ]);
+
+    await expect(
+      service.list('org-1', {
+        limit: 1,
+        page: 1,
+        sort: 'createdAt: -1',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        docs: [expect.objectContaining({ id: 'group-a' })],
+        totalDocs: 2,
+        totalPages: 2,
+      }),
+    );
+    await expect(
+      service.list('org-1', {
+        limit: 1,
+        page: 2,
+        sort: 'createdAt: -1',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        docs: [expect.objectContaining({ id: 'group-b' })],
+        totalDocs: 2,
+        totalPages: 2,
       }),
     );
   });
@@ -389,7 +497,6 @@ describe('PostGroupsService', () => {
           agentThreadId: 'thread-1',
           groupId: 'group-1',
           source: 'agent',
-          status: TargetExecutionState.SCHEDULED,
           sourceActionId: 'publish-card-1',
           targetExecutionState: TargetExecutionState.SCHEDULED,
           targetValidationState: TargetValidationState.VALID,
@@ -650,7 +757,11 @@ describe('PostGroupsService', () => {
       }),
     );
     prisma.post.findMany.mockResolvedValue([
-      makeTarget({ groupId: 'existing-group', id: 'target-1' }),
+      makeTarget({
+        groupId: 'existing-group',
+        id: 'target-1',
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      }),
     ]);
 
     await expect(
@@ -689,6 +800,9 @@ describe('PostGroupsService', () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
     );
+    prisma.post.findMany.mockResolvedValue([
+      makeTarget({ targetExecutionState: TargetExecutionState.SCHEDULED }),
+    ]);
 
     await expect(
       service.update(
@@ -799,12 +913,12 @@ describe('PostGroupsService', () => {
 
     const result = await service.publishNow('org-1', 'user-1', 'group-1');
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-        }),
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith({
       approvalId: 'approval-1',
@@ -885,12 +999,12 @@ describe('PostGroupsService', () => {
         }),
       }),
     );
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-        }),
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(postPublishQueueService.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1034,25 +1148,26 @@ describe('PostGroupsService', () => {
       },
     );
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        agentContextSource: 'explicit',
-        agentContextVersion: 3,
-        agentThreadId: 'thread-1',
-        scheduledDate: new Date(scheduledAt),
-        status: TargetExecutionState.SCHEDULED,
-        targetExecutionState: TargetExecutionState.SCHEDULED,
-        targetValidationState: TargetValidationState.VALID,
-      }),
-      where: {
-        groupId: 'group-1',
-        id: 'target-1',
-        isDeleted: false,
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'user-1',
+        guard: {
+          expectedUpdatedAt: now,
+          priorExecutionStates: [TargetExecutionState.DRAFT],
+        },
+        mutation: expect.objectContaining({
+          agentContextSource: 'explicit',
+          agentContextVersion: 3,
+          agentThreadId: 'thread-1',
+          scheduledDate: new Date(scheduledAt),
+          targetValidationState: TargetValidationState.VALID,
+        }),
+        nextState: TargetExecutionState.SCHEDULED,
         organizationId: 'org-1',
-        targetExecutionState: TargetExecutionState.DRAFT,
-        updatedAt: now,
-      },
-    });
+        postId: 'target-1',
+      }),
+      prisma,
+    );
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
       actorUserId: 'user-1',
       contextVersion: 3,
@@ -1284,9 +1399,9 @@ describe('PostGroupsService', () => {
       scheduledAt,
     );
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        mutation: expect.objectContaining({
           targetReadiness: expect.objectContaining({
             canSchedule: true,
             credentialId: 'cred-x',
@@ -1294,6 +1409,7 @@ describe('PostGroupsService', () => {
           }),
         }),
       }),
+      prisma,
     );
   });
 
@@ -1367,7 +1483,7 @@ describe('PostGroupsService', () => {
         targetExecutionState: TargetExecutionState.DRAFT,
       }),
     );
-    prisma.post.updateMany.mockResolvedValue({ count: 0 });
+    postLifecycleService.transition.mockResolvedValueOnce({ kind: 'stale' });
 
     await expect(
       service.scheduleTarget(
@@ -1379,17 +1495,16 @@ describe('PostGroupsService', () => {
       ),
     ).rejects.toThrow('changed while scheduling');
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({
-          groupId: 'group-1',
-          id: 'target-1',
-          isDeleted: false,
-          organizationId: 'org-1',
-          targetExecutionState: TargetExecutionState.DRAFT,
-          updatedAt: now,
-        }),
+        guard: {
+          expectedUpdatedAt: now,
+          priorExecutionStates: [TargetExecutionState.DRAFT],
+        },
+        organizationId: 'org-1',
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(publishApprovalsService.createForCurrentPost).not.toHaveBeenCalled();
   });
@@ -1421,7 +1536,7 @@ describe('PostGroupsService', () => {
     ).rejects.toThrow('Version pin creation failed');
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
-    expect(prisma.post.updateMany).toHaveBeenCalledTimes(1);
+    expect(postLifecycleService.transition).toHaveBeenCalledTimes(1);
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith(
       expect.objectContaining({ transaction: prisma }),
     );
@@ -1466,13 +1581,21 @@ describe('PostGroupsService', () => {
     prisma.postGroup.findFirst.mockResolvedValue(
       makeGroup({ id: 'group-1', status: ReleaseStatus.SCHEDULED }),
     );
-    prisma.post.findMany.mockResolvedValue([
-      makeTarget({
-        groupId: 'group-1',
-        id: 'target-1',
-        targetExecutionState: TargetExecutionState.PAUSED,
-      }),
-    ]);
+    prisma.post.findMany
+      .mockResolvedValueOnce([
+        makeTarget({
+          groupId: 'group-1',
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      ])
+      .mockResolvedValueOnce([
+        makeTarget({
+          groupId: 'group-1',
+          id: 'target-1',
+          targetExecutionState: TargetExecutionState.PAUSED,
+        }),
+      ]);
     prisma.postGroup.update.mockImplementation(({ data }) =>
       Promise.resolve(
         makeGroup({
@@ -1485,12 +1608,12 @@ describe('PostGroupsService', () => {
 
     const result = await service.pause('org-1', 'user-1', 'group-1');
 
-    expect(prisma.post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetExecutionState: TargetExecutionState.PAUSED,
-        }),
+        nextState: TargetExecutionState.PAUSED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(result.status).toBe(ReleaseStatus.PAUSED);
   });
@@ -1540,16 +1663,17 @@ describe('PostGroupsService', () => {
       { executionState: TargetExecutionState.SCHEDULED },
     );
 
-    expect(prisma.post.update).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
+        mutation: expect.objectContaining({
           lastAttemptAt: null,
           retryCount: 0,
-          status: TargetExecutionState.SCHEDULED,
-          targetError: expect.anything(),
-          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
+        error: null,
+        nextState: TargetExecutionState.SCHEDULED,
+        postId: 'target-1',
       }),
+      prisma,
     );
     expect(publishApprovalsService.createForCurrentPost).toHaveBeenCalledWith({
       actorUserId: 'user-1',
@@ -1685,15 +1809,19 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
     agentStrategyId: null,
     agentThreadId: null,
     brandId: 'brand-1',
+    category: PostCategory.POST,
     createdAt: new Date('2026-07-08T22:25:13.000Z'),
     credentialId: 'cred-x',
+    description: 'Base content',
     externalId: null,
     externalShortcode: null,
     groupId: 'group-1',
     id: 'target-1',
     isDeleted: false,
+    label: 'Launch note',
     lastAttemptAt: null,
     order: 0,
+    organizationId: 'org-1',
     platform: CredentialPlatform.TWITTER,
     publishApproval: {
       artifactVersionPinId: 'pin-1',
@@ -1715,6 +1843,8 @@ function makeTarget(overrides: Partial<MockPostTarget> = {}): MockPostTarget {
     timezone: 'UTC',
     updatedAt: new Date('2026-07-08T22:25:13.000Z'),
     url: null,
+    userId: 'user-1',
+    visibility: PostVisibility.PUBLIC,
     workflowExecutionId: 'execution-1',
     ...overrides,
   };

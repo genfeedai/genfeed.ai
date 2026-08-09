@@ -2,6 +2,7 @@ import type {
   CreateAttachmentPostsParams,
   CreatePostGroupParams,
   ReleaseGroupListQuery,
+  ReleaseGroupListResult,
   SchedulerCredential,
   SchedulerPostAnalytics,
   SchedulerPostGroup,
@@ -12,20 +13,22 @@ import { PostGroupContractService } from '@api/collections/post-groups/services/
 import { PostGroupReadinessService } from '@api/collections/post-groups/services/post-group-readiness.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import {
-  type ChannelTargetInput,
-  deriveReleaseStatusFromTargets,
-} from '@api-types/contracts/scheduler.contract';
+import type { ChannelTargetInput } from '@api-types/contracts/scheduler.contract';
 import {
   ReleaseAttachmentKind,
   ReleaseStatus,
-  ReleaseTargetSource,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IReleaseGroup } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
 import { BadRequestException, Injectable } from '@nestjs/common';
+
+type ReleaseProjectionRecord = {
+  group: SchedulerPostGroup;
+  release: IReleaseGroup;
+  targets: SchedulerPostTarget[];
+};
 
 @Injectable()
 export class PostGroupPersistenceService {
@@ -154,7 +157,6 @@ export class PostGroupPersistenceService {
           scheduledDate:
             this.contractService.toDate(target.scheduledDate) ??
             group.scheduledAt,
-          status: this.contractService.toPostStatus(params.status),
           targetAttachments: this.contractService.toJson(
             target.attachments ?? [],
           ),
@@ -166,6 +168,7 @@ export class PostGroupPersistenceService {
               validation.readiness,
           ),
           targetSettings: this.contractService.toJson(target.settings ?? {}),
+          visibility: target.visibility,
           targetValidationIssues:
             this.contractService.validationIssues(validation),
           targetValidationState: validation.validationState,
@@ -220,179 +223,279 @@ export class PostGroupPersistenceService {
 
   async listReleaseGroups(
     query: ReleaseGroupListQuery,
-  ): Promise<IReleaseGroup[]> {
-    const targetRows = await this.prisma.post.groupBy({
-      by: ['groupId'],
-      where: scopedWhere(query.organizationId, {
-        ...(query.brandId ? { brandId: query.brandId } : {}),
-        groupId: { not: null },
-        parentId: null,
-        scheduledDate: {
-          gte: query.startDate,
-          lte: query.endDate,
-        },
-      }),
-    });
-    const targetGroupIds = [
-      ...new Set(
-        targetRows.flatMap((target) =>
-          target.groupId ? [target.groupId] : [],
-        ),
-      ),
-    ];
+  ): Promise<ReleaseGroupListResult> {
+    const [groups, targets] = await Promise.all([
+      this.prisma.postGroup.findMany({
+        orderBy: { id: 'asc' },
+        where: scopedWhere(query.organizationId, {
+          ...(query.brandId ? { brandId: query.brandId } : {}),
+        }),
+      }) as Promise<SchedulerPostGroup[]>,
+      this.prisma.post.findMany({
+        orderBy: [
+          { groupId: 'asc' },
+          { order: 'asc' },
+          { createdAt: 'asc' },
+          { id: 'asc' },
+        ],
+        where: scopedWhere(query.organizationId, {
+          ...(query.brandId ? { brandId: query.brandId } : {}),
+          parentId: null,
+        }),
+      }) as Promise<SchedulerPostTarget[]>,
+    ]);
 
-    const scheduleFilters: Prisma.PostGroupWhereInput[] = [
-      {
-        scheduledAt: {
-          gte: query.startDate,
-          lte: query.endDate,
-        },
-      },
-    ];
-    if (targetGroupIds.length > 0) {
-      scheduleFilters.push({ id: { in: targetGroupIds } });
-    }
-
-    // Target-scoped filters are deliberately evaluated without the date window:
-    // the window is already applied to the group above, and a target can sit
-    // outside it while its release is in view.
-    const matchedGroupIds = await this.matchTargetFilteredGroupIds(query);
-    if (matchedGroupIds !== null && matchedGroupIds.length === 0) {
-      return [];
-    }
-
-    const groups = (await this.prisma.postGroup.findMany({
-      orderBy: { id: 'asc' },
-      where: scopedWhere(query.organizationId, {
-        ...(query.brandId ? { brandId: query.brandId } : {}),
-        OR: scheduleFilters,
-        ...(matchedGroupIds ? { id: { in: matchedGroupIds } } : {}),
-        ...(query.statuses?.length ? { status: { in: query.statuses } } : {}),
-      }),
-    })) as SchedulerPostGroup[];
-
-    if (groups.length === 0) {
-      return [];
-    }
-
-    const groupIds = groups.map((group) => group.id);
-    const targets = (await this.prisma.post.findMany({
-      orderBy: [
-        { groupId: 'asc' },
-        { order: 'asc' },
-        { createdAt: 'asc' },
-        { id: 'asc' },
-      ],
-      where: scopedWhere(query.organizationId, {
-        groupId: { in: groupIds },
-        parentId: null,
-      }),
-    })) as SchedulerPostTarget[];
+    const groupsById = new Map(groups.map((group) => [group.id, group]));
     const targetsByGroup = new Map<string, SchedulerPostTarget[]>();
+    const projectionRecords: ReleaseProjectionRecord[] = [];
+
     for (const target of targets) {
       if (!target.groupId) {
+        const syntheticGroup = this.toSyntheticGroup(
+          target,
+          query.organizationId,
+        );
+        if (syntheticGroup) {
+          projectionRecords.push({
+            group: syntheticGroup,
+            release: this.contractService.toReleaseGroup(syntheticGroup, [
+              target,
+            ]),
+            targets: [target],
+          });
+        }
+        continue;
+      }
+      // A target that points at a deleted, unauthorized, or missing release is
+      // not silently reclassified as legacy ungrouped content.
+      if (!groupsById.has(target.groupId)) {
         continue;
       }
       const currentTargets = targetsByGroup.get(target.groupId) ?? [];
       currentTargets.push(target);
       targetsByGroup.set(target.groupId, currentTargets);
     }
+
+    for (const group of groups) {
+      const groupTargets = targetsByGroup.get(group.id) ?? [];
+      if (groupTargets.length === 0) {
+        continue;
+      }
+      projectionRecords.push({
+        group,
+        release: this.contractService.toReleaseGroup(group, groupTargets),
+        targets: groupTargets,
+      });
+    }
+
+    const matchingRecords = projectionRecords
+      .filter((record) => this.matchesListQuery(record.release, query))
+      .sort((left, right) =>
+        this.compareReleases(left.release, right.release, query),
+      );
+    const totalDocs = matchingRecords.length;
+    const isPaginated = query.page !== undefined || query.limit !== undefined;
+    const page = query.page ?? 1;
+    const limit = isPaginated ? (query.limit ?? 20) : Math.max(1, totalDocs);
+    const totalPages = isPaginated
+      ? Math.max(1, Math.ceil(totalDocs / limit))
+      : 1;
+    const pageRecords = isPaginated
+      ? matchingRecords.slice((page - 1) * limit, page * limit)
+      : matchingRecords;
+    const pageTargets = pageRecords.flatMap((record) => record.targets);
     const analyticsByTarget = await this.getLatestTargetAnalytics(
       this.prisma,
       query.organizationId,
-      targets,
+      pageTargets,
+    );
+    const docs = pageRecords.map((record) =>
+      this.contractService.toReleaseGroup(
+        record.group,
+        record.targets,
+        analyticsByTarget,
+      ),
     );
 
-    return groups
-      .map((group) =>
-        this.contractService.toReleaseGroup(
-          group,
-          targetsByGroup.get(group.id) ?? [],
-          analyticsByTarget,
-        ),
-      )
-      .sort((left, right) => {
-        const scheduleOrder =
-          this.getEarliestSchedule(left) - this.getEarliestSchedule(right);
-        return scheduleOrder || left.id.localeCompare(right.id);
-      });
-  }
-
-  /**
-   * Translates one derived {@link ReleaseTargetSource} back into the durable
-   * provenance columns it is computed from, mirroring
-   * `PostGroupContractService.toTargetSource` exactly: a workflow execution wins
-   * over agent provenance, and manual means no provenance at all.
-   */
-  private toSourceWhere(source: ReleaseTargetSource): Prisma.PostWhereInput {
-    const agentProvenance: Prisma.PostWhereInput[] = [
-      { agentRunId: { not: null } },
-      { agentThreadId: { not: null } },
-      { agentStrategyId: { not: null } },
-      { agentContextSource: { not: null } },
-    ];
-
-    if (source === ReleaseTargetSource.WORKFLOW) {
-      return { workflowExecutionId: { not: null } };
-    }
-
-    if (source === ReleaseTargetSource.AGENT) {
-      return { OR: agentProvenance, workflowExecutionId: null };
-    }
-
     return {
-      agentContextSource: null,
-      agentRunId: null,
-      agentStrategyId: null,
-      agentThreadId: null,
-      workflowExecutionId: null,
+      docs,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1,
+      limit,
+      nextPage: page < totalPages ? page + 1 : null,
+      page,
+      pagingCounter: (page - 1) * limit + 1,
+      prevPage: page > 1 ? page - 1 : null,
+      totalDocs,
+      totalPages,
     };
   }
 
-  /**
-   * Resolves the releases that own at least one channel target matching the
-   * target-scoped calendar filters (platform, credential, execution state,
-   * source).
-   *
-   * Returns `null` when no target filter was requested, so the caller can skip
-   * the `id IN (...)` narrowing entirely rather than intersecting with an
-   * every-release list.
-   */
-  private async matchTargetFilteredGroupIds(
-    query: ReleaseGroupListQuery,
-  ): Promise<string[] | null> {
-    const targetFilters: Prisma.PostWhereInput = {
-      ...(query.platforms?.length ? { platform: { in: query.platforms } } : {}),
-      ...(query.credentialIds?.length
-        ? { credentialId: { in: query.credentialIds } }
-        : {}),
-      ...(query.executionStates?.length
-        ? { targetExecutionState: { in: query.executionStates } }
-        : {}),
-      ...(query.sources?.length
-        ? {
-            OR: query.sources.map((source) => this.toSourceWhere(source)),
-          }
-        : {}),
-    };
-
-    if (Object.keys(targetFilters).length === 0) {
+  private toSyntheticGroup(
+    target: SchedulerPostTarget,
+    organizationId: string,
+  ): SchedulerPostGroup | null {
+    if (
+      target.organizationId !== organizationId ||
+      !target.userId ||
+      target.description === undefined
+    ) {
       return null;
     }
 
-    const rows = await this.prisma.post.groupBy({
-      by: ['groupId'],
-      where: scopedWhere(query.organizationId, {
-        ...(query.brandId ? { brandId: query.brandId } : {}),
-        groupId: { not: null },
-        parentId: null,
-        ...targetFilters,
-      }),
-    });
+    const contentTitle = target.description.replace(/<[^>]+>/g, ' ').trim();
+    const title =
+      target.label?.trim() ||
+      (contentTitle.length > 80
+        ? `${contentTitle.slice(0, 77).trimEnd()}...`
+        : contentTitle) ||
+      'Untitled post';
 
-    return [
-      ...new Set(rows.flatMap((row) => (row.groupId ? [row.groupId] : []))),
-    ];
+    return {
+      attachments: [],
+      baseContent: target.description,
+      brandId: target.brandId,
+      createdAt: target.createdAt,
+      id: target.id,
+      idempotencyKey: null,
+      isDeleted: target.isDeleted,
+      media: [],
+      organizationId,
+      ownerId: target.userId,
+      publishedAt: target.publishedAt,
+      recurrence: null,
+      scheduledAt: target.scheduledDate,
+      status: target.targetExecutionState,
+      statusTransitions: [],
+      timezone: target.timezone,
+      title,
+      updatedAt: target.updatedAt,
+    };
+  }
+
+  private matchesListQuery(
+    release: IReleaseGroup,
+    query: ReleaseGroupListQuery,
+  ): boolean {
+    if (query.startDate && query.endDate) {
+      const start = query.startDate.getTime();
+      const end = query.endDate.getTime();
+      const occupiesWindow = [
+        release.scheduledAt,
+        ...(release.targets ?? []).map((target) => target.scheduledAt),
+      ].some((scheduledAt) => {
+        if (!scheduledAt) {
+          return false;
+        }
+        const instant = Date.parse(scheduledAt);
+        return Number.isFinite(instant) && instant >= start && instant <= end;
+      });
+      if (!occupiesWindow) {
+        return false;
+      }
+    }
+
+    if (query.statuses?.length && !query.statuses.includes(release.status)) {
+      return false;
+    }
+
+    const targets = release.targets ?? [];
+    const hasTargetFilters = Boolean(
+      query.categories?.length ||
+        query.credentialIds?.length ||
+        query.executionStates?.length ||
+        query.platforms?.length ||
+        query.sources?.length,
+    );
+    if (
+      hasTargetFilters &&
+      !targets.some(
+        (target) =>
+          (!query.categories?.length ||
+            (target.category !== undefined &&
+              query.categories.includes(target.category))) &&
+          (!query.credentialIds?.length ||
+            query.credentialIds.includes(target.credentialId)) &&
+          (!query.executionStates?.length ||
+            query.executionStates.includes(target.executionState)) &&
+          (!query.platforms?.length ||
+            query.platforms.includes(target.platform)) &&
+          (!query.sources?.length || query.sources.includes(target.source)),
+      )
+    ) {
+      return false;
+    }
+
+    if (query.publicationState) {
+      const isPosted = targets.some(
+        (target) => target.executionState === TargetExecutionState.PUBLISHED,
+      );
+      if (
+        (query.publicationState === 'posted' && !isPosted) ||
+        (query.publicationState === 'not-posted' && isPosted)
+      ) {
+        return false;
+      }
+    }
+
+    const search = query.search?.trim().toLocaleLowerCase();
+    if (search) {
+      const searchableValues = [
+        release.title,
+        release.baseContent,
+        ...targets.flatMap((target) => [
+          target.platform,
+          target.category ?? '',
+        ]),
+      ];
+      if (
+        !searchableValues.some((value) =>
+          String(value).toLocaleLowerCase().includes(search),
+        )
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private compareReleases(
+    left: IReleaseGroup,
+    right: IReleaseGroup,
+    query: ReleaseGroupListQuery,
+  ): number {
+    const sort =
+      query.sort ??
+      (query.startDate && query.endDate ? 'scheduledDate: 1' : 'createdAt: -1');
+    const [field, directionText] = sort.split(': ');
+    const direction = directionText === '1' ? 1 : -1;
+    const leftValue = this.releaseSortValue(left, field);
+    const rightValue = this.releaseSortValue(right, field);
+
+    if (leftValue === null && rightValue !== null) {
+      return 1;
+    }
+    if (leftValue !== null && rightValue === null) {
+      return -1;
+    }
+    if (leftValue !== null && rightValue !== null && leftValue !== rightValue) {
+      return (leftValue - rightValue) * direction;
+    }
+    return left.id < right.id ? -1 : left.id > right.id ? 1 : 0;
+  }
+
+  private releaseSortValue(
+    release: IReleaseGroup,
+    field: string | undefined,
+  ): number | null {
+    const value =
+      field === 'scheduledDate'
+        ? this.getEarliestSchedule(release)
+        : field === 'updatedAt'
+          ? Date.parse(release.updatedAt)
+          : Date.parse(release.createdAt);
+    return Number.isFinite(value) && value !== Number.MAX_VALUE ? value : null;
   }
 
   async resolveCredentials(
@@ -510,8 +613,8 @@ export class PostGroupPersistenceService {
           parentId: params.parent.id,
           platform: params.target.platform,
           scheduledDate: params.parent.scheduledDate,
-          status: params.parent.status,
           targetExecutionState: params.parent.targetExecutionState,
+          visibility: params.parent.visibility,
           timezone: params.parent.timezone,
           userId: params.userId,
         },
@@ -643,11 +746,10 @@ export class PostGroupPersistenceService {
     return schedules.length > 0 ? Math.min(...schedules) : Number.MAX_VALUE;
   }
 
-  async recalculateAndHydrate(
+  async hydrateWithDerivedStatus(
     tx: Pick<SchedulerTx, '$queryRaw' | 'post' | 'postGroup'>,
     organizationId: string,
     groupId: string,
-    userId: string,
   ): Promise<IReleaseGroup> {
     const group = await this.getGroupOrThrow(tx, organizationId, groupId);
     const targets = await this.getTargets(tx, organizationId, group.id);
@@ -656,31 +758,8 @@ export class PostGroupPersistenceService {
       organizationId,
       targets,
     );
-    const status = deriveReleaseStatusFromTargets(
-      targets.map(
-        (target) => target.targetExecutionState as TargetExecutionState,
-      ),
-    );
-    const transitions =
-      status !== group.status
-        ? this.contractService.appendTransition(
-            group.statusTransitions,
-            group.status,
-            status,
-            userId,
-          )
-        : undefined;
-
-    const updated = (await tx.postGroup.update({
-      data: {
-        status,
-        ...(transitions !== undefined && { statusTransitions: transitions }),
-      },
-      where: { id: group.id },
-    })) as SchedulerPostGroup;
-
     return this.contractService.toReleaseGroup(
-      updated,
+      group,
       targets,
       analyticsByTarget,
     );

@@ -1,4 +1,9 @@
-import { APP_ROUTES } from '@genfeedai/constants';
+import {
+  APP_ROUTES,
+  createPublishPostsFilterRoute,
+  PUBLISH_POSTS_QUERY_KEYS,
+} from '@genfeedai/constants';
+import { PostStatus } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import {
   Calendar,
@@ -46,26 +51,39 @@ export const PUBLISH_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: 'Pipeline',
-    href: APP_ROUTES.PUBLISH.REVIEW,
+    href: createPublishPostsFilterRoute({ status: PostStatus.DRAFT }),
     isCollapsible: true,
     label: 'Review',
-    matchPaths: [APP_ROUTES.PUBLISH.REVIEW],
+    matchPaths: [APP_ROUTES.PUBLISH.POSTS],
+    matchSearchParams: {
+      [PUBLISH_POSTS_QUERY_KEYS.STATUS]: PostStatus.DRAFT,
+    },
     outline: ClipboardCheck,
     solid: ClipboardCheck,
   },
   {
     group: 'Pipeline',
-    href: APP_ROUTES.PUBLISH.SCHEDULED,
+    href: createPublishPostsFilterRoute({
+      publicationState: 'not-posted',
+    }),
     label: 'Drafts',
-    matchPaths: [APP_ROUTES.PUBLISH.SCHEDULED],
+    matchPaths: [APP_ROUTES.PUBLISH.POSTS],
+    matchSearchParams: {
+      [PUBLISH_POSTS_QUERY_KEYS.PUBLICATION_STATE]: 'not-posted',
+      [PUBLISH_POSTS_QUERY_KEYS.STATUS]: null,
+    },
     outline: List,
     solid: List,
   },
   {
     group: 'Pipeline',
-    href: APP_ROUTES.PUBLISH.PUBLISHED,
+    href: createPublishPostsFilterRoute({ publicationState: 'posted' }),
     label: 'Published',
-    matchPaths: [APP_ROUTES.PUBLISH.PUBLISHED],
+    matchPaths: [APP_ROUTES.PUBLISH.POSTS],
+    matchSearchParams: {
+      [PUBLISH_POSTS_QUERY_KEYS.PUBLICATION_STATE]: 'posted',
+      [PUBLISH_POSTS_QUERY_KEYS.STATUS]: null,
+    },
     outline: Send,
     solid: Send,
   },

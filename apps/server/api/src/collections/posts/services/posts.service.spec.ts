@@ -2,7 +2,13 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { CacheService } from '@api/services/cache/services/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostFormat,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Post plus real enum
@@ -128,8 +134,11 @@ describe('PostsService batchSchedule', () => {
       sourceWorkflowId: 'workflow-1',
       sourceWorkflowName: 'Launch workflow',
       tags: { connect: [{ id: 'tag-1' }] },
+      targetExecutionState: TargetExecutionState.DRAFT,
       userId: 'user-1',
+      visibility: PostVisibility.PUBLIC,
     });
+    expect(writeData).not.toHaveProperty('status');
     expect(writeData).not.toHaveProperty('brand');
     expect(writeData).not.toHaveProperty('credential');
     expect(writeData).not.toHaveProperty('organization');
@@ -185,8 +194,13 @@ describe('PostsService batchSchedule', () => {
 
     const rootWrite = post.create.mock.calls[0]?.[0].data;
     const childWrite = post.create.mock.calls[1]?.[0].data;
+    expect(rootWrite).toMatchObject({ format: PostFormat.THREAD, order: 0 });
     expect(rootWrite).not.toHaveProperty('parentId');
-    expect(childWrite).toMatchObject({ order: 1, parentId: 'root-post' });
+    expect(childWrite).toMatchObject({
+      format: PostFormat.THREAD,
+      order: 1,
+      parentId: 'root-post',
+    });
   });
 
   it('allows an untargeted draft before an account is selected', async () => {
@@ -208,6 +222,55 @@ describe('PostsService batchSchedule', () => {
     expect(post.create.mock.calls[0]?.[0].data).not.toHaveProperty(
       'credentialId',
     );
+  });
+
+  it('persists published lifecycle independently from private visibility', async () => {
+    const { post, service } = makeService();
+
+    await service.create(
+      {
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+        description: 'Private published video',
+        ingredients: [],
+        label: 'Private video',
+        organizationId: 'org-1',
+        platform: CredentialPlatform.YOUTUBE,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+        userId: 'user-1',
+        visibility: PostVisibility.PRIVATE,
+      },
+      [],
+    );
+
+    expect(post.create.mock.calls[0]?.[0].data).toMatchObject({
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PRIVATE,
+    });
+    expect(post.create.mock.calls[0]?.[0].data).not.toHaveProperty('status');
+  });
+
+  it('rejects unsupported visibility before persistence', () => {
+    const { post, service } = makeService();
+
+    expect(() =>
+      service.create(
+        {
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
+          description: 'Private Instagram post',
+          ingredients: [],
+          label: 'Unsupported visibility',
+          organizationId: 'org-1',
+          platform: CredentialPlatform.INSTAGRAM,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+          userId: 'user-1',
+          visibility: PostVisibility.PRIVATE,
+        },
+        [],
+      ),
+    ).toThrow('instagram does not support private visibility.');
+    expect(post.create).not.toHaveBeenCalled();
   });
 
   it('rejects scheduling until an account and platform are selected', async () => {
@@ -312,7 +375,7 @@ describe('PostsService batchSchedule', () => {
         data: expect.objectContaining({
           credentialId: 'credential-2',
           platform: CredentialPlatform.INSTAGRAM,
-          status: PostStatus.SCHEDULED,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
       }),
     );

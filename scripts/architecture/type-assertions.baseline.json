@@ -84,7 +84,6 @@
     "apps/server/server/src/collections/ad-performance/services/ad-performance.service.ts": 3,
     "apps/server/workers/src/crons/agent/cron.proactive-agent.service.ts": 4,
     "apps/server/workers/src/crons/model-deprecation/cron.model-deprecation.service.ts": 2,
-    "apps/server/workers/src/crons/posts/cron.posts.service.ts": 1,
     "apps/server/workers/src/crons/trends/cron.trend-summary-notifications.service.ts": 1,
     "apps/server/workers/src/crons/workflows/task-types/generate-article.task.ts": 1,
     "apps/server/workers/src/processors/api/queues/pattern-extraction/pattern-extraction.processor.ts": 1,

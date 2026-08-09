@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
+import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import {
   readAgentScheduleValidationError,
@@ -7,10 +9,15 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
+import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/constants';
 import {
+  ActivitySource,
   CredentialPlatform,
   IngredientCategory,
+  PostRepurposeMode,
   PostStatus,
+  PostVisibility,
+  parsePlatform,
   ReleaseStatus,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -23,7 +30,12 @@ import type {
 } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ConflictException, Injectable, Optional } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
@@ -53,6 +65,10 @@ export class AgentPublishToolHandler {
     private readonly credentialsService?: CredentialsServiceLike,
     @Optional()
     private readonly agentScopeContextService?: AgentScopeContextService,
+    @Optional()
+    private readonly postRepurposeService?: PostRepurposeService,
+    @Optional()
+    private readonly creditsUtilsService?: CreditsUtilsService,
   ) {}
 
   async scheduleCanonicalPost(
@@ -116,6 +132,7 @@ export class AgentPublishToolHandler {
       platforms,
       scheduledAt,
       sourceActionId,
+      visibility,
     } = input;
 
     if (credentials.length === 0) {
@@ -160,6 +177,7 @@ export class AgentPublishToolHandler {
       sourceActionId,
       threadId: ctx.threadId,
       userId: ctx.userId,
+      visibility,
     });
     const mediaKind = this.resolveReleaseMediaKind(ingredient.category);
     const release = await this.postGroupsService.create(
@@ -186,6 +204,7 @@ export class AgentPublishToolHandler {
           order,
           platform: credential.platform as CredentialPlatform,
           ...(scheduledAt ? { scheduledDate: scheduledAt } : {}),
+          visibility,
         })),
         timezone: 'UTC',
         title: baseContent.slice(0, 100),
@@ -368,6 +387,7 @@ export class AgentPublishToolHandler {
     description: string;
     scheduledAt?: string;
     title: string;
+    visibility: PostVisibility;
   }): AgentUiAction {
     const selectedPlatforms =
       params.defaultPlatforms && params.defaultPlatforms.length > 0
@@ -389,6 +409,7 @@ export class AgentPublishToolHandler {
       textContent: params.defaultCaption,
       title: params.title,
       type: 'publish_post_card' as const,
+      visibility: params.visibility,
     };
   }
 
@@ -398,6 +419,7 @@ export class AgentPublishToolHandler {
       contentId: string;
       platforms?: string[];
       scheduledAt?: string;
+      visibility: PostVisibility;
     },
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
@@ -472,6 +494,7 @@ export class AgentPublishToolHandler {
             params.scheduledAt != null
               ? 'Schedule selected content'
               : 'Publish selected content',
+          visibility: params.visibility,
         }),
       ],
       success: true,
@@ -502,6 +525,17 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const parsedVisibility = z
+      .nativeEnum(PostVisibility)
+      .safeParse(params.visibility ?? PostVisibility.PUBLIC);
+    if (!parsedVisibility.success) {
+      return {
+        creditsUsed: 0,
+        error: 'visibility must be public, private, or unlisted.',
+        success: false,
+      };
+    }
+    const visibility = parsedVisibility.data;
     const contentId =
       typeof params.contentId === 'string' && params.contentId.trim().length > 0
         ? params.contentId.trim()
@@ -547,6 +581,7 @@ export class AgentPublishToolHandler {
             contentId,
             platforms,
             scheduledAt: requestedScheduledAt,
+            visibility,
           },
           ctx,
         );
@@ -601,6 +636,7 @@ export class AgentPublishToolHandler {
         platforms,
         scheduledAt,
         sourceActionId,
+        visibility,
       });
     }
 
@@ -621,15 +657,17 @@ export class AgentPublishToolHandler {
       label: ((params.content as string) || '').substring(0, 100),
       organizationId: ctx.organizationId,
       source: 'agent',
-      status: PostStatus.DRAFT,
+      targetExecutionState: TargetExecutionState.DRAFT,
       userId: ctx.userId,
+      visibility,
     } as never);
 
     return {
       creditsUsed: 0,
       data: {
         id: String(post.id),
-        status: PostStatus.DRAFT,
+        executionState: TargetExecutionState.DRAFT,
+        visibility,
       },
       success: true,
     };
@@ -742,4 +780,137 @@ export class AgentPublishToolHandler {
       };
     }
   }
+
+  /**
+   * Repurpose an existing post into a draft for another channel (#2588).
+   * Deterministic mode is free; agent mode bills the content-engine rewrite
+   * here (delegated billing), so the catalog cost is a ceiling, not a flat fee.
+   * Both modes only ever produce drafts — the review gate stays intact.
+   */
+  async repurposePost(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const postId = readOptionalString(params.postId);
+    const platform = parsePlatform(readOptionalString(params.platform));
+    const modeInput = readOptionalString(params.mode);
+    const mode = Object.values(PostRepurposeMode).find(
+      (candidate) => candidate === modeInput,
+    );
+    if (!postId || !platform || !mode) {
+      return {
+        creditsUsed: 0,
+        error:
+          'postId, platform, and mode (deterministic | agent) are required to repurpose a post.',
+        success: false,
+      };
+    }
+
+    try {
+      const sourcePost = await this.postsService.findOne({
+        id: postId,
+        isDeleted: false,
+        organizationId: ctx.organizationId,
+      });
+      if (!sourcePost) {
+        return {
+          creditsUsed: 0,
+          error: `Post ${postId} not found`,
+          success: false,
+        };
+      }
+      await this.assertPublishingScope(
+        ctx,
+        readOptionalString(sourcePost.brandId),
+        'source post',
+      );
+
+      const result = await this.postRepurposeService?.repurpose({
+        credentialId: readOptionalString(params.credentialId),
+        mode,
+        organizationId: ctx.organizationId,
+        platform,
+        postId,
+        userId: ctx.userId,
+      });
+      if (!result) {
+        return {
+          creditsUsed: 0,
+          error: 'Post repurposing is not available on this deployment.',
+          success: false,
+        };
+      }
+
+      const creditsUsed =
+        mode === PostRepurposeMode.AGENT ? BATCH_CAPTION_BASE_CREDITS : 0;
+      if (creditsUsed > 0 && this.creditsUtilsService) {
+        await this.creditsUtilsService.deductCreditsFromOrganization(
+          ctx.organizationId,
+          ctx.userId,
+          creditsUsed,
+          `Post repurpose (agent rewrite) ${postId}`,
+          ActivitySource.SCRIPT,
+        );
+      }
+
+      return {
+        creditsUsed,
+        data: {
+          adjustments: result.adjustments,
+          id: String(result.draft.id),
+          mode,
+          platform,
+          ...(result.reviewBatchId && { reviewBatchId: result.reviewBatchId }),
+          ...(result.reviewItemId && { reviewItemId: result.reviewItemId }),
+          status: PostStatus.DRAFT,
+        },
+        isBillingDelegated: true,
+        success: true,
+      };
+    } catch (error: unknown) {
+      const detail = readRepurposeErrorDetail(error);
+      if (!detail) {
+        this.loggerService.error(
+          `Post repurpose failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          this.constructorName,
+        );
+      }
+      return {
+        creditsUsed: 0,
+        error:
+          detail ??
+          'Post repurposing failed. Verify the post, target channel, and credential, then retry.',
+        success: false,
+      };
+    }
+  }
+}
+
+/**
+ * Client-safe detail from repurpose validation failures. Only 4xx
+ * HttpException responses carry actionable catalog messages; 5xx and
+ * non-HTTP errors are withheld so internal details never leak into
+ * model-visible output.
+ */
+function readRepurposeErrorDetail(error: unknown): string | undefined {
+  if (!(error instanceof HttpException) || error.getStatus() >= 500) {
+    return undefined;
+  }
+
+  const response = error.getResponse();
+  if (typeof response === 'string') {
+    return response;
+  }
+  if (response && typeof response === 'object') {
+    const detail = (response as { detail?: unknown; message?: unknown }).detail;
+    if (typeof detail === 'string' && detail.length > 0) {
+      return detail;
+    }
+    const message = (response as { message?: unknown }).message;
+    if (typeof message === 'string' && message.length > 0) {
+      return message;
+    }
+  }
+
+  return error.message || undefined;
 }

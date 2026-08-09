@@ -77,6 +77,8 @@ export interface ReleaseTargetHistoryEntry {
 export interface ReleaseDetailDrawerProps {
   /** Message from the most recent failed mutation, already user-safe. */
   error: string | null;
+  /** Opens the repurpose flow to add a draft target for another channel. */
+  onAddChannel?: () => void;
   onClose: () => void;
   onRescheduleRelease: (scheduledDate: string) => void;
   onRescheduleTarget: (targetId: string, scheduledDate: string) => void;

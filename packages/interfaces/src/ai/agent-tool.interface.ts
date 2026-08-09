@@ -19,6 +19,7 @@ export enum AgentToolName {
   CREATE_POST = 'create_post',
   LIST_POSTS = 'list_posts',
   SCHEDULE_POST = 'schedule_post',
+  REPURPOSE_POST = 'repurpose_post',
   AI_ACTION = 'ai_action',
   GENERATE_CONTENT = 'generate_content',
   GENERATE_CONTENT_BATCH = 'generate_content_batch',
@@ -60,6 +61,7 @@ export enum AgentToolName {
   UPDATE_GOAL = 'update_goal',
   // Onboarding tools
   CREATE_BRAND = 'create_brand',
+  RENAME_BRAND = 'rename_brand',
   CHECK_ONBOARDING_STATUS = 'check_onboarding_status',
   COMPLETE_ONBOARDING = 'complete_onboarding',
   CONNECT_SOCIAL_ACCOUNT = 'connect_social_account',

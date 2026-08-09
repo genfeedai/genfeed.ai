@@ -6,6 +6,7 @@ import {
 import type {
   AgentUiAction,
   AgentUiActionCta,
+  AgentUiActionHandler,
   AgentUiActionOutputVariant,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { normalizeAgentAppHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
@@ -28,10 +29,7 @@ interface AgentCompletionSummaryCardProps {
   action: AgentUiAction;
   onCopy?: (content: string) => void | Promise<void>;
   onRetry?: () => void | Promise<void>;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }
 
 function renderOutputPreview(
@@ -85,10 +83,7 @@ function CompletionActionButton({
 }: {
   cta: AgentUiActionCta;
   isPrimary?: boolean;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
   size?: 'default' | 'compact';
 }): ReactElement {
   // Always go through Button so global `a { color }` rules cannot paint

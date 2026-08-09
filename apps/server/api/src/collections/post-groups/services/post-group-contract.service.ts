@@ -11,8 +11,10 @@ import {
   type ChannelTargetInput,
   type CreateReleaseGroupInput,
   createReleaseGroupSchema,
+  deriveReleaseStatusProjectionFromTargets,
   type ReleaseAttachmentInput,
   type ReleaseMediaReferenceInput,
+  resolvePostVisibility,
   type UpdateChannelTargetInput,
   type UpdateReleaseGroupInput,
   updateChannelTargetSchema,
@@ -22,6 +24,7 @@ import { getSchedulerAnalyticsCapability } from '@api-types/contracts/scheduler-
 import { buildReleaseAnalyticsComparison } from '@api-types/contracts/scheduler-analytics-comparison.contract';
 import {
   CredentialPlatform,
+  PostCategory,
   PostStatus,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -48,6 +51,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { type ZodError, z } from 'zod';
 
@@ -70,6 +74,12 @@ const SCHEDULABLE_TARGET_STATES = new Set<string>([
 
 @Injectable()
 export class PostGroupContractService {
+  private readonly logger = new Logger(PostGroupContractService.name);
+
+  toPostVisibility(visibility: string | null, legacyStatus: string) {
+    return resolvePostVisibility(visibility, legacyStatus);
+  }
+
   parseCreateInput(
     body: unknown,
     headerIdempotencyKey?: string,
@@ -131,6 +141,7 @@ export class PostGroupContractService {
       platform: target.platform,
       publishMode,
       settings: target.settings ?? {},
+      visibility: target.visibility,
     });
   }
 
@@ -175,7 +186,7 @@ export class PostGroupContractService {
     input: UpdateChannelTargetInput,
   ): ChannelTargetValidationResult | undefined {
     const validation =
-      input.settings !== undefined
+      input.settings !== undefined || input.visibility !== undefined
         ? validateChannelTargetSettings({
             credentialId: existing.credentialId,
             platform: existing.platform,
@@ -186,6 +197,7 @@ export class PostGroupContractService {
                   ? 'scheduled'
                   : undefined,
             settings: input.settings,
+            visibility: input.visibility ?? existing.visibility ?? undefined,
           })
         : undefined;
 
@@ -214,6 +226,10 @@ export class PostGroupContractService {
     const releaseTargets = targets.map((target) =>
       this.toChannelTarget(target, group, analyticsByTarget.get(target.id)),
     );
+    const status = this.deriveReleaseStatus(
+      group.id,
+      targets.map((target) => target.targetExecutionState),
+    );
 
     return {
       analyticsComparison: buildReleaseAnalyticsComparison(
@@ -233,7 +249,7 @@ export class PostGroupContractService {
       publishedAt: this.toIso(group.publishedAt),
       recurrence: this.asRecurrence(group.recurrence),
       scheduledAt: this.toIso(group.scheduledAt),
-      status: group.status as ReleaseStatus,
+      status,
       statusTransitions: this.asTransitions(group.statusTransitions),
       targetSummary: this.summarizeTargets(targets),
       targets: releaseTargets,
@@ -241,6 +257,20 @@ export class PostGroupContractService {
       title: group.title,
       updatedAt: group.updatedAt.toISOString(),
     };
+  }
+
+  deriveReleaseStatus(
+    releaseId: string,
+    targetStates: readonly unknown[],
+  ): ReleaseStatus {
+    const projection = deriveReleaseStatusProjectionFromTargets(targetStates);
+    for (const diagnostic of projection.diagnostics) {
+      this.logger.warn('Release status derivation failed closed', {
+        ...diagnostic,
+        releaseId,
+      });
+    }
+    return projection.status;
   }
 
   appendTransition(
@@ -457,6 +487,7 @@ export class PostGroupContractService {
         target.id,
       ),
       createdAt: target.createdAt.toISOString(),
+      category: target.category ?? PostCategory.TEXT,
       credentialId: target.credentialId,
       error: this.asTargetError(target.targetError),
       executionState: target.targetExecutionState as TargetExecutionState,
@@ -474,6 +505,7 @@ export class PostGroupContractService {
       retryCount: target.retryCount,
       scheduledAt: this.toIso(target.scheduledDate),
       settings: this.asRecord(target.targetSettings),
+      visibility: resolvePostVisibility(target.visibility, target.status),
       source: this.toTargetSource(target),
       timezone: target.timezone,
       updatedAt: target.updatedAt.toISOString(),

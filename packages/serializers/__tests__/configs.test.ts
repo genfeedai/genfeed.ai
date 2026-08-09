@@ -27,6 +27,7 @@ describe('Serializer Configurations', () => {
       expect(postSerializerConfig.credential).toHaveProperty('ref', 'id');
       expect(postSerializerConfig.user).toHaveProperty('ref', 'id');
       expect(postSerializerConfig.tags).toHaveProperty('ref', 'id');
+      expect(postSerializerConfig.children).toHaveProperty('ref', 'id');
     });
 
     test('should create working serializer', () => {
@@ -46,6 +47,7 @@ describe('Serializer Configurations', () => {
 
       const testData = {
         description: 'Test description',
+        format: 'long-form',
         id: 'post-123',
         label: 'Test Post',
         platform: Platform.TWITTER,
@@ -66,6 +68,7 @@ describe('Serializer Configurations', () => {
         'Test description',
       );
       expect(result.data.attributes).toHaveProperty('status', 'published');
+      expect(result.data.attributes).toHaveProperty('format', 'long-form');
     });
 
     test('should serialize review and lineage attributes', () => {
@@ -234,13 +237,16 @@ describe('Serializer Configurations', () => {
       expect(postAttributes).toContain('ingredients');
       expect(postAttributes).toContain('label');
       expect(postAttributes).toContain('description');
+      expect(postAttributes).toContain('format');
       expect(postAttributes).toContain('organizationId');
       expect(postAttributes).toContain('parentId');
       expect(postAttributes).toContain('personaId');
       expect(postAttributes).toContain('status');
+      expect(postAttributes).toContain('targetExecutionState');
       expect(postAttributes).toContain('tags');
       expect(postAttributes).toContain('platform');
       expect(postAttributes).toContain('userId');
+      expect(postAttributes).toContain('visibility');
       expect(postAttributes).toContain('brand');
       expect(postAttributes).toContain('credential');
       expect(postAttributes).toContain('organization');
