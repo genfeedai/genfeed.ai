@@ -3,9 +3,11 @@
  *
  * Wire format stays flat kebab-case strings (Postgres / Prisma). Call sites that
  * need hierarchy use `ActivityKeys` (see activity-keys.tree.ts). Descriptions
- * are built from templates + params so i18n can swap the catalog later without
- * another giant switch.
+ * resolve to message ids + params so UI callers can format them with their
+ * locale catalog without changing this persisted vocabulary.
  */
+
+import { ActivityKey } from './activity.enum';
 
 /** Lifecycle phase of an activity event (template axis). */
 export type ActivityLifecycle =
@@ -42,29 +44,104 @@ export interface ActivityKeyParts {
 }
 
 /**
- * i18n-ready message handle. Today we format English from this; later a
- * locale catalog can resolve `id` + `params` without touching callers.
+ * Stable message handle resolved by the app locale catalog.
  */
+export type ActivityMessageId =
+  | 'activity.lifecycle.processing'
+  | 'activity.lifecycle.completed'
+  | 'activity.lifecycle.failed'
+  | 'activity.lifecycle.scheduled'
+  | 'activity.lifecycle.published'
+  | 'activity.lifecycle.created'
+  | 'activity.lifecycle.disconnected'
+  | 'activity.credits.add'
+  | 'activity.credits.remove'
+  | 'activity.credits.reset'
+  | 'activity.credits.remove_all'
+  | 'activity.post.ready'
+  | 'activity.fallback';
+
 export interface ActivityMessageDescriptor {
-  id:
-    | 'activity.lifecycle.processing'
-    | 'activity.lifecycle.completed'
-    | 'activity.lifecycle.failed'
-    | 'activity.lifecycle.scheduled'
-    | 'activity.lifecycle.published'
-    | 'activity.lifecycle.created'
-    | 'activity.lifecycle.disconnected'
-    | 'activity.credits.add'
-    | 'activity.credits.remove'
-    | 'activity.credits.reset'
-    | 'activity.credits.remove_all'
-    | 'activity.post.ready'
-    | 'activity.fallback';
+  id: ActivityMessageId;
   params: {
-    operation?: string;
+    amount: string;
+    articleSubject: string;
+    capitalizedSubject: string;
+    fallbackSubject: string;
+    operation: string;
+    source: string;
     subject: string;
   };
 }
+
+export type ActivityMessageFormatter = (
+  descriptor: ActivityMessageDescriptor,
+) => string;
+
+/**
+ * Exhaustive wire-key → message-id catalog.
+ *
+ * Keep the keys typed as ActivityKey so adding a persisted enum member cannot
+ * ship until its customer-facing copy is deliberately assigned a message id.
+ */
+export const ACTIVITY_MESSAGE_ID_BY_KEY = {
+  [ActivityKey.ARTICLE_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.ARTICLE_GENERATED]: 'activity.lifecycle.completed',
+  [ActivityKey.ARTICLE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.BRAND_RELOCATED]: 'activity.lifecycle.completed',
+  [ActivityKey.CREDITS_ADD]: 'activity.credits.add',
+  [ActivityKey.CREDITS_REMOVE]: 'activity.credits.remove',
+  [ActivityKey.CREDITS_REMOVE_ALL]: 'activity.credits.remove_all',
+  [ActivityKey.CREDITS_RESET]: 'activity.credits.reset',
+  [ActivityKey.IMAGE_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.IMAGE_GENERATED]: 'activity.lifecycle.completed',
+  [ActivityKey.IMAGE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.IMAGE_REFRAME_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.IMAGE_REFRAME_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.IMAGE_REFRAME_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.IMAGE_UPSCALE_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.IMAGE_UPSCALE_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.IMAGE_UPSCALE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.MODELS_TRAINING_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.MODELS_TRAINING_CREATED]: 'activity.lifecycle.created',
+  [ActivityKey.MODELS_TRAINING_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.MUSIC_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.MUSIC_GENERATED]: 'activity.lifecycle.completed',
+  [ActivityKey.MUSIC_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.POST_CREATED]: 'activity.lifecycle.created',
+  [ActivityKey.POST_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.POST_GENERATED]: 'activity.post.ready',
+  [ActivityKey.POST_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.POST_PUBLISHED]: 'activity.lifecycle.published',
+  [ActivityKey.POST_SCHEDULED]: 'activity.lifecycle.scheduled',
+  [ActivityKey.PROMPT_ENHANCE_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.PROMPT_ENHANCE_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.PROMPT_ENHANCE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.PROMPT_REMIX_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.PROMPT_REMIX_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.PROMPT_REMIX_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED]:
+    'activity.lifecycle.disconnected',
+  [ActivityKey.SOCIAL_INTEGRATION_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.VIDEO_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.VIDEO_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.VIDEO_GENERATED]: 'activity.lifecycle.completed',
+  [ActivityKey.VIDEO_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.VIDEO_REFRAME_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.VIDEO_REFRAME_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.VIDEO_REFRAME_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.VIDEO_SCHEDULED]: 'activity.lifecycle.scheduled',
+  [ActivityKey.VIDEO_UPSCALE_COMPLETED]: 'activity.lifecycle.completed',
+  [ActivityKey.VIDEO_UPSCALE_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.VIDEO_UPSCALE_PROCESSING]: 'activity.lifecycle.processing',
+  [ActivityKey.VOICE_FAILED]: 'activity.lifecycle.failed',
+  [ActivityKey.VOICE_GENERATED]: 'activity.lifecycle.completed',
+  [ActivityKey.VOICE_PROCESSING]: 'activity.lifecycle.processing',
+} as const satisfies Readonly<Record<ActivityKey, ActivityMessageId>>;
+
+const ACTIVITY_MESSAGE_ID_LOOKUP: Readonly<
+  Partial<Record<string, ActivityMessageId>>
+> = ACTIVITY_MESSAGE_ID_BY_KEY;
 
 const LIFECYCLE_BY_TOKEN: Record<string, ActivityLifecycle> = {
   completed: 'completed',
@@ -300,79 +377,55 @@ function withIndefiniteArticle(noun: string): string {
 }
 
 /**
- * Build a stable message descriptor. Format with `formatActivityMessage`
- * (English today) or a future i18n layer.
+ * Build a stable message descriptor for a locale catalog or English fallback.
  */
 export function getActivityMessageDescriptor(
   key: string,
 ): ActivityMessageDescriptor {
   const parts = parseActivityKey(key);
   const subjectLabel = getActivitySubjectLabel(parts.subject);
-  const operationLabel =
-    parts.operation === 'generate'
-      ? undefined
-      : getActivityOperationLabel(parts.operation);
-
-  if (parts.subject === 'credits') {
-    if (key === 'credits-add') {
-      return { id: 'activity.credits.add', params: { subject: subjectLabel } };
-    }
-    if (key === 'credits-remove') {
-      return {
-        id: 'activity.credits.remove',
-        params: { subject: subjectLabel },
-      };
-    }
-    if (key === 'credits-remove-all') {
-      return {
-        id: 'activity.credits.remove_all',
-        params: { subject: subjectLabel },
-      };
-    }
-    if (key === 'credits-reset') {
-      return {
-        id: 'activity.credits.reset',
-        params: { subject: subjectLabel },
-      };
-    }
-  }
-
-  if (key === 'post-generated') {
-    return { id: 'activity.post.ready', params: { subject: subjectLabel } };
-  }
-
-  const baseParams = {
+  const params = {
+    amount: 'none',
+    articleSubject: withIndefiniteArticle(subjectLabel),
+    capitalizedSubject: `${subjectLabel.charAt(0).toUpperCase()}${subjectLabel.slice(1)}`,
+    fallbackSubject: humanizeToken(subjectLabel),
+    operation: getActivityOperationLabel(parts.operation),
+    source: 'none',
     subject: subjectLabel,
-    ...(operationLabel ? { operation: operationLabel } : {}),
   };
+  const catalogId = ACTIVITY_MESSAGE_ID_LOOKUP[key];
+
+  if (catalogId) {
+    return { id: catalogId, params };
+  }
 
   switch (parts.lifecycle) {
     case 'processing':
-      return { id: 'activity.lifecycle.processing', params: baseParams };
+      return { id: 'activity.lifecycle.processing', params };
     case 'failed':
-      return { id: 'activity.lifecycle.failed', params: baseParams };
+      return { id: 'activity.lifecycle.failed', params };
     case 'scheduled':
-      return { id: 'activity.lifecycle.scheduled', params: baseParams };
+      return { id: 'activity.lifecycle.scheduled', params };
     case 'published':
-      return { id: 'activity.lifecycle.published', params: baseParams };
+      return { id: 'activity.lifecycle.published', params };
     case 'created':
-      return { id: 'activity.lifecycle.created', params: baseParams };
+      return { id: 'activity.lifecycle.created', params };
     case 'disconnected':
-      return { id: 'activity.lifecycle.disconnected', params: baseParams };
+      return { id: 'activity.lifecycle.disconnected', params };
     case 'completed':
-      return { id: 'activity.lifecycle.completed', params: baseParams };
+      return { id: 'activity.lifecycle.completed', params };
     default:
-      return { id: 'activity.fallback', params: baseParams };
+      return { id: 'activity.fallback', params };
   }
 }
 
-/** English formatter — replace with locale catalog when i18n lands. */
+/** English fallback for non-app consumers that do not own a locale catalog. */
 export function formatActivityMessage(
   descriptor: ActivityMessageDescriptor,
 ): string {
   const subject = descriptor.params.subject;
   const operation = descriptor.params.operation;
-  const articleSubject = withIndefiniteArticle(subject);
+  const articleSubject = descriptor.params.articleSubject;
 
   switch (descriptor.id) {
     case 'activity.lifecycle.processing':
@@ -413,7 +466,7 @@ export function formatActivityMessage(
         return `Completed ${subject}`;
       }
       if (operation === 'relocate') {
-        return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} relocated`;
+        return `${descriptor.params.capitalizedSubject} relocated`;
       }
       return `Generated ${articleSubject}`;
 
@@ -431,13 +484,13 @@ export function formatActivityMessage(
         return `Failed to remix ${subject}`;
       }
       if (operation === 'train') {
-        return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} failed`;
+        return `${descriptor.params.capitalizedSubject} failed`;
       }
       if (operation === 'publish') {
         return `Failed to publish ${subject}`;
       }
       if (operation === 'connect') {
-        return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} failed`;
+        return `${descriptor.params.capitalizedSubject} failed`;
       }
       return `Failed to generate ${subject}`;
 
@@ -454,12 +507,21 @@ export function formatActivityMessage(
       return `Created ${articleSubject}`;
 
     case 'activity.lifecycle.disconnected':
-      return `${subject.charAt(0).toUpperCase()}${subject.slice(1)} disconnected`;
+      return `${descriptor.params.capitalizedSubject} disconnected`;
 
     case 'activity.credits.add':
-      return 'Credits added';
+      return descriptor.params.amount === 'none'
+        ? 'Credits added'
+        : `${descriptor.params.amount} credits added`;
     case 'activity.credits.remove':
-      return 'Credit deduction';
+      if (descriptor.params.amount !== 'none') {
+        return descriptor.params.source === 'none'
+          ? `${descriptor.params.amount} credits used`
+          : `${descriptor.params.source} · ${descriptor.params.amount} credits used`;
+      }
+      return descriptor.params.source === 'none'
+        ? 'Credit deduction'
+        : descriptor.params.source;
     case 'activity.credits.remove_all':
       return 'Removed all credits';
     case 'activity.credits.reset':
@@ -468,9 +530,8 @@ export function formatActivityMessage(
     case 'activity.post.ready':
       return 'Content is ready for review';
 
-    case 'activity.fallback':
     default:
-      return humanizeToken(subject);
+      return descriptor.params.fallbackSubject;
   }
 }
 

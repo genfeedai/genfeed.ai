@@ -19,13 +19,8 @@ export default function AppLayout({
   menuComponent,
   topbarComponent,
   providers,
-  shellChromeVariant = 'default',
-  topbarChromeVariant = 'inherit',
   menuItems = EMPTY_ARRAY,
   breadcrumb,
-  agentPanel,
-  isAgentCollapsed = false,
-  onAgentToggle,
   currentApp,
   orgSlug,
   brandSlug,
@@ -33,12 +28,9 @@ export default function AppLayout({
   lockViewportHeight = false,
 }: AppLayoutProps) {
   const {
-    agentPanelHeight,
-    agentPanelTransition,
     desktopMenuContent,
     desktopSidebarCollapsedWidth,
     desktopSidebarExpandedWidth,
-    handleAgentPanelResizeStart,
     handleCloseSidebar,
     handleSidebarResizeKeyDown,
     handleSidebarResizeStart,
@@ -50,19 +42,13 @@ export default function AppLayout({
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,
-    shouldRenderTopbarChrome,
     sidebarOffsetTransition,
     topbarProps,
   } = useAppLayout({
-    agentPanel,
     brandSlug,
     currentApp,
-    isAgentCollapsed,
     menuComponent,
-    onAgentToggle,
     orgSlug,
-    shellChromeVariant,
-    topbarChromeVariant,
     topbarComponent,
   });
 
@@ -101,7 +87,6 @@ export default function AppLayout({
               isResizing={isSidebarResizing}
               onResizeKeyDown={handleSidebarResizeKeyDown}
               onResizeStart={handleSidebarResizeStart}
-              shellChromeVariant={shellChromeVariant}
               width={desktopSidebarExpandedWidth}
             >
               {desktopMenuContent}
@@ -145,7 +130,7 @@ export default function AppLayout({
         <section
           data-testid="app-content-shell"
           className={cn(
-            'relative bg-background md:pl-[var(--desktop-sidebar-width)] lg:pb-[var(--desktop-agent-height)] xl:pr-[var(--workspace-inspector-width,0px)]',
+            'relative bg-background md:pl-[var(--desktop-sidebar-width)] xl:pr-[var(--workspace-inspector-width,0px)]',
             lockViewportHeight
               ? 'flex h-dvh flex-col overflow-hidden'
               : 'min-h-screen',
@@ -156,9 +141,7 @@ export default function AppLayout({
             <div
               data-testid="app-topbar-shell"
               className={cn(
-                'fixed top-0 right-0 left-0 z-50 h-12 md:left-[var(--desktop-sidebar-width)] xl:right-[var(--workspace-inspector-width,0px)]',
-                shouldRenderTopbarChrome &&
-                  'border-b border-border bg-background',
+                'fixed top-0 right-0 left-0 z-50 h-12 border-b border-border bg-background md:left-[var(--desktop-sidebar-width)] xl:right-[var(--workspace-inspector-width,0px)]',
               )}
               style={{
                 top: 'var(--desktop-titlebar-height)',
@@ -196,46 +179,6 @@ export default function AppLayout({
             )}
           </main>
         </section>
-
-        {/* Agent panel bottom dock — animated via topbar toggle or Cmd+L */}
-        {agentPanel && !isAgentCollapsed && (
-          <aside
-            data-testid="agent-panel-rail"
-            className={cn(
-              'fixed right-0 bottom-0 left-0 z-20 hidden overflow-hidden lg:flex xl:right-[var(--workspace-inspector-width,0px)]',
-              shellChromeVariant === 'transparent'
-                ? !isAgentCollapsed && 'bg-transparent shadow-none'
-                : 'bg-background-secondary',
-              shellChromeVariant === 'transparent' && 'shadow-none',
-              menuComponent && 'md:left-[var(--desktop-sidebar-width)]',
-            )}
-            style={{
-              height: agentPanelHeight,
-              minHeight: agentPanelHeight,
-              transition: agentPanelTransition,
-            }}
-          >
-            <Button
-              data-testid="agent-panel-resize-handle"
-              aria-label="Resize agent panel"
-              className="absolute top-0 left-0 right-0 z-10 h-1.5 cursor-row-resize border-t border-border"
-              onMouseDown={handleAgentPanelResizeStart}
-              type="button"
-              variant={ButtonVariant.UNSTYLED}
-              withWrapper={false}
-            />
-            <div
-              data-testid="agent-panel-shell"
-              className="absolute inset-x-0 bottom-0 flex flex-col"
-              style={{
-                height: agentPanelHeight,
-                minHeight: agentPanelHeight,
-              }}
-            >
-              {agentPanel}
-            </div>
-          </aside>
-        )}
       </div>
     </SidebarNavigationProvider>
   );

@@ -37,6 +37,38 @@ export const PLATFORM_DISPLAY_LABELS: Readonly<
   [Platform.YOUTUBE]: 'YouTube',
 };
 
+/** Compact labels for space-constrained platform indicators such as calendars. */
+const PLATFORM_COMPACT_LABELS: Readonly<Record<Platform, string>> = {
+  [Platform.BEEHIIV]: 'BH',
+  [Platform.DEV_TO]: 'DEV',
+  [Platform.DISCORD]: 'DC',
+  [Platform.FACEBOOK]: 'FB',
+  [Platform.FANVUE]: 'FV',
+  [Platform.GHOST]: 'GH',
+  [Platform.GOOGLE_ADS]: 'GA',
+  [Platform.GOOGLE_SEARCH_CONSOLE]: 'GSC',
+  [Platform.HACKER_NEWS]: 'HN',
+  [Platform.INSTAGRAM]: 'IG',
+  [Platform.LINKEDIN]: 'LI',
+  [Platform.MASTODON]: 'MA',
+  [Platform.MEDIUM]: 'MD',
+  [Platform.PINTEREST]: 'PI',
+  [Platform.PRODUCT_HUNT]: 'PH',
+  [Platform.REDDIT]: 'RD',
+  [Platform.SHOPIFY]: 'SH',
+  [Platform.SLACK]: 'SL',
+  [Platform.SNAPCHAT]: 'SC',
+  [Platform.TELEGRAM]: 'TG',
+  [Platform.THREADS]: 'TH',
+  [Platform.TIKTOK]: 'TT',
+  [Platform.TWITCH]: 'TW',
+  [Platform.TWITTER]: 'X',
+  [Platform.UNIPILE]: 'UP',
+  [Platform.WHATSAPP]: 'WA',
+  [Platform.WORDPRESS]: 'WP',
+  [Platform.YOUTUBE]: 'YT',
+};
+
 export function isPlatform(value: unknown): value is Platform {
   return typeof value === 'string' && PLATFORM_VALUES.has(value);
 }
@@ -89,6 +121,27 @@ export function formatPlatformLabel(value: unknown): string | null {
 
   // Unknown free text — title-case as a last resort so callers still get a label.
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+}
+
+/**
+ * Space-constrained counterpart to {@link formatPlatformLabel}. Known aliases
+ * still normalize through {@link parsePlatform}; unknown text gets a stable
+ * two-character fallback rather than disappearing from the UI.
+ */
+export function formatCompactPlatformLabel(value: unknown): string | null {
+  const platform = parsePlatform(value);
+  if (platform) {
+    return PLATFORM_COMPACT_LABELS[platform];
+  }
+
+  const label = formatPlatformLabel(value);
+  if (!label) {
+    return null;
+  }
+
+  return label.length <= 3
+    ? label.toUpperCase()
+    : label.slice(0, 2).toUpperCase();
 }
 
 export function isTwitterPlatform(value: unknown): boolean {

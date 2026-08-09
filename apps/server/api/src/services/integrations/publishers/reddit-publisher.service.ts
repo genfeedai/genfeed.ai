@@ -3,6 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
   ThreadChild,
@@ -39,7 +40,7 @@ export class RedditPublisherService extends BasePublisherService {
   override validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     // Validate subreddit is configured - don't silently post to wrong target.
     // The explicit setting wins; the credential's subreddit is the fallback for
     // releases scheduled before the setting existed.
@@ -63,7 +64,9 @@ export class RedditPublisherService extends BasePublisherService {
       };
     }
 
-    return { valid: true };
+    // This override skips super.validatePost, so the catalog length
+    // backstop must run explicitly.
+    return this.validateCaptionLength(context);
   }
 
   /**
@@ -80,7 +83,11 @@ export class RedditPublisherService extends BasePublisherService {
     // Validate
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {

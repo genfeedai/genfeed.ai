@@ -12,11 +12,11 @@ Accepted
 
 ## Contract Version
 
-v3.2.0
+v3.2.1
 
 ## Last Updated
 
-2026-07-27
+2026-08-08
 
 ## Canonical Source
 
@@ -636,6 +636,7 @@ Downstream verification must cover:
 
 | Version | Date       | Summary                                                                                                                                                        |
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v3.0.0  | 2026-07-26 | Demoted the conversation from a shell state to a surface — its own route family plus an inspector region on every other surface — withdrew the reserved `thread` key, gave the nav column to the module that owns the surface, and made the frame and its error boundary unconditional. Current 209-route parity denominator unchanged. |
+| v3.2.1  | 2026-08-08 | Removed the duplicated route-count literal; parity now derives its denominator directly from the live `PROTECTED_ROUTE_INVENTORY`. |
+| v3.0.0  | 2026-07-26 | Demoted the conversation from a shell state to a surface — its own route family plus an inspector region on every other surface — withdrew the reserved `thread` key, gave the nav column to the module that owns the surface, and made the frame and its error boundary unconditional. The 209-route parity denominator was unchanged at that cutover. |
 | v2.0.0  | 2026-07-17 | Made the agent-first shell unconditional, removed flag/cohort/legacy fallback contracts, converted protected routes to shell canvases, and made deploy rollback the recovery path. |
 | v1.0.0  | 2026-07-13 | Locked state/history, context precedence, trusted surfaces, route parity, approvals, multi-tab behavior, fallback, rollout gates, and predecessor disposition. |

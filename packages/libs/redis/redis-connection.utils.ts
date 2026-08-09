@@ -67,6 +67,47 @@ export interface IoRedisConnectionOptions {
 }
 
 /**
+ * BullMQ connections have different availability contracts by process role.
+ * Producers should surface Redis outages promptly; production workers should
+ * wait for Redis to recover so their blocking connections resume without a
+ * process redeploy.
+ */
+export enum BullMQConnectionProfile {
+  PRODUCER = 'producer',
+  WORKER = 'worker',
+}
+
+export interface BullMQWorkerEnvironment {
+  isProduction: boolean;
+  isStaging: boolean;
+}
+
+const BULLMQ_WORKER_MIN_RETRY_DELAY_MS = 1_000;
+const BULLMQ_WORKER_MAX_RETRY_DELAY_MS = 20_000;
+
+const bullMQProducerRetryStrategy: IoRedisRetryStrategy = () => null;
+
+/** Match BullMQ's production recommendation: retry forever, with capped backoff. */
+const bullMQWorkerRetryStrategy: IoRedisRetryStrategy = (retries: number) => {
+  return Math.max(
+    Math.min(Math.exp(retries), BULLMQ_WORKER_MAX_RETRY_DELAY_MS),
+    BULLMQ_WORKER_MIN_RETRY_DELAY_MS,
+  );
+};
+
+/**
+ * Staging mirrors production so the Redis-restart recovery path can be verified
+ * before release. Development and test stay fail-fast for quick local feedback.
+ */
+export function resolveBullMQWorkerConnectionProfile(
+  environment: BullMQWorkerEnvironment,
+): BullMQConnectionProfile {
+  return environment.isProduction || environment.isStaging
+    ? BullMQConnectionProfile.WORKER
+    : BullMQConnectionProfile.PRODUCER;
+}
+
+/**
  * Parse Redis connection from config service.
  * TLS is enabled if EITHER:
  * - REDIS_TLS env var is true (boolean from Joi)
@@ -201,19 +242,38 @@ export function buildIoRedisClientOptions(
 /**
  * Build BullMQ/ioredis connection options (for queues).
  * BullMQ uses ioredis under the hood — TLS is `tls: {}`.
+ *
+ * The producer profile deliberately fails fast: HTTP/API callers can retry and
+ * must not wait indefinitely for Redis. It is also the development default so a
+ * missing local Redis instance fails visibly instead of starting a reconnect
+ * loop.
+ *
+ * The worker profile follows BullMQ's production guidance. Worker blocking
+ * connections require `maxRetriesPerRequest: null`; their reconnect strategy
+ * keeps trying forever with a bounded delay, and the offline queue retains
+ * commands until Redis returns. Consumer runtimes select this profile in
+ * production and staging so a transient Redis restart does not require
+ * redeployment and the recovery path can be validated before release.
  */
-export function buildBullMQConnection(config: ParsedRedisConfig) {
+export function buildBullMQConnection(
+  config: ParsedRedisConfig,
+  profile: BullMQConnectionProfile = BullMQConnectionProfile.PRODUCER,
+) {
+  const isWorker = profile === BullMQConnectionProfile.WORKER;
+
   return {
     host: config.host,
     port: config.port,
     ...(config.db !== undefined && { db: config.db }),
     ...(config.password && { password: config.password }),
     connectTimeout: 3_000,
-    enableOfflineQueue: false,
+    enableOfflineQueue: isWorker,
     enableReadyCheck: false,
     lazyConnect: true,
-    maxRetriesPerRequest: 0,
-    retryStrategy: () => null,
+    maxRetriesPerRequest: isWorker ? null : 0,
+    retryStrategy: isWorker
+      ? bullMQWorkerRetryStrategy
+      : bullMQProducerRetryStrategy,
     skipVersionCheck: true,
     ...(config.tls && { tls: {} }),
   };

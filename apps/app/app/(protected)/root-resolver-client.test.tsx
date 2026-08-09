@@ -32,6 +32,7 @@ const mocks = vi.hoisted(() => ({
   },
   isAccessStateLoading: false,
   replace: vi.fn(),
+  searchParams: new URLSearchParams(),
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
@@ -55,14 +56,11 @@ vi.mock('@ui/loading/page/PageLoadingState', () => ({
   ),
 }));
 
-vi.mock('./home/content', () => ({
-  default: () => <main data-testid="operational-home" />,
-}));
-
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: mocks.replace,
   }),
+  useSearchParams: () => mocks.searchParams,
 }));
 
 const { default: ProtectedRootResolver } = await import(
@@ -87,11 +85,12 @@ describe('ProtectedRootResolver', () => {
       onboardingStepsCompleted: ['brand', 'providers', 'summary'],
     };
     mocks.currentUserState.isLoading = false;
+    mocks.searchParams = new URLSearchParams();
     vi.stubEnv('NEXT_PUBLIC_DESKTOP_SHELL', undefined);
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);
   });
 
-  it('renders the operational home when org and brand are selected', async () => {
+  it('opens the returning conversation bootstrap when org and brand are selected', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brandId = 'brand_1';
     mocks.brandState.selectedBrand = {
@@ -102,11 +101,12 @@ describe('ProtectedRootResolver', () => {
 
     render(<ProtectedRootResolver />);
 
-    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
-    expect(mocks.replace).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent');
+    });
   });
 
-  it('renders the operational home from the first org brand', async () => {
+  it('opens the returning conversation bootstrap from the first org brand', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [
       {
@@ -118,8 +118,32 @@ describe('ProtectedRootResolver', () => {
 
     render(<ProtectedRootResolver />);
 
-    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
-    expect(mocks.replace).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith('/acme/~/agent');
+    });
+  });
+
+  it('preserves task handoff state while removing withdrawn shell query state', async () => {
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.selectedBrand = {
+      organization: { slug: 'acme' },
+      organizationId: 'org_1',
+      slug: 'moonrise',
+    };
+    mocks.searchParams = new URLSearchParams({
+      overlay: 'asset',
+      taskId: 'task-42',
+      taskSource: 'workspace',
+      thread: 'stale-thread',
+    });
+
+    render(<ProtectedRootResolver />);
+
+    await waitFor(() => {
+      expect(mocks.replace).toHaveBeenCalledWith(
+        '/acme/~/agent?taskId=task-42&taskSource=workspace',
+      );
+    });
   });
 
   it('resumes onboarding before opening a seeded workspace', async () => {
@@ -149,6 +173,7 @@ describe('ProtectedRootResolver', () => {
       isOnboardingCompleted: false,
       onboardingStepsCompleted: [],
     };
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
@@ -183,14 +208,40 @@ describe('ProtectedRootResolver', () => {
     });
   });
 
-  it('opens the operational home with organization scope before a brand exists', async () => {
+  it('fails closed when organization scope has no routable slug', async () => {
     mocks.brandState.organizationId = 'org_1';
     mocks.brandState.brands = [];
 
     render(<ProtectedRootResolver />);
 
-    expect(await screen.findByTestId('operational-home')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Workspace setup needs attention',
+      }),
+    ).toBeInTheDocument();
     expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it('does not widen root bootstrap into a brand from another organization', async () => {
+    mocks.brandState.organizationId = 'org_1';
+    mocks.brandState.brands = [
+      {
+        organization: { id: 'org_2', slug: 'other-org' },
+        organizationId: 'org_2',
+        slug: 'other-brand',
+      },
+    ];
+
+    render(<ProtectedRootResolver />);
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Workspace setup needs attention',
+      }),
+    ).toBeInTheDocument();
+    expect(mocks.replace).not.toHaveBeenCalledWith(
+      expect.stringContaining('other-org'),
+    );
   });
 
   it('routes incomplete SaaS users to the agent onboarding surface', async () => {
@@ -200,6 +251,7 @@ describe('ProtectedRootResolver', () => {
       isOnboardingCompleted: false,
       onboardingStepsCompleted: ['brand'],
     };
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
@@ -227,6 +279,7 @@ describe('ProtectedRootResolver', () => {
     expect(mocks.replace).not.toHaveBeenCalled();
 
     mocks.brandState.isReady = true;
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
@@ -296,6 +349,7 @@ describe('ProtectedRootResolver', () => {
     vi.useFakeTimers();
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', 'true');
     mocks.brandState.isReady = false;
+    mocks.brandState.organizationId = 'org_1';
     mocks.brandState.selectedBrand = {
       organization: { slug: 'acme' },
       organizationId: 'org_1',
