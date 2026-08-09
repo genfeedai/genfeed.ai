@@ -41,28 +41,20 @@ function makeApiService(
   overrides: Partial<WorkflowApiService> = {},
 ): WorkflowApiService {
   return {
-    approve: vi
-      .fn()
-      .mockResolvedValue({
-        workflow: makeApiState({ currentPhase: 'implementing' }),
-      }),
+    approve: vi.fn().mockResolvedValue({
+      workflow: makeApiState({ currentPhase: 'implementing' }),
+    }),
     createWorkflow: vi.fn().mockResolvedValue(makeApiState()),
-    forceAdvance: vi
-      .fn()
-      .mockResolvedValue({
-        workflow: makeApiState({ currentPhase: 'proposing' }),
-      }),
+    forceAdvance: vi.fn().mockResolvedValue({
+      workflow: makeApiState({ currentPhase: 'proposing' }),
+    }),
     getWorkflow: vi.fn().mockResolvedValue(makeApiState()),
-    rollback: vi
-      .fn()
-      .mockResolvedValue({
-        workflow: makeApiState({ currentPhase: 'exploring' }),
-      }),
-    transition: vi
-      .fn()
-      .mockResolvedValue({
-        workflow: makeApiState({ currentPhase: 'clarifying' }),
-      }),
+    rollback: vi.fn().mockResolvedValue({
+      workflow: makeApiState({ currentPhase: 'exploring' }),
+    }),
+    transition: vi.fn().mockResolvedValue({
+      workflow: makeApiState({ currentPhase: 'clarifying' }),
+    }),
     ...overrides,
   };
 }

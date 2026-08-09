@@ -144,6 +144,16 @@ export function buildRepromptData(
     return typeof value === typeof defaultValue ? (value as T) : defaultValue;
   };
 
+  /**
+   * Optional string fields cannot go through `getMetadataValue` — a default of
+   * `undefined` makes its `typeof` guard reject every stored string, silently
+   * dropping the value on reprompt.
+   */
+  const getOptionalString = (key: string): string | undefined => {
+    const value = metadata[key];
+    return typeof value === 'string' && value ? value : undefined;
+  };
+
   const isImageOrVideo =
     categoryType === IngredientCategory.IMAGE ||
     categoryType === IngredientCategory.VIDEO;
@@ -161,11 +171,8 @@ export function buildRepromptData(
         )
       : [],
     brand: brandId,
-    camera: getMetadataValue('camera', undefined as string | undefined),
-    cameraMovement: getMetadataValue(
-      'cameraMovement',
-      undefined as string | undefined,
-    ),
+    camera: getOptionalString('camera'),
+    cameraMovement: getOptionalString('cameraMovement'),
     category: String(categoryType),
     duration:
       typeof metadata.duration === 'number' ? metadata.duration : undefined,
@@ -176,10 +183,10 @@ export function buildRepromptData(
     height: ingredient.metadataHeight || ingredient.height || 1920,
     isAudioEnabled: Boolean(metadata.isAudioEnabled),
     isValid: true,
-    lens: getMetadataValue('lens', undefined as string | undefined),
-    lighting: getMetadataValue('lighting', undefined as string | undefined),
+    lens: getOptionalString('lens'),
+    lighting: getOptionalString('lighting'),
     models: [modelKey],
-    mood: getMetadataValue('mood', undefined as string | undefined),
+    mood: getOptionalString('mood'),
     outputs: 1,
     quality: 'premium',
     references: Array.isArray(ingredient.references)
@@ -187,14 +194,14 @@ export function buildRepromptData(
           (ref): ref is string => typeof ref === 'string',
         )
       : [],
-    resolution: getMetadataValue('resolution', undefined as string | undefined),
-    scene: getMetadataValue('scene', undefined as string | undefined),
+    resolution: getOptionalString('resolution'),
+    scene: getOptionalString('scene'),
     sounds: Array.isArray(metadata.sounds)
       ? metadata.sounds.filter(
           (sound: unknown): sound is string => typeof sound === 'string',
         )
       : [],
-    speech: getMetadataValue('speech', undefined as string | undefined),
+    speech: getOptionalString('speech'),
     style: getMetadataValue('style', ''),
     tags: Array.isArray(ingredient.tags)
       ? ingredient.tags

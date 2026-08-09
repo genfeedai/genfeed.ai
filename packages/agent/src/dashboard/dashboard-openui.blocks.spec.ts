@@ -402,9 +402,7 @@ describe('parseAgentDashboardBlocks block types', () => {
         {
           blocks: [
             {
-              blocks: [
-                { blocks: [deepest], id: 'level-4', type: 'composite' },
-              ],
+              blocks: [{ blocks: [deepest], id: 'level-4', type: 'composite' }],
               id: 'level-3',
               type: 'composite',
             },
