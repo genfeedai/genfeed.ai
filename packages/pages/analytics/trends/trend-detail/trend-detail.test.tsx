@@ -8,7 +8,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const pushMock = vi.fn();
 const backMock = vi.fn();
 const getTrendByIdMock = vi.fn();
-const notifyErrorMock = vi.fn();
 
 const trendDetailFixture = {
   analysis: {
@@ -46,16 +45,18 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getTrendsServiceMock,
 }));
 
+// `vi.hoisted` so the singleton exists before `error-handler.util`'s static
+// initializer pulls `NotificationsService.getInstance()` at import time.
+const notificationsServiceMock = vi.hoisted(() => ({
+  error: vi.fn(),
+  success: vi.fn(),
+}));
+
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => notificationsServiceMock,
   },
 }));
-
-const notificationsServiceMock = {
-  error: notifyErrorMock,
-  success: vi.fn(),
-};
 
 vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
@@ -134,7 +135,7 @@ describe('TrendDetail', () => {
     await waitFor(() => {
       expect(screen.getByText('Failed to load trend details')).toBeVisible();
     });
-    expect(notifyErrorMock).toHaveBeenCalledWith(
+    expect(notificationsServiceMock.error).toHaveBeenCalledWith(
       'Failed to load trend details',
     );
   });

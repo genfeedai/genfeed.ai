@@ -98,17 +98,19 @@ export function buildTrainingsTableColumns({
         <div className="text-sm">
           {training.organization && (
             <div className="text-foreground/80">
-              {(training?.organization as IOrganization).label}
+              {(training.organization as IOrganization).label}
             </div>
           )}
           {training.brand && (
             <div className="text-muted-foreground">
-              {(training?.brand as IBrand).label}
+              {(training.brand as IBrand).label}
             </div>
           )}
-          <div className="text-xs text-muted-foreground">
-            {(training?.user as IUser).fullName}
-          </div>
+          {training.user && (
+            <div className="text-xs text-muted-foreground">
+              {(training.user as IUser).fullName}
+            </div>
+          )}
         </div>
       ),
     });
