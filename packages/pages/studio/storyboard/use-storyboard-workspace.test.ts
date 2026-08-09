@@ -56,10 +56,20 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('stub-token'),
-}));
+// The real useAuthedService returns a stable useCallback. The mock must be
+// referentially stable too — the deep-link seeding effect lists the getter in
+// its deps, and an unstable identity re-runs the effect mid-fetch, cancelling
+// the in-flight request while the seeded-ref guard blocks a retry.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', async () => {
+  const { useCallback, useRef } = await import('react');
+  return {
+    useAuthedService: <T>(factory: (token: string) => T) => {
+      const factoryRef = useRef(factory);
+      factoryRef.current = factory;
+      return useCallback(async () => factoryRef.current('stub-token'), []);
+    },
+  };
+});
 
 interface MergeProgressOptions {
   ingredientId?: string;
