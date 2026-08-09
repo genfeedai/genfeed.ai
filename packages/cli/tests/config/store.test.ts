@@ -216,6 +216,112 @@ describe('config/store', () => {
     });
   });
 
+  describe('getConfigDir', () => {
+    it('returns the config directory', async () => {
+      const { getConfigDir } = await import('../../src/config/store');
+      expect(getConfigDir()).toContain('.gf');
+      expect(getConfigDir()).not.toContain('config.json');
+    });
+  });
+
+  describe('resolveProfile', () => {
+    it('throws for an unknown profile name', async () => {
+      const { loadConfig, resolveProfile } = await import('../../src/config/store');
+      const config = await loadConfig();
+      expect(() => resolveProfile(config, 'missing')).toThrow(
+        'Profile "missing" does not exist. Run `gf profile list` to see available profiles.'
+      );
+    });
+  });
+
+  describe('getRole and setRole', () => {
+    it('returns the default role', async () => {
+      const { getRole } = await import('../../src/config/store');
+      expect(await getRole()).toBe('user');
+    });
+
+    it('stores an admin role', async () => {
+      const { getRole, setRole } = await import('../../src/config/store');
+      await setRole('admin');
+      expect(await getRole()).toBe('admin');
+    });
+  });
+
+  describe('organization id', () => {
+    it('returns undefined when no organization is set', async () => {
+      const { getOrganizationId } = await import('../../src/config/store');
+      expect(await getOrganizationId()).toBeUndefined();
+    });
+
+    it('stores and returns the organization id', async () => {
+      const { getOrganizationId, setOrganizationId } = await import('../../src/config/store');
+      await setOrganizationId('org-42');
+      expect(await getOrganizationId()).toBe('org-42');
+    });
+
+    it('prefers the GENFEED_ORGANIZATION_ID env override', async () => {
+      mockFileSystem.content = makeConfigJson({ organizationId: 'org-file' });
+      process.env.GENFEED_ORGANIZATION_ID = 'org-env';
+      const { getOrganizationId } = await import('../../src/config/store');
+      expect(await getOrganizationId()).toBe('org-env');
+    });
+  });
+
+  describe('token and user overrides', () => {
+    it('applies GENFEED_TOKEN and GENFEED_USER_ID env overrides', async () => {
+      process.env.GENFEED_TOKEN = 'token-env';
+      process.env.GENFEED_USER_ID = 'user-env';
+      const { getActiveProfile } = await import('../../src/config/store');
+      const { profile } = await getActiveProfile();
+      expect(profile.token).toBe('token-env');
+      expect(profile.userId).toBe('user-env');
+    });
+  });
+
+  describe('profile management', () => {
+    it('creates a new profile with defaults', async () => {
+      const { createProfile, listProfiles } = await import('../../src/config/store');
+      await createProfile('staging');
+      const profiles = await listProfiles();
+      const staging = profiles.find((entry) => entry.name === 'staging');
+      expect(staging).toBeDefined();
+      expect(staging?.active).toBe(false);
+      expect(staging?.profile.apiUrl).toBeDefined();
+    });
+
+    it('creates a profile with overrides and drops undefined values', async () => {
+      const { createProfile, listProfiles } = await import('../../src/config/store');
+      await createProfile('staging', { apiKey: undefined, apiUrl: 'https://staging.api.dev/v1' });
+      const profiles = await listProfiles();
+      const staging = profiles.find((entry) => entry.name === 'staging');
+      expect(staging?.profile.apiUrl).toBe('https://staging.api.dev/v1');
+      expect(staging?.profile.apiKey).toBeUndefined();
+    });
+
+    it('rejects creating a duplicate profile', async () => {
+      const { createProfile } = await import('../../src/config/store');
+      await expect(createProfile('default')).rejects.toThrow('Profile "default" already exists.');
+    });
+
+    it('switches the active profile', async () => {
+      const { createProfile, listProfiles, setActiveProfileName } = await import(
+        '../../src/config/store'
+      );
+      await createProfile('staging');
+      await setActiveProfileName('staging');
+      const profiles = await listProfiles();
+      expect(profiles.find((entry) => entry.name === 'staging')?.active).toBe(true);
+      expect(profiles.find((entry) => entry.name === 'default')?.active).toBe(false);
+    });
+
+    it('rejects switching to an unknown profile', async () => {
+      const { setActiveProfileName } = await import('../../src/config/store');
+      await expect(setActiveProfileName('missing')).rejects.toThrow(
+        'Profile "missing" does not exist.'
+      );
+    });
+  });
+
   describe('loadConfig', () => {
     it('returns full config object', async () => {
       mockFileSystem.content = makeConfigJson({ activeBrand: 'brand-123', apiKey: 'test-key' });
