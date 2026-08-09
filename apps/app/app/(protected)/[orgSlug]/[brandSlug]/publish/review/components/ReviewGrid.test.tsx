@@ -21,6 +21,10 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
   }),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (id: string) => `catalog:${id}`,
+}));
+
 const mockItems = [
   {
     batchId: 'batch-1',
@@ -141,7 +145,7 @@ describe('ReviewGrid', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Approve$/i }));
     fireEvent.click(screen.getByRole('button', { name: /^Reject$/i }));
     fireEvent.click(
-      screen.getByRole('button', { name: /rewrite with agent/i }),
+      screen.getByRole('button', { name: 'catalog:actions.rewriteWithAgent' }),
     );
 
     expect(onSelectItem).toHaveBeenCalledWith('item-1');

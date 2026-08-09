@@ -4,7 +4,8 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Check, Trash2, X } from 'lucide-react';
+import { Check, Sparkles, Trash2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import ReviewItemsTable from './ReviewItemsTable';
 
@@ -39,6 +40,8 @@ export default function ReviewGrid({
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
+  const translate = useTranslations('common');
+
   return (
     <div className="flex min-w-0 flex-col gap-3">
       {canDiscardBatch ? (
@@ -80,7 +83,7 @@ export default function ReviewGrid({
               withWrapper={false}
             >
               <Sparkles className="size-3.5" />
-              Rewrite with agent
+              {translate('actions.rewriteWithAgent')}
             </Button>
             <Button
               className="h-7 gap-1 px-2 text-xs"

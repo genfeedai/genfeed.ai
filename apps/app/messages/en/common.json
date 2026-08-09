@@ -3,6 +3,7 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "retry": "Retry",
+    "rewriteWithAgent": "Rewrite with agent",
     "save": "Save"
   },
   "activity": {
