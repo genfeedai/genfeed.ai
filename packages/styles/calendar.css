@@ -246,6 +246,22 @@
 }
 
 /*
+ * Channel icons are cloned into runtime DOM from a hidden sprite, so sizing is
+ * plain CSS for the same reason as the badge classes below.
+ */
+.fc .gen-calendar-event-channels {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.fc .gen-calendar-event-channel-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+/*
  * The title yields before the badge does: a dense week grid must still show
  * "failed" in full, and an ellipsised title is far more recoverable than a
  * truncated status.

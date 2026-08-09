@@ -772,7 +772,6 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/publish/posts/:id',
       '/:orgSlug/:brandSlug/publish/calendar',
       '/:orgSlug/:brandSlug/publish/failed',
-      '/:orgSlug/:brandSlug/publish/newsletters',
       '/:orgSlug/:brandSlug/publish/published',
       '/:orgSlug/:brandSlug/publish/review',
       '/:orgSlug/:brandSlug/publish/scheduled',

@@ -1,3 +1,4 @@
+import { LEGACY_APP_ROUTES } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 import {
   PUBLISH_LOGO_HREF,
@@ -92,7 +93,7 @@ describe('PUBLISH_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/publish/campaigns');
     expect(hrefs).not.toContain('/automate/campaigns');
     expect(hrefs).not.toContain('/publish/outreach-campaigns');
-    expect(hrefs).not.toContain('/publish/newsletters');
+    expect(hrefs).not.toContain(LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS);
     expect(hrefs).not.toContain('/publish/remix');
     expect(labels).not.toContain('Campaigns');
     expect(labels).not.toContain('Outreach');
