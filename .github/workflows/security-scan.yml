@@ -40,6 +40,9 @@ jobs:
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           exit-code: "0"
+          # OS layer only — npm dependency CVEs are Dependabot's job, and it
+          # reports them once per package instead of once per node_modules copy.
+          vuln-type: "os"
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
@@ -70,6 +73,9 @@ jobs:
           severity: "CRITICAL,HIGH"
           ignore-unfixed: true
           exit-code: "0"
+          # .deepsec is a vendored side-project with its own pnpm lockfile — its
+          # deps never ship. node_modules is already covered via the lockfiles.
+          skip-dirs: ".deepsec,**/node_modules"
 
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v4
