@@ -52,13 +52,13 @@ describe('AnalyticsPostsList', () => {
 
     const searchInput = screen.getByPlaceholderText('Search posts...');
     expect(searchInput).toHaveClass('rounded-lg');
-    expect(searchInput).toHaveClass('border-white/[0.06]');
+    expect(searchInput).toHaveClass('border-border');
 
     const triggers = screen.getAllByRole('combobox');
     expect(triggers).toHaveLength(2);
     for (const trigger of triggers) {
       expect(trigger).toHaveClass('rounded-lg');
-      expect(trigger).toHaveClass('border-white/[0.06]');
+      expect(trigger).toHaveClass('border-border');
     }
 
     expect(screen.getByText('All')).toBeInTheDocument();

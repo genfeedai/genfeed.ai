@@ -14,9 +14,12 @@ const deleteActionOnClick = vi.fn();
 const openPostDetailMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
+  usePathname: () => '/genfeed-ai/paperclip/publish',
   useRouter: () => ({
     push: pushMock,
   }),
+  useSearchParams: () => new URLSearchParams(''),
 }));
 
 vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
@@ -126,7 +129,10 @@ describe('PostsGrid', () => {
       screen.getByRole('button', { name: /a draft post preview/i }),
     );
 
-    expect(pushMock).toHaveBeenCalledWith('/publish/posts/post-1');
+    // `useOrgUrl` scopes the href to the active org/brand route params.
+    expect(pushMock).toHaveBeenCalledWith(
+      '/genfeed-ai/paperclip/publish/posts/post-1',
+    );
   });
 
   it('uses the contextual open callback when provided', () => {

@@ -3,7 +3,11 @@
  * Prevents the real serializers from building (which requires complex config)
  * during unit tests. Services that use serializers should have them mocked here.
  */
-const noop = {};
+const noop = {
+  serialize<T>(data: T): T {
+    return data;
+  },
+};
 
 function serializerNameFromType(type: string): string {
   return `${type
@@ -90,3 +94,23 @@ export const ModelSerializer = noop;
 export const OutreachCampaignSerializer = noop;
 export const CampaignSerializer = noop;
 export const LinkSerializer2 = noop;
+export const ActivityBulkPatchSerializer = noop;
+export const CredentialOAuthSerializer = noop;
+export const DashboardLayoutSerializer = noop;
+export const HarnessProfileSerializer = noop;
+export const ImageEditSerializer = noop;
+export const IngredientBulkDeleteSerializer = noop;
+export const IngredientMergeSerializer = noop;
+export const ListeningTopicSerializer = noop;
+export const MemberInvitationSerializer = noop;
+export const MetadataSerializer = noop;
+export const MoodBoardSerializer = noop;
+export const OrganizationSettingSerializer = noop;
+export const ServiceSerializer = noop;
+export const SettingSerializer = noop;
+export const SocialSourceSerializer = noop;
+export const SourcePostSerializer = noop;
+export const StripeCheckoutSerializer = noop;
+export const SubscriptionPreviewSerializer = noop;
+export const VideoCaptionSerializer = noop;
+export const VideoEditSerializer = noop;

@@ -86,4 +86,185 @@ describe('usePostDetailDrafts', () => {
     });
     expect(result.current.childDescriptions.get('child-1')).toBe('Child desc');
   });
+
+  describe('with a loaded post', () => {
+    const loadedPost = {
+      children: [
+        { description: 'Child one', id: 'child-1', label: 'C1' },
+        { description: 'Child two', id: 'child-2', label: 'C2' },
+      ],
+      description: 'Parent description',
+      id: 'post-1',
+      ingredients: [{ id: 'ing-1' }],
+      label: 'Parent label',
+      scheduledDate: '2025-06-01T10:00:00.000Z',
+    } as never;
+
+    function renderLoaded(
+      overrides: Partial<typeof baseProps> = {},
+    ): ReturnType<
+      typeof renderHook<ReturnType<typeof usePostDetailDrafts>, void>
+    > {
+      return renderHook(() =>
+        usePostDetailDrafts({ ...baseProps, post: loadedPost, ...overrides }),
+      );
+    }
+
+    it('initializes drafts from the post', () => {
+      const { result } = renderLoaded();
+
+      expect(result.current.descriptionDraft).toBe('Parent description');
+      expect(result.current.labelDraft).toBe('Parent label');
+      expect(result.current.scheduleDraft).toBe('2025-06-01T10:00:00.000Z');
+      expect(result.current.childDescriptions.get('child-1')).toBe('Child one');
+      expect(result.current.childDescriptions.get('child-2')).toBe('Child two');
+      expect(result.current.selectedIngredients).toEqual([{ id: 'ing-1' }]);
+      expect(result.current.isContentDirty).toBe(false);
+      expect(result.current.isScheduleDirty).toBe(false);
+    });
+
+    it('flags dirty description, label, and schedule', () => {
+      const { result } = renderLoaded();
+
+      act(() => {
+        result.current.setDescriptionDraft('Edited description');
+      });
+      expect(result.current.isDescriptionDirty).toBe(true);
+      expect(result.current.isContentDirty).toBe(true);
+
+      act(() => {
+        result.current.setLabelDraft('Edited label');
+      });
+      expect(result.current.isLabelDirty).toBe(true);
+
+      act(() => {
+        result.current.setScheduleDraft('2025-07-01T10:00:00.000Z');
+      });
+      expect(result.current.isScheduleDirty).toBe(true);
+    });
+
+    it('auto-saves the parent post after editing', async () => {
+      const patch = vi.fn().mockResolvedValue({
+        description: 'Edited description',
+        id: 'post-1',
+        label: 'Parent label',
+      });
+      mockGetPostsService.mockResolvedValue({ patch });
+
+      const { result } = renderLoaded();
+
+      await act(async () => {
+        result.current.autoSaveRefs.currentDescriptions.current.set(
+          'post-1',
+          'Edited description',
+        );
+        await result.current.performAutoSaveForPost('post-1');
+      });
+
+      expect(patch).toHaveBeenCalledWith('post-1', {
+        description: 'Edited description',
+      });
+      expect(mockSetPost).toHaveBeenCalled();
+      expect(mockUpdateDescriptionRefs).toHaveBeenCalledWith(
+        'post-1',
+        'Edited description',
+      );
+    });
+
+    it('auto-saves a child post through handleUpdateChild', async () => {
+      const patch = vi.fn().mockResolvedValue({
+        description: 'Edited child',
+        id: 'child-1',
+        label: 'C1',
+      });
+      mockGetPostsService.mockResolvedValue({ patch });
+
+      const { result } = renderLoaded();
+
+      await act(async () => {
+        result.current.autoSaveRefs.currentDescriptions.current.set(
+          'child-1',
+          'Edited child',
+        );
+        await result.current.performAutoSaveForPost('child-1');
+      });
+
+      expect(patch).toHaveBeenCalledWith('child-1', {
+        description: 'Edited child',
+      });
+      expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {
+        description: 'Edited child',
+        label: 'C1',
+      });
+      expect(result.current.childDescriptions.get('child-1')).toBe(
+        'Edited child',
+      );
+    });
+
+    it('skips auto-save when nothing changed', async () => {
+      const patch = vi.fn();
+      mockGetPostsService.mockResolvedValue({ patch });
+
+      const { result } = renderLoaded();
+
+      await act(async () => {
+        await result.current.performAutoSaveForPost('post-1');
+      });
+
+      expect(patch).not.toHaveBeenCalled();
+    });
+
+    it('swallows auto-save failures', async () => {
+      const patch = vi.fn().mockRejectedValue(new Error('boom'));
+      mockGetPostsService.mockResolvedValue({ patch });
+
+      const { result } = renderLoaded();
+
+      await act(async () => {
+        result.current.autoSaveRefs.currentDescriptions.current.set(
+          'post-1',
+          'Edited description',
+        );
+        await expect(
+          result.current.performAutoSaveForPost('post-1'),
+        ).resolves.toBeUndefined();
+      });
+    });
+
+    it('debounces auto-save in publisher scope', async () => {
+      vi.useFakeTimers();
+      try {
+        const patch = vi.fn().mockResolvedValue({
+          description: 'Edited description',
+          id: 'post-1',
+          label: 'Parent label',
+        });
+        mockGetPostsService.mockResolvedValue({ patch });
+
+        const { result } = renderHook(() =>
+          usePostDetailDrafts({
+            ...baseProps,
+            post: loadedPost,
+            scope: PageScope.PUBLISHER,
+          }),
+        );
+
+        act(() => {
+          result.current.setDescriptionDraft('Edited description');
+        });
+
+        expect(patch).not.toHaveBeenCalled();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(5_000);
+        });
+
+        expect(patch).toHaveBeenCalledWith('post-1', {
+          description: 'Edited description',
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });

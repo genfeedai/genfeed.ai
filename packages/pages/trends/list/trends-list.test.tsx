@@ -1,5 +1,5 @@
 import TrendsList from '@pages/trends/list/trends-list';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -231,8 +231,8 @@ describe('TrendsList', () => {
       screen.getByRole('link', { name: /Follow creators/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Refresh feed' }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('button', { name: 'Refresh' }).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText('No viral videos yet')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Refresh videos' }),
@@ -257,6 +257,100 @@ describe('TrendsList', () => {
       'src',
       'https://www.tiktok.com/player/v1/7123456789012345678?autoplay=0&loop=0&muted=0',
     );
+  });
+
+  it('shows the loading state while the feed loads', () => {
+    mockUseTrendContent.mockReturnValue({
+      error: null,
+      isLoading: true,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent: vi.fn(),
+      summary: {
+        connectedPlatforms: [],
+        lockedPlatforms: [],
+        totalItems: 0,
+        totalTrends: 0,
+      },
+    });
+    render(<TrendsList />);
+
+    expect(screen.getByText('Loading content feed…')).toBeInTheDocument();
+  });
+
+  it('shows the error alert and retries the feed', () => {
+    const refreshTrendContent = vi.fn().mockResolvedValue(undefined);
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    mockUseTrendContent.mockReturnValue({
+      error: new Error('boom'),
+      isLoading: false,
+      isRefreshing: false,
+      items: [],
+      refreshTrendContent,
+      summary: {
+        connectedPlatforms: [],
+        lockedPlatforms: [],
+        totalItems: 0,
+        totalTrends: 0,
+      },
+    });
+    mockUseQuery.mockReturnValue({
+      data: [],
+      error: null,
+      isLoading: false,
+      refetch,
+    });
+    render(<TrendsList />);
+
+    expect(
+      screen.getByText('Failed to load the content feed'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(refreshTrendContent).toHaveBeenCalled();
+    expect(refetch).toHaveBeenCalled();
+  });
+
+  it('filters the feed by search and clears a no-match search', () => {
+    render(<TrendsList />);
+
+    const search = screen.getByPlaceholderText('Search trending content');
+    fireEvent.change(search, { target: { value: 'orchestration' } });
+
+    expect(
+      screen.getByText(
+        'Workflow orchestration is becoming the default AI app pattern',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Short-form explainers on AI tools are spiking'),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'zzz-no-match' } });
+    expect(screen.getByText('No matching trend content')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }));
+    expect(
+      screen.getByText('Short-form explainers on AI tools are spiking'),
+    ).toBeInTheDocument();
+  });
+
+  it('refreshes the feed and videos from the topbar refresh button', () => {
+    const refreshTrendContent = vi.fn().mockResolvedValue(undefined);
+    const refetch = vi.fn().mockResolvedValue(undefined);
+    mockUseTrendContent.mockReturnValue({
+      ...mockUseTrendContent(),
+      refreshTrendContent,
+    });
+    mockUseQuery.mockReturnValue({
+      ...mockUseQuery(),
+      refetch,
+    });
+    render(<TrendsList />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
+    expect(refreshTrendContent).toHaveBeenCalled();
+    expect(refetch).toHaveBeenCalled();
   });
 
   it('renders the section topbar with title and search actions', () => {

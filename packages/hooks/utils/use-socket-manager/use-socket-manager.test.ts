@@ -1,4 +1,8 @@
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import {
+  useSocketManager,
+  useSocketSubscription,
+  useSocketSubscriptions,
+} from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -117,5 +121,189 @@ describe('useSocketManager', () => {
 
     expect(result.current.isReady).toBe(false);
     expect(socketManagerGetInstanceMock).not.toHaveBeenCalled();
+  });
+
+  it('goes offline when token resolution throws', async () => {
+    resolveAuthTokenMock.mockRejectedValue(new Error('auth backend down'));
+
+    const { result } = renderHook(() => useSocketManager());
+
+    await waitFor(() => {
+      expect(result.current.connectionState).toBe('offline');
+    });
+
+    expect(result.current.isReady).toBe(false);
+  });
+
+  it('delegates socket operations to the singleton once ready', async () => {
+    const instance = {
+      cleanup: vi.fn(),
+      connect: vi.fn(),
+      getConnectionState: vi.fn(() => 'connected'),
+      getListenersCount: vi.fn(() => 3),
+      isConnected: vi.fn(() => true),
+      subscribe: vi.fn(() => vi.fn()),
+      subscribeConnectionState: vi.fn(() => vi.fn()),
+      subscribeMultiple: vi.fn(() => [vi.fn()]),
+      unsubscribe: vi.fn(),
+    };
+    socketManagerGetInstanceMock.mockReturnValue(instance);
+
+    const { result } = renderHook(() => useSocketManager());
+
+    await waitFor(() => {
+      expect(result.current.isReady).toBe(true);
+    });
+
+    const handler = vi.fn();
+    result.current.subscribe('event-a', handler);
+    expect(instance.subscribe).toHaveBeenCalledWith('event-a', handler);
+
+    result.current.subscribeMultiple([{ event: 'event-b', handler }]);
+    expect(instance.subscribeMultiple).toHaveBeenCalledWith([
+      { event: 'event-b', handler },
+    ]);
+
+    result.current.unsubscribe('event-a', handler);
+    expect(instance.unsubscribe).toHaveBeenCalledWith('event-a', handler);
+
+    result.current.connect();
+    expect(instance.connect).toHaveBeenCalled();
+
+    result.current.cleanup();
+    expect(instance.cleanup).toHaveBeenCalled();
+
+    expect(result.current.isConnected()).toBe(true);
+    expect(result.current.getListenersCount()).toBe(3);
+    expect(result.current.getSocketManager()).toBe(instance);
+  });
+
+  it('returns safe no-op values before the socket is initialized', () => {
+    useAuthIdentityMock.mockReturnValue({
+      getToken: getTokenMock,
+      isLoaded: false,
+      isSignedIn: false,
+    });
+
+    const { result } = renderHook(() => useSocketManager());
+
+    const dispose = result.current.subscribe('event', vi.fn());
+    expect(typeof dispose).toBe('function');
+    expect(dispose()).toBeUndefined();
+    expect(result.current.subscribeMultiple([])).toEqual([]);
+    expect(result.current.isConnected()).toBe(false);
+    expect(result.current.getListenersCount()).toBe(0);
+    expect(result.current.getSocketManager()).toBeNull();
+    expect(() => {
+      result.current.unsubscribe('event');
+      result.current.cleanup();
+      result.current.connect();
+    }).not.toThrow();
+  });
+});
+
+describe('useSocketSubscription', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resolveAuthTokenMock.mockResolvedValue('mock-token');
+    useAuthIdentityMock.mockReturnValue({
+      getToken: getTokenMock,
+      isLoaded: true,
+      isSignedIn: true,
+    });
+  });
+
+  it('subscribes to the event once the socket is ready and disposes on unmount', async () => {
+    const dispose = vi.fn();
+    const instance = {
+      cleanup: vi.fn(),
+      connect: vi.fn(),
+      getConnectionState: vi.fn(() => 'connected'),
+      getListenersCount: vi.fn(() => 0),
+      isConnected: vi.fn(() => true),
+      subscribe: vi.fn(() => dispose),
+      subscribeConnectionState: vi.fn(() => vi.fn()),
+      subscribeMultiple: vi.fn(() => []),
+      unsubscribe: vi.fn(),
+    };
+    socketManagerGetInstanceMock.mockReturnValue(instance);
+
+    const handler = vi.fn();
+    const { unmount } = renderHook(() =>
+      useSocketSubscription('my-event', handler),
+    );
+
+    await waitFor(() => {
+      expect(instance.subscribe).toHaveBeenCalledWith('my-event', handler);
+    });
+
+    unmount();
+    expect(dispose).toHaveBeenCalled();
+  });
+});
+
+describe('useSocketSubscriptions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resolveAuthTokenMock.mockResolvedValue('mock-token');
+    useAuthIdentityMock.mockReturnValue({
+      getToken: getTokenMock,
+      isLoaded: true,
+      isSignedIn: true,
+    });
+  });
+
+  it('subscribes to all events and disposes each on unmount', async () => {
+    const disposeA = vi.fn();
+    const disposeB = vi.fn();
+    const instance = {
+      cleanup: vi.fn(),
+      connect: vi.fn(),
+      getConnectionState: vi.fn(() => 'connected'),
+      getListenersCount: vi.fn(() => 0),
+      isConnected: vi.fn(() => true),
+      subscribe: vi.fn(() => vi.fn()),
+      subscribeConnectionState: vi.fn(() => vi.fn()),
+      subscribeMultiple: vi.fn(() => [disposeA, disposeB]),
+      unsubscribe: vi.fn(),
+    };
+    socketManagerGetInstanceMock.mockReturnValue(instance);
+
+    const subscriptions = [
+      { event: 'event-a', handler: vi.fn() },
+      { event: 'event-b', handler: vi.fn() },
+    ];
+    const { unmount } = renderHook(() => useSocketSubscriptions(subscriptions));
+
+    await waitFor(() => {
+      expect(instance.subscribeMultiple).toHaveBeenCalledWith(subscriptions);
+    });
+
+    unmount();
+    expect(disposeA).toHaveBeenCalled();
+    expect(disposeB).toHaveBeenCalled();
+  });
+
+  it('does nothing with an empty subscription list', async () => {
+    const instance = {
+      cleanup: vi.fn(),
+      connect: vi.fn(),
+      getConnectionState: vi.fn(() => 'connected'),
+      getListenersCount: vi.fn(() => 0),
+      isConnected: vi.fn(() => true),
+      subscribe: vi.fn(() => vi.fn()),
+      subscribeConnectionState: vi.fn(() => vi.fn()),
+      subscribeMultiple: vi.fn(() => []),
+      unsubscribe: vi.fn(),
+    };
+    socketManagerGetInstanceMock.mockReturnValue(instance);
+
+    const { result } = renderHook(() => useSocketSubscriptions([]));
+
+    await waitFor(() => {
+      expect(result.current.getSocketManager()).toBe(instance);
+    });
+
+    expect(instance.subscribeMultiple).not.toHaveBeenCalled();
   });
 });

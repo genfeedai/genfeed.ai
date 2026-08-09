@@ -1,18 +1,20 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import * as fs from 'node:fs';
-import { FFmpegConfigService } from '@files/services/ffmpeg/ffmpeg.config';
+import { FileSystemUtil } from '@files/helpers/utils/file-system/file-system.util';
+import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
+import { FFmpegConfigService } from '@files/services/ffmpeg/config/ffmpeg.config';
 import {
   FFmpegPerformanceService,
   ProcessOptions,
-} from '@files/services/ffmpeg/ffmpeg-performance.service';
+} from '@files/services/ffmpeg/performances/ffmpeg-performance.service';
+import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';
 
 vi.mock('child_process');
 vi.mock('fs');
-vi.mock('ffmpeg-static', () => '/usr/bin/ffmpeg');
+vi.mock('ffmpeg-static', () => ({ default: '/usr/bin/ffmpeg' }));
 vi.mock('ffprobe-static', () => ({ path: '/usr/bin/ffprobe' }));
 
 describe('FFmpegPerformanceService', () => {
@@ -38,6 +40,16 @@ describe('FFmpegPerformanceService', () => {
             error: vi.fn(),
             log: vi.fn(),
             warn: vi.fn(),
+          },
+        },
+        {
+          provide: BinaryValidationService,
+          useValue: {
+            getBinaryPaths: vi.fn().mockReturnValue({
+              ffmpegPath: '/usr/bin/ffmpeg',
+              ffprobePath: '/usr/bin/ffprobe',
+            }),
+            validateBinaries: vi.fn().mockResolvedValue(undefined),
           },
         },
         {
@@ -147,8 +159,8 @@ describe('FFmpegPerformanceService', () => {
       const result = await service.executeFFmpeg(args, options);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('timeout');
-      expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+      expect(result.error).toContain('timed out');
+      expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
     });
 
     it('should report progress during execution', async () => {
@@ -174,7 +186,9 @@ describe('FFmpegPerformanceService', () => {
       // Emit progress data
       mockProcess.stderr.emit(
         'data',
-        Buffer.from('time=00:00:10.00 speed=2.5x'),
+        Buffer.from(
+          'frame=  100 fps= 25.0 q=28.0 size=    1024kB time=00:00:10.00 bitrate= 850.5kbits/s speed=2.5x',
+        ),
       );
 
       const result = await resultPromise;
@@ -182,8 +196,10 @@ describe('FFmpegPerformanceService', () => {
       expect(result.success).toBe(true);
       expect(onProgress).toHaveBeenCalledWith(
         expect.objectContaining({
-          speed: 2.5,
-          time: 10,
+          fps: 25,
+          frames: 100,
+          speed: '2.5x',
+          time: '00:00:10.00',
         }),
       );
     });
@@ -212,7 +228,7 @@ describe('FFmpegPerformanceService', () => {
       const result = await resultPromise;
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Aborted');
+      expect(result.error).toContain('cancelled');
       expect(mockProcess.kill).toHaveBeenCalled();
     });
   });
@@ -224,17 +240,20 @@ describe('FFmpegPerformanceService', () => {
         format: {
           bit_rate: '1000000',
           duration: '120.5',
+          filename: inputPath,
           size: '10485760',
         },
         streams: [
           {
+            codec_long_name: 'H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10',
+            codec_name: 'h264',
             codec_type: 'video',
             height: 1080,
-            r_frame_rate: '30/1',
+            index: 0,
             width: 1920,
           },
         ],
-      };
+      } satisfies FFprobeData;
 
       const mockProcess: any = {
         on: vi.fn((event: string, callback: (...args: any[]) => void) => {
@@ -263,7 +282,6 @@ describe('FFmpegPerformanceService', () => {
       expect(spawn).toHaveBeenCalledWith(
         '/usr/bin/ffprobe',
         expect.arrayContaining(['-print_format', 'json', inputPath]),
-        expect.any(Object),
       );
     });
 
@@ -310,43 +328,36 @@ describe('FFmpegPerformanceService', () => {
         );
       }
 
-      // Verify only 2 are running concurrently
-      expect(service.concurrentProcesses).toBeLessThanOrEqual(2);
+      // Verify the third process is queued until a slot is available.
+      expect(spawn).toHaveBeenCalledTimes(2);
 
       await Promise.all(processes);
     });
 
     it('should cancel all processes on cleanup', async () => {
-      const mockProcesses: any[] = [];
-      for (let i = 0; i < 3; i++) {
-        const process = {
-          ...mockChildProcess,
-          kill: vi.fn(),
-          pid: 12345 + i,
-        };
-        mockProcesses.push(process);
-      }
+      const mockProcesses = Array.from({ length: 3 }, (_, i) => ({
+        kill: vi.fn(),
+        killed: true,
+        once: vi.fn((event: string, callback: () => void) => {
+          if (event === 'close') {
+            setTimeout(callback, 0);
+          }
+        }),
+        pid: 12345 + i,
+      }));
 
-      let processIndex = 0;
-      (spawn as Mock).mockImplementation(() => {
-        const process = mockProcesses[processIndex++];
-        service.activeProcesses.set(`process-${processIndex}`, process);
-        return process;
+      const registry = (
+        service as unknown as { activeProcesses: Map<string, unknown> }
+      ).activeProcesses;
+      mockProcesses.forEach((proc, i) => {
+        registry.set(`process-${i}`, proc);
       });
-
-      // Start processes
-      const promises: any[] = [];
-      for (let i = 0; i < 3; i++) {
-        promises.push(
-          service.executeFFmpeg(['-i', `input${i}.mp4`, `output${i}.mp4`]),
-        );
-      }
 
       await service.cancelAllProcesses();
 
-      mockProcesses.forEach((process) => {
-        expect(process.kill).toHaveBeenCalled();
-      });
+      for (const proc of mockProcesses) {
+        expect(proc.kill).toHaveBeenCalledWith('SIGTERM');
+      }
     });
   });
 
@@ -380,9 +391,23 @@ describe('FFmpegPerformanceService', () => {
     it('should estimate processing time based on input', async () => {
       const inputPath = '/path/to/video.mp4';
       const probeData = {
-        format: { duration: '120', size: '10485760' },
-        streams: [{ codec_type: 'video', height: 1080, width: 1920 }],
-      };
+        format: {
+          bit_rate: '1000000',
+          duration: '120',
+          filename: inputPath,
+          size: '10485760',
+        },
+        streams: [
+          {
+            codec_long_name: 'H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10',
+            codec_name: 'h264',
+            codec_type: 'video',
+            height: 1080,
+            index: 0,
+            width: 1920,
+          },
+        ],
+      } satisfies FFprobeData;
 
       // Mock probe execution
       vi.spyOn(service, 'probe').mockResolvedValue(probeData);
@@ -395,33 +420,35 @@ describe('FFmpegPerformanceService', () => {
   });
 
   describe('temp file management', () => {
+    const getTempFiles = (): Set<string> =>
+      (service as unknown as { tempFiles: Set<string> }).tempFiles;
+
     it('should track and cleanup temp files', async () => {
       const tempFile = '/tmp/temp-video.mp4';
+      const cleanupSpy = vi
+        .spyOn(FileSystemUtil, 'cleanupFile')
+        .mockResolvedValue(undefined);
 
-      service.tempFiles.add(tempFile);
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.unlinkSync as Mock).mockImplementation(() => {
-        /* noop */
-      });
+      service.registerTempFile(tempFile);
 
       await service.cleanupTempFiles();
 
-      expect(fs.unlinkSync).toHaveBeenCalledWith(tempFile);
-      expect(service.tempFiles.size).toBe(0);
+      expect(cleanupSpy).toHaveBeenCalledWith(tempFile);
+      expect(getTempFiles().size).toBe(0);
     });
 
     it('should handle cleanup errors gracefully', async () => {
       const tempFile = '/tmp/temp-video.mp4';
+      vi.spyOn(FileSystemUtil, 'cleanupFile').mockRejectedValue(
+        new Error('Permission denied'),
+      );
 
-      service.tempFiles.add(tempFile);
-      (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.unlinkSync as Mock).mockImplementation(() => {
-        throw new Error('Permission denied');
-      });
+      service.registerTempFile(tempFile);
 
       await service.cleanupTempFiles();
 
-      expect(loggerService.error).toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalled();
+      expect(getTempFiles().size).toBe(1);
     });
   });
 });

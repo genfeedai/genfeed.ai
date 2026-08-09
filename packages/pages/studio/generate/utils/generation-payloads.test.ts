@@ -1,97 +1,287 @@
-import { IngredientFormat, RouterPriority } from '@genfeedai/enums';
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
-  buildBaseGenerationPayload,
-  buildMusicPayload,
-} from '@pages/studio/generate/utils/generation-payloads';
+  ContentTemplateKey,
+  IngredientCategory,
+  IngredientFormat,
+  RouterPriority,
+} from '@genfeedai/enums';
+import type { IIngredient, IModel } from '@genfeedai/interfaces';
 import { describe, expect, it } from 'vitest';
+import {
+  buildAvatarPayload,
+  buildBaseGenerationPayload,
+  buildImagePayload,
+  buildMusicPayload,
+  buildRepromptData,
+  buildVideoPayload,
+} from './generation-payloads';
 
-describe('generation-payloads', () => {
-  it('buildBaseGenerationPayload omits model in auto mode and forwards prioritize', () => {
+type PromptData = PromptTextareaSchema & { isValid: boolean };
+
+function makePromptData(overrides: Partial<PromptData> = {}): PromptData {
+  return {
+    isValid: true,
+    text: 'A cinematic product shot',
+    ...overrides,
+  } as PromptData;
+}
+
+describe('buildBaseGenerationPayload', () => {
+  it('builds defaults from a minimal prompt', () => {
     const payload = buildBaseGenerationPayload(
-      {
+      makePromptData(),
+      'model-key',
+      'brand-1',
+    );
+
+    expect(payload).toMatchObject({
+      autoSelectModel: false,
+      brand: 'brand-1',
+      brandingMode: 'off',
+      height: 1920,
+      isBrandingEnabled: false,
+      model: 'model-key',
+      outputs: 1,
+      prioritize: RouterPriority.BALANCED,
+      references: [],
+      tags: [],
+      text: 'A cinematic product shot',
+      useTemplate: true,
+      width: 1080,
+    });
+    expect(payload.promptTemplate).toBeUndefined();
+  });
+
+  it('omits the model and derives branding when auto-select and branding are on', () => {
+    const payload = buildBaseGenerationPayload(
+      makePromptData({
         autoSelectModel: true,
-        blacklist: [],
-        brand: 'brand-id',
-        category: 'image',
-        fontFamily: 'montserrat-black',
-        format: IngredientFormat.PORTRAIT,
-        height: 1920,
-        isValid: true,
-        models: [],
-        outputs: 1,
-        prioritize: RouterPriority.SPEED,
-        quality: 'premium',
-        sounds: [],
-        style: '',
-        tags: [],
-        text: 'hello world',
-        width: 1080,
-      },
-      'replicate/model-key',
-      'brand-id',
+        blacklist: ['nsfw', 'logos'],
+        camera: ' 35mm ',
+        isBrandingEnabled: true,
+        outputs: 3,
+      }),
+      'model-key',
+      'brand-1',
     );
 
     expect(payload.autoSelectModel).toBe(true);
     expect(payload.model).toBeUndefined();
-    expect(payload.prioritize).toBe(RouterPriority.SPEED);
+    expect(payload.brandingMode).toBe('brand');
+    expect(payload.isBrandingEnabled).toBe(true);
+    expect(payload.blacklist).toBe('nsfw, logos');
+    expect(payload.camera).toBe('35mm');
+    expect(payload.outputs).toBe(3);
   });
 
-  it('buildBaseGenerationPayload keeps model when autoSelectModel is a non-boolean truthy value', () => {
+  it('maps legacy preset keys to content template keys', () => {
     const payload = buildBaseGenerationPayload(
-      {
-        autoSelectModel: 'false' as unknown as boolean,
-        blacklist: [],
-        brand: 'brand-id',
-        category: 'image',
-        fontFamily: 'montserrat-black',
-        format: IngredientFormat.PORTRAIT,
-        height: 1920,
-        isValid: true,
-        models: [],
-        outputs: 1,
-        prioritize: RouterPriority.BALANCED,
-        quality: 'premium',
-        sounds: [],
-        style: '',
-        tags: [],
-        text: 'hello world',
-        width: 1080,
-      },
-      'replicate/model-key',
-      'brand-id',
+      makePromptData({ prompt_template: 'product-photo' }),
+      'model-key',
+      'brand-1',
     );
 
-    expect(payload.autoSelectModel).toBe(false);
-    expect(payload.model).toBe('replicate/model-key');
+    expect(payload.promptTemplate).toBe(ContentTemplateKey.IMAGE_PRODUCT);
   });
 
-  it('buildMusicPayload includes prioritize and selected model in manual mode', () => {
-    const payload = buildMusicPayload(
-      {
-        autoSelectModel: false,
-        blacklist: [],
-        brand: 'brand-id',
-        category: 'music',
-        fontFamily: 'montserrat-black',
-        format: IngredientFormat.PORTRAIT,
-        height: 1920,
-        isValid: true,
-        models: ['music/model-key'],
-        outputs: 1,
-        prioritize: RouterPriority.QUALITY,
-        quality: 'premium',
-        sounds: [],
-        style: '',
-        tags: [],
-        text: 'cinematic music',
-        width: 1080,
-      },
-      'music/model-key',
-      12,
+  it('passes through unknown template keys unchanged', () => {
+    const payload = buildBaseGenerationPayload(
+      makePromptData({ prompt_template: 'custom-template' }),
+      'model-key',
+      'brand-1',
     );
 
-    expect(payload.model).toBe('music/model-key');
-    expect(payload.prioritize).toBe(RouterPriority.QUALITY);
-    expect(payload.duration).toBe(12);
+    expect(payload.promptTemplate).toBe('custom-template');
+  });
+});
+
+describe('buildVideoPayload', () => {
+  it('extends the base payload with video fields and defaults', () => {
+    const base = buildBaseGenerationPayload(
+      makePromptData(),
+      'model-key',
+      'brand-1',
+    );
+    const payload = buildVideoPayload(
+      base,
+      makePromptData({
+        cameraMovement: ' dolly ',
+        duration: 8,
+        isAudioEnabled: true,
+        sounds: ['whoosh'],
+      }),
+    );
+
+    expect(payload.cameraMovement).toBe('dolly');
+    expect(payload.duration).toBe(8);
+    expect(payload.format).toBe(IngredientFormat.PORTRAIT);
+    expect(payload.isAudioEnabled).toBe(true);
+    expect(payload.sounds).toEqual(['whoosh']);
+  });
+
+  it('defaults audio off and sounds empty', () => {
+    const base = buildBaseGenerationPayload(
+      makePromptData(),
+      'model-key',
+      'brand-1',
+    );
+    const payload = buildVideoPayload(base, makePromptData());
+
+    expect(payload.isAudioEnabled).toBe(false);
+    expect(payload.sounds).toEqual([]);
+    expect(payload.duration).toBeUndefined();
+  });
+});
+
+describe('buildImagePayload', () => {
+  it('uses the provided format or falls back to portrait', () => {
+    const base = buildBaseGenerationPayload(
+      makePromptData(),
+      'model-key',
+      'brand-1',
+    );
+
+    expect(
+      buildImagePayload(
+        base,
+        makePromptData({ format: IngredientFormat.SQUARE }),
+      ).format,
+    ).toBe(IngredientFormat.SQUARE);
+    expect(buildImagePayload(base, makePromptData()).format).toBe(
+      IngredientFormat.PORTRAIT,
+    );
+  });
+});
+
+describe('buildMusicPayload', () => {
+  it('builds a music payload with an autogenerated label', () => {
+    const payload = buildMusicPayload(
+      makePromptData({ text: '  lofi beat  ' }),
+      'music-model',
+      30,
+    );
+
+    expect(payload.duration).toBe(30);
+    expect(payload.label).toMatch(/^music-\d+$/);
+    expect(payload.model).toBe('music-model');
+    expect(payload.text).toBe('lofi beat');
+  });
+
+  it('defaults duration to 10 and omits the model on auto-select', () => {
+    const payload = buildMusicPayload(
+      makePromptData({ autoSelectModel: true }),
+      'music-model',
+    );
+
+    expect(payload.duration).toBe(10);
+    expect(payload.model).toBeUndefined();
+  });
+});
+
+describe('buildAvatarPayload', () => {
+  it('builds avatar payloads with trimmed speech', () => {
+    const payload = buildAvatarPayload(
+      makePromptData({
+        avatarId: 'avatar-1',
+        speech: '  hello world  ',
+        voiceId: 'voice-1',
+      }),
+    );
+
+    expect(payload).toEqual({
+      avatarId: 'avatar-1',
+      speech: 'hello world',
+      text: 'A cinematic product shot',
+      voiceId: 'voice-1',
+    });
+  });
+
+  it('defaults speech to an empty string', () => {
+    expect(buildAvatarPayload(makePromptData()).speech).toBe('');
+  });
+});
+
+describe('buildRepromptData', () => {
+  const models = [{ key: 'fallback-model' }] as IModel[];
+
+  it('rebuilds prompt data from ingredient metadata', () => {
+    const ingredient = {
+      height: 720,
+      metadata: {
+        blacklist: ['bad', 42],
+        camera: '85mm',
+        duration: 6,
+        isAudioEnabled: true,
+        mood: 'moody',
+        sounds: ['rain', 7],
+        style: 'noir',
+      },
+      metadataHeight: 1440,
+      metadataModel: 'ingredient-model',
+      metadataWidth: 810,
+      promptText: 'Original prompt',
+      references: ['ref-1', 99],
+      tags: [{ id: 'tag-id', key: 'tag-key', label: 'Tag' }, { id: 'only-id' }],
+      width: 405,
+    } as unknown as IIngredient;
+
+    const data = buildRepromptData(
+      ingredient,
+      IngredientCategory.VIDEO,
+      'brand-1',
+      models,
+    );
+
+    expect(data.blacklist).toEqual(['bad']);
+    expect(data.brand).toBe('brand-1');
+    expect(data.camera).toBe('85mm');
+    expect(data.duration).toBe(6);
+    expect(data.format).toBe(IngredientFormat.PORTRAIT);
+    expect(data.height).toBe(1440);
+    expect(data.isAudioEnabled).toBe(true);
+    expect(data.isValid).toBe(true);
+    expect(data.models).toEqual(['ingredient-model']);
+    expect(data.mood).toBe('moody');
+    expect(data.references).toEqual(['ref-1']);
+    expect(data.sounds).toEqual(['rain']);
+    expect(data.style).toBe('noir');
+    expect(data.tags).toEqual(['tag-key', 'only-id']);
+    expect(data.text).toBe('Original prompt');
+    expect(data.width).toBe(810);
+  });
+
+  it('falls back to defaults when metadata is missing', () => {
+    const ingredient = {} as IIngredient;
+
+    const data = buildRepromptData(
+      ingredient,
+      IngredientCategory.MUSIC,
+      'brand-1',
+      models,
+    );
+
+    expect(data.blacklist).toEqual([]);
+    expect(data.duration).toBeUndefined();
+    expect(data.format).toBe('');
+    expect(data.height).toBe(1920);
+    expect(data.isAudioEnabled).toBe(false);
+    expect(data.models).toEqual(['fallback-model']);
+    expect(data.references).toEqual([]);
+    expect(data.sounds).toEqual([]);
+    expect(data.tags).toEqual([]);
+    expect(data.text).toBe('');
+    expect(data.width).toBe(1080);
+  });
+
+  it('uses an empty model key when no model source exists', () => {
+    const data = buildRepromptData(
+      {} as IIngredient,
+      IngredientCategory.IMAGE,
+      'brand-1',
+      [],
+    );
+
+    expect(data.models).toEqual(['']);
+    expect(data.format).toBe(IngredientFormat.PORTRAIT);
   });
 });

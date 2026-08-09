@@ -41,31 +41,33 @@ describe('DevDiscordController', () => {
   });
 
   describe('testChannel', () => {
-    it('should throw 403 in production', async () => {
+    it('should throw 403 in production', () => {
       mockConfigService.isProduction = true;
 
-      await expect(
+      expect(() =>
         controller.testChannel({ channelId: 'channel-123' }),
-      ).rejects.toThrow(HttpException);
+      ).toThrow(HttpException);
 
-      await expect(
+      expect(() =>
         controller.testChannel({ channelId: 'channel-123' }),
-      ).rejects.toMatchObject({
-        status: HttpStatus.FORBIDDEN,
-      });
+      ).toThrow(
+        expect.objectContaining({
+          status: HttpStatus.FORBIDDEN,
+        }),
+      );
     });
 
-    it('should throw 400 if channelId is missing', async () => {
-      await expect(controller.testChannel({ channelId: '' })).rejects.toThrow(
+    it('should throw 400 if channelId is missing', () => {
+      expect(() => controller.testChannel({ channelId: '' })).toThrow(
         HttpException,
       );
 
-      await expect(
-        controller.testChannel({ channelId: '' }),
-      ).rejects.toMatchObject({
-        response: 'channelId is required',
-        status: HttpStatus.BAD_REQUEST,
-      });
+      expect(() => controller.testChannel({ channelId: '' })).toThrow(
+        expect.objectContaining({
+          response: 'channelId is required',
+          status: HttpStatus.BAD_REQUEST,
+        }),
+      );
     });
 
     it('should call discordBotService.testChannel in dev mode', async () => {
@@ -109,14 +111,16 @@ describe('DevDiscordController', () => {
   });
 
   describe('getChannels', () => {
-    it('should throw 403 in production', async () => {
+    it('should throw 403 in production', () => {
       mockConfigService.isProduction = true;
 
-      await expect(controller.getChannels()).rejects.toThrow(HttpException);
+      expect(() => controller.getChannels()).toThrow(HttpException);
 
-      await expect(controller.getChannels()).rejects.toMatchObject({
-        status: HttpStatus.FORBIDDEN,
-      });
+      expect(() => controller.getChannels()).toThrow(
+        expect.objectContaining({
+          status: HttpStatus.FORBIDDEN,
+        }),
+      );
     });
 
     it('should return all configured channels in dev mode', async () => {

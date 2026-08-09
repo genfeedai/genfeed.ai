@@ -52,6 +52,7 @@ export default defineConfig({
   },
   test: {
     coverage: {
+      thresholds: { branches: 90, functions: 98, lines: 86, statements: 86 },
       exclude: ['src/**/*.d.ts', 'src/**/__tests__/**'],
       include: ['src/**/*.ts'],
       provider: 'v8',

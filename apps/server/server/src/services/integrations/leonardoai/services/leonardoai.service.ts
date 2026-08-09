@@ -107,7 +107,10 @@ export class LeonardoAIService {
       dimensionKey && dimensionKey in this.dimensions
         ? this.dimensions[dimensionKey as keyof typeof this.dimensions]?.width
         : null;
-    const height = dimensionKey && dimensionKey in this.dimensions;
+    const height =
+      dimensionKey && dimensionKey in this.dimensions
+        ? this.dimensions[dimensionKey as keyof typeof this.dimensions]?.height
+        : null;
 
     try {
       this.loggerService.log(`${url} started`);

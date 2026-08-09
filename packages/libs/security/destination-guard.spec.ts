@@ -204,4 +204,273 @@ describe('destination guard', () => {
       }),
     ).rejects.toThrow('require an explicit origin allowlist');
   });
+
+  it('rejects malformed destination URLs', async () => {
+    await expect(resolveSafeDestination('not a url')).rejects.toThrow(
+      'must be a valid URL',
+    );
+  });
+
+  it('rejects URLs that embed credentials', async () => {
+    await expect(
+      resolveSafeDestination('https://user:secret@public.example/asset'),
+    ).rejects.toThrow('must not contain credentials');
+  });
+
+  it('rejects allowlist entries that are not bare origins', async () => {
+    await expect(
+      resolveSafeDestination('http://images.internal:3013/train', {
+        allowedOrigins: ['http://images.internal:3013/train'],
+        allowPrivateNetwork: true,
+      }),
+    ).rejects.toThrow('must be an origin');
+  });
+
+  it('rejects hostnames that do not resolve', async () => {
+    dnsLookupMock.mockResolvedValue([]);
+
+    await expect(
+      resolveSafeDestination('https://ghost.example/asset'),
+    ).rejects.toThrow('did not resolve');
+  });
+
+  it('rejects DNS answers with an unsupported address family', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 0 }]);
+
+    await expect(
+      resolveSafeDestination('https://weird.example/asset'),
+    ).rejects.toThrow('unsupported address');
+  });
+
+  it('rejects an invalid maxRedirects option', async () => {
+    await expect(
+      safeFetch('http://public.example/asset', {}, { maxRedirects: -1 }),
+    ).rejects.toThrow('maxRedirects must be a non-negative integer');
+    await expect(
+      safeFetch('http://public.example/asset', {}, { maxRedirects: 1.5 }),
+    ).rejects.toThrow('maxRedirects must be a non-negative integer');
+  });
+
+  it('follows same-origin redirects and marks the response redirected', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: ['location', 'http://public.example/next'],
+            statusCode: 302,
+            statusMessage: 'Found',
+          });
+          callback(response);
+          return request;
+        },
+      )
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: [],
+            statusCode: 200,
+            statusMessage: 'OK',
+          });
+          callback(response);
+          return request;
+        },
+      );
+
+    const response = await safeFetch('http://public.example/start');
+
+    expect(response.status).toBe(200);
+    expect(response.redirected).toBe(true);
+    expect(httpRequestMock).toHaveBeenCalledTimes(2);
+    expect(String(httpRequestMock.mock.calls[1]?.[0])).toBe(
+      'http://public.example/next',
+    );
+  });
+
+  it('converts a 303 POST redirect into a bodyless GET', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    httpRequestMock
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: ['location', 'http://public.example/next'],
+            statusCode: 303,
+            statusMessage: 'See Other',
+          });
+          callback(response);
+          return request;
+        },
+      )
+      .mockImplementationOnce(
+        (
+          _url: URL,
+          _options: unknown,
+          callback: (response: Readable) => void,
+        ) => {
+          const request = new EventEmitter() as EventEmitter & {
+            end: (body?: unknown) => void;
+          };
+          request.end = vi.fn();
+          const response = Readable.from([]);
+          Object.assign(response, {
+            rawHeaders: [],
+            statusCode: 200,
+            statusMessage: 'OK',
+          });
+          callback(response);
+          return request;
+        },
+      );
+
+    await safeFetch('http://public.example/start', {
+      body: 'payload',
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
+      method: 'GET',
+    });
+  });
+
+  it('returns redirect responses untouched in manual redirect mode', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(302, ['location', 'http://public.example/next']);
+
+    const response = await safeFetch('http://public.example/start', {
+      redirect: 'manual',
+    });
+
+    expect(response.status).toBe(302);
+    expect(httpRequestMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws on redirects when redirect mode is error', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(302, ['location', 'http://public.example/next']);
+
+    await expect(
+      safeFetch('http://public.example/start', { redirect: 'error' }),
+    ).rejects.toThrow('Redirects are disabled');
+  });
+
+  it('stops after exceeding the redirect budget', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(302, ['location', 'http://public.example/next']);
+
+    await expect(
+      safeFetch('http://public.example/start', {}, { maxRedirects: 0 }),
+    ).rejects.toThrow('exceeded 0 redirects');
+  });
+
+  it('rejects redirects with an unparsable location', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(302, ['location', 'http://[invalid']);
+
+    await expect(safeFetch('http://public.example/start')).rejects.toThrow(
+      'invalid redirect',
+    );
+  });
+
+  it('serializes URLSearchParams bodies with the form content type', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await safeFetch('http://public.example/asset', {
+      body: new URLSearchParams({ key: 'value' }),
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      }),
+    });
+  });
+
+  it('serializes ArrayBuffer and typed-array bodies', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await safeFetch('http://public.example/asset', {
+      body: new TextEncoder().encode('abc').buffer as ArrayBuffer,
+      method: 'POST',
+    });
+    await safeFetch('http://public.example/asset', {
+      body: new TextEncoder().encode('abcd'),
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ 'content-length': '3' }),
+    });
+    expect(httpRequestMock.mock.calls[1]?.[1]).toMatchObject({
+      headers: expect.objectContaining({ 'content-length': '4' }),
+    });
+  });
+
+  it('serializes Blob bodies with their content type', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await safeFetch('http://public.example/asset', {
+      body: new Blob(['hello'], { type: 'text/plain' }),
+      method: 'POST',
+    });
+
+    expect(httpRequestMock.mock.calls[0]?.[1]).toMatchObject({
+      headers: expect.objectContaining({
+        'content-length': '5',
+        'content-type': 'text/plain',
+      }),
+    });
+  });
+
+  it('rejects unsupported request bodies', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(200);
+
+    await expect(
+      safeFetch('http://public.example/asset', {
+        body: new ReadableStream(),
+        method: 'POST',
+      }),
+    ).rejects.toThrow('Unsupported request body');
+  });
+
+  it('returns a bodyless response for status codes that forbid bodies', async () => {
+    dnsLookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    mockHttpResponse(204);
+
+    const response = await safeFetch('http://public.example/asset');
+
+    expect(response.status).toBe(204);
+    expect(response.body).toBeNull();
+  });
 });

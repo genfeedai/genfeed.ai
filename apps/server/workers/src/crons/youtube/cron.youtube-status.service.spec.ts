@@ -108,14 +108,14 @@ describe('CronYoutubeStatusService', () => {
 
   it('rolls a grouped public video into canonical target state', async () => {
     const post = {
-      brand: 'brand-1',
-      credential: 'credential-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
       externalId: 'video-4',
       groupId: 'group-1',
       id: 'post-4',
-      organization: 'org-1',
+      organizationId: 'org-1',
       status: PostStatus.PRIVATE,
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     youtubeService.getVideoStatus.mockResolvedValue({
@@ -151,14 +151,13 @@ describe('CronYoutubeStatusService', () => {
 
   it('syncs status changes through the system workflow provenance service', async () => {
     const post = {
-      _id: 'post-1',
-      brand: 'brand-1',
-      credential: 'credential-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
       externalId: 'video-1',
       id: 'post-1',
-      organization: 'org-1',
+      organizationId: 'org-1',
       status: PostStatus.PRIVATE,
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     youtubeService.getVideoStatus.mockResolvedValue({
@@ -197,15 +196,14 @@ describe('CronYoutubeStatusService', () => {
 
   it('suppresses the published webhook when the canonical transition is stale', async () => {
     const post = {
-      _id: 'post-stale',
-      brand: 'brand-1',
-      credential: 'credential-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
       externalId: 'video-stale',
       groupId: 'group-1',
       id: 'post-stale',
-      organization: 'org-1',
+      organizationId: 'org-1',
       status: PostStatus.PRIVATE,
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     youtubeService.getVideoStatus.mockResolvedValue({
@@ -223,14 +221,13 @@ describe('CronYoutubeStatusService', () => {
 
   it('does not record an execution when the status is unchanged', async () => {
     const post = {
-      _id: 'post-2',
-      brand: 'brand-1',
-      credential: 'credential-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
       externalId: 'video-2',
       id: 'post-2',
-      organization: 'org-1',
+      organizationId: 'org-1',
       status: PostStatus.PRIVATE,
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     youtubeService.getVideoStatus.mockResolvedValue({
@@ -245,14 +242,13 @@ describe('CronYoutubeStatusService', () => {
 
   it('soft-deletes posts for videos removed from YouTube inside a provenance execution', async () => {
     const post = {
-      _id: 'post-3',
-      brand: 'brand-1',
-      credential: 'credential-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
       externalId: 'video-3',
       id: 'post-3',
-      organization: 'org-1',
+      organizationId: 'org-1',
       status: PostStatus.PRIVATE,
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     youtubeService.getVideoStatus.mockRejectedValue(

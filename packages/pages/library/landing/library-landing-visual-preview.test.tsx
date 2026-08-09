@@ -6,14 +6,19 @@ const mockFindVideos = vi.fn();
 const mockFindImages = vi.fn();
 const mockFindGifs = vi.fn();
 
+// Identity-stable getters: the real `useIngredientServices` memoizes them via
+// `useAuthedService`, and they are dependencies of the preview fetch effect.
+// Fresh closures per render re-run the effect and mask `mockRejectedValueOnce`.
+const ingredientServices = {
+  getGifsService: async () => ({ findAll: mockFindGifs }),
+  getImagesService: async () => ({ findAll: mockFindImages }),
+  getVideosService: async () => ({ findAll: mockFindVideos }),
+};
+
 vi.mock(
   '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services',
   () => ({
-    useIngredientServices: () => ({
-      getGifsService: async () => ({ findAll: mockFindGifs }),
-      getImagesService: async () => ({ findAll: mockFindImages }),
-      getVideosService: async () => ({ findAll: mockFindVideos }),
-    }),
+    useIngredientServices: () => ingredientServices,
   }),
 );
 

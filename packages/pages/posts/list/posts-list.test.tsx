@@ -22,6 +22,51 @@ const postFixture = {
 
 let resourceData: IPost[] = [];
 
+type MockQueryResult = {
+  data: unknown;
+  isLoading: boolean;
+  refetch: () => void;
+};
+
+let cachedQueryPosts: IPost[] | null = null;
+let cachedPostsQueryResult: MockQueryResult | null = null;
+
+const emptyListQueryResult: MockQueryResult = {
+  data: [],
+  isLoading: false,
+  refetch: resourceRefreshMock,
+};
+
+// Every hook in the tree shares this mock, so discriminate on the query key.
+// Handing the posts payload to AdminOrgBrandFilter's organizations query made
+// it call `.map` on an object.
+function queryResult(options: { queryKey?: readonly unknown[] }) {
+  const key = String(options?.queryKey?.[0] ?? '');
+
+  if (key !== 'posts-list') {
+    return emptyListQueryResult;
+  }
+
+  if (cachedQueryPosts !== resourceData || cachedPostsQueryResult === null) {
+    cachedQueryPosts = resourceData;
+    cachedPostsQueryResult = {
+      data: {
+        pagination: {
+          page: 1,
+          pageSize: 12,
+          total: resourceData.length,
+          totalPages: 1,
+        },
+        posts: resourceData,
+      },
+      isLoading: false,
+      refetch: resourceRefreshMock,
+    };
+  }
+
+  return cachedPostsQueryResult;
+}
+
 type MockTableAction = {
   onClick: (post: IPost) => void;
   tooltip?: string;
@@ -67,20 +112,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
+// The query result must keep a stable identity across renders — a fresh object
+// per render feeds identity-keyed effects in usePostsList and re-renders forever.
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => ({
-    data: {
-      pagination: {
-        page: 1,
-        pageSize: 12,
-        total: resourceData.length,
-        totalPages: 1,
-      },
-      posts: resourceData,
-    },
-    isLoading: false,
-    refetch: resourceRefreshMock,
-  }),
+  useQuery: (options: { queryKey?: readonly unknown[] }) =>
+    queryResult(options),
   useQueryClient: () => ({
     setQueryData: vi.fn(),
   }),
@@ -127,20 +163,35 @@ vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
 vi.mock('@pages/posts/list/components/PostsGrid', () => ({
   __esModule: true,
   default: ({
+    items,
     onOpenPostDetail,
+    primaryAction,
+    posts,
   }: {
+    items?: IPost[];
     onOpenPostDetail?: (post: IPost) => void;
-  }) => (
-    <button type="button" onClick={() => onOpenPostDetail?.(postFixture)}>
-      Posts grid
-    </button>
-  ),
-  postCardIcons: {
-    delete: <>delete</>,
-    edit: <>edit</>,
-    remix: <>remix</>,
-    viewIngredient: <>ingredient</>,
-    viewPlatform: <>platform</>,
+    primaryAction?: { onClick: (post: IPost) => void };
+    posts?: IPost[];
+  }) => {
+    const gridPosts = posts ?? items ?? [];
+
+    return (
+      <>
+        <button type="button" onClick={() => onOpenPostDetail?.(postFixture)}>
+          Posts grid
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            if (gridPosts[0] && primaryAction) {
+              primaryAction.onClick(gridPosts[0]);
+            }
+          }}
+        >
+          Edit grid card
+        </button>
+      </>
+    );
   },
 }));
 
@@ -208,7 +259,9 @@ describe('PostsList', () => {
       />,
     );
 
-    expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
+    // An explicit `status` prop opts out of the publisher `not-posted` default,
+    // so the list header describes every lifecycle state.
+    expect(screen.getByRole('heading', { name: 'All posts' })).toBeVisible();
     // Sidebar agent owns generation — no floating posts prompt bar.
     expect(
       screen.queryByPlaceholderText(/ai productivity tips/i),
@@ -251,6 +304,12 @@ describe('PostsList', () => {
     );
   });
 
+  it('defaults the publisher list to the not-posted view when no status is given', () => {
+    render(<PostsList scope={PageScope.PUBLISHER} platform="all" />);
+
+    expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
+  });
+
   it('opens the dedicated post editor and carries the list back with it', () => {
     resourceData = [postFixture];
 
@@ -262,14 +321,16 @@ describe('PostsList', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
+    // The publisher list defaults to the card grid, so the edit affordance is
+    // the card's primary action rather than a table row action.
+    fireEvent.click(screen.getByRole('button', { name: /edit grid card/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
       '/genfeed-ai/paperclip/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 
-  it('opens superadmin edits in the post owner scope', () => {
+  it('gives the superadmin table a read-only action set', () => {
     resourceData = [
       {
         ...postFixture,
@@ -286,10 +347,10 @@ describe('PostsList', () => {
       />,
     );
 
+    // Superadmin browses platform-wide content; editing happens in the owning
+    // brand's publisher scope, so no edit action is offered here.
     fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
-    expect(pushMock).toHaveBeenCalledWith(
-      '/owner-org/owner-brand/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
-    );
+    expect(pushMock).not.toHaveBeenCalled();
   });
 });

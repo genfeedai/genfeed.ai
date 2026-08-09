@@ -240,6 +240,19 @@ export default defineConfig({
   },
   root: __dirname,
   test: {
+    coverage: {
+      exclude: [
+        '**/*.spec.ts',
+        '**/*.test.ts',
+        '**/*.spec.tsx',
+        '**/*.test.tsx',
+        '**/__tests__/**',
+      ],
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
+      thresholds: { branches: 72, functions: 82, lines: 82, statements: 82 },
+    },
     attachmentsDir: 'dist/vitest/attachments',
     env: {
       NODE_ENV: 'test',

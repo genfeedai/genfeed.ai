@@ -210,6 +210,194 @@ describe('FFmpegEffectsService', () => {
     });
   });
 
+  describe('generateKenBurnsSlide()', () => {
+    it('builds a zoompan filter with the given options', async () => {
+      await service.generateKenBurnsSlide('/tmp/slide.jpg', '/tmp/out.mp4', {
+        dimensions: { height: 1080, width: 1920 },
+        duration: 3,
+        fps: 24,
+        zoomDirection: 'zoom=1.1',
+        zoomFactor: '1.05',
+      });
+
+      expect(coreService.ensureOutputDir).toHaveBeenCalledWith('/tmp/out.mp4');
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args.find((a) => a.includes('zoompan')) ?? '';
+      expect(filterArg).toContain("z='1.05'");
+      expect(filterArg).toContain('scale=1920:1080');
+      expect(args).toContain('3');
+    });
+
+    it('defaults fps to 30 and zoomFactor to 1', async () => {
+      await service.generateKenBurnsSlide('/tmp/slide.jpg', '/tmp/out.mp4', {
+        dimensions: { height: 1080, width: 1920 },
+        duration: 2,
+        zoomDirection: 'zoom=1',
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args.find((a) => a.includes('zoompan')) ?? '';
+      expect(filterArg).toContain("z='1'");
+      expect(filterArg).toContain('fps=30');
+    });
+  });
+
+  describe('createKenBurnsVideoWithTransitions()', () => {
+    it('builds a single-slide filter without transitions', async () => {
+      await service.createKenBurnsVideoWithTransitions(
+        ['/tmp/slide0.jpg'],
+        '/tmp/out.mp4',
+        {
+          dimensions: { height: 1080, width: 1920 },
+          fps: 30,
+          slideTexts: [{ duration: 3 }],
+          totalDuration: 3,
+          transitionDuration: 1,
+        },
+      );
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args[args.indexOf('-filter_complex') + 1];
+      expect(filterArg).toContain('[s0]copy[final];');
+    });
+
+    it('builds a multi-slide filter with xfade transitions', async () => {
+      await service.createKenBurnsVideoWithTransitions(
+        ['/tmp/slide0.jpg', '/tmp/slide1.jpg'],
+        '/tmp/out.mp4',
+        {
+          dimensions: { height: 1080, width: 1920 },
+          fps: 30,
+          slideTexts: [{ duration: 3 }, { duration: 3 }],
+          totalDuration: 6,
+          transitionDuration: 1,
+        },
+      );
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args[args.indexOf('-filter_complex') + 1];
+      expect(filterArg).toContain('xfade=transition=circleopen');
+      expect(args).toContain('[final]');
+    });
+
+    it('uses eased pan/zoom expressions when zoomEaseCurve and configs are provided', async () => {
+      await service.createKenBurnsVideoWithTransitions(
+        ['/tmp/slide0.jpg'],
+        '/tmp/out.mp4',
+        {
+          dimensions: { height: 1080, width: 1920 },
+          fps: 30,
+          slideTexts: [{ duration: 3 }],
+          totalDuration: 3,
+          transitionDuration: 1,
+          zoomConfigs: [
+            {
+              endX: 0.8,
+              endY: 0.8,
+              endZoom: 1.4,
+              startX: 0.2,
+              startY: 0.2,
+              startZoom: 1.0,
+            },
+          ],
+          zoomEaseCurve: 'ease-in-out' as never,
+        },
+      );
+
+      expect(coreService.executeFFmpeg).toHaveBeenCalled();
+    });
+  });
+
+  describe('createVerticalSplitScreen()', () => {
+    it('stacks top and bottom videos vertically', async () => {
+      await service.createVerticalSplitScreen(
+        '/tmp/top.mp4',
+        '/tmp/bottom.mp4',
+        '/tmp/out.mp4',
+        { height: 1080, width: 1920 },
+      );
+
+      expect(coreService.ensureOutputDir).toHaveBeenCalledWith('/tmp/out.mp4');
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args[args.indexOf('-filter_complex') + 1];
+      expect(filterArg).toContain('nullsrc=size=1920x2160');
+    });
+  });
+
+  describe('addAudioAndTextToVideo()', () => {
+    it('maps video and audio streams when an audio path is included', async () => {
+      await service.addAudioAndTextToVideo('/tmp/in.mp4', '/tmp/out.mp4', {
+        audioPath: '/tmp/audio.mp3',
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(args).toContain('/tmp/audio.mp3');
+      expect(args).toContain('-shortest');
+    });
+
+    it('maps the mix label when a [mix] filter is present', async () => {
+      await service.addAudioAndTextToVideo('/tmp/in.mp4', '/tmp/out.mp4', {
+        audioPath: '/tmp/audio.mp3',
+        filters: ['[0:a][1:a]amix[mix]'],
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(args).toContain('[mix]');
+      expect(args).toContain('[vFinal]');
+    });
+
+    it('disables audio output when includeAudio is false', async () => {
+      await service.addAudioAndTextToVideo('/tmp/in.mp4', '/tmp/out.mp4', {
+        audioPath: '/tmp/audio.mp3',
+        includeAudio: false,
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(args).toContain('-an');
+    });
+
+    it('maps [vFinal] without audio when a video-only filter is present', async () => {
+      await service.addAudioAndTextToVideo('/tmp/in.mp4', '/tmp/out.mp4', {
+        filters: ['[0:v]scale=100:100[vFinal]'],
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      expect(args).toContain('[vFinal]');
+      expect(args).toContain('-an');
+    });
+  });
+
+  describe('addComplexAudioMix()', () => {
+    it('builds a multi-voice mix with delayed tracks', async () => {
+      await service.addComplexAudioMix('/tmp/video.mp4', '/tmp/out.mp4', {
+        filters: [],
+        musicPath: '/tmp/music.mp3',
+        slideTexts: [{ duration: 3 }, { duration: 2 }],
+        voicePaths: ['/tmp/voice0.mp3', '/tmp/voice1.mp3'],
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args[args.indexOf('-filter_complex') + 1];
+      expect(filterArg).toContain('adelay=0');
+      expect(filterArg).toContain('adelay=3000');
+      expect(filterArg).toContain('amix=inputs=3');
+    });
+
+    it('applies a custom music volume', async () => {
+      await service.addComplexAudioMix('/tmp/video.mp4', '/tmp/out.mp4', {
+        filters: [],
+        musicPath: '/tmp/music.mp3',
+        musicVolume: 0.2,
+        slideTexts: [{ duration: 1 }],
+        voicePaths: ['/tmp/voice0.mp3'],
+      });
+
+      const args = coreService.executeFFmpeg.mock.calls[0][0] as string[];
+      const filterArg = args[args.indexOf('-filter_complex') + 1];
+      expect(filterArg).toContain('volume=0.2[bg]');
+    });
+  });
+
   describe('overlayAudio()', () => {
     it('uses replace mode to substitute audio', async () => {
       await service.overlayAudio(

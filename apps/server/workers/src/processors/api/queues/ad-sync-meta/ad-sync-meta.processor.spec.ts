@@ -186,6 +186,116 @@ describe('AdSyncMetaProcessor', () => {
       expect(job.updateProgress).toHaveBeenCalledWith(100);
     });
 
+    it('logs the account that failed and keeps syncing the rest', async () => {
+      metaAdsService.listCampaigns
+        .mockRejectedValueOnce(new Error('Meta rate limit'))
+        .mockResolvedValueOnce([
+          {
+            id: 'cmp_456',
+            name: 'Campaign Two',
+            objective: 'OUTCOME_SALES',
+            status: 'ACTIVE',
+          },
+        ]);
+      const job = {
+        data: {
+          accessToken: 'token-abc',
+          adAccountIds: ['act_bad', 'act_good'],
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
+          organizationId: 'org-1',
+        },
+        id: 'job-partial-failure',
+        updateProgress: vi.fn(),
+      } as unknown as Job<MetaAdSyncJobData>;
+
+      await processor.process(job);
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to sync Meta account act_bad'),
+        'Meta rate limit',
+      );
+      expect(metaAdsService.listCampaigns).toHaveBeenCalledTimes(2);
+      expect(adPerformanceService.upsertBatch).toHaveBeenCalledTimes(1);
+      expect(logger.log).toHaveBeenCalledWith(
+        expect.stringContaining('Meta ad sync completed'),
+      );
+    });
+
+    it('skips the upsert when an account has no campaigns', async () => {
+      metaAdsService.listCampaigns.mockResolvedValue([]);
+      const job = {
+        data: {
+          accessToken: 'token-abc',
+          adAccountIds: ['act_empty'],
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
+          organizationId: 'org-1',
+        },
+        id: 'job-empty-campaigns',
+        updateProgress: vi.fn(),
+      } as unknown as Job<MetaAdSyncJobData>;
+
+      await processor.process(job);
+
+      expect(metaAdsService.getCampaignInsights).not.toHaveBeenCalled();
+      expect(adPerformanceService.upsertBatch).not.toHaveBeenCalled();
+      expect(job.updateProgress).toHaveBeenCalledWith(100);
+    });
+
+    it('skips the upsert when campaigns return no insights', async () => {
+      metaAdsService.getCampaignInsights.mockResolvedValue([]);
+      const job = {
+        data: {
+          accessToken: 'token-abc',
+          adAccountIds: ['act_111'],
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
+          organizationId: 'org-1',
+        },
+        id: 'job-no-insights',
+        updateProgress: vi.fn(),
+      } as unknown as Job<MetaAdSyncJobData>;
+
+      await processor.process(job);
+
+      expect(adPerformanceService.upsertBatch).not.toHaveBeenCalled();
+    });
+
+    it('rethrows a whole-job failure so BullMQ can retry it', async () => {
+      const job = {
+        data: {
+          accessToken: 'token-abc',
+          adAccountIds: [],
+          brandId: 'brand-1',
+          credentialId: 'credential-1',
+          organizationId: 'org-1',
+        },
+        id: 'job-fatal',
+        updateProgress: vi.fn().mockRejectedValue(new Error('queue gone')),
+      } as unknown as Job<MetaAdSyncJobData>;
+
+      await expect(processor.process(job)).rejects.toThrow('queue gone');
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('Meta ad sync failed for org org-1'),
+        'queue gone',
+      );
+    });
+
+    it('resolves the inter-account backoff timer', async () => {
+      const fresh = new AdSyncMetaProcessor(
+        adPerformanceService as unknown as AdPerformanceService,
+        logger,
+        metaAdsService as unknown as MetaAdsService,
+      );
+      const delayable = fresh as unknown as {
+        delay: (ms: number) => Promise<void>;
+      };
+
+      await expect(delayable.delay(0)).resolves.toBeUndefined();
+    });
+
     it('should log errors for failed account syncs', async () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'invalid-token',

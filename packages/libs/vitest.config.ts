@@ -34,7 +34,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
       reportsDirectory: './coverage',
-      thresholds: { branches: 0, functions: 0, lines: 0, statements: 0 },
+      thresholds: { branches: 84, functions: 92, lines: 94, statements: 93 },
     },
     environment: 'node',
     globals: true,

@@ -95,6 +95,13 @@ vi.mock('@ui/lazy/modal/LazyModal', () => ({
   LazyModalImageToVideo: () => null,
 }));
 
+vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({ brandSlug: 'brand-1', orgSlug: 'org-1' })),
+  usePathname: vi.fn(() => '/library/images'),
+  useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
+  useSearchParams: vi.fn(() => new URLSearchParams('')),
+}));
+
 function buildIngredientsListReturn(overrides: Record<string, unknown> = {}) {
   return {
     blacklists: [],

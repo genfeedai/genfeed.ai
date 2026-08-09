@@ -159,6 +159,88 @@ describe('LoggerService', () => {
     });
   });
 
+  describe('context normalization', () => {
+    it('wraps a string context into a service object', () => {
+      service.log('String context message', 'MyService');
+
+      expect(mockWinston.info).toHaveBeenCalledWith('String context message', {
+        service: 'MyService',
+      });
+    });
+
+    it('drops non-object non-string contexts', () => {
+      service.warn('Numeric context message', 42);
+
+      expect(mockWinston.warn).toHaveBeenCalledWith(
+        'Numeric context message',
+        undefined,
+      );
+    });
+  });
+
+  describe('error serialization', () => {
+    it('passes non-Error traces through unchanged', () => {
+      service.error('Raw trace message', 'string trace');
+
+      expect(mockWinston.error).toHaveBeenCalledWith(
+        'Raw trace message',
+        expect.objectContaining({ error: 'string trace' }),
+      );
+    });
+
+    it('omits error data when no trace is provided', () => {
+      service.error('No trace message');
+
+      expect(mockWinston.error).toHaveBeenCalledWith('No trace message', {});
+    });
+
+    it('extracts non-enumerable axios error properties', () => {
+      const axiosError = new Error('Request failed') as Error & {
+        code?: string;
+        config?: { method?: string; url?: string };
+        isAxiosError?: boolean;
+        response?: { data?: unknown; status?: number };
+        status?: number;
+      };
+      axiosError.isAxiosError = true;
+      axiosError.status = 404;
+      axiosError.code = 'ERR_BAD_REQUEST';
+      axiosError.response = { data: { error: 'missing' }, status: 404 };
+      axiosError.config = { method: 'get', url: 'https://api.example/things' };
+
+      service.error('Axios failure', axiosError);
+
+      expect(mockWinston.error).toHaveBeenCalledWith(
+        'Axios failure',
+        expect.objectContaining({
+          error: expect.objectContaining({
+            code: 'ERR_BAD_REQUEST',
+            message: 'Request failed',
+            request: { method: 'get', url: 'https://api.example/things' },
+            response: { data: { error: 'missing' }, status: 404 },
+            status: 404,
+          }),
+        }),
+      );
+    });
+
+    it('serializes axios errors without response or config payloads', () => {
+      const axiosError = new Error('Network down') as Error & {
+        isAxiosError?: boolean;
+      };
+      axiosError.isAxiosError = true;
+
+      service.error('Axios network failure', axiosError);
+
+      expect(mockWinston.error).toHaveBeenCalledWith(
+        'Axios network failure',
+        expect.objectContaining({
+          error: expect.objectContaining({ message: 'Network down' }),
+        }),
+      );
+    });
+  });
+
   describe('formatMessage', () => {
     it('should format message with service and operation', () => {
       const message = 'Test message';

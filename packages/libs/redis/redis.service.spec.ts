@@ -237,6 +237,26 @@ describe('RedisService', () => {
     expect(eventSpy).toHaveBeenCalledWith('test-channel', payload);
   });
 
+  it('should expose no raw publisher before initialization', () => {
+    createService();
+
+    expect(service.getPublisher()).toBeNull();
+  });
+
+  it('should expose the raw publisher after initialization', async () => {
+    const publisher = buildMockClient();
+    const subscriber = buildMockClient();
+
+    vi.mocked(Redis)
+      .mockImplementationOnce(() => publisher as unknown as Redis)
+      .mockImplementationOnce(() => subscriber as unknown as Redis);
+
+    createService();
+    await service.onModuleInit();
+
+    expect(service.getPublisher()).toBe(publisher as unknown as Redis);
+  });
+
   it('should retry Redis subscription after a failed subscribe attempt', async () => {
     const publisher = buildMockClient();
     const subscriber = buildMockClient();

@@ -1,0 +1,251 @@
+import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
+import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
+import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
+import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+
+describe('ReviewGateCard', () => {
+  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+    return {
+      description: 'Approve or reject the drafts below.',
+      id: 'review-1',
+      items: [
+        { id: 'item-1', platform: 'instagram', title: 'Post A', type: 'post' },
+        { id: 'item-2', title: 'Post B' },
+      ],
+      title: 'Review drafts',
+      type: 'review_gate_card',
+      ...overrides,
+    } as AgentUiAction;
+  }
+
+  it('renders items and disables actions until a selection is made', () => {
+    render(<ReviewGateCard action={makeAction()} />);
+
+    expect(screen.getByText('Review drafts')).toBeInTheDocument();
+    expect(screen.getByText('Post A')).toBeInTheDocument();
+    expect(screen.getByText('post · instagram')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /approve \(0\)/i }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: /reject \(0\)/i }),
+    ).toBeDisabled();
+  });
+
+  it('approves the selected items', () => {
+    const onApprove = vi.fn();
+    render(<ReviewGateCard action={makeAction()} onApprove={onApprove} />);
+
+    fireEvent.click(screen.getAllByRole('checkbox')[0] as HTMLElement);
+    fireEvent.click(screen.getByRole('button', { name: /approve \(1\)/i }));
+
+    expect(onApprove).toHaveBeenCalledWith(['item-1']);
+    expect(
+      screen.getByText(/review submitted for 1 item/i),
+    ).toBeInTheDocument();
+  });
+
+  it('select-all then reject submits every item id', () => {
+    const onReject = vi.fn();
+    render(<ReviewGateCard action={makeAction()} onReject={onReject} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /select all/i }));
+    fireEvent.click(screen.getByRole('button', { name: /reject \(2\)/i }));
+
+    expect(onReject).toHaveBeenCalledWith(['item-1', 'item-2']);
+    expect(
+      screen.getByText(/review submitted for 2 items/i),
+    ).toBeInTheDocument();
+  });
+
+  it('toggling a selected item removes it again', () => {
+    render(<ReviewGateCard action={makeAction()} />);
+
+    const checkbox = screen.getAllByRole('checkbox')[0] as HTMLElement;
+    fireEvent.click(checkbox);
+    fireEvent.click(checkbox);
+
+    expect(
+      screen.getByRole('button', { name: /approve \(0\)/i }),
+    ).toBeDisabled();
+  });
+
+  it('shows an empty state without items', () => {
+    render(<ReviewGateCard action={makeAction({ items: [] })} />);
+
+    expect(screen.getByText('No items to review')).toBeInTheDocument();
+  });
+});
+
+describe('SchedulePostCard', () => {
+  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+    return {
+      creditEstimate: 12,
+      description: 'Pick a time',
+      id: 'schedule-1',
+      platforms: ['instagram'],
+      scheduledAt: '2026-04-01T10:00',
+      title: 'Schedule launch post',
+      type: 'schedule_post_card',
+      ...overrides,
+    } as AgentUiAction;
+  }
+
+  it('renders suggested values and schedules with them', () => {
+    const onSchedule = vi.fn();
+    render(<SchedulePostCard action={makeAction()} onSchedule={onSchedule} />);
+
+    expect(screen.getByText('Schedule launch post')).toBeInTheDocument();
+    expect(screen.getByText(/estimated cost: 12 credits/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
+
+    expect(onSchedule).toHaveBeenCalledWith({
+      platforms: ['instagram'],
+      scheduledAt: '2026-04-01T10:00',
+    });
+    expect(
+      screen.getByText(/post scheduled for 1 platform/i),
+    ).toBeInTheDocument();
+  });
+
+  it('toggles platforms before scheduling', () => {
+    const onSchedule = vi.fn();
+    render(<SchedulePostCard action={makeAction()} onSchedule={onSchedule} />);
+
+    fireEvent.click(screen.getByLabelText(/twitter/i));
+    fireEvent.click(screen.getByLabelText(/instagram/i));
+    fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
+
+    expect(onSchedule).toHaveBeenCalledWith({
+      platforms: ['twitter'],
+      scheduledAt: '2026-04-01T10:00',
+    });
+  });
+
+  it('disables scheduling without a date or platforms', () => {
+    render(
+      <SchedulePostCard
+        action={makeAction({ platforms: [], scheduledAt: undefined })}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: /schedule/i })).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(/date & time/i), {
+      target: { value: '2026-04-02T09:00' },
+    });
+    expect(screen.getByRole('button', { name: /schedule/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByLabelText(/linkedin/i));
+    expect(screen.getByRole('button', { name: /schedule/i })).toBeEnabled();
+  });
+});
+
+describe('IngredientPickerCard', () => {
+  function makeAction(overrides: Partial<AgentUiAction> = {}): AgentUiAction {
+    return {
+      description: 'Pick a base image',
+      id: 'picker-1',
+      ingredients: [
+        {
+          id: 'ing-1',
+          thumbnailUrl: 'https://cdn.test/a-thumb.png',
+          title: 'Sunset',
+          type: 'image',
+          url: 'https://cdn.test/a.png',
+        },
+        {
+          id: 'ing-2',
+          title: 'Waves',
+          type: 'video',
+          url: 'https://cdn.test/b.mp4',
+        },
+      ],
+      title: 'Choose an ingredient',
+      type: 'ingredient_picker_card',
+      ...overrides,
+    } as AgentUiAction;
+  }
+
+  it('renders the grid with image and video thumbnails', () => {
+    render(<IngredientPickerCard action={makeAction()} />);
+
+    expect(screen.getByText('Choose an ingredient')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sunset' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Waves' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /use this ingredient/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('selects, confirms, and can change the selection', () => {
+    const onSelect = vi.fn();
+    render(<IngredientPickerCard action={makeAction()} onSelect={onSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sunset' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: /use this ingredient/i }),
+    );
+
+    expect(onSelect).toHaveBeenCalledWith({ id: 'ing-1', title: 'Sunset' });
+    expect(screen.getByText('Sunset')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /change/i }));
+    expect(screen.getByRole('button', { name: 'Sunset' })).toBeInTheDocument();
+  });
+
+  it('renders an empty state without ingredients', () => {
+    render(<IngredientPickerCard action={makeAction({ ingredients: [] })} />);
+
+    expect(screen.getByText('No ingredients available')).toBeInTheDocument();
+  });
+});
+
+describe('OnboardingConversationCard', () => {
+  it('disables start until context or URL is provided', () => {
+    render(<OnboardingConversationCard onStart={vi.fn()} />);
+
+    expect(
+      screen.getByRole('button', { name: /start with my first image/i }),
+    ).toBeDisabled();
+  });
+
+  it('builds the onboarding message from the selections', () => {
+    const onStart = vi.fn();
+    render(<OnboardingConversationCard onStart={onStart} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /brand/i }));
+    fireEvent.change(screen.getByLabelText(/website, x, or linkedin/i), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.change(screen.getByLabelText(/what do you create\?/i), {
+      target: { value: 'Product renders' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: /start with my first image/i }),
+    );
+
+    expect(onStart).toHaveBeenCalledTimes(1);
+    const message = onStart.mock.calls[0]?.[0] as string;
+    expect(message).toContain("I'm signing up as a brand.");
+    expect(message).toContain('https://acme.test');
+    expect(message).toContain('Extra context: Product renders.');
+  });
+
+  it('never calls onStart while disabled', () => {
+    const onStart = vi.fn();
+    render(<OnboardingConversationCard isDisabled onStart={onStart} />);
+
+    fireEvent.change(screen.getByLabelText(/what do you create\?/i), {
+      target: { value: 'Something' },
+    });
+    expect(
+      screen.getByRole('button', { name: /start with my first image/i }),
+    ).toBeDisabled();
+    expect(onStart).not.toHaveBeenCalled();
+  });
+});

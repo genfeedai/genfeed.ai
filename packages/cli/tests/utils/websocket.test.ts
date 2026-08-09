@@ -20,6 +20,7 @@ async function flushMicrotasks(turns: number = 5): Promise<void> {
 
 describe('utils/websocket', () => {
   let waitForCompletion: typeof import('../../src/utils/websocket').waitForCompletion;
+  let createWebSocketConnection: typeof import('../../src/utils/websocket').createWebSocketConnection;
 
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -32,6 +33,7 @@ describe('utils/websocket', () => {
 
     const websocket = await import('../../src/utils/websocket');
     waitForCompletion = websocket.waitForCompletion;
+    createWebSocketConnection = websocket.createWebSocketConnection;
   });
 
   afterEach(() => {
@@ -318,6 +320,129 @@ describe('utils/websocket', () => {
       eventHandlers['background-task-update']?.(completeEvent);
 
       await promise;
+    });
+
+    it('rejects when getResult throws after completion', async () => {
+      const getResult = vi.fn().mockRejectedValue(new Error('result fetch failed'));
+
+      const eventHandlers: Record<string, (data: unknown) => void> = {};
+      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
+        eventHandlers[event] = handler;
+        return mockSocket;
+      });
+
+      const promise = waitForCompletion({
+        getResult,
+        taskId: 'test-bad-result',
+        taskType: 'IMAGE',
+        timeout: 5000,
+      });
+      await flushMicrotasks();
+
+      vi.advanceTimersByTime(0);
+      eventHandlers.connect?.({});
+
+      const completeEvent: IBackgroundTaskUpdatePayload = {
+        resultType: 'IMAGE',
+        status: 'completed',
+        taskId: 'test-bad-result',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
+      };
+      eventHandlers['background-task-update']?.(completeEvent);
+
+      await expect(promise).rejects.toThrow('result fetch failed');
+      expect(getResult).toHaveBeenCalledTimes(1);
+    });
+
+    it('updates the spinner while an unresolved socket reconnects', async () => {
+      const getResult = vi.fn().mockResolvedValue({ id: 'test-reconnect' });
+      const spinner = { text: '' };
+
+      const eventHandlers: Record<string, (data: unknown) => void> = {};
+      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
+        eventHandlers[event] = handler;
+        return mockSocket;
+      });
+
+      const promise = waitForCompletion({
+        getResult,
+        spinner: spinner as Parameters<typeof waitForCompletion>[0]['spinner'],
+        taskId: 'test-reconnect',
+        taskType: 'VIDEO',
+        timeout: 5000,
+      });
+      await flushMicrotasks();
+
+      vi.advanceTimersByTime(0);
+      eventHandlers.connect?.({});
+      eventHandlers.disconnect?.('transport close');
+
+      expect(spinner.text).toBe('Reconnecting...');
+
+      const completeEvent: IBackgroundTaskUpdatePayload = {
+        resultType: 'VIDEO',
+        status: 'completed',
+        taskId: 'test-reconnect',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
+      };
+      eventHandlers['background-task-update']?.(completeEvent);
+
+      await promise;
+    });
+
+    it('ignores a client-initiated disconnect', async () => {
+      const getResult = vi.fn().mockResolvedValue({ id: 'test-client-disconnect' });
+      const spinner = { text: 'initial' };
+
+      const eventHandlers: Record<string, (data: unknown) => void> = {};
+      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
+        eventHandlers[event] = handler;
+        return mockSocket;
+      });
+
+      const promise = waitForCompletion({
+        getResult,
+        spinner: spinner as Parameters<typeof waitForCompletion>[0]['spinner'],
+        taskId: 'test-client-disconnect',
+        taskType: 'VIDEO',
+        timeout: 5000,
+      });
+      await flushMicrotasks();
+
+      vi.advanceTimersByTime(0);
+      eventHandlers.disconnect?.('io client disconnect');
+
+      expect(spinner.text).toBe('initial');
+
+      const completeEvent: IBackgroundTaskUpdatePayload = {
+        resultType: 'VIDEO',
+        status: 'completed',
+        taskId: 'test-client-disconnect',
+        timestamp: '2026-08-07T00:00:00.000Z',
+        userId: 'user-1',
+      };
+      eventHandlers['background-task-update']?.(completeEvent);
+
+      await promise;
+    });
+  });
+
+  describe('createWebSocketConnection', () => {
+    it('opens a socket against the API origin with auth', async () => {
+      const { io } = await import('socket.io-client');
+
+      const socket = await createWebSocketConnection();
+
+      expect(socket).toBe(mockSocket);
+      expect(io).toHaveBeenCalledWith('https://api.genfeed.ai', {
+        auth: { token: 'test-api-key' },
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+        transports: ['websocket'],
+      });
     });
   });
 });

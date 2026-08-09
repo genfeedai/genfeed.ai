@@ -45,12 +45,7 @@ export default defineConfig({
       reportsDirectory: './coverage',
       // Ratchet floor at current actual (~87.7% lines / ~77% branches).
       // Raise toward 100 as http-client + provider.schema gaps fill.
-      thresholds: {
-        branches: 75,
-        functions: 90,
-        lines: 85,
-        statements: 85,
-      },
+      thresholds: { branches: 80, functions: 94, lines: 88, statements: 88 },
     },
     environment: 'node',
     globals: true,

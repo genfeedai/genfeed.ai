@@ -1,6 +1,7 @@
 import { ConfigService } from '@files/config/config.service';
 import { YoutubeService } from '@files/services/youtube/youtube.service';
 import { PostStatus } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';
 
@@ -8,10 +9,12 @@ import type { Mock, Mocked } from 'vitest';
 vi.mock('googleapis', () => ({
   google: {
     auth: {
-      OAuth2: vi.fn().mockImplementation(() => ({
-        on: vi.fn(),
-        setCredentials: vi.fn(),
-      })),
+      OAuth2: vi.fn().mockImplementation(function OAuth2Mock() {
+        return {
+          on: vi.fn(),
+          setCredentials: vi.fn(),
+        };
+      }),
     },
     youtube: vi.fn().mockReturnValue({
       videos: {
@@ -22,12 +25,11 @@ vi.mock('googleapis', () => ({
 }));
 
 // Mock axios
-vi.mock('axios', () => ({
-  get: vi.fn(),
-}));
+const axiosMock = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('axios', () => ({ default: axiosMock, get: axiosMock.get }));
 
 // Mock fs
-vi.mock('fs', () => ({
+const fsMock = vi.hoisted(() => ({
   createReadStream: vi.fn(),
   createWriteStream: vi.fn(),
   existsSync: vi.fn(),
@@ -36,6 +38,8 @@ vi.mock('fs', () => ({
   rmdirSync: vi.fn(),
   unlinkSync: vi.fn(),
 }));
+vi.mock('fs', () => fsMock);
+vi.mock('node:fs', () => fsMock);
 
 import * as fs from 'node:fs';
 import axios from 'axios';
@@ -79,7 +83,9 @@ describe('YoutubeService', () => {
       },
     };
 
-    (google.auth.OAuth2 as Mock).mockImplementation(() => mockOAuth2Client);
+    (google.auth.OAuth2 as Mock).mockImplementation(function OAuth2Mock() {
+      return mockOAuth2Client;
+    });
     (google.youtube as Mock).mockReturnValue(mockYoutubeAPI);
 
     mockConfigService = {
@@ -123,6 +129,15 @@ describe('YoutubeService', () => {
           provide: ConfigService,
           useValue: mockConfigService,
         },
+        {
+          provide: LoggerService,
+          useValue: {
+            debug: vi.fn(),
+            error: vi.fn(),
+            log: vi.fn(),
+            warn: vi.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -131,7 +146,9 @@ describe('YoutubeService', () => {
     vi.clearAllMocks();
 
     // Re-setup mocks after clearAllMocks
-    (google.auth.OAuth2 as Mock).mockImplementation(() => mockOAuth2Client);
+    (google.auth.OAuth2 as Mock).mockImplementation(function OAuth2Mock() {
+      return mockOAuth2Client;
+    });
     (google.youtube as Mock).mockReturnValue(mockYoutubeAPI);
     (fs.existsSync as Mock).mockReturnValue(false);
     (fs.readdirSync as Mock).mockReturnValue([]);

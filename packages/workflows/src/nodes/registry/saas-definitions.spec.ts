@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isSaaSNode, SAAS_NODE_DEFINITIONS } from './saas-definitions';
+import {
+  getSaaSNodeTypes,
+  isSaaSNode,
+  SAAS_NODE_DEFINITIONS,
+} from './saas-definitions';
 
 describe('SAAS_NODE_DEFINITIONS', () => {
   it('has expected types', () => {
@@ -30,4 +34,16 @@ describe('SAAS_NODE_DEFINITIONS', () => {
 describe('isSaaSNode', () => {
   it('true for saas', () => expect(isSaaSNode('brand')).toBe(true));
   it('false for non-saas', () => expect(isSaaSNode('textInput')).toBe(false));
+});
+
+describe('getSaaSNodeTypes', () => {
+  it('lists exactly the keys of the definition map', () => {
+    expect(getSaaSNodeTypes()).toEqual(Object.keys(SAAS_NODE_DEFINITIONS));
+  });
+
+  it('returns only types isSaaSNode agrees with', () => {
+    for (const type of getSaaSNodeTypes()) {
+      expect(isSaaSNode(type)).toBe(true);
+    }
+  });
 });

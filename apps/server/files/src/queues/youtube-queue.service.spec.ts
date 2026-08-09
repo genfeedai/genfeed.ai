@@ -92,7 +92,7 @@ describe('YoutubeQueueService', () => {
     it('should use custom priority when provided', async () => {
       const dataWithPriority = {
         ...mockJobData,
-        priority: JOB_PRIORITY.CRITICAL,
+        priority: JOB_PRIORITY.LOW,
       };
 
       await service.addUploadUnlistedJob(dataWithPriority);
@@ -106,7 +106,7 @@ describe('YoutubeQueueService', () => {
             delay: 2000,
             type: 'exponential',
           },
-          priority: JOB_PRIORITY.CRITICAL,
+          priority: JOB_PRIORITY.LOW,
         },
       );
     });

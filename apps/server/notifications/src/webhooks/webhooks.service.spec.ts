@@ -1,6 +1,7 @@
 import { EventsService } from '@libs/events/events.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
+import type { WebhookNotification } from '@notifications/shared/interfaces/webhooks.interface';
 import { WebhooksService } from '@notifications/webhooks/webhooks.service';
 
 describe('WebhooksService (Notifications)', () => {
@@ -51,7 +52,7 @@ describe('WebhooksService (Notifications)', () => {
         event: 'payment.success',
         metadata: { userId: 'user-123' },
         service: 'stripe',
-      };
+      } satisfies WebhookNotification;
 
       await service.handleWebhookNotification(notification);
 
@@ -74,14 +75,80 @@ describe('WebhooksService (Notifications)', () => {
         data: { result: 'success' },
         event: 'generation.complete',
         metadata: { userId: 'user-456' },
-        service: 'openai',
-      };
+        service: 'replicate',
+      } satisfies WebhookNotification;
 
       await service.handleWebhookNotification(notification);
 
       expect(eventsService.emit).toHaveBeenCalledWith(
         'user.user-456.webhook',
         expect.any(Object),
+      );
+    });
+
+    it('should not emit user-specific event without userId', async () => {
+      const notification = {
+        data: {},
+        event: 'ping',
+        service: 'stripe',
+      } satisfies WebhookNotification;
+
+      await service.handleWebhookNotification(notification);
+
+      expect(eventsService.emit).toHaveBeenCalledTimes(1);
+      expect(eventsService.emit).toHaveBeenCalledWith(
+        'webhook.notification',
+        expect.objectContaining({ status: 'received' }),
+      );
+    });
+
+    it('should preserve an explicit notification status', async () => {
+      const notification = {
+        data: {},
+        event: 'ping',
+        service: 'stripe',
+        status: 'completed',
+      } satisfies WebhookNotification;
+
+      await service.handleWebhookNotification(notification);
+
+      expect(eventsService.emit).toHaveBeenCalledWith(
+        'webhook.notification',
+        expect.objectContaining({ status: 'completed' }),
+      );
+    });
+
+    it('should log and rethrow when emit fails', async () => {
+      mockEventsService.emit.mockRejectedValueOnce(new Error('bus down'));
+
+      await expect(
+        service.handleWebhookNotification({
+          data: {},
+          event: 'ping',
+          service: 'stripe',
+        }),
+      ).rejects.toThrow('bus down');
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe('getWebhookStatus', () => {
+    it('should return a pending status snapshot', () => {
+      const result = service.getWebhookStatus('stripe', 'evt-1');
+
+      expect(result).toEqual({
+        id: 'evt-1',
+        service: 'stripe',
+        status: 'pending',
+        timestamp: expect.any(String),
+      });
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('started'),
+        { id: 'evt-1', service: 'stripe' },
       );
     });
   });

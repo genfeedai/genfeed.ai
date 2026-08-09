@@ -31,6 +31,11 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({
+    brandSlug: 'brand-slug',
+    orgSlug: 'org-slug',
+  })),
+  usePathname: vi.fn(() => '/org-slug/brand-slug/articles'),
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),

@@ -1,7 +1,7 @@
-import { FfmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
+import { FFmpegModule } from '@files/services/ffmpeg/ffmpeg.module';
 
-describe('FfmpegModule', () => {
+describe('FFmpegModule', () => {
   it('should be defined', () => {
-    expect(FfmpegModule).toBeDefined();
+    expect(FFmpegModule).toBeDefined();
   });
 });

@@ -316,6 +316,77 @@ describe('VoiceTrainingService', () => {
       expect(job.error).toContain('spawn ENOENT');
     });
 
+    it('should parse epoch progress from stdout and update the job', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await service.startTraining({
+        epochs: 10,
+        voiceId: 'test-voice',
+      });
+
+      mockChild.stdout?.emit('data', Buffer.from('epoch 5/10 loss=0.12'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const job = await service.getJob(jobId);
+      expect(job.progress).toBe(50);
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ jobId, message: 'Voice training stdout' }),
+      );
+    });
+
+    it('should parse bracketed step progress and cap it at 95', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await service.startTraining({
+        voiceId: 'test-voice',
+      });
+
+      mockChild.stdout?.emit('data', Buffer.from('100/100 [====] done'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const job = await service.getJob(jobId);
+      expect(job.progress).toBe(95);
+    });
+
+    it('should leave progress untouched for stdout without a progress marker', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await service.startTraining({
+        voiceId: 'test-voice',
+      });
+
+      mockChild.stdout?.emit('data', Buffer.from('loading dataset...'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const job = await service.getJob(jobId);
+      expect(job.progress).toBe(5);
+    });
+
+    it('should log stderr output as a warning', async () => {
+      const mockChild = createMockChildProcess();
+      mockSpawn.mockReturnValue(mockChild);
+
+      const { jobId } = await service.startTraining({
+        voiceId: 'test-voice',
+      });
+
+      mockChild.stderr?.emit('data', Buffer.from('CUDA warning: low memory'));
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockLoggerService.warn).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          jobId,
+          message: 'Voice training stderr',
+          output: 'CUDA warning: low memory',
+        }),
+      );
+    });
+
     it('should handle spawn failure gracefully', async () => {
       mockSpawn.mockImplementation(() => {
         throw new Error('Command not found');

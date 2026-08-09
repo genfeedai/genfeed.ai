@@ -128,3 +128,200 @@ describe('useVideoTrim', () => {
     expect(result.current.error).toBeNull();
   });
 });
+
+interface FakeVideoElement {
+  addEventListener: (event: string, listener: () => void) => void;
+  currentTime: number;
+  pause: ReturnType<typeof vi.fn>;
+  play: ReturnType<typeof vi.fn>;
+  readyState: number;
+  removeEventListener: (event: string, listener: () => void) => void;
+}
+
+function createFakeVideo(): FakeVideoElement {
+  const listeners = new Map<string, Set<() => void>>();
+  let currentTime = 0;
+
+  const video: FakeVideoElement = {
+    addEventListener: (event, listener) => {
+      const set = listeners.get(event) ?? new Set();
+      set.add(listener);
+      listeners.set(event, set);
+    },
+    get currentTime() {
+      return currentTime;
+    },
+    set currentTime(time: number) {
+      currentTime = time;
+      for (const listener of [...(listeners.get('seeked') ?? [])]) {
+        listener();
+      }
+    },
+    pause: vi.fn(),
+    play: vi.fn(),
+    readyState: 2,
+    removeEventListener: (event, listener) => {
+      listeners.get(event)?.delete(listener);
+    },
+  };
+
+  return video;
+}
+
+describe('useVideoTrim video element interactions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('seekTo updates the video and current time', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+    const video = createFakeVideo();
+    result.current.videoRef.current = video as unknown as HTMLVideoElement;
+
+    act(() => {
+      result.current.seekTo(7);
+    });
+
+    expect(video.currentTime).toBe(7);
+    expect(result.current.currentTime).toBe(7);
+  });
+
+  it('seekTo is a no-op without a video element', () => {
+    const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+
+    act(() => {
+      result.current.seekTo(7);
+    });
+
+    expect(result.current.currentTime).toBe(0);
+  });
+
+  it('playTrimmedPortion plays from start and pauses at the end time', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    const rafSpy = vi
+      .spyOn(globalThis, 'requestAnimationFrame')
+      .mockImplementation((callback: FrameRequestCallback) => {
+        rafCallbacks.push(callback);
+        return rafCallbacks.length;
+      });
+    const cancelSpy = vi
+      .spyOn(globalThis, 'cancelAnimationFrame')
+      .mockImplementation(() => undefined);
+
+    try {
+      const { result } = renderHook(() => useVideoTrim({ videoDuration: 30 }));
+      const video = createFakeVideo();
+      result.current.videoRef.current = video as unknown as HTMLVideoElement;
+
+      act(() => {
+        result.current.setStartTime(2);
+        result.current.setEndTime(10);
+      });
+
+      act(() => {
+        result.current.playTrimmedPortion();
+      });
+
+      expect(video.play).toHaveBeenCalled();
+      expect(video.currentTime).toBe(2);
+
+      // First frame: still before end time — keeps polling
+      act(() => {
+        rafCallbacks[0](0);
+      });
+      expect(video.pause).not.toHaveBeenCalled();
+
+      // Simulate playback passing the end time
+      video.currentTime = 11;
+      act(() => {
+        rafCallbacks.at(-1)?.(0);
+      });
+
+      expect(video.pause).toHaveBeenCalled();
+      expect(video.currentTime).toBe(2);
+    } finally {
+      rafSpy.mockRestore();
+      cancelSpy.mockRestore();
+    }
+  });
+
+  it('generates thumbnails when the video metadata is ready', async () => {
+    const fakeContext = { drawImage: vi.fn() };
+    const fakeCanvas = {
+      getContext: vi.fn(() => fakeContext),
+      height: 0,
+      toDataURL: vi.fn(() => 'data:image/jpeg;base64,thumb'),
+      width: 0,
+    };
+    const originalCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation((tag: string) =>
+        tag === 'canvas'
+          ? (fakeCanvas as unknown as HTMLCanvasElement)
+          : originalCreateElement(tag),
+      );
+
+    try {
+      const { rerender, result } = renderHook(
+        ({ videoDuration }) => useVideoTrim({ videoDuration }),
+        { initialProps: { videoDuration: 10 } },
+      );
+
+      const video = createFakeVideo();
+      result.current.videoRef.current = video as unknown as HTMLVideoElement;
+
+      // Changing duration re-runs the thumbnail effect with the ref attached
+      await act(async () => {
+        rerender({ videoDuration: 20 });
+      });
+
+      expect(result.current.thumbnails).toHaveLength(10);
+      expect(result.current.thumbnails[0]).toEqual({
+        dataUrl: 'data:image/jpeg;base64,thumb',
+        time: 0,
+      });
+      expect(fakeContext.drawImage).toHaveBeenCalledTimes(10);
+      expect(result.current.isGeneratingThumbnails).toBe(false);
+      expect(result.current.error).toBeNull();
+    } finally {
+      createElementSpy.mockRestore();
+    }
+  });
+
+  it('reports an error when the canvas context is unavailable', async () => {
+    const fakeCanvas = {
+      getContext: vi.fn(() => null),
+      height: 0,
+      toDataURL: vi.fn(),
+      width: 0,
+    };
+    const originalCreateElement = document.createElement.bind(document);
+    const createElementSpy = vi
+      .spyOn(document, 'createElement')
+      .mockImplementation((tag: string) =>
+        tag === 'canvas'
+          ? (fakeCanvas as unknown as HTMLCanvasElement)
+          : originalCreateElement(tag),
+      );
+
+    try {
+      const { rerender, result } = renderHook(
+        ({ videoDuration }) => useVideoTrim({ videoDuration }),
+        { initialProps: { videoDuration: 10 } },
+      );
+
+      const video = createFakeVideo();
+      result.current.videoRef.current = video as unknown as HTMLVideoElement;
+
+      await act(async () => {
+        rerender({ videoDuration: 20 });
+      });
+
+      expect(result.current.error).toBe('Failed to generate thumbnails');
+      expect(result.current.thumbnails).toEqual([]);
+    } finally {
+      createElementSpy.mockRestore();
+    }
+  });
+});

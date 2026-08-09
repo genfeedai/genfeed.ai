@@ -8,6 +8,7 @@ import { ConfigService } from '@workers/config/config.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
+import { PlatformMarginService } from '@workers/services/platform-margin.service';
 
 describe('CronModelWatcherService', () => {
   let service: CronModelWatcherService;
@@ -83,6 +84,12 @@ describe('CronModelWatcherService', () => {
               .fn()
               .mockResolvedValue(undefined),
             sendNotification: vi.fn(),
+          },
+        },
+        {
+          provide: PlatformMarginService,
+          useValue: {
+            hydrate: vi.fn().mockResolvedValue(undefined),
           },
         },
         {

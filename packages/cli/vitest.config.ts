@@ -59,12 +59,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      thresholds: {
-        branches: 60,
-        functions: 70,
-        lines: 70,
-        statements: 70,
-      },
+      thresholds: { branches: 91, functions: 98, lines: 97, statements: 96 },
     },
     environment: 'node',
     exclude: ['tests/integration/**/*.test.ts'],

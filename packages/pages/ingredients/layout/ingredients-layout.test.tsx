@@ -85,6 +85,10 @@ vi.mock('@ui/layout/container/Container', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({
+    brandSlug: 'brand-1',
+    orgSlug: 'org-1',
+  })),
   usePathname: vi.fn(() => '/library/videos'),
   useRouter: vi.fn(() => ({
     replace: replaceSpy,

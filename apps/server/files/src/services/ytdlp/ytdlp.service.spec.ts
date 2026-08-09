@@ -150,7 +150,9 @@ describe('YtDlpService', () => {
       const url = 'https://youtube.com/watch?v=test';
       const mockProcess = useMockProcess(spawnMock);
 
-      fsMock.existsSync.mockReturnValue(false);
+      // First call checks the output directory (missing), second call
+      // checks the produced output file (present) once yt-dlp exits.
+      fsMock.existsSync.mockReturnValueOnce(false).mockReturnValue(true);
 
       const promise = service.downloadAudio(url);
 
@@ -326,16 +328,16 @@ describe('YtDlpService', () => {
       );
     });
 
-    it('rejects an output path outside the files temp root before spawning', async () => {
-      // downloadVideo is async, so the guard surfaces as a rejected promise.
-      // `expect(fn).toThrow()` only observes a synchronous throw and would pass
-      // even if the containment check never ran.
-      await expect(
+    it('rejects an output path outside the files temp root before spawning', () => {
+      // downloadVideo validates the containment path synchronously before
+      // returning a promise, so the guard surfaces as a thrown error rather
+      // than a promise rejection.
+      expect(() =>
         service.downloadVideo(
           'https://youtube.com/watch?v=test',
           '/etc/escaped.mp4',
         ),
-      ).rejects.toThrow(BadRequestException);
+      ).toThrow(BadRequestException);
 
       expect(spawnMock).not.toHaveBeenCalled();
     });

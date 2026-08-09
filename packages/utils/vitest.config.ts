@@ -46,6 +46,19 @@ export default defineConfig({
     ],
   },
   test: {
+    coverage: {
+      exclude: [
+        '**/*.spec.ts',
+        '**/*.test.ts',
+        '**/*.spec.tsx',
+        '**/*.test.tsx',
+        '**/__tests__/**',
+      ],
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
+      thresholds: { branches: 80, functions: 88, lines: 89, statements: 90 },
+    },
     environment: 'jsdom',
     globals: true,
     include: ['**/*.test.ts', '**/*.spec.ts'],

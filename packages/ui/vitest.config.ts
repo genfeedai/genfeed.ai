@@ -394,8 +394,12 @@ export default defineConfig({
       },
     },
     globals: true,
+    // Full-suite runs saturate the workers with heavy module imports; the
+    // vitest default of 5s flakes first renders under that load.
+    hookTimeout: 30_000,
     include: ['src/**/*.test.{ts,tsx}'],
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
+    testTimeout: 30_000,
   },
 });

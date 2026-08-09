@@ -201,6 +201,6 @@ describe('AgentCampaignsPage', () => {
 
     render(<AgentCampaignsPage />);
 
-    expect(screen.getByText('Loading campaigns...')).toBeInTheDocument();
+    expect(screen.getByText('Loading campaigns…')).toBeInTheDocument();
   });
 });

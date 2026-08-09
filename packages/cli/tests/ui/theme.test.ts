@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('chalk', () => {
   const chalkFn = (text: string) => text;
@@ -24,6 +24,8 @@ import {
   formatLabel,
   formatSuccess,
   formatWarning,
+  print,
+  printJson,
   symbols,
 } from '../../src/ui/theme';
 
@@ -153,6 +155,35 @@ describe('ui/theme', () => {
       const result = formatHeader('Header');
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('print and printJson', () => {
+    let stdoutSpy: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    });
+
+    afterEach(() => {
+      stdoutSpy.mockRestore();
+    });
+
+    it('print writes the message with a trailing newline', () => {
+      print('hello');
+      expect(stdoutSpy).toHaveBeenCalledWith('hello\n');
+    });
+
+    it('print writes an empty line by default', () => {
+      print();
+      expect(stdoutSpy).toHaveBeenCalledWith('\n');
+    });
+
+    it('printJson writes pretty-printed JSON', () => {
+      printJson({ id: 'entity-1', isActive: true });
+      expect(stdoutSpy).toHaveBeenCalledWith(
+        `${JSON.stringify({ id: 'entity-1', isActive: true }, null, 2)}\n`
+      );
     });
   });
 });

@@ -111,10 +111,11 @@ describe('CronContentEngineService', () => {
     it('should query brands with correct filters', async () => {
       await service.processContentEngine();
 
+      // BaseService.find applies the soft-delete filter itself, so the cron
+      // only narrows on isActive.
       expect(mockBrandsService.find).toHaveBeenCalledWith(
         expect.objectContaining({
           isActive: true,
-          isDeleted: false,
         }),
       );
     });
@@ -185,8 +186,8 @@ describe('CronContentEngineService', () => {
     it('should limit brands to MAX_BRANDS_PER_CYCLE (10)', async () => {
       const manyBrands = Array.from({ length: 15 }, (_, i) => ({
         ...mockBrand,
-        _id: `brand-id-${i}`,
-        organization: { toString: () => `org-id-${i}` },
+        id: `brand-id-${i}`,
+        organizationId: `org-id-${i}`,
       }));
       mockBrandsService.find.mockResolvedValue(manyBrands);
 
@@ -208,7 +209,7 @@ describe('CronContentEngineService', () => {
     });
 
     it('should use organization as userId when brand.user is not set', async () => {
-      const brandNoUser = { ...mockBrand, user: undefined };
+      const brandNoUser = { ...mockBrand, userId: undefined };
       mockBrandsService.find.mockResolvedValue([brandNoUser]);
 
       await service.processContentEngine();

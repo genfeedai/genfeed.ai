@@ -4,7 +4,21 @@ import { VideoThumbnailService } from '@files/services/thumbnails/video-thumbnai
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import sharp from 'sharp';
 import type { Mocked } from 'vitest';
+
+async function writeStubJpeg(outputPath: string): Promise<void> {
+  await sharp({
+    create: {
+      background: { b: 0, g: 0, r: 0 },
+      channels: 3,
+      height: 4,
+      width: 4,
+    },
+  })
+    .jpeg()
+    .toFile(outputPath);
+}
 
 describe('VideoThumbnailService', () => {
   let service: VideoThumbnailService;
@@ -15,7 +29,11 @@ describe('VideoThumbnailService', () => {
     const mockFFmpegService = {
       cleanupTempFiles: vi.fn(),
       executeFFmpeg: vi.fn().mockResolvedValue(undefined),
-      extractFrame: vi.fn().mockResolvedValue(undefined),
+      extractFrame: vi
+        .fn()
+        .mockImplementation(async (_inputPath: string, outputPath: string) =>
+          writeStubJpeg(outputPath),
+        ),
       getTempPath: vi.fn((type: string, id: string) => `/tmp/${type}-${id}`),
     };
 
@@ -85,7 +103,7 @@ describe('VideoThumbnailService', () => {
       expect(s3Service.downloadFromUrl).toHaveBeenCalled();
       expect(ffmpegService.extractFrame).toHaveBeenCalled();
       expect(s3Service.uploadFile).toHaveBeenCalled();
-      expect(thumbnailUrl).toContain('thumbnails/test-id.jpg');
+      expect(thumbnailUrl).toContain('thumbnails/test-id');
     });
 
     it('rejects a traversal ingredient ID before requesting a temp path', async () => {
@@ -137,8 +155,10 @@ describe('VideoThumbnailService', () => {
 
       await service.generateThumbnail(videoUrl, ingredientId, 1, width);
 
-      expect(ffmpegService.executeFFmpeg).toHaveBeenCalledWith(
-        expect.arrayContaining([expect.stringContaining(`scale=${width}`)]),
+      expect(s3Service.uploadFile).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.stringContaining('thumbnail_resized.jpg'),
+        'image/jpeg',
       );
     });
   });

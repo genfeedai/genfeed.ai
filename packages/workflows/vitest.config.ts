@@ -43,6 +43,19 @@ export default defineConfig({
     ],
   },
   test: {
+    coverage: {
+      exclude: [
+        '**/*.spec.ts',
+        '**/*.test.ts',
+        '**/*.spec.tsx',
+        '**/*.test.tsx',
+        '**/__tests__/**',
+      ],
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
+      thresholds: { branches: 81, functions: 91, lines: 91, statements: 90 },
+    },
     // Whole-package jsdom: the /ui React specs need a DOM, and jsdom is a
     // superset the engine/nodes/generation logic specs run fine under.
     // (vitest 4 removed environmentMatchGlobs.)

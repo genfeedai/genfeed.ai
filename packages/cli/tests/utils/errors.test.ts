@@ -7,6 +7,7 @@ import {
   GenfeedError,
   handleError,
   NoBrandError,
+  setReplMode,
 } from '../../src/utils/errors';
 
 // Mock chalk to return plain strings
@@ -179,6 +180,26 @@ describe('utils/errors', () => {
     it('handles unknown error types', () => {
       expect(() => handleError({ weird: 'object' })).toThrow('process.exit called');
       expect(mockConsoleError).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    it('rethrows instead of exiting while in REPL mode', () => {
+      const error = new GenfeedError('REPL error');
+      mockExit.mockClear();
+      setReplMode(true);
+      try {
+        expect(() => handleError(error)).toThrow(error);
+        expect(mockConsoleError).toHaveBeenCalled();
+        expect(mockExit).not.toHaveBeenCalled();
+      } finally {
+        setReplMode(false);
+      }
+    });
+
+    it('exits again after REPL mode is disabled', () => {
+      setReplMode(true);
+      setReplMode(false);
+      expect(() => handleError(new GenfeedError('fatal'))).toThrow('process.exit called');
       expect(mockExit).toHaveBeenCalledWith(1);
     });
   });

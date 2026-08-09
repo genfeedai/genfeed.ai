@@ -1,332 +1,171 @@
-import { useModal } from '@hooks/ui/use-modal/use-modal';
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the modal helper functions
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
-  closeModal: vi.fn(),
-  isModalOpen: vi.fn(),
-  openModal: vi.fn(),
+const { modalStore } = vi.hoisted(() => ({
+  modalStore: {
+    listeners: new Map<string, Set<() => void>>(),
+    open: new Set<string>(),
+  },
 }));
+
+vi.mock('@helpers/ui/modal/modal.helper', () => {
+  const notify = (modalId: string) => {
+    for (const listener of modalStore.listeners.get(modalId) ?? []) {
+      listener();
+    }
+  };
+
+  return {
+    closeModal: vi.fn((modalId: string) => {
+      const wasOpen = modalStore.open.delete(modalId);
+      notify(modalId);
+      return wasOpen;
+    }),
+    isModalOpen: vi.fn((modalId: string) => modalStore.open.has(modalId)),
+    openModal: vi.fn((modalId: string) => {
+      modalStore.open.add(modalId);
+      notify(modalId);
+      return true;
+    }),
+    subscribeModal: vi.fn((modalId: string, listener: () => void) => {
+      const existing = modalStore.listeners.get(modalId) ?? new Set();
+      existing.add(listener);
+      modalStore.listeners.set(modalId, existing);
+      return () => {
+        existing.delete(listener);
+      };
+    }),
+  };
+});
 
 import {
   closeModal,
   isModalOpen,
   openModal,
+  subscribeModal,
 } from '@helpers/ui/modal/modal.helper';
+import { useModal } from './use-modal';
 
-const mockOpenModal = vi.mocked(openModal);
-const mockCloseModal = vi.mocked(closeModal);
-const mockIsModalOpen = vi.mocked(isModalOpen);
-
-describe.skip('useModal', () => {
+describe('useModal', () => {
   const modalId = 'test-modal';
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Mock MutationObserver
-    global.MutationObserver = vi.fn().mockImplementation(() => ({
-      disconnect: vi.fn(),
-      observe: vi.fn(),
-    }));
-    // Mock DOM methods
-    document.getElementById = vi.fn().mockReturnValue({
-      addEventListener: vi.fn(),
-      getBoundingClientRect: vi.fn().mockReturnValue({
-        height: 100,
-        left: 0,
-        top: 0,
-        width: 100,
-      }),
-      hasAttribute: vi.fn().mockReturnValue(false),
-      open: false,
-      removeEventListener: vi.fn(),
-    });
-    document.addEventListener = vi.fn();
-    document.removeEventListener = vi.fn();
-  });
-
-  afterEach(() => {
-    vi.clearAllTimers();
+    modalStore.open.clear();
+    modalStore.listeners.clear();
   });
 
   it('initializes with closed state', () => {
-    mockIsModalOpen.mockReturnValue(false);
-
     const { result } = renderHook(() => useModal(modalId));
 
     expect(result.current.isOpen).toBe(false);
     expect(result.current.modalRef.current).toBeNull();
   });
 
-  it('initializes with open state when modal is already open', () => {
-    mockIsModalOpen.mockReturnValue(true);
-
-    const { result } = renderHook(() => useModal(modalId));
-
-    expect(result.current.isOpen).toBe(true);
-  });
-
-  it('opens modal successfully', () => {
-    mockOpenModal.mockReturnValue(true);
-    mockIsModalOpen.mockReturnValue(true);
-
+  it('opens the modal', () => {
     const { result } = renderHook(() => useModal(modalId));
 
     act(() => {
       result.current.open();
     });
 
-    expect(mockOpenModal).toHaveBeenCalledWith(modalId);
+    expect(openModal).toHaveBeenCalledWith(modalId);
     expect(result.current.isOpen).toBe(true);
   });
 
-  it('closes modal successfully', () => {
-    mockCloseModal.mockReturnValue(true);
-    mockIsModalOpen.mockReturnValue(false);
-
+  it('closes the modal', () => {
     const { result } = renderHook(() => useModal(modalId));
 
+    act(() => {
+      result.current.open();
+    });
     act(() => {
       result.current.close();
     });
 
-    expect(mockCloseModal).toHaveBeenCalledWith(modalId);
+    expect(closeModal).toHaveBeenCalledWith(modalId);
     expect(result.current.isOpen).toBe(false);
   });
 
-  it('toggles modal state', () => {
-    mockIsModalOpen.mockReturnValue(false);
-    mockOpenModal.mockReturnValue(true);
-
+  it('toggles from closed to open and back', () => {
     const { result } = renderHook(() => useModal(modalId));
 
     act(() => {
       result.current.toggle();
     });
+    expect(result.current.isOpen).toBe(true);
+    expect(openModal).toHaveBeenCalledWith(modalId);
 
-    expect(mockOpenModal).toHaveBeenCalledWith(modalId);
+    act(() => {
+      result.current.toggle();
+    });
+    expect(result.current.isOpen).toBe(false);
+    expect(closeModal).toHaveBeenCalledWith(modalId);
   });
 
-  it('calls onOpen callback when modal opens', () => {
+  it('invokes onOpen when the modal transitions to open', () => {
     const onOpen = vi.fn();
-    mockOpenModal.mockReturnValue(true);
-    mockIsModalOpen.mockReturnValue(true);
-
     const { result } = renderHook(() => useModal(modalId, { onOpen }));
 
     act(() => {
       result.current.open();
     });
 
-    expect(onOpen).toHaveBeenCalled();
+    expect(onOpen).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onClose callback when modal closes', () => {
+  it('invokes onClose when the modal transitions to closed', () => {
     const onClose = vi.fn();
-    mockCloseModal.mockReturnValue(true);
-    mockIsModalOpen.mockReturnValue(false);
-
     const { result } = renderHook(() => useModal(modalId, { onClose }));
+
+    act(() => {
+      result.current.open();
+    });
+    expect(onClose).not.toHaveBeenCalled();
 
     act(() => {
       result.current.close();
     });
-
-    expect(onClose).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('handles escape key press', () => {
-    mockIsModalOpen.mockReturnValue(true);
-    mockCloseModal.mockReturnValue(true);
-
+  it('reflects external open state changes from the helper store', () => {
     const { result } = renderHook(() => useModal(modalId));
 
-    // Simulate escape key press
-    const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
     act(() => {
-      document.dispatchEvent(escapeEvent);
-    });
-
-    expect(mockCloseModal).toHaveBeenCalledWith(modalId);
-  });
-
-  it('does not close on escape when closeOnEscape is false', () => {
-    mockIsModalOpen.mockReturnValue(true);
-
-    renderHook(() => useModal(modalId, { closeOnEscape: false }));
-
-    const escapeEvent = new KeyboardEvent('keydown', { key: 'Escape' });
-    act(() => {
-      document.dispatchEvent(escapeEvent);
-    });
-
-    expect(mockCloseModal).not.toHaveBeenCalled();
-  });
-
-  it('handles click outside modal', () => {
-    mockIsModalOpen.mockReturnValue(true);
-    mockCloseModal.mockReturnValue(true);
-
-    const mockDialog = {
-      addEventListener: vi.fn(),
-      getBoundingClientRect: vi.fn().mockReturnValue({
-        height: 100,
-        left: 0,
-        top: 0,
-        width: 100,
-      }),
-      open: true,
-      removeEventListener: vi.fn(),
-    };
-
-    document.getElementById = vi.fn().mockReturnValue(mockDialog);
-
-    const { result } = renderHook(() => useModal(modalId));
-
-    // Simulate click outside modal
-    const clickEvent = new MouseEvent('click', {
-      clientX: 200,
-      clientY: 200,
-    });
-
-    act(() => {
-      mockDialog.addEventListener.mock.calls.find(
-        (call) => call[0] === 'click',
-      )?.[1](clickEvent);
-    });
-
-    expect(mockCloseModal).toHaveBeenCalledWith(modalId);
-  });
-
-  it('does not close on click outside when closeOnClickOutside is false', () => {
-    mockIsModalOpen.mockReturnValue(true);
-
-    const mockDialog = {
-      addEventListener: vi.fn(),
-      getBoundingClientRect: vi.fn().mockReturnValue({
-        height: 100,
-        left: 0,
-        top: 0,
-        width: 100,
-      }),
-      open: true,
-      removeEventListener: vi.fn(),
-    };
-
-    document.getElementById = vi.fn().mockReturnValue(mockDialog);
-
-    renderHook(() => useModal(modalId, { closeOnClickOutside: false }));
-
-    // Simulate click outside modal
-    const clickEvent = new MouseEvent('click', {
-      clientX: 200,
-      clientY: 200,
-    });
-
-    act(() => {
-      mockDialog.addEventListener.mock.calls.find(
-        (call) => call[0] === 'click',
-      )?.[1](clickEvent);
-    });
-
-    expect(mockCloseModal).not.toHaveBeenCalled();
-  });
-
-  it('handles dialog close event', () => {
-    const onClose = vi.fn();
-    mockIsModalOpen.mockReturnValue(false);
-
-    const mockDialog = {
-      addEventListener: vi.fn(),
-      getBoundingClientRect: vi.fn(),
-      open: false,
-      removeEventListener: vi.fn(),
-    };
-
-    document.getElementById = vi.fn().mockReturnValue(mockDialog);
-
-    const { result } = renderHook(() => useModal(modalId, { onClose }));
-
-    // Simulate dialog close event
-    act(() => {
-      mockDialog.addEventListener.mock.calls.find(
-        (call) => call[0] === 'close',
-      )?.[1]();
-    });
-
-    expect(result.current.isOpen).toBe(false);
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it('handles dialog open event', () => {
-    const onOpen = vi.fn();
-    mockIsModalOpen.mockReturnValue(true);
-
-    const mockDialog = {
-      addEventListener: vi.fn(),
-      getBoundingClientRect: vi.fn(),
-      open: true,
-      removeEventListener: vi.fn(),
-    };
-
-    document.getElementById = vi.fn().mockReturnValue(mockDialog);
-
-    const { result } = renderHook(() => useModal(modalId, { onOpen }));
-
-    // Simulate dialog open event
-    act(() => {
-      mockDialog.addEventListener.mock.calls.find(
-        (call) => call[0] === 'open',
-      )?.[1]();
+      openModal(modalId);
     });
 
     expect(result.current.isOpen).toBe(true);
-    expect(onOpen).toHaveBeenCalled();
+    expect(isModalOpen(modalId)).toBe(true);
   });
 
-  it('cleans up event listeners on unmount', () => {
-    const mockDialog = {
-      addEventListener: vi.fn(),
-      getBoundingClientRect: vi.fn(),
-      open: false,
-      removeEventListener: vi.fn(),
-    };
+  it('uses the latest options after a rerender', () => {
+    const firstOnOpen = vi.fn();
+    const secondOnOpen = vi.fn();
+    const { rerender, result } = renderHook(
+      ({ onOpen }: { onOpen: () => void }) => useModal(modalId, { onOpen }),
+      { initialProps: { onOpen: firstOnOpen } },
+    );
 
-    document.getElementById = vi.fn().mockReturnValue(mockDialog);
-    document.removeEventListener = vi.fn();
+    rerender({ onOpen: secondOnOpen });
 
+    act(() => {
+      result.current.open();
+    });
+
+    expect(firstOnOpen).not.toHaveBeenCalled();
+    expect(secondOnOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it('unsubscribes from the store on unmount', () => {
     const { unmount } = renderHook(() => useModal(modalId));
+
+    expect(subscribeModal).toHaveBeenCalled();
+    expect(modalStore.listeners.get(modalId)?.size).toBe(1);
 
     unmount();
 
-    expect(document.removeEventListener).toHaveBeenCalled();
-    expect(mockDialog.removeEventListener).toHaveBeenCalled();
-  });
-
-  it('updates options when they change', () => {
-    const onOpen1 = vi.fn();
-    const onOpen2 = vi.fn();
-    mockOpenModal.mockReturnValue(true);
-    mockIsModalOpen.mockReturnValue(true);
-
-    const { result, rerender } = renderHook(
-      ({ options }) => useModal(modalId, options),
-      { initialProps: { options: { onOpen: onOpen1 } } },
-    );
-
-    act(() => {
-      result.current.open();
-    });
-
-    expect(onOpen1).toHaveBeenCalled();
-
-    rerender({ options: { onOpen: onOpen2 } });
-
-    act(() => {
-      result.current.open();
-    });
-
-    expect(onOpen2).toHaveBeenCalled();
+    expect(modalStore.listeners.get(modalId)?.size).toBe(0);
   });
 });

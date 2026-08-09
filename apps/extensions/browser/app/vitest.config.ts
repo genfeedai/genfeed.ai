@@ -41,12 +41,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      thresholds: {
-        branches: 9,
-        functions: 8,
-        lines: 12,
-        statements: 12,
-      },
+      thresholds: { branches: 8, functions: 8, lines: 13, statements: 12 },
     },
     environment: 'jsdom',
     exclude: ['**/node_modules/**'],

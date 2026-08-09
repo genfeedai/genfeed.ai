@@ -39,8 +39,8 @@ describe('CronAdSyncMetaService', () => {
           {
             id: '507f1f77bcf86cd799439013',
             accessToken: 'encrypted-token',
-            brand: { toString: () => '507f1f77bcf86cd799439012' },
-            organization: { toString: () => '507f1f77bcf86cd799439011' },
+            brandId: '507f1f77bcf86cd799439012',
+            organizationId: '507f1f77bcf86cd799439011',
           },
         ],
       }),

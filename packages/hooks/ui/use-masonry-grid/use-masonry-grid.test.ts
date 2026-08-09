@@ -223,4 +223,125 @@ describe('useMasonryGrid', () => {
       expect(result.current).toBeDefined();
     });
   });
+
+  describe('Layout calculation with a real container', () => {
+    function createContainer(itemHeights: number[]): HTMLDivElement {
+      const container = document.createElement('div');
+      Object.defineProperty(container, 'clientWidth', { value: 1000 });
+
+      for (const height of itemHeights) {
+        const item = document.createElement('div');
+        item.className = 'masonry-item';
+        Object.defineProperty(item, 'scrollHeight', { value: height });
+        Object.defineProperty(item, 'offsetHeight', { value: height });
+        container.appendChild(item);
+      }
+
+      document.body.appendChild(container);
+      return container;
+    }
+
+    beforeEach(() => {
+      vi.stubGlobal(
+        'requestAnimationFrame',
+        (callback: FrameRequestCallback) => {
+          callback(0);
+          return 1;
+        },
+      );
+      vi.stubGlobal('cancelAnimationFrame', () => undefined);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      document.body.innerHTML = '';
+    });
+
+    it('positions items into columns and computes container height', () => {
+      const container = createContainer([100, 200, 150, 120]);
+      const items = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, { id: 'd' }];
+
+      const { result } = renderHook(() =>
+        useMasonryGrid(items, {
+          columns: { desktop: 2, mobile: 1, tablet: 2 },
+          gap: 10,
+        }),
+      );
+
+      act(() => {
+        result.current.containerRef.current = container;
+      });
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(result.current.isLayoutReady).toBe(true);
+      expect(result.current.containerHeight).toBeGreaterThan(0);
+
+      const positioned = Array.from(
+        container.querySelectorAll('.masonry-item'),
+      ) as HTMLElement[];
+      expect(positioned[0].style.position).toBe('absolute');
+      expect(positioned[0].style.left).toBe('0px');
+      expect(positioned[0].style.top).toBe('0px');
+      // Second item goes to the second column on the first row
+      expect(positioned[1].style.left).toBe('505px');
+      // Third item lands in the shortest column (first, height 100+10)
+      expect(positioned[2].style.top).toBe('110px');
+    });
+
+    it('recalculates on demand and on window resize', () => {
+      const container = createContainer([100, 100]);
+      const items = [{ id: 'a' }, { id: 'b' }];
+
+      const { result } = renderHook(() =>
+        useMasonryGrid(items, {
+          columns: { desktop: 2, mobile: 1, tablet: 2 },
+          gap: 10,
+        }),
+      );
+
+      act(() => {
+        result.current.containerRef.current = container;
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+      expect(result.current.isLayoutReady).toBe(true);
+
+      act(() => {
+        result.current.recalculateLayout();
+        vi.runAllTimers();
+      });
+      expect(result.current.isLayoutReady).toBe(true);
+
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+        vi.runAllTimers();
+      });
+      expect(result.current.containerHeight).toBeGreaterThan(0);
+    });
+
+    it('skips layout while the container has zero width', () => {
+      const container = document.createElement('div');
+      Object.defineProperty(container, 'clientWidth', { value: 0 });
+      const item = document.createElement('div');
+      item.className = 'masonry-item';
+      container.appendChild(item);
+      document.body.appendChild(container);
+
+      const { result } = renderHook(() => useMasonryGrid([{ id: 'a' }]));
+
+      act(() => {
+        result.current.containerRef.current = container;
+      });
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      expect(result.current.isLayoutReady).toBe(false);
+      expect(result.current.containerHeight).toBe(0);
+    });
+  });
 });

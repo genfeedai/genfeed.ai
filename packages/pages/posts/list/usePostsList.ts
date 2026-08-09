@@ -66,6 +66,11 @@ import { WebSocketPaths } from '@utils/network/websocket.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+// Shared empty fallbacks — see `hydratedPostPresets` below. These must be
+// module-level constants so an omitted prop keeps a stable identity.
+const EMPTY_POST_PRESETS: IPreset[] = [];
+const EMPTY_POSTS: IPost[] = [];
+
 // View type constants (exported so component can import them)
 export const VIEW_TYPE_GRID = ViewType.GRID;
 export const VIEW_TYPE_TABLE = ViewType.TABLE;
@@ -96,14 +101,29 @@ export function usePostsList({
   onRewriteWithAgent,
   onSuggestScheduleWithAgent,
 }: UsePostsListParams) {
-  const hydratedPostPresets = initialPostPresets ?? [];
-  const hydratedPosts = initialPosts ?? [];
-  const hydratedPagination = initialPagination ?? {
-    page: 1,
-    pageSize: ITEMS_PER_PAGE,
-    total: hydratedPosts.length,
-    totalPages: 1,
-  };
+  // `?? []` inline would mint a fresh array on every render. That identity
+  // feeds `useEffect(..., [hydratedPostPresets])` below, which calls
+  // `setPostPresets` — an unconditional render loop on every caller that omits
+  // `initialPostPresets` (e.g. the superadmin posts page). Memoize the
+  // fallbacks so an omitted prop stays referentially stable.
+  const hydratedPostPresets = useMemo(
+    () => initialPostPresets ?? EMPTY_POST_PRESETS,
+    [initialPostPresets],
+  );
+  const hydratedPosts = useMemo(
+    () => initialPosts ?? EMPTY_POSTS,
+    [initialPosts],
+  );
+  const hydratedPagination = useMemo(
+    () =>
+      initialPagination ?? {
+        page: 1,
+        pageSize: ITEMS_PER_PAGE,
+        total: hydratedPosts.length,
+        totalPages: 1,
+      },
+    [initialPagination, hydratedPosts.length],
+  );
   // Explicit `null` means the Posts library (every lifecycle state). Undefined
   // keeps the historical publisher default (not posted yet).
   const publicationState =

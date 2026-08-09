@@ -119,10 +119,8 @@ describe('CronTiktokStatusService', () => {
 
   it('records verified publications through the system workflow provenance service', async () => {
     const post = {
-      _id: 'post-1',
-      brand: 'brand-1',
+      brandId: 'brand-1',
       credential: {
-        _id: 'credential-1',
         accessToken: 'encrypted-token',
         externalHandle: 'creator',
         id: 'credential-1',
@@ -130,9 +128,9 @@ describe('CronTiktokStatusService', () => {
       },
       externalId: 'publish-1',
       id: 'post-1',
-      organization: 'org-1',
+      organizationId: 'org-1',
       updatedAt: new Date().toISOString(),
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     // Empty access token bypasses EncryptionUtil.decrypt (no key needed in tests)
@@ -175,20 +173,18 @@ describe('CronTiktokStatusService', () => {
 
   it('marks timed-out pending posts failed inside a provenance execution', async () => {
     const post = {
-      _id: 'post-2',
-      brand: 'brand-1',
+      brandId: 'brand-1',
       credential: {
-        _id: 'credential-1',
         accessToken: 'encrypted-token',
         id: 'credential-1',
         isConnected: true,
       },
       externalId: 'publish-2',
       id: 'post-2',
-      organization: 'org-1',
+      organizationId: 'org-1',
       // Became PENDING 48h ago - beyond the 24h max age
       updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
 
@@ -222,19 +218,17 @@ describe('CronTiktokStatusService', () => {
 
   it('suppresses the failed webhook when the canonical transition is stale', async () => {
     const post = {
-      _id: 'post-stale-failure',
-      brand: 'brand-1',
+      brandId: 'brand-1',
       credential: {
-        _id: 'credential-1',
         accessToken: 'encrypted-token',
         id: 'credential-1',
         isConnected: true,
       },
       externalId: 'publish-stale-failure',
       id: 'post-stale-failure',
-      organization: 'org-1',
+      organizationId: 'org-1',
       updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     schedulerPublishStateService.transitionPost.mockResolvedValue(false);
@@ -249,19 +243,17 @@ describe('CronTiktokStatusService', () => {
 
   it('continues the sweep when provenance recording fails', async () => {
     const post = {
-      _id: 'post-3',
-      brand: 'brand-1',
+      brandId: 'brand-1',
       credential: {
-        _id: 'credential-1',
         accessToken: 'encrypted-token',
         id: 'credential-1',
         isConnected: true,
       },
       externalId: 'publish-3',
       id: 'post-3',
-      organization: 'org-1',
+      organizationId: 'org-1',
       updatedAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     provenanceService.runAction.mockRejectedValue(
@@ -273,7 +265,7 @@ describe('CronTiktokStatusService', () => {
 
   it('rolls a grouped TikTok completion into canonical target state', async () => {
     const post = {
-      brand: 'brand-1',
+      brandId: 'brand-1',
       credential: {
         accessToken: 'encrypted-token',
         externalHandle: 'creator',
@@ -283,9 +275,9 @@ describe('CronTiktokStatusService', () => {
       externalId: 'publish-4',
       groupId: 'group-1',
       id: 'post-4',
-      organization: 'org-1',
+      organizationId: 'org-1',
       updatedAt: new Date().toISOString(),
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });
@@ -316,7 +308,7 @@ describe('CronTiktokStatusService', () => {
 
   it('suppresses the published webhook when the canonical transition is stale', async () => {
     const post = {
-      brand: 'brand-1',
+      brandId: 'brand-1',
       credential: {
         accessToken: 'encrypted-token',
         externalHandle: 'creator',
@@ -326,9 +318,9 @@ describe('CronTiktokStatusService', () => {
       externalId: 'publish-stale-success',
       groupId: 'group-1',
       id: 'post-stale-success',
-      organization: 'org-1',
+      organizationId: 'org-1',
       updatedAt: new Date().toISOString(),
-      user: 'user-1',
+      userId: 'user-1',
     };
     postsService.findAll.mockResolvedValue({ docs: [post] });
     tiktokService.refreshToken.mockResolvedValue({ accessToken: '' });

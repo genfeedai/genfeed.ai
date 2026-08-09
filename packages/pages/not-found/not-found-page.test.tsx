@@ -13,11 +13,18 @@ describe('NotFoundPage', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('uses a full-viewport deep-black background without an inset container', () => {
+  it('fills the available layout region with a deep-black background', () => {
     const { container } = render(<NotFoundPage />);
     const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toHaveClass('min-h-dvh', 'w-full', 'bg-black');
+    expect(rootElement).toHaveClass('h-full', 'w-full', 'flex-1', 'bg-black');
     expect(rootElement).not.toHaveClass('container', 'bg-background');
+  });
+
+  it('does not stack a full viewport on top of the app shell chrome', () => {
+    const { container } = render(<NotFoundPage />);
+    const rootElement = container.firstChild as HTMLElement;
+    expect(rootElement).not.toHaveClass('min-h-dvh', 'min-h-screen');
+    expect(rootElement).toHaveClass('min-h-0', 'overflow-hidden');
   });
 
   it('uses a high-contrast home CTA on the black shell', () => {

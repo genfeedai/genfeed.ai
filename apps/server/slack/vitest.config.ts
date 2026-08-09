@@ -79,7 +79,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      thresholds: { branches: 0, functions: 0, lines: 0, statements: 0 },
+      thresholds: { branches: 93, functions: 98, lines: 98, statements: 98 },
     },
     environment: 'node',
     globals: true,
