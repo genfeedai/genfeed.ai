@@ -29,6 +29,18 @@ interface BrandIdentityValue {
   slug: string;
 }
 
+/**
+ * Held as data rather than inline JSX so the card's copy stays one translatable
+ * unit once shared packages gain a message catalog.
+ */
+const COPY = {
+  awaitingConfirmation: 'Awaiting confirmation',
+  currentBrand: 'Current brand:',
+  descriptionField: 'Description',
+  labelField: 'Brand label',
+  slugField: 'Brand slug',
+} as const;
+
 function readRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -180,7 +192,7 @@ export function BrandIdentityConfirmationCard({
             {action.title || `Confirm ${actionLabel.toLowerCase()}`}
           </h3>
           <p className="mt-0.5 text-[10px] font-medium uppercase tracking-wider text-warning">
-            Awaiting confirmation
+            {COPY.awaitingConfirmation}
           </p>
         </div>
       </div>
@@ -193,7 +205,7 @@ export function BrandIdentityConfirmationCard({
 
       {operation === 'rename' && readString(currentIdentity.label) ? (
         <p className="mb-3 bg-background-tertiary px-3 py-2 text-xs text-muted-foreground">
-          Current brand:{' '}
+          {COPY.currentBrand}{' '}
           <span className="font-medium text-foreground">
             {readString(currentIdentity.label)}
           </span>
@@ -209,7 +221,7 @@ export function BrandIdentityConfirmationCard({
             className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
             htmlFor={labelInputId}
           >
-            Brand label
+            {COPY.labelField}
           </label>
           <Input
             id={labelInputId}
@@ -225,7 +237,7 @@ export function BrandIdentityConfirmationCard({
             className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
             htmlFor={slugInputId}
           >
-            Brand slug
+            {COPY.slugField}
           </label>
           <Input
             id={slugInputId}
@@ -242,7 +254,7 @@ export function BrandIdentityConfirmationCard({
               className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
               htmlFor={descriptionInputId}
             >
-              Description
+              {COPY.descriptionField}
             </label>
             <Textarea
               id={descriptionInputId}
