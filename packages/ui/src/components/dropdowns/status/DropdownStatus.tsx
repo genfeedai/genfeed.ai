@@ -6,6 +6,7 @@ import {
   IngredientCategory,
   IngredientStatus,
   PostStatus,
+  StatusDomain,
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -126,6 +127,14 @@ export default function DropdownStatus({
       ? (entity.category as IngredientCategory)
       : null;
 
+  // Status labels are resolved per domain — the same string means different
+  // things to an article, a post, and an ingredient.
+  const statusDomain = isArticle
+    ? StatusDomain.ARTICLE
+    : isPost
+      ? StatusDomain.POST
+      : StatusDomain.INGREDIENT;
+
   const isVideo = ingredientCategory === IngredientCategory.VIDEO;
   const isImage = ingredientCategory === IngredientCategory.IMAGE;
   const isGif = ingredientCategory === IngredientCategory.GIF;
@@ -245,7 +254,7 @@ export default function DropdownStatus({
       onStatusChange?.(newStatus, updatedItem);
 
       // Show success notification
-      const statusMeta = getStatusMeta(newStatus);
+      const statusMeta = getStatusMeta(newStatus, statusDomain);
       const message = `Status updated to ${statusMeta.label}`;
 
       // For Failed status, use info notification instead of success
@@ -269,6 +278,7 @@ export default function DropdownStatus({
 
   const currentMeta = getStatusMeta(
     status as Parameters<typeof getStatusMeta>[0],
+    statusDomain,
   );
 
   // Check if we should render icon-only mode (when className includes rounded-full)
@@ -325,6 +335,7 @@ export default function DropdownStatus({
       {statusOptions.map((s) => {
         const meta = getStatusMeta(
           s as IngredientStatus | ArticleStatus | PostStatus,
+          statusDomain,
         );
         const isActive = s === entity.status;
         const statusIcon = getStatusIcon(s);
