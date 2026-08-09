@@ -1,12 +1,16 @@
 'use client';
 
+import { resolveChannelTargetSettings } from '@api-types/contracts';
 import {
   ButtonSize,
   ButtonVariant,
   CredentialPlatform,
+  PostCategory,
+  PostStatus,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
+import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import type { ModalPostPlatformsTabProps } from '@genfeedai/props/modals/modal.props';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
@@ -31,6 +35,7 @@ import {
 
 export default function ModalPostPlatformsTab({
   form,
+  ingredients,
   platformConfigs,
   isLoading,
   ingredient,
@@ -47,20 +52,16 @@ export default function ModalPostPlatformsTab({
     null,
   );
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
-
-  const previewTargets = useMemo<PlatformPreviewTarget[]>(() => {
-    const media = ingredient ? buildMediaFromIngredients([ingredient]) : [];
-
-    return platformConfigs
-      .filter((config) => config.enabled)
-      .map((config) => ({
-        author: { handle: config.handle },
-        caption: config.description || globalDescription || '',
-        media,
-        platform: config.platform,
-        title: config.label || globalLabel,
-      }));
-  }, [globalDescription, globalLabel, ingredient, platformConfigs]);
+  const previewTargets = useMemo(
+    () =>
+      buildComposerPreviewTargets(
+        platformConfigs,
+        ingredients ?? (ingredient ? [ingredient] : undefined),
+        globalLabel,
+        globalDescription,
+      ),
+    [globalDescription, globalLabel, ingredient, ingredients, platformConfigs],
+  );
 
   const getPromptsService = useAuthedService((token) =>
     PromptsService.getInstance(token),
@@ -270,4 +271,50 @@ export default function ModalPostPlatformsTab({
       ) : null}
     </>
   );
+}
+
+export function buildComposerPreviewTargets(
+  platformConfigs: IPostPlatformConfig[],
+  ingredients: IIngredient[] | undefined,
+  globalLabel = '',
+  globalDescription = '',
+): PlatformPreviewTarget[] {
+  const media = buildMediaFromIngredients(ingredients);
+
+  return platformConfigs
+    .filter(
+      (config) =>
+        config.enabled &&
+        config.isCredentialValid !== false &&
+        config.credentialId.trim().length > 0,
+    )
+    .map((config) => {
+      const overrides: Record<string, unknown> = {};
+
+      if (config.platform === CredentialPlatform.INSTAGRAM) {
+        const isVideo =
+          config.category === PostCategory.VIDEO ||
+          media.some((item) => ['short_video', 'video'].includes(item.kind));
+        overrides.placement = isVideo ? 'reel' : 'feed';
+      }
+
+      if (
+        config.platform === CredentialPlatform.YOUTUBE &&
+        [PostStatus.PRIVATE, PostStatus.PUBLIC, PostStatus.UNLISTED].includes(
+          config.status as PostStatus,
+        )
+      ) {
+        overrides.privacyStatus = config.status;
+      }
+
+      return {
+        author: { handle: config.handle },
+        caption: config.description || globalDescription,
+        media,
+        platform: config.platform,
+        publishMode: 'scheduled',
+        settings: resolveChannelTargetSettings(config.platform, overrides),
+        title: config.label || globalLabel,
+      };
+    });
 }

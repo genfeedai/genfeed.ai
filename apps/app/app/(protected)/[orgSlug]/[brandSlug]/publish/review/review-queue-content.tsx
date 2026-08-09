@@ -14,6 +14,7 @@ function ReviewQueueContentContent() {
     activeBatchId,
     batchList,
     batchesError,
+    canDiscardBatch,
     filterCounts,
     hasInvalidBatchPayload,
     isActioning,
@@ -27,6 +28,7 @@ function ReviewQueueContentContent() {
     handleApproveItem,
     handleBatchChange,
     handleBulkAction,
+    handleDiscardBatch,
     handleFilterChange,
     handleRequestChanges,
     handleRejectItem,
@@ -48,6 +50,7 @@ function ReviewQueueContentContent() {
       activeBatchId={activeBatchId}
       batchList={batchList}
       batchesError={batchesError as Error | null}
+      canDiscardBatch={canDiscardBatch}
       filterCounts={filterCounts}
       hasInvalidBatchPayload={hasInvalidBatchPayload}
       isActioning={isActioning}
@@ -60,6 +63,7 @@ function ReviewQueueContentContent() {
       onBatchChange={handleBatchChange}
       onBulkApprove={() => handleBulkAction('approve')}
       onBulkReject={() => handleBulkAction('reject')}
+      onDiscardBatch={handleDiscardBatch}
       onClosePostDetail={() => setSelectedPostId(null)}
       onFilterChange={handleFilterChange}
       onRefresh={refreshQueue}

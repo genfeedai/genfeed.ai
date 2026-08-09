@@ -1,5 +1,6 @@
 'use client';
 
+import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
 import type {
   CalendarItem,
   CalendarViewKey,
@@ -156,6 +157,8 @@ export default function ContentCalendar<T extends CalendarItem>({
   onDatesChange,
   getEventColor,
   getEventBadge,
+  getEventChannels,
+  getEventIndicators,
   isItemDraggable,
   onEventDrop,
   initialView = 'week',
@@ -175,8 +178,30 @@ export default function ContentCalendar<T extends CalendarItem>({
    * calendar a second time on every view switch.
    */
   const viewIdRef = useRef<string>(toViewId(initialView));
+  const iconSpriteRef = useRef<HTMLDivElement | null>(null);
 
   const isDragEnabled = Boolean(isItemDraggable && onEventDrop);
+
+  /**
+   * Every platform the current items publish to. Rendered once into a hidden
+   * sprite so `handleEventContent` — plain DOM by FullCalendar contract — can
+   * clone real React-rendered icons from the canonical platform-icon helper
+   * instead of maintaining a parallel SVG map.
+   */
+  const channelIconIds = useMemo(() => {
+    if (!getEventChannels) {
+      return [];
+    }
+
+    const ids = new Set<string>();
+    for (const item of items) {
+      for (const channel of getEventChannels(item)) {
+        ids.add(channel.id);
+      }
+    }
+
+    return [...ids];
+  }, [items, getEventChannels]);
 
   const events: EventInput[] = useMemo(
     () =>
@@ -238,8 +263,11 @@ export default function ContentCalendar<T extends CalendarItem>({
     (info: EventDisplayInfo): true | { domNodes: HTMLElement[] } => {
       const item = info.event.extendedProps.item as T | undefined;
       const badge = item && getEventBadge ? getEventBadge(item) : null;
+      const channels = item && getEventChannels ? getEventChannels(item) : [];
+      const indicators =
+        item && getEventIndicators ? getEventIndicators(item) : [];
 
-      if (!badge) {
+      if (!badge && channels.length === 0 && indicators.length === 0) {
         return true;
       }
 
@@ -255,19 +283,70 @@ export default function ContentCalendar<T extends CalendarItem>({
         container.appendChild(time);
       }
 
+      const spriteEntries = Array.from(iconSpriteRef.current?.children ?? []);
+      const channelIcons = channels.flatMap((channel) => {
+        const icon = spriteEntries.find(
+          (entry) => entry.getAttribute('data-platform') === channel.id,
+        )?.firstElementChild;
+        return icon ? [icon.cloneNode(true)] : [];
+      });
+
+      if (channelIcons.length > 0) {
+        const channelLabels = channels
+          .map((channel) => channel.label)
+          .join(', ');
+        const channelsNode = document.createElement('span');
+        channelsNode.className = 'gen-calendar-event-channels';
+        channelsNode.setAttribute('role', 'img');
+        channelsNode.setAttribute('aria-label', `Channels: ${channelLabels}`);
+        channelsNode.title = channelLabels;
+        for (const icon of channelIcons) {
+          channelsNode.appendChild(icon);
+        }
+        container.appendChild(channelsNode);
+      }
+
       const title = document.createElement('span');
       title.className = 'gen-calendar-event-title';
       title.textContent = info.event.title;
       container.appendChild(title);
 
-      const badgeNode = document.createElement('span');
-      badgeNode.className = `gen-calendar-event-badge gen-calendar-event-badge--${badge.tone}`;
-      badgeNode.textContent = badge.label;
-      container.appendChild(badgeNode);
+      if (indicators.length > 0) {
+        const indicatorGroup = document.createElement('span');
+        const indicatorLabels = indicators.map((indicator) => indicator.label);
+        indicatorGroup.className = 'gen-calendar-event-indicators';
+        indicatorGroup.setAttribute(
+          'aria-label',
+          `Channels: ${indicatorLabels.join(', ')}`,
+        );
+        indicatorGroup.setAttribute('role', 'group');
+        indicatorGroup.title = indicatorLabels.join(', ');
+
+        const indicator = document.createElement('span');
+        indicator.className = 'gen-calendar-event-indicator';
+        indicator.textContent = indicators[0]?.shortLabel ?? '';
+        indicatorGroup.appendChild(indicator);
+
+        if (indicators.length > 1) {
+          const remainder = document.createElement('span');
+          remainder.className = 'gen-calendar-event-indicator-more';
+          remainder.textContent = `+${indicators.length - 1}`;
+          indicatorGroup.appendChild(remainder);
+        }
+
+        container.appendChild(indicatorGroup);
+      }
+
+      if (badge) {
+        const badgeNode = document.createElement('span');
+        badgeNode.className = `gen-calendar-event-badge gen-calendar-event-badge--${badge.tone}`;
+        badgeNode.textContent = badge.label;
+        container.appendChild(badgeNode);
+      }
 
       return { domNodes: [container] };
     },
-    [getEventBadge],
+    [getEventBadge, getEventChannels, getEventIndicators],
   );
 
   const handleDatesSet = useCallback(
@@ -341,6 +420,16 @@ export default function ContentCalendar<T extends CalendarItem>({
 
   return (
     <>
+      {channelIconIds.length > 0 && (
+        <div aria-hidden="true" className="hidden" ref={iconSpriteRef}>
+          {channelIconIds.map((platformId) => (
+            <span data-platform={platformId} key={platformId}>
+              {getPlatformIcon(platformId, 'gen-calendar-event-channel-icon')}
+            </span>
+          ))}
+        </div>
+      )}
+
       {filterControls && (
         <div className="flex justify-end mb-4">{filterControls}</div>
       )}

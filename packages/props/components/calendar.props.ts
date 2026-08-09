@@ -34,6 +34,26 @@ export interface CalendarEventBadge {
 }
 
 /**
+ * One publish destination rendered on an event as a platform icon. `id` is the
+ * canonical lowercase platform id keying the shared platform-icon lookup;
+ * `label` is the human name carried into the icon group's tooltip/aria-label.
+ */
+export interface CalendarEventChannel {
+  id: string;
+  label: string;
+}
+
+/**
+ * Compact metadata rendered inside a dense calendar event. `shortLabel` is the
+ * visible week-grid token (for example `IG`); `label` remains the full,
+ * accessible channel name.
+ */
+export interface CalendarEventIndicator {
+  label: string;
+  shortLabel: string;
+}
+
+/**
  * A drag-reschedule the host has not committed yet. `revert` restores the event
  * to its previous slot and must be called when the mutation fails, so the
  * calendar never keeps an optimistic position the backend rejected.
@@ -56,6 +76,18 @@ export interface ContentCalendarProps<T extends CalendarItem> {
    * FullCalendar's default rendering for that event.
    */
   getEventBadge?: (item: T) => CalendarEventBadge | null;
+  /**
+   * Channels the event publishes to, rendered as platform icons ahead of the
+   * title so a dense week grid still shows where each release goes. Return an
+   * empty list to render that event without icons.
+   */
+  getEventChannels?: (item: T) => CalendarEventChannel[];
+  /**
+   * Channel or destination metadata rendered before the status badge. The
+   * calendar keeps one token visible and summarizes the remainder so release
+   * groups stay readable in narrow week columns.
+   */
+  getEventIndicators?: (item: T) => CalendarEventIndicator[];
   /**
    * Per-item drag eligibility. Dragging stays off unless a host supplies both
    * this and `onEventDrop`.

@@ -38,6 +38,7 @@
     "jose": "^6.2.8",
     "jsonapi-serializer": "3.6.9",
     "jsonwebtoken": "9.0.3",
+    "marked": "16.4.2",
     "multer": "2.2.0",
     "openai": "7.4.0",
     "rss": "1.2.2",
@@ -67,6 +68,8 @@
   "scripts": {
     "build": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill",
     "build:prod": "cd .. && nest build api && nest build api-workflow-backfill && nest build api-credential-backfill && cd api && (bun run sentry:sourcemaps || true)",
+    "backfill:post-status:dry": "bun run scripts/backfill-post-status.ts",
+    "backfill:post-status:live": "bun run scripts/backfill-post-status.ts --live",
     "deps:update": "bunx npm-check-updates -u --reject typescript,better-auth && bun install",
     "dev": "bun run ../../../scripts/dev/run-portless.ts api -- bun run dev:process",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start api --watch",

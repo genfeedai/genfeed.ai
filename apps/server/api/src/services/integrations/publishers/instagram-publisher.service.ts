@@ -4,6 +4,7 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
   ThreadChild,
@@ -41,7 +42,7 @@ export class InstagramPublisherService extends BasePublisherService {
   override validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     const base = super.validatePost(context, mediaInfo);
     if (!base.valid) {
       return base;
@@ -72,7 +73,11 @@ export class InstagramPublisherService extends BasePublisherService {
     // Validate
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {

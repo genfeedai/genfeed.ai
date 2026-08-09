@@ -240,11 +240,6 @@ export const APP_ROUTES = {
     /** @deprecated Use APP_ROUTES.AUTOMATE.CAMPAIGNS_NEW. */
     CAMPAIGNS_NEW: '/automate/campaigns/new',
     /**
-     * @deprecated Newsletter is a creation surface, not Publish nav.
-     * Route retained for deep links until the long-form UX lands elsewhere.
-     */
-    NEWSLETTERS: '/publish/newsletters',
-    /**
      * @deprecated Canonical path is APP_ROUTES.AUTOMATE.OUTREACH_CAMPAIGNS.
      * Legacy `/publish/outreach-campaigns` permanently redirects there.
      */
@@ -372,6 +367,11 @@ export const APP_ROUTE_TEMPLATES = {
 } as const;
 
 export const LEGACY_APP_ROUTES = {
+  /**
+   * @deprecated Newsletter writing is Agent-first. This path permanently
+   * redirects to APP_ROUTES.AGENT.NEW; `?id=` links resolve to the editor.
+   */
+  PUBLISH_NEWSLETTERS: '/publish/newsletters',
   /** @deprecated Use APP_ROUTES.WORKSPACE.TASKS. */
   TASKS: '/tasks',
 } as const;

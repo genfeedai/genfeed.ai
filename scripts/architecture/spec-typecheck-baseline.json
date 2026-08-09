@@ -4283,14 +4283,6 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-delivery.service.spec.ts",
-      "fingerprint": "d51904df619ee1bd7b4a",
-      "message": "Argument of type '{ lifecycleEmailDelivery: { findFirst: Mock<Procedure | Constructable>; update: Mock<Procedure | Constructable>; }; lifecycleEmailPreference: { ...; }; post: { ...; }; subscription: { ...; }; userSubscription: { ...; }; }' is not assignable to parameter of type 'ServerPrisma'.   Type '{ lifecycleEmailDelivery: { findFirst: Mock<Procedure | Constructable>; update: Mock<Procedure | Constructable>; }; lifecycleEmailPreference: { ...; }; post: { ...; }; subscription: { ...; }; userSubscription: { ...; }; }' is missing the following properties from type 'ServerPrisma': $queryRaw, $transaction, agentMessage, agentThread, and 20 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
       "file": "apps/server/api/src/services/microservices/microservices.service.spec.ts",
       "fingerprint": "12eedd286205203237dc",
       "message": "Argument of type '(key: string) => \"production\" | \"http://notifications.genfeed.ai\"' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",

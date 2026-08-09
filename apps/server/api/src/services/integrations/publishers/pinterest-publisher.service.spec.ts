@@ -267,6 +267,40 @@ describe('PinterestPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const imageMediaInfo: MediaInfo = {
+      hasIngredients: true,
+      ingredientIds: [mockIngredientId],
+      isCarousel: false,
+      isImagePost: true,
+      mediaUrls: [
+        `https://api.test.com/ingredients/images/${mockIngredientId}`,
+      ],
+    };
+
+    it('should pass a description exactly at the 500-character Pinterest limit', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(500),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit description with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(501),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('Pinterest');
+      expect(result.error).toContain('501');
+      expect(result.error).toContain('500');
+    });
+  });
+
   describe('publish', () => {
     beforeEach(() => {
       credentialsService.findOne.mockResolvedValue(

@@ -2,6 +2,7 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTES,
   createBrandAppRoute,
+  LEGACY_APP_ROUTES,
 } from '@genfeedai/constants';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { describe, expect, it } from 'vitest';
@@ -199,6 +200,61 @@ describe('app next.config', () => {
         ':orgSlug',
         ':brandSlug',
         '/publish/campaigns',
+      ),
+    });
+  });
+
+  it('permanently redirects the retired newsletter creation surface to Agent', async () => {
+    const redirects = await config.redirects?.();
+
+    expect(redirects).toContainEqual({
+      destination: APP_ROUTES.AGENT.NEW,
+      permanent: true,
+      source: LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.AGENT.NEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+      ),
+    });
+  });
+
+  it('preserves legacy newsletter id deep links through the focused editor', async () => {
+    const redirects = await config.redirects?.();
+    const newsletterIdQuery = [
+      {
+        key: 'id',
+        type: 'query',
+        value: '(?<newsletterId>.+)',
+      },
+    ];
+
+    expect(redirects).toContainEqual({
+      destination: `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
+      has: newsletterIdQuery,
+      permanent: true,
+      source: LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
+    });
+    expect(redirects).toContainEqual({
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
+      ),
+      has: newsletterIdQuery,
+      permanent: true,
+      source: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS,
       ),
     });
   });

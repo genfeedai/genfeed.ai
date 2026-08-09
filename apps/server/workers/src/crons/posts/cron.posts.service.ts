@@ -14,6 +14,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
@@ -202,7 +203,7 @@ export class CronPostsService {
       }
       return this.handleTerminalPublishValidationFailure(post, error);
     }
-    const result = await this.publishSinglePost(post);
+    const result = await this.publishSinglePost(post, job.source);
 
     await this.publishApprovalsService.completeExecution({
       approvalId,
@@ -214,7 +215,7 @@ export class CronPostsService {
       versionPinId,
     });
 
-    if (result.success) {
+    if (result.success && result.status !== PostStatus.DRAFT) {
       await this.activitiesService.create(
         new ActivityEntity({
           brandId: readPostString(post, ['brandId']) ?? undefined,
@@ -325,7 +326,10 @@ export class CronPostsService {
       : String(error || 'Post failed');
   }
 
-  private async publishSinglePost(post: PostEntity): Promise<PublishResult> {
+  private async publishSinglePost(
+    post: PostEntity,
+    source: PostPublishJobData['source'],
+  ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     // Mark post as PROCESSING immediately to prevent race conditions and show user feedback
@@ -515,7 +519,10 @@ export class CronPostsService {
         return this.createFailedResult(platform, 'Unsupported platform');
       }
 
-      const settings = resolveChannelTargetSettings(
+      // Settings are re-resolved against the catalog here rather than trusted
+      // as stored: the release was validated when it was scheduled, and the
+      // catalog may have changed since.
+      const resolvedSettings = resolveChannelTargetSettings(
         platform,
         post.targetSettings,
       );
@@ -525,7 +532,7 @@ export class CronPostsService {
         credentialId: postCredentialId ?? undefined,
         platform,
         publishMode: 'publish_now',
-        settings,
+        settings: resolvedSettings,
         visibility,
       });
       if (!targetValidation.valid) {
@@ -548,9 +555,18 @@ export class CronPostsService {
         return this.createFailedResult(platform, validationError);
       }
 
-      // Build publish context. Settings are re-resolved against the catalog
-      // here rather than trusted as stored: the release was validated when it
-      // was scheduled, and the catalog may have changed since.
+      // Build publish context. Beehiiv scheduled releases carry the approved
+      // schedule through to the publisher as a workflow-internal setting.
+      const settings =
+        platform === CredentialPlatform.BEEHIIV &&
+        source !== 'publish_now' &&
+        post.scheduledDate instanceof Date
+          ? {
+              ...resolvedSettings,
+              [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+                post.scheduledDate.toISOString(),
+            }
+          : resolvedSettings;
       const context: PublishContext = {
         brandId: postBrandId ?? '',
         credential,
@@ -648,6 +664,7 @@ export class CronPostsService {
         }
 
         // Immediate success - update post with external ID and status
+        const isProviderDraft = result.status === PostStatus.DRAFT;
         const publishedAt = new Date();
         const persisted = await this.persistPublishState(
           post,
@@ -656,8 +673,9 @@ export class CronPostsService {
             executionState: TargetExecutionState.PUBLISHED,
             externalId: result.externalId,
             externalShortcode: result.externalShortcode ?? null,
-            publicationDate: publishedAt,
-            publishedAt,
+            ...(!isProviderDraft
+              ? { publicationDate: publishedAt, publishedAt }
+              : {}),
             url: result.url || null,
             workflowExecutionId,
           },
@@ -708,14 +726,19 @@ export class CronPostsService {
           }
         }
 
-        this.emitPublishPublishedWebhook(post, result, credential.platform);
+        if (!isProviderDraft) {
+          this.emitPublishPublishedWebhook(post, result, credential.platform);
+        }
 
-        this.logger.log(`${url} published post successfully`, {
-          childrenCount: children.length,
-          externalId: result.externalId,
-          platform: credential.platform,
-          postId: post.id.toString(),
-        });
+        this.logger.log(
+          `${url} ${isProviderDraft ? 'created provider draft' : 'published post successfully'}`,
+          {
+            childrenCount: children.length,
+            externalId: result.externalId,
+            platform: credential.platform,
+            postId: post.id.toString(),
+          },
+        );
       } else if (!result.success) {
         // Handle retry logic
         return await this.handlePublishFailure(
@@ -806,7 +829,13 @@ export class CronPostsService {
     workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const currentRetryCount = post.retryCount || 0;
-    const isRetryable = this.isRetryableError(result.error);
+    // A publisher-supplied errorCode marks a pre-publish validation failure —
+    // deterministic, so a retry can never succeed. It must bypass the
+    // message-pattern classifier, which would misread a limit like "5000
+    // characters" as an HTTP 500 and burn every retry attempt.
+    const isRetryable = result.errorCode
+      ? false
+      : this.isRetryableError(result.error);
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
     const errorMessage = result.error || 'Max retries reached';
 
@@ -814,7 +843,7 @@ export class CronPostsService {
       post,
       canRetry,
       errorMessage,
-      this.errorCode(result.error),
+      result.errorCode ?? this.errorCode(result.error),
       workflowExecutionId,
     );
 
@@ -908,8 +937,19 @@ export class CronPostsService {
   }
 
   private isRetryableError(error: unknown): boolean {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'isRetryable' in error &&
+      typeof (error as { isRetryable?: unknown }).isRetryable === 'boolean'
+    ) {
+      return (error as { isRetryable: boolean }).isRetryable;
+    }
+
     const retryableErrorPatterns = [
       'rate limit',
+      'rate_limited',
+      'transient_failure',
       'timeout',
       'ETIMEDOUT',
       'ECONNRESET',

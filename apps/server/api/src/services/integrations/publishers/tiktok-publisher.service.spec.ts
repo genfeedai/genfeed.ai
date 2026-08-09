@@ -266,6 +266,40 @@ describe('TikTokPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const videoMediaInfo: MediaInfo = {
+      hasIngredients: true,
+      ingredientIds: [mockIngredientId],
+      isCarousel: false,
+      isImagePost: false,
+      mediaUrls: [
+        `https://api.test.com/ingredients/videos/${mockIngredientId}`,
+      ],
+    };
+
+    it('should pass a caption exactly at the 2200-character TikTok limit', () => {
+      const context = createPublishContext({
+        ...mockVideoPost,
+        description: 'a'.repeat(2200),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, videoMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockVideoPost,
+        description: 'a'.repeat(2201),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, videoMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('TikTok');
+      expect(result.error).toContain('2201');
+      expect(result.error).toContain('2200');
+    });
+  });
+
   describe('publish', () => {
     describe('video posts', () => {
       it('should publish a video successfully with immediate post_id', async () => {
