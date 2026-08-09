@@ -395,6 +395,8 @@ describe('AgentToolExecutorService', () => {
         status: 'pending',
         totalCount: 10,
       }),
+      getBatch: vi.fn(),
+      getReviewInboxSummary: vi.fn(),
       processBatch: vi.fn().mockResolvedValue(undefined),
     };
     const streamPublisher = {
