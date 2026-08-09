@@ -87,9 +87,8 @@ describe('PostAnalyticsCollectionStateService', () => {
       });
 
       expect(updateMany).toHaveBeenCalledTimes(2);
-      const organizations = updateMany.mock.calls.map(
-        ([args]: [{ where: { organizationId: string } }]) =>
-          args.where.organizationId,
+      const organizations = updateMany.mock.calls.map((call) =>
+        String(call[0].where.organizationId),
       );
       expect(organizations).toEqual(['org-1', 'org-2']);
     });
@@ -133,9 +132,8 @@ describe('PostAnalyticsCollectionStateService', () => {
       ]);
 
       expect(updateMany).toHaveBeenCalledTimes(2);
-      const attemptKeys = updateMany.mock.calls.map(
-        ([args]: [{ where: { analyticsCollectionAttemptKey: string } }]) =>
-          args.where.analyticsCollectionAttemptKey,
+      const attemptKeys = updateMany.mock.calls.map((call) =>
+        String(call[0].where.analyticsCollectionAttemptKey),
       );
       expect(attemptKeys).toEqual(['attempt-1', 'attempt-2']);
     });

@@ -3739,22 +3739,6 @@
     {
       "delegate": "post",
       "file": "apps/server/server/src/publish-approvals/publish-approvals.service.ts",
-      "fingerprint": "2524c97a73be6ef3e546",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/publish-approvals/publish-approvals.service.ts",
-      "fingerprint": "8a628a069db3e1a9c60b",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/server/src/publish-approvals/publish-approvals.service.ts",
       "fingerprint": "e1561ebcab2ecc820c8d",
       "method": "updateMany",
       "model": "Post",

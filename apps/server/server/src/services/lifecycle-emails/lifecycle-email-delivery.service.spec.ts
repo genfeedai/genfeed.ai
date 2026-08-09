@@ -17,8 +17,15 @@ vi.mock('@genfeedai/config', async (importOriginal) => ({
 
 const isSelfHostedMock = vi.mocked(isSelfHostedDeployment);
 
+type LifecycleEmailJobOverrides = Omit<
+  Partial<LifecycleEmailJobData>,
+  'step'
+> & {
+  step?: string;
+};
+
 function makeJob(
-  overrides: Partial<LifecycleEmailJobData> = {},
+  overrides: LifecycleEmailJobOverrides = {},
 ): LifecycleEmailJobData {
   return {
     sequence: 'welcome',

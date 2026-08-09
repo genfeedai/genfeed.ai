@@ -318,6 +318,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         {} as never,
         {} as never,
+        createLifecycleService() as never,
       );
       const transition = vi.spyOn(service, 'transition');
 
@@ -325,14 +326,12 @@ describe('SchedulerPublishStateService', () => {
         { id: '   ', organizationId: 'org-1' },
         {
           executionState: TargetExecutionState.PUBLISHED,
-          status: PostStatus.PUBLIC,
         },
       );
       const opaque = await service.transitionPost(
         { id: 'post-1', organizationId: {} },
         {
           executionState: TargetExecutionState.PUBLISHED,
-          status: PostStatus.PUBLIC,
         },
       );
 
@@ -345,6 +344,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         {} as never,
         {} as never,
+        createLifecycleService() as never,
       );
       const transition = vi
         .spyOn(service, 'transition')
@@ -358,7 +358,6 @@ describe('SchedulerPublishStateService', () => {
         },
         {
           executionState: TargetExecutionState.PUBLISHED,
-          status: PostStatus.PUBLIC,
         },
       );
 
@@ -423,7 +422,6 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       update: {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
       },
     };
 
@@ -434,6 +432,7 @@ describe('SchedulerPublishStateService', () => {
         {
           warn: vi.fn(),
         } as never,
+        createLifecycleService() as never,
       );
 
       await expect(service.transition(transitionInput)).rejects.toThrow(
@@ -448,26 +447,11 @@ describe('SchedulerPublishStateService', () => {
         {
           warn: vi.fn(),
         } as never,
+        createLifecycleService() as never,
       );
 
       await expect(service.transition(transitionInput)).rejects.toThrow(
         'Scheduler release group-1 is no longer available.',
-      );
-    });
-
-    it('rejects a target execution state the release contract does not know', async () => {
-      const { prisma } = buildPrisma({
-        targets: [{ targetExecutionState: 'NOT_A_REAL_STATE' }],
-      });
-      const service = new SchedulerPublishStateService(
-        prisma as never,
-        {
-          warn: vi.fn(),
-        } as never,
-      );
-
-      await expect(service.transition(transitionInput)).rejects.toThrow(
-        'Unknown scheduler target execution state: NOT_A_REAL_STATE',
       );
     });
   });
@@ -481,6 +465,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         prisma as never,
         logger as never,
+        createLifecycleService() as never,
       );
 
       await expect(
@@ -489,7 +474,6 @@ describe('SchedulerPublishStateService', () => {
           postId: 'target-1',
           update: {
             executionState: TargetExecutionState.PUBLISHED,
-            status: PostStatus.PUBLIC,
           },
         }),
       ).rejects.toThrow('connection lost');
@@ -506,6 +490,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         prisma as never,
         logger as never,
+        createLifecycleService() as never,
       );
 
       await expect(
@@ -515,7 +500,6 @@ describe('SchedulerPublishStateService', () => {
           postId: 'target-1',
           update: {
             executionState: TargetExecutionState.PUBLISHED,
-            status: PostStatus.PUBLIC,
           },
         }),
       ).rejects.toEqual({ code: 'P2034' });
@@ -525,27 +509,18 @@ describe('SchedulerPublishStateService', () => {
     });
   });
 
-  it('persists a channel error payload and appends to prior transitions', async () => {
+  it('delegates channel errors and leaves non-published releases unchanged', async () => {
     const post = {
       findMany: vi
         .fn()
         .mockResolvedValue([
           { targetExecutionState: TargetExecutionState.FAILED },
         ]),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
     const postGroup = {
       findFirst: vi.fn().mockResolvedValue({
         id: 'group-1',
         publishedAt: null,
-        status: ReleaseStatus.PUBLISHING,
-        // Malformed entries must not survive into the appended history.
-        statusTransitions: [
-          { at: '2026-07-15T00:00:00.000Z', from: null, to: 'PUBLISHING' },
-          null,
-          'garbage',
-          ['nested'],
-        ],
       }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
@@ -554,11 +529,13 @@ describe('SchedulerPublishStateService', () => {
         callback({ post, postGroup }),
       ),
     };
+    const postLifecycleService = createLifecycleService();
     const service = new SchedulerPublishStateService(
       prisma as never,
       {
         warn: vi.fn(),
       } as never,
+      postLifecycleService as never,
     );
 
     await service.transition({
@@ -567,80 +544,29 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       reason: 'Provider rejected the upload',
       update: {
-        error: { code: 'RATE_LIMIT', message: 'Too many requests' },
+        error: {
+          code: 'RATE_LIMIT',
+          isRetryable: true,
+          message: 'Too many requests',
+        },
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
       },
     });
 
-    expect(post.updateMany).toHaveBeenCalledWith(
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          targetError: { code: 'RATE_LIMIT', message: 'Too many requests' },
-        }),
-      }),
-    );
-
-    const groupData = postGroup.updateMany.mock.calls[0][0].data;
-    expect(groupData.publishedAt).toBeUndefined();
-    expect(groupData.statusTransitions).toEqual([
-      { at: '2026-07-15T00:00:00.000Z', from: null, to: 'PUBLISHING' },
-      expect.objectContaining({
-        from: ReleaseStatus.PUBLISHING,
+        error: {
+          code: 'RATE_LIMIT',
+          isRetryable: true,
+          message: 'Too many requests',
+        },
+        nextState: TargetExecutionState.FAILED,
+        organizationId: 'org-1',
+        postId: 'target-1',
         reason: 'Provider rejected the upload',
-        to: ReleaseStatus.FAILED,
       }),
-    ]);
-  });
-
-  it('treats a non-array transition history as empty', async () => {
-    const post = {
-      findMany: vi
-        .fn()
-        .mockResolvedValue([
-          { targetExecutionState: TargetExecutionState.PUBLISHED },
-        ]),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    };
-    const postGroup = {
-      findFirst: vi.fn().mockResolvedValue({
-        id: 'group-1',
-        publishedAt: new Date('2026-07-15T00:00:00.000Z'),
-        status: ReleaseStatus.PUBLISHING,
-        statusTransitions: null,
-      }),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-    };
-    const prisma = {
-      $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
-        callback({ post, postGroup }),
-      ),
-    };
-    const service = new SchedulerPublishStateService(
-      prisma as never,
-      {
-        warn: vi.fn(),
-      } as never,
+      expect.objectContaining({ post, postGroup }),
     );
-
-    await service.transition({
-      groupId: 'group-1',
-      organizationId: 'org-1',
-      postId: 'target-1',
-      update: {
-        executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
-      },
-    });
-
-    const groupData = postGroup.updateMany.mock.calls[0][0].data;
-    // publishedAt is already set, so the roll-up must not overwrite it.
-    expect(groupData.publishedAt).toBeUndefined();
-    expect(groupData.statusTransitions).toEqual([
-      expect.objectContaining({
-        from: ReleaseStatus.PUBLISHING,
-        to: ReleaseStatus.PUBLISHED,
-      }),
-    ]);
+    expect(postGroup.updateMany).not.toHaveBeenCalled();
   });
 });

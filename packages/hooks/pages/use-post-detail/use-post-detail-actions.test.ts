@@ -1,3 +1,4 @@
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';
 import { act, renderHook } from '@testing-library/react';
@@ -183,7 +184,7 @@ describe('usePostDetailActions', () => {
       expect(mockUpdateActivePost).toHaveBeenCalledWith(
         expect.objectContaining({
           scheduledDate: '2025-06-01T10:00',
-          status: expect.any(String),
+          targetExecutionState: TargetExecutionState.SCHEDULED,
         }),
         'Schedule updated',
         true,
