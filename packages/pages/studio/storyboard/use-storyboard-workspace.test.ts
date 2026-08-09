@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   mergeProgress,
+  mockImagesFindOne,
   mockNotifyError,
   mockNotifyInfo,
   mockNotifySuccess,
@@ -26,6 +27,7 @@ const {
       onError?: (error: string) => void;
     } | null;
   },
+  mockImagesFindOne: vi.fn(),
   mockNotifyError: vi.fn(),
   mockNotifyInfo: vi.fn(),
   mockNotifySuccess: vi.fn(),
@@ -108,7 +110,7 @@ vi.mock('@services/ingredients/videos.service', () => ({
 }));
 
 vi.mock('@services/ingredients/images.service', () => ({
-  ImagesService: { getInstance: () => ({ findOne: vi.fn() }) },
+  ImagesService: { getInstance: () => ({ findOne: mockImagesFindOne }) },
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -511,6 +513,196 @@ describe('useStoryboardWorkspace', () => {
 
       expect(result.current.isMerging).toBe(false);
       expect(result.current.mergeSteps).toHaveLength(0);
+    });
+
+    it('refuses to merge the storyboard before two scenes completed', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+
+      await act(async () => {
+        await result.current.mergeStoryboardVideos();
+      });
+
+      expect(mockVideosPostMerge).not.toHaveBeenCalled();
+      expect(mockNotifyError).toHaveBeenCalledWith(
+        'Generate at least two completed scene videos before merging',
+      );
+    });
+
+    it('surfaces a merge request failure and leaves the merging state', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      await generateTwoScenes(result);
+      mockVideosPostMerge.mockRejectedValueOnce(new Error('queue full'));
+
+      await act(async () => {
+        await result.current.mergeStoryboardVideos();
+      });
+
+      expect(result.current.isMerging).toBe(false);
+      expect(mockNotifyError).toHaveBeenCalled();
+    });
+  });
+
+  describe('merge video pick list', () => {
+    it('adds videos once, removes and clears them', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+
+      await act(async () => {
+        result.current.addMergeVideos([
+          { id: 'video-1' },
+          { id: 'video-2' },
+        ] as unknown as IVideo[]);
+      });
+      await act(async () => {
+        result.current.addMergeVideos([
+          { id: 'video-1' },
+          { id: 'video-3' },
+        ] as unknown as IVideo[]);
+      });
+      expect(result.current.mergeVideoIds.map((video) => video.id)).toEqual([
+        'video-1',
+        'video-2',
+        'video-3',
+      ]);
+
+      await act(async () => {
+        result.current.removeMergeVideo('video-2');
+      });
+      expect(result.current.mergeVideoIds.map((video) => video.id)).toEqual([
+        'video-1',
+        'video-3',
+      ]);
+
+      await act(async () => {
+        result.current.clearMergeVideos();
+      });
+      expect(result.current.mergeVideoIds).toEqual([]);
+    });
+
+    it('refuses to merge fewer than two selected videos', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+
+      await act(async () => {
+        result.current.addMergeVideos([
+          { id: 'video-1' },
+        ] as unknown as IVideo[]);
+      });
+      await act(async () => {
+        await result.current.mergeSelectedVideos();
+      });
+
+      expect(mockVideosPostMerge).not.toHaveBeenCalled();
+      expect(mockNotifyError).toHaveBeenCalledWith(
+        'Select at least two videos to merge',
+      );
+    });
+
+    it('surfaces selected-video merge failures', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      mockVideosPostMerge.mockRejectedValueOnce(new Error('boom'));
+
+      await act(async () => {
+        result.current.addMergeVideos([
+          { id: 'video-1' },
+          { id: 'video-2' },
+        ] as unknown as IVideo[]);
+      });
+      await act(async () => {
+        await result.current.mergeSelectedVideos();
+      });
+
+      expect(result.current.isMerging).toBe(false);
+      expect(mockNotifyError).toHaveBeenCalled();
+    });
+
+    it('does not strand merging when a selected merge returns no id', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      mockVideosPostMerge.mockResolvedValueOnce({});
+
+      await act(async () => {
+        result.current.addMergeVideos([
+          { id: 'video-1' },
+          { id: 'video-2' },
+        ] as unknown as IVideo[]);
+      });
+      await act(async () => {
+        await result.current.mergeSelectedVideos();
+      });
+
+      expect(result.current.isMerging).toBe(false);
+    });
+  });
+
+  describe('scene frame management', () => {
+    it('removes a frame and renumbers the remaining orders', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      await seedScenes(result, 3);
+
+      const removedId = result.current.storyboard.frames[0]?.id as string;
+      await act(async () => {
+        result.current.removeSceneFrame(removedId);
+      });
+
+      expect(result.current.storyboard.frames).toHaveLength(2);
+      expect(
+        result.current.storyboard.frames.map((frame) => frame.order),
+      ).toEqual([0, 1]);
+    });
+
+    it('clears all scenes', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+      await seedScenes(result, 2);
+
+      await act(async () => {
+        result.current.clearScenes();
+      });
+
+      expect(result.current.storyboard.frames).toHaveLength(0);
+    });
+
+    it('does not add duplicate scene images', async () => {
+      const { result } = renderHook(() => useStoryboardWorkspace());
+
+      await act(async () => {
+        result.current.addSceneImages([makeImage('image-0')]);
+      });
+      await act(async () => {
+        result.current.addSceneImages([makeImage('image-0')]);
+      });
+
+      expect(result.current.storyboard.frames).toHaveLength(1);
+    });
+  });
+
+  describe('deep-link scene seeding', () => {
+    it('seeds a scene from a referenceImageId url param', async () => {
+      searchParams.set('referenceImageId', 'image-seed');
+      mockImagesFindOne.mockResolvedValue(makeImage('image-seed'));
+
+      const { result } = renderHook(() => useStoryboardWorkspace());
+
+      await waitFor(() => {
+        expect(result.current.storyboard.frames).toHaveLength(1);
+      });
+      expect(result.current.mode).toBe('scenes');
+      expect(mockNotifySuccess).toHaveBeenCalledWith(
+        'Image added to storyboard scenes',
+      );
+      searchParams.delete('referenceImageId');
+    });
+
+    it('notifies when the deep-linked image cannot be loaded', async () => {
+      searchParams.set('referenceImageId', 'image-broken');
+      mockImagesFindOne.mockRejectedValue(new Error('not found'));
+
+      const { result } = renderHook(() => useStoryboardWorkspace());
+
+      await waitFor(() => {
+        expect(mockNotifyError).toHaveBeenCalledWith(
+          'Failed to load image for storyboard',
+        );
+      });
+      expect(result.current.storyboard.frames).toHaveLength(0);
+      searchParams.delete('referenceImageId');
     });
   });
 });
