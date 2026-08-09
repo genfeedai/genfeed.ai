@@ -1,7 +1,6 @@
 'use client';
 
 import { BatchItemStatus } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   DefinitionDetail,
   DefinitionList,
@@ -13,15 +12,9 @@ import ReviewDecisionPanel from './ReviewDecisionPanel';
 import ReviewHistoryPanel from './ReviewHistoryPanel';
 import ReviewLineagePanel from './ReviewLineagePanel';
 import ReviewPublishOutcomePanel from './ReviewPublishOutcomePanel';
+import type { ReviewPanelItem } from './review-panel.types';
 
-type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
-
-type ReviewEvent = NonNullable<IBatchItem['reviewEvents']>[number];
+type ReviewEvent = NonNullable<ReviewPanelItem['reviewEvents']>[number];
 
 interface ReviewDetailPanelAsideProps {
   browserTimezone: string;
