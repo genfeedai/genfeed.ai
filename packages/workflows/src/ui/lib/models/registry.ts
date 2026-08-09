@@ -77,6 +77,12 @@ export const VIDEO_MODELS: VideoModelConfig[] = [
     label: 'Seedance 2.0 Fast',
     value: 'seedance-2.0-fast',
   },
+  {
+    apiId: 'bytedance/seedance-2.5',
+    description: 'Flagship multimodal, native audio, up to 30s (expensive)',
+    label: 'Seedance 2.5',
+    value: 'seedance-2.5',
+  },
 ];
 
 export const VIDEO_MODEL_MAP: Record<string, VideoModel> = Object.fromEntries(
@@ -89,7 +95,7 @@ export const VIDEO_MODEL_ID_MAP: Record<VideoModel, string> =
     string
   >;
 
-export const DEFAULT_VIDEO_MODEL: VideoModel = 'veo-3.1-fast';
+export const DEFAULT_VIDEO_MODEL: VideoModel = 'seedance-2.5';
 
 // =============================================================================
 // LIP SYNC MODELS

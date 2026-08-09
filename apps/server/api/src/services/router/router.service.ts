@@ -18,7 +18,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
-const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
+const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5;
 
 /**
  * Last-resort keys for a registry that holds nothing usable in a category.

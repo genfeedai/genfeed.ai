@@ -33,6 +33,9 @@ const PUBLIC_DIR = resolve(process.cwd(), 'public');
 const MODEL_NAMES: Record<string, string> = {
   'bytedance/seedream-4': 'ByteDance SeedDream 4',
   'bytedance/seedream-4.5': 'ByteDance SeedDream 4.5',
+  'bytedance/seedance-2.5': 'ByteDance Seedance 2.5',
+  'bytedance/seedream-5-pro': 'ByteDance Seedream 5 Pro',
+  'bytedance/video-upscaler': 'ByteDance Video Upscaler',
   'deepseek-ai/deepseek-r1': 'DeepSeek R1',
   'google/gemini-2.5-flash': 'Google Gemini 2.5 Flash',
   'google/gemini-3-pro': 'Google Gemini 3 Pro',

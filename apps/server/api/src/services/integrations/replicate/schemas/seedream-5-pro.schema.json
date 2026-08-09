@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Input schema for bytedance/seedream-5-pro (curated from Replicate docs; re-sync with scripts/sync-replicate-schemas.ts when REPLICATE_KEY is available)",
+  "properties": {
+    "aspect_ratio": {
+      "default": "1:1",
+      "description": "Output aspect ratio. match_input_image follows the first reference.",
+      "enum": [
+        "match_input_image",
+        "1:1",
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "21:9"
+      ],
+      "title": "Aspect Ratio",
+      "type": "string",
+      "x-order": 1
+    },
+    "image_input": {
+      "description": "Up to 10 reference images for character/style consistency",
+      "items": { "format": "uri", "type": "string" },
+      "maxItems": 10,
+      "title": "Image Input",
+      "type": "array",
+      "x-order": 3
+    },
+    "output_format": {
+      "default": "png",
+      "description": "Output image format",
+      "enum": ["png", "jpeg", "jpg"],
+      "title": "Output Format",
+      "type": "string",
+      "x-order": 4
+    },
+    "prompt": {
+      "description": "Text prompt for image generation",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "size": {
+      "default": "2K",
+      "description": "1K (~2MP, $0.045) or 2K (~4MP, $0.09) per image",
+      "enum": ["1K", "2K"],
+      "title": "Size",
+      "type": "string",
+      "x-order": 2
+    }
+  },
+  "required": ["prompt"],
+  "title": "seedream-5-pro Input Schema",
+  "type": "object"
+}

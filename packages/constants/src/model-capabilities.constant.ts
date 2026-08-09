@@ -200,6 +200,14 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 14,
     },
+    [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO]: {
+      aspectRatios: ASPECT_RATIOS.SEEDREAM,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: false,
+      maxOutputs: 4,
+      maxReferences: 10,
+    },
     [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0]: {
       aspectRatios: ASPECT_RATIOS.SEEDANCE,
       category: ModelCategory.VIDEO,
@@ -225,6 +233,23 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 9,
+    },
+    // Flagship multimodal video (native audio, up to 30s). Expensive — prefer
+    // short drafts; bill per second at the 720p-safe unit cost in the catalog.
+    [MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5]: {
+      aspectRatios: ASPECT_RATIOS.SEEDANCE,
+      category: ModelCategory.VIDEO,
+      defaultAspectRatio: '16:9',
+      defaultDuration: 5,
+      durations: [4, 5, 8, 10, 15, 20, 30],
+      hasAudioToggle: true,
+      hasDurationEditing: true,
+      hasEndFrame: true,
+      hasResolutionOptions: true,
+      hasSpeech: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 30,
     },
     [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER]: {
       aspectRatios: ASPECT_RATIOS.IDEOGRAM,
@@ -522,6 +547,12 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
     [MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE]: {
+      category: ModelCategory.VIDEO_UPSCALE,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
+    [MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER]: {
       category: ModelCategory.VIDEO_UPSCALE,
       isBatchSupported: false,
       maxOutputs: 1,

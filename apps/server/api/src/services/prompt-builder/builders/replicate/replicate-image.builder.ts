@@ -20,6 +20,7 @@ import type {
   QwenImageInput,
   ReplicateImageInput,
   SeeDream4Input,
+  SeeDream5ProInput,
   SeeDream45Input,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
 import {
@@ -66,6 +67,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     // ByteDance SeeDream
     MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4,
     MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO,
     // Black Forest Labs FLUX
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
     MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
@@ -157,6 +159,9 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5:
         return this.buildSeeDream45Prompt(model, params, promptText);
+
+      case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO:
+        return this.buildSeeDream5ProPrompt(model, params, promptText);
 
       // FLUX
       case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO:
@@ -515,6 +520,41 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
 
     if (hasImageInput) {
       input.image_input = params.references?.slice(0, 14);
+    }
+
+    return input;
+  }
+
+  private buildSeeDream5ProPrompt(
+    model: string,
+    params: PromptBuilderParams,
+    promptText: string,
+  ): SeeDream5ProInput {
+    const calculatedAspectRatio = calculateAspectRatio(
+      params.width,
+      params.height,
+    );
+    const hasImageInput = params.references && params.references.length > 0;
+    const aspectRatio =
+      calculatedAspectRatio ||
+      (hasImageInput ? 'match_input_image' : getDefaultAspectRatio(model));
+
+    // Default 2K — matches seed price ($0.09/img). Callers can pass 1K via resolution.
+    const size =
+      params.resolution === '1K' || params.resolution === '1k' ? '1K' : '2K';
+
+    const input: SeeDream5ProInput = {
+      aspect_ratio: aspectRatio,
+      prompt: promptText,
+      size,
+    };
+
+    if (hasImageInput) {
+      input.image_input = params.references?.slice(0, 10);
+    }
+
+    if (params.outputFormat) {
+      input.output_format = params.outputFormat;
     }
 
     return input;

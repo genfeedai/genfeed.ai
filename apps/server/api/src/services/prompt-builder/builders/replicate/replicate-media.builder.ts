@@ -1,6 +1,7 @@
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
+  BytedanceVideoUpscalerInput,
   MusicGenInput,
   ReplicateMediaInput,
   TopazImageUpscaleInput,
@@ -11,7 +12,7 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * Replicate media model prompt builder.
- * Handles: MusicGen and Topaz upscale models.
+ * Handles: MusicGen, Topaz upscale, ByteDance video upscaler.
  */
 @Injectable()
 export class ReplicateMediaBuilder extends BaseReplicateBuilder {
@@ -20,6 +21,7 @@ export class ReplicateMediaBuilder extends BaseReplicateBuilder {
       MODEL_KEYS.REPLICATE_META_MUSICGEN,
       MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER,
     ];
   }
 
@@ -37,6 +39,9 @@ export class ReplicateMediaBuilder extends BaseReplicateBuilder {
 
       case MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE:
         return this.buildTopazVideoUpscalePrompt(params);
+
+      case MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER:
+        return this.buildBytedanceVideoUpscalerPrompt(params);
 
       default:
         throw new Error(`Unsupported media model: ${model}`);
@@ -85,6 +90,19 @@ export class ReplicateMediaBuilder extends BaseReplicateBuilder {
       target_fps: params.target_fps,
       target_resolution: params.target_resolution,
       video: params.video,
+    };
+  }
+
+  private buildBytedanceVideoUpscalerPrompt(
+    params: PromptBuilderParams,
+  ): BytedanceVideoUpscalerInput {
+    // Prefer aigc scene when feeding Seedance/AI outputs; callers can override.
+    return {
+      processing_type: 'standard',
+      scene: 'aigc',
+      target_fps: params.target_fps ?? 30,
+      target_resolution: params.target_resolution ?? '1080p',
+      video: params.video ?? params.references?.[0],
     };
   }
 }

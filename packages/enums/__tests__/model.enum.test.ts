@@ -91,8 +91,17 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST).toBe(
         'bytedance/seedance-2.0-fast',
       );
+      expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5).toBe(
+        'bytedance/seedance-2.5',
+      );
       expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE).toBe(
         'bytedance/seedream-5-lite',
+      );
+      expect(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_PRO).toBe(
+        'bytedance/seedream-5-pro',
+      );
+      expect(MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER).toBe(
+        'bytedance/video-upscaler',
       );
       expect(MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO).toBe(
         'black-forest-labs/flux-1.1-pro',

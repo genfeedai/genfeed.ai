@@ -22,6 +22,7 @@ export const MODELS = {
   pixverseV6: 'pixverse/pixverse-v6',
   seedance: 'bytedance/seedance-2.0',
   seedanceFast: 'bytedance/seedance-2.0-fast',
+  seedance25: 'bytedance/seedance-2.5',
   veo: 'google/veo-3.1',
   veoFast: 'google/veo-3.1-fast',
   veoLite: 'google/veo-3.1-lite',
@@ -60,6 +61,8 @@ export const PRICING = {
   },
   'seedance-2.0': 0.25, // per video
   'seedance-2.0-fast': 0.15, // per video
+  // Proxy for default 5s / 480p band — real billing is per-second in the DB catalog.
+  'seedance-2.5': 0.51,
   'hailuo-2.3': 0.2, // per video
   'hailuo-2.3-fast': 0.1, // per video
   'q3-pro': 0.2, // per video

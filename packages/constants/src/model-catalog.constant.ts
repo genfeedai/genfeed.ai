@@ -33,6 +33,8 @@ export interface ModelCatalogSeedEntry {
   category: ModelCategory;
   config?: Readonly<Record<string, string>>;
   cost: number;
+  /** Credits per second (or per megapixel) when pricingType is not FLAT. */
+  costPerUnit?: number;
   costTier?: CostTier;
   defaultAspectRatio?: string;
   defaultDuration?: number;
@@ -48,7 +50,11 @@ export interface ModelCatalogSeedEntry {
   label: string;
   maxOutputs?: number;
   maxReferences?: number;
+  /** Floor credits charged for a run (with PER_SECOND). */
+  minCost?: number;
   outputCostPerMillionTokens?: number;
+  /** How `cost` / `costPerUnit` are interpreted at bill time. */
+  pricingType?: string;
   provider: ModelProvider;
   recommendedFor?: readonly string[];
   succeededBy?: string;
@@ -113,6 +119,15 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
 
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
+    }
+    if ('costPerUnit' in (curated ?? {}) && curated?.costPerUnit != null) {
+      entry.costPerUnit = curated.costPerUnit;
+    }
+    if ('minCost' in (curated ?? {}) && curated?.minCost != null) {
+      entry.minCost = curated.minCost;
+    }
+    if ('pricingType' in (curated ?? {}) && curated?.pricingType) {
+      entry.pricingType = curated.pricingType;
     }
     if (curated?.providerConfig) {
       entry.config = curated.providerConfig;

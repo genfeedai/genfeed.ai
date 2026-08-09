@@ -988,7 +988,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO);
 
-      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5);
     });
 
     it('should return fallback for TEXT category when the registry is empty', async () => {

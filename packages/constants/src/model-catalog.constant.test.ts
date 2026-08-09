@@ -105,4 +105,19 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
     expect(freeActiveRows).toEqual([]);
   });
+
+  it('seeds Seedance 2.5 as the default video model with per-second pricing', () => {
+    const videoDefaults = UNIFIED_MODEL_CATALOG.filter(
+      (entry) => entry.category === ModelCategory.VIDEO && entry.isDefault,
+    );
+
+    expect(videoDefaults).toHaveLength(1);
+    expect(videoDefaults[0]?.key).toBe('bytedance/seedance-2.5');
+    expect(videoDefaults[0]?.isActive).toBe(true);
+    expect(videoDefaults[0]?.cost).toBeGreaterThan(0);
+    // Guard against accidental undercharge: unit cost must stay high.
+    expect(videoDefaults[0]?.costPerUnit).toBeGreaterThanOrEqual(80);
+    expect(videoDefaults[0]?.pricingType).toBe('per-second');
+    expect(videoDefaults[0]?.minCost).toBeGreaterThanOrEqual(200);
+  });
 });

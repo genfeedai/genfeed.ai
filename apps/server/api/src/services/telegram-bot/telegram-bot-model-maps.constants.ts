@@ -38,6 +38,7 @@ export const REPLICATE_IMAGE_MODEL_MAP: Record<string, string> = {
   'recraft-v4-pro': 'recraft-ai/recraft-v4-pro',
   'seedance-2.0': 'bytedance/seedance-2.0',
   'seedance-2.0-fast': 'bytedance/seedance-2.0-fast',
+  'seedance-2.5': 'bytedance/seedance-2.5',
   'seedream-5-lite': 'bytedance/seedream-5-lite',
   'veo-3.1-lite': 'google/veo-3.1-lite',
   'wan-2.7-t2v': 'wan-video/wan-2.7-t2v',
