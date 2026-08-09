@@ -182,9 +182,12 @@ export class QueueMetricsService implements OnModuleDestroy {
     };
   }
 
-  private countEvents(events: string[][], eventName: string): number {
+  private countEvents(
+    events: Array<[id: string, fields: string[]]>,
+    eventName: string,
+  ): number {
     return events.reduce((count, event) => {
-      const fields = event[1] ?? [];
+      const fields = event[1];
 
       for (let index = 0; index < fields.length; index += 2) {
         if (fields[index] === 'event' && fields[index + 1] === eventName) {
