@@ -122,6 +122,7 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
 };
 
 type PostUpdateInput = Partial<UpdatePostDto> & {
+  agentStrategyId?: string;
   brandId?: string;
   organizationId?: string;
   platform?: CredentialPlatform;
