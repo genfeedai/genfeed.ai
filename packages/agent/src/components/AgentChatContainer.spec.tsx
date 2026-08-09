@@ -1194,6 +1194,89 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it('replaces a brandless thread scope with the confirmed created brand', async () => {
+    const apiService = createApiService({
+      respondToUiAction: vi.fn().mockResolvedValue({
+        brandId: 'brand-created-1',
+        contextVersion: 2,
+        creditsRemaining: 48,
+        creditsUsed: 0,
+        message: {
+          content: 'Brand created and selected for this thread.',
+          metadata: {},
+          role: 'assistant',
+        },
+        threadId: 'thread-1',
+        toolCalls: [],
+      }),
+    });
+
+    storeState.pendingInputRequest = null;
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
+    storeState.messages = [
+      buildAssistantMessage({
+        content: 'Create this brand?',
+        id: 'm-brand-confirmation',
+        metadata: {
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_create_brand',
+                  label: 'Confirm create',
+                  payload: {
+                    description: 'AI content operations',
+                    label: 'Genfeed',
+                    slug: 'genfeed',
+                    sourceActionId: 'source-create-1',
+                  },
+                },
+              ],
+              data: {
+                operation: 'create',
+                proposal: {
+                  description: 'AI content operations',
+                  label: 'Genfeed',
+                  slug: 'genfeed',
+                },
+                sourceActionId: 'source-create-1',
+              },
+              id: 'brand-confirmation-1',
+              title: 'Create this brand?',
+              type: 'brand_identity_confirmation_card',
+            },
+          ],
+        },
+      }),
+    ];
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm create' }));
+
+    await waitFor(() => {
+      expect(apiService.respondToUiAction).toHaveBeenCalledWith(
+        'thread-1',
+        'confirm_create_brand',
+        {
+          description: 'AI content operations',
+          label: 'Genfeed',
+          slug: 'genfeed',
+          sourceActionId: 'source-create-1',
+        },
+        undefined,
+        { brandId: null, expectedContextVersion: 1 },
+      );
+    });
+    expect(storeState.upsertThread).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-created-1',
+        contextVersion: 2,
+        id: 'thread-1',
+      }),
+    );
+  });
+
   it('renders the provided empty-state title and description', () => {
     storeState.messages = [];
     storeState.error = null;

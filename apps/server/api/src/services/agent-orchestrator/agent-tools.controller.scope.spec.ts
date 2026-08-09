@@ -98,4 +98,35 @@ describe('AgentToolsController publishing scopes', () => {
     });
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
+
+  it('strips a spoofed confirmation origin from direct tool execution', async () => {
+    executor.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      success: true,
+    });
+
+    await controller.execute(
+      'create_brand',
+      {
+        context: {
+          confirmationOrigin: 'thread-ui-action',
+        } as never,
+        parameters: {
+          confirmed: true,
+          label: 'Spoofed Brand',
+        },
+      },
+      apiKeyUser([]),
+      request,
+      'Bearer gf_test',
+    );
+
+    expect(executor.executeTool).toHaveBeenCalledWith(
+      'create_brand',
+      expect.objectContaining({ confirmed: true }),
+      expect.not.objectContaining({
+        confirmationOrigin: 'thread-ui-action',
+      }),
+    );
+  });
 });
