@@ -1,4 +1,6 @@
 import {
+  formatCompactPlatformLabel,
+  formatPlatformLabel,
   ReleaseStatus,
   type ReleaseTargetSource,
   TargetExecutionState,
@@ -8,6 +10,7 @@ import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
 import type {
   CalendarEventBadge,
   CalendarEventBadgeTone,
+  CalendarEventIndicator,
 } from '@props/components/calendar.props';
 import type { ReleaseTargetHistoryEntry } from '@props/publisher/release-calendar.props';
 
@@ -150,6 +153,29 @@ export function releaseSources(release: IReleaseGroup): ReleaseTargetSource[] {
   }
 
   return [...seen];
+}
+
+/** Distinct channel platforms represented by one release-group calendar item. */
+export function releasePlatformIndicators(
+  release: IReleaseGroup,
+): CalendarEventIndicator[] {
+  const seen = new Set<string>();
+  const indicators: CalendarEventIndicator[] = [];
+
+  for (const target of release.targets ?? []) {
+    if (seen.has(target.platform)) {
+      continue;
+    }
+
+    seen.add(target.platform);
+    const label = formatPlatformLabel(target.platform) ?? target.platform;
+    indicators.push({
+      label,
+      shortLabel: formatCompactPlatformLabel(target.platform) ?? label,
+    });
+  }
+
+  return indicators;
 }
 
 function pushEntry(

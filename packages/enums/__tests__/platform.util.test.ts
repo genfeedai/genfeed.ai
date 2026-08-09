@@ -1,4 +1,5 @@
 import {
+  formatCompactPlatformLabel,
   formatPlatformLabel,
   isPlatform,
   isTwitterPlatform,
@@ -30,6 +31,14 @@ describe('platform.util', () => {
     expect(formatPlatformLabel(Platform.TIKTOK)).toBe('TikTok');
     expect(formatPlatformLabel(Platform.LINKEDIN)).toBe('LinkedIn');
     expect(formatPlatformLabel(Platform.GOOGLE_ADS)).toBe('Google Ads');
+  });
+
+  it('formats compact labels for dense platform indicators', () => {
+    expect(formatCompactPlatformLabel(Platform.INSTAGRAM)).toBe('IG');
+    expect(formatCompactPlatformLabel(Platform.YOUTUBE)).toBe('YT');
+    expect(formatCompactPlatformLabel('x')).toBe('X');
+    expect(formatCompactPlatformLabel('custom')).toBe('CU');
+    expect(formatCompactPlatformLabel('')).toBeNull();
   });
 
   it('exposes platform predicates', () => {

@@ -836,7 +836,13 @@ export class CronPostsService {
     workflowExecutionId?: string,
   ): Promise<PublishResult> {
     const currentRetryCount = post.retryCount || 0;
-    const isRetryable = this.isRetryableError(result.error);
+    // A publisher-supplied errorCode marks a pre-publish validation failure —
+    // deterministic, so a retry can never succeed. It must bypass the
+    // message-pattern classifier, which would misread a limit like "5000
+    // characters" as an HTTP 500 and burn every retry attempt.
+    const isRetryable = result.errorCode
+      ? false
+      : this.isRetryableError(result.error);
     const canRetry = isRetryable && currentRetryCount < this.MAX_RETRY_ATTEMPTS;
     const errorMessage = result.error || 'Max retries reached';
 
@@ -844,7 +850,7 @@ export class CronPostsService {
       post,
       canRetry,
       errorMessage,
-      this.errorCode(result.error),
+      result.errorCode ?? this.errorCode(result.error),
       workflowExecutionId,
     );
 

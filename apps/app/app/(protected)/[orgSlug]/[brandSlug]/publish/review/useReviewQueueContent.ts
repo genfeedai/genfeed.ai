@@ -1,6 +1,7 @@
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { BatchesService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +45,7 @@ function buildReviewQuery(input: {
 }
 
 export function useReviewQueueContent() {
+  const notificationsService = NotificationsService.getInstance();
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
   );
@@ -71,6 +73,7 @@ export function useReviewQueueContent() {
 
   // Last query we wrote — ignore echo updates from our own replace().
   const lastWrittenQueryRef = useRef<string | null>(null);
+  const hasExplainedAutoBroadenRef = useRef(false);
 
   const {
     data: batches = [],
@@ -269,16 +272,27 @@ export function useReviewQueueContent() {
 
   // Default ready-only view is empty but the batch has other work — open all.
   useEffect(() => {
-    if (
+    const shouldAutoBroaden =
       activeBatch &&
       activeFilters.length === 1 &&
       activeFilters[0] === 'ready' &&
       filterCounts.ready === 0 &&
-      filterCounts.all > 0
-    ) {
-      setActiveFilters([]);
+      filterCounts.all > 0;
+
+    if (!shouldAutoBroaden) {
+      hasExplainedAutoBroadenRef.current = false;
+      return;
     }
-  }, [activeBatch, activeFilters, filterCounts]);
+
+    if (!hasExplainedAutoBroadenRef.current) {
+      hasExplainedAutoBroadenRef.current = true;
+      notificationsService.info(
+        'No items are ready, so all statuses are shown.',
+      );
+    }
+
+    setActiveFilters([]);
+  }, [activeBatch, activeFilters, filterCounts, notificationsService]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
