@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-08-09
+
+0.5.0 was tagged in the changelog but never published to npm; its removals ship here.
+
 ### Added
 
 - `gf organizations` is registered on the program. The command (`organizations`,
@@ -20,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `gf --version` reports `0.5.0`, matching `package.json`, instead of the stale `0.4.0` literal.
+- `gf --version` reports the version in `package.json` instead of a stale hardcoded literal.
   A registration test now fails if the two drift apart, or if a command module is never registered
   on the program.
 - `gf publish` and `gf workflow` send the corrected payload shapes surfaced by the local QA pass
@@ -117,6 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Progress spinners with `ora`
 
 [Unreleased]: https://github.com/genfeedai/genfeed.ai/commits/master/packages/cli
+[0.6.0]: https://www.npmjs.com/package/@genfeedai/cli/v/0.6.0
+[0.5.0]: https://github.com/genfeedai/genfeed.ai/commit/17c4f744d7e5e4a1ab75f5660b31991947e4d9df
 [0.4.1]: https://github.com/genfeedai/genfeed.ai/commit/e2db9b113aef92e355c5b5dd7f07eb754b664c63
 [0.4.0]: https://github.com/genfeedai/genfeed.ai/commit/e0f441c9de521b1a1f31d0bf8fb8580b96a6bfdc
 [0.3.1]: https://github.com/genfeedai/cli/releases/tag/v0.3.1
