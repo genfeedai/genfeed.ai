@@ -12,7 +12,7 @@ import type { Mock, Mocked } from 'vitest';
 
 vi.mock('child_process');
 vi.mock('fs');
-vi.mock('ffmpeg-static', () => '/usr/bin/ffmpeg');
+vi.mock('ffmpeg-static', () => ({ default: '/usr/bin/ffmpeg' }));
 vi.mock('ffprobe-static', () => ({ path: '/usr/bin/ffprobe' }));
 
 describe('FFmpegPerformanceService', () => {

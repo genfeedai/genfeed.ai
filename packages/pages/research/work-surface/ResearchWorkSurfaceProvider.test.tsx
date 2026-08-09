@@ -244,14 +244,14 @@ describe('useResearchPagination', () => {
   const items = Array.from({ length: 5 }, (_, index) => `item-${index}`);
 
   it('slices items for the current page and renders pagination', () => {
-    mocks.searchParamsString.value = 'page=2';
+    mocks.searchParamsString.value = 'page=3';
     const { result } = renderHook(() => useResearchPagination(items, 2), {
       wrapper,
     });
 
     expect(result.current.totalPages).toBe(3);
-    expect(result.current.currentPage).toBe(2);
-    expect(result.current.pageItems).toEqual(['item-2', 'item-3']);
+    expect(result.current.currentPage).toBe(3);
+    expect(result.current.pageItems).toEqual(['item-4']);
     expect(result.current.pagination).not.toBeNull();
 
     const { getByRole } = render(<>{result.current.pagination}</>);
@@ -330,6 +330,6 @@ describe('useRestoreResearchFinding', () => {
     });
 
     expect(result.current?.authorizedFinding).toBeNull();
-    expect(mocks.push).toHaveBeenCalledWith('/research', { scroll: false });
+    expect(mocks.replace).toHaveBeenCalledWith('/research', { scroll: false });
   });
 });

@@ -197,7 +197,7 @@ describe('WorkspaceTaskProcessor', () => {
 
   it('records the HttpException detail when facecam generation fails', async () => {
     avatarVideoGenerationService.generateAvatarVideo.mockRejectedValue(
-      new HttpException({ detail: 'quota exceeded' }, 402),
+      new HttpException('quota exceeded', 402),
     );
     tasksService.recordTaskEvent
       .mockResolvedValueOnce(undefined)
