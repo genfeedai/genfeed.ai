@@ -1,3 +1,4 @@
+import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -96,5 +97,23 @@ describe('BatchGenerationCreationService manual review Post linking', () => {
     expect(prisma.post.updateMany).not.toHaveBeenCalledWith(
       expect.objectContaining({ data: { isDeleted: true } }),
     );
+  });
+
+  it('clears partial review links when batch linking fails', async () => {
+    prisma.post.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    await expect(
+      service.createManualReviewBatch(dto, 'user-1', 'org-1'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.post.updateMany).toHaveBeenCalledWith({
+      data: { reviewBatchId: null, reviewItemId: null },
+      where: expect.objectContaining({
+        organizationId: 'org-1',
+        reviewBatchId: 'batch-1',
+      }),
+    });
   });
 });

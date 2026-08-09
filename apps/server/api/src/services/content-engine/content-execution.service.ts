@@ -274,6 +274,24 @@ export class ContentExecutionService {
       );
     }
 
+    const reviewContent = [
+      item.prompt,
+      item.topic,
+      ...item.pipelineSteps.flatMap((step) => [
+        step.prompt,
+        step.text,
+        step.imageUrl,
+      ]),
+    ]
+      .find(
+        (candidate): candidate is string =>
+          typeof candidate === 'string' && candidate.trim().length > 0,
+      )
+      ?.trim();
+    if (!reviewContent) {
+      throw new Error('Media pipeline item requires non-empty content');
+    }
+
     const steps: PipelineStep[] = item.pipelineSteps.map((step) => {
       switch (step.type) {
         case 'text-to-image':
@@ -355,7 +373,7 @@ export class ContentExecutionService {
           (
             await this.reviewablePostsService.create({
               brandId,
-              content: item.prompt ?? item.topic ?? '',
+              content: reviewContent,
               generatedBy: 'content-engine:media-pipeline',
               idempotencyKey: `content-plan-item:${itemId}`,
               mediaUrls: pipelineResult.steps

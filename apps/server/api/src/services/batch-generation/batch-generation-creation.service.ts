@@ -378,6 +378,12 @@ export class BatchGenerationCreationService {
     orgId: string,
   ): Promise<void> {
     try {
+      if (batchId) {
+        await this.prisma.post.updateMany({
+          data: { reviewBatchId: null, reviewItemId: null },
+          where: scopedWhere(orgId, { reviewBatchId: batchId }),
+        });
+      }
       if (createdPostIds.length > 0) {
         await this.prisma.post.updateMany({
           data: { isDeleted: true },

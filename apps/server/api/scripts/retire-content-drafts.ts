@@ -277,30 +277,33 @@ async function preserveApprovedReview(
     return true;
   }
 
-  const versionPin = await artifactReferences.createOrReuseVersionPin({
-    createdByUserId: row.reviewActorUserId,
-    reference: {
-      brandId: row.brandId,
-      kind: 'post',
-      organizationId: row.organizationId,
-      recordId: postId,
-      serializer: 'post',
-    },
+  return prisma.$transaction(async (transaction) => {
+    const versionPin = await artifactReferences.createOrReuseVersionPin({
+      createdByUserId: row.reviewActorUserId,
+      reference: {
+        brandId: row.brandId,
+        kind: 'post',
+        organizationId: row.organizationId,
+        recordId: postId,
+        serializer: 'post',
+      },
+      transaction,
+    });
+    const result = await transaction.post.updateMany({
+      data: {
+        reviewDecision: ReviewDecision.APPROVED,
+        reviewedAt: row.updatedAt,
+        reviewVersionPinId: versionPin.id,
+      },
+      where: {
+        brandId: row.brandId,
+        id: postId,
+        isDeleted: false,
+        organizationId: row.organizationId,
+      },
+    });
+    return result.count === 1;
   });
-  const result = await prisma.post.updateMany({
-    data: {
-      reviewDecision: ReviewDecision.APPROVED,
-      reviewedAt: row.updatedAt,
-      reviewVersionPinId: versionPin.id,
-    },
-    where: {
-      brandId: row.brandId,
-      id: postId,
-      isDeleted: false,
-      organizationId: row.organizationId,
-    },
-  });
-  return result.count === 1;
 }
 
 async function main(): Promise<void> {

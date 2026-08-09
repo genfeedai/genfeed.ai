@@ -490,6 +490,33 @@ describe('ContentExecutionService', () => {
       );
     });
 
+    it('uses step-level content when item prompt and topic are absent', async () => {
+      const item = makeItem({
+        pipelineSteps: [
+          {
+            model: ImageTaskModel.FAL,
+            prompt: 'Step-level review content',
+            type: 'text-to-image',
+          },
+        ],
+        prompt: undefined,
+        topic: undefined,
+        type: ContentPlanItemType.MEDIA_PIPELINE,
+      });
+      mockContentPlanItemsService.listPendingByPlan.mockResolvedValue([item]);
+      mockContentOrchestrationService.generateAndPublish.mockResolvedValue({
+        postIds: [],
+        status: 'completed',
+        steps: [{ result: { url: 'https://cdn.example.com/image.jpg' } }],
+      });
+
+      await service.executePlan(orgId, brandId, planId, userId);
+
+      expect(mockReviewablePostsService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ content: 'Step-level review content' }),
+      );
+    });
+
     it('reuses only a post owned by the same organization and brand', async () => {
       mockContentOrchestrationService.generateAndPublish.mockResolvedValue({
         postIds: ['post-from-pipeline'],

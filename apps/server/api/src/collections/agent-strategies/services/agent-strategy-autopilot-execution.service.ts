@@ -670,25 +670,26 @@ export class AgentStrategyAutopilotExecutionService {
     );
 
     const reviewItem = batch.items[0];
-    const linkedPost =
-      (await this.postsService.findOne(
-        scopedWhere(input.organizationId, { id: input.draftId }),
-      )) ?? ({ targetSettings: {} } as PostDocument);
+    const linkedPost = await this.postsService.findOne(
+      scopedWhere(input.organizationId, { id: input.draftId }),
+    );
 
-    await this.postsService.patch(input.draftId, {
-      targetSettings: {
-        ...getDraftTargetSettings(linkedPost),
-        generation: {
-          ...getDraftGenerationSettings(linkedPost),
-          metadata: {
-            ...getDraftMetadata(linkedPost),
-            reviewBatchId: batch.id,
-            reviewItemId: reviewItem?.id,
-            reviewPostId: reviewItem?.postId,
+    if (linkedPost) {
+      await this.postsService.patch(input.draftId, {
+        targetSettings: toPrismaJson({
+          ...getDraftTargetSettings(linkedPost),
+          generation: {
+            ...getDraftGenerationSettings(linkedPost),
+            metadata: {
+              ...getDraftMetadata(linkedPost),
+              reviewBatchId: batch.id,
+              reviewItemId: reviewItem?.id,
+              reviewPostId: reviewItem?.postId,
+            },
           },
-        },
-      },
-    });
+        }),
+      });
+    }
 
     if (reviewItem?.postId) {
       await this.createPublishingInboxActivity({
