@@ -9,6 +9,27 @@ export enum PostStatus {
   FAILED = 'failed',
 }
 
+/**
+ * Audience visibility of a published channel target.
+ *
+ * This is deliberately independent from `TargetExecutionState`: a target can
+ * be `published` with any visibility supported by its provider.
+ */
+export enum PostVisibility {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+  UNLISTED = 'unlisted',
+}
+
+/**
+ * How a post is repurposed to another channel. Product-language lowercase on
+ * purpose: the mode is a request discriminator, never a persisted DB status.
+ */
+export enum PostRepurposeMode {
+  AGENT = 'agent',
+  DETERMINISTIC = 'deterministic',
+}
+
 export enum PostFrequency {
   DAILY = 'daily',
   WEEKLY = 'weekly',

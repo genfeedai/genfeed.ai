@@ -4,6 +4,8 @@ import type {
   PostCategory,
   PostFormat,
   PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   IBrand,
@@ -37,6 +39,8 @@ export class Post extends BaseEntity implements IPost {
   public declare category: PostCategory;
   public declare format?: PostFormat;
   public declare status: PostStatus;
+  public declare targetExecutionState: TargetExecutionState;
+  public declare visibility: PostVisibility;
   public declare platform?: CredentialPlatform;
   public declare externalId?: string;
   public declare externalShortcode?: string;
@@ -48,6 +52,9 @@ export class Post extends BaseEntity implements IPost {
   public declare publishedAt?: string;
   public declare retryCount?: number;
   public declare targetError?: IChannelTargetError | null;
+  public declare originalPostId?: string | null;
+  public declare reviewBatchId?: string | null;
+  public declare reviewItemId?: string | null;
   public declare parent?: string;
   public declare children?: IPost[];
   public declare order?: number;

@@ -3,9 +3,13 @@ import {
   ButtonVariant,
   ModalEnum,
   Platform,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
-import { getPostStatusOptions } from '@genfeedai/helpers/content/posts.helper';
+import {
+  getPostLifecycleOptions,
+  getPostVisibilityOptions,
+} from '@genfeedai/helpers/content/posts.helper';
 import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
@@ -35,14 +39,16 @@ interface PostMetadataFormValues {
   description: string;
   label: string;
   scheduledDate: string;
-  status: PostStatus;
+  targetExecutionState: TargetExecutionState;
+  visibility: PostVisibility;
 }
 
 const DEFAULT_POST_METADATA_VALUES: PostMetadataFormValues = {
   description: '',
   label: '',
   scheduledDate: '',
-  status: PostStatus.SCHEDULED,
+  targetExecutionState: TargetExecutionState.SCHEDULED,
+  visibility: PostVisibility.PUBLIC,
 };
 
 export default function PostMetadataOverlay({
@@ -80,7 +86,9 @@ export default function PostMetadataOverlay({
         scheduledDate: post.scheduledDate
           ? new Date(post.scheduledDate).toISOString()
           : '',
-        status: (post.status as PostStatus) || PostStatus.SCHEDULED,
+        targetExecutionState:
+          post.targetExecutionState ?? TargetExecutionState.SCHEDULED,
+        visibility: post.visibility ?? PostVisibility.PUBLIC,
       });
     }
   }, [post, form]);
@@ -98,7 +106,8 @@ export default function PostMetadataOverlay({
         description: data.description.trim(),
         label: data.label.trim(),
         scheduledDate: data.scheduledDate,
-        status: data.status as PostStatus,
+        targetExecutionState: data.targetExecutionState,
+        visibility: data.visibility,
       });
 
       notificationsService.success('Post updated successfully');
@@ -144,7 +153,7 @@ export default function PostMetadataOverlay({
             {post.platform}
           </span>
           <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-foreground/70">
-            {post.status}
+            {post.targetExecutionState}
           </span>
         </>
       }
@@ -220,13 +229,26 @@ export default function PostMetadataOverlay({
             />
           </FormControl>
 
+          <FormControl
+            label="Lifecycle"
+            error={form.formState.errors.targetExecutionState?.message}
+          >
+            <SelectField name="targetExecutionState" control={form.control}>
+              {getPostLifecycleOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+          </FormControl>
+
           {isYouTube && (
             <FormControl
-              label="Status"
-              error={form.formState.errors.status?.message}
+              label="Visibility"
+              error={form.formState.errors.visibility?.message}
             >
-              <SelectField name="status" control={form.control}>
-                {getPostStatusOptions().map((option) => (
+              <SelectField name="visibility" control={form.control}>
+                {getPostVisibilityOptions().map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

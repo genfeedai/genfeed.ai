@@ -172,6 +172,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'rename_brand', surfaces: ['agent'] },
   { name: 'render_dashboard', surfaces: ['agent'] },
   { name: 'replicate_top_ingredient', surfaces: ['agent'] },
+  { name: 'repurpose_post', surfaces: ['agent', 'mcp'] },
   { name: 'request_asset', surfaces: ['agent'] },
   { name: 'resolve_approval', surfaces: ['mcp'] },
   { name: 'resolve_handle', surfaces: ['agent'] },

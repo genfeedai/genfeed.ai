@@ -3,7 +3,11 @@ import { PersonasService } from '@api/collections/personas/services/personas.ser
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
-import { PostCategory } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -179,7 +183,7 @@ describe('PersonaPublisherService', () => {
     expect(postsService.create).not.toHaveBeenCalled();
   });
 
-  it('sets SCHEDULED status when scheduledDate is provided', async () => {
+  it('sets scheduled execution state when scheduledDate is provided', async () => {
     const credId = 'test-object-id';
     const futureDate = new Date('2026-12-31');
 
@@ -205,7 +209,8 @@ describe('PersonaPublisherService', () => {
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         scheduledDate: futureDate,
-        status: 'scheduled',
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+        visibility: PostVisibility.PUBLIC,
       }),
     );
   });

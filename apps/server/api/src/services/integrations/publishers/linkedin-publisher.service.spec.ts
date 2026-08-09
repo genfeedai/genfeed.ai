@@ -14,7 +14,12 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { LinkedInPublisherService } from '@api/services/integrations/publishers/linkedin-publisher.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -250,7 +255,7 @@ describe('LinkedInPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockActivityId);
         expect(result.platform).toBe(CredentialPlatform.LINKEDIN);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toContain(mockActivityId);
         expect(linkedInService.createTextPost).toHaveBeenCalledWith(
           mockOrganizationId.toString(),
@@ -305,7 +310,7 @@ describe('LinkedInPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockActivityId);
         expect(result.platform).toBe(CredentialPlatform.LINKEDIN);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toContain(mockActivityId);
         expect(linkedInService.uploadImage).toHaveBeenCalledWith(
           mockOrganizationId.toString(),
@@ -539,7 +544,7 @@ describe('LinkedInPublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -586,7 +591,7 @@ describe('LinkedInPublisherService', () => {
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         }),
       );
     });

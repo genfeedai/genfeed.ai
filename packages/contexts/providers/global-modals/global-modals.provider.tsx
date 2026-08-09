@@ -1,5 +1,9 @@
 'use client';
-import type { IngredientCategory, Platform } from '@genfeedai/enums';
+import type {
+  IngredientCategory,
+  Platform,
+  PostRepurposeMode,
+} from '@genfeedai/enums';
 import { capitalize } from '@genfeedai/helpers/formatting/format/format.helper';
 import type {
   IAsset,
@@ -16,6 +20,7 @@ import type {
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
+import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import {
   scheduleModalGlobalSideEffectCleanup,
   useRouteModalGlobalSideEffectCleanup,
@@ -114,6 +119,11 @@ export interface GlobalModalsContextValue {
     onSubmit: (description: string, label?: string) => Promise<void>,
   ) => void;
   closePostRemixModal: () => void;
+  openPostRepurposeModal: (
+    source: PostRepurposeSource,
+    onSubmit: (platform: Platform, mode: PostRepurposeMode) => Promise<void>,
+  ) => void;
+  closePostRepurposeModal: () => void;
 }
 
 const GlobalModalsContext = createContext<GlobalModalsContextValue | null>(
@@ -391,6 +401,22 @@ export function usePostRemixModal(): Pick<
   };
 }
 
+export function usePostRepurposeModal(): Pick<
+  GlobalModalsContextValue,
+  'closePostRepurposeModal' | 'openPostRepurposeModal'
+> {
+  const context = use(GlobalModalsContext);
+  if (!context) {
+    throw new Error(
+      'usePostRepurposeModal must be used within GlobalModalsProvider',
+    );
+  }
+  return {
+    closePostRepurposeModal: context.closePostRepurposeModal,
+    openPostRepurposeModal: context.openPostRepurposeModal,
+  };
+}
+
 export interface GlobalModalsProviderProps {
   children: ReactNode;
 }
@@ -424,6 +450,7 @@ export function GlobalModalsProvider({
     closeMetadataModal: state.closeMetadataModal,
     closePostMetadataOverlay: state.closePostMetadataOverlay,
     closePostRemixModal: state.closePostRemixModal,
+    closePostRepurposeModal: state.closePostRepurposeModal,
     closePromptModal: state.closePromptModal,
     closeUpload: state.closeUpload,
     handlePostClose: state.handlePostClose,
@@ -438,6 +465,7 @@ export function GlobalModalsProvider({
     openPostBatchModal: state.openPostBatchModal,
     openPostMetadataOverlay: state.openPostMetadataOverlay,
     openPostRemixModal: state.openPostRemixModal,
+    openPostRepurposeModal: state.openPostRepurposeModal,
     openPromptModal: state.openPromptModal,
     openUpload: state.openUpload,
     publishIngredient: state.publishIngredient,

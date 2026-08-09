@@ -178,7 +178,7 @@ describe('content schemas', () => {
         postModalSchema.safeParse({
           credentialId: 'c',
           description: 'D',
-          status: 'scheduled',
+          targetExecutionState: 'scheduled',
         }).success,
       ).toBe(false);
     });
@@ -266,7 +266,7 @@ describe('content schemas', () => {
         threadModalSchema.safeParse({
           credentialId: 'c',
           posts: [{ description: 'Root' }, { description: 'Reply' }],
-          status: 'scheduled',
+          targetExecutionState: 'scheduled',
         }).success,
       ).toBe(false);
     });

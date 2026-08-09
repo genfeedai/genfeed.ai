@@ -15,7 +15,12 @@ import type {
   PublishContext,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -247,7 +252,7 @@ describe('InstagramPublisherService', () => {
 
         expect(result.success).toBe(false);
         expect(result.error).toContain('does not support text-only posts');
-        expect(result.status).toBe(PostStatus.FAILED);
+        expect(result.executionState).toBe(TargetExecutionState.FAILED);
       });
     });
 
@@ -268,7 +273,7 @@ describe('InstagramPublisherService', () => {
         expect(result.externalId).toBe(mockMediaId);
         expect(result.externalShortcode).toBe(mockShortcode);
         expect(result.platform).toBe(CredentialPlatform.INSTAGRAM);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toContain(mockShortcode);
         expect(instagramService.uploadImage).toHaveBeenCalledWith(
           mockOrganizationId.toString(),
@@ -598,7 +603,7 @@ describe('InstagramPublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });

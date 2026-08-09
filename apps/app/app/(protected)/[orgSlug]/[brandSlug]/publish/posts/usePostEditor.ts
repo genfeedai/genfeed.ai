@@ -1,6 +1,11 @@
 'use client';
 
-import { CredentialPlatform, PostFormat, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostFormat,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Post } from '@models/content/post.model';
 import type { PostEditorFormState } from '@props/content/artifact-editor.props';
@@ -24,8 +29,9 @@ const DEFAULT_POST_EDITOR_VALUES: PostEditorFormState = {
   format: PostFormat.STANDARD,
   label: '',
   scheduledDate: '',
-  status: PostStatus.SCHEDULED,
+  targetExecutionState: TargetExecutionState.SCHEDULED,
   threadSegments: [],
+  visibility: PostVisibility.PUBLIC,
 };
 
 function createFormState(post: Post): PostEditorFormState {
@@ -39,13 +45,15 @@ function createFormState(post: Post): PostEditorFormState {
     scheduledDate: post.scheduledDate
       ? new Date(post.scheduledDate).toISOString()
       : '',
-    status: (post.status as PostStatus) || PostStatus.SCHEDULED,
+    targetExecutionState:
+      post.targetExecutionState ?? TargetExecutionState.SCHEDULED,
     threadSegments: [...(post.children || [])]
       .sort((left, right) => (left.order || 0) - (right.order || 0))
       .map((child) => ({
         description: child.description || '',
         id: child.id,
       })),
+    visibility: post.visibility ?? PostVisibility.PUBLIC,
   };
 }
 
@@ -132,7 +140,10 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
       return;
     }
 
-    if (draft.status === PostStatus.SCHEDULED && !draft.scheduledDate) {
+    if (
+      draft.targetExecutionState === TargetExecutionState.SCHEDULED &&
+      !draft.scheduledDate
+    ) {
       form.setError('scheduledDate', {
         message: 'Choose a scheduled date before scheduling this post',
         type: 'validate',
@@ -181,7 +192,8 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
           ...(values.scheduledDate
             ? { scheduledDate: values.scheduledDate }
             : {}),
-          status: values.status,
+          targetExecutionState: values.targetExecutionState,
+          visibility: values.visibility,
         });
 
         if (values.format === PostFormat.THREAD && post) {
@@ -218,7 +230,8 @@ export function usePostEditor(postId: string): UsePostEditorReturn {
               ingredients: [],
               label: `Thread ${index + 2}/${values.threadSegments.length + 1}`,
               scheduledDate: values.scheduledDate || undefined,
-              status: values.status,
+              targetExecutionState: values.targetExecutionState,
+              visibility: values.visibility,
             });
           }
         }
