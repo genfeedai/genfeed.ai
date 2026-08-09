@@ -1,5 +1,6 @@
+import { postExecutionStateReadFilter } from '@genfeedai/api-types';
 import { isSelfHostedDeployment } from '@genfeedai/config';
-import { PostStatus, SubscriptionStatus } from '@genfeedai/enums';
+import { SubscriptionStatus, TargetExecutionState } from '@genfeedai/enums';
 import type { LifecycleEmailJobData } from '@genfeedai/queue-contracts';
 import type {
   ServerConfig,
@@ -288,7 +289,7 @@ describe('LifecycleEmailDeliveryService', () => {
         select: { id: true },
         where: {
           isDeleted: false,
-          status: PostStatus.PUBLIC,
+          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
           userId: 'user-1',
         },
       });

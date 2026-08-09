@@ -5434,14 +5434,6 @@
     },
     {
       "code": 2540,
-      "count": 5,
-      "file": "apps/server/notifications/src/config/config.service.spec.ts",
-      "fingerprint": "f7cd57a4529996259f3f",
-      "message": "Cannot assign to 'NODE_ENV' because it is a read-only property.",
-      "workspace": "notifications"
-    },
-    {
-      "code": 2540,
       "count": 2,
       "file": "apps/server/notifications/src/controllers/dev.controller.spec.ts",
       "fingerprint": "510bbe8bcba5596afe66",

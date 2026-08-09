@@ -37,6 +37,7 @@ describe('NodePtyAdapter', () => {
     command: '/bin/bash',
     cwd: '/workspace',
     env: { NODE_ENV: 'test', TERM: 'xterm-256color' },
+    kind: 'shell',
     name: 'xterm-256color',
     rows: 24,
   };
