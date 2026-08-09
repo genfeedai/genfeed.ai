@@ -203,9 +203,14 @@ export class InvitationService {
         // bubble as a 500 — that would make the caller believe the invite failed
         // and re-invite, which supersedes (revokes) this committed token and
         // leaves it permanently unacceptable. Log and continue; it can be resent.
-        this.logger.error('Failed to send invitation email', {
-          email,
-          error,
+        //
+        // Redacted to the domain like the dispatch path below: the invitee is a
+        // third party with no account and no relationship to this log sink, and
+        // error paths carry the highest retention and alerting exposure of any
+        // branch. `invitationId` stays — it is the support correlation key.
+        this.logger.error('Failed to send invitation email', error, {
+          ...this.context,
+          emailDomain: email.split('@')[1] ?? 'unknown',
           invitationId: invitation.id,
           organizationId: input.organizationId,
         });

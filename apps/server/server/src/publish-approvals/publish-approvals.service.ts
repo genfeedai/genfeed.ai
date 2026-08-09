@@ -824,11 +824,27 @@ export class PublishApprovalsService {
 
     // Destination platform may arrive as domain lowercase or Prisma SCREAMING;
     // credentials.platform is always the Prisma enum — map before the lookup.
-    const credentialPlatform = toPrismaCredentialPlatform(
+    const approvedPlatform =
       destinations[0]?.platform != null
         ? String(destinations[0].platform)
-        : undefined,
-    );
+        : undefined;
+    const credentialPlatform = toPrismaCredentialPlatform(approvedPlatform);
+
+    // Fail closed on an unmappable platform. Spreading the predicate only when
+    // the mapper succeeds silently drops it otherwise, so the lookup degrades
+    // to "any connected credential on this post" and approves a destination
+    // the approval never covered.
+    if (approvedPlatform && !credentialPlatform) {
+      await this.invalidatePost(
+        approval.organizationId,
+        approval.postId,
+        'The approved destination platform is not a recognized credential platform.',
+      );
+      throw new ForbiddenException(
+        'Approved publish destination is no longer authorized.',
+      );
+    }
+
     const credential = await this.prisma.credential.findFirst({
       select: { id: true },
       where: scopedWhere(post.organizationId, {

@@ -8,6 +8,7 @@ import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { extractAnalyticsPeriod } from '@genfeedai/agent/utils/extract-analytics-period';
 
 export interface EnrichedWorkEvent extends AgentWorkEvent {
   durationMs?: number;
@@ -497,22 +498,6 @@ export function getSnapshotCollapseKey(action: {
     return `completion_summary_card:${action.title ?? action.id ?? 'summary'}`;
   }
   return action.id || `${action.type ?? 'action'}:${action.title ?? ''}`;
-}
-
-function extractAnalyticsPeriod(action: AgentUiAction): string {
-  const dataPeriod = action.data?.period;
-  if (typeof dataPeriod === 'string' && dataPeriod.trim()) {
-    return dataPeriod.trim();
-  }
-  const idMatch = action.id?.match(/analytics-snapshot:[^:]+:(.+)$/);
-  if (idMatch?.[1]) {
-    return idMatch[1];
-  }
-  const titleMatch = action.title?.match(/\(([^)]+)\)\s*$/);
-  if (titleMatch?.[1]) {
-    return titleMatch[1];
-  }
-  return 'summary';
 }
 
 /**

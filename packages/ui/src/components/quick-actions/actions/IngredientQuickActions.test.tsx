@@ -81,6 +81,23 @@ describe('IngredientQuickActions', () => {
     expect(screen.getByTestId('dropdown-scope')).toBeInTheDocument();
   });
 
+  it('keeps quick-action shells on the shared radius', () => {
+    render(
+      <IngredientQuickActions
+        selectedIngredient={ingredient}
+        onCopy={vi.fn()}
+        onRefresh={vi.fn()}
+        onScopeChange={vi.fn()}
+      />,
+    );
+
+    for (const testId of ['primary-actions-group', 'context-actions-group']) {
+      const shell = screen.getByTestId(testId);
+      expect(shell).toHaveClass('rounded-lg');
+      expect(shell.className).not.toContain('rounded-full');
+    }
+  });
+
   it('hides the context group in masonry compact mode', () => {
     render(
       <IngredientQuickActions

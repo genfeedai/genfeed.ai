@@ -55,9 +55,26 @@ const HTML_ENTITY_PATTERN = /&(?:#39|amp|gt|lt|nbsp|quot);/g;
  * `&lt;` → `<` collapses the literal text `&amp;lt;` into `<` — the source
  * re-introduces markup that the tag strip above already removed.
  */
+/**
+ * Remove HTML tags, repeating until the string stops changing.
+ *
+ * A single pass is not enough: stripping the inner tag of `<<b>script>` leaves
+ * a working `<script>` behind, so one replacement can synthesise the very
+ * markup it was meant to remove. Each pass strictly shortens the string, so
+ * the loop is bounded by the input length.
+ */
+function stripTags(html: string): string {
+  let current = html;
+  let previous: string;
+  do {
+    previous = current;
+    current = current.replace(/<[^>]+>/g, '');
+  } while (current !== previous);
+  return current;
+}
+
 function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, '') // Remove HTML tags
+  return stripTags(html)
     .replace(HTML_ENTITY_PATTERN, (entity) => HTML_ENTITIES[entity] ?? entity)
     .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines
     .trim();

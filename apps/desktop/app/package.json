@@ -66,11 +66,11 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.7",
     "@electron/notarize": "3.1.1",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "electron": "43.3.0",
     "electron-builder": "26.15.3",
-    "esbuild": "0.28.1",
+    "esbuild": "0.28.2",
     "typescript": "6.0.2"
   },
   "main": "dist/main.js",

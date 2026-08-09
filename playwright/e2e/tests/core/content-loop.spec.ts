@@ -116,16 +116,21 @@ test.describe('Core Content Loop', () => {
     await postsPage.gotoPostDetail(String(failedPost.id));
 
     await expect(authenticatedPage).toHaveURL(
-      /\/publish\/post-core-loop-failed/,
+      /\/publish\/posts\/post-core-loop-failed/,
     );
+    // The post route renders the artifact editor shell, not the retired
+    // read-only detail panel: the failed state is the status badge beside the
+    // title, and scheduling is an editable date/time control rather than a
+    // "Scheduled Time" heading.
     await expect(
-      authenticatedPage.getByText('Publication Failed'),
+      authenticatedPage.getByRole('heading', { name: 'Failed Publish Draft' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('heading', { name: 'Scheduled Time' }),
+      authenticatedPage.getByText('failed', { exact: true }).first(),
     ).toBeVisible();
+    await expect(authenticatedPage.getByText('Scheduled Date')).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('textbox', { name: 'Date' }),
+      authenticatedPage.getByRole('button', { name: 'Date' }),
     ).toBeVisible();
   });
 
@@ -139,8 +144,10 @@ test.describe('Core Content Loop', () => {
       postId: String(contentLoopPost.id),
     });
     await postsPage.gotoReview();
+    // The review queue is batch-scoped: the batch picker is the surface's
+    // stable landmark (the old "Batch <id>" heading was retired in #2572).
     await expect(
-      authenticatedPage.getByRole('heading', { name: /^Batch / }),
+      authenticatedPage.getByRole('button', { name: 'Select review batch' }),
     ).toBeVisible();
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);

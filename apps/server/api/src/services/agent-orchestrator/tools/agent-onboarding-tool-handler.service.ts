@@ -443,7 +443,26 @@ export class AgentOnboardingToolHandler {
         ? params.voice.trim()
         : 'conversational';
 
-    return `${description.replace(/[.\s]+$/, '')}. Voice: ${voice.replace(/[.\s]+$/, '')}.`;
+    return `${this.trimSentenceEnd(description)}. Voice: ${this.trimSentenceEnd(voice)}.`;
+  }
+
+  /**
+   * Strip trailing sentence punctuation and whitespace.
+   *
+   * A reverse character scan rather than `/[.\s]+$/`: that anchored quantifier
+   * backtracks quadratically on a tool parameter ending in a long run of dots
+   * or spaces, and these values come straight from agent-supplied params.
+   */
+  private trimSentenceEnd(value: string): string {
+    let end = value.length;
+    while (end > 0) {
+      const character = value[end - 1];
+      if (character !== '.' && character.trim() !== '') {
+        break;
+      }
+      end -= 1;
+    }
+    return value.slice(0, end);
   }
 
   private readBrandLabel(value: unknown, fallback: string): string {

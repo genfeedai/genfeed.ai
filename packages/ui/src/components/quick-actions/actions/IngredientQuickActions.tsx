@@ -11,6 +11,7 @@ import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interf
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
 import QuickActionsMenu from '@ui/quick-actions/menu/QuickActionsMenu';
+import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
 import { useCallback, useMemo, useState } from 'react';
 import IngredientContextActions from './IngredientContextActions';
 
@@ -238,23 +239,21 @@ export default function IngredientQuickActions(
     return null;
   }
 
-  // Dropdown triggers use ButtonVariant.UNSTYLED internally, so we replicate
-  // the Button base styles here with a quieter treatment for context controls.
+  // Dropdown triggers use ButtonVariant.UNSTYLED internally, so they take the
+  // shared quick-action trigger base plus a quieter treatment for context
+  // controls.
   const dropdownButtonClassName = cn(
-    'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium',
-    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-    'disabled:pointer-events-none disabled:opacity-50',
-    '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-    'h-8 px-3 text-xs',
+    QUICK_ACTION_TRIGGER_CLASS,
     'text-white/55 hover:text-white hover:bg-white/6',
-    'rounded-full transition-all duration-300',
   );
 
   const alignmentClass = align === 'start' ? 'justify-start' : 'justify-end';
+  // Shell radius comes from BORDER_WHITE_30 (rounded-lg) — square buttons in a
+  // pill shell was exactly the mismatch the quick-action sweep removed.
   const sharedShellClassName = cn(
     BG_BLUR,
     BORDER_WHITE_30,
-    'quick-actions-wrapper rounded-full p-1 transition-all duration-300',
+    'quick-actions-wrapper p-1 transition-all duration-300',
   );
 
   return (

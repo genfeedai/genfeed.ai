@@ -9,6 +9,7 @@ import {
 import type { QuickActionsMenuProps } from '@genfeedai/props/content/quick-actions.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
 import { EllipsisVertical } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
@@ -239,13 +240,8 @@ export default function QuickActionsMenu({
         tooltipPosition="top"
         size={SIZE_CLASSES[size]}
         className={cn(
-          'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium',
-          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-          'disabled:pointer-events-none disabled:opacity-50',
-          '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
-          'h-8 px-3 text-xs',
+          QUICK_ACTION_TRIGGER_CLASS,
           'text-white/65 hover:bg-white/8 hover:text-white',
-          'rounded-full transition-all duration-300',
         )}
         ariaLabel="More"
       >

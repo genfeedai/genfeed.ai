@@ -48,7 +48,7 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/publish`,
     currentApp: 'publish',
     sectionLabel: 'Publish',
-    pageLabels: ['Not posted', 'New release'],
+    pageLabels: ['Not posted', 'New content'],
   },
   {
     route: `${BRAND_BASE}/automate/library`,

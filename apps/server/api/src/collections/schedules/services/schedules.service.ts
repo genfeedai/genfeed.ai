@@ -1,11 +1,15 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
+import {
+  BulkScheduleDto,
+  MAX_BULK_SCHEDULE_CONTENT_IDS,
+} from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -153,6 +157,18 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
     failed: Array<{ contentId: string; reason: string }>;
   }> {
     try {
+      // `@ArrayMaxSize` on the DTO only runs for requests that pass through the
+      // validation pipe. Re-assert the bound here so an internal caller cannot
+      // drive the loop below — and the schedule-time generation before it —
+      // with an unbounded, caller-supplied length.
+      if (dto.contentIds.length > MAX_BULK_SCHEDULE_CONTENT_IDS) {
+        throw new ValidationException(
+          `Cannot bulk schedule more than ${MAX_BULK_SCHEDULE_CONTENT_IDS} items at once.`,
+          'contentIds',
+          dto.contentIds.length,
+        );
+      }
+
       this.logger.debug('Bulk scheduling content', {
         contentCount: dto.contentIds.length,
         organizationId,

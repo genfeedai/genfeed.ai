@@ -27,7 +27,9 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
 }
 
-function scopeDigest(): string {
+function scopeDigest(
+  platform: CredentialPlatform = CredentialPlatform.TWITTER,
+): string {
   const value = {
     actorUserId: 'user-1',
     artifactVersionPinId: 'pin-1',
@@ -36,7 +38,7 @@ function scopeDigest(): string {
     destinations: [
       {
         credentialId: 'credential-1',
-        platform: CredentialPlatform.TWITTER,
+        platform,
       },
     ],
     organizationId: 'org-1',
@@ -965,5 +967,81 @@ describe('PublishApprovalsService', () => {
       artifactReferenceService.assertVersionPinCurrent,
     ).not.toHaveBeenCalled();
     expect(publishApproval.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the approved destination platform has no credential platform', async () => {
+    // `product_hunt` is a valid domain CredentialPlatform but has no Prisma
+    // credential enum member, so `toPrismaCredentialPlatform` returns
+    // undefined. Spreading the predicate only when the mapper succeeds left
+    // the lookup as "any connected credential on this post", approving a
+    // destination the approval never covered. The credential query must not
+    // run at all.
+    const approval = makeApproval({
+      destinations: [
+        {
+          credentialId: 'credential-1',
+          platform: CredentialPlatform.PRODUCT_HUNT,
+        },
+      ],
+      scopeDigest: scopeDigest(CredentialPlatform.PRODUCT_HUNT),
+    });
+    const publishApproval = {
+      findFirst: vi.fn().mockResolvedValue(approval),
+      findMany: vi.fn().mockResolvedValue([approval]),
+      update: vi.fn().mockResolvedValue(approval),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(async (callback) =>
+        callback({
+          post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+          publishApproval,
+        }),
+      ),
+      credential: {
+        findFirst: vi.fn().mockResolvedValue({ id: 'credential-other' }),
+      },
+      member: { findFirst: vi.fn().mockResolvedValue({ id: 'member-1' }) },
+      organization: {
+        findFirst: vi.fn().mockResolvedValue({ userId: 'user-1' }),
+      },
+      post: {
+        findFirst: vi.fn().mockResolvedValue(
+          makePost({
+            platform: CredentialPlatform.PRODUCT_HUNT,
+            publishApprovalId: 'approval-1',
+          }),
+        ),
+      },
+      publishApproval,
+    };
+    const artifactReferenceService = { assertVersionPinCurrent: vi.fn() };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      artifactReferenceService as unknown as AgentArtifactReferenceService,
+    );
+
+    await expect(
+      service.claimForExecution({
+        approvalId: 'approval-1',
+        operationId: 'operation-1',
+        organizationId: 'org-1',
+        postId: 'post-1',
+        versionPinId: 'pin-1',
+      }),
+    ).rejects.toThrow('destination is no longer authorized');
+
+    expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+    expect(
+      artifactReferenceService.assertVersionPinCurrent,
+    ).not.toHaveBeenCalled();
+    expect(publishApproval.updateMany).not.toHaveBeenCalled();
+    expect(publishApproval.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: PublishApprovalStatus.INVALIDATED,
+        }),
+      }),
+    );
   });
 });

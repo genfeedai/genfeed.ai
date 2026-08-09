@@ -196,7 +196,13 @@ export class SkillsService {
     this.requireOrganizationId(organizationId);
     const skill = await this.getSkillById(organizationId, idOrSlug);
 
-    if (!skill) {
+    // `getSkillById` resolves through `buildAccessibleSkillWhere`, which also
+    // returns catalog-global skills (`organizationId: null`). Those are readable
+    // but not writable: the update below is organization-scoped, so a global —
+    // or any row this org does not own — must be absent, not a write attempt
+    // that only fails at the database. Customizing a global skill goes through
+    // `customizeSkill`, which forks it into an organization-owned copy.
+    if (!skill || skill.organizationId !== organizationId) {
       throw new NotFoundException('Skill', idOrSlug);
     }
 

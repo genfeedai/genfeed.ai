@@ -7,6 +7,7 @@ import {
   BatchItemStatus,
   BatchStatus,
   ContentFormat,
+  Platform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -309,6 +310,53 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
       expect.objectContaining({
         credentialId: 'cred-google-ads-1',
         platform: 'google_ads',
+      }),
+    );
+  });
+
+  it('persists the canonical DEVTO domain spelling, not a lowercased raw value', async () => {
+    // Lowercasing the raw input yields `dev_to`; the domain value is `devto`.
+    // Two spellings in `posts.platform` for one platform means every
+    // platform-filtered read misses half the rows.
+    useBatchItems([{ ...baseItem, platform: 'dev-to' }]);
+    credentialDelegate.findFirst.mockResolvedValue({ id: 'cred-devto-1' });
+
+    await service.processBatch('batch-1', 'org-1');
+
+    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          platform: CredentialPlatform.DEVTO,
+        }),
+      }),
+    );
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-devto-1',
+        platform: Platform.DEV_TO,
+      }),
+    );
+  });
+
+  it('resolves the "x" alias to twitter on both the credential and the post', async () => {
+    useBatchItems([{ ...baseItem, platform: 'X' }]);
+    credentialDelegate.findFirst.mockResolvedValue({ id: 'cred-twitter-1' });
+
+    await service.processBatch('batch-1', 'org-1');
+
+    expect(credentialDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          platform: CredentialPlatform.TWITTER,
+        }),
+      }),
+    );
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'cred-twitter-1',
+        platform: Platform.TWITTER,
       }),
     );
   });

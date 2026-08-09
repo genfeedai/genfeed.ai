@@ -202,11 +202,12 @@ test.describe('Authenticated route smoke (real Better Auth session)', () => {
     const networkGuard = await setupStrictNetworkGuard(page, { strict: true });
 
     // `/` resolves the user's selected workspace from the authenticated
-    // bootstrap payload and redirects to its scoped overview. Oracle slugs
+    // bootstrap payload and redirects to its scoped agent surface — the
+    // agent-first landing owned by `root-resolver-client.tsx`. Oracle slugs
     // come from the bootstrap response, not from the redirected URL.
     const { brandSlug, orgSlug } = await readWorkspaceOracleFromBootstrap(page);
     expect(new URL(page.url()).pathname).toBe(
-      createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.WORKSPACE.OVERVIEW),
+      createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.AGENT.ROOT),
     );
 
     const failures: string[] = [];

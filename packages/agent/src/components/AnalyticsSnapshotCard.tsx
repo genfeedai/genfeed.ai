@@ -2,6 +2,7 @@
 
 import { AgentCardCollapseToggle } from '@genfeedai/agent/components/AgentCardCollapseToggle';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { extractAnalyticsPeriod } from '@genfeedai/agent/utils/extract-analytics-period';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -44,22 +45,6 @@ interface PeriodSnapshot {
 
 const PREVIEW_METRIC_COUNT = 2;
 
-function extractPeriod(action: AgentUiAction): string {
-  const dataPeriod = action.data?.period;
-  if (typeof dataPeriod === 'string' && dataPeriod.trim()) {
-    return dataPeriod.trim();
-  }
-  const idMatch = action.id?.match(/analytics-snapshot:[^:]+:(.+)$/);
-  if (idMatch?.[1]) {
-    return idMatch[1];
-  }
-  const titleMatch = action.title?.match(/\(([^)]+)\)\s*$/);
-  if (titleMatch?.[1]) {
-    return titleMatch[1];
-  }
-  return 'summary';
-}
-
 function resolvePeriodSnapshots(action: AgentUiAction): PeriodSnapshot[] {
   const raw = action.data?.periodSnapshots;
   if (Array.isArray(raw) && raw.length > 0) {
@@ -77,7 +62,7 @@ function resolvePeriodSnapshots(action: AgentUiAction): PeriodSnapshot[] {
           const period =
             typeof record.period === 'string'
               ? record.period
-              : extractPeriod(action);
+              : extractAnalyticsPeriod(action);
           return {
             period,
             metrics:
@@ -94,7 +79,7 @@ function resolvePeriodSnapshots(action: AgentUiAction): PeriodSnapshot[] {
   return [
     {
       metrics: action.metrics,
-      period: extractPeriod(action),
+      period: extractAnalyticsPeriod(action),
       title: action.title,
     },
   ];
@@ -152,7 +137,7 @@ export function AnalyticsSnapshotCard({
   );
   const defaultPeriod =
     periodSnapshots[periodSnapshots.length - 1]?.period ??
-    extractPeriod(action);
+    extractAnalyticsPeriod(action);
   const [selectedPeriod, setSelectedPeriod] = useState(defaultPeriod);
   const [isExpanded, setIsExpanded] = useState(true);
 

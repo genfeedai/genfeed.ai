@@ -511,7 +511,9 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
           <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
             {shouldShowManualCatalog && shouldShowSourceTabs && (
               <div className="shrink-0 overflow-x-auto border-b border-border bg-card px-1.5 py-1">
-                <div className="inline-flex min-w-max rounded border border-border bg-card p-0.5">
+                {/* Track sits one step off its bg-card parent so the segmented
+                    affordance reads in both themes; active tabs stay bg-accent. */}
+                <div className="inline-flex min-w-max rounded border border-border bg-muted p-0.5">
                   <SourceTabButton
                     isActive={activeSourceGroup === 'all'}
                     label="All"
