@@ -5,7 +5,7 @@ const cn = vi.fn((...classes: unknown[]) => classes.filter(Boolean).join(' '));
 
 vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
   BG_BLUR: '!bg-black/90 backdrop-blur-sm',
-  BORDER_WHITE_30: 'border border-white/[0.08] shadow-2xl',
+  BORDER_WHITE_30: 'rounded-lg shadow-dropdown',
   cn,
 }));
 
