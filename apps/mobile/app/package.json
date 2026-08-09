@@ -29,7 +29,7 @@
     "react-native-gesture-handler": "3.1.0",
     "react-native-reanimated": "4.5.3",
     "react-native-safe-area-context": "5.8.1",
-    "react-native-screens": "4.26.2",
+    "react-native-screens": "4.27.0",
     "react-native-web": "0.21.2",
     "react-native-webview": "14.0.1"
   },
@@ -40,7 +40,7 @@
     "@testing-library/react-native": "14.0.1",
     "@types/react": "19.2.18",
     "@vitest/coverage-v8": "4.1.10",
-    "eslint": "10.8.0",
+    "eslint": "10.8.1",
     "eslint-config-expo": "57.0.1",
     "jsdom": "29.1.1",
     "@typescript/native": "npm:typescript@7.0.2",

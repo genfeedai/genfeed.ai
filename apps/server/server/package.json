@@ -9,7 +9,7 @@
     "@genfeedai/queue-contracts": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@nestjs/axios": "4.0.1",
-    "@nestjs/bullmq": "11.0.4",
+    "@nestjs/bullmq": "11.0.5",
     "@nestjs/common": "11.1.28",
     "bullmq": "6.0.9",
     "jsonwebtoken": "9.0.3",
@@ -19,7 +19,7 @@
   "devDependencies": {
     "@nestjs/testing": "11.1.28",
     "@types/jsonwebtoken": "9.0.10",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "unplugin-swc": "1.5.10",
     "vitest": "4.1.10"
