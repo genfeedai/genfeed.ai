@@ -58,6 +58,15 @@ const CONFIG_PATTERNS: Array<{
   },
   {
     match:
+      /Invalid `?prisma\.|Unknown argument `|prisma\.[a-z]+\.(create|update|upsert)/i,
+    title: 'Data save failed',
+    summary:
+      'The agent could not save a post or related record (schema or database out of sync).',
+    recovery:
+      'Apply pending database migrations, restart the API, then retry. If it persists, report the tool name and time.',
+  },
+  {
+    match:
       /ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|socket hang up|failed to fetch|load failed|networkerror|network error|\bnetwork\b|bad gateway|gateway timeout|status code 502\b|\bHTTP\s*502\b|status code 504\b|\bHTTP\s*504\b|\btimeout\b/i,
     title: 'Connection interrupted',
     summary:

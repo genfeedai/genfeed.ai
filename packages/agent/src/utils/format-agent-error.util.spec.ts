@@ -66,6 +66,14 @@ describe('formatAgentError', () => {
     ).toBe('Run timed out');
   });
 
+  it('classifies Prisma invalid-invocation dumps', () => {
+    expect(
+      formatAgentError(
+        'Invalid `prisma.post.create()` invocation:\n{ data: { visibility: "public" } }\nUnknown argument `visibility`.',
+      ).title,
+    ).toBe('Data save failed');
+  });
+
   it('does not treat arbitrary 5xx-looking numbers as provider outages', () => {
     expect(formatAgentError('prompt used 512 tokens').title).not.toBe(
       'Provider temporarily unavailable',
