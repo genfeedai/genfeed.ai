@@ -4,17 +4,19 @@ import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { Check, X } from 'lucide-react';
+import { Check, Trash2, X } from 'lucide-react';
 
 import ReviewItemsTable from './ReviewItemsTable';
 
 interface ReviewGridProps {
   activeItem: IBatchItem | null;
+  canDiscardBatch: boolean;
   isActioning: boolean;
   items: IBatchItem[];
   selectedIds: Set<string>;
   onBulkApprove: () => void;
   onBulkReject: () => void;
+  onDiscardBatch: () => void;
   onSelectItem: (itemId: string) => void;
   onToggleSelect: (itemId: string) => void;
 }
@@ -25,16 +27,33 @@ interface ReviewGridProps {
  */
 export default function ReviewGrid({
   activeItem,
+  canDiscardBatch,
   isActioning,
   items,
   selectedIds,
   onBulkApprove,
   onBulkReject,
+  onDiscardBatch,
   onSelectItem,
   onToggleSelect,
 }: ReviewGridProps) {
   return (
     <div className="flex min-w-0 flex-col gap-3">
+      {canDiscardBatch ? (
+        <div className="flex justify-end">
+          <Button
+            className="h-8 gap-1.5 px-3 text-xs"
+            icon={<Trash2 className="size-3.5" />}
+            isDisabled={isActioning}
+            label="Discard batch"
+            onClick={onDiscardBatch}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DESTRUCTIVE}
+            withWrapper={false}
+          />
+        </div>
+      ) : null}
+
       {selectedIds.size > 0 ? (
         <Card
           // Card body defaults to flex-col — force a single horizontal row.
