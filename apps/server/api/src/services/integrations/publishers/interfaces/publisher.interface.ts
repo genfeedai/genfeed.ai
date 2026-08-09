@@ -10,6 +10,14 @@ import {
 } from '@genfeedai/enums';
 
 /**
+ * Ephemeral scheduler metadata added only after stored target settings have
+ * been resolved against the capability catalog. Publishers must never accept
+ * this value directly from persisted user settings.
+ */
+export const WORKFLOW_APPROVED_SCHEDULE_SETTING =
+  '__workflowApprovedScheduledAt';
+
+/**
  * Result of a publish operation
  */
 export interface PublishResult {
@@ -27,6 +35,16 @@ export interface PublishResult {
    * `IChannelTargetError.code` instead of a message-pattern classification.
    */
   errorCode?: string;
+  /**
+   * Set when the provider accepted the content but parked it as a draft on
+   * its side (e.g. a Beehiiv draft execution mode) instead of making it live.
+   *
+   * This is a provider execution outcome, not a lifecycle or audience axis:
+   * the target still reaches `TargetExecutionState.PUBLISHED` because the
+   * provider record exists, but nothing is announced — no publish webhook, no
+   * published activity, no repeat scheduling, and no publish timestamps.
+   */
+  isProviderDraft?: boolean;
 }
 
 /**

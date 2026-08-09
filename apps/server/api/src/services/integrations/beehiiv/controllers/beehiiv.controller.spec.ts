@@ -5,6 +5,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnInternalServerError: vi.fn((msg: string) => ({
     errors: [{ detail: msg }],
   })),
+  returnUnauthorized: vi.fn((msg: string) => ({
+    errors: [{ detail: msg }],
+  })),
+  serializeCollection: vi.fn(
+    (_req: unknown, _serializer: unknown, data: { docs?: unknown }) =>
+      data.docs || data,
+  ),
   serializeSingle: vi.fn(
     (_req: unknown, _serializer: unknown, data: unknown) => ({ data }),
   ),
@@ -33,7 +40,7 @@ describe('BeehiivController', () => {
     listPublications: ReturnType<typeof vi.fn>;
     getDecryptedApiKey: ReturnType<typeof vi.fn>;
     getSubscribers: ReturnType<typeof vi.fn>;
-    createSubscriber: ReturnType<typeof vi.fn>;
+    createSubscribers: ReturnType<typeof vi.fn>;
   };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: { upsertForBrand: ReturnType<typeof vi.fn> };
@@ -74,7 +81,7 @@ describe('BeehiivController', () => {
 
   beforeEach(async () => {
     beehiivService = {
-      createSubscriber: vi.fn(),
+      createSubscribers: vi.fn(),
       getDecryptedApiKey: vi.fn(),
       getSubscribers: vi.fn(),
       listPublications: vi.fn(),
@@ -328,49 +335,43 @@ describe('BeehiivController', () => {
     });
   });
 
-  describe('createSubscriber', () => {
-    it('should create a subscriber with valid email and brandId', async () => {
+  describe('createSubscribers', () => {
+    it('returns a serialized outcome for every submitted address', async () => {
       beehiivService.getDecryptedApiKey.mockResolvedValue({
         apiKey: 'decrypted-key',
         publicationId: 'pub_abc123',
       });
-      beehiivService.createSubscriber.mockResolvedValue({
-        email: 'new@example.com',
-        id: 'sub_new',
-        status: 'active',
-      });
+      beehiivService.createSubscribers.mockResolvedValue([
+        {
+          email: 'new@example.com',
+          id: 'new@example.com',
+          status: 'active',
+          subscriberId: 'sub_new',
+          success: true,
+        },
+        {
+          email: 'rejected@example.com',
+          errorCode: 'validation_failed',
+          errorMessage: 'Beehiiv rejected the request payload.',
+          id: 'rejected@example.com',
+          isRetryable: false,
+          success: false,
+        },
+      ]);
 
-      const result = await controller.createSubscriber(mockUser, {
+      const result = await controller.createSubscribers(mockRequest, mockUser, {
         brandId: '507f191e810c19729de860ea',
-        email: 'new@example.com',
+        emails: ['new@example.com', 'rejected@example.com'],
         utmSource: 'twitter',
       });
 
-      expect(beehiivService.createSubscriber).toHaveBeenCalledWith(
+      expect(beehiivService.createSubscribers).toHaveBeenCalledWith(
         'decrypted-key',
         'pub_abc123',
-        'new@example.com',
+        ['new@example.com', 'rejected@example.com'],
         'twitter',
       );
-      expect(result).toHaveProperty('data');
-    });
-
-    it('should return bad request when brandId is missing', async () => {
-      const result = await controller.createSubscriber(mockUser, {
-        brandId: '',
-        email: 'new@example.com',
-      });
-
-      expect(result).toHaveProperty('errors');
-    });
-
-    it('should return bad request when email is missing', async () => {
-      const result = await controller.createSubscriber(mockUser, {
-        brandId: '507f191e810c19729de860ea',
-        email: '',
-      });
-
-      expect(result).toHaveProperty('errors');
+      expect(result).toHaveLength(2);
     });
 
     it('should return internal server error when service throws', async () => {
@@ -378,12 +379,14 @@ describe('BeehiivController', () => {
         new Error('No credential'),
       );
 
-      const result = await controller.createSubscriber(mockUser, {
+      const result = await controller.createSubscribers(mockRequest, mockUser, {
         brandId: '507f191e810c19729de860ea',
-        email: 'new@example.com',
+        emails: ['new@example.com'],
       });
 
-      expect(result).toHaveProperty('errors');
+      expect(result).toEqual({
+        errors: [{ detail: 'Failed to create Beehiiv subscribers' }],
+      });
     });
   });
 });

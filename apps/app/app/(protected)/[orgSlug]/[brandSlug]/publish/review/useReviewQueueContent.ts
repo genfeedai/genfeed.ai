@@ -1,8 +1,11 @@
+import { BatchStatus } from '@genfeedai/enums';
+import type { IBatchSummary } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { BatchesService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { captureWorkspaceShellApproval } from '@/lib/workspace-shell/workspace-shell-telemetry';
@@ -45,7 +48,9 @@ function buildReviewQuery(input: {
 }
 
 export function useReviewQueueContent() {
-  const notificationsService = NotificationsService.getInstance();
+  const { openConfirm } = useConfirmModal();
+  const notifications = useMemo(() => NotificationsService.getInstance(), []);
+  const queryClient = useQueryClient();
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
   );
@@ -179,6 +184,9 @@ export function useReviewQueueContent() {
     [activeBatch?.items, activeFilters],
   );
 
+  const canDiscardBatch =
+    activeBatch !== null && activeBatch.status !== BatchStatus.CANCELLED;
+
   const activeItem = useMemo(
     () => visibleItems.find((item) => item.id === activeItemId) ?? null,
     [activeItemId, visibleItems],
@@ -274,6 +282,7 @@ export function useReviewQueueContent() {
   useEffect(() => {
     const shouldAutoBroaden =
       activeBatch &&
+      activeBatch.status !== BatchStatus.CANCELLED &&
       activeFilters.length === 1 &&
       activeFilters[0] === 'ready' &&
       filterCounts.ready === 0 &&
@@ -286,13 +295,11 @@ export function useReviewQueueContent() {
 
     if (!hasExplainedAutoBroadenRef.current) {
       hasExplainedAutoBroadenRef.current = true;
-      notificationsService.info(
-        'No items are ready, so all statuses are shown.',
-      );
+      notifications.info('No items are ready, so all statuses are shown.');
     }
 
     setActiveFilters([]);
-  }, [activeBatch, activeFilters, filterCounts, notificationsService]);
+  }, [activeBatch, activeFilters, filterCounts, notifications]);
 
   useEffect(() => {
     setSelectedIds((prev) => {
@@ -386,6 +393,97 @@ export function useReviewQueueContent() {
       visibleItems,
     ],
   );
+
+  const updateBatchCaches = useCallback(
+    (batch: IBatchSummary) => {
+      queryClient.setQueryData(['review-batch', batch.id], batch);
+      queryClient.setQueryData<IBatchSummary[]>(
+        ['review-batches'],
+        (currentBatches) =>
+          currentBatches?.map((currentBatch) =>
+            currentBatch.id === batch.id ? batch : currentBatch,
+          ) ?? [batch],
+      );
+    },
+    [queryClient],
+  );
+
+  const executeDiscardBatch = useCallback(
+    async (batchId: string, reviewableItemIds: string[]) => {
+      setIsActioning(true);
+      let rejectedBatch: IBatchSummary | null = null;
+
+      try {
+        const service = await getBatchesService();
+
+        if (reviewableItemIds.length > 0) {
+          rejectedBatch = await service.itemAction(batchId, {
+            action: 'reject',
+            feedback: 'Review batch discarded.',
+            itemIds: reviewableItemIds,
+          });
+        }
+
+        const cancelledBatch = await service.cancelBatch(batchId);
+        updateBatchCaches(cancelledBatch);
+        setSelectedIds(new Set());
+        setActiveItemId(null);
+        setActiveFilters(DEFAULT_STATUS_FILTERS);
+        notifications.success('Review batch discarded');
+      } catch (error) {
+        if (rejectedBatch) {
+          updateBatchCaches(rejectedBatch);
+          setSelectedIds(new Set());
+          notifications.warning(
+            'Ready drafts were discarded, but unfinished items could not be cancelled. Retry Discard batch to finish.',
+          );
+          logger.error(
+            'Discard batch cancellation failed after review items were rejected',
+            error,
+          );
+        } else {
+          notifications.error('Review batch discard');
+          logger.error('Discard batch failed before cancellation', error);
+        }
+      } finally {
+        try {
+          await refreshQueue();
+        } catch (refreshError) {
+          logger.error(
+            'Refresh review queue after discard failed',
+            refreshError,
+          );
+        }
+        setIsActioning(false);
+      }
+    },
+    [getBatchesService, notifications, refreshQueue, updateBatchCaches],
+  );
+
+  const handleDiscardBatch = useCallback(() => {
+    if (!activeBatch || !canDiscardBatch || isActioning) {
+      return;
+    }
+
+    const reviewableItemIds = activeBatch.items
+      .filter((item) => isReadyToReview(item))
+      .map((item) => item.id);
+
+    openConfirm({
+      confirmLabel: 'Discard batch',
+      isError: true,
+      label: 'Discard review batch',
+      message:
+        'Ready drafts will be rejected and unfinished items will be cancelled. Prior review decisions stay unchanged. This action cannot be undone.',
+      onConfirm: () => executeDiscardBatch(activeBatch.id, reviewableItemIds),
+    });
+  }, [
+    activeBatch,
+    canDiscardBatch,
+    executeDiscardBatch,
+    isActioning,
+    openConfirm,
+  ]);
 
   const handleApproveItem = useCallback(
     async (itemId: string) => {
@@ -545,6 +643,7 @@ export function useReviewQueueContent() {
     activeBatchId,
     batchList,
     batchesError,
+    canDiscardBatch,
     filterCounts,
     hasInvalidBatchPayload,
     isActioning,
@@ -558,6 +657,7 @@ export function useReviewQueueContent() {
     handleApproveItem,
     handleBatchChange,
     handleBulkAction,
+    handleDiscardBatch,
     handleFilterChange,
     handleRequestChanges,
     handleRejectItem,

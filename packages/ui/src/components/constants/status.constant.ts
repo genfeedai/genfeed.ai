@@ -129,6 +129,15 @@ export const STATUS_METADATA = new Map<
     },
   ],
   [
+    // Deferred provider-side verification (e.g. TikTok) — distinct from a
+    // draft: the post has been handed off and is awaiting the platform.
+    PostStatus.PENDING,
+    {
+      label: 'Verifying',
+      variant: 'info',
+    },
+  ],
+  [
     PostStatus.FAILED,
     {
       label: 'Failed',

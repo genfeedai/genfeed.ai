@@ -3,7 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { ActivityKey } from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -70,10 +70,22 @@ const mocks = vi.hoisted(() => ({
     (id: string, params: Record<string, string>) =>
       `catalog:${id}:${params.subject}`,
   ),
+  // `null` keeps the upcoming-schedule fetch pending so synchronous tests see
+  // a stable loading panel with no post-test state updates.
+  upcomingReleases: null as unknown[] | null,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    findAll: () =>
+      mocks.upcomingReleases === null
+        ? new Promise(() => {})
+        : Promise.resolve(mocks.upcomingReleases),
+  }),
 }));
 
 vi.mock('@providers/access-state/access-state.provider', () => ({
@@ -170,6 +182,7 @@ describe('OperationalHomeContent', () => {
     };
     mocks.connectionOrganizationId = '';
     mocks.overviewIsError = false;
+    mocks.upcomingReleases = null;
   });
 
   it('renders the canonical Connect Genfeed state when unconfigured', () => {
@@ -199,7 +212,7 @@ describe('OperationalHomeContent', () => {
     ).toBeTruthy();
   });
 
-  it('renders all operational control-plane sections when configured', () => {
+  it('renders all operational control-plane sections when configured', async () => {
     mocks.connectionState = {
       error: null,
       key: { label: 'Verified MCP' },
@@ -207,6 +220,7 @@ describe('OperationalHomeContent', () => {
       status: 'configured',
       verifiedAt: '2026-07-26T11:00:00.000Z',
     };
+    mocks.upcomingReleases = [];
 
     render(<OperationalHomeContent />);
 
@@ -219,11 +233,17 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByTestId('operational-home-publishing'),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-upcoming')).toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-credentials'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
     expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
+
+    // An empty scheduler window settles into the explicit zero state.
+    expect(
+      await screen.findByText('Nothing is scheduled for the next 7 days.'),
+    ).toBeInTheDocument();
   });
 
   it('resolves overview activity descriptions through the message catalog', () => {
@@ -309,6 +329,7 @@ describe('OperationalHomeContent', () => {
     for (const name of [
       'Open queue',
       'Open publishing',
+      'Open calendar',
       'Manage accounts',
       'View activity',
     ]) {
@@ -401,9 +422,11 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading credential health',
-    );
+    expect(
+      within(screen.getByTestId('operational-home-credentials')).getByRole(
+        'status',
+      ),
+    ).toHaveTextContent('Loading credential health');
     expect(
       screen.queryByText('No publishing credentials are connected yet.'),
     ).not.toBeInTheDocument();
@@ -435,9 +458,12 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking MCP connection state',
-    );
+    const statusAnnouncements = screen.getAllByRole('status');
+    expect(
+      statusAnnouncements.some((announcement) =>
+        announcement.textContent?.includes('Checking MCP connection state'),
+      ),
+    ).toBe(true);
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 });

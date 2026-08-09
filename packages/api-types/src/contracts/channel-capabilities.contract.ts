@@ -227,6 +227,7 @@ export const PRODUCTIZED_SCHEDULER_PLATFORMS = [
   CredentialPlatform.INSTAGRAM,
   CredentialPlatform.TWITTER,
   CredentialPlatform.LINKEDIN,
+  CredentialPlatform.BEEHIIV,
 ] as const;
 
 export type ProductizedSchedulerPlatform =
@@ -489,6 +490,41 @@ const channelCapabilities = [
           { label: 'Public', value: 'PUBLIC' },
           { label: 'Connections', value: 'CONNECTIONS' },
         ],
+        type: 'select',
+      },
+    ],
+    status: 'supported',
+  },
+  {
+    caption: { maxLength: 100_000, required: true },
+    description:
+      'Newsletter draft, immediate send, and scheduled send through a connected Beehiiv publication.',
+    helpers: [
+      {
+        key: 'beehiiv.credential',
+        kind: 'credential',
+        label: 'Beehiiv publication',
+        required: true,
+      },
+    ],
+    label: 'Beehiiv',
+    media: {
+      animated: { supported: true },
+      kinds: ['link'],
+      minItems: 0,
+    },
+    platform: CredentialPlatform.BEEHIIV,
+    publishModes: ['draft', 'publish_now', 'scheduled'],
+    settings: [
+      {
+        defaultValue: 'confirmed',
+        key: 'providerStatus',
+        label: 'Beehiiv delivery',
+        options: [
+          { label: 'Create draft', value: 'draft' },
+          { label: 'Send', value: 'confirmed' },
+        ],
+        required: true,
         type: 'select',
       },
     ],
@@ -793,6 +829,7 @@ export function validateChannelTargetSettings(
   errors.push(...validatePublishMode(parsedInput.data, capability));
   errors.push(...validateSettings(parsedInput.data, capability));
   errors.push(...validateVisibility(parsedInput.data, capability));
+  errors.push(...validateProviderConstraints(parsedInput.data, capability));
   warnings.push(...collectMediaWarnings(parsedInput.data, capability));
 
   return {
@@ -1192,6 +1229,29 @@ function validateSettings(
   }
 
   return errors;
+}
+
+function validateProviderConstraints(
+  input: ValidateChannelTargetSettingsInput,
+  capability: ChannelCapability,
+): ChannelValidationIssue[] {
+  if (
+    capability.platform === CredentialPlatform.BEEHIIV &&
+    input.publishMode === 'scheduled' &&
+    input.settings?.providerStatus === 'draft'
+  ) {
+    return [
+      {
+        code: 'channel_target.beehiiv_draft_cannot_be_scheduled',
+        field: 'settings.providerStatus',
+        message:
+          'Beehiiv drafts cannot carry a scheduled send time. Choose Send or publish the target immediately as a provider draft.',
+        severity: 'error',
+      },
+    ];
+  }
+
+  return [];
 }
 
 function validateSettingType(

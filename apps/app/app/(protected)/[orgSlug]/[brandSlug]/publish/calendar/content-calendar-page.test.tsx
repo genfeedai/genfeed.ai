@@ -8,8 +8,8 @@ import {
 import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
 import type {
   CalendarEventBadge,
+  CalendarEventChannel,
   CalendarEventDrop,
-  CalendarEventIndicator,
 } from '@props/components/calendar.props';
 import {
   act,
@@ -52,7 +52,7 @@ const getReleaseGroupsServiceMock = vi.fn(async () => ({
 
 const calendarRenderProps: Array<{
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
-  getEventIndicators: (item: CalendarItemShape) => CalendarEventIndicator[];
+  getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
   isItemDraggable: (item: CalendarItemShape) => boolean;
   items: CalendarItemShape[];
   onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
@@ -107,7 +107,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   default: ({
     filterControls,
     getEventBadge,
-    getEventIndicators,
+    getEventChannels,
     isItemDraggable,
     items,
     modal,
@@ -116,7 +116,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   }: {
     filterControls: ReactNode;
     getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
-    getEventIndicators: (item: CalendarItemShape) => CalendarEventIndicator[];
+    getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
     isItemDraggable: (item: CalendarItemShape) => boolean;
     items: CalendarItemShape[];
     modal: ReactNode;
@@ -125,7 +125,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   }) => {
     calendarRenderProps.push({
       getEventBadge,
-      getEventIndicators,
+      getEventChannels,
       isItemDraggable,
       items,
       onEventDrop,
@@ -378,29 +378,33 @@ describe('ContentCalendarPage', () => {
     ).toBeNull();
   });
 
-  it('exposes distinct release channels as compact calendar indicators', async () => {
+  it('derives one channel icon per distinct platform and none for articles', async () => {
     findReleasesMock.mockResolvedValue([
       release({
         targets: [
           target(),
-          target({
-            id: 'target-2',
-            platform: CredentialPlatform.LINKEDIN,
-          }),
-          target({ id: 'target-3' }),
+          target({ id: 'target-2' }),
+          target({ id: 'target-3', platform: CredentialPlatform.YOUTUBE }),
         ],
       }),
     ]);
 
     await renderLoaded();
 
-    const { getEventIndicators, items } = latestCalendarProps();
+    const { getEventChannels, items } = latestCalendarProps();
     const releaseItem = items.find((item) => item.itemType === 'release');
 
-    expect(getEventIndicators(releaseItem as CalendarItemShape)).toEqual([
-      { label: 'Instagram', shortLabel: 'IG' },
-      { label: 'LinkedIn', shortLabel: 'LI' },
+    expect(getEventChannels(releaseItem as CalendarItemShape)).toEqual([
+      { id: 'instagram', label: 'Instagram' },
+      { id: 'youtube', label: 'YouTube' },
     ]);
+    expect(
+      getEventChannels({
+        id: 'article-9',
+        itemType: 'article',
+        status: 'draft',
+      }),
+    ).toEqual([]);
   });
 
   it('refuses to drag a release that can no longer be moved', async () => {

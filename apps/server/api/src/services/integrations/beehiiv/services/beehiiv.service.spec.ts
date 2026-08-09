@@ -6,6 +6,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
@@ -118,9 +119,10 @@ describe('BeehiivService', () => {
     it('should throw when HTTP request fails', async () => {
       httpGetMock.mockReturnValue(throwError(() => new Error('Network error')));
 
-      await expect(service.listPublications('bad-key')).rejects.toThrow(
-        'Network error',
-      );
+      await expect(service.listPublications('bad-key')).rejects.toMatchObject({
+        code: 'transient_failure',
+        isRetryable: true,
+      });
       expect(loggerMock.error).toHaveBeenCalled();
     });
   });
@@ -164,11 +166,17 @@ describe('BeehiivService', () => {
     });
 
     it('should throw when HTTP request fails', async () => {
-      httpGetMock.mockReturnValue(throwError(() => new Error('Unauthorized')));
+      httpGetMock.mockReturnValue(
+        throwError(() => ({ response: { status: 401 } })),
+      );
 
       await expect(
         service.getSubscribers('bad-key', 'pub_abc123'),
-      ).rejects.toThrow('Unauthorized');
+      ).rejects.toMatchObject({
+        code: 'authorization_failed',
+        isRetryable: false,
+        statusCode: 401,
+      });
     });
   });
 
@@ -210,16 +218,64 @@ describe('BeehiivService', () => {
     });
 
     it('should throw when create fails', async () => {
-      httpPostMock.mockReturnValue(throwError(() => new Error('Conflict')));
+      httpPostMock.mockReturnValue(
+        throwError(() => ({ response: { status: 409 } })),
+      );
 
       await expect(
         service.createSubscriber('api-key', 'pub_abc123', 'dup@example.com'),
-      ).rejects.toThrow('Conflict');
+      ).rejects.toMatchObject({
+        code: 'validation_failed',
+        isRetryable: false,
+      });
+    });
+  });
+
+  describe('createSubscribers', () => {
+    it('returns one normalized outcome per address', async () => {
+      const createSubscriber = vi
+        .spyOn(service, 'createSubscriber')
+        .mockResolvedValueOnce(mockSubscriber)
+        .mockRejectedValueOnce(
+          new BeehiivProviderError(
+            'validation_failed',
+            'Beehiiv rejected the request payload.',
+            { isRetryable: false, statusCode: 422 },
+          ),
+        );
+
+      const result = await service.createSubscribers(
+        'api-key',
+        'pub_abc123',
+        [' Sub@Example.com ', 'invalid@example.com'],
+        'launch',
+      );
+
+      expect(createSubscriber).toHaveBeenNthCalledWith(
+        1,
+        'api-key',
+        'pub_abc123',
+        'sub@example.com',
+        'launch',
+      );
+      expect(result).toEqual([
+        expect.objectContaining({
+          email: 'sub@example.com',
+          subscriberId: mockSubscriber.id,
+          success: true,
+        }),
+        expect.objectContaining({
+          email: 'invalid@example.com',
+          errorCode: 'validation_failed',
+          isRetryable: false,
+          success: false,
+        }),
+      ]);
     });
   });
 
   describe('createPost', () => {
-    it('should create a draft post by default', async () => {
+    it('creates a post with explicit draft status', async () => {
       const mockPost = {
         content_html: '<p>Hello</p>',
         id: 'post_123',
@@ -231,12 +287,11 @@ describe('BeehiivService', () => {
       };
       httpPostMock.mockReturnValue(of({ data: { data: mockPost } }));
 
-      const result = await service.createPost(
-        'api-key',
-        'pub_abc123',
-        'Test Post',
-        '<p>Hello</p>',
-      );
+      const result = await service.createPost('api-key', 'pub_abc123', {
+        contentHtml: '<p>Hello</p>',
+        status: 'draft',
+        title: 'Test Post',
+      });
 
       expect(result).toEqual(mockPost);
       expect(httpPostMock).toHaveBeenCalledWith(
@@ -254,15 +309,58 @@ describe('BeehiivService', () => {
       };
       httpPostMock.mockReturnValue(of({ data: { data: mockPost } }));
 
-      const result = await service.createPost(
-        'api-key',
-        'pub_abc123',
-        'Published',
-        '<p>Live!</p>',
-        'confirmed',
-      );
+      const result = await service.createPost('api-key', 'pub_abc123', {
+        contentHtml: '<p>Live!</p>',
+        status: 'confirmed',
+        title: 'Published',
+      });
 
       expect(result.status).toBe('confirmed');
+      expect(httpPostMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ status: 'confirmed' }),
+        expect.any(Object),
+      );
+    });
+
+    it('creates a confirmed scheduled post with the approved timestamp', async () => {
+      httpPostMock.mockReturnValue(
+        of({ data: { data: { id: 'post_scheduled' } } }),
+      );
+      const scheduledAt = new Date('2026-08-10T09:30:00.000Z');
+
+      await service.createPost('api-key', 'pub_abc123', {
+        contentHtml: '<p>Later</p>',
+        scheduledAt,
+        status: 'confirmed',
+        title: 'Scheduled',
+      });
+
+      expect(httpPostMock).toHaveBeenCalledWith(
+        expect.any(String),
+        {
+          body_content: '<p>Later</p>',
+          scheduled_at: '2026-08-10T09:30:00.000Z',
+          status: 'confirmed',
+          title: 'Scheduled',
+        },
+        expect.any(Object),
+      );
+    });
+
+    it('rejects a draft with a scheduled timestamp before an HTTP request', async () => {
+      await expect(
+        service.createPost('api-key', 'pub_abc123', {
+          contentHtml: '<p>Invalid</p>',
+          scheduledAt: new Date('2026-08-10T09:30:00.000Z'),
+          status: 'draft',
+          title: 'Invalid draft',
+        }),
+      ).rejects.toMatchObject({
+        code: 'validation_failed',
+        isRetryable: false,
+      });
+      expect(httpPostMock).not.toHaveBeenCalled();
     });
   });
 
@@ -284,6 +382,22 @@ describe('BeehiivService', () => {
         publicationId: 'pub_abc123',
       });
       expect(EncryptionUtil.decrypt).toHaveBeenCalledWith('encrypted-token');
+    });
+
+    it('scopes a target credential lookup to its exact credential ID', async () => {
+      credentialsFindOneMock.mockResolvedValue({
+        accessToken: 'encrypted-token',
+        externalId: 'pub_abc123',
+      });
+
+      await service.getDecryptedApiKey(orgId, brandId, 'credential-1');
+
+      expect(credentialsFindOneMock).toHaveBeenCalledWith({
+        brandId,
+        id: 'credential-1',
+        organizationId: orgId,
+        platform: CredentialPlatform.BEEHIIV,
+      });
     });
 
     it('should throw when credential is not found', async () => {

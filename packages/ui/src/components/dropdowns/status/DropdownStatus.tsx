@@ -34,6 +34,7 @@ const STATUS_ICONS: Record<string, React.ReactNode> = {
   DRAFT: <Clock className={ICON_CLASS} />,
   FAILED: <X className={ICON_CLASS} />,
   GENERATED: <Check className={ICON_CLASS} />,
+  PENDING: <Clock className={ICON_CLASS} />,
   PRIVATE: <Clock className={ICON_CLASS} />,
   PROCESSING: <Clock className={ICON_CLASS} />,
   PUBLIC: <Check className={ICON_CLASS} />,

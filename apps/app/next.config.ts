@@ -6,6 +6,7 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   createOrganizationAppRoute,
+  LEGACY_APP_ROUTES,
 } from '@genfeedai/constants/routes.constant';
 import { createAppNextConfig } from '@genfeedai/next-config';
 import { withSerwist } from '@serwist/turbopack';
@@ -206,6 +207,60 @@ function retiredStudioTabRedirects() {
   });
 }
 
+/**
+ * Newsletter writing is Agent-first. Keep the old Publish list/generator URL
+ * as a permanent compatibility edge; its legacy `?id=` shape resolves directly
+ * to the focused newsletter editor instead of losing the selected artifact.
+ */
+function legacyNewsletterRedirects() {
+  const legacyPath = LEGACY_APP_ROUTES.PUBLISH_NEWSLETTERS;
+
+  return [
+    {
+      destination: `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
+      has: [
+        {
+          key: 'id',
+          type: 'query' as const,
+          value: '(?<newsletterId>.+)',
+        },
+      ],
+      permanent: true,
+      source: legacyPath,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        `${APP_ROUTES.EDIT.NEWSLETTER}/:newsletterId`,
+      ),
+      has: [
+        {
+          key: 'id',
+          type: 'query' as const,
+          value: '(?<newsletterId>.+)',
+        },
+      ],
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', legacyPath),
+    },
+    {
+      destination: APP_ROUTES.AGENT.NEW,
+      permanent: true,
+      source: legacyPath,
+    },
+    {
+      destination: createBrandAppRoute(
+        ':orgSlug',
+        ':brandSlug',
+        APP_ROUTES.AGENT.NEW,
+      ),
+      permanent: true,
+      source: createBrandAppRoute(':orgSlug', ':brandSlug', legacyPath),
+    },
+  ];
+}
+
 const config = createAppNextConfig({
   // Defense in depth alongside app/robots.ts and the root layout metadata: the
   // header also covers responses that carry no HTML head (API routes, redirects,
@@ -398,6 +453,7 @@ const config = createAppNextConfig({
       ),
     },
     ...retiredStudioTabRedirects(),
+    ...legacyNewsletterRedirects(),
     // Complete-path homes: bare `/[app]` → `/[app]/overview` (Workspace,
     // Analytics, Automate, Library, Publish). Discover/Studio already redirect
     // ROOT to a named child (discovery / storyboard).

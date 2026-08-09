@@ -14,6 +14,7 @@ import type {
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
+import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
@@ -202,7 +203,7 @@ export class CronPostsService {
       }
       return this.handleTerminalPublishValidationFailure(post, error);
     }
-    const result = await this.publishSinglePost(post);
+    const result = await this.publishSinglePost(post, job.source);
 
     await this.publishApprovalsService.completeExecution({
       approvalId,
@@ -214,7 +215,7 @@ export class CronPostsService {
       versionPinId,
     });
 
-    if (result.success) {
+    if (result.success && !result.isProviderDraft) {
       await this.activitiesService.create(
         new ActivityEntity({
           brandId: readPostString(post, ['brandId']) ?? undefined,
@@ -325,7 +326,10 @@ export class CronPostsService {
       : String(error || 'Post failed');
   }
 
-  private async publishSinglePost(post: PostEntity): Promise<PublishResult> {
+  private async publishSinglePost(
+    post: PostEntity,
+    source: PostPublishJobData['source'],
+  ): Promise<PublishResult> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     // Mark post as PROCESSING immediately to prevent race conditions and show user feedback
@@ -515,7 +519,10 @@ export class CronPostsService {
         return this.createFailedResult(platform, 'Unsupported platform');
       }
 
-      const settings = resolveChannelTargetSettings(
+      // Settings are re-resolved against the catalog here rather than trusted
+      // as stored: the release was validated when it was scheduled, and the
+      // catalog may have changed since.
+      const resolvedSettings = resolveChannelTargetSettings(
         platform,
         post.targetSettings,
       );
@@ -525,7 +532,7 @@ export class CronPostsService {
         credentialId: postCredentialId ?? undefined,
         platform,
         publishMode: 'publish_now',
-        settings,
+        settings: resolvedSettings,
         visibility,
       });
       if (!targetValidation.valid) {
@@ -548,9 +555,19 @@ export class CronPostsService {
         return this.createFailedResult(platform, validationError);
       }
 
-      // Build publish context. Settings are re-resolved against the catalog
-      // here rather than trusted as stored: the release was validated when it
-      // was scheduled, and the catalog may have changed since.
+      // Beehiiv schedules at the provider, so the approved schedule instant is
+      // handed over as ephemeral scheduler metadata on top of the validated
+      // settings — never as a stored, user-controlled channel setting.
+      const settings =
+        platform === CredentialPlatform.BEEHIIV &&
+        source !== 'publish_now' &&
+        post.scheduledDate instanceof Date
+          ? {
+              ...resolvedSettings,
+              [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+                post.scheduledDate.toISOString(),
+            }
+          : resolvedSettings;
       const context: PublishContext = {
         brandId: postBrandId ?? '',
         credential,
@@ -647,7 +664,10 @@ export class CronPostsService {
           return result;
         }
 
-        // Immediate success - update post with external ID and status
+        // Immediate success - carry the external id onto the published target.
+        // A provider draft stays lifecycle-published but keeps its publish
+        // instants unset, so nothing downstream announces it as live.
+        const isProviderDraft = result.isProviderDraft === true;
         const publishedAt = new Date();
         const persisted = await this.persistPublishState(
           post,
@@ -656,8 +676,9 @@ export class CronPostsService {
             executionState: TargetExecutionState.PUBLISHED,
             externalId: result.externalId,
             externalShortcode: result.externalShortcode ?? null,
-            publicationDate: publishedAt,
-            publishedAt,
+            ...(!isProviderDraft
+              ? { publicationDate: publishedAt, publishedAt }
+              : {}),
             url: result.url || null,
             workflowExecutionId,
           },
@@ -708,14 +729,19 @@ export class CronPostsService {
           }
         }
 
-        this.emitPublishPublishedWebhook(post, result, credential.platform);
+        if (!isProviderDraft) {
+          this.emitPublishPublishedWebhook(post, result, credential.platform);
+        }
 
-        this.logger.log(`${url} published post successfully`, {
-          childrenCount: children.length,
-          externalId: result.externalId,
-          platform: credential.platform,
-          postId: post.id.toString(),
-        });
+        this.logger.log(
+          `${url} ${isProviderDraft ? 'created provider draft' : 'published post successfully'}`,
+          {
+            childrenCount: children.length,
+            externalId: result.externalId,
+            platform: credential.platform,
+            postId: post.id.toString(),
+          },
+        );
       } else if (!result.success) {
         // Handle retry logic
         return await this.handlePublishFailure(
@@ -914,8 +940,19 @@ export class CronPostsService {
   }
 
   private isRetryableError(error: unknown): boolean {
+    if (
+      error &&
+      typeof error === 'object' &&
+      'isRetryable' in error &&
+      typeof (error as { isRetryable?: unknown }).isRetryable === 'boolean'
+    ) {
+      return (error as { isRetryable: boolean }).isRetryable;
+    }
+
     const retryableErrorPatterns = [
       'rate limit',
+      'rate_limited',
+      'transient_failure',
       'timeout',
       'ETIMEDOUT',
       'ECONNRESET',
