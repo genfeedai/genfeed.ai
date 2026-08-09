@@ -36,18 +36,29 @@ const PLATFORM_FORMAT_MAP: Partial<Record<Platform, IngredientFormat>> = {
   [Platform.MEDIUM]: IngredientFormat.LANDSCAPE,
 };
 
+const HTML_ENTITIES: Record<string, string> = {
+  '&#39;': "'",
+  '&amp;': '&',
+  '&gt;': '>',
+  '&lt;': '<',
+  '&nbsp;': ' ',
+  '&quot;': '"',
+};
+
+const HTML_ENTITY_PATTERN = /&(?:#39|amp|gt|lt|nbsp|quot);/g;
+
 /**
- * Strip HTML tags and decode common entities from a string
+ * Strip HTML tags and decode common entities from a string.
+ *
+ * Entities are decoded in a single pass. Chaining per-entity `replace` calls
+ * decodes the output of earlier calls, so `&amp;` → `&` running before
+ * `&lt;` → `<` collapses the literal text `&amp;lt;` into `<` — the source
+ * re-introduces markup that the tag strip above already removed.
  */
 function stripHtml(html: string): string {
   return html
     .replace(/<[^>]+>/g, '') // Remove HTML tags
-    .replace(/&nbsp;/g, ' ') // Decode common entities
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+    .replace(HTML_ENTITY_PATTERN, (entity) => HTML_ENTITIES[entity] ?? entity)
     .replace(/\n{3,}/g, '\n\n') // Normalize multiple newlines
     .trim();
 }

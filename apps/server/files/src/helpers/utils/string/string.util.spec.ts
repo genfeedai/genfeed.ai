@@ -1,4 +1,7 @@
-import { ffmpegEscapeString } from '@files/helpers/utils/string/string.util';
+import {
+  escapeDrawtextValue,
+  ffmpegEscapeString,
+} from '@files/helpers/utils/string/string.util';
 
 describe('ffmpegEscapeString', () => {
   it('replaces single quotes with typographic apostrophes', () => {
@@ -23,5 +26,47 @@ describe('ffmpegEscapeString', () => {
     const result = ffmpegEscapeString('plain-text');
 
     expect(result).toBe('plain-text');
+  });
+});
+
+describe('escapeDrawtextValue', () => {
+  it('escapes quotes so they cannot terminate the option value', () => {
+    expect(escapeDrawtextValue("it's")).toBe("it\\'s");
+  });
+
+  it('escapes colons so they cannot start a new filter option', () => {
+    expect(escapeDrawtextValue('12:30')).toBe('12\\:30');
+  });
+
+  it('escapes backslashes before the characters that introduce them', () => {
+    // The regression: escaping `'` first turns `a\'` into `a\\'`, which ffmpeg
+    // reads as a literal backslash followed by a closing quote.
+    expect(escapeDrawtextValue("a\\'")).toBe("a\\\\\\'");
+  });
+
+  it('leaves an odd-length backslash run before an escaped quote', () => {
+    const escaped = escapeDrawtextValue("a\\'");
+    const trailing = escaped.slice(0, escaped.lastIndexOf("'"));
+    const backslashes = trailing.match(/\\*$/)?.[0].length ?? 0;
+
+    // Pairs preserve literal backslashes and the final unpaired backslash
+    // escapes the quote instead of letting it terminate the option value.
+    expect(backslashes % 2).toBe(1);
+  });
+
+  it('escapes a lone trailing backslash', () => {
+    expect(escapeDrawtextValue('caption\\')).toBe('caption\\\\');
+  });
+
+  it('escapes percent so text expansion cannot be triggered', () => {
+    expect(escapeDrawtextValue('%{pts}')).toBe('\\%{pts}');
+  });
+
+  it('passes ordinary text through unchanged', () => {
+    expect(escapeDrawtextValue('Hello world')).toBe('Hello world');
+  });
+
+  it('handles the empty string', () => {
+    expect(escapeDrawtextValue('')).toBe('');
   });
 });
