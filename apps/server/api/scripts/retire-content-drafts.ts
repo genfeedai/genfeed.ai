@@ -10,10 +10,10 @@
 import { randomUUID } from 'node:crypto';
 import process from 'node:process';
 import {
+  PersistedReviewDecision,
   PostCategory,
   PostVisibility,
   parsePlatform,
-  ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import { Prisma, PrismaClient } from '@genfeedai/prisma';
@@ -151,8 +151,8 @@ function labelFor(content: string): string {
     : `${normalized.slice(0, 79).trimEnd()}…`;
 }
 
-function reviewDecisionFor(status: string): ReviewDecision | null {
-  if (status === 'REJECTED') return ReviewDecision.REJECTED;
+function reviewDecisionFor(status: string): PersistedReviewDecision | null {
+  if (status === 'REJECTED') return PersistedReviewDecision.REJECTED;
   return null;
 }
 
@@ -291,7 +291,7 @@ async function preserveApprovedReview(
     });
     const result = await transaction.post.updateMany({
       data: {
-        reviewDecision: ReviewDecision.APPROVED,
+        reviewDecision: PersistedReviewDecision.APPROVED,
         reviewedAt: row.updatedAt,
         reviewVersionPinId: versionPin.id,
       },

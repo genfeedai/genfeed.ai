@@ -42,8 +42,8 @@ import {
   ContentFormat,
   fromPrismaCredentialPlatform,
   IngredientCategory,
+  PersistedReviewDecision,
   PostCategory,
-  ReviewDecision,
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
@@ -301,7 +301,7 @@ export class AgentStrategyAutopilotExecutionService {
 
     if (revisedGate.decision !== 'approved') {
       await this.postsService.patch(draftId, {
-        reviewDecision: ReviewDecision.REJECTED,
+        reviewDecision: PersistedReviewDecision.REJECTED,
         reviewFeedback: revisedGate.reasons.join(' '),
         reviewedAt: new Date(),
       });
@@ -331,7 +331,7 @@ export class AgentStrategyAutopilotExecutionService {
   }): Promise<{ contentGenerated: number; creditsUsed: number }> {
     if (input.gate.decision === 'discard' || input.gate.decision === 'hold') {
       await this.postsService.patch(getDraftId(input.draft), {
-        reviewDecision: ReviewDecision.REJECTED,
+        reviewDecision: PersistedReviewDecision.REJECTED,
         reviewFeedback: input.gate.reasons.join(' '),
         reviewedAt: new Date(),
       });

@@ -3,6 +3,7 @@ import type {
   PostCategory,
   PostFormat,
   PostVisibility,
+  ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
 import type { IPostAnalyticsSummary } from '../analytics/analytics.interface';
@@ -47,6 +48,14 @@ export interface IPost extends IBaseEntity {
   targetError?: IChannelTargetError | null;
   originalPostId?: string | null;
   reviewBatchId?: string | null;
+  reviewDecision?: ReviewDecision;
+  reviewEvents?: Array<{
+    decision: ReviewDecision;
+    feedback?: string;
+    reviewedAt: string;
+  }>;
+  reviewFeedback?: string | null;
+  reviewedAt?: string | null;
   reviewItemId?: string | null;
   reviewVersionPinId?: string | null;
   publishApprovalId?: string | null;
@@ -67,6 +76,9 @@ export interface IPost extends IBaseEntity {
   order?: number;
   isShareToFeedSelected?: boolean;
   platformUrl?: string | null;
+  sourceActionId?: string | null;
+  sourceWorkflowId?: string | null;
+  sourceWorkflowName?: string | null;
 }
 
 export interface IPostPlatformConfig {

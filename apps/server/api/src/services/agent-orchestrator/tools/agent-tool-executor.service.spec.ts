@@ -3968,6 +3968,12 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      items: [
+        expect.objectContaining({ reviewDecision: 'unset' }),
+        expect.objectContaining({ reviewDecision: 'approved' }),
+      ],
+    });
     expect(batchGenerationService.getBatch).toHaveBeenCalledWith(
       'c9c2d469368c4314a3cfff32',
       'c7a123456789012345678901',
@@ -3976,7 +3982,7 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         id: 'review-queue-c9c2d469368c4314a3cfff32',
         outcomeBullets: [
-          'Instagram · image · pending',
+          'Instagram · image · unset',
           'LinkedIn · image · approved',
         ],
         primaryCta: {

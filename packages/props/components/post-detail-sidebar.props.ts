@@ -2,25 +2,14 @@ import type { ReviewDecision } from '@genfeedai/enums';
 import type { ICredential, IPost } from '@genfeedai/interfaces';
 import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 
-/**
- * Decision spelling used inside the `posts.reviewEvents` / `batches.items`
- * `Json` payloads. Deliberately distinct from the Prisma enum column
- * `posts.reviewDecision` — see `ReviewDecision` in `@genfeedai/enums`.
- */
-export type PostReviewEventDecision =
-  | 'approved'
-  | 'rejected'
-  | 'request_changes';
-
 export interface PostReviewSummary {
   generationId?: string;
   promptUsed?: string;
   reviewBatchId?: string;
-  /** `posts.reviewDecision` — Prisma enum column, SCREAMING labels. */
+  /** Canonical lowercase decision projected from the Post persistence value. */
   reviewDecision?: ReviewDecision;
-  /** `posts.reviewEvents` — `Json` column, lowercase batch-review vocabulary. */
   reviewEvents?: Array<{
-    decision: PostReviewEventDecision;
+    decision: ReviewDecision;
     feedback?: string;
     reviewedAt: string;
   }>;

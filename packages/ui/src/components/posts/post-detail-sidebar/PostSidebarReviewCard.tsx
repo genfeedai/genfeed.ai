@@ -1,32 +1,19 @@
 'use client';
 
 import { ReviewDecision } from '@genfeedai/enums';
-import type {
-  PostReviewEventDecision,
-  PostReviewSummary,
-} from '@genfeedai/props/components/post-detail-sidebar.props';
+import type { PostReviewSummary } from '@genfeedai/props/components/post-detail-sidebar.props';
 import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 
-/** `posts.reviewDecision` — Prisma enum column. */
 const REVIEW_DECISION_LABELS: Record<ReviewDecision, string> = {
   [ReviewDecision.APPROVED]: 'Approved',
   [ReviewDecision.REJECTED]: 'Rejected',
   [ReviewDecision.REQUEST_CHANGES]: 'Changes requested',
-};
-
-/** `posts.reviewEvents[].decision` — `Json` column, lowercase vocabulary. */
-const REVIEW_EVENT_DECISION_LABELS: Record<PostReviewEventDecision, string> = {
-  approved: 'Approved',
-  rejected: 'Rejected',
-  request_changes: 'Changes requested',
+  [ReviewDecision.UNSET]: 'Not reviewed',
 };
 
 const formatReviewDecision = (decision?: ReviewDecision) =>
-  decision ? REVIEW_DECISION_LABELS[decision] : 'Not reviewed';
-
-const formatReviewEventDecision = (decision: PostReviewEventDecision) =>
-  REVIEW_EVENT_DECISION_LABELS[decision];
+  REVIEW_DECISION_LABELS[decision ?? ReviewDecision.UNSET];
 
 type PostSidebarReviewCardProps = {
   reviewSummary: PostReviewSummary;
@@ -130,7 +117,7 @@ export default function PostSidebarReviewCard({
                 >
                   <div className="flex items-start justify-between gap-4">
                     <span className="font-medium">
-                      {formatReviewEventDecision(event.decision)}
+                      {formatReviewDecision(event.decision)}
                     </span>
                     <span className="text-right text-foreground/60">
                       <ClientDateTime

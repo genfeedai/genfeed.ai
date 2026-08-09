@@ -10,6 +10,7 @@ import {
   isApproved,
   isChangesRequested,
   isReadyToReview,
+  isRejected,
 } from './review-state';
 
 interface ReviewDecisionPanelProps {
@@ -42,7 +43,7 @@ function getResolvedDecisionLabel(item: ReviewPanelItem): string {
     return 'Changes were requested for this item.';
   }
 
-  if (item.reviewDecision === 'rejected') {
+  if (isRejected(item)) {
     return 'This item was rejected.';
   }
 

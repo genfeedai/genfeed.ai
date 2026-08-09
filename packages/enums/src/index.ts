@@ -93,6 +93,7 @@ export * from './reference.enum';
 export * from './replicate.enum';
 export * from './reply.enum';
 export * from './reply-bot.enum';
+export * from './review-decision.enum';
 export * from './review-gate.enum';
 export * from './router.enum';
 // Public automation interfaces import these from the package root.
