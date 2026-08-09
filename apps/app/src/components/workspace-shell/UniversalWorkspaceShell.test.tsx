@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
+  type AnchorHTMLAttributes,
   type ButtonHTMLAttributes,
   type ReactNode,
   useEffect,
@@ -7,6 +8,10 @@ import {
 } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import {
+  OPEN_CONTEXT_TAB_EVENT,
+  OPEN_CONVERSATION_TAB_EVENT,
+} from '@/lib/workspace/agent-composer-events';
 import {
   useWorkspaceInspector,
   WorkspaceInspectorProvider,
@@ -210,11 +215,25 @@ vi.mock('@genfeedai/agent', () => ({
     routeBrandSlug?.trim() || selectedBrandSlug?.trim()
       ? activeHref(route)
       : orgHref(route),
-  ConversationInspectorPanel: () => {
+  ConversationInspectorPanel: ({
+    onOpenConversation,
+  }: {
+    onOpenConversation: () => void;
+  }) => {
     useEffect(() => {
       inspectorConversationMount();
     }, []);
-    return <div data-testid="inspector-conversation" />;
+    return (
+      <div data-testid="inspector-conversation">
+        {/* The panel's own expand affordance — the shell owns the navigation,
+            so the test drives it through this callback. */}
+        <button
+          aria-label="Expand conversation panel"
+          onClick={onOpenConversation}
+          type="button"
+        />
+      </div>
+    );
   },
   runAgentApiEffect: (effect: Promise<unknown>) => effect,
   useAgentChatStore: Object.assign(
@@ -286,6 +305,31 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => navigation.searchParams,
 }));
 
+vi.mock('next/link', () => ({
+  default: ({
+    children,
+    href,
+    onClick,
+    ...props
+  }: {
+    children: ReactNode;
+    href: string;
+  } & AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a
+      href={href}
+      onClick={(event) => {
+        // jsdom cannot follow the navigation; the shell's own handler still
+        // has to run so the transition stamp is observable.
+        event.preventDefault();
+        onClick?.(event);
+      }}
+      {...props}
+    >
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock('@ui/primitives/button', () => ({
   Button: ({
     ariaLabel,
@@ -352,6 +396,7 @@ import {
   type AnalyticsWorkspaceSurfaceAdapterState,
   useAnalyticsWorkspaceSurfaceAdapter,
 } from '@/features/analytics/work-surface/analytics-workspace-surface-adapter-context';
+import { captureWorkspaceShellTransition } from '@/lib/workspace-shell/workspace-shell-telemetry';
 
 vi.mock('@/features/workflows/workspace/WorkflowSurfaceInspector', () => ({
   WorkflowSurfaceInspector: ({
@@ -465,6 +510,7 @@ describe('UniversalWorkspaceShell', () => {
     router.back.mockClear();
     router.push.mockClear();
     router.replace.mockClear();
+    vi.mocked(captureWorkspaceShellTransition).mockClear();
   });
 
   it('synchronizes a Studio adapter scope and exposes its typed reference', async () => {
@@ -698,7 +744,7 @@ describe('UniversalWorkspaceShell', () => {
     navigation.pathname = '/acme/moonrise/workspace';
     navigation.searchParams = new URLSearchParams();
 
-    render(
+    const view = render(
       <UniversalWorkspaceShell agentApiService={agentApiService}>
         <div>Workspace overview</div>
       </UniversalWorkspaceShell>,
@@ -706,9 +752,75 @@ describe('UniversalWorkspaceShell', () => {
 
     // Brand-scoped agent route so the expanded conversation keeps topbar brand
     // context (not org `~/agent` which drops brand selection).
-    expect(
-      screen.getByRole('link', { name: 'Open full conversation' }),
-    ).toHaveAttribute('href', '/acme/moonrise/agent/thread-1');
+    const expandLink = screen.getByRole('link', {
+      name: 'Open full conversation',
+    });
+    expect(expandLink).toHaveAttribute('href', '/acme/moonrise/agent/thread-1');
+
+    // The href alone proves nothing about telemetry: the click has to stamp
+    // the pending transition, or the arrival on `/agent` reports as `browser`.
+    fireEvent.click(expandLink);
+    vi.mocked(captureWorkspaceShellTransition).mockClear();
+
+    navigation.pathname = '/acme/moonrise/agent/thread-1';
+    navigation.searchParams = new URLSearchParams();
+    view.rerender(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Conversation canvas</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(captureWorkspaceShellTransition).toHaveBeenCalledWith(
+      expect.objectContaining({ transition: 'conversation_return' }),
+    );
+  });
+
+  it('returns to the full conversation from the inspector panel', () => {
+    navigation.pathname = '/acme/moonrise/workspace';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Workspace overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Expand conversation panel' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith('/acme/moonrise/agent/thread-1');
+  });
+
+  it('switches the inspector to Conversation on the composer event', async () => {
+    navigation.pathname = '/acme/moonrise/publish/overview';
+    navigation.searchParams = new URLSearchParams();
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <div>Publish overview</div>
+      </UniversalWorkspaceShell>,
+    );
+
+    // Move off the default tab first, so a dropped conversation listener
+    // leaves the rail on Context instead of passing by accident.
+    fireEvent(window, new CustomEvent(OPEN_CONTEXT_TAB_EVENT));
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Context' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
+    );
+
+    fireEvent(window, new CustomEvent(OPEN_CONVERSATION_TAB_EVENT));
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', { name: 'Conversation' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      ),
+    );
   });
 
   it('binds the topbar brand on product routes without a surface adapter', async () => {

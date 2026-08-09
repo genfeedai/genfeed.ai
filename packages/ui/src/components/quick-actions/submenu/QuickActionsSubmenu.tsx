@@ -177,7 +177,9 @@ export default function QuickActionsSubmenu({
             onClick={() => setIsOpen(!isOpen)}
             size={QUICK_ACTION_SIZE_CLASSES[size]}
             className={cn(
-              'rounded-full transition-all duration-300',
+              // Radius comes from BORDER_WHITE_30 (rounded-lg) — the shared
+              // shell shape, never a pill.
+              'transition-all duration-300',
               BG_BLUR,
               BORDER_WHITE_30,
               'text-white hover:shadow-border-strong',

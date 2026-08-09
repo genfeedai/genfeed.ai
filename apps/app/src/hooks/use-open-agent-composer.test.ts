@@ -10,7 +10,13 @@ interface MockThread {
 
 const mocks = vi.hoisted(() => ({
   brandId: 'brand-a',
-  inspector: null as { setIsOpen: (isOpen: boolean) => void } | null,
+  // `undefined` means "fall through to the real context hook" — the
+  // no-provider branch has to run through the actual optional chain, not a
+  // hand-rolled null.
+  inspector: null as
+    | { setIsOpen: (isOpen: boolean) => void }
+    | null
+    | undefined,
   resetActiveConversationState: vi.fn(),
   seedComposer: vi.fn(),
   setActiveThread: vi.fn(),
@@ -46,9 +52,25 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@/components/workspace-shell/WorkspaceInspectorContext', () => ({
-  useWorkspaceInspector: () => mocks.inspector,
-}));
+vi.mock(
+  '@/components/workspace-shell/WorkspaceInspectorContext',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@/components/workspace-shell/WorkspaceInspectorContext')
+      >();
+
+    return {
+      ...actual,
+      useWorkspaceInspector: () => {
+        // Always read the real context so the hook call stays unconditional;
+        // the override only decides which value the hook under test sees.
+        const contextValue = actual.useWorkspaceInspector();
+        return mocks.inspector === undefined ? contextValue : mocks.inspector;
+      },
+    };
+  },
+);
 
 function setStore(activeThreadId: string | null, threads: MockThread[]): void {
   mocks.state.activeThreadId = activeThreadId;
@@ -162,6 +184,30 @@ describe('useOpenAgentComposer', () => {
       'Draft a post.',
       'thread-1',
     );
+    expect(mocks.setIsOpen).not.toHaveBeenCalled();
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: OPEN_CONVERSATION_TAB_EVENT }),
+    );
+
+    dispatchSpy.mockRestore();
+  });
+
+  it('runs outside a WorkspaceInspectorProvider', () => {
+    // Real context, no provider mounted: `useWorkspaceInspector()` returns
+    // null for itself, so the optional chain — not the mock — has to absorb it.
+    mocks.inspector = undefined;
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+    const { result } = renderHook(() => useOpenAgentComposer());
+
+    act(() => {
+      result.current('Draft a post.');
+    });
+
+    expect(mocks.seedComposer).toHaveBeenCalledWith(
+      'Draft a post.',
+      'thread-1',
+    );
+    expect(mocks.setIsOpen).not.toHaveBeenCalled();
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: OPEN_CONVERSATION_TAB_EVENT }),
     );
