@@ -7,11 +7,18 @@ import { getPublicMetadata } from '@api/helpers/utils/auth/auth.util';
 import {
   returnBadRequest,
   returnInternalServerError,
+  returnUnauthorized,
+  serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { CreateBeehiivSubscribersDto } from '@api/services/integrations/beehiiv/dto/create-beehiiv-subscribers.dto';
+import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { CredentialSerializer } from '@genfeedai/serializers';
+import {
+  BeehiivSubscriberOutcomeSerializer,
+  CredentialSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';
@@ -111,7 +118,7 @@ export class BeehiivController {
 
       return serializeSingle(request, CredentialSerializer, credential);
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.logSafeError(url, error);
       return returnInternalServerError(
         'Failed to connect Beehiiv. Please verify your API key.',
       );
@@ -147,7 +154,7 @@ export class BeehiivController {
       const publications = await this.beehiivService.listPublications(apiKey);
       return { data: publications };
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.logSafeError(url, error);
       return returnInternalServerError('Failed to list Beehiiv publications');
     }
   }
@@ -189,30 +196,27 @@ export class BeehiivController {
       );
       return { data: subscribers };
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.logSafeError(url, error);
       return returnInternalServerError('Failed to get Beehiiv subscribers');
     }
   }
 
   /**
-   * Add a subscriber to the connected publication
+   * Add subscribers to the connected publication with one outcome per address.
    */
   @Post('subscribers')
-  async createSubscriber(
+  async createSubscribers(
+    @Req() request: Request,
     @CurrentUser() user: User,
-    @Body() body: { brandId: string; email: string; utmSource?: string },
+    @Body() body: CreateBeehiivSubscribersDto,
   ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(url, { brandId: body.brandId, email: body.email });
+    this.loggerService.log(url, {
+      addressCount: body.emails.length,
+      brandId: body.brandId,
+    });
 
     const publicMetadata = getPublicMetadata(user);
-
-    if (!body.brandId || !body.email) {
-      return returnBadRequest({
-        detail: 'Brand ID and email are required',
-        title: 'Invalid payload',
-      });
-    }
 
     try {
       const { apiKey, publicationId } =
@@ -221,16 +225,30 @@ export class BeehiivController {
           body.brandId,
         );
 
-      const subscriber = await this.beehiivService.createSubscriber(
+      const outcomes = await this.beehiivService.createSubscribers(
         apiKey,
         publicationId,
-        body.email,
+        body.emails,
         body.utmSource,
       );
-      return { data: subscriber };
+      return serializeCollection(request, BeehiivSubscriberOutcomeSerializer, {
+        docs: outcomes,
+      });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      return returnInternalServerError('Failed to create Beehiiv subscriber');
+      this.logSafeError(url, error);
+      if (
+        error instanceof BeehiivProviderError &&
+        error.code === 'authorization_failed'
+      ) {
+        return returnUnauthorized(error.message);
+      }
+      return returnInternalServerError('Failed to create Beehiiv subscribers');
     }
+  }
+
+  private logSafeError(logContext: string, error: unknown): void {
+    this.loggerService.error(`${logContext} failed`, {
+      error: error instanceof Error ? error.message : 'Unknown Beehiiv error',
+    });
   }
 }

@@ -1,5 +1,10 @@
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/constants';
-import type { IActivity, ICredential } from '@genfeedai/interfaces';
+import { TargetExecutionState } from '@genfeedai/enums';
+import type {
+  IActivity,
+  ICredential,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { describe, expect, it } from 'vitest';
 import {
@@ -7,6 +12,7 @@ import {
   getCredentialBadge,
   getVerifiedMcpConnection,
   summarizeCredentialHealth,
+  summarizeUpcomingSchedule,
 } from './operational-home.helpers';
 
 const NOW = Date.parse('2026-07-26T12:00:00.000Z');
@@ -173,6 +179,90 @@ describe('getActivityBadge', () => {
     expect(getActivityBadge(activity as unknown as IActivity)).toEqual(
       expected,
     );
+  });
+});
+
+describe('summarizeUpcomingSchedule', () => {
+  const windowStart = new Date('2026-07-26T00:00:00.000Z');
+
+  function releaseWith(
+    targets: Array<{
+      executionState?: TargetExecutionState;
+      scheduledAt?: string | null;
+    }>,
+    scheduledAt: string | null = null,
+  ): IReleaseGroup {
+    return {
+      id: 'release-1',
+      scheduledAt,
+      targets: targets.map((target, index) => ({
+        executionState: TargetExecutionState.SCHEDULED,
+        id: `target-${index}`,
+        ...target,
+      })),
+    } as unknown as IReleaseGroup;
+  }
+
+  it('buckets scheduled targets into their local calendar day', () => {
+    const days = summarizeUpcomingSchedule(
+      [
+        releaseWith([
+          { scheduledAt: '2026-07-26T09:00:00.000Z' },
+          { scheduledAt: '2026-07-26T18:00:00.000Z' },
+          { scheduledAt: '2026-07-28T08:00:00.000Z' },
+        ]),
+      ],
+      windowStart,
+    );
+
+    expect(days).toHaveLength(7);
+    expect(days.map((day) => day.count)).toEqual([2, 0, 1, 0, 0, 0, 0]);
+    expect(days[0]?.date.getTime()).toBe(windowStart.getTime());
+  });
+
+  it('counts only targets that are still scheduled', () => {
+    const days = summarizeUpcomingSchedule(
+      [
+        releaseWith([
+          {
+            executionState: TargetExecutionState.PUBLISHED,
+            scheduledAt: '2026-07-26T09:00:00.000Z',
+          },
+          {
+            executionState: TargetExecutionState.FAILED,
+            scheduledAt: '2026-07-26T10:00:00.000Z',
+          },
+          { scheduledAt: '2026-07-26T11:00:00.000Z' },
+        ]),
+      ],
+      windowStart,
+    );
+
+    expect(days[0]?.count).toBe(1);
+  });
+
+  it('falls back to the release instant for targets without their own', () => {
+    const days = summarizeUpcomingSchedule(
+      [releaseWith([{}, {}], '2026-07-27T09:00:00.000Z')],
+      windowStart,
+    );
+
+    expect(days.map((day) => day.count)).toEqual([0, 2, 0, 0, 0, 0, 0]);
+  });
+
+  it('ignores targets outside the window and without any instant', () => {
+    const days = summarizeUpcomingSchedule(
+      [
+        releaseWith([
+          { scheduledAt: '2026-07-25T23:59:00.000Z' },
+          { scheduledAt: '2026-08-02T00:00:00.000Z' },
+          {},
+        ]),
+      ],
+      windowStart,
+    );
+
+    expect(days.every((day) => day.count === 0)).toBe(true);
   });
 });
 

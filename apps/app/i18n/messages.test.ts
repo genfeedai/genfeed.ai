@@ -1,7 +1,24 @@
 import { DEFAULT_LOCALE, PSEUDO_LOCALE } from '@genfeedai/constants';
+import {
+  ACTIVITY_MESSAGE_ID_BY_KEY,
+  ActivityKey,
+  getActivityMessageDescriptor,
+} from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
-import { loadMessages } from './messages';
+import { loadMessages, mergeMessagesWithEnglish } from './messages';
 import { pseudoLocalizeMessage } from './pseudo';
+
+function resolveMessageId(
+  messages: Record<string, unknown>,
+  id: string,
+): unknown {
+  return id.split('.').reduce<unknown>((value, segment) => {
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+    return (value as Record<string, unknown>)[segment];
+  }, messages);
+}
 
 describe('loadMessages', () => {
   it('serves the English catalog for the default locale', () => {
@@ -34,5 +51,70 @@ describe('loadMessages', () => {
     loadMessages(PSEUDO_LOCALE);
 
     expect(loadMessages(DEFAULT_LOCALE).common.actions.save).toBe('Save');
+  });
+
+  it('falls back to English for keys missing from a non-default locale', () => {
+    const messages = mergeMessagesWithEnglish({
+      common: {
+        actions: {
+          save: 'Localized save',
+        },
+      },
+    });
+
+    expect(messages.common.actions.save).toBe('Localized save');
+    expect(messages.common.activity.post.ready).toBe(
+      'Content is ready for review',
+    );
+  });
+
+  it('covers every ActivityKey with a resolvable English message id', () => {
+    const activityKeys = Object.values(ActivityKey).toSorted();
+    const catalogKeys = Object.keys(ACTIVITY_MESSAGE_ID_BY_KEY).toSorted();
+    const english = loadMessages(DEFAULT_LOCALE).common as Record<
+      string,
+      unknown
+    >;
+
+    expect(catalogKeys).toEqual(activityKeys);
+
+    for (const key of activityKeys) {
+      const descriptor = getActivityMessageDescriptor(key);
+      expect(ACTIVITY_MESSAGE_ID_BY_KEY[key]).toBe(descriptor.id);
+      expect(resolveMessageId(english, descriptor.id)).toEqual(
+        expect.any(String),
+      );
+    }
+  });
+
+  it('serves the operational home copy the surfaces resolve by id', () => {
+    const english = loadMessages(DEFAULT_LOCALE).common as Record<
+      string,
+      unknown
+    >;
+
+    expect(resolveMessageId(english, 'actions.retry')).toBe('Retry');
+    expect(resolveMessageId(english, 'home.approvals.open')).toBe('Open queue');
+    expect(resolveMessageId(english, 'home.approvals.empty')).toBe(
+      'Nothing is waiting for review.',
+    );
+    expect(resolveMessageId(english, 'home.publishing.open')).toBe(
+      'Open publishing',
+    );
+    expect(resolveMessageId(english, 'home.publishing.empty')).toBe(
+      'No publishing runs yet. Drafts created through MCP will appear here.',
+    );
+    expect(resolveMessageId(english, 'home.schedule.open')).toBe(
+      'Open calendar',
+    );
+    expect(resolveMessageId(english, 'home.schedule.empty')).toBe(
+      'Nothing is scheduled for the next 7 days.',
+    );
+    expect(resolveMessageId(english, 'home.credentials.manage')).toBe(
+      'Manage accounts',
+    );
+    expect(resolveMessageId(english, 'home.activity.open')).toBe(
+      'View activity',
+    );
   });
 });

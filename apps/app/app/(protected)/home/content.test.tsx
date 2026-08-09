@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { ActivityKey } from '@genfeedai/enums';
+import type { IActivity } from '@genfeedai/interfaces';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  activities: [] as IActivity[],
   activityIsError: false,
   accessState: { organizationId: 'org_1' } as {
     organizationId?: string;
@@ -63,10 +66,25 @@ const mocks = vi.hoisted(() => ({
   },
   overviewRefresh: vi.fn(async () => undefined),
   overviewIsError: false,
+  translate: vi.fn((id: string, params?: Record<string, string>) =>
+    params ? `catalog:${id}:${params.subject}` : `catalog:${id}`,
+  ),
+  // `null` keeps the upcoming-schedule fetch pending so synchronous tests see
+  // a stable loading panel with no post-test state updates.
+  upcomingReleases: null as unknown[] | null,
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => mocks.brandState,
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({
+    findAll: () =>
+      mocks.upcomingReleases === null
+        ? new Promise(() => {})
+        : Promise.resolve(mocks.upcomingReleases),
+  }),
 }));
 
 vi.mock('@providers/access-state/access-state.provider', () => ({
@@ -75,12 +93,12 @@ vi.mock('@providers/access-state/access-state.provider', () => ({
 
 vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
   useActivities: () => ({
-    activities: [],
+    activities: mocks.activities,
     activityStats: { statusCounts: {}, todayCount: 0, total: 0 },
     clearCompletedActivities: vi.fn(),
     error: null,
     filter: '',
-    filteredActivities: [],
+    filteredActivities: mocks.activities,
     isError: mocks.activityIsError,
     isLoading: false,
     isRefreshing: false,
@@ -89,6 +107,10 @@ vi.mock('@hooks/data/activities/use-activities/use-activities', () => ({
     setFilter: vi.fn(),
     toggleActivityRead: vi.fn(),
   }),
+}));
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => mocks.translate,
 }));
 
 vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
@@ -131,6 +153,7 @@ const { default: OperationalHomeContent } = await import('./content');
 describe('OperationalHomeContent', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.activities = [];
     mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
     mocks.brandState.brands = [
@@ -158,6 +181,7 @@ describe('OperationalHomeContent', () => {
     };
     mocks.connectionOrganizationId = '';
     mocks.overviewIsError = false;
+    mocks.upcomingReleases = null;
   });
 
   it('renders the canonical Connect Genfeed state when unconfigured', () => {
@@ -187,7 +211,7 @@ describe('OperationalHomeContent', () => {
     ).toBeTruthy();
   });
 
-  it('renders all operational control-plane sections when configured', () => {
+  it('renders all operational control-plane sections when configured', async () => {
     mocks.connectionState = {
       error: null,
       key: { label: 'Verified MCP' },
@@ -195,6 +219,7 @@ describe('OperationalHomeContent', () => {
       status: 'configured',
       verifiedAt: '2026-07-26T11:00:00.000Z',
     };
+    mocks.upcomingReleases = [];
 
     render(<OperationalHomeContent />);
 
@@ -207,11 +232,46 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByTestId('operational-home-publishing'),
     ).toBeInTheDocument();
+    expect(screen.getByTestId('operational-home-upcoming')).toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-credentials'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
     expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
+
+    // An empty scheduler window settles into the explicit zero state.
+    expect(
+      await screen.findByText('catalog:home.schedule.empty'),
+    ).toBeInTheDocument();
+  });
+
+  it('resolves overview activity descriptions through the message catalog', () => {
+    mocks.activities = [
+      {
+        createdAt: '2026-08-08T12:00:00.000Z',
+        id: 'activity-1',
+        isDeleted: false,
+        isRead: false,
+        key: ActivityKey.IMAGE_PROCESSING,
+        source: 'image-generate',
+        updatedAt: '2026-08-08T12:00:00.000Z',
+        value: 'image-1',
+      } as IActivity,
+    ];
+
+    render(<OperationalHomeContent />);
+
+    expect(
+      screen.getByText('catalog:activity.lifecycle.processing:image'),
+    ).toBeInTheDocument();
+    expect(mocks.translate).toHaveBeenCalledWith(
+      'activity.lifecycle.processing',
+      expect.objectContaining({
+        articleSubject: 'an image',
+        operation: 'generate',
+        subject: 'image',
+      }),
+    );
   });
 
   it('uses the access-state organization fallback for connection status', () => {
@@ -266,10 +326,11 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     for (const name of [
-      'Open queue',
-      'Open publishing',
-      'Manage accounts',
-      'View activity',
+      'catalog:home.approvals.open',
+      'catalog:home.publishing.open',
+      'catalog:home.schedule.open',
+      'catalog:home.credentials.manage',
+      'catalog:home.activity.open',
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute(
         'href',
@@ -292,7 +353,9 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
-    for (const button of screen.getAllByRole('button', { name: 'Retry' })) {
+    for (const button of screen.getAllByRole('button', {
+      name: 'catalog:actions.retry',
+    })) {
       fireEvent.click(button);
     }
     fireEvent.click(
@@ -360,9 +423,11 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading credential health',
-    );
+    expect(
+      within(screen.getByTestId('operational-home-credentials')).getByRole(
+        'status',
+      ),
+    ).toHaveTextContent('Loading credential health');
     expect(
       screen.queryByText('No publishing credentials are connected yet.'),
     ).not.toBeInTheDocument();
@@ -376,7 +441,9 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByText(/Credential health is temporarily unavailable/),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'catalog:actions.retry' }),
+    );
     expect(mocks.brandRefresh).toHaveBeenCalledOnce();
     expect(
       screen.queryByText('No publishing credentials are connected yet.'),
@@ -394,9 +461,12 @@ describe('OperationalHomeContent', () => {
 
     render(<OperationalHomeContent />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Checking MCP connection state',
-    );
+    const statusAnnouncements = screen.getAllByRole('status');
+    expect(
+      statusAnnouncements.some((announcement) =>
+        announcement.textContent?.includes('Checking MCP connection state'),
+      ),
+    ).toBe(true);
     expect(screen.getByTestId('operational-home-sections')).toBeInTheDocument();
   });
 });

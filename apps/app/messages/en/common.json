@@ -5,6 +5,27 @@
     "retry": "Retry",
     "save": "Save"
   },
+  "activity": {
+    "credits": {
+      "add": "{amount, select, none {Credits added} other {{amount} credits added}}",
+      "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} · {amount} credits used}}}}",
+      "remove_all": "Removed all credits",
+      "reset": "Reset credits"
+    },
+    "fallback": "{fallbackSubject}",
+    "lifecycle": {
+      "completed": "{operation, select, reframe {Reframed {articleSubject}} upscale {Upscaled {articleSubject}} enhance {Enhanced {articleSubject}} remix {Remixed {articleSubject}} train {Completed {subject}} relocate {{capitalizedSubject} relocated} other {Generated {articleSubject}}}",
+      "created": "{operation, select, train {Started {subject}} other {Created {articleSubject}}}",
+      "disconnected": "{capitalizedSubject} disconnected",
+      "failed": "{operation, select, reframe {Failed to reframe {subject}} upscale {Failed to upscale {subject}} enhance {Failed to enhance {subject}} remix {Failed to remix {subject}} train {{capitalizedSubject} failed} publish {Failed to publish {subject}} connect {{capitalizedSubject} failed} other {Failed to generate {subject}}}",
+      "processing": "{operation, select, reframe {Reframing {articleSubject}...} upscale {Upscaling {articleSubject}...} enhance {Enhancing {articleSubject}...} remix {Remixing {articleSubject}...} train {Starting {subject}...} publish {Processing {articleSubject}...} other {Generating {articleSubject}...}}",
+      "published": "Published {articleSubject}",
+      "scheduled": "Scheduled {articleSubject}"
+    },
+    "post": {
+      "ready": "Content is ready for review"
+    }
+  },
   "empty": {
     "default": "No items found",
     "results": "No results found"
@@ -14,5 +35,25 @@
     "loadFailed": "Failed to load. Please try again.",
     "notFound": "Not found",
     "updateFailed": "Failed to update. Please try again."
+  },
+  "home": {
+    "activity": {
+      "open": "View activity"
+    },
+    "approvals": {
+      "empty": "Nothing is waiting for review.",
+      "open": "Open queue"
+    },
+    "credentials": {
+      "manage": "Manage accounts"
+    },
+    "publishing": {
+      "empty": "No publishing runs yet. Drafts created through MCP will appear here.",
+      "open": "Open publishing"
+    },
+    "schedule": {
+      "empty": "Nothing is scheduled for the next 7 days.",
+      "open": "Open calendar"
+    }
   }
 }

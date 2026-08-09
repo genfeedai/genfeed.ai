@@ -93,7 +93,6 @@ export function captureWorkspaceShellPerformance(properties: {
   readonly deviceClass: 'desktop' | 'mobile';
   readonly durationMs: number;
   readonly routeClass: 'agent' | 'management' | 'product';
-  readonly shellMode: 'conversation';
 }): void {
   captureAnalyticsEvent(ANALYTICS_EVENTS.CONVERSATION_SHELL_PERFORMANCE, {
     ...getWorkspaceShellTelemetryContext(),
