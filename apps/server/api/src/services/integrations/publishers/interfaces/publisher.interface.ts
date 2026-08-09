@@ -5,6 +5,14 @@ import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabil
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 
 /**
+ * Ephemeral scheduler metadata added only after stored target settings have
+ * been resolved against the capability catalog. Publishers must never accept
+ * this value directly from persisted user settings.
+ */
+export const WORKFLOW_APPROVED_SCHEDULE_SETTING =
+  '__workflowApprovedScheduledAt';
+
+/**
  * Result of a publish operation
  */
 export interface PublishResult {
