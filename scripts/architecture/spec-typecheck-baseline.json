@@ -5193,14 +5193,6 @@
       "workspace": "files"
     },
     {
-      "code": 2551,
-      "count": 3,
-      "file": "apps/server/files/src/controllers/files.controller.spec.ts",
-      "fingerprint": "215a319e01e0ce70fc2e",
-      "message": "Property 'addResizeVideoJob' does not exist on type 'VideoQueueService'. Did you mean 'addResizeJob'?",
-      "workspace": "files"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/files/src/helpers/utils/security/security.util.spec.ts",
@@ -5241,14 +5233,6 @@
       "workspace": "files"
     },
     {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/files/src/queues/youtube-queue.service.spec.ts",
-      "fingerprint": "53d92cd40c6d9fd74430",
-      "message": "Property 'CRITICAL' does not exist on type '{ readonly HIGH: 1; readonly LOW: 10; readonly NORMAL: 5; }'.",
-      "workspace": "files"
-    },
-    {
       "code": 2561,
       "count": 1,
       "file": "apps/server/files/src/queues/youtube-queue.service.spec.ts",
@@ -5257,91 +5241,11 @@
       "workspace": "files"
     },
     {
-      "code": 2724,
-      "count": 1,
-      "file": "apps/server/files/src/services/ffmpeg/ffmpeg.module.spec.ts",
-      "fingerprint": "5edfa627d6efabb33397",
-      "message": "'\"@files/services/ffmpeg/ffmpeg.module\"' has no exported member named 'FfmpegModule'. Did you mean 'FFmpegModule'?",
-      "workspace": "files"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/files/src/services/ffmpeg/performances/ffmpeg-performance.service.spec.ts",
-      "fingerprint": "97d9f7a89f3fefa78531",
-      "message": "Cannot find module '@files/services/ffmpeg/ffmpeg-performance.service' or its corresponding type declarations.",
-      "workspace": "files"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/files/src/services/ffmpeg/performances/ffmpeg-performance.service.spec.ts",
-      "fingerprint": "f409cd96e5aa269a900e",
-      "message": "Cannot find module '@files/services/ffmpeg/ffmpeg.config' or its corresponding type declarations.",
-      "workspace": "files"
-    },
-    {
       "code": 2352,
       "count": 1,
       "file": "apps/server/files/src/services/ffmpeg/performances/ffmpeg-performance.service.spec.ts",
       "fingerprint": "2d2119119fe5ef10bb54",
       "message": "Conversion of type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<any>; stdout: EventEmitter<any>; }' to type 'ChildProcess' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ kill: Mock<Procedure>; on: Mock<Procedure>; pid: number; stderr: EventEmitter<any>; stdout: EventEmitter<any>; }' is missing the following properties from type 'ChildProcess': stdin, stdio, killed, connected, and 23 more.",
-      "workspace": "files"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/files/src/services/files/files.service.spec.ts",
-      "fingerprint": "a31bc43745f81fe45084",
-      "message": "Property 'error' does not exist on type 'FilesService'.",
-      "workspace": "files"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/files/src/services/files/files.service.spec.ts",
-      "fingerprint": "b25300911ef1c0cf47c5",
-      "message": "Property 'log' does not exist on type 'FilesService'.",
-      "workspace": "files"
-    },
-    {
-      "code": 2341,
-      "count": 2,
-      "file": "apps/server/files/src/services/files/files.service.spec.ts",
-      "fingerprint": "906ae09909bea8b5fefd",
-      "message": "Property 'runFfmpeg' is private and only accessible within class 'FilesService'.",
-      "workspace": "files"
-    },
-    {
-      "code": 2352,
-      "count": 2,
-      "file": "apps/server/files/src/services/files/files.service.spec.ts",
-      "fingerprint": "50be9f74648692cf96ce",
-      "message": "Conversion of type 'typeof import(\"<root>/node_modules/.bun/sharp@0.35.3/node_modules/sharp/dist/index\")' to type 'Mock' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type 'typeof import(\"<root>/node_modules/.bun/sharp@0.35.3/node_modules/sharp/dist/index\")' is missing the following properties from type 'MockInstance<Procedure>': getMockName, mockName, mock, mockClear, and 16 more.",
-      "workspace": "files"
-    },
-    {
-      "code": 2540,
-      "count": 1,
-      "file": "apps/server/files/src/services/files/files.service.spec.ts",
-      "fingerprint": "104aba0cdbf7212b046c",
-      "message": "Cannot assign to 'isDeleteTempFilesEnabled' because it is a read-only property.",
-      "workspace": "files"
-    },
-    {
-      "code": 2345,
-      "count": 2,
-      "file": "apps/server/files/src/services/files/files.service.test.ts",
-      "fingerprint": "680ee90b4b7c539395dd",
-      "message": "Argument of type 'string[]' is not assignable to parameter of type 'Dirent<NonSharedBuffer>[]'.   Type 'string' is not assignable to type 'Dirent<NonSharedBuffer>'.",
-      "workspace": "files"
-    },
-    {
-      "code": 2307,
-      "count": 1,
-      "file": "apps/server/files/src/services/files/image-to-video/files-image-to-video.service.spec.ts",
-      "fingerprint": "5314a23cc86029d36e36",
-      "message": "Cannot find module '@files/services/ffmpeg/ffmpeg.service' or its corresponding type declarations.",
       "workspace": "files"
     },
     {
@@ -5382,22 +5286,6 @@
       "file": "apps/server/files/src/services/remotion/remotion-render-job.service.spec.ts",
       "fingerprint": "d81ad42b872edd635b07",
       "message": "'data.params.assetManifest' is possibly 'undefined'.",
-      "workspace": "files"
-    },
-    {
-      "code": 7053,
-      "count": 1,
-      "file": "apps/server/files/src/services/s3/s3.service.spec.ts",
-      "fingerprint": "c326db778bb18547997d",
-      "message": "Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ AWS_ACCESS_KEY_ID: string; AWS_REGION: string; AWS_S3_BUCKET: string; AWS_SECRET_ACCESS_KEY: string; GENFEEDAI_CDN_URL: string; }'.   No index signature with a parameter of type 'string' was found on type '{ AWS_ACCESS_KEY_ID: string; AWS_REGION: string; AWS_S3_BUCKET: string; AWS_SECRET_ACCESS_KEY: string; GENFEEDAI_CDN_URL: string; }'.",
-      "workspace": "files"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/files/src/services/thumbnails/video-thumbnail.service.spec.ts",
-      "fingerprint": "3484a5ed29a6ff140a7f",
-      "message": "Property 'executeFFmpeg' does not exist on type 'Mocked<FFmpegService>'.",
       "workspace": "files"
     },
     {

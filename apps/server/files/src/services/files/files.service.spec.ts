@@ -145,7 +145,7 @@ describe('FilesService', () => {
         toBuffer: vi.fn().mockResolvedValue(mockResizedBuffer),
       };
 
-      (sharp as Mock).mockReturnValue(mockSharpInstance);
+      (sharp as unknown as Mock).mockReturnValue(mockSharpInstance);
 
       const result = await service.resizeImage(mockBuffer, target);
 
@@ -169,7 +169,7 @@ describe('FilesService', () => {
         toBuffer: vi.fn().mockRejectedValue(mockError),
       };
 
-      (sharp as Mock).mockReturnValue(mockSharpInstance);
+      (sharp as unknown as Mock).mockReturnValue(mockSharpInstance);
 
       await expect(service.resizeImage(mockBuffer, target)).rejects.toThrow(
         'Resize failed',
@@ -210,7 +210,7 @@ describe('FilesService', () => {
   describe('prepareAllFiles', () => {
     it('downloads images, voices, and background music from frames', async () => {
       httpService.get.mockReturnValue(of({ data: Buffer.from('binary-data') }));
-      (sharp as Mock).mockReturnValue({
+      (sharp as unknown as Mock).mockReturnValue({
         jpeg: vi.fn().mockReturnThis(),
         resize: vi.fn().mockReturnThis(),
         rotate: vi.fn().mockReturnThis(),
@@ -275,7 +275,7 @@ describe('FilesService', () => {
     it('processes image files through sharp instead of writeFileSync', async () => {
       httpService.get.mockReturnValue(of({ data: Buffer.from('binary-data') }));
       const toFile = vi.fn().mockResolvedValue(undefined);
-      (sharp as Mock).mockReturnValue({
+      (sharp as unknown as Mock).mockReturnValue({
         jpeg: vi.fn().mockReturnThis(),
         resize: vi.fn().mockReturnThis(),
         rotate: vi.fn().mockReturnThis(),

@@ -1,6 +1,5 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import * as fs from 'node:fs';
 import { FileSystemUtil } from '@files/helpers/utils/file-system/file-system.util';
 import { BinaryValidationService } from '@files/services/ffmpeg/config/binary-validation.service';
 import { FFmpegConfigService } from '@files/services/ffmpeg/config/ffmpeg.config';
@@ -8,6 +7,7 @@ import {
   FFmpegPerformanceService,
   ProcessOptions,
 } from '@files/services/ffmpeg/performances/ffmpeg-performance.service';
+import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';
@@ -240,17 +240,21 @@ describe('FFmpegPerformanceService', () => {
         format: {
           bit_rate: '1000000',
           duration: '120.5',
+          filename: inputPath,
           size: '10485760',
         },
         streams: [
           {
+            codec_long_name: 'H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10',
+            codec_name: 'h264',
             codec_type: 'video',
             height: 1080,
+            index: 0,
             r_frame_rate: '30/1',
             width: 1920,
           },
         ],
-      };
+      } satisfies FFprobeData;
 
       const mockProcess: any = {
         on: vi.fn((event: string, callback: (...args: any[]) => void) => {
@@ -325,8 +329,8 @@ describe('FFmpegPerformanceService', () => {
         );
       }
 
-      // Verify only 2 are running concurrently
-      expect(service.concurrentProcesses).toBeLessThanOrEqual(2);
+      // Verify the third process is queued until a slot is available.
+      expect(spawn).toHaveBeenCalledTimes(2);
 
       await Promise.all(processes);
     });
