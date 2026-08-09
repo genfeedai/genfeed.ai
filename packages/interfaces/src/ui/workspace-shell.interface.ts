@@ -39,10 +39,7 @@ export type WorkspaceShellProductClass =
   | 'removable'
   | 'visual-data';
 
-export type WorkspaceShellAvailability =
-  | 'always'
-  | 'conversation-shell'
-  | 'legacy-shell';
+export type WorkspaceShellAvailability = 'always' | 'conversation-shell';
 
 export type WorkspaceShellLaunchTarget =
   | 'dedicated-route'
@@ -167,7 +164,7 @@ export interface WorkspaceShellRouteRegistration {
   readonly accessPolicy: WorkspaceShellAccessPolicy;
   readonly adapter: WorkspaceShellAdapterSeam;
   readonly allowedShellModes: readonly [WorkspaceShellRouteMode];
-  readonly availability: Exclude<WorkspaceShellAvailability, 'legacy-shell'>;
+  readonly availability: WorkspaceShellAvailability;
   readonly breadcrumb: WorkspaceShellBreadcrumbMetadata;
   readonly canonicalUrl: string;
   readonly deployments: readonly WorkspaceShellDeployment[];
@@ -213,26 +210,6 @@ export interface WorkspaceShellOverlayRegistration {
     | 'shell_preview'
     | 'workflow_picker';
 }
-
-export interface WorkspaceShellChromeRegistration {
-  readonly accessPolicy: 'organization-member';
-  readonly adapter: WorkspaceShellAdapterSeam;
-  readonly allowedShellModes: readonly ['dedicated'];
-  readonly availability: 'legacy-shell';
-  readonly canonicalUrl: null;
-  readonly deployments: readonly WorkspaceShellDeployment[];
-  readonly key: 'terminal-dock';
-  readonly kind: 'chrome';
-  readonly launchTarget: 'dedicated-route';
-  readonly restoration: WorkspaceShellRestorationPolicy;
-  readonly safeFallback: 'same-canonical-url';
-  readonly scope: 'organization';
-  readonly telemetryClass: 'legacy_chrome';
-}
-
-export type WorkspaceShellAuxiliaryRegistration =
-  | WorkspaceShellChromeRegistration
-  | WorkspaceShellOverlayRegistration;
 
 export interface WorkspaceSurfaceLaunch {
   readonly adapter: WorkspaceShellAdapterSeam | null;

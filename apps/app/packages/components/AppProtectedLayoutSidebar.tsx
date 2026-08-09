@@ -31,8 +31,6 @@ import { Plus } from 'lucide-react';
 import { withTaskContextHref } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 
-type ShellChromeVariant = 'default';
-
 type TaskContextSearchParams = URLSearchParams;
 
 type AppSidebarSurface = {
@@ -46,7 +44,6 @@ type AppSidebarSurface = {
 };
 
 type Props = {
-  shellChromeVariant: ShellChromeVariant;
   taskContextSearchParams: TaskContextSearchParams;
   currentApp?: MenuSharedProps['currentApp'];
   isCollapsed?: MenuSharedProps['isCollapsed'];
@@ -92,7 +89,6 @@ type Props = {
 };
 
 export default function AppProtectedLayoutSidebar({
-  shellChromeVariant,
   taskContextSearchParams,
   currentApp,
   isCollapsed,
@@ -155,7 +151,6 @@ export default function AppProtectedLayoutSidebar({
         collapsedSidebarWidth: 0,
         items: [] satisfies MenuItemConfig[],
         renderBody: navPanel.render,
-        shellMode: 'default' as const,
         showPrimaryItems: false,
       }
     : null;
@@ -264,7 +259,6 @@ export default function AppProtectedLayoutSidebar({
           taskContextSearchParams,
         )}
         sectionLabel={navPanel?.sectionLabel ?? surface.sectionLabel}
-        shellChromeVariant={shellChromeVariant}
         orgSwitcherSlot={surface.showOrgSwitcher ? orgSwitcherSlot : undefined}
         showUserProfile={surface.showUserProfile ?? true}
         sidebarWidth={sidebarWidth}
@@ -299,11 +293,9 @@ export default function AppProtectedLayoutSidebar({
         </>
       )}
       secondaryItems={secondaryMenuItems}
-      shellMode="workspace"
       showPrimaryItems
       showUserProfile
       sidebarWidth={sidebarWidth}
-      shellChromeVariant={shellChromeVariant}
     />
   );
 }

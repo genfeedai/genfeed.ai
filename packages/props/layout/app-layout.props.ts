@@ -10,20 +10,10 @@ export interface AppLayoutProps {
   menuComponent?: ReactNode | null;
   topbarComponent?: ComponentType<TopbarProps> | null;
   providers?: ReactNode;
-  /** Visual treatment for shared shell chrome */
-  shellChromeVariant?: 'default' | 'transparent';
-  /** Visual treatment override for the topbar chrome */
-  topbarChromeVariant?: 'inherit' | 'default' | 'transparent';
   /** Menu items for SidebarNavigationProvider (breadcrumbs, nested nav) */
   menuItems?: MenuItemConfig[];
   /** Canonical route breadcrumb, independent of sidebar discovery coverage. */
   breadcrumb?: WorkspaceShellBreadcrumbMetadata;
-  /** Agent panel rendered as a persistent bottom terminal dock */
-  agentPanel?: ReactNode | null;
-  /** Whether the agent panel is collapsed */
-  isAgentCollapsed?: boolean;
-  /** Toggle agent panel visibility */
-  onAgentToggle?: () => void;
   /** Product app context for shell chrome / breadcrumb fallbacks */
   currentApp?: AppContext;
   /** Organization slug for tenant-scoped shell chrome */
