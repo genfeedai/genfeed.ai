@@ -23,17 +23,21 @@ export function createPublishPostsFilterRoute({
   publicationState,
   status,
 }: PublishPostsFilterRouteOptions = {}): string {
-  const params = new URLSearchParams();
+  const params: string[] = [];
 
   if (publicationState) {
-    params.set(PUBLISH_POSTS_QUERY_KEYS.PUBLICATION_STATE, publicationState);
+    params.push(
+      `${PUBLISH_POSTS_QUERY_KEYS.PUBLICATION_STATE}=${encodeURIComponent(publicationState)}`,
+    );
   }
 
   if (status) {
-    params.set(PUBLISH_POSTS_QUERY_KEYS.STATUS, status);
+    params.push(
+      `${PUBLISH_POSTS_QUERY_KEYS.STATUS}=${encodeURIComponent(status)}`,
+    );
   }
 
-  const queryString = params.toString();
+  const queryString = params.join('&');
   return queryString
     ? `${APP_ROUTES.PUBLISH.POSTS}?${queryString}`
     : APP_ROUTES.PUBLISH.POSTS;

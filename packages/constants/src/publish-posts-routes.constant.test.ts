@@ -26,4 +26,15 @@ describe('publish-posts-routes.constant', () => {
       );
     },
   );
+
+  it('builds deterministic encoded links when filters are combined', () => {
+    expect(
+      createPublishPostsFilterRoute({
+        publicationState: 'not-posted',
+        status: 'needs review',
+      }),
+    ).toBe(
+      `${APP_ROUTES.PUBLISH.POSTS}?${PUBLISH_POSTS_QUERY_KEYS.PUBLICATION_STATE}=not-posted&${PUBLISH_POSTS_QUERY_KEYS.STATUS}=needs%20review`,
+    );
+  });
 });
