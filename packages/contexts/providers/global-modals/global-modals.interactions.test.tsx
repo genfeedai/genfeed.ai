@@ -6,11 +6,11 @@ import type {
   IAsset,
   ICredential,
   IIngredient,
+  IMetadata,
   IPost,
 } from '@genfeedai/interfaces';
 import type { ModalExportProps } from '@genfeedai/props/modals/modal.props';
 import { act, render, renderHook } from '@testing-library/react';
-import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   GlobalModalsProvider,
@@ -507,7 +507,7 @@ describe('GlobalModals interactions', () => {
       api.metadata.openMetadataModal({
         ingredientCategory: 'image' as IngredientCategory,
         ingredientId: 'ing_3',
-        metadata: {},
+        metadata: { id: 'meta_1' } as unknown as IMetadata,
         onConfirm,
       });
     });
