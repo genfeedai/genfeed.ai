@@ -18,6 +18,21 @@ export interface PostsListToolbarOption {
   value: string;
 }
 
+/**
+ * Held as data rather than inline JSX so the labels stay one translatable list
+ * once shared packages gain a message catalog.
+ */
+const PUBLISHER_VIEW_OPTIONS: {
+  label: string;
+  value: PublisherPostsView;
+}[] = [
+  { label: 'Not posted', value: 'not-posted' },
+  { label: 'Pending', value: PostStatus.PENDING },
+  { label: 'Publishing', value: PostStatus.PROCESSING },
+  { label: 'Posted', value: 'posted' },
+  { label: 'Failed', value: PostStatus.FAILED },
+];
+
 export interface PostsListToolbarProps {
   searchValue: string;
   sortValue: string;
@@ -68,11 +83,11 @@ export default function PostsListToolbar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="not-posted">Not posted</SelectItem>
-            <SelectItem value={PostStatus.PENDING}>Pending</SelectItem>
-            <SelectItem value={PostStatus.PROCESSING}>Publishing</SelectItem>
-            <SelectItem value="posted">Posted</SelectItem>
-            <SelectItem value={PostStatus.FAILED}>Failed</SelectItem>
+            {PUBLISHER_VIEW_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       ) : null}

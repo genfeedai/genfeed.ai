@@ -474,7 +474,6 @@
     "packages/pages/posts/detail/PostDetailOverlay.tsx": 4,
     "packages/pages/posts/library/publish-content-library.tsx": 2,
     "packages/pages/posts/library/PublishContentLibraryToolbar.tsx": 3,
-    "packages/pages/posts/list/components/PostsListToolbar.tsx": 3,
     "packages/pages/posts/list/components/PostsTableColumns.tsx": 1,
     "packages/pages/research/work-surface/ResearchFindingInspector.tsx": 4,
     "packages/pages/streaks/streaks-page.tsx": 9,
