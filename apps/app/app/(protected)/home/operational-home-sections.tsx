@@ -26,6 +26,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { ArrowRight, RefreshCw, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -76,6 +77,8 @@ function ErrorPanel({
   description: string;
   onRetry: () => Promise<void>;
 }) {
+  const translate = useTranslations('common');
+
   return (
     <div
       className="rounded-card bg-destructive/5 p-5 shadow-border"
@@ -96,7 +99,7 @@ function ErrorPanel({
             withWrapper={false}
           >
             <RefreshCw aria-hidden="true" className="size-4" />
-            Retry
+            {translate('actions.retry')}
           </Button>
         </div>
       </div>
@@ -149,6 +152,7 @@ function ApprovalsSurface({
   orgSlug: string;
   reviewInbox: OverviewBootstrapPayload['reviewInbox'];
 }) {
+  const translate = useTranslations('common');
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
@@ -162,7 +166,7 @@ function ApprovalsSurface({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={reviewHref}>
-            Open queue
+            {translate('home.approvals.open')}
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
@@ -201,7 +205,7 @@ function ApprovalsSurface({
           <div className="space-y-2">
             {reviewInbox.recentItems.length === 0 ? (
               <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
-                Nothing is waiting for review.
+                {translate('home.approvals.empty')}
               </p>
             ) : (
               reviewInbox.recentItems.slice(0, 3).map((item) => (
@@ -262,6 +266,7 @@ function PublishingSurface({
   orgSlug: string;
   runs: IAgentRun[];
 }) {
+  const translate = useTranslations('common');
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
@@ -286,7 +291,7 @@ function PublishingSurface({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={postsHref}>
-            Open publishing
+            {translate('home.publishing.open')}
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
@@ -326,8 +331,7 @@ function PublishingSurface({
           <div className="space-y-2">
             {recentRuns.length === 0 ? (
               <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
-                No publishing runs yet. Drafts created through MCP will appear
-                here.
+                {translate('home.publishing.empty')}
               </p>
             ) : (
               recentRuns.map((run) => (
@@ -384,6 +388,7 @@ function UpcomingScheduleSurface({
   brandSlug?: string;
   orgSlug: string;
 }) {
+  const translate = useTranslations('common');
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
   );
@@ -467,7 +472,7 @@ function UpcomingScheduleSurface({
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={calendarHref}>
-            Open calendar
+            {translate('home.schedule.open')}
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
@@ -493,7 +498,7 @@ function UpcomingScheduleSurface({
         <LoadingPanel label="Loading upcoming schedule..." />
       ) : totalScheduled === 0 ? (
         <p className="rounded-card bg-background p-4 text-sm text-foreground/55 shadow-border">
-          Nothing is scheduled for the next 7 days.
+          {translate('home.schedule.empty')}
         </p>
       ) : (
         <MetricSummary
@@ -535,6 +540,7 @@ function CredentialHealthSurface({
   onRetry: () => Promise<void>;
   orgSlug: string;
 }) {
+  const translate = useTranslations('common');
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
@@ -560,7 +566,7 @@ function CredentialHealthSurface({
           </Button>
           <Button asChild variant={ButtonVariant.SECONDARY}>
             <Link href={settingsHref}>
-              Manage accounts
+              {translate('home.credentials.manage')}
               <ArrowRight aria-hidden="true" className="size-4" />
             </Link>
           </Button>
@@ -640,6 +646,7 @@ function CredentialHealthSurface({
 }
 
 function ActivitySurface({ activityHref }: { activityHref: string }) {
+  const translate = useTranslations('common');
   const activityMessageFormatter = useActivityMessageFormatter();
   const { filteredActivities, isError, isLoading, refresh } = useActivities({
     limit: 5,
@@ -652,7 +659,7 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
       actions={
         <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href={activityHref}>
-            View activity
+            {translate('home.activity.open')}
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </Button>
