@@ -11,7 +11,8 @@ const POSTHOG_HOST =
  * builds without a project token never download the analytics SDK.
  */
 if (
-  /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY ?? '') &&
+  POSTHOG_KEY &&
+  /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY) &&
   typeof window !== 'undefined'
 ) {
   void import('posthog-js')
