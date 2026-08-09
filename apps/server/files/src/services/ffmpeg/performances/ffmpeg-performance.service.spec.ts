@@ -1,11 +1,11 @@
 import { ChildProcess, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import * as fs from 'node:fs';
-import { FFmpegConfigService } from '@files/services/ffmpeg/ffmpeg.config';
+import { FFmpegConfigService } from '@files/services/ffmpeg/config/ffmpeg.config';
 import {
   FFmpegPerformanceService,
   ProcessOptions,
-} from '@files/services/ffmpeg/ffmpeg-performance.service';
+} from '@files/services/ffmpeg/performances/ffmpeg-performance.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Mock, Mocked } from 'vitest';

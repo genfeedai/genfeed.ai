@@ -1,18 +1,21 @@
 import type { DiscordWorkflowExecutionClient } from '@discord/services/discord-workflow-execution.client';
 import { monitorDiscordWorkflowExecution } from '@discord/services/discord-workflow-monitor';
+import type { Mock } from 'vitest';
 
 interface MonitorMocks {
-  deleteSession: ReturnType<typeof vi.fn>;
-  logger: { error: ReturnType<typeof vi.fn> };
-  send: ReturnType<typeof vi.fn>;
+  deleteSession: Mock<() => void>;
+  logger: { error: Mock<(...args: unknown[]) => void> };
+  send: Mock<(message: string) => Promise<unknown>>;
   waitForTerminal: ReturnType<typeof vi.fn>;
 }
 
 function createMocks(): MonitorMocks {
   return {
-    deleteSession: vi.fn(),
-    logger: { error: vi.fn() },
-    send: vi.fn().mockResolvedValue(undefined),
+    deleteSession: vi.fn<() => void>(),
+    logger: { error: vi.fn<(...args: unknown[]) => void>() },
+    send: vi
+      .fn<(message: string) => Promise<unknown>>()
+      .mockResolvedValue(undefined),
     waitForTerminal: vi.fn(),
   };
 }

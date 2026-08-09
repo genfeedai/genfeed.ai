@@ -67,9 +67,10 @@ describe('buildDiscordConfirmationMessage', () => {
     const session = createSession({ workflowName: 'Video Gen' });
 
     const { row } = buildDiscordConfirmationMessage(session);
-    const customIds = row.components.map(
-      (component) => component.toJSON().custom_id,
-    );
+    const customIds = row.components.map((component) => {
+      const json = component.toJSON();
+      return 'custom_id' in json ? json.custom_id : undefined;
+    });
 
     expect(customIds).toEqual([
       'confirm:run',

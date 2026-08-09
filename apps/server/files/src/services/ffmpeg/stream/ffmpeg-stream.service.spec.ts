@@ -5,7 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 // Mock child_process
 vi.mock('child_process');
 // Mock ffmpeg-static
-vi.mock('ffmpeg-static', () => '/usr/local/bin/ffmpeg');
+vi.mock('ffmpeg-static', () => ({ default: '/usr/local/bin/ffmpeg' }));
 
 describe('FFmpegStreamService', () => {
   let service: FFmpegStreamService;

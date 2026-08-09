@@ -8,6 +8,13 @@ import { vi } from 'vitest';
 
 // Set test environment
 process.env.NODE_ENV = 'test';
+process.env.PORT = '3012';
+
+// Genfeed URLs required by the files ConfigService schema
+process.env.GENFEEDAI_API_PUBLIC_URL = 'https://api.test.genfeed.ai';
+process.env.GENFEEDAI_API_URL = 'https://api.test.genfeed.ai';
+process.env.GENFEEDAI_CDN_URL = 'https://cdn.test.genfeed.ai';
+process.env.GENFEEDAI_MCP_PUBLIC_URL = 'https://mcp.test.genfeed.ai';
 
 // Mock Redis URL (tests should mock Redis operations)
 process.env.REDIS_URL = 'redis://localhost:6379';

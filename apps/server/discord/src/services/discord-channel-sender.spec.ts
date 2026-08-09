@@ -1,14 +1,21 @@
 import { sendDiscordChannelMessage } from '@discord/services/discord-channel-sender';
 import { BaseGuildTextChannel, type Client } from 'discord.js';
+import type { Mock } from 'vitest';
+
+type LoggerFn = Mock<(...args: unknown[]) => void>;
 
 interface SenderLoggerMocks {
-  error: ReturnType<typeof vi.fn>;
-  log: ReturnType<typeof vi.fn>;
-  warn: ReturnType<typeof vi.fn>;
+  error: LoggerFn;
+  log: LoggerFn;
+  warn: LoggerFn;
 }
 
 function createLogger(): SenderLoggerMocks {
-  return { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+  return {
+    error: vi.fn<(...args: unknown[]) => void>(),
+    log: vi.fn<(...args: unknown[]) => void>(),
+    warn: vi.fn<(...args: unknown[]) => void>(),
+  };
 }
 
 function createTextChannel(sendMock: ReturnType<typeof vi.fn>): {

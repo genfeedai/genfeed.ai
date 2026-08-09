@@ -290,6 +290,12 @@ describe('useRestoreResearchFinding', () => {
     mocks.searchParamsString.value = '';
   });
 
+  // Stable across renders — a fresh array each render would loop the restore
+  // effect through setAuthorizedFinding forever.
+  const stableFindings: readonly AuthorizedResearchFinding[] = [
+    makeFinding('post-1'),
+  ];
+
   function useHarness(
     findings: readonly AuthorizedResearchFinding[],
     isLoading: boolean,
@@ -301,30 +307,27 @@ describe('useRestoreResearchFinding', () => {
 
   it('restores the requested finding once loaded', () => {
     mocks.searchParamsString.value = 'finding=research-source-post:post-1';
-    const { result } = renderHook(
-      () => useHarness([makeFinding('post-1')], false),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useHarness(stableFindings, false), {
+      wrapper,
+    });
 
     expect(result.current?.authorizedFinding?.reference.id).toBe('post-1');
   });
 
   it('keeps the finding empty while loading', () => {
     mocks.searchParamsString.value = 'finding=research-source-post:post-1';
-    const { result } = renderHook(
-      () => useHarness([makeFinding('post-1')], true),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useHarness(stableFindings, true), {
+      wrapper,
+    });
 
     expect(result.current?.authorizedFinding).toBeNull();
   });
 
   it('clears an unknown requested finding', () => {
     mocks.searchParamsString.value = 'finding=research-source-post:missing';
-    const { result } = renderHook(
-      () => useHarness([makeFinding('post-1')], false),
-      { wrapper },
-    );
+    const { result } = renderHook(() => useHarness(stableFindings, false), {
+      wrapper,
+    });
 
     expect(result.current?.authorizedFinding).toBeNull();
     expect(mocks.push).toHaveBeenCalledWith('/research', { scroll: false });

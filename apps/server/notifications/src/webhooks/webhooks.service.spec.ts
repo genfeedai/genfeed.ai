@@ -84,5 +84,71 @@ describe('WebhooksService (Notifications)', () => {
         expect.any(Object),
       );
     });
+
+    it('should not emit user-specific event without userId', async () => {
+      const notification = {
+        data: {},
+        event: 'ping',
+        service: 'stripe',
+      };
+
+      await service.handleWebhookNotification(notification);
+
+      expect(eventsService.emit).toHaveBeenCalledTimes(1);
+      expect(eventsService.emit).toHaveBeenCalledWith(
+        'webhook.notification',
+        expect.objectContaining({ status: 'received' }),
+      );
+    });
+
+    it('should preserve an explicit notification status', async () => {
+      const notification = {
+        data: {},
+        event: 'ping',
+        service: 'stripe',
+        status: 'processed',
+      };
+
+      await service.handleWebhookNotification(notification);
+
+      expect(eventsService.emit).toHaveBeenCalledWith(
+        'webhook.notification',
+        expect.objectContaining({ status: 'processed' }),
+      );
+    });
+
+    it('should log and rethrow when emit fails', async () => {
+      mockEventsService.emit.mockRejectedValueOnce(new Error('bus down'));
+
+      await expect(
+        service.handleWebhookNotification({
+          data: {},
+          event: 'ping',
+          service: 'stripe',
+        }),
+      ).rejects.toThrow('bus down');
+
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.any(Error),
+      );
+    });
+  });
+
+  describe('getWebhookStatus', () => {
+    it('should return a pending status snapshot', () => {
+      const result = service.getWebhookStatus('stripe', 'evt-1');
+
+      expect(result).toEqual({
+        id: 'evt-1',
+        service: 'stripe',
+        status: 'pending',
+        timestamp: expect.any(String),
+      });
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('started'),
+        { id: 'evt-1', service: 'stripe' },
+      );
+    });
   });
 });

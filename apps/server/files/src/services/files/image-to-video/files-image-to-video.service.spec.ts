@@ -1,5 +1,5 @@
 import { ConfigService } from '@files/config/config.service';
-import { FFmpegService } from '@files/services/ffmpeg/ffmpeg.service';
+import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesCaptionsService } from '@files/services/files/captions/files-captions.service';
 import { FilesImageToVideoService } from '@files/services/files/image-to-video/files-image-to-video.service';
 import { LoggerService } from '@libs/logger/logger.service';

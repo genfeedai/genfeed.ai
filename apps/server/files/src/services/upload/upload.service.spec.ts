@@ -22,7 +22,7 @@ vi.mock('sharp', () => {
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('processed-image')),
     webp: vi.fn().mockReturnThis(),
   }));
-  return mockSharp;
+  return { default: mockSharp };
 });
 
 // Mock fs

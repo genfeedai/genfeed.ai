@@ -59,7 +59,11 @@ function createContext(): HandlerTestContext {
     registerSlashCommands: vi.fn().mockResolvedValue(undefined),
   };
 
-  registerDiscordBotHandlers(client, integration, mocks);
+  registerDiscordBotHandlers(
+    client,
+    integration,
+    mocks as unknown as Parameters<typeof registerDiscordBotHandlers>[2],
+  );
 
   return { listeners, mocks, onceListeners };
 }

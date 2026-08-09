@@ -3,7 +3,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 // Mock ffmpeg-static and ffprobe-static
-vi.mock('ffmpeg-static', () => '/usr/local/bin/ffmpeg');
+vi.mock('ffmpeg-static', () => ({ default: '/usr/local/bin/ffmpeg' }));
 vi.mock('ffprobe-static', () => ({
   path: '/usr/local/bin/ffprobe',
 }));

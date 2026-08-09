@@ -218,12 +218,12 @@ describe('edgeSlice — connections', () => {
     expect(
       useWorkflowStore
         .getState()
-        .isValidConnection(connect(promptId, imageId, 'prompt', 'prompt')),
+        .isValidConnection(connect(promptId, imageId, 'text', 'prompt')),
     ).toBe(true);
     expect(
       useWorkflowStore
         .getState()
-        .isValidConnection(connect(promptId, imageId, 'prompt', 'images')),
+        .isValidConnection(connect(promptId, imageId, 'text', 'images')),
     ).toBe(false);
   });
 
@@ -231,7 +231,7 @@ describe('edgeSlice — connections', () => {
     expect(
       useWorkflowStore
         .getState()
-        .isValidConnection(connect('ghost', 'ghost2', 'prompt', 'prompt')),
+        .isValidConnection(connect('ghost', 'ghost2', 'text', 'prompt')),
     ).toBe(false);
   });
 
@@ -241,12 +241,12 @@ describe('edgeSlice — connections', () => {
 
     useWorkflowStore
       .getState()
-      .onConnect(connect(promptId, imageId, 'prompt', 'images'));
+      .onConnect(connect(promptId, imageId, 'text', 'images'));
     expect(useWorkflowStore.getState().edges).toHaveLength(0);
 
     useWorkflowStore
       .getState()
-      .onConnect(connect(promptId, imageId, 'prompt', 'prompt'));
+      .onConnect(connect(promptId, imageId, 'text', 'prompt'));
     expect(useWorkflowStore.getState().edges).toHaveLength(1);
     expect(useWorkflowStore.getState().edges[0].type).toBe('default');
   });
@@ -258,7 +258,7 @@ describe('edgeSlice — connections', () => {
 
     useWorkflowStore
       .getState()
-      .onConnect(connect(promptId, imageId, 'prompt', 'prompt'));
+      .onConnect(connect(promptId, imageId, 'text', 'prompt'));
 
     expect(
       useWorkflowStore.getState().getNodeById(imageId)?.data.inputPrompt,
@@ -272,7 +272,7 @@ describe('edgeSlice — connections', () => {
     expect(
       useWorkflowStore
         .getState()
-        .findCompatibleHandle(promptId, 'prompt', imageId),
+        .findCompatibleHandle(promptId, 'text', imageId),
     ).toBe('prompt');
   });
 
@@ -282,12 +282,12 @@ describe('edgeSlice — connections', () => {
     const imageId = addNode('imageGen');
     useWorkflowStore
       .getState()
-      .onConnect(connect(promptA, imageId, 'prompt', 'prompt'));
+      .onConnect(connect(promptA, imageId, 'text', 'prompt'));
 
     expect(
       useWorkflowStore
         .getState()
-        .findCompatibleHandle(promptB, 'prompt', imageId),
+        .findCompatibleHandle(promptB, 'text', imageId),
     ).toBeNull();
   });
 
@@ -304,7 +304,7 @@ describe('edgeSlice — edge maintenance', () => {
     const imageId = addNode('imageGen');
     useWorkflowStore.getState().onConnect({
       source: promptId,
-      sourceHandle: 'prompt',
+      sourceHandle: 'text',
       target: imageId,
       targetHandle: 'prompt',
     });
@@ -319,7 +319,7 @@ describe('edgeSlice — edge maintenance', () => {
     const imageId = addNode('imageGen');
     useWorkflowStore.getState().onConnect({
       source: promptId,
-      sourceHandle: 'prompt',
+      sourceHandle: 'text',
       target: imageId,
       targetHandle: 'prompt',
     });
@@ -335,7 +335,7 @@ describe('edgeSlice — edge maintenance', () => {
     const imageId = addNode('imageGen');
     useWorkflowStore.getState().onConnect({
       source: promptId,
-      sourceHandle: 'prompt',
+      sourceHandle: 'text',
       target: imageId,
       targetHandle: 'prompt',
     });

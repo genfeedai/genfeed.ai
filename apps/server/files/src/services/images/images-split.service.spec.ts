@@ -15,7 +15,7 @@ vi.mock('sharp', () => {
     }),
     toBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-frame-data')),
   }));
-  return mockSharp;
+  return { default: mockSharp };
 });
 
 import sharp from 'sharp';
