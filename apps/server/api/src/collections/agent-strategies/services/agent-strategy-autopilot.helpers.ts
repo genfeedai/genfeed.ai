@@ -1,7 +1,7 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
 import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
-import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import {
   AgentAutonomyMode,
   normalizeAgentAutonomyMode,
@@ -21,8 +21,50 @@ export function opportunityId(
   return documentId(opportunity);
 }
 
-export function draftId(draft: ContentDraftDocument): string {
+export function draftId(draft: PostDocument): string {
   return documentId(draft);
+}
+
+export function draftContent(draft: PostDocument): string {
+  return draft.description ?? '';
+}
+
+export function draftMediaUrls(draft: PostDocument): string[] {
+  return Array.isArray(draft.targetAttachments)
+    ? draft.targetAttachments.filter(
+        (value): value is string => typeof value === 'string',
+      )
+    : [];
+}
+
+export function draftTargetSettings(
+  draft: PostDocument,
+): Record<string, unknown> {
+  return draft.targetSettings &&
+    typeof draft.targetSettings === 'object' &&
+    !Array.isArray(draft.targetSettings)
+    ? (draft.targetSettings as Record<string, unknown>)
+    : {};
+}
+
+export function draftGenerationSettings(
+  draft: PostDocument,
+): Record<string, unknown> {
+  const generation = draftTargetSettings(draft).generation;
+  return generation &&
+    typeof generation === 'object' &&
+    !Array.isArray(generation)
+    ? (generation as Record<string, unknown>)
+    : {};
+}
+
+export function draftMetadata(draft: PostDocument): Record<string, unknown> {
+  const generation = draftGenerationSettings(draft);
+  return generation.metadata &&
+    typeof generation.metadata === 'object' &&
+    !Array.isArray(generation.metadata)
+    ? (generation.metadata as Record<string, unknown>)
+    : {};
 }
 
 export function strategyId(strategy: AgentStrategyDocument): string {

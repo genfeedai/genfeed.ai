@@ -11,6 +11,7 @@
     "**/.env.*local"
   ],
   "globalEnv": ["GITHUB_EVENT_PATH"],
+  "globalPassThroughEnv": ["GITHUB_REF_NAME"],
   "tasks": {
     "build": {
       "dependsOn": ["//#env:check", "^build"],

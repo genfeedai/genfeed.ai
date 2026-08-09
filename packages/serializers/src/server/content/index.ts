@@ -6,7 +6,6 @@ export * from '@serializers/server/content/bookmark.serializer';
 export * from '@serializers/server/content/channel-target.serializer';
 export * from '@serializers/server/content/clip-project.serializer';
 export * from '@serializers/server/content/clip-result.serializer';
-export * from '@serializers/server/content/content-draft.serializer';
 export * from '@serializers/server/content/content-performance.serializer';
 export * from '@serializers/server/content/content-plan.serializer';
 export * from '@serializers/server/content/content-plan-item.serializer';

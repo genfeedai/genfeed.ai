@@ -1,3 +1,4 @@
+import type { ReviewDecision } from '@genfeedai/enums';
 import type {
   IAgentRun,
   IAnalytics,
@@ -50,7 +51,7 @@ export interface OverviewBootstrapPayload {
       mediaUrl?: string;
       platform?: string;
       postId?: string;
-      reviewDecision?: 'approved' | 'rejected' | 'request_changes';
+      reviewDecision: ReviewDecision;
       status: string;
       summary: string;
     }>;

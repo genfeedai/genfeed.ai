@@ -1300,7 +1300,13 @@ function validateSettingType(
 
 // Matched rather than parsed with `URL`: this contract compiles without DOM or
 // Node lib types so it can run in the browser bundle, workers, and the CLI.
-const HTTP_URL_PATTERN = /^https?:\/\/[^\s/?#]+[^\s]*$/i;
+//
+// The authority run and the remainder must not overlap. `[^\s/?#]+[^\s]*` lets
+// both halves consume the same non-delimiter characters, so a long failing
+// input is re-split at every position — quadratic backtracking on a value that
+// reaches this from request data. Requiring the remainder to start with one of
+// `/?#` makes the split deterministic without changing what is accepted.
+const HTTP_URL_PATTERN = /^https?:\/\/[^\s/?#]+(?:[/?#]\S*)?$/i;
 
 function isParsableHttpUrl(value: unknown): boolean {
   return typeof value === 'string' && HTTP_URL_PATTERN.test(value.trim());

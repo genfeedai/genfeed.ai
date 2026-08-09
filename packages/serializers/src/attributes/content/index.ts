@@ -5,7 +5,6 @@ export * from '@serializers/attributes/content/bookmark.attributes';
 export * from '@serializers/attributes/content/channel-target.attributes';
 export * from '@serializers/attributes/content/clip-project.attributes';
 export * from '@serializers/attributes/content/clip-result.attributes';
-export * from '@serializers/attributes/content/content-draft.attributes';
 export * from '@serializers/attributes/content/content-performance.attributes';
 export * from '@serializers/attributes/content/content-plan.attributes';
 export * from '@serializers/attributes/content/content-plan-item.attributes';

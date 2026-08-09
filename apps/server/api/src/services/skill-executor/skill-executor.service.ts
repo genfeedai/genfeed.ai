@@ -61,7 +61,7 @@ export class SkillExecutorService {
       skillSlug,
     );
 
-    if (!skill || !skill.isEnabled) {
+    if (!skill?.isEnabled) {
       throw new NotFoundException(`Skill not found: ${skillSlug}`);
     }
 
@@ -143,6 +143,7 @@ export class SkillExecutorService {
         creditsUsed: 0,
         draft,
         duration,
+        runId: String(run.id),
         source,
       };
     } catch (error: unknown) {
@@ -224,6 +225,7 @@ export class SkillExecutorService {
             confidence: draft.confidence,
             content: draft.content,
             mediaUrls: draft.mediaUrls,
+            metadata: draft.metadata,
             platforms: draft.platforms,
             type: draft.type,
           },

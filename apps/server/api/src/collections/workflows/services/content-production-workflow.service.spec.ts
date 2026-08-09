@@ -6,7 +6,6 @@ describe('ContentProductionWorkflowService', () => {
   const brandsService = { findForOrganization: vi.fn() };
   const contentPlannerService = { generatePlan: vi.fn() };
   const contentExecutionService = { executePlan: vi.fn() };
-  const contentReviewService = { autoApproveIfEligible: vi.fn() };
   const prisma = {
     contentSchedule: { findFirst: vi.fn() },
     persona: { findMany: vi.fn(), update: vi.fn() },
@@ -43,10 +42,9 @@ describe('ContentProductionWorkflowService', () => {
       plan: { id: 'plan-1' },
     });
     contentExecutionService.executePlan.mockResolvedValue({
-      results: [{ contentDraftId: 'draft-1' }],
+      results: [{ postId: 'post-1' }],
       summary: { completed: 1, total: 1 },
     });
-    contentReviewService.autoApproveIfEligible.mockResolvedValue(undefined);
     prisma.persona.findMany.mockResolvedValue([]);
     prisma.persona.update.mockResolvedValue({});
     prisma.contentSchedule.findFirst.mockResolvedValue(null);
@@ -54,7 +52,7 @@ describe('ContentProductionWorkflowService', () => {
       'job-1',
     );
     contentGatewayService.routeSignal.mockResolvedValue({
-      drafts: [],
+      posts: [],
       runs: ['run-1'],
     });
     contentSchedulesService.calculateNextRunAt.mockReturnValue(
@@ -66,7 +64,6 @@ describe('ContentProductionWorkflowService', () => {
       brandsService as never,
       contentPlannerService as never,
       contentExecutionService as never,
-      contentReviewService as never,
       prisma as never,
       contentPipelineQueueService as never,
       contentSchedulesService as never,
@@ -124,11 +121,6 @@ describe('ContentProductionWorkflowService', () => {
       'brand-1',
       'plan-1',
       'user-1',
-    );
-    expect(contentReviewService.autoApproveIfEligible).toHaveBeenCalledWith(
-      'org-1',
-      'brand-1',
-      'draft-1',
     );
     expect(result).toMatchObject({
       action: 'contentEngineProduction',

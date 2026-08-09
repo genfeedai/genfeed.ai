@@ -156,7 +156,6 @@ export interface ServerPrisma {
   adOptimizationRecommendation: PrismaClient['adOptimizationRecommendation'];
   adPerformance: PrismaClient['adPerformance'];
   brand: PrismaClient['brand'];
-  contentDraft: PrismaClient['contentDraft'];
   contentVersionPin: PrismaClient['contentVersionPin'];
   credential: PrismaClient['credential'];
   contentPerformance: {

@@ -10,10 +10,10 @@ import {
 import type { AgentStrategyPerformanceSnapshot } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.types';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
-import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { ContentPerformanceService } from '@api/collections/content-performance/services/content-performance.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ContentDraftStatus } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/enums';
 import { scopedWhere } from '@genfeedai/server';
 import { Injectable } from '@nestjs/common';
 import { PerformanceSummaryService } from '@server/collections/content-performance/services/performance-summary.service';
@@ -23,7 +23,7 @@ export class AgentStrategyAutopilotPerformanceService {
   constructor(
     private readonly agentStrategiesService: AgentStrategiesService,
     private readonly reportsService: AgentStrategyReportsService,
-    private readonly contentDraftsService: ContentDraftsService,
+    private readonly postsService: PostsService,
     private readonly opportunitiesService: AgentStrategyOpportunitiesService,
     private readonly contentPerformanceService: ContentPerformanceService,
     private readonly performanceSummaryService: PerformanceSummaryService,
@@ -39,9 +39,10 @@ export class AgentStrategyAutopilotPerformanceService {
     const strategyBrandId = getStrategyBrandId(strategy);
     const strategyOrganizationId = getStrategyOrganizationId(strategy);
 
-    const [drafts, opportunities, performance, summary] = await Promise.all([
-      this.contentDraftsService.find(
+    const [posts, opportunities, performance, summary] = await Promise.all([
+      this.postsService.find(
         scopedWhere(strategyOrganizationId, {
+          agentStrategyId: strategyId,
           brandId: strategyBrandId ?? '',
           createdAt: { gte: periodStart, lte: periodEnd },
         }),
@@ -74,9 +75,9 @@ export class AgentStrategyAutopilotPerformanceService {
       0,
     );
     const visits = clicks;
-    const generatedCount = drafts.length;
-    const publishedCount = drafts.filter(
-      (draft) => draft.status === ContentDraftStatus.PUBLISHED,
+    const generatedCount = posts.length;
+    const publishedCount = posts.filter(
+      (post) => post.targetExecutionState === TargetExecutionState.PUBLISHED,
     ).length;
     const creditsSpent = opportunities
       .filter((opportunity) => {

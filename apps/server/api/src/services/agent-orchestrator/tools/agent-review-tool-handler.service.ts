@@ -1,7 +1,11 @@
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { formatPlatformLabel } from '@genfeedai/enums';
+import {
+  formatPlatformLabel,
+  isTerminalReviewDecision,
+  normalizeReviewDecision,
+} from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -71,10 +75,7 @@ export class AgentReviewToolHandler {
           id: String(reviewItem.id),
           mediaUrl: reviewItem.mediaUrl,
           platform: reviewItem.platform,
-          reviewDecision:
-            typeof reviewItem.reviewDecision === 'string'
-              ? reviewItem.reviewDecision
-              : undefined,
+          reviewDecision: normalizeReviewDecision(reviewItem.reviewDecision),
           scheduledDate: reviewItem.scheduledDate,
           status: reviewItem.status,
         };
@@ -83,9 +84,9 @@ export class AgentReviewToolHandler {
       const readyCount = items.filter((item: unknown) => {
         const reviewItem = item as Record<string, unknown>;
         return (
-          reviewItem.reviewDecision !== 'approved' &&
-          reviewItem.reviewDecision !== 'rejected' &&
-          reviewItem.status !== 'failed'
+          !isTerminalReviewDecision(
+            normalizeReviewDecision(reviewItem.reviewDecision),
+          ) && reviewItem.status !== 'failed'
         );
       }).length;
       const summaryText =

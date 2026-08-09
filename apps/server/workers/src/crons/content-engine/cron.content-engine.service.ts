@@ -2,7 +2,6 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { ContentReviewService } from '@api/services/content-engine/content-review.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -17,7 +16,6 @@ export class CronContentEngineService {
     private readonly brandsService: BrandsService,
     private readonly contentPlannerService: ContentPlannerService,
     private readonly contentExecutionService: ContentExecutionService,
-    private readonly contentReviewService: ContentReviewService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
   ) {}
@@ -115,7 +113,14 @@ export class CronContentEngineService {
     if (!organizationId) {
       return;
     }
-    const userId = brand.userId || organizationId;
+    const userId = brand.userId ?? undefined;
+    if (!userId) {
+      this.logger.warn(
+        `Brand ${brandId} has no canonical user owner; skipping content engine`,
+        'CronContentEngineService',
+      );
+      return;
+    }
     const strategy = (
       brand.agentConfig as
         | {
@@ -160,17 +165,6 @@ export class CronContentEngineService {
       String(plan.id),
       userId,
     );
-
-    // Auto-approve eligible drafts
-    for (const executionResult of result.results) {
-      if (executionResult.contentDraftId) {
-        await this.contentReviewService.autoApproveIfEligible(
-          organizationId,
-          brandId,
-          executionResult.contentDraftId,
-        );
-      }
-    }
 
     this.logger.log(
       `Brand ${brandId}: ${result.summary.completed}/${result.summary.total} items executed`,

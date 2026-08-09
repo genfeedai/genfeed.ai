@@ -152,5 +152,23 @@ describe('mobile.helper', () => {
       const badUrl = 'not-a-valid-url';
       expect(getDeepLink(badUrl, true)).toBe(badUrl);
     });
+
+    it('leaves a lookalike host that merely contains a known domain', () => {
+      setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)');
+      const url = 'https://tiktok.com.evil.example/@username';
+      expect(getDeepLink(url, true)).toBe(url);
+    });
+
+    it('leaves a host that is a suffix of a known domain', () => {
+      setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)');
+      const url = 'https://notinstagram.com/p/ABC123/';
+      expect(getDeepLink(url, true)).toBe(url);
+    });
+
+    it('still deep links genuine subdomains', () => {
+      setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)');
+      const result = getDeepLink('https://m.tiktok.com/@username', true);
+      expect(result).toContain('snssdk1233://');
+    });
   });
 });

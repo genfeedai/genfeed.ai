@@ -3,6 +3,7 @@ import type {
   BatchStatus,
   ContentFormat,
   ReferenceImageCategory,
+  ReviewDecision,
 } from '@genfeedai/enums';
 import type { IPublishApproval } from '../publisher/publish-approval.interface';
 
@@ -61,7 +62,8 @@ export interface IBatchItem {
   platform?: string;
   scheduledDate?: string;
   error?: string;
-  reviewDecision?: 'approved' | 'rejected' | 'request_changes';
+  /** Optional only for legacy payload compatibility; readers normalize absence to `unset`. */
+  reviewDecision?: ReviewDecision;
   reviewFeedback?: string;
   reviewedAt?: string;
   reviewEvents?: IBatchReviewEvent[];
@@ -98,7 +100,7 @@ export interface IBatchReviewEventReviewer {
 }
 
 export interface IBatchReviewEvent {
-  decision: 'approved' | 'rejected' | 'request_changes';
+  decision: ReviewDecision;
   feedback?: string;
   reviewedAt: string;
   reviewer?: IBatchReviewEventReviewer;

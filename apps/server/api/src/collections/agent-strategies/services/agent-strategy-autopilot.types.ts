@@ -1,6 +1,6 @@
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
-import type { ContentDraftDocument } from '@api/collections/content-drafts/schemas/content-draft.schema';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 
 export interface BudgetPacingState {
   expectedSpendToDate: number;
@@ -68,7 +68,7 @@ export interface ImageEvaluationResult {
 }
 
 export interface FinalizeOpportunityInput {
-  draft: ContentDraftDocument;
+  draft: PostDocument;
   draftContent: string;
   format: string;
   gate: PublishGateResult;

@@ -1,6 +1,7 @@
 'use client';
 
 import { AgentChatTimeline } from '@genfeedai/agent/components/AgentChatTimeline';
+import { AgentConversationTurnNavigator } from '@genfeedai/agent/components/AgentConversationTurnNavigator';
 import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
 import { AgentPlanReviewSection } from '@genfeedai/agent/components/AgentPlanReviewSection';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
@@ -31,6 +32,7 @@ export type AgentChatContainerThreadViewProps = {
   isBusy: boolean;
   isCreatingFollowUpTasks: boolean;
   isGenerating: boolean;
+  isWideLayout: boolean;
   isReadOnly: boolean;
   isStreamingActive: boolean;
   isSubmittingInputRequest: boolean;
@@ -89,6 +91,7 @@ export function AgentChatContainerThreadView({
   isCreatingFollowUpTasks,
   isEmpty,
   isGenerating,
+  isWideLayout,
   isReadOnly,
   isStreamingActive,
   isSubmittingInputRequest,
@@ -131,6 +134,12 @@ export function AgentChatContainerThreadView({
         isReadOnly && 'opacity-60',
       )}
     >
+      {isWideLayout ? (
+        <AgentConversationTurnNavigator
+          scrollContainerRef={scrollContainerRef}
+          timeline={timeline}
+        />
+      ) : null}
       {pendingInputRequest && shouldShowInputRequestOverlay ? (
         <AgentInputRequestOverlay
           isSubmitting={isSubmittingInputRequest}

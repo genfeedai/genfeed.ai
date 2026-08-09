@@ -1,7 +1,6 @@
 export const AGENT_ARTIFACT_RECORD_KINDS = [
   'article',
   'asset',
-  'content-draft',
   'ingredient',
   'newsletter',
   'post',
@@ -15,7 +14,6 @@ export type AgentArtifactSerializer = AgentArtifactRecordKind;
 export const AGENT_ARTIFACT_SERIALIZER_BY_KIND = {
   article: 'article',
   asset: 'asset',
-  'content-draft': 'content-draft',
   ingredient: 'ingredient',
   newsletter: 'newsletter',
   post: 'post',

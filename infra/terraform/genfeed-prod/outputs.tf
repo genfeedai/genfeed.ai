@@ -11,6 +11,11 @@ output "alb_dns_name" {
   value       = aws_lb.main.dns_name
 }
 
+output "cloudwatch_dashboard_name" {
+  description = "Production operations dashboard managed by this stack."
+  value       = aws_cloudwatch_dashboard.production.dashboard_name
+}
+
 output "api_url" {
   value = "https://${local.fqdn}"
 }

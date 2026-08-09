@@ -1,6 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BulkApproveContentDraftsDto } from '@api/collections/content-drafts/dto/bulk-approve-content-drafts.dto';
-import { ContentDraftRejectDto } from '@api/collections/content-drafts/dto/content-draft-action.dto';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { GenerateContentPlanDto } from '@api/collections/content-plans/dto/generate-content-plan.dto';
 import { UpdateContentPlanDto } from '@api/collections/content-plans/dto/update-content-plan.dto';
@@ -13,9 +11,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ContentExecutionService } from '@api/services/content-engine/content-execution.service';
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
-import { ContentReviewService } from '@api/services/content-engine/content-review.service';
 import {
-  ContentDraftSerializer,
   ContentPlanItemSerializer,
   ContentPlanSerializer,
 } from '@genfeedai/serializers';
@@ -40,7 +36,6 @@ export class ContentEngineController {
     private readonly contentPlansService: ContentPlansService,
     private readonly contentPlanItemsService: ContentPlanItemsService,
     private readonly contentExecutionService: ContentExecutionService,
-    private readonly contentReviewService: ContentReviewService,
   ) {}
 
   // ── Plans ──────────────────────────────────────────────────────────
@@ -151,66 +146,5 @@ export class ContentEngineController {
       userId,
       itemId,
     );
-  }
-
-  // ── Review Queue ───────────────────────────────────────────────────
-
-  @Get('queue')
-  async getQueue(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('brandId') brandId: string,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const docs = await this.contentReviewService.getQueue(
-      organization,
-      brandId,
-    );
-    return serializeCollection(req, ContentDraftSerializer, { docs });
-  }
-
-  @Put('queue/:draftId/approve')
-  async approveDraft(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('draftId') draftId: string,
-  ) {
-    const { organization, user: userId } = getPublicMetadata(user);
-    const data = await this.contentReviewService.approveDraft(
-      organization,
-      draftId,
-      userId,
-    );
-    return serializeSingle(req, ContentDraftSerializer, data);
-  }
-
-  @Put('queue/:draftId/reject')
-  async rejectDraft(
-    @Req() req: Request,
-    @CurrentUser() user: User,
-    @Param('draftId') draftId: string,
-    @Body() dto: ContentDraftRejectDto,
-  ) {
-    const { organization } = getPublicMetadata(user);
-    const data = await this.contentReviewService.rejectDraft(
-      organization,
-      draftId,
-      dto.reason,
-    );
-    return serializeSingle(req, ContentDraftSerializer, data);
-  }
-
-  @Post('queue/bulk-approve')
-  async bulkApproveDrafts(
-    @CurrentUser() user: User,
-    @Body() dto: BulkApproveContentDraftsDto,
-  ) {
-    const { organization, user: userId } = getPublicMetadata(user);
-    const docs = await this.contentReviewService.bulkApprove(
-      organization,
-      dto.ids,
-      userId,
-    );
-    return docs;
   }
 }

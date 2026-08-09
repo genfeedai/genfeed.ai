@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { canTransitionPublishApprovalStatus } from '@genfeedai/api-types/contracts';
 import {
+  PersistedReviewDecision,
   PublishApprovalPolicyId,
   PublishApprovalStatus,
-  ReviewDecision,
   toPrismaCredentialPlatform,
 } from '@genfeedai/enums';
 import type {
@@ -306,7 +306,7 @@ export class PublishApprovalsService {
         await tx.post.update({
           data: {
             publishApprovalId: created.id,
-            reviewDecision: ReviewDecision.APPROVED,
+            reviewDecision: PersistedReviewDecision.APPROVED,
             reviewVersionPinId: versionPin.id,
             reviewedAt: now,
           },
@@ -886,7 +886,7 @@ export class PublishApprovalsService {
     const activated = await client.post.updateMany({
       data: {
         publishApprovalId: approval.id,
-        reviewDecision: ReviewDecision.APPROVED,
+        reviewDecision: PersistedReviewDecision.APPROVED,
         reviewVersionPinId: approval.artifactVersionPinId,
       },
       where: scopedWhere(post.organizationId, {

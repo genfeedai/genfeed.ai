@@ -74,6 +74,14 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -s -k "${DEVELOPER_ID_P12_PASSWORD}" "$KEYCHAIN_PATH"
 
+      # electron-builder reads the version from apps/desktop/app/package.json,
+      # where it is a placeholder that nothing bumps. Stamping the tag onto it
+      # before the build is what keeps the artifact filename, the updater feed
+      # in latest-mac.yml, the release manifest, and the Homebrew cask URL
+      # agreeing with the tag. Off a desktop tag this is a no-op.
+      - name: Apply the release version from the tag
+        run: bun run scripts/desktop/apply-release-version.ts
+
       # These four are turbo tasks and must run through turbo so their
       # `^build` dependency resolves; `bun run --filter` skips it and leaves
       # the workspace packages unbuilt. `smoke` and `release:mac` below are
@@ -182,3 +190,73 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             release/*
+
+  # Homebrew's autobump only tracks casks inside Homebrew/homebrew-cask, and
+  # that repository has a notability bar this project does not clear yet. Until
+  # it does, `brew install --cask genfeedai/tap/genfeed` is served from our own
+  # tap, which means we bump it ourselves on every desktop release.
+  publish-homebrew-cask:
+    name: Publish Homebrew cask
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+    needs: publish-desktop-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: "24.x"
+          bun-version: "1.3.14"
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: genfeed-desktop-macos
+          path: release
+
+      # The checksum comes from the manifest the build wrote beside the
+      # artifacts — the same bytes that were signed, notarized, and uploaded.
+      - name: Render the cask
+        run: |
+          bun run scripts/desktop/render-cask.ts \
+            release/genfeed-desktop-release.json \
+            --out "$RUNNER_TEMP/genfeed.rb"
+
+      # A missing token skips the tap rather than failing the run: the GitHub
+      # release is already published at this point, and Homebrew is an extra
+      # distribution channel, not a release gate.
+      - name: Push the cask to genfeedai/homebrew-tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "::warning::HOMEBREW_TAP_TOKEN is not set — skipping the Homebrew tap update."
+            exit 0
+          fi
+
+          git clone --depth 1 \
+            "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/genfeedai/homebrew-tap.git" \
+            "$RUNNER_TEMP/tap"
+
+          mkdir -p "$RUNNER_TEMP/tap/Casks"
+          cp "$RUNNER_TEMP/genfeed.rb" "$RUNNER_TEMP/tap/Casks/genfeed.rb"
+
+          cd "$RUNNER_TEMP/tap"
+
+          if git diff --quiet -- Casks/genfeed.rb; then
+            echo "Cask already matches this release — nothing to push."
+            exit 0
+          fi
+
+          git config user.name "genfeed-release"
+          git config user.email "release@genfeed.ai"
+          git add Casks/genfeed.rb
+          git commit -m "genfeed ${GITHUB_REF_NAME#desktop-v}"
+          git push

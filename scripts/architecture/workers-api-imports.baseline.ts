@@ -121,7 +121,6 @@ export const WORKERS_API_IMPORT_BASELINE: readonly string[] = [
   '@api/services/content-engine/content-engine.module',
   '@api/services/content-engine/content-execution.service',
   '@api/services/content-engine/content-planner.service',
-  '@api/services/content-engine/content-review.service',
   '@api/services/content-optimization/content-optimization.module',
   '@api/services/content-optimization/content-optimization.service',
   '@api/services/content-orchestration/content-orchestration.module',

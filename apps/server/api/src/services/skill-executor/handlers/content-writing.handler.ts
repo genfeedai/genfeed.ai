@@ -2,7 +2,7 @@ import { GenerateContentDto } from '@api/collections/content-intelligence/dto/ge
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type {
-  ContentDraft,
+  GeneratedContent,
   SkillExecutionContext,
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
@@ -21,7 +21,7 @@ export class ContentWritingHandler implements SkillHandler {
   async execute(
     context: SkillExecutionContext,
     params: Record<string, unknown>,
-  ): Promise<ContentDraft> {
+  ): Promise<GeneratedContent> {
     const topic = typeof params.topic === 'string' ? params.topic : '';
     const platform =
       typeof params.platform === 'string'

@@ -1,6 +1,12 @@
 import type { ContentMixConfig } from '@api/services/batch-generation/schemas/batch.schema';
 import type { BatchPricingOptions } from '@genfeedai/constants';
-import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  BatchStatus,
+  ContentFormat,
+  normalizeReviewDecision,
+  ReviewDecision,
+} from '@genfeedai/enums';
 import type { IPublishApproval } from '@genfeedai/interfaces';
 import type { Batch } from '@genfeedai/prisma';
 
@@ -18,11 +24,11 @@ export interface BatchItemFull extends BatchItem {
   postId?: string;
   mediaUrl?: string;
   error?: string;
-  reviewDecision?: 'approved' | 'rejected' | 'request_changes';
+  reviewDecision: ReviewDecision;
   reviewFeedback?: string;
   reviewedAt?: string;
   reviewEvents?: Array<{
-    decision: 'approved' | 'rejected' | 'request_changes';
+    decision: ReviewDecision;
     feedback?: string;
     reviewedAt: string;
     reviewerId?: string;
@@ -136,7 +142,7 @@ export interface ReviewInboxItemSummary {
   mediaUrl?: string;
   platform?: string;
   postId?: string;
-  reviewDecision?: 'approved' | 'rejected' | 'request_changes';
+  reviewDecision: ReviewDecision;
   status: string;
   summary: string;
 }
@@ -153,5 +159,10 @@ export interface ReviewInboxSummary {
 export function cloneBatchItems(items: Batch['items']): BatchItemFull[] {
   return ((items ?? []) as unknown as BatchItemFull[]).map((item) => ({
     ...item,
+    reviewDecision: normalizeReviewDecision(item.reviewDecision),
+    reviewEvents: (item.reviewEvents ?? []).map((event) => ({
+      ...event,
+      decision: normalizeReviewDecision(event.decision),
+    })),
   }));
 }

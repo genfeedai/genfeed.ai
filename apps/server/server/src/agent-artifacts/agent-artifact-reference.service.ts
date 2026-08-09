@@ -12,7 +12,6 @@ import type { ContentVersionPin, Prisma } from '@genfeedai/prisma';
 import {
   ArticleSerializer,
   AssetSerializer,
-  ContentDraftSerializer,
   IngredientSerializer,
   NewsletterSerializer,
   PostSerializer,
@@ -125,7 +124,6 @@ export type AgentArtifactReferenceTransaction = Pick<
   | 'article'
   | 'asset'
   | 'brand'
-  | 'contentDraft'
   | 'contentVersionPin'
   | 'ingredient'
   | 'member'
@@ -137,7 +135,6 @@ export type AgentArtifactReferenceTransaction = Pick<
 const SERIALIZERS = {
   article: ArticleSerializer,
   asset: AssetSerializer,
-  'content-draft': ContentDraftSerializer,
   ingredient: IngredientSerializer,
   newsletter: NewsletterSerializer,
   post: PostSerializer,
@@ -504,25 +501,6 @@ export class AgentArtifactReferenceService {
         );
       case 'asset':
         return this.loadAsset(recordId, organizationId, prisma);
-      case 'content-draft':
-        return this.loadScopedRecord(
-          'Content draft',
-          prisma.contentDraft,
-          recordId,
-          organizationId,
-          [
-            'brandId',
-            'content',
-            'contentRunId',
-            'data',
-            'generatedBy',
-            'mediaUrls',
-            'metadata',
-            'platforms',
-            'skillSlug',
-            'type',
-          ],
-        );
       case 'ingredient': {
         return this.loadIngredient(recordId, organizationId, prisma);
       }
@@ -1083,7 +1061,6 @@ export class AgentArtifactReferenceService {
     return (
       value === 'article' ||
       value === 'asset' ||
-      value === 'content-draft' ||
       value === 'ingredient' ||
       value === 'newsletter' ||
       value === 'post'

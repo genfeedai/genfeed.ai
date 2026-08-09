@@ -1,23 +1,35 @@
-import { BatchItemStatus } from '@genfeedai/enums';
+import {
+  BatchItemStatus,
+  normalizeReviewDecision,
+  ReviewDecision,
+} from '@genfeedai/enums';
 import type { IBatchItem } from '@genfeedai/interfaces';
 
 export function isApproved(item: IBatchItem): boolean {
-  return item.reviewDecision === 'approved';
+  return (
+    normalizeReviewDecision(item.reviewDecision) === ReviewDecision.APPROVED
+  );
 }
 
 export function isChangesRequested(item: IBatchItem): boolean {
-  return item.reviewDecision === 'request_changes';
+  return (
+    normalizeReviewDecision(item.reviewDecision) ===
+    ReviewDecision.REQUEST_CHANGES
+  );
 }
 
 export function isRejected(item: IBatchItem): boolean {
   return (
-    item.reviewDecision === 'rejected' ||
+    normalizeReviewDecision(item.reviewDecision) === ReviewDecision.REJECTED ||
     item.status === BatchItemStatus.SKIPPED
   );
 }
 
 export function isReadyToReview(item: IBatchItem): boolean {
-  return item.status === BatchItemStatus.COMPLETED && !item.reviewDecision;
+  return (
+    item.status === BatchItemStatus.COMPLETED &&
+    normalizeReviewDecision(item.reviewDecision) === ReviewDecision.UNSET
+  );
 }
 
 export function isPendingReview(item: IBatchItem): boolean {

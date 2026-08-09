@@ -1,7 +1,12 @@
 'use client';
 
 import { APP_ROUTES } from '@genfeedai/constants';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  normalizeReviewDecision,
+  ReviewDecision,
+} from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
 import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -158,9 +163,11 @@ export function WorkspaceOverviewSidebar({
                       <ClientFormattedDate value={item.createdAt} />
                     </p>
                   </div>
-                  {item.reviewDecision === 'approved' ? (
+                  {normalizeReviewDecision(item.reviewDecision) ===
+                  ReviewDecision.APPROVED ? (
                     <CircleCheck className="size-5 text-emerald-300" />
-                  ) : item.reviewDecision === 'request_changes' ? (
+                  ) : normalizeReviewDecision(item.reviewDecision) ===
+                    ReviewDecision.REQUEST_CHANGES ? (
                     <ClipboardCheck className="size-5 text-amber-300" />
                   ) : (
                     <Inbox className="size-5 text-foreground/40" />

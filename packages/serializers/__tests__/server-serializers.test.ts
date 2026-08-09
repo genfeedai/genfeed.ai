@@ -683,6 +683,23 @@ describe('Server Serializers', () => {
     it('should have a serialize method', () => {
       expect(typeof PostSerializer.serialize).toBe('function');
     });
+
+    it.each([
+      ['APPROVED', 'approved'],
+      ['REJECTED', 'rejected'],
+      ['REQUEST_CHANGES', 'request_changes'],
+      [undefined, 'unset'],
+      ['unexpected', 'unset'],
+    ])('projects persisted review decision %s as %s', (input, expected) => {
+      const output = PostSerializer.serialize({
+        id: 'ckpost0000000000000000001',
+        reviewDecision: input,
+      }) as {
+        data: { attributes: { reviewDecision: string } };
+      };
+
+      expect(output.data.attributes.reviewDecision).toBe(expected);
+    });
   });
 
   // Regression for #1223: `PostListSerializer` was previously destructured as

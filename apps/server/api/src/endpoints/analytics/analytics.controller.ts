@@ -349,6 +349,11 @@ export class AnalyticsController {
       ? `analytics-export-${targetOrganizationId}`
       : 'analytics-export-all';
 
+    // The export body is org-supplied content echoed back verbatim. The
+    // attachment disposition is what stops it rendering, so pin the declared
+    // type as well rather than leaving a sniffing browser to reconsider.
+    response.setHeader('X-Content-Type-Options', 'nosniff');
+
     if (exportFormat === 'csv') {
       response.setHeader('Content-Type', 'text/csv');
       response.setHeader(

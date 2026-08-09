@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { SecurityUtil } from '@files/helpers/utils/security/security.util';
+import { escapeDrawtextValue } from '@files/helpers/utils/string/string.util';
 import {
   getPanExpression,
   getZoomExpression,
@@ -387,13 +388,13 @@ export class FFmpegEffectsService {
         yPosition = '(h-text_h)/2';
     }
 
-    const escapedText = text.replace(/'/g, "\\'").replace(/:/g, '\\:');
+    const escapedText = escapeDrawtextValue(text);
 
     const args = [
       '-i',
       inputPath,
       '-vf',
-      `drawtext=fontfile='${fontFile}':text='${escapedText}':fontcolor=${fontColor}:fontsize=${fontSize}:x=(w-text_w)/2:y=${yPosition}:box=1:boxcolor=black@0.5:boxborderw=10`,
+      `drawtext=fontfile='${fontFile}':text='${escapedText}':expansion=none:fontcolor=${fontColor}:fontsize=${fontSize}:x=(w-text_w)/2:y=${yPosition}:box=1:boxcolor=black@0.5:boxborderw=10`,
       '-codec:a',
       'copy',
       '-y',

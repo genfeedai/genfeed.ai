@@ -34,6 +34,7 @@ import {
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
+  type PersistedReviewDecision,
   PostFormat,
   PostStatus,
   PostVisibility,
@@ -111,16 +112,24 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  targetAttachments?: Prisma.InputJsonValue;
   targetExecutionState?: TargetExecutionState;
-  targetSettings?: Record<string, unknown>;
+  targetIdempotencyKey?: string;
+  targetSettings?: Prisma.InputJsonValue;
   targetValidationIssues?: string[];
   targetValidationState?: TargetValidationState;
   userId?: string;
 };
 
 type PostUpdateInput = Partial<UpdatePostDto> & {
+  agentStrategyId?: string;
   brandId?: string;
   organizationId?: string;
+  platform?: CredentialPlatform;
+  reviewDecision?: PersistedReviewDecision;
+  reviewFeedback?: string;
+  reviewedAt?: Date;
+  targetSettings?: Prisma.InputJsonValue;
   userId?: string;
 };
 

@@ -15,6 +15,7 @@ import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util'
 import {
   BatchItemStatus,
   BatchStatus,
+  PersistedReviewDecision,
   ReviewDecision,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -61,18 +62,21 @@ export class BatchGenerationReviewService {
         const decision = item.reviewDecision;
         const status = item.status;
 
-        if (decision === 'approved') {
+        if (decision === ReviewDecision.APPROVED) {
           approvedCount++;
-        } else if (decision === 'rejected') {
+        } else if (decision === ReviewDecision.REJECTED) {
           rejectedCount++;
-        } else if (decision === 'request_changes') {
+        } else if (decision === ReviewDecision.REQUEST_CHANGES) {
           changesRequestedCount++;
         } else if (
           status === BatchItemStatus.PROCESSING ||
           status === BatchItemStatus.PENDING
         ) {
           pendingCount++;
-        } else if (status === BatchItemStatus.COMPLETED && !decision) {
+        } else if (
+          status === BatchItemStatus.COMPLETED &&
+          decision === ReviewDecision.UNSET
+        ) {
           readyCount++;
           readyItems.push({
             batchId: batch.id,
@@ -82,7 +86,7 @@ export class BatchGenerationReviewService {
             mediaUrl: item.mediaUrl,
             platform: item.platform,
             postId: item.postId,
-            reviewDecision: undefined,
+            reviewDecision: ReviewDecision.UNSET,
             status: item.status,
             summary:
               item.caption ??
@@ -222,7 +226,7 @@ export class BatchGenerationReviewService {
           const versionPinId = item.postId
             ? versionPinIds.get(item.postId)
             : undefined;
-          item.reviewDecision = 'approved';
+          item.reviewDecision = ReviewDecision.APPROVED;
           item.publishApproval = item.postId
             ? publishApprovals.get(item.postId)
             : undefined;
@@ -248,7 +252,7 @@ export class BatchGenerationReviewService {
           .map((postId) =>
             transaction.post.updateMany({
               data: {
-                reviewDecision: ReviewDecision.APPROVED,
+                reviewDecision: PersistedReviewDecision.APPROVED,
                 reviewVersionPinId: versionPinIds.get(postId),
                 reviewedAt: new Date(reviewedAt),
               },
@@ -267,7 +271,7 @@ export class BatchGenerationReviewService {
           {
             actorId: createdByUserId,
             mutation: {
-              reviewDecision: ReviewDecision.APPROVED,
+              reviewDecision: PersistedReviewDecision.APPROVED,
               reviewVersionPinId: versionPinIds.get(postId),
               reviewedAt: new Date(reviewedAt),
             },
@@ -316,7 +320,7 @@ export class BatchGenerationReviewService {
     item.reviewEvents = [
       ...(item.reviewEvents ?? []),
       {
-        decision: 'approved',
+        decision: ReviewDecision.APPROVED,
         reviewedAt,
         reviewerId,
         ...(versionPinId ? { versionPinId } : {}),
@@ -365,13 +369,13 @@ export class BatchGenerationReviewService {
     for (const item of batchItems) {
       if (itemIdSet.has(item.id)) {
         item.status = BatchItemStatus.SKIPPED;
-        item.reviewDecision = 'rejected';
+        item.reviewDecision = ReviewDecision.REJECTED;
         item.reviewFeedback = feedback;
         item.reviewedAt = reviewedAt;
         item.reviewEvents = [
           ...(item.reviewEvents ?? []),
           {
-            decision: 'rejected',
+            decision: ReviewDecision.REJECTED,
             feedback,
             reviewedAt,
             ...(actorUserId ? { reviewerId: actorUserId } : {}),
@@ -389,7 +393,7 @@ export class BatchGenerationReviewService {
           actorId: actorUserId,
           mutation: {
             isDeleted: true,
-            reviewDecision: ReviewDecision.REJECTED,
+            reviewDecision: PersistedReviewDecision.REJECTED,
             reviewedAt: new Date(reviewedAt),
             reviewFeedback: feedback,
           },
@@ -455,13 +459,13 @@ export class BatchGenerationReviewService {
 
     for (const item of batchItems) {
       if (itemIdSet.has(item.id) && item.status === BatchItemStatus.COMPLETED) {
-        item.reviewDecision = 'request_changes';
+        item.reviewDecision = ReviewDecision.REQUEST_CHANGES;
         item.reviewFeedback = feedback;
         item.reviewedAt = reviewedAt;
         item.reviewEvents = [
           ...(item.reviewEvents ?? []),
           {
-            decision: 'request_changes',
+            decision: ReviewDecision.REQUEST_CHANGES,
             feedback,
             reviewedAt,
             ...(actorUserId ? { reviewerId: actorUserId } : {}),
@@ -478,7 +482,7 @@ export class BatchGenerationReviewService {
         await this.postLifecycleService.transition({
           actorId: actorUserId,
           mutation: {
-            reviewDecision: ReviewDecision.REQUEST_CHANGES,
+            reviewDecision: PersistedReviewDecision.REQUEST_CHANGES,
             reviewedAt: new Date(reviewedAt),
             reviewFeedback: feedback,
           },

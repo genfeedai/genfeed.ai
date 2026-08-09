@@ -30,6 +30,7 @@ import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTrendsModule } from '@workers/crons/trends/cron.trends.module';
 import { CronWorkflowsModule } from '@workers/crons/workflows/cron.workflows.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
+import { QueueMetricsModule } from '@workers/monitoring/queue-metrics.module';
 import { ProcessorsModule } from '@workers/processors/processors.module';
 import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-control.service';
 import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
@@ -69,6 +70,9 @@ import { SystemSweepsModule } from '@workers/scheduling/system-sweeps.module';
 
     // System sweep schedulers (tenant-product automation, issue #1092)
     SystemSweepsModule,
+
+    // Aggregate queue telemetry with fixed, low-cardinality CloudWatch metrics.
+    QueueMetricsModule,
 
     // Cron Modules (moved from API)
     CronPatternExtractionModule,

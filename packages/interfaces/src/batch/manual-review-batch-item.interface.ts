@@ -1,4 +1,8 @@
-import type { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
+import type {
+  BatchItemStatus,
+  ContentFormat,
+  ReviewDecision,
+} from '@genfeedai/enums';
 
 export type ReviewBatchItemFormat =
   | ContentFormat
@@ -7,7 +11,7 @@ export type ReviewBatchItemFormat =
   | 'post';
 
 export interface ManualReviewEvent {
-  decision: 'approved' | 'rejected' | 'request_changes';
+  decision: ReviewDecision;
   feedback?: string;
   reviewedAt: Date;
   versionPinId?: string;

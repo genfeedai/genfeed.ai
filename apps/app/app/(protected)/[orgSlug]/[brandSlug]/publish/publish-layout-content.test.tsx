@@ -10,11 +10,13 @@ const useSearchParamsMock = vi.fn();
 const openAgentComposerMock = vi.fn();
 const openModalMock = vi.fn();
 
+const brandMock = vi.hoisted(() => ({ label: 'Acme Creator' }));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
     credentials: [{ id: 'credential-x', label: '@acme', platform: 'twitter' }],
-    selectedBrand: { id: 'brand-1', label: 'Acme Creator' },
+    selectedBrand: { id: 'brand-1', label: brandMock.label },
   })),
 }));
 
@@ -50,6 +52,7 @@ vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 describe('PublishLayoutContent', () => {
   beforeEach(() => {
+    brandMock.label = 'Acme Creator';
     openAgentComposerMock.mockReset();
     openModalMock.mockReset();
     usePathnameMock.mockReturnValue('/publish/scheduled');
@@ -103,6 +106,25 @@ describe('PublishLayoutContent', () => {
         /generate a new post for my brand "Acme Creator".*do not ask which brand/i,
       ),
     );
+  });
+
+  it('keeps the prompt well-formed when the brand label contains a quote', async () => {
+    brandMock.label = 'The "Real" Deal';
+    const user = userEvent.setup();
+    render(
+      <PublishLayoutContent>
+        <div>child content</div>
+      </PublishLayoutContent>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /new content/i }));
+    await user.click(screen.getByRole('button', { name: /post with agent/i }));
+
+    const prompt = openAgentComposerMock.mock.calls[0][0] as string;
+    expect(prompt).toContain(
+      'my brand "The \\"Real\\" Deal" (already selected',
+    );
+    expect(prompt).toContain('do not ask which brand to use)');
   });
 
   it('opens first-class X long-form and thread composers', async () => {

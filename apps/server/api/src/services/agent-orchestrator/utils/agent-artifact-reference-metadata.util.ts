@@ -9,7 +9,6 @@ const MAX_COMPLETION_ARTIFACT_REFERENCES = 100;
 const EXPLICIT_RESULT_ID_KEYS = {
   article: { many: 'articleIds', one: 'articleId' },
   asset: { many: 'assetIds', one: 'assetId' },
-  'content-draft': { many: 'contentDraftIds', one: 'contentDraftId' },
   ingredient: { many: 'ingredientIds', one: 'ingredientId' },
   newsletter: { many: 'newsletterIds', one: 'newsletterId' },
   post: { many: 'postIds', one: 'postId' },

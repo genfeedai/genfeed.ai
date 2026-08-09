@@ -42,7 +42,7 @@ export function getReviewItemBadgeStatus(
   if (isApproved(item)) {
     return 'completed';
   }
-  if (item.reviewDecision === 'rejected' || isRejected(item)) {
+  if (isRejected(item)) {
     return 'failed';
   }
   if (isChangesRequested(item)) {

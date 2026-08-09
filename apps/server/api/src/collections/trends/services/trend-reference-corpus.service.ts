@@ -32,8 +32,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 interface RemixLineagePayload {
   organizationId: string;
   brandId: string;
-  contentDraftId?: string;
-  postId?: string;
+  postId: string;
   generatedBy: string;
   platforms: string[];
   draftType?: string;
@@ -85,14 +84,11 @@ export class TrendReferenceCorpusService {
     });
   }
 
-  async recordDraftRemixLineage(payload: RemixLineagePayload): Promise<void> {
-    const hasContentDraftId =
-      typeof payload.contentDraftId === 'string' &&
-      payload.contentDraftId.length > 0;
+  async recordPostRemixLineage(payload: RemixLineagePayload): Promise<void> {
     const hasPostId =
       typeof payload.postId === 'string' && payload.postId.length > 0;
 
-    if (!hasContentDraftId && !hasPostId) {
+    if (!hasPostId) {
       return;
     }
 
@@ -129,15 +125,10 @@ export class TrendReferenceCorpusService {
     }
 
     // Find existing lineage record
-    const where = hasContentDraftId
-      ? { contentDraftId: payload.contentDraftId }
-      : { postId: payload.postId };
-
     const existing = await this.prisma.trendRemixLineage.findFirst({
-      where: {
-        ...where,
-        isDeleted: false,
-      } as Prisma.TrendRemixLineageWhereInput,
+      where: scopedWhere(payload.organizationId, {
+        postId: payload.postId,
+      }) as Prisma.TrendRemixLineageWhereInput,
     });
 
     const dataPayload = {
@@ -166,13 +157,10 @@ export class TrendReferenceCorpusService {
       await this.prisma.trendRemixLineage.create({
         data: {
           brandId: payload.brandId,
-          contentDraftId: hasContentDraftId
-            ? payload.contentDraftId
-            : undefined,
           data: dataPayload as Prisma.InputJsonValue,
           isDeleted: false,
           organizationId: payload.organizationId,
-          postId: hasPostId ? payload.postId : undefined,
+          postId: payload.postId,
           sourceReferences: {
             connect: sourceReferenceIds.map((id) => ({ id })),
           },

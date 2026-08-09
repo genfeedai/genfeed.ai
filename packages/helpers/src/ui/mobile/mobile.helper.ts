@@ -22,6 +22,18 @@ export function isiOSDevice(): boolean {
   return /iphone|ipad|ipod/i.test(getUserAgent());
 }
 
+/**
+ * Exact-or-subdomain host match.
+ *
+ * `host.includes('tiktok.com')` also matches `tiktok.com.evil.example` and
+ * `nottiktok.com`, so a lookalike host was rewritten into the real app's deep
+ * link. The rewritten link hardcodes the genuine host, so this misroutes the
+ * user rather than redirecting them — but it is still the wrong destination.
+ */
+function isHost(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
 export function getDeepLink(url: string, isMobile: boolean): string {
   if (!isMobile) {
     return url;
@@ -33,10 +45,10 @@ export function getDeepLink(url: string, isMobile: boolean): string {
     const isAndroid = isAndroidDevice();
 
     // YouTube
-    if (host.includes('youtube.com') || host.includes('youtu.be')) {
+    if (isHost(host, 'youtube.com') || isHost(host, 'youtu.be')) {
       let videoId = '';
 
-      if (host.includes('youtu.be')) {
+      if (isHost(host, 'youtu.be')) {
         videoId = parsed.pathname.slice(1).split('?')[0];
       } else if (parsed.searchParams.has('v')) {
         videoId = parsed.searchParams?.get('v') ?? '';
@@ -79,7 +91,7 @@ export function getDeepLink(url: string, isMobile: boolean): string {
     }
 
     // TikTok
-    if (host.includes('tiktok.com')) {
+    if (isHost(host, 'tiktok.com')) {
       const pathParts = parsed.pathname.split('/').filter(Boolean);
       if (pathParts.includes('@') || parsed.pathname.includes('/@')) {
         const username =
@@ -106,7 +118,7 @@ export function getDeepLink(url: string, isMobile: boolean): string {
     }
 
     // Instagram
-    if (host.includes('instagram.com')) {
+    if (isHost(host, 'instagram.com')) {
       if (
         parsed.pathname.includes('/p/') ||
         parsed.pathname.includes('/reel/')
@@ -134,7 +146,7 @@ export function getDeepLink(url: string, isMobile: boolean): string {
     }
 
     // Twitter/X
-    if (host.includes('twitter.com') || host.includes('x.com')) {
+    if (isHost(host, 'twitter.com') || isHost(host, 'x.com')) {
       const pathParts = parsed.pathname.split('/').filter(Boolean);
       if (pathParts.length >= 1 && pathParts[0]) {
         const username = pathParts[0].split('?')[0];
@@ -158,7 +170,7 @@ export function getDeepLink(url: string, isMobile: boolean): string {
     }
 
     // LinkedIn
-    if (host.includes('linkedin.com')) {
+    if (isHost(host, 'linkedin.com')) {
       const pathParts = parsed.pathname.split('/').filter(Boolean);
       if (pathParts.includes('in') && pathParts.length >= 2) {
         const userIndex = pathParts.indexOf('in');

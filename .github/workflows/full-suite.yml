@@ -30,6 +30,7 @@ jobs:
     # full-suite can validate the complete workflow graph at startup.
     permissions:
       contents: read
+      issues: write
       pull-requests: write
       statuses: write
     uses: ./.github/workflows/ci.yml

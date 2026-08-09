@@ -1,5 +1,5 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
+import { ReviewablePostsService } from '@api/collections/posts/services/reviewable-posts.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
@@ -11,7 +11,7 @@ describe('ContentGatewayService', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let skillsService: { getEnabledSkillSlugs: ReturnType<typeof vi.fn> };
   let skillExecutorService: { executeSkill: ReturnType<typeof vi.fn> };
-  let contentDraftsService: {
+  let reviewablePostsService: {
     createFromSkillExecution: ReturnType<typeof vi.fn>;
   };
 
@@ -42,13 +42,11 @@ describe('ContentGatewayService', () => {
           },
         },
         {
-          provide: ContentDraftsService,
+          provide: ReviewablePostsService,
           useValue: {
             createFromSkillExecution: vi
               .fn()
-              .mockResolvedValue([
-                { _id: 'draft-1', content: 'hello', type: 'text' },
-              ]),
+              .mockResolvedValue([{ id: 'post-1', description: 'hello' }]),
           },
         },
         {
@@ -67,14 +65,14 @@ describe('ContentGatewayService', () => {
     brandsService = module.get(BrandsService);
     skillsService = module.get(SkillsService);
     skillExecutorService = module.get(SkillExecutorService);
-    contentDraftsService = module.get(ContentDraftsService);
+    reviewablePostsService = module.get(ReviewablePostsService);
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it('routes a signal and returns drafts/runs', async () => {
+  it('routes a signal and returns posts/runs', async () => {
     const result = await service.routeSignal({
       brandId: '507f1f77bcf86cd799439011',
       organizationId: '507f1f77bcf86cd799439012',
@@ -85,9 +83,9 @@ describe('ContentGatewayService', () => {
     expect(brandsService.findOne).toHaveBeenCalled();
     expect(skillsService.getEnabledSkillSlugs).toHaveBeenCalled();
     expect(skillExecutorService.executeSkill).toHaveBeenCalled();
-    expect(contentDraftsService.createFromSkillExecution).toHaveBeenCalled();
+    expect(reviewablePostsService.createFromSkillExecution).toHaveBeenCalled();
     expect(result.runs).toEqual(['run-1']);
-    expect(result.drafts).toHaveLength(1);
+    expect(result.posts).toHaveLength(1);
   });
 
   it('processes manual request for a specific skill', async () => {
@@ -126,9 +124,9 @@ describe('ContentGatewayService', () => {
     skillExecutorService.executeSkill
       .mockResolvedValueOnce({ drafts: [{ content: 'a' }], runId: 'run-a' })
       .mockResolvedValueOnce({ drafts: [{ content: 'b' }], runId: 'run-b' });
-    contentDraftsService.createFromSkillExecution
-      .mockResolvedValueOnce([{ _id: 'd1' }])
-      .mockResolvedValueOnce([{ _id: 'd2' }]);
+    reviewablePostsService.createFromSkillExecution
+      .mockResolvedValueOnce([{ id: 'post-1' }])
+      .mockResolvedValueOnce([{ id: 'post-2' }]);
 
     const result = await service.routeSignal({
       brandId: '507f1f77bcf86cd799439011',
@@ -138,10 +136,10 @@ describe('ContentGatewayService', () => {
     });
 
     expect(result.runs).toEqual(['run-a', 'run-b']);
-    expect(result.drafts).toHaveLength(2);
+    expect(result.posts).toHaveLength(2);
   });
 
-  it('returns empty runs/drafts when no skills are enabled', async () => {
+  it('returns empty runs/posts when no skills are enabled', async () => {
     skillsService.getEnabledSkillSlugs.mockResolvedValue([]);
 
     const result = await service.routeSignal({
@@ -152,7 +150,7 @@ describe('ContentGatewayService', () => {
     });
 
     expect(result.runs).toEqual([]);
-    expect(result.drafts).toEqual([]);
+    expect(result.posts).toEqual([]);
     expect(skillExecutorService.executeSkill).not.toHaveBeenCalled();
   });
 });

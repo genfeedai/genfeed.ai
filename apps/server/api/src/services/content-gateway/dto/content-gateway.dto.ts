@@ -13,10 +13,6 @@ export class RouteSignalDto {
   @IsString()
   readonly brandId!: string;
 
-  @IsString()
-  @IsOptional()
-  readonly organizationId?: string;
-
   @IsIn(SIGNAL_TYPES)
   readonly type!: ContentSignalType;
 

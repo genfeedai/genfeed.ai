@@ -100,7 +100,7 @@ export class PostEntity extends BaseEntity {
   };
   declare readonly reviewedAt?: Date;
   declare readonly reviewEvents?: Array<{
-    decision: 'approved' | 'rejected' | 'request_changes';
+    decision: ReviewDecision;
     feedback?: string;
     reviewedAt: Date;
   }>;

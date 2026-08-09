@@ -23,10 +23,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ReplicateService } from '@server/services/integrations/replicate/services/replicate.service';
 
-type MockCacheService = {
-  invalidateByTags: ReturnType<typeof vi.fn>;
-};
-
 type MockTrendReferenceCorpusService = {
   getCorpusFreshnessHealth: ReturnType<typeof vi.fn>;
   syncTrendReferences: ReturnType<typeof vi.fn>;
@@ -35,7 +31,6 @@ type MockTrendReferenceCorpusService = {
 describe('TrendsService', () => {
   let service: TrendsService;
   let trendContentIdeasService: TrendContentIdeasService;
-  let cacheService: MockCacheService;
   let trendReferenceCorpusService: MockTrendReferenceCorpusService;
   let prisma: {
     trend: {
@@ -179,7 +174,7 @@ describe('TrendsService', () => {
             getReferenceCorpus: vi.fn(),
             getCorpusFreshnessHealth: vi.fn(),
             getTopReferenceAccounts: vi.fn(),
-            recordDraftRemixLineage: vi.fn(),
+            recordPostRemixLineage: vi.fn(),
             syncTrendReferences: vi.fn().mockResolvedValue({
               links: 0,
               references: 0,
@@ -212,7 +207,6 @@ describe('TrendsService', () => {
     trendContentIdeasService = module.get<TrendContentIdeasService>(
       TrendContentIdeasService,
     );
-    cacheService = module.get(CacheService) as unknown as MockCacheService;
     trendReferenceCorpusService = module.get(
       TrendReferenceCorpusService,
     ) as unknown as MockTrendReferenceCorpusService;

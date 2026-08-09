@@ -267,7 +267,7 @@ Tweet 3: Tech innovation is changing the world.`,
   };
 
   const mockTrendReferenceCorpusService = {
-    recordDraftRemixLineage: vi.fn().mockResolvedValue(undefined),
+    recordPostRemixLineage: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockWebsocketService = {
@@ -314,7 +314,7 @@ Tweet 3: Tech innovation is changing the world.`,
     mockTemplatesService.getRenderedPrompt.mockResolvedValue(
       'Generated prompt template',
     );
-    mockTrendReferenceCorpusService.recordDraftRemixLineage.mockResolvedValue(
+    mockTrendReferenceCorpusService.recordPostRemixLineage.mockResolvedValue(
       undefined,
     );
     mockWebsocketService.emit.mockResolvedValue(undefined);
