@@ -29,6 +29,7 @@ apps/app/packages/**/*.js.map
 .env.*.local
 .DS_Store
 coverage/
+coverage-all/
 apps/*/.vitest-reports/
 .vercel
 out/

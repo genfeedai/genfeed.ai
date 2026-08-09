@@ -25,13 +25,13 @@ describe('CronIngredientsService', () => {
   const mockStuckIngredients = {
     docs: [
       {
-        _id: 'ingredient-id-1',
         createdAt: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
+        id: 'ingredient-id-1',
         status: IngredientStatus.PROCESSING,
       },
       {
-        _id: 'ingredient-id-2',
         createdAt: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
+        id: 'ingredient-id-2',
         status: IngredientStatus.PROCESSING,
       },
     ],
@@ -40,20 +40,16 @@ describe('CronIngredientsService', () => {
   const mockIngredientsNeedingRefresh = {
     docs: [
       {
-        _id: 'ingredient-id-3',
         category: IngredientCategory.VIDEO,
-        metadata: 'metadata-id-1',
-        metadataDoc: {
-          _id: 'metadata-doc-id-1',
-        },
+        id: 'ingredient-id-3',
+        metadata: null,
+        metadataId: 'metadata-id-1',
       },
       {
-        _id: 'ingredient-id-4',
         category: IngredientCategory.IMAGE,
-        metadata: 'metadata-id-2',
-        metadataDoc: {
-          _id: 'metadata-doc-id-2',
-        },
+        id: 'ingredient-id-4',
+        metadata: null,
+        metadataId: 'metadata-id-2',
       },
     ],
   };
@@ -159,8 +155,7 @@ describe('CronIngredientsService', () => {
 
       expect(ingredientsService.patchAll).toHaveBeenCalledWith(
         expect.objectContaining({
-          OR: expect.any(Array),
-          isDeleted: false,
+          id: { in: ['ingredient-id-1', 'ingredient-id-2'] },
           status: IngredientStatus.PROCESSING,
         }),
         {
@@ -299,12 +294,10 @@ describe('CronIngredientsService', () => {
       const videoIngredient = {
         docs: [
           {
-            _id: 'ingredient-id-5',
             category: IngredientCategory.VIDEO,
-            metadata: 'metadata-id-5',
-            metadataDoc: {
-              _id: 'metadata-doc-id-5',
-            },
+            id: 'ingredient-id-5',
+            metadata: null,
+            metadataId: 'metadata-id-5',
           },
         ],
       };
@@ -344,10 +337,8 @@ describe('CronIngredientsService', () => {
           {
             category: IngredientCategory.VIDEO,
             id: 'ingredient-id-7',
-            metadata: 'metadata-id-7',
-            metadataDoc: {
-              _id: 'metadata-doc-id-7',
-            },
+            metadata: null,
+            metadataId: 'metadata-id-7',
           },
         ],
       };
@@ -374,12 +365,10 @@ describe('CronIngredientsService', () => {
       const imageIngredient = {
         docs: [
           {
-            _id: 'ingredient-id-6',
             category: IngredientCategory.IMAGE,
-            metadata: 'metadata-id-6',
-            metadataDoc: {
-              _id: 'metadata-doc-id-6',
-            },
+            id: 'ingredient-id-6',
+            metadata: null,
+            metadataId: 'metadata-id-6',
           },
         ],
       };

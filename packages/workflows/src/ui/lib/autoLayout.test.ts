@@ -121,6 +121,102 @@ describe('getLayoutedNodes', () => {
     );
   });
 
+  it('pushes ranks apart on the x axis when rank spacing collapses', () => {
+    // rankSpacing 0 makes dagre butt consecutive ranks together; collision
+    // resolution has to reopen the minimum gap horizontally.
+    const nodes = [makeNode('a'), makeNode('b')];
+    const edges = [makeEdge('a', 'b')];
+
+    const result = getLayoutedNodes(nodes, edges, { rankSpacing: 0 });
+    const byId = new Map(result.map((n) => [n.id, n]));
+    const a = byId.get('a')!;
+    const b = byId.get('b')!;
+
+    expect(overlaps(a, b)).toBe(false);
+    expect(b.position.x - a.position.x).toBeGreaterThanOrEqual(280);
+    // the push is symmetric, so the y axis is untouched
+    expect(a.position.y).toBeCloseTo(b.position.y, 5);
+  });
+
+  it('pushes siblings apart on the y axis when node spacing collapses', () => {
+    const nodes = [makeNode('a'), makeNode('b'), makeNode('sink')];
+    const edges = [makeEdge('a', 'sink'), makeEdge('b', 'sink')];
+
+    const result = getLayoutedNodes(nodes, edges, { nodeSpacing: 0 });
+    const byId = new Map(result.map((n) => [n.id, n]));
+    const a = byId.get('a')!;
+    const b = byId.get('b')!;
+
+    expect(overlaps(a, b)).toBe(false);
+    expect(Math.abs(b.position.y - a.position.y)).toBeGreaterThanOrEqual(200);
+  });
+
+  it('separates a dense sibling fan with mixed measured sizes', () => {
+    const nodes = [
+      makeNode('s1', { measured: { height: 400, width: 200 } }),
+      makeNode('s2', { measured: { height: 100, width: 500 } }),
+      makeNode('s3', { measured: { height: 250, width: 300 } }),
+      makeNode('sink', { type: 'lipSync' }),
+    ];
+    const edges = [
+      makeEdge('s1', 'sink', 'audio'),
+      makeEdge('s2', 'sink', 'video'),
+      makeEdge('s3', 'sink', 'audio'),
+    ];
+
+    const result = getLayoutedNodes(nodes, edges, {
+      nodeSpacing: 0,
+      rankSpacing: 0,
+    });
+
+    for (let i = 0; i < result.length; i++) {
+      for (let j = i + 1; j < result.length; j++) {
+        expect(
+          overlaps(result[i], result[j]),
+          `${result[i].id} overlaps ${result[j].id}`,
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('leaves nodes untouched when the target node is missing from the graph', () => {
+    // The edge points at a node that was never supplied; handle reordering
+    // must skip it instead of throwing.
+    const nodes = [makeNode('a'), makeNode('b')];
+    const edges = [
+      makeEdge('a', 'ghost', 'video'),
+      makeEdge('b', 'ghost', 'audio'),
+    ];
+
+    expect(() => getLayoutedNodes(nodes, edges)).not.toThrow();
+  });
+
+  it('ignores edges whose source node is missing', () => {
+    const nodes = [makeNode('a'), makeNode('sink', { type: 'lipSync' })];
+    const edges = [
+      makeEdge('a', 'sink', 'video'),
+      makeEdge('ghost', 'sink', 'audio'),
+    ];
+
+    expect(() => getLayoutedNodes(nodes, edges)).not.toThrow();
+  });
+
+  it('treats unknown node types and handles as handle index zero', () => {
+    const nodes = [
+      makeNode('a'),
+      makeNode('b'),
+      makeNode('sink', { type: 'notARealNodeType' }),
+    ];
+    const edges = [
+      makeEdge('a', 'sink', 'nope'),
+      makeEdge('b', 'sink', 'alsoNope'),
+    ];
+
+    const result = getLayoutedNodes(nodes, edges);
+    expect(result).toHaveLength(3);
+    expect(result.every((n) => Number.isFinite(n.position.y))).toBe(true);
+  });
+
   it('respects custom spacing options', () => {
     const nodes = [makeNode('a'), makeNode('b')];
     const edges = [makeEdge('a', 'b')];

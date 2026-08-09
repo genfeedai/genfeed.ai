@@ -187,21 +187,11 @@ describe('FilesService', () => {
         'video_resized.mp4',
       );
 
-      const mockProcess = {
-        on: vi.fn((event, callback) => {
-          if (event === 'close') {
-            callback(0);
-          }
-        }),
-        stderr: { on: vi.fn() },
-        stdout: { on: vi.fn() },
-      };
-
-      (spawn as Mock).mockReturnValue(mockProcess);
-      service.runFfmpeg = vi.fn().mockResolvedValue(undefined);
+      mockSuccessfulFfmpegProcess();
 
       const result = await service.resizeVideo(inputPath, target);
 
+      expect(spawn).toHaveBeenCalled();
       expect(result).toBe(expectedOutputPath);
     });
 
@@ -209,11 +199,373 @@ describe('FilesService', () => {
       const inputPath = '/tmp/video.mp4';
       const target = { height: 720, width: 1280 };
 
-      service.runFfmpeg = vi.fn().mockRejectedValue(new Error('FFmpeg failed'));
+      mockFailingFfmpegProcess(1);
 
       await expect(service.resizeVideo(inputPath, target)).rejects.toThrow(
-        'FFmpeg failed',
+        'ffmpeg exited with code 1',
       );
+    });
+  });
+
+  describe('prepareAllFiles', () => {
+    it('downloads images, voices, and background music from frames', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('binary-data') }));
+      (sharp as Mock).mockReturnValue({
+        jpeg: vi.fn().mockReturnThis(),
+        resize: vi.fn().mockReturnThis(),
+        rotate: vi.fn().mockReturnThis(),
+        toFile: vi.fn().mockResolvedValue(undefined),
+      });
+
+      const frames = [
+        {
+          duration: 3,
+          image: 'img-1',
+          overlayText: 'hi',
+          voice: 'voice-1',
+          voiceText: 'hello there',
+        },
+      ];
+
+      const result = await service.prepareAllFiles(
+        mockIngredientId,
+        frames,
+        'music-1',
+      );
+
+      expect(result.images).toEqual(['img-1']);
+      expect(result.voices).toEqual(['voice-1']);
+      expect(result.captions).toEqual([
+        { duration: 3, overlayText: 'hi', voiceText: 'hello there' },
+      ]);
+      expect(httpService.get).toHaveBeenCalled();
+    });
+
+    it('downloads image-to-videos instead of images when present', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('binary-data') }));
+
+      const frames = [{ duration: 3, imageToVideo: 'clip-1', voiceText: 'hi' }];
+
+      const result = await service.prepareAllFiles(
+        mockIngredientId,
+        frames,
+        '',
+      );
+
+      expect(result.imageToVideos).toEqual(['clip-1']);
+      expect(result.images).toEqual([]);
+    });
+  });
+
+  describe('downloadFile', () => {
+    it('writes non-image files with fs.writeFileSync', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('binary-data') }));
+
+      const filePath = await service.downloadFile(
+        mockIngredientId,
+        'voices',
+        'voice-1',
+        0,
+      );
+
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(filePath).toContain('frame-0.mp3');
+    });
+
+    it('processes image files through sharp instead of writeFileSync', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('binary-data') }));
+      const toFile = vi.fn().mockResolvedValue(undefined);
+      (sharp as Mock).mockReturnValue({
+        jpeg: vi.fn().mockReturnThis(),
+        resize: vi.fn().mockReturnThis(),
+        rotate: vi.fn().mockReturnThis(),
+        toFile,
+      });
+
+      const filePath = await service.downloadFile(
+        mockIngredientId,
+        'images',
+        'img-1',
+        0,
+      );
+
+      expect(toFile).toHaveBeenCalled();
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+      expect(filePath).toContain('frame-0.jpeg');
+    });
+
+    it('logs and wraps errors when the download fails', async () => {
+      httpService.get.mockReturnValue(
+        throwError(() => new Error('network down')),
+      );
+
+      await expect(
+        service.downloadFile(mockIngredientId, 'voices', 'voice-1', 0),
+      ).rejects.toThrow('Failed to download file: network down');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('addWatermark', () => {
+    it('runs ffmpeg with a drawtext filter and returns the output path', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.addWatermark('/tmp/output/video.mp4', {
+        height: 1080,
+        width: 1920,
+      });
+
+      expect(spawn).toHaveBeenCalled();
+      expect(result).toBe('/tmp/output/video_watermark.mp4');
+    });
+
+    it('uses a custom watermark text when provided', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      await service.addWatermark(
+        '/tmp/output/video.mp4',
+        { height: 1080, width: 1920 },
+        'MyBrand',
+      );
+
+      const args = (spawn as Mock).mock.calls[0][1] as string[];
+      expect(args.join(' ')).toContain('MyBrand');
+    });
+  });
+
+  describe('addTextOverlay', () => {
+    it('downloads the source video and adds a text overlay using provided dimensions', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.addTextOverlay(
+        mockIngredientId,
+        'https://example.com/source.mp4',
+        'Hello world',
+        'bottom',
+        { height: 1920, width: 1080 },
+      );
+
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(result).toContain('text_overlay.mp4');
+      expect(execFile).not.toHaveBeenCalled();
+    });
+
+    it('cleans up the downloaded input file when deletion is enabled', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockSuccessfulFfmpegProcess();
+
+      await service.addTextOverlay(
+        mockIngredientId,
+        'https://example.com/source.mp4',
+        'Hello world',
+        'top',
+        { height: 1920, width: 1080 },
+      );
+
+      expect(fs.unlinkSync).toHaveBeenCalled();
+    });
+
+    it('rethrows and logs when ffmpeg fails', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockFailingFfmpegProcess(1);
+
+      await expect(
+        service.addTextOverlay(
+          mockIngredientId,
+          'https://example.com/source.mp4',
+          'Hello world',
+          'center',
+          { height: 1920, width: 1080 },
+        ),
+      ).rejects.toThrow('ffmpeg exited with code 1');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('reverseVideo', () => {
+    it('downloads the source video and reverses it', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.reverseVideo(
+        mockIngredientId,
+        'https://example.com/source.mp4',
+      );
+
+      expect(result).toContain('reversed.mp4');
+    });
+
+    it('rethrows and logs when ffmpeg fails', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockFailingFfmpegProcess(1);
+
+      await expect(
+        service.reverseVideo(
+          mockIngredientId,
+          'https://example.com/source.mp4',
+        ),
+      ).rejects.toThrow('ffmpeg exited with code 1');
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('mirrorVideo', () => {
+    it('downloads the source video and mirrors it', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.mirrorVideo(
+        mockIngredientId,
+        'https://example.com/source.mp4',
+      );
+
+      expect(result).toContain('mirrored.mp4');
+    });
+
+    it('rethrows and logs when ffmpeg fails', async () => {
+      httpService.get.mockReturnValue(of({ data: Buffer.from('video-data') }));
+      mockFailingFfmpegProcess(1);
+
+      await expect(
+        service.mirrorVideo(mockIngredientId, 'https://example.com/source.mp4'),
+      ).rejects.toThrow('ffmpeg exited with code 1');
+    });
+  });
+
+  describe('convertToPortrait', () => {
+    it('crops and scales the video to portrait dimensions', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.convertToPortrait(
+        'videos',
+        mockIngredientId,
+        'source.mp4',
+      );
+
+      expect(result).toContain('portrait.mp4');
+    });
+
+    it('accepts custom dimensions', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      await service.convertToPortrait(
+        'videos',
+        mockIngredientId,
+        'source.mp4',
+        {
+          height: 1280,
+          width: 720,
+        },
+      );
+
+      const args = (spawn as Mock).mock.calls[0][1] as string[];
+      expect(args.join(' ')).toContain('scale=720:1280');
+    });
+  });
+
+  describe('extractFirstAndLastFrames', () => {
+    it('extracts the first and last frame paths', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.extractFirstAndLastFrames(
+        mockIngredientId,
+        'source.mp4',
+      );
+
+      expect(result.first).toContain('first.jpg');
+      expect(result.last).toContain('last.jpg');
+      expect(spawn).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getVideoMetadata', () => {
+    it('parses ffprobe JSON output', async () => {
+      (execFile as unknown as Mock).mockImplementation(
+        (
+          _cmd: string,
+          _args: string[],
+          callback: (error: Error | null, result: unknown) => void,
+        ) => {
+          callback(null, {
+            stderr: '',
+            stdout: JSON.stringify({ format: { duration: '10' } }),
+          });
+        },
+      );
+
+      const result = await service.getVideoMetadata('/tmp/video.mp4');
+
+      expect(result).toEqual({ format: { duration: '10' } });
+    });
+
+    it('logs and rethrows when ffprobe fails', async () => {
+      (execFile as unknown as Mock).mockImplementation(
+        (
+          _cmd: string,
+          _args: string[],
+          callback: (error: Error | null, result: unknown) => void,
+        ) => {
+          callback(new Error('ffprobe not found'), undefined);
+        },
+      );
+
+      await expect(service.getVideoMetadata('/tmp/video.mp4')).rejects.toThrow(
+        'ffprobe not found',
+      );
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('extractFrames', () => {
+    it('creates the output directory when missing and returns sorted frame paths', async () => {
+      (fs.existsSync as Mock).mockReturnValue(false);
+      mockSuccessfulFfmpegProcess();
+      (fs.readdirSync as Mock).mockReturnValue([
+        'frame-0002.jpg',
+        'frame-0001.jpg',
+        'other.txt',
+      ]);
+
+      const result = await service.extractFrames(
+        '/tmp/video.mp4',
+        '/tmp/frames',
+      );
+
+      expect(fs.mkdirSync).toHaveBeenCalledWith('/tmp/frames', {
+        recursive: true,
+      });
+      expect(result).toEqual([
+        path.join('/tmp/frames', 'frame-0001.jpg'),
+        path.join('/tmp/frames', 'frame-0002.jpg'),
+      ]);
+    });
+  });
+
+  describe('mergeVideos', () => {
+    it('writes a concat list file and merges the videos', async () => {
+      mockSuccessfulFfmpegProcess();
+
+      const result = await service.mergeVideos(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/output/merged.mp4',
+      );
+
+      expect(fs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('list.txt'),
+        expect.stringContaining("file '/tmp/a.mp4'"),
+      );
+      expect(fs.unlinkSync).toHaveBeenCalled();
+      expect(result).toBe('/tmp/output/merged.mp4');
+    });
+
+    it('cleans up the list file and rethrows when ffmpeg fails', async () => {
+      mockFailingFfmpegProcess(1);
+
+      await expect(
+        service.mergeVideos(['/tmp/a.mp4'], '/tmp/output/merged.mp4'),
+      ).rejects.toThrow('ffmpeg exited with code 1');
+      expect(fs.unlinkSync).toHaveBeenCalled();
     });
   });
 
