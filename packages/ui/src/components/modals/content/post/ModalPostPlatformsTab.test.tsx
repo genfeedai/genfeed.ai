@@ -1,7 +1,17 @@
+import '@testing-library/jest-dom/vitest';
+
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
-import { CredentialPlatform } from '@genfeedai/enums';
-import { fireEvent, render, screen } from '@testing-library/react';
-import ModalPostPlatformsTab from '@ui/modals/content/post/ModalPostPlatformsTab';
+import {
+  CredentialPlatform,
+  IngredientCategory,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
+import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import ModalPostPlatformsTab, {
+  buildComposerPreviewTargets,
+} from '@ui/modals/content/post/ModalPostPlatformsTab';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -22,28 +32,32 @@ const createFormStub = (): UseFormReturn<MultiPostSchema> =>
     }),
   }) as unknown as UseFormReturn<MultiPostSchema>;
 
+function platformConfig(
+  overrides: Partial<IPostPlatformConfig> = {},
+): IPostPlatformConfig {
+  return {
+    credentialId: 'cred-instagram',
+    customScheduledDate: '',
+    description: 'Instagram launch copy',
+    enabled: true,
+    handle: 'genfeed-instagram',
+    label: 'Instagram launch',
+    overrideSchedule: false,
+    platform: CredentialPlatform.INSTAGRAM,
+    status: 'scheduled',
+    ...overrides,
+  };
+}
+
 describe('ModalPostPlatformsTab', () => {
-  it('calls togglePlatform once when enabling a platform', () => {
+  it('calls togglePlatform once when enabling a connected platform', () => {
     const togglePlatform = vi.fn();
 
     render(
       <ModalPostPlatformsTab
         form={createFormStub()}
-        platformConfigs={[
-          {
-            credentialId: 'cred-1',
-            customScheduledDate: '',
-            description: '',
-            enabled: false,
-            handle: 'genfeed',
-            label: '',
-            overrideSchedule: false,
-            platform: CredentialPlatform.INSTAGRAM,
-            status: 'scheduled',
-          },
-        ]}
-        selectedPlatformId="cred-1"
-        setSelectedPlatformId={vi.fn()}
+        ingredients={[]}
+        platformConfigs={[platformConfig({ enabled: false })]}
         isLoading={false}
         togglePlatform={togglePlatform}
         updatePlatformConfig={vi.fn()}
@@ -51,43 +65,27 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    const checkbox = screen.getByRole('checkbox');
-    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('checkbox'));
 
-    expect(togglePlatform).toHaveBeenCalledTimes(1);
-    expect(togglePlatform).toHaveBeenCalledWith('cred-1');
+    expect(togglePlatform).toHaveBeenCalledOnce();
+    expect(togglePlatform).toHaveBeenCalledWith('cred-instagram');
   });
 
-  it('only renders details for the selected platform', () => {
+  it('previews every selected channel and switches between their overrides', () => {
     render(
       <ModalPostPlatformsTab
         form={createFormStub()}
+        ingredients={[]}
         platformConfigs={[
-          {
-            credentialId: 'cred-1',
-            customScheduledDate: '',
-            description: '',
-            enabled: true,
-            handle: 'insta-handle',
+          platformConfig(),
+          platformConfig({
+            credentialId: 'cred-twitter',
+            description: 'X-specific launch copy',
+            handle: 'genfeed-x',
             label: '',
-            overrideSchedule: false,
-            platform: CredentialPlatform.INSTAGRAM,
-            status: 'scheduled',
-          },
-          {
-            credentialId: 'cred-2',
-            customScheduledDate: '',
-            description: '',
-            enabled: true,
-            handle: 'twitter-handle',
-            label: '',
-            overrideSchedule: false,
             platform: CredentialPlatform.TWITTER,
-            status: 'scheduled',
-          },
+          }),
         ]}
-        selectedPlatformId="cred-1"
-        setSelectedPlatformId={vi.fn()}
         isLoading={false}
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
@@ -95,46 +93,27 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    // @insta-handle appears in both the platform card and the details section
-    expect(screen.getAllByText('@insta-handle').length).toBeGreaterThan(0);
-    // Twitter is also shown in the platform cards grid
-    expect(screen.getAllByText('@twitter-handle').length).toBeGreaterThan(0);
-    expect(screen.getByText('Title')).toBeInTheDocument();
-    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.getByText('Live preview')).toBeVisible();
+    expect(
+      screen.getByRole('article', { name: 'Instagram platform preview' }),
+    ).toBeVisible();
+    const preview = screen.getByLabelText('Platform preview');
+    expect(within(preview).getByText('Instagram launch copy')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'X (Twitter)' }));
+
+    expect(
+      screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
+    ).toBeVisible();
+    expect(within(preview).getByText('X-specific launch copy')).toBeVisible();
   });
 
-  it.skip('calls setSelectedPlatformId when choosing a different platform', () => {
-    const setSelectedPlatformId = vi.fn();
-
+  it('hides and restores the selected-channel preview', () => {
     render(
       <ModalPostPlatformsTab
         form={createFormStub()}
-        platformConfigs={[
-          {
-            credentialId: 'cred-1',
-            customScheduledDate: '',
-            description: '',
-            enabled: true,
-            handle: 'insta-handle',
-            label: '',
-            overrideSchedule: false,
-            platform: CredentialPlatform.INSTAGRAM,
-            status: 'scheduled',
-          },
-          {
-            credentialId: 'cred-2',
-            customScheduledDate: '',
-            description: '',
-            enabled: true,
-            handle: 'twitter-handle',
-            label: '',
-            overrideSchedule: false,
-            platform: CredentialPlatform.TWITTER,
-            status: 'scheduled',
-          },
-        ]}
-        selectedPlatformId="cred-1"
-        setSelectedPlatformId={setSelectedPlatformId}
+        ingredients={[]}
+        platformConfigs={[platformConfig()]}
         isLoading={false}
         togglePlatform={vi.fn()}
         updatePlatformConfig={vi.fn()}
@@ -142,13 +121,114 @@ describe('ModalPostPlatformsTab', () => {
       />,
     );
 
-    const cards = screen.getAllByRole('button');
-    // There may be additional buttons in the UI, find the platform card buttons
-    expect(cards.length).toBeGreaterThanOrEqual(2);
+    fireEvent.click(screen.getByRole('button', { name: /hide preview/i }));
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
 
-    // Click on a platform card that isn't selected
-    fireEvent.click(cards[1]);
+    fireEvent.click(screen.getByRole('button', { name: /show preview/i }));
+    expect(screen.getByLabelText('Platform preview')).toBeInTheDocument();
+  });
 
-    expect(setSelectedPlatformId).toHaveBeenCalled();
+  it('omits disabled, disconnected, and invalid channel selections', () => {
+    const targets = buildComposerPreviewTargets(
+      [
+        platformConfig(),
+        platformConfig({
+          credentialId: 'cred-twitter',
+          enabled: false,
+          platform: CredentialPlatform.TWITTER,
+        }),
+        platformConfig({
+          credentialId: '',
+          platform: CredentialPlatform.LINKEDIN,
+        }),
+        platformConfig({
+          credentialId: 'cred-youtube',
+          isCredentialValid: false,
+          platform: CredentialPlatform.YOUTUBE,
+        }),
+      ],
+      [],
+    );
+
+    expect(targets).toHaveLength(1);
+    expect(targets[0]).toMatchObject({
+      caption: 'Instagram launch copy',
+      platform: CredentialPlatform.INSTAGRAM,
+      title: 'Instagram launch',
+    });
+  });
+
+  it('shares the exact selected media with every channel preview', () => {
+    const ingredient = {
+      category: IngredientCategory.GIF,
+      id: 'media-1',
+      ingredientUrl: 'https://cdn.example.com/launch.gif',
+      metadataLabel: 'Launch animation',
+      thumbnailUrl: 'https://cdn.example.com/launch.jpg',
+    } as unknown as IIngredient;
+
+    const targets = buildComposerPreviewTargets(
+      [
+        platformConfig(),
+        platformConfig({
+          credentialId: 'cred-twitter',
+          platform: CredentialPlatform.TWITTER,
+        }),
+      ],
+      [ingredient],
+    );
+
+    expect(targets).toHaveLength(2);
+    for (const target of targets) {
+      expect(target.media).toEqual([
+        expect.objectContaining({
+          alt: 'Launch animation',
+          id: 'media-1',
+          isAnimated: true,
+          url: 'https://cdn.example.com/launch.gif',
+        }),
+      ]);
+    }
+    expect(targets[0]?.settings).toMatchObject({ placement: 'feed' });
+    expect(targets[0]?.publishMode).toBe('scheduled');
+  });
+
+  it('maps existing channel choices into canonical preview settings', () => {
+    const targets = buildComposerPreviewTargets(
+      [
+        platformConfig({
+          category: PostCategory.VIDEO,
+        }),
+        platformConfig({
+          credentialId: 'cred-youtube',
+          platform: CredentialPlatform.YOUTUBE,
+          status: PostStatus.UNLISTED,
+        }),
+      ],
+      [],
+    );
+
+    expect(targets[0]?.settings).toMatchObject({ placement: 'reel' });
+    expect(targets[1]?.settings).toMatchObject({
+      madeForKids: false,
+      privacyStatus: 'unlisted',
+    });
+  });
+
+  it('hides the preview section when no connected channel is selected', () => {
+    render(
+      <ModalPostPlatformsTab
+        form={createFormStub()}
+        ingredients={[]}
+        platformConfigs={[platformConfig({ enabled: false })]}
+        isLoading={false}
+        togglePlatform={vi.fn()}
+        updatePlatformConfig={vi.fn()}
+        getMinDateTime={() => TEST_MIN_DATE}
+      />,
+    );
+
+    expect(screen.queryByText('Live preview')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Platform preview')).not.toBeInTheDocument();
   });
 });

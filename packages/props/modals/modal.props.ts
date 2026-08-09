@@ -293,6 +293,7 @@ export interface ModalPostContentProps {
   setGlobalScheduledDate: (date: Date | null) => void;
   settings?: IOrganizationSetting;
   ingredient?: IIngredient | null;
+  ingredients?: IIngredient[];
   isLoading: boolean;
   togglePlatform: (credentialId: string) => void;
   updatePlatformConfig: (
@@ -307,8 +308,10 @@ export interface ModalPostContentProps {
  */
 export interface ModalPostPlatformsTabProps {
   form: UseFormReturn<MultiPostSchema>;
+  ingredients?: IIngredient[];
   platformConfigs: IPostPlatformConfig[];
   isLoading: boolean;
+  ingredient?: IIngredient | null;
   togglePlatform: (credentialId: string) => void;
   updatePlatformConfig: (
     credentialId: string,

@@ -8,6 +8,7 @@ import {
 import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
 import type {
   CalendarEventBadge,
+  CalendarEventChannel,
   CalendarEventDrop,
 } from '@props/components/calendar.props';
 import {
@@ -51,6 +52,7 @@ const getReleaseGroupsServiceMock = vi.fn(async () => ({
 
 const calendarRenderProps: Array<{
   getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
+  getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
   isItemDraggable: (item: CalendarItemShape) => boolean;
   items: CalendarItemShape[];
   onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
@@ -105,6 +107,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   default: ({
     filterControls,
     getEventBadge,
+    getEventChannels,
     isItemDraggable,
     items,
     modal,
@@ -113,6 +116,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   }: {
     filterControls: ReactNode;
     getEventBadge: (item: CalendarItemShape) => CalendarEventBadge | null;
+    getEventChannels: (item: CalendarItemShape) => CalendarEventChannel[];
     isItemDraggable: (item: CalendarItemShape) => boolean;
     items: CalendarItemShape[];
     modal: ReactNode;
@@ -121,6 +125,7 @@ vi.mock('@ui/calendar/content-calendar/ContentCalendar', () => ({
   }) => {
     calendarRenderProps.push({
       getEventBadge,
+      getEventChannels,
       isItemDraggable,
       items,
       onEventDrop,
@@ -183,6 +188,7 @@ vi.mock('./release-detail-drawer', async (importOriginal) => {
       onRescheduleTarget,
       onRetryTarget,
       pendingAction,
+      reconnectHref,
       release,
     }: {
       error: string | null;
@@ -190,9 +196,11 @@ vi.mock('./release-detail-drawer', async (importOriginal) => {
       onRescheduleTarget: (targetId: string, scheduledDate: string) => void;
       onRetryTarget: (targetId: string) => void;
       pendingAction: string | null;
+      reconnectHref: string;
       release: { id: string } | null;
     }) => (
       <div data-testid="release-drawer">
+        <span data-testid="reconnect-href">{reconnectHref}</span>
         <span data-testid="drawer-release">{release?.id ?? 'closed'}</span>
         <span data-testid="drawer-pending">{pendingAction ?? 'idle'}</span>
         {error ? <span data-testid="drawer-error">{error}</span> : null}
@@ -322,6 +330,9 @@ describe('ContentCalendarPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'open:release-1' }));
 
     expect(screen.getByTestId('drawer-release')).toHaveTextContent('release-1');
+    expect(screen.getByTestId('reconnect-href')).toHaveTextContent(
+      '/acme-org/acme-creator/settings/social',
+    );
     expect(screen.getByTestId('evergreen-series-controls')).toHaveTextContent(
       'release-1',
     );
@@ -365,6 +376,35 @@ describe('ContentCalendarPage', () => {
         status: 'draft',
       }),
     ).toBeNull();
+  });
+
+  it('derives one channel icon per distinct platform and none for articles', async () => {
+    findReleasesMock.mockResolvedValue([
+      release({
+        targets: [
+          target(),
+          target({ id: 'target-2' }),
+          target({ id: 'target-3', platform: CredentialPlatform.YOUTUBE }),
+        ],
+      }),
+    ]);
+
+    await renderLoaded();
+
+    const { getEventChannels, items } = latestCalendarProps();
+    const releaseItem = items.find((item) => item.itemType === 'release');
+
+    expect(getEventChannels(releaseItem as CalendarItemShape)).toEqual([
+      { id: 'instagram', label: 'Instagram' },
+      { id: 'youtube', label: 'YouTube' },
+    ]);
+    expect(
+      getEventChannels({
+        id: 'article-9',
+        itemType: 'article',
+        status: 'draft',
+      }),
+    ).toEqual([]);
   });
 
   it('refuses to drag a release that can no longer be moved', async () => {

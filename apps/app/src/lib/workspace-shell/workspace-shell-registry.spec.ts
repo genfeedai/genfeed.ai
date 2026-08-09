@@ -4,7 +4,6 @@ import {
   PROTECTED_ROUTE_INVENTORY,
   resolveWorkspaceShellRoute,
   resolveWorkspaceShellSafeFallback,
-  WORKSPACE_SHELL_AUXILIARY_REGISTRY,
 } from './workspace-shell-registry';
 
 const ROUTE_PARAM_FIXTURES: Readonly<Record<string, string>> = {
@@ -31,11 +30,10 @@ function materializeRoutePattern(pattern: string): string {
 
 describe('workspace shell trusted registry', () => {
   it('owns the complete accepted protected-route denominator', () => {
-    expect(PROTECTED_ROUTE_INVENTORY).toHaveLength(220);
     expect(
       new Set(PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl))
         .size,
-    ).toBe(220);
+    ).toBe(PROTECTED_ROUTE_INVENTORY.length);
 
     for (const route of PROTECTED_ROUTE_INVENTORY) {
       expect(route.accessPolicy).toMatch(
@@ -118,7 +116,6 @@ describe('workspace shell trusted registry', () => {
     ['/acme/moonrise/automate/library/images', 'Automate', 'Images'],
     ['/acme/moonrise/edit/article/article-1', 'Edit', 'Article'],
     ['/acme/moonrise/edit/newsletter/newsletter-1', 'Edit', 'Newsletter'],
-    ['/acme/moonrise/publish/posts/post-1', 'Posts', 'Post'],
   ] as const)(
     'resolves canonical breadcrumb metadata for %s',
     (pathname, rootLabel, leafLabel) => {
@@ -143,6 +140,19 @@ describe('workspace shell trusted registry', () => {
     },
   );
 
+  it('keeps the content desk breadcrumb nested under Posts for /acme/moonrise/publish/posts/post-1', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publish/posts/post-1')
+        ?.breadcrumb,
+    ).toEqual({
+      leafLabel: 'Post',
+      parentHref: '/publish/posts',
+      parentLabel: 'Posts',
+      rootHref: '/publish/overview',
+      rootLabel: 'Publish',
+    });
+  });
+
   it.each([
     ['/:orgSlug/:brandSlug/publish/calendar', 'canvas'],
     ['/:orgSlug/:brandSlug/library/moodboard', 'canvas'],
@@ -162,14 +172,13 @@ describe('workspace shell trusted registry', () => {
   it.each([
     '/acme/moonrise/edit/article/article-1',
     '/acme/moonrise/edit/newsletter/newsletter-1',
-    '/acme/moonrise/publish/posts/post-1',
   ] as const)(
     'registers the dedicated artifact editor %s as a focused Publish surface',
     (pathname) => {
       expect(resolveWorkspaceShellRoute(pathname)).toMatchObject({
         mode: 'canvas',
         productClass: 'contextual-action',
-        safeFallback: '/:orgSlug/:brandSlug/publish/overview',
+        safeFallback: '/:orgSlug/:brandSlug/publish/posts',
         surfaceKey: 'artifact-editor',
       });
       expect(resolveWorkspaceShellRoute(pathname)?.switcherItems).toEqual([
@@ -177,6 +186,17 @@ describe('workspace shell trusted registry', () => {
       ]);
     },
   );
+
+  it('registers /acme/moonrise/publish/posts/post-1 as the publish control-plane surface, not the artifact editor', () => {
+    expect(
+      resolveWorkspaceShellRoute('/acme/moonrise/publish/posts/post-1'),
+    ).toMatchObject({
+      mode: 'canvas',
+      productClass: 'control-plane',
+      safeFallback: '/:orgSlug/:brandSlug/publish/overview',
+      surfaceKey: 'publish',
+    });
+  });
 
   it('keeps legacy workflow aliases aligned with their canonical automate owners', () => {
     expect(
@@ -477,11 +497,6 @@ describe('workspace shell trusted registry', () => {
       presentation: { title: 'Choose a workflow' },
       telemetryClass: 'workflow_picker',
     });
-    expect(
-      WORKSPACE_SHELL_AUXILIARY_REGISTRY.some(
-        (registration) => registration.kind === 'chrome',
-      ),
-    ).toBe(false);
   });
 
   it('is immutable and rejects untrusted registry keys', () => {

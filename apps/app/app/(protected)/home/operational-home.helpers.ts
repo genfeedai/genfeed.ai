@@ -6,7 +6,13 @@ import {
   API_KEY_SCOPE_PRESETS,
   CONNECT_GENFEED_VERIFICATION_METADATA_KEY,
 } from '@genfeedai/constants';
-import type { IActivity, IBrand, ICredential } from '@genfeedai/interfaces';
+import { TargetExecutionState } from '@genfeedai/enums';
+import type {
+  IActivity,
+  IBrand,
+  ICredential,
+  IReleaseGroup,
+} from '@genfeedai/interfaces';
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 
 interface ConnectGenfeedMetadata {
@@ -189,6 +195,66 @@ export function getActivityBadge(activity: IActivity): {
 
   // Generic log entry — blue info chip so the activity list isn't monochrome.
   return { label: 'Recorded', variant: 'info' };
+}
+
+export interface UpcomingScheduleDay {
+  count: number;
+  date: Date;
+}
+
+/**
+ * Buckets scheduled channel targets into local calendar days starting at
+ * `windowStart` (a local start-of-day). Boundaries are advanced with
+ * `setDate` per day rather than 24h arithmetic so a DST shift cannot move a
+ * send into the neighboring bucket.
+ */
+export function summarizeUpcomingSchedule(
+  releases: IReleaseGroup[],
+  windowStart: Date,
+  dayCount = 7,
+): UpcomingScheduleDay[] {
+  const days: UpcomingScheduleDay[] = [];
+  const buckets: Array<{
+    day: UpcomingScheduleDay;
+    end: number;
+    start: number;
+  }> = [];
+
+  let cursor = new Date(windowStart);
+  for (let index = 0; index < dayCount; index += 1) {
+    const next = new Date(cursor);
+    next.setDate(next.getDate() + 1);
+
+    const day: UpcomingScheduleDay = { count: 0, date: cursor };
+    days.push(day);
+    buckets.push({ day, end: next.getTime(), start: cursor.getTime() });
+    cursor = next;
+  }
+
+  for (const release of releases) {
+    for (const target of release.targets ?? []) {
+      if (target.executionState !== TargetExecutionState.SCHEDULED) {
+        continue;
+      }
+
+      // A target-only schedule still lands; a release-level schedule covers
+      // targets without their own instant — same fallback the calendar uses.
+      const instant = target.scheduledAt ?? release.scheduledAt;
+      const time = instant ? Date.parse(instant) : Number.NaN;
+      if (!Number.isFinite(time)) {
+        continue;
+      }
+
+      const bucket = buckets.find(
+        (candidate) => time >= candidate.start && time < candidate.end,
+      );
+      if (bucket) {
+        bucket.day.count += 1;
+      }
+    }
+  }
+
+  return days;
 }
 
 export function summarizeCredentialHealth(

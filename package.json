@@ -157,7 +157,8 @@
     "type-check": "bunx turbo run type-check",
     "type-check:cli": "bunx turbo run type-check --filter=@genfeedai/cli",
     "secretlint": "secretlint '**/*'",
-    "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts"
+    "check:type-assertions": "bun run scripts/architecture/check-type-assertions.ts",
+    "check:untranslated-strings": "bun run scripts/architecture/check-untranslated-strings.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.7",

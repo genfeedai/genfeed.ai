@@ -6,7 +6,6 @@ import {
   cloneElement,
   type ReactElement,
   type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
@@ -16,12 +15,9 @@ import {
   useState,
 } from 'react';
 import {
-  clampAgentPanelHeight,
   clampSidebarWidth,
-  persistAgentPanelHeight,
   persistSidebarCollapsed,
   persistSidebarWidth,
-  readPersistedAgentPanelHeight,
   readPersistedSidebarCollapsed,
   readPersistedSidebarWidth,
   SIDEBAR_DEFAULT_WIDTH,
@@ -30,33 +26,18 @@ import {
 } from './app-layout.utils';
 
 const SIDEBAR_COLLAPSED_WIDTH = 0;
-const AGENT_PANEL_HEIGHT = 380;
 const DESKTOP_TITLEBAR_HEIGHT = 32;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 type UseAppLayoutParams = Pick<
   AppLayoutProps,
-  | 'menuComponent'
-  | 'topbarComponent'
-  | 'shellChromeVariant'
-  | 'topbarChromeVariant'
-  | 'agentPanel'
-  | 'isAgentCollapsed'
-  | 'onAgentToggle'
-  | 'currentApp'
-  | 'orgSlug'
-  | 'brandSlug'
+  'menuComponent' | 'topbarComponent' | 'currentApp' | 'orgSlug' | 'brandSlug'
 >;
 
 export function useAppLayout({
   menuComponent,
   topbarComponent,
-  shellChromeVariant = 'default',
-  topbarChromeVariant = 'inherit',
-  agentPanel,
-  isAgentCollapsed = false,
-  onAgentToggle,
   currentApp,
   orgSlug,
   brandSlug,
@@ -66,6 +47,10 @@ export function useAppLayout({
   const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] =
     useState(false);
   const [isSidebarResizing, setIsSidebarResizing] = useState(false);
+  const initialMenuSidebarWidthRef = useRef(
+    (menuComponent as ReactElement<{ sidebarWidth?: number }> | null)?.props
+      ?.sidebarWidth,
+  );
   // Seed from localStorage on the client so the first paint matches the
   // persisted rail width (avoids 280 → stored width flash after mount).
   const [sidebarExpandedWidth, setSidebarExpandedWidth] = useState(() => {
@@ -74,8 +59,6 @@ export function useAppLayout({
       ? clampSidebarWidth(persistedWidth)
       : SIDEBAR_DEFAULT_WIDTH;
   });
-  const [agentPanelHeight, setAgentPanelHeight] =
-    useState<number>(AGENT_PANEL_HEIGHT);
   /** Layout root for CSS-var drag updates (no React re-render per pixel). */
   const layoutRootRef = useRef<HTMLDivElement | null>(null);
   const sidebarDragWidthRef = useRef(sidebarExpandedWidth);
@@ -115,16 +98,14 @@ export function useAppLayout({
       setSidebarExpandedWidth(clampSidebarWidth(persistedWidth));
     } else {
       // Seed from host menu prop (e.g. AppProtectedLayout) once per session.
-      const hostWidth = (
-        menuComponent as ReactElement<{ sidebarWidth?: number }> | null
-      )?.props?.sidebarWidth;
+      const hostWidth = initialMenuSidebarWidthRef.current;
       if (typeof hostWidth === 'number') {
         setSidebarExpandedWidth(clampSidebarWidth(hostWidth));
       }
     }
     setIsSidebarPreferenceLoaded(true);
-    // Intentionally run once on mount — resizing is owned by localStorage + state.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- host width is a seed only
+    // Intentionally run once on mount — resizing is owned by localStorage + state,
+    // and the host width seed is captured by the ref on the first render.
   }, []);
 
   useEffect(() => {
@@ -142,15 +123,6 @@ export function useAppLayout({
 
     persistSidebarWidth(sidebarExpandedWidth);
   }, [isSidebarPreferenceLoaded, sidebarExpandedWidth]);
-
-  useEffect(() => {
-    const persistedHeight = readPersistedAgentPanelHeight();
-    if (persistedHeight === null) {
-      return;
-    }
-
-    setAgentPanelHeight(clampAgentPanelHeight(persistedHeight));
-  }, []);
 
   // Cmd+B toggles sidebar
   useEffect(() => {
@@ -258,15 +230,11 @@ export function useAppLayout({
       return undefined;
     }
 
-    const effectiveAgentToggle = agentPanel ? onAgentToggle : undefined;
-
     return {
       brandSlug,
       currentApp,
-      isAgentCollapsed,
       isMenuOpen: isSidebarOpen,
       isSidebarCollapsed: isDesktopCollapsed,
-      onAgentToggle: effectiveAgentToggle,
       onMenuToggle: handleToggleSidebar,
       onSidebarToggle: handleToggleDesktopSidebar,
       orgSlug,
@@ -278,9 +246,6 @@ export function useAppLayout({
     handleToggleDesktopSidebar,
     isDesktopCollapsed,
     isSidebarOpen,
-    isAgentCollapsed,
-    agentPanel,
-    onAgentToggle,
     orgSlug,
     topbarComponent,
   ]);
@@ -300,11 +265,7 @@ export function useAppLayout({
       ? desktopSidebarCollapsedWidth
       : desktopSidebarExpandedWidth
     : 0;
-  const desktopAgentHeight =
-    agentPanel && !isAgentCollapsed ? agentPanelHeight : 0;
-
   const layoutStyle = {
-    '--desktop-agent-height': `${desktopAgentHeight}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
     '--desktop-titlebar-height': isDesktopClient()
       ? `${DESKTOP_TITLEBAR_HEIGHT}px`
@@ -382,43 +343,6 @@ export function useAppLayout({
     [],
   );
 
-  const handleAgentPanelResizeStart = useCallback(
-    (event: ReactMouseEvent<HTMLButtonElement>) => {
-      if (isAgentCollapsed) {
-        return;
-      }
-
-      event.preventDefault();
-
-      const startY = event.clientY;
-      const startHeight = agentPanelHeight;
-      let nextHeight = startHeight;
-
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        const delta = startY - moveEvent.clientY;
-        nextHeight = clampAgentPanelHeight(startHeight + delta);
-        setAgentPanelHeight(nextHeight);
-      };
-
-      const handleMouseUp = () => {
-        setAgentPanelHeight(nextHeight);
-        persistAgentPanelHeight(nextHeight);
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-    },
-    [agentPanelHeight, isAgentCollapsed],
-  );
-
-  const resolvedTopbarChromeVariant =
-    topbarChromeVariant === 'inherit'
-      ? shellChromeVariant
-      : topbarChromeVariant;
-  const shouldRenderTopbarChrome = resolvedTopbarChromeVariant === 'default';
-
   const desktopMenuContent = renderMenu();
   const mobileMenuContent = renderMenu({
     isCollapsed: false,
@@ -433,15 +357,10 @@ export function useAppLayout({
   const sidebarOffsetTransition = isSidebarResizing
     ? 'none'
     : `padding-left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, padding-right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, left ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, right ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`;
-  const agentPanelTransition = `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, ${sidebarOffsetTransition}`;
-
   return {
-    agentPanelHeight,
-    agentPanelTransition,
     desktopMenuContent,
     desktopSidebarCollapsedWidth,
     desktopSidebarExpandedWidth,
-    handleAgentPanelResizeStart,
     handleCloseSidebar,
     handleSidebarResizeKeyDown,
     handleSidebarResizeStart,
@@ -453,7 +372,6 @@ export function useAppLayout({
     layoutStyle,
     mobileMenuContent,
     mobileSidebarWidth,
-    shouldRenderTopbarChrome,
     sidebarOffsetTransition,
     topbarProps,
   };

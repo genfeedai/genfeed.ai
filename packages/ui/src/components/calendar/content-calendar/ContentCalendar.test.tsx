@@ -392,7 +392,7 @@ describe('ContentCalendar', () => {
     expect(onEventDrop).not.toHaveBeenCalled();
   });
 
-  it('renders the status badge alongside a truncatable title', async () => {
+  it('renders compact channel indicators and status beside a truncatable title', async () => {
     const item = makeItem();
 
     render(
@@ -402,6 +402,10 @@ describe('ContentCalendar', () => {
         onDatesChange={vi.fn()}
         getEventColor={() => '#8b5cf6'}
         getEventBadge={() => ({ label: 'Failed', tone: 'danger' })}
+        getEventIndicators={() => [
+          { label: 'Instagram', shortLabel: 'IG' },
+          { label: 'LinkedIn', shortLabel: 'LI' },
+        ]}
       />,
     );
 
@@ -419,9 +423,102 @@ describe('ContentCalendar', () => {
       'Launch note',
     );
 
+    const indicators = node.querySelector('.gen-calendar-event-indicators');
+    expect(indicators?.textContent).toBe('IG+1');
+    expect(indicators).toHaveAttribute(
+      'aria-label',
+      'Channels: Instagram, LinkedIn',
+    );
+    expect(indicators).toHaveAttribute('title', 'Instagram, LinkedIn');
+
     const badge = node.querySelector('.gen-calendar-event-badge');
     expect(badge?.textContent).toBe('Failed');
     expect(badge?.className).toContain('gen-calendar-event-badge--danger');
+  });
+
+  it('renders channel icons cloned from the platform sprite', async () => {
+    const item = makeItem();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventBadge={() => ({ label: 'Scheduled', tone: 'info' })}
+        getEventChannels={() => [
+          { id: 'instagram', label: 'Instagram' },
+          { id: 'tiktok', label: 'TikTok' },
+        ]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const node = expectDomNode(renderEventContent(item));
+    const channels = node.querySelector('.gen-calendar-event-channels');
+
+    expect(channels?.getAttribute('aria-label')).toBe(
+      'Channels: Instagram, TikTok',
+    );
+    expect(channels?.querySelectorAll('svg')).toHaveLength(2);
+    // Icons lead the title so a dense week grid scans by destination first.
+    expect(node.firstElementChild?.className).toBe('gen-calendar-event-time');
+    expect(channels?.nextElementSibling?.className).toBe(
+      'gen-calendar-event-title',
+    );
+    expect(node.querySelector('.gen-calendar-event-badge')).not.toBeNull();
+  });
+
+  it('renders channels without a badge when the host supplies none', async () => {
+    const item = makeItem();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventChannels={() => [{ id: 'youtube', label: 'YouTube' }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const node = expectDomNode(renderEventContent(item));
+
+    expect(
+      node.querySelector('.gen-calendar-event-channels svg'),
+    ).not.toBeNull();
+    expect(node.querySelector('.gen-calendar-event-badge')).toBeNull();
+  });
+
+  it('skips channels whose platform has no icon in the sprite', async () => {
+    const item = makeItem();
+
+    render(
+      <ContentCalendar
+        items={[item]}
+        onEventClick={vi.fn()}
+        onDatesChange={vi.fn()}
+        getEventColor={() => '#8b5cf6'}
+        getEventBadge={() => ({ label: 'Scheduled', tone: 'info' })}
+        getEventChannels={() => [{ id: 'not-a-platform', label: 'Mystery' }]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(calendarMocks.instances).toHaveLength(1);
+    });
+
+    const node = expectDomNode(renderEventContent(item));
+
+    expect(node.querySelector('.gen-calendar-event-channels')).toBeNull();
+    expect(node.querySelector('.gen-calendar-event-badge')).not.toBeNull();
   });
 
   it('drops the duplicated time from list rows', async () => {

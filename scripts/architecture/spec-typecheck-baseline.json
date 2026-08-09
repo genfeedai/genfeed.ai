@@ -1617,27 +1617,11 @@
       "workspace": "api"
     },
     {
-      "code": 2561,
-      "count": 1,
-      "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",
-      "fingerprint": "65902a13fe46705e12ac",
-      "message": "Object literal may only specify known properties, but 'targetPlatforms' does not exist in type 'RepurposeContentDto'. Did you mean to write 'targetFormats'?",
-      "workspace": "api"
-    },
-    {
       "code": 2741,
       "count": 1,
       "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",
       "fingerprint": "5b2156089c4325903fe9",
       "message": "Property 'contentId' is missing in type '{ contentType: \"image\"; platform: string; }' but required in type 'GetOptimalTimeDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 18048,
-      "count": 6,
-      "file": "apps/server/api/src/collections/schedules/controllers/schedules.controller.spec.ts",
-      "fingerprint": "5e130f12cb0dc5d7c882",
-      "message": "'mockUser.publicMetadata' is possibly 'undefined'.",
       "workspace": "api"
     },
     {
@@ -4299,14 +4283,6 @@
     {
       "code": 2345,
       "count": 1,
-      "file": "apps/server/api/src/services/lifecycle-emails/lifecycle-email-delivery.service.spec.ts",
-      "fingerprint": "d51904df619ee1bd7b4a",
-      "message": "Argument of type '{ lifecycleEmailDelivery: { findFirst: Mock<Procedure | Constructable>; update: Mock<Procedure | Constructable>; }; lifecycleEmailPreference: { ...; }; post: { ...; }; subscription: { ...; }; userSubscription: { ...; }; }' is not assignable to parameter of type 'ServerPrisma'.   Type '{ lifecycleEmailDelivery: { findFirst: Mock<Procedure | Constructable>; update: Mock<Procedure | Constructable>; }; lifecycleEmailPreference: { ...; }; post: { ...; }; subscription: { ...; }; userSubscription: { ...; }; }' is missing the following properties from type 'ServerPrisma': $queryRaw, $transaction, agentMessage, agentThread, and 20 more.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
       "file": "apps/server/api/src/services/microservices/microservices.service.spec.ts",
       "fingerprint": "12eedd286205203237dc",
       "message": "Argument of type '(key: string) => \"production\" | \"http://notifications.genfeed.ai\"' is not assignable to parameter of type '(key: keyof ApiEnvConfig) => string | number | boolean | undefined'.   Types of parameters 'key' and 'key' are incompatible.     Type 'keyof ApiEnvConfig' is not assignable to type 'string'.       Type 'number' is not assignable to type 'string'.",
@@ -4510,22 +4486,6 @@
       "file": "apps/server/api/src/services/signup-prefill/signup-prefill.service.spec.ts",
       "fingerprint": "815ca02004229d576324",
       "message": "No overload matches this call.   Overload 1 of 2, '(predicate: (value: any[], index: number, array: any[][]) => value is any[], thisArg?: any): any[][]', gave the following error.     Argument of type '([, update]: [string, Record<string, unknown>]) => boolean' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => value is any[]'.       Types of parameters '__0' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[string, Record<string, unknown>]'.           Target requires 2 element(s) but source may have fewer.   Overload 2 of 2, '(predicate: (value: any[], index: number, array: any[][]) => unknown, thisArg?: any): any[][]', gave the following error.     Argument of type '([, update]: [string, Record<string, unknown>]) => boolean' is not assignable to parameter of type '(value: any[], index: number, array: any[][]) => unknown'.       Types of parameters '__0' and 'value' are incompatible.         Type 'any[]' is not assignable to type '[string, Record<string, unknown>]'.           Target requires 2 element(s) but source may have fewer.",
-      "workspace": "api"
-    },
-    {
-      "code": 2739,
-      "count": 3,
-      "file": "apps/server/api/src/services/sync/desktop-sync.service.spec.ts",
-      "fingerprint": "8a9f5a23fe58729c9599",
-      "message": "Type '{ displayName: string; id: string; kind: string; mimeType: string; origin: string; originalFileName: string; residency: string; sha256: string; sizeBytes: number; uploadPolicy: string; }' is missing the following properties from type 'DesktopAssetDto': createdAt, organizationId, updatedAt",
-      "workspace": "api"
-    },
-    {
-      "code": 5097,
-      "count": 1,
-      "file": "apps/server/api/src/services/sync/desktop-sync.service.spec.ts",
-      "fingerprint": "02604f78cc6c7724d757",
-      "message": "An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.",
       "workspace": "api"
     },
     {

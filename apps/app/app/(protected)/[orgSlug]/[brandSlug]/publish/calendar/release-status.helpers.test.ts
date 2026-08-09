@@ -1,4 +1,5 @@
 import {
+  CredentialPlatform,
   ReleaseStatus,
   ReleaseTargetSource,
   TargetExecutionState,
@@ -11,6 +12,7 @@ import {
   isReleaseReschedulable,
   isTargetBlockedByReadiness,
   isTargetReschedulable,
+  releasePlatformIndicators,
   releaseSources,
   releaseStatusBadge,
   targetHistory,
@@ -154,6 +156,31 @@ describe('releaseSources', () => {
         }),
       ),
     ).toEqual([ReleaseTargetSource.WORKFLOW, ReleaseTargetSource.AGENT]);
+  });
+});
+
+describe('releasePlatformIndicators', () => {
+  it('keeps one compact indicator per distinct release target platform', () => {
+    expect(
+      releasePlatformIndicators(
+        release({
+          targets: [
+            target({ platform: CredentialPlatform.INSTAGRAM }),
+            target({
+              id: 'target-2',
+              platform: CredentialPlatform.LINKEDIN,
+            }),
+            target({
+              id: 'target-3',
+              platform: CredentialPlatform.INSTAGRAM,
+            }),
+          ],
+        }),
+      ),
+    ).toEqual([
+      { label: 'Instagram', shortLabel: 'IG' },
+      { label: 'LinkedIn', shortLabel: 'LI' },
+    ]);
   });
 });
 

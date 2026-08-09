@@ -139,6 +139,25 @@ describe('MastodonPublisherService', () => {
       expect(result.error).toContain('4 media attachments');
     });
 
+    it('should accept posts with description exactly at 500 characters', () => {
+      const context = makeContext({
+        post: {
+          category: PostCategory.TEXT,
+          description: 'a'.repeat(500),
+          ingredients: [],
+        } as unknown as PublishContext['post'],
+      });
+      const mediaInfo = {
+        hasIngredients: false,
+        ingredientIds: [],
+        isCarousel: false,
+        isImagePost: false,
+        mediaUrls: [],
+      };
+      const result = service.validatePost(context, mediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
     it('should reject posts with description over 500 characters', () => {
       const longText = 'a'.repeat(501);
       const context = makeContext({
@@ -157,6 +176,9 @@ describe('MastodonPublisherService', () => {
       };
       const result = service.validatePost(context, mediaInfo);
       expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('Mastodon');
+      expect(result.error).toContain('501');
       expect(result.error).toContain('500 characters');
     });
   });

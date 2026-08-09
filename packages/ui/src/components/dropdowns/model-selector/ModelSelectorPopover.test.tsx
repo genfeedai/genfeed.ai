@@ -43,15 +43,21 @@ vi.mock('@ui/primitives/command', async () => {
       />
     ),
     CommandItem: ({
+      'aria-label': ariaLabel,
       children,
       onSelect,
       value,
     }: {
+      'aria-label'?: string;
       children: React.ReactNode;
       onSelect?: (value: string) => void;
       value?: string;
     }) => (
-      <button type="button" onClick={() => onSelect?.(value ?? '')}>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={() => onSelect?.(value ?? '')}
+      >
         {children}
       </button>
     ),
@@ -187,6 +193,34 @@ function createModel(
     updatedAt: '2026-01-01',
     ...overrides,
   } as IModel;
+}
+
+const catalogFilterFixtures = [
+  createModel({
+    key: 'google/current-alpha',
+    label: 'Current Alpha',
+  }),
+  createModel({
+    key: 'openai/current-beta',
+    label: 'Current Beta',
+  }),
+  createModel({
+    isLegacy: true,
+    key: 'google/legacy-alpha',
+    label: 'Legacy Alpha',
+  }),
+  createModel({
+    isLegacy: true,
+    key: 'openai/legacy-beta',
+    label: 'Legacy Beta',
+  }),
+];
+
+function visibleExpandedModelFamilies(): string[] {
+  return screen
+    .getAllByRole('button', { name: /, .+, expanded$/ })
+    .map((button) => button.getAttribute('aria-label') ?? '')
+    .toSorted();
 }
 
 describe('ModelSelectorPopover', () => {
@@ -479,22 +513,12 @@ describe('ModelSelectorPopover', () => {
     expect(onChange).toHaveBeenCalledWith('models', ['__auto_model__']);
   });
 
-  it('exposes a Legacy rail filter for deprecated models', async () => {
+  it('shows the exact current and legacy catalog fixture memberships', async () => {
     const user = userEvent.setup();
 
     render(
       <ModelSelectorPopover
-        models={[
-          createModel({
-            key: 'google/current',
-            label: 'Current Model',
-          }),
-          createModel({
-            isDeprecated: true,
-            key: 'google/old',
-            label: 'Old Model',
-          } as IModel),
-        ]}
+        models={catalogFilterFixtures}
         values={[]}
         onChange={vi.fn()}
         favoriteModelKeys={[]}
@@ -505,13 +529,16 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    // Default catalog hides legacy rows.
-    expect(screen.getByText('Current Model')).toBeInTheDocument();
-    expect(screen.queryByText('Old Model')).not.toBeInTheDocument();
+    expect(visibleExpandedModelFamilies()).toEqual([
+      'Current Alpha, Google, expanded',
+      'Current Beta, OpenAI, expanded',
+    ]);
 
     await user.click(screen.getByRole('button', { name: 'Legacy models' }));
-    expect(screen.getByText('Old Model')).toBeInTheDocument();
-    expect(screen.queryByText('Current Model')).not.toBeInTheDocument();
+    expect(visibleExpandedModelFamilies()).toEqual([
+      'Legacy Alpha, Google, expanded',
+      'Legacy Beta, OpenAI, expanded',
+    ]);
   });
 
   it('blocks selecting models that cost more credits than available', async () => {
@@ -536,16 +563,39 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
+    // "Expensive Model" is a single-variant family — the credit-lock badge
+    // and the selectable row live inside the collapsed family item, so it
+    // must be expanded first (same two-step flow as the multi-variant case).
+    await user.click(screen.getByRole('button', { name: /expensive model/i }));
     expect(screen.getByText('Credits')).toBeInTheDocument();
-    await user.click(screen.getByText('Expensive Model'));
+    await user.click(screen.getByText('Base'));
 
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('does not open when isDisabled and marks the trigger disabled', async () => {
+  it('closes when disabled and stays closed after re-enabling', async () => {
     const user = userEvent.setup();
 
-    render(
+    const { rerender } = render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: /select models/i });
+    await user.click(trigger);
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+
+    rerender(
       <ModelSelectorPopover
         models={[
           createModel({
@@ -561,14 +611,70 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    const trigger = screen.getByRole('button', { name: /select models/i });
     expect(trigger).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
 
-    await user.click(trigger);
+    rerender(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
 
     expect(
       screen.queryByPlaceholderText('Search models…'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+  });
+
+  it('keeps single-select family toggles keyboard-reachable', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+          createModel({
+            key: 'google/nano-banana-pro',
+            label: 'Nano Banana Pro',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+
+    const family = screen.getByRole('button', {
+      name: 'Nano Banana, Google, expanded',
+    });
+    expect(screen.getByText('Pro')).toBeInTheDocument();
+
+    family.focus();
+    await user.keyboard('{Enter}');
+
+    expect(family).toHaveAccessibleName('Nano Banana, Google, collapsed');
+    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+
+    await user.keyboard('{Enter}');
+
+    expect(family).toHaveAccessibleName('Nano Banana, Google, expanded');
+    expect(screen.getByText('Pro')).toBeInTheDocument();
   });
 });

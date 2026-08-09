@@ -1,8 +1,9 @@
+import type { ActivityMessageFormatter } from '@genfeedai/enums';
 import {
   ActivityKey,
   ActivityKeys,
   ActivitySource,
-  formatActivityMessage,
+  formatActivityMessage as formatEnglishActivityMessage,
   getActivityLifecycleStatus,
   getActivityMessageDescriptor,
   IngredientCategory,
@@ -159,7 +160,10 @@ function parseCreditAmount(value: string | undefined): number | null {
  * Catalog templates own copy. Never prefer stored/model labels — those used to
  * dump wire keys (`image-failed`) and JSON payloads (`Image {ingredientId…}`).
  */
-export function getActivityDescription(activity: IActivity): string {
+export function getActivityDescription(
+  activity: IActivity,
+  formatActivityMessage: ActivityMessageFormatter = formatEnglishActivityMessage,
+): string {
   const key = activity.key?.trim() ?? '';
 
   if (key === ActivityKey.POST_GENERATED) {
@@ -178,33 +182,17 @@ export function getActivityDescription(activity: IActivity): string {
     const sourceLabel = activity.source
       ? getActivitySourceLabel(activity.source)
       : undefined;
+    const descriptor = getActivityMessageDescriptor(key);
+    const contextualDescriptor = {
+      ...descriptor,
+      params: {
+        ...descriptor.params,
+        amount: amountLabel ?? 'none',
+        source: sourceLabel ?? 'none',
+      },
+    };
 
-    if (key === ActivityKey.CREDITS_ADD) {
-      return amountLabel
-        ? `${amountLabel} credits added`
-        : formatActivityMessage(getActivityMessageDescriptor(key));
-    }
-    if (key === ActivityKey.CREDITS_REMOVE) {
-      if (amountLabel && sourceLabel) {
-        return `${sourceLabel} · ${amountLabel} credits used`;
-      }
-      if (amountLabel) {
-        return `${amountLabel} credits used`;
-      }
-      if (sourceLabel) {
-        return sourceLabel;
-      }
-      return formatActivityMessage(getActivityMessageDescriptor(key));
-    }
-    if (
-      key === ActivityKey.CREDITS_REMOVE_ALL ||
-      key === 'credits-remove-all'
-    ) {
-      return formatActivityMessage(getActivityMessageDescriptor(key));
-    }
-    if (key === ActivityKey.CREDITS_RESET || key === 'credits-reset') {
-      return formatActivityMessage(getActivityMessageDescriptor(key));
-    }
+    return formatActivityMessage(contextualDescriptor);
   }
 
   if (key) {

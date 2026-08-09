@@ -190,6 +190,12 @@ export class PostGroupContractService {
         ? validateChannelTargetSettings({
             credentialId: existing.credentialId,
             platform: existing.platform,
+            publishMode:
+              existing.targetExecutionState === TargetExecutionState.DRAFT
+                ? 'draft'
+                : existing.scheduledDate
+                  ? 'scheduled'
+                  : undefined,
             settings: input.settings,
             visibility: input.visibility ?? existing.visibility ?? undefined,
           })

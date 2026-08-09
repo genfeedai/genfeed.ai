@@ -147,6 +147,14 @@ describe('status.constant', () => {
         expect(meta?.variant).toBe('info');
       });
 
+      it('should have metadata for PENDING status', () => {
+        const meta = STATUS_METADATA.get(PostStatus.PENDING);
+
+        expect(meta).toBeDefined();
+        expect(meta?.label).toBe('Verifying');
+        expect(meta?.variant).toBe('info');
+      });
+
       it('should have metadata for FAILED status', () => {
         const meta = STATUS_METADATA.get(PostStatus.FAILED);
 
@@ -264,10 +272,12 @@ describe('status.constant', () => {
       );
       const scheduledPost = STATUS_METADATA.get(PostStatus.SCHEDULED);
       const processingPost = STATUS_METADATA.get(PostStatus.PROCESSING);
+      const pendingPost = STATUS_METADATA.get(PostStatus.PENDING);
 
       expect(processingIngredient?.variant).toBe('info');
       expect(scheduledPost?.variant).toBe('info');
       expect(processingPost?.variant).toBe('info');
+      expect(pendingPost?.variant).toBe('info');
     });
 
     it('should use ghost variant for neutral states', () => {
@@ -318,15 +328,7 @@ describe('status.constant', () => {
     });
 
     it('should have entries for all post statuses', () => {
-      const postStatuses = [
-        PostStatus.DRAFT,
-        PostStatus.SCHEDULED,
-        PostStatus.PUBLIC,
-        PostStatus.PRIVATE,
-        PostStatus.UNLISTED,
-        PostStatus.PROCESSING,
-        PostStatus.FAILED,
-      ];
+      const postStatuses = Object.values(PostStatus);
 
       postStatuses.forEach((status) => {
         expect(STATUS_METADATA.has(status)).toBe(true);

@@ -12,6 +12,7 @@ export default function ModalPostContent({
   setGlobalScheduledDate,
   settings,
   ingredient,
+  ingredients,
   isLoading,
   togglePlatform,
   updatePlatformConfig,
@@ -34,8 +35,10 @@ export default function ModalPostContent({
   return (
     <ModalPostPlatformsTab
       form={form}
+      ingredients={ingredients}
       platformConfigs={platformConfigs}
       isLoading={isLoading}
+      ingredient={ingredient}
       togglePlatform={togglePlatform}
       updatePlatformConfig={updatePlatformConfig}
       getMinDateTime={getMinDateTime}

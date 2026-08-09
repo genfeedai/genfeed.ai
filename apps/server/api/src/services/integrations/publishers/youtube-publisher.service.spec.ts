@@ -281,6 +281,38 @@ describe('YouTubePublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const videoMediaInfo: MediaInfo = {
+      hasIngredients: true,
+      ingredientIds: [mockIngredientId.toString()],
+      isCarousel: false,
+      isImagePost: false,
+      mediaUrls: ['https://api.test.com/ingredients/videos/123'],
+    };
+
+    it('should pass a description exactly at the 5000-character YouTube limit', () => {
+      const context = createPublishContext({
+        ...mockVideoPost,
+        description: 'a'.repeat(5000),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, videoMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit description with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockVideoPost,
+        description: 'a'.repeat(5001),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, videoMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('YouTube');
+      expect(result.error).toContain('5001');
+      expect(result.error).toContain('5000');
+    });
+  });
+
   describe('publish', () => {
     describe('text-only posts (not supported)', () => {
       it('should return failed result for text-only posts', async () => {
