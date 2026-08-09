@@ -1,5 +1,4 @@
 import {
-  PostStatus,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,
@@ -326,14 +325,12 @@ describe('SchedulerPublishStateService', () => {
         { id: '   ', organizationId: 'org-1' },
         {
           executionState: TargetExecutionState.PUBLISHED,
-          status: PostStatus.PUBLIC,
         },
       );
       const opaque = await service.transitionPost(
         { id: 'post-1', organizationId: {} },
         {
           executionState: TargetExecutionState.PUBLISHED,
-          status: PostStatus.PUBLIC,
         },
       );
 
@@ -359,7 +356,6 @@ describe('SchedulerPublishStateService', () => {
         },
         {
           executionState: TargetExecutionState.PUBLISHED,
-          status: PostStatus.PUBLIC,
         },
       );
 
@@ -424,7 +420,6 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       update: {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
       },
     };
 
@@ -490,7 +485,6 @@ describe('SchedulerPublishStateService', () => {
           postId: 'target-1',
           update: {
             executionState: TargetExecutionState.PUBLISHED,
-            status: PostStatus.PUBLIC,
           },
         }),
       ).rejects.toThrow('connection lost');
@@ -516,7 +510,6 @@ describe('SchedulerPublishStateService', () => {
           postId: 'target-1',
           update: {
             executionState: TargetExecutionState.PUBLISHED,
-            status: PostStatus.PUBLIC,
           },
         }),
       ).rejects.toEqual({ code: 'P2034' });
@@ -570,7 +563,6 @@ describe('SchedulerPublishStateService', () => {
       update: {
         error: { code: 'RATE_LIMIT', message: 'Too many requests' },
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
       },
     });
 
@@ -630,7 +622,6 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       update: {
         executionState: TargetExecutionState.PUBLISHED,
-        status: PostStatus.PUBLIC,
       },
     });
 
