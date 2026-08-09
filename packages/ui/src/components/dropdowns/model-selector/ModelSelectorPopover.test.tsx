@@ -43,15 +43,21 @@ vi.mock('@ui/primitives/command', async () => {
       />
     ),
     CommandItem: ({
+      'aria-label': ariaLabel,
       children,
       onSelect,
       value,
     }: {
+      'aria-label'?: string;
       children: React.ReactNode;
       onSelect?: (value: string) => void;
       value?: string;
     }) => (
-      <button type="button" onClick={() => onSelect?.(value ?? '')}>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        onClick={() => onSelect?.(value ?? '')}
+      >
         {children}
       </button>
     ),
@@ -547,10 +553,29 @@ describe('ModelSelectorPopover', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('does not open when isDisabled and marks the trigger disabled', async () => {
+  it('closes when disabled and stays closed after re-enabling', async () => {
     const user = userEvent.setup();
 
-    render(
+    const { rerender } = render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
+
+    const trigger = screen.getByRole('button', { name: /select models/i });
+    await user.click(trigger);
+    expect(screen.getByPlaceholderText('Search models…')).toBeInTheDocument();
+
+    rerender(
       <ModelSelectorPopover
         models={[
           createModel({
@@ -566,14 +591,70 @@ describe('ModelSelectorPopover', () => {
       />,
     );
 
-    const trigger = screen.getByRole('button', { name: /select models/i });
     expect(trigger).toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen.queryByPlaceholderText('Search models…'),
+    ).not.toBeInTheDocument();
 
-    await user.click(trigger);
+    rerender(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+      />,
+    );
 
     expect(
       screen.queryByPlaceholderText('Search models…'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();
+  });
+
+  it('keeps single-select family toggles keyboard-reachable', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ModelSelectorPopover
+        models={[
+          createModel({
+            key: 'google/nano-banana',
+            label: 'Nano Banana',
+          }),
+          createModel({
+            key: 'google/nano-banana-pro',
+            label: 'Nano Banana Pro',
+          }),
+        ]}
+        values={[]}
+        onChange={vi.fn()}
+        favoriteModelKeys={[]}
+        onFavoriteToggle={vi.fn()}
+        selectionMode="single"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /select models/i }));
+
+    const family = screen.getByRole('button', {
+      name: 'Nano Banana, Google, expanded',
+    });
+    expect(screen.getByText('Pro')).toBeInTheDocument();
+
+    family.focus();
+    await user.keyboard('{Enter}');
+
+    expect(family).toHaveAccessibleName('Nano Banana, Google, collapsed');
+    expect(screen.queryByText('Pro')).not.toBeInTheDocument();
+
+    await user.keyboard('{Enter}');
+
+    expect(family).toHaveAccessibleName('Nano Banana, Google, expanded');
+    expect(screen.getByText('Pro')).toBeInTheDocument();
   });
 });

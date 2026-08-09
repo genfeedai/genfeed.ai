@@ -20,10 +20,43 @@ const EN_MESSAGES = {
 
 export type AppMessages = typeof EN_MESSAGES;
 
-export function loadMessages(locale: AppLocale): AppMessages {
-  if (locale === PSEUDO_LOCALE) {
-    return pseudoLocalizeMessages(EN_MESSAGES);
+type MessageTree = {
+  readonly [key: string]: MessageTree | string;
+};
+
+function mergeMessageTree(
+  english: MessageTree,
+  localized: MessageTree,
+): MessageTree {
+  const merged: Record<string, MessageTree | string> = {};
+
+  for (const [key, englishValue] of Object.entries(english)) {
+    const localizedValue = localized[key];
+
+    if (typeof englishValue === 'string') {
+      merged[key] =
+        typeof localizedValue === 'string' ? localizedValue : englishValue;
+      continue;
+    }
+
+    merged[key] = mergeMessageTree(
+      englishValue,
+      typeof localizedValue === 'object' ? localizedValue : {},
+    );
   }
 
-  return EN_MESSAGES;
+  return merged;
+}
+
+/** Resolve a partial locale pack key-by-key against the English source. */
+export function mergeMessagesWithEnglish(localized: MessageTree): AppMessages {
+  return mergeMessageTree(EN_MESSAGES, localized) as AppMessages;
+}
+
+export function loadMessages(locale: AppLocale): AppMessages {
+  if (locale === PSEUDO_LOCALE) {
+    return mergeMessagesWithEnglish(pseudoLocalizeMessages(EN_MESSAGES));
+  }
+
+  return mergeMessagesWithEnglish({});
 }

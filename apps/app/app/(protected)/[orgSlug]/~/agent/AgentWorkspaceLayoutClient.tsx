@@ -1,8 +1,17 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  type BrandContextType,
+  useBrand,
+} from '@contexts/user/brand-context/brand-context';
+import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+} from '@contexts/user/brand-context/brand-context.helpers';
 import {
   AgentApiService,
+  type AgentThread,
+  isRenderableThreadId,
   runAgentApiEffect,
   useAgentChatStore,
   useAgentChatStream,
@@ -28,6 +37,10 @@ import {
 } from 'react';
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { normalizeProtectedPathname } from '@/lib/navigation/operator-shell';
+import {
+  buildOrganizationNewThreadHref,
+  buildScopedThreadHref,
+} from '@/lib/workspace-shell/conversation-scope-location';
 import { AgentWorkspaceContext } from './agent-workspace-context';
 
 const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
@@ -38,6 +51,38 @@ const UNSET_THREAD_BASELINE = Symbol('agent-new-route-baseline');
  * matter how many newer standard threads the operator has.
  */
 const ONBOARDING_THREAD_SOURCE = 'onboarding';
+
+function mostRecentAuthorizedThread(
+  threads: AgentThread[],
+  organizationId: string,
+  brands: BrandContextType['brands'],
+): AgentThread | null {
+  return (
+    threads
+      .filter((thread) => {
+        if (
+          thread.organizationId !== organizationId ||
+          thread.status !== AgentThreadStatus.ACTIVE ||
+          !isRenderableThreadId(thread.id)
+        ) {
+          return false;
+        }
+
+        if (!thread.brandId) {
+          return true;
+        }
+
+        return brands.some(
+          (brand) =>
+            getBrandEntityId(brand) === thread.brandId &&
+            getBrandOrganizationId(brand) === organizationId,
+        );
+      })
+      .sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      )[0] ?? null
+  );
+}
 
 type AgentWorkspaceLayoutClientProps = PropsWithChildren<{
   readonly agentApiService?: AgentApiService;
@@ -53,8 +98,8 @@ function AgentWorkspaceLayoutClientContent({
     [rawPathname],
   );
   const { replace } = useRouter();
-  const { brandId } = useBrand();
-  const { activeHref } = useOrgUrl();
+  const { brandId, brands, organizationId } = useBrand();
+  const { activeHref, orgSlug } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
@@ -66,11 +111,13 @@ function AgentWorkspaceLayoutClientContent({
   >(UNSET_THREAD_BASELINE);
   const pendingNavigationThreadRef = useRef<string | null>(null);
   const hasAttemptedResumeRef = useRef(false);
+  const hasAttemptedReturningBootstrapRef = useRef(false);
   const isJourneyRoute = pathname.startsWith(APP_ROUTES.AGENT.JOURNEY);
   const isOnboarding = pathname.startsWith(APP_ROUTES.AGENT.ONBOARDING);
   const isOnboardingEntryRoute = pathname === APP_ROUTES.AGENT.ONBOARDING;
   const isStandardNewRoute =
     pathname === APP_ROUTES.AGENT.ROOT || pathname === APP_ROUTES.AGENT.NEW;
+  const isReturningBootstrapRoute = pathname === APP_ROUTES.AGENT.ROOT;
   const isUnthreadedRoute = isOnboardingEntryRoute || isStandardNewRoute;
   const explicitPrefillPrompt = searchParams.get('prompt')?.trim() || '';
   const taskPrefillPrompt = useMemo(() => {
@@ -247,6 +294,88 @@ function AgentWorkspaceLayoutClientContent({
       hasAttemptedResumeRef.current = false;
     }
   }, [isOnboardingEntryRoute]);
+
+  // Bare /agent is the root/login bootstrap sentinel. Restore only a thread
+  // returned for the active organization and independently re-check its org,
+  // status, id, and brand before placing it in the URL. /agent/new and explicit
+  // /agent/:id deep links never enter this lookup.
+  useEffect(() => {
+    if (
+      !effectiveIsLoaded ||
+      !isReturningBootstrapRoute ||
+      prefillPrompt ||
+      activeThreadId ||
+      !organizationId ||
+      !orgSlug ||
+      hasAttemptedReturningBootstrapRef.current
+    ) {
+      return;
+    }
+
+    hasAttemptedReturningBootstrapRef.current = true;
+    const controller = new AbortController();
+    const fallbackHref = buildOrganizationNewThreadHref(orgSlug);
+
+    void runAgentApiEffect(
+      agentApiService.getThreadsEffect(
+        { status: AgentThreadStatus.ACTIVE },
+        controller.signal,
+      ),
+    )
+      .then((threads) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        const recentThread = mostRecentAuthorizedThread(
+          threads,
+          organizationId,
+          brands,
+        );
+        if (!recentThread) {
+          replace(fallbackHref);
+          return;
+        }
+
+        const threadBrand = recentThread.brandId
+          ? brands.find(
+              (brand) =>
+                getBrandEntityId(brand) === recentThread.brandId &&
+                getBrandOrganizationId(brand) === organizationId,
+            )
+          : null;
+        replace(
+          buildScopedThreadHref(
+            orgSlug,
+            threadBrand?.slug ?? null,
+            recentThread.id,
+          ),
+        );
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          replace(fallbackHref);
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    activeThreadId,
+    agentApiService,
+    brands,
+    effectiveIsLoaded,
+    isReturningBootstrapRoute,
+    organizationId,
+    orgSlug,
+    prefillPrompt,
+    replace,
+  ]);
+
+  useEffect(() => {
+    if (!isReturningBootstrapRoute) {
+      hasAttemptedReturningBootstrapRef.current = false;
+    }
+  }, [isReturningBootstrapRoute]);
 
   // Auto-navigate from an unthreaded route to the created thread route.
   useEffect(() => {

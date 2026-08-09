@@ -3,6 +3,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -33,9 +34,9 @@ export class SnapchatPublisherService extends BasePublisherService {
   }
 
   override validatePost(
-    _context: PublishContext,
+    context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     if (!mediaInfo.hasIngredients) {
       return {
         error: 'Snapchat requires media (image or video)',
@@ -50,7 +51,9 @@ export class SnapchatPublisherService extends BasePublisherService {
       };
     }
 
-    return { valid: true };
+    // This override skips super.validatePost; Snapchat has no catalog entry
+    // today, so this is a no-op until one exists.
+    return this.validateCaptionLength(context);
   }
 
   async publish(context: PublishContext): Promise<PublishResult> {
@@ -62,7 +65,11 @@ export class SnapchatPublisherService extends BasePublisherService {
 
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {

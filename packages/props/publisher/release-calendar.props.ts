@@ -87,5 +87,7 @@ export interface ReleaseDetailDrawerProps {
    * racing the first.
    */
   pendingAction: string | null;
+  /** Brand-scoped Social settings route where blocked credentials reconnect. */
+  reconnectHref: string;
   release: IReleaseGroup | null;
 }

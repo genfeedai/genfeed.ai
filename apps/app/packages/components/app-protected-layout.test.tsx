@@ -93,26 +93,19 @@ vi.mock('@ui/layouts/app/AppLayout', () => ({
     bannerComponent,
     children,
     menuComponent,
-    agentPanel,
     renderBody,
     ...props
   }: {
     bannerComponent?: ReactNode;
     children: ReactNode;
-    agentPanel?: ReactNode;
     menuComponent?: ReactNode;
     renderBody?: () => ReactNode;
-    shellChromeVariant?: 'default' | 'transparent';
-    topbarChromeVariant?: 'inherit' | 'default' | 'transparent';
   }) => {
-    appLayoutSpy({ agentPanel, bannerComponent, ...props });
+    appLayoutSpy({ bannerComponent, ...props });
     return (
       <div data-testid="app-layout">
         {menuComponent}
         {bannerComponent}
-        {agentPanel ? (
-          <div data-testid="agent-panel-rail">{agentPanel}</div>
-        ) : null}
         {children}
       </div>
     );
@@ -124,7 +117,6 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     conversationActions?: ReactNode;
     collapsedSidebarWidth?: number;
     isCollapsed?: boolean;
-    shellChromeVariant?: 'default' | 'transparent';
     items?: { href: string; hrefScope?: string; label: string }[];
     logoHref?: string;
     mobileSidebarWidth?: number;
@@ -138,7 +130,6 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     renderAfterNavigation?: () => ReactNode;
     renderTopSlot?: () => ReactNode;
     sectionLabel?: string;
-    shellMode?: 'default' | 'workspace';
     showPrimaryItems?: boolean;
     showUserProfile?: boolean;
     sidebarWidth?: number;
@@ -572,8 +563,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        shellChromeVariant: 'default',
-        topbarChromeVariant: 'default',
       }),
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
@@ -583,8 +572,6 @@ describe('AppProtectedLayout', () => {
         orgSwitcherSlot: expect.anything(),
         renderTopSlot: expect.any(Function),
         sectionLabel: 'Workspace',
-        shellChromeVariant: 'default',
-        shellMode: 'workspace',
         showPrimaryItems: true,
       }),
     );
@@ -592,7 +579,6 @@ describe('AppProtectedLayout', () => {
     // The conversation is a surface at /agent and an inspector drawer
     // everywhere else — it no longer takes over the workspace nav column.
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
   });
 
@@ -666,7 +652,7 @@ describe('AppProtectedLayout', () => {
     expect(dispatchOpenTaskComposerSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('enables topbar chrome for Studio routes', () => {
+  it('keeps the permanent topbar on Studio routes', () => {
     mockPathname.value = '/studio/storyboard';
 
     render(
@@ -678,12 +664,12 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        topbarChromeVariant: 'default',
+        topbarComponent: expect.any(Function),
       }),
     );
   });
 
-  it('mounts the universal shell without the legacy terminal dock', () => {
+  it('mounts the universal shell around canonical Studio content', () => {
     mockPathname.value = '/org-123/brand-123/studio/storyboard';
 
     render(
@@ -694,7 +680,6 @@ describe('AppProtectedLayout', () => {
 
     expect(screen.getByTestId('universal-workspace-shell')).toBeInTheDocument();
     expect(screen.getByText('Canonical studio content')).toBeInTheDocument();
-    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({ isWorkspaceShell: true }),
@@ -757,7 +742,6 @@ describe('AppProtectedLayout', () => {
     expect(appLayoutSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         bannerComponent: expect.anything(),
-        topbarChromeVariant: 'default',
         topbarComponent: expect.any(Function),
       }),
     );
@@ -787,7 +771,6 @@ describe('AppProtectedLayout', () => {
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         renderBody: expect.any(Function),
-        shellMode: 'default',
         showPrimaryItems: false,
       }),
     );
@@ -985,54 +968,6 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('does not mount the legacy embedded agent rail', () => {
-    mockPathname.value = '/workspace';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('agent-panel')).not.toBeInTheDocument();
-  });
-
-  it('hides the terminal dock on hosted cloud', () => {
-    process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
-    mockPathname.value = '/workspace';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
-    expect(appLayoutSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agentPanel: undefined,
-      }),
-    );
-  });
-
-  it('does not restore the terminal dock from the hosted app hostname', () => {
-    Object.defineProperty(window, 'location', {
-      configurable: true,
-      value: { ...originalLocation, hostname: 'app.genfeed.ai' },
-      writable: true,
-    });
-    mockPathname.value = '/workspace';
-
-    render(
-      <AppProtectedLayout>
-        <div>Protected content</div>
-      </AppProtectedLayout>,
-    );
-
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
-  });
-
   it('disables prompt bar and elements providers on workspace home routes', () => {
     mockPathname.value = '/workspace';
 
@@ -1067,7 +1002,6 @@ describe('AppProtectedLayout', () => {
           expect.objectContaining({ href: '/workspace', label: 'Workspace' }),
         ]),
         sectionLabel: 'Workspace',
-        shellMode: 'workspace',
         showPrimaryItems: true,
       }),
     );
@@ -1142,7 +1076,6 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'automate',
         sectionLabel: 'Automate',
-        shellChromeVariant: 'default',
       }),
     );
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
@@ -1161,7 +1094,6 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         currentApp: 'studio',
         sectionLabel: 'Studio',
-        shellChromeVariant: 'default',
       }),
     );
     expect(appSidebarSpy.mock.calls.at(-1)?.[0]).not.toHaveProperty('backHref');
@@ -1194,7 +1126,6 @@ describe('AppProtectedLayout', () => {
         expect.objectContaining({
           currentApp,
           sectionLabel,
-          shellChromeVariant: 'default',
         }),
       );
       expect(sidebarProps).not.toHaveProperty('backHref');
@@ -1236,7 +1167,6 @@ describe('AppProtectedLayout', () => {
 
     render(
       <AppProtectedLayoutSidebar
-        shellChromeVariant="default"
         taskContextSearchParams={new URLSearchParams()}
         currentApp="library"
         isCollapsed={false}
@@ -1281,7 +1211,6 @@ describe('AppProtectedLayout', () => {
   it('lets a module swap its own nav panel in for the surface menu items', () => {
     render(
       <AppProtectedLayoutSidebar
-        shellChromeVariant="default"
         taskContextSearchParams={new URLSearchParams()}
         currentApp="library"
         isAdminRoute={false}
@@ -1382,7 +1311,6 @@ describe('AppProtectedLayout', () => {
           { href: '/discover/ads', label: 'Ads' },
         ],
         sectionLabel: 'Discover',
-        shellChromeVariant: 'default',
       }),
     );
     expect(appSidebarSpy).toHaveBeenCalledWith(
