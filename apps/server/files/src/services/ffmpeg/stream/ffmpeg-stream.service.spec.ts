@@ -269,6 +269,11 @@ describe('FFmpegStreamService', () => {
         ['/a.mp4', '/b.mp4'],
         '/out/merged.mp4',
       );
+      // mergeVideosStream awaits writeFile before spawning ffmpeg, so wait
+      // for the spawn call to land before driving the mock process events.
+      await vi.waitFor(() => {
+        expect(spawn).toHaveBeenCalled();
+      });
       emit('close', 0);
       emit('exit');
       await promise;
@@ -290,6 +295,9 @@ describe('FFmpegStreamService', () => {
       );
 
       const promise = service.mergeVideosStream(['/a.mp4'], '/out/merged.mp4');
+      await vi.waitFor(() => {
+        expect(spawn).toHaveBeenCalled();
+      });
       emit('close', 0);
       emit('exit');
       await promise;
@@ -305,6 +313,9 @@ describe('FFmpegStreamService', () => {
       (spawn as Mock).mockReturnValue(proc);
 
       const promise = service.mergeVideosStream(['/a.mp4'], '/out/merged.mp4');
+      await vi.waitFor(() => {
+        expect(spawn).toHaveBeenCalled();
+      });
       emit('close', 1);
       emit('exit');
 

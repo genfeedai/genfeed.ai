@@ -13,14 +13,14 @@ import { ClipProjectsService } from '@api/collections/clip-projects/clip-project
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import {
+  DEFAULT_CLIP_RESULT_MODE,
+  isClipResultMode,
+} from '@genfeedai/interfaces';
+import {
   CLIP_FACTORY_CONCURRENCY,
   CLIP_FACTORY_QUEUE,
   ClipFactoryJobData,
 } from '@genfeedai/queue-contracts';
-import {
-  DEFAULT_CLIP_RESULT_MODE,
-  isClipResultMode,
-} from '@genfeedai/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';

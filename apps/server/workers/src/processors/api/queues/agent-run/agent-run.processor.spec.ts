@@ -417,4 +417,120 @@ describe('AgentRunProcessor', () => {
       );
     });
   });
+
+  describe('workspace task rollup', () => {
+    const baseData = {
+      objective: 'Generate weekly content.',
+      organizationId: 'org-1',
+      runId: 'run-1',
+      userId: 'user-1',
+    };
+
+    beforeEach(() => {
+      agentOrchestratorService.chat.mockResolvedValue({});
+    });
+
+    it('notifies the task orchestrator on start and completion for workspace-backed runs', async () => {
+      agentRunsService.start.mockResolvedValue({
+        label: 'Run',
+        metadata: { workspaceTaskId: 'task-1' },
+      });
+      agentRunsService.complete.mockResolvedValue({
+        metadata: { workspaceTaskId: 'task-1' },
+      });
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+
+      await processor.process(job);
+
+      expect(taskOrchestratorService.handleRunStarted).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+      );
+      expect(taskOrchestratorService.handleRunCompletion).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+      );
+    });
+
+    it('leaves the task orchestrator alone when the run is not workspace-backed', async () => {
+      agentRunsService.start.mockResolvedValue({ label: 'Run', metadata: {} });
+      agentRunsService.complete.mockResolvedValue({ metadata: {} });
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+
+      await processor.process(job);
+
+      expect(taskOrchestratorService.handleRunStarted).not.toHaveBeenCalled();
+      expect(
+        taskOrchestratorService.handleRunCompletion,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('swallows and logs a rollup failure instead of failing the run', async () => {
+      agentRunsService.start.mockResolvedValue({
+        label: 'Run',
+        metadata: { workspaceTaskId: 'task-1' },
+      });
+      agentRunsService.complete.mockResolvedValue({
+        metadata: { workspaceTaskId: 'task-1' },
+      });
+      taskOrchestratorService.handleRunStarted.mockRejectedValue(
+        new Error('start rollup exploded'),
+      );
+      taskOrchestratorService.handleRunCompletion.mockRejectedValue(
+        new Error('completion rollup exploded'),
+      );
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+
+      await expect(processor.process(job)).resolves.toBeUndefined();
+      // The rejections are handled off the await path.
+      await Promise.resolve();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('workspace task run-start update failed'),
+        expect.any(Error),
+      );
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('workspace task rollup failed'),
+        expect.any(Error),
+      );
+      expect(
+        agentStreamPublisherService.publishRunComplete,
+      ).toHaveBeenCalledWith(expect.objectContaining({ status: 'completed' }));
+    });
+
+    it('rolls the workspace task up when the run itself fails', async () => {
+      agentRunsService.start.mockRejectedValue(new Error('start blew up'));
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+
+      await expect(processor.process(job)).rejects.toThrow('start blew up');
+
+      expect(taskOrchestratorService.handleRunCompletion).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+      );
+      expect(agentRunsService.fail).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'start blew up',
+      );
+    });
+
+    it('logs a rollup failure raised while handling a failed run', async () => {
+      agentRunsService.start.mockRejectedValue(new Error('start blew up'));
+      taskOrchestratorService.handleRunCompletion.mockRejectedValue(
+        new Error('rollup exploded'),
+      );
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+
+      await expect(processor.process(job)).rejects.toThrow('start blew up');
+      await Promise.resolve();
+
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'workspace task rollup failed (on run failure)',
+        ),
+        expect.any(Error),
+      );
+    });
+  });
 });

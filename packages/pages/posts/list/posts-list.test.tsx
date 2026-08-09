@@ -132,13 +132,6 @@ vi.mock('@pages/posts/list/components/PostsGrid', () => ({
       Posts grid
     </button>
   ),
-  postCardIcons: {
-    delete: <>delete</>,
-    edit: <>edit</>,
-    remix: <>remix</>,
-    viewIngredient: <>ingredient</>,
-    viewPlatform: <>platform</>,
-  },
 }));
 
 vi.mock('@pages/posts/detail/PostDetailOverlay', () => ({
