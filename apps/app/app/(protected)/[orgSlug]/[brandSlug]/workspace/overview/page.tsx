@@ -1,3 +1,4 @@
+import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import Container from '@ui/layout/container/Container';
@@ -16,7 +17,9 @@ export default function WorkspaceOverviewPage() {
             page into the client Container (functions cannot cross the RSC
             boundary). */}
         <Container fullWidth label="Overview" titleVisibility="sr-only">
-          <WorkspaceOverviewContent />
+          <AnalyticsProvider syncWithBrandContext>
+            <WorkspaceOverviewContent />
+          </AnalyticsProvider>
         </Container>
       </ErrorBoundary>
     </BrandWorkspaceOverviewSurfaceAdapter>
