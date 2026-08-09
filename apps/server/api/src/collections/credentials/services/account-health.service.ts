@@ -167,6 +167,7 @@ export class AccountHealthService {
     );
     const signals = await this.buildSignals(
       credential,
+      params.organizationId,
       params.request?.signals,
     );
     const summary = this.createSummary(credential, thresholds, signals);
@@ -319,18 +320,19 @@ export class AccountHealthService {
 
   private async buildSignals(
     credential: Credential,
+    organizationId: string,
     overrides: Partial<AccountHealthSignals> | undefined,
   ): Promise<AccountHealthSignals> {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
     const [publishedPosts, recentFailures] = await Promise.all([
       this.prisma.post.count({
-        where: scopedWhere(credential.organizationId, {
+        where: scopedWhere(organizationId, {
           credentialId: credential.id,
           ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
         }),
       }),
       this.prisma.post.count({
-        where: scopedWhere(credential.organizationId, {
+        where: scopedWhere(organizationId, {
           createdAt: { gte: since },
           credentialId: credential.id,
           ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
