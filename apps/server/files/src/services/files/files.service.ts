@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { ConfigService } from '@files/config/config.service';
+import { escapeDrawtextValue } from '@files/helpers/utils/string/string.util';
 import type { SlideText } from '@files/shared/interfaces/caption.interface';
 import type { FFprobeData } from '@files/shared/interfaces/ffmpeg.interfaces';
 import type { FileFrame } from '@files/shared/interfaces/job.interface';
@@ -253,7 +254,7 @@ export class FilesService {
       '-i',
       inputPath,
       '-vf',
-      `drawtext=fontfile='${fontfile}':text='${text}':fontcolor=white@0.5:fontsize=${fontsize}:x=w-tw-50:y=50`,
+      `drawtext=fontfile='${fontfile}':text='${escapeDrawtextValue(text)}':expansion=none:fontcolor=white@0.5:fontsize=${fontsize}:x=w-tw-50:y=50`,
       '-y',
       outputPath,
     ];
@@ -340,13 +341,13 @@ export class FilesService {
       }
 
       // Escape special characters in text for ffmpeg
-      const escapedText = text.replace(/'/g, "\\'").replace(/:/g, '\\:');
+      const escapedText = escapeDrawtextValue(text);
 
       const args = [
         '-i',
         inputPath,
         '-vf',
-        `drawtext=fontfile='${fontfile}':text='${escapedText}':fontcolor=white:fontsize=${fontsize}:x=(w-text_w)/2:y=${yPosition}:box=1:boxcolor=black@0.5:boxborderw=10`,
+        `drawtext=fontfile='${fontfile}':text='${escapedText}':expansion=none:fontcolor=white:fontsize=${fontsize}:x=(w-text_w)/2:y=${yPosition}:box=1:boxcolor=black@0.5:boxborderw=10`,
         '-codec:a',
         'copy',
         '-y',

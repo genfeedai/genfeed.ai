@@ -443,6 +443,50 @@ describe('validateChannelTargetSettings', () => {
     );
   });
 
+  test('accepts http(s) urls with and without a path', () => {
+    for (const instanceUrl of [
+      'https://mastodon.social',
+      'http://mastodon.social',
+      'https://mastodon.social:8443',
+      'https://mastodon.social/@user',
+      'https://mastodon.social?a=b',
+      'https://mastodon.social#top',
+    ]) {
+      const result = validateChannelTargetSettings({
+        caption: 'Toot',
+        platform: CredentialPlatform.MASTODON,
+        settings: { instanceUrl },
+      });
+
+      expect(
+        result.errors.filter(
+          (error) => error.code === 'channel_target.invalid_setting_url',
+        ),
+      ).toEqual([]);
+    }
+  });
+
+  test('rejects a long non-url without backtracking', () => {
+    // The previous pattern let the authority run and the remainder consume the
+    // same characters, so this input was re-split at every position.
+    const result = validateChannelTargetSettings({
+      caption: 'Toot',
+      platform: CredentialPlatform.MASTODON,
+      // The whitespace is interior: `isParsableHttpUrl` trims, so a trailing
+      // space would leave a value that legitimately matches.
+      settings: { instanceUrl: `https://${'a'.repeat(50_000)} x` },
+    });
+
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'channel_target.invalid_setting_url',
+          field: 'settings.instanceUrl',
+        }),
+      ]),
+    );
+  });
+
   test('rejects an unsupported platform string', () => {
     const result = validateChannelTargetSettings({
       caption: 'Unknown network post',
