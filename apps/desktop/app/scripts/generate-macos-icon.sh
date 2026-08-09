@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE_ICON="${ROOT_DIR}/assets/app-icon.svg"
+SOURCE_ICON="${ROOT_DIR}/../../app/public/genfeed-icon.svg"
 ICONSET_DIR="${ROOT_DIR}/build/icon.iconset"
 OUTPUT_ICON="${ROOT_DIR}/build/icon.icns"
 RASTER_SOURCE="${ROOT_DIR}/build/app-icon-1024.png"

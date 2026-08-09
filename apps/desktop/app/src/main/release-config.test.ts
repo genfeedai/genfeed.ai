@@ -87,6 +87,9 @@ describe('desktop release config', () => {
     expect(mac?.target).toContain('dmg');
     expect(mac?.target).toContain('zip');
     expect(mac?.icon).toBe('build/icon.icns');
+    const iconScript = readReleaseScript('generate-macos-icon.sh');
+    expect(iconScript).toContain('../../app/public/genfeed-icon.svg');
+    expect(iconScript).not.toContain('assets/app-icon.svg');
     expect(mac?.entitlements).toBe('assets/entitlements.mac.plist');
     expect(mac?.entitlementsInherit).toBe('assets/entitlements.mac.plist');
     expect(fs.existsSync(path.join(desktopRoot, mac?.entitlements ?? ''))).toBe(
