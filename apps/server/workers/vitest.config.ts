@@ -264,7 +264,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      thresholds: { branches: 0, functions: 0, lines: 0, statements: 0 },
+      thresholds: { branches: 79, functions: 87, lines: 92, statements: 91 },
     },
     environment: 'node',
     // Cron specs pull cross-service integrations (including @api modules).

@@ -69,6 +69,19 @@ export default defineConfig({
     ],
   },
   test: {
+    coverage: {
+      exclude: [
+        '**/*.spec.ts',
+        '**/*.test.ts',
+        '**/*.spec.tsx',
+        '**/*.test.tsx',
+        '**/__tests__/**',
+      ],
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'html'],
+      reportsDirectory: './coverage',
+      thresholds: { branches: 54, functions: 65, lines: 59, statements: 59 },
+    },
     environment: 'node',
     globals: true,
     include: ['src/**/*.spec.ts'],

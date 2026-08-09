@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     coverage: {
+      thresholds: { branches: 98, functions: 98, lines: 98, statements: 98 },
       // index.ts is a pure barrel over the generated Prisma client.
       exclude: ['src/index.ts'],
       include: ['src/**/*.ts'],

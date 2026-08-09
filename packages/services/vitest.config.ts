@@ -124,6 +124,7 @@ export default defineConfig({
   },
   test: {
     coverage: {
+      thresholds: { branches: 75, functions: 82, lines: 81, statements: 81 },
       exclude: ['**/*.d.ts', '**/__tests__/**', '**/*.test.ts', '**/*.spec.ts'],
       include: ['**/*.ts'],
       provider: 'v8',

@@ -35,12 +35,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      thresholds: {
-        branches: 20,
-        functions: 10,
-        lines: 18,
-        statements: 18,
-      },
+      thresholds: { branches: 31, functions: 22, lines: 25, statements: 26 },
     },
     env: {
       NODE_ENV: 'test',
