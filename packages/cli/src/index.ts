@@ -41,7 +41,7 @@ const program = new Command();
 program
   .name('gf')
   .description('Unified CLI for Genfeed.ai')
-  .version('0.5.0')
+  .version('0.6.0')
   .addCommand(authCommand)
   .addCommand(loginCommand)
   .addCommand(logoutCommand)
