@@ -9,7 +9,7 @@ import { CronContentEngineService } from '@workers/crons/content-engine/cron.con
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockBrand = {
-  _id: 'brand-id-1',
+  id: 'brand-id-1',
   agentConfig: {
     autoPublish: { enabled: true },
     strategy: {
@@ -21,12 +21,12 @@ const mockBrand = {
   },
   isActive: true,
   isDeleted: false,
-  organization: { toString: () => 'org-id-1' },
-  user: { toString: () => 'user-id-1' },
+  organizationId: 'org-id-1',
+  userId: 'user-id-1',
 };
 
 const mockPlan = {
-  _id: 'plan-id-1',
+  id: 'plan-id-1',
 };
 
 const mockExecutionResult = {
@@ -124,10 +124,11 @@ describe('CronContentEngineService', () => {
     it('should query brands with correct filters', async () => {
       await service.processContentEngine();
 
+      // BaseService.find applies the soft-delete filter itself, so the cron
+      // only narrows on isActive.
       expect(mockBrandsService.find).toHaveBeenCalledWith(
         expect.objectContaining({
           isActive: true,
-          isDeleted: false,
         }),
       );
     });
@@ -192,8 +193,8 @@ describe('CronContentEngineService', () => {
     it('should continue processing remaining brands when one brand fails', async () => {
       const brand2 = {
         ...mockBrand,
-        _id: 'brand-id-2',
-        organization: { toString: () => 'org-id-2' },
+        id: 'brand-id-2',
+        organizationId: 'org-id-2',
       };
       mockBrandsService.find.mockResolvedValue([mockBrand, brand2]);
       mockContentPlannerService.generatePlan
@@ -213,8 +214,8 @@ describe('CronContentEngineService', () => {
     it('should limit brands to MAX_BRANDS_PER_CYCLE (10)', async () => {
       const manyBrands = Array.from({ length: 15 }, (_, i) => ({
         ...mockBrand,
-        _id: `brand-id-${i}`,
-        organization: { toString: () => `org-id-${i}` },
+        id: `brand-id-${i}`,
+        organizationId: `org-id-${i}`,
       }));
       mockBrandsService.find.mockResolvedValue(manyBrands);
 
@@ -236,7 +237,7 @@ describe('CronContentEngineService', () => {
     });
 
     it('should use organization as userId when brand.user is not set', async () => {
-      const brandNoUser = { ...mockBrand, user: undefined };
+      const brandNoUser = { ...mockBrand, userId: undefined };
       mockBrandsService.find.mockResolvedValue([brandNoUser]);
 
       await service.processContentEngine();

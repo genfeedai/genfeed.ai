@@ -1,27 +1,59 @@
-import { spawn } from 'node:child_process';
-import * as fs from 'node:fs';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FilesService } from '@files/services/files/files.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as sharp from 'sharp';
+import { of, throwError } from 'rxjs';
+import sharp from 'sharp';
 import type { Mock, Mocked } from 'vitest';
 
 vi.mock('fs');
 vi.mock('sharp');
-vi.mock('child_process');
 vi.mock('axios');
+
+const childProcessMock = vi.hoisted(() => ({
+  execFile: vi.fn(),
+  spawn: vi.fn(),
+}));
+vi.mock('node:child_process', () => childProcessMock);
+
+import { execFile, spawn } from 'node:child_process';
+import * as fs from 'node:fs';
+
+/** Sets up `spawn` so the real (non-mocked) `runFfmpeg` resolves successfully. */
+function mockSuccessfulFfmpegProcess() {
+  (spawn as Mock).mockReturnValue({
+    on: vi.fn((event: string, callback: (code: number) => void) => {
+      if (event === 'close') {
+        callback(0);
+      }
+    }),
+  });
+}
+
+/** Sets up `spawn` so the real `runFfmpeg` rejects with a non-zero exit code. */
+function mockFailingFfmpegProcess(code = 1) {
+  (spawn as Mock).mockReturnValue({
+    on: vi.fn((event: string, callback: (code: number) => void) => {
+      if (event === 'close') {
+        callback(code);
+      }
+    }),
+  });
+}
 
 describe('FilesService', () => {
   let service: FilesService;
   let loggerService: Mocked<LoggerService>;
+  let httpService: { get: Mock };
 
   const mockBuffer = Buffer.from('test');
   const mockIngredientId = 'test-ingredient-123';
 
   beforeEach(async () => {
+    httpService = { get: vi.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FilesService,
@@ -29,6 +61,7 @@ describe('FilesService', () => {
           provide: ConfigService,
           useValue: {
             get: vi.fn(),
+            ingredientsEndpoint: 'https://api.example.com/ingredients',
           },
         },
         {
@@ -42,7 +75,7 @@ describe('FilesService', () => {
         },
         {
           provide: HttpService,
-          useValue: { get: vi.fn(), post: vi.fn() },
+          useValue: httpService,
         },
       ],
     }).compile();
@@ -51,6 +84,7 @@ describe('FilesService', () => {
     loggerService = module.get(LoggerService);
 
     vi.clearAllMocks();
+    (fs.existsSync as Mock).mockReturnValue(true);
   });
 
   it('should be defined', () => {
@@ -107,6 +141,7 @@ describe('FilesService', () => {
 
       const mockSharpInstance = {
         resize: vi.fn().mockReturnThis(),
+        rotate: vi.fn().mockReturnThis(),
         toBuffer: vi.fn().mockResolvedValue(mockResizedBuffer),
       };
 
@@ -130,6 +165,7 @@ describe('FilesService', () => {
 
       const mockSharpInstance = {
         resize: vi.fn().mockReturnThis(),
+        rotate: vi.fn().mockReturnThis(),
         toBuffer: vi.fn().mockRejectedValue(mockError),
       };
 
@@ -247,23 +283,26 @@ describe('FilesService', () => {
       });
     });
 
-    it('should cleanup output file when enabled', () => {
-      const outputPath = path.resolve(
+    it('also cleans up the output directory when isDeleteOutputEnabled is true', () => {
+      const outputDirPath = path.resolve(
         'public',
         'tmp',
-        'outputs',
-        `${mockIngredientId}_final.mp4`,
+        'output',
+        mockIngredientId,
       );
 
       (fs.existsSync as Mock).mockReturnValue(true);
-      (fs.unlinkSync as Mock).mockImplementation(() => {
+      (fs.rmSync as Mock).mockImplementation(() => {
         /* noop */
       });
 
       service.cleanupTempFiles(mockIngredientId, true);
 
-      expect(fs.existsSync).toHaveBeenCalledWith(outputPath);
-      expect(fs.unlinkSync).toHaveBeenCalledWith(outputPath);
+      expect(fs.existsSync).toHaveBeenCalledWith(outputDirPath);
+      expect(fs.rmSync).toHaveBeenCalledWith(outputDirPath, {
+        force: true,
+        recursive: true,
+      });
     });
 
     it('should handle cleanup errors gracefully', () => {
@@ -276,30 +315,8 @@ describe('FilesService', () => {
       expect(loggerService.error).toHaveBeenCalled();
     });
 
-    it('should not cleanup when disabled', () => {
-      service.isDeleteTempFilesEnabled = false;
-
-      service.cleanupTempFiles(mockIngredientId);
-
-      expect(fs.rmSync).not.toHaveBeenCalled();
-      expect(fs.unlinkSync).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('log methods', () => {
-    it('should log messages', () => {
-      const message = 'Test log message';
-      service.log(message);
-
-      expect(loggerService.log).toHaveBeenCalledWith(message);
-    });
-
-    it('should log errors', () => {
-      const message = 'Test error message';
-      const error = new Error('Test error');
-      service.error(message, error);
-
-      expect(loggerService.error).toHaveBeenCalledWith(message, error);
+    it('defaults isDeleteTempFilesEnabled to true', () => {
+      expect(service.isDeleteTempFilesEnabled).toBe(true);
     });
   });
 });

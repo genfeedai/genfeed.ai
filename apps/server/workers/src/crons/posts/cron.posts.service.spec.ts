@@ -1298,8 +1298,8 @@ describe('CronPostsService', () => {
       id: 'cred-scalar-1',
       platform: CredentialPlatform.GHOST,
     };
-    credentialsService.findOne.mockImplementation((query: { _id?: unknown }) =>
-      query?._id === 'cred-scalar-1'
+    credentialsService.findOne.mockImplementation((query: { id?: unknown }) =>
+      query?.id === 'cred-scalar-1'
         ? Promise.resolve(ghostCredential)
         : Promise.resolve(null),
     );
@@ -1332,7 +1332,7 @@ describe('CronPostsService', () => {
     // The fix: credentialsService.findOne must be called with the scalar
     // credentialId, not the undefined `credential` alias.
     expect(credentialsService.findOne).toHaveBeenCalledWith({
-      _id: 'cred-scalar-1',
+      id: 'cred-scalar-1',
     });
 
     // Post must NOT be marked FAILED with "Credential not found" — it

@@ -95,14 +95,14 @@ describe('CronReplyBotService', () => {
 
     replyBotConfigsService.find.mockResolvedValueOnce([
       {
-        credential: credentialId,
+        config: { credentialId },
         isActive: true,
-        organization: organizationId,
+        organizationId,
       },
       {
-        credential: credentialId,
+        config: { credentialId },
         isActive: true,
-        organization: organizationId,
+        organizationId,
       },
     ]);
     credentialsService.findOne.mockResolvedValueOnce({
@@ -151,11 +151,15 @@ describe('CronReplyBotService', () => {
 
     replyBotConfigsService.find.mockResolvedValueOnce([
       {
-        credential: missingCredentialId,
+        config: { credentialId: missingCredentialId },
         isActive: true,
-        organization: missingOrgId,
+        organizationId: missingOrgId,
       },
-      { credential: goodCredentialId, isActive: true, organization: goodOrgId },
+      {
+        config: { credentialId: goodCredentialId },
+        isActive: true,
+        organizationId: goodOrgId,
+      },
     ]);
     credentialsService.findOne
       .mockResolvedValueOnce(null)
