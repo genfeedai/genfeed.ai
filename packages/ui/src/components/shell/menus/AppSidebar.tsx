@@ -23,9 +23,7 @@ export interface AppSidebarProps extends BaseMenuProps {
   primaryAction?: MenuPrimaryActionConfig;
   secondaryItems?: MenuShellConfig['secondaryItems'];
   sectionLabel?: string;
-  shellMode?: 'default' | 'workspace';
   isCollapsed?: MenuSharedProps['isCollapsed'];
-  shellChromeVariant?: MenuSharedProps['shellChromeVariant'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
   showPrimaryItems?: MenuSharedProps['showPrimaryItems'];
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
@@ -50,9 +48,7 @@ export default function AppSidebar({
   primaryAction,
   secondaryItems,
   sectionLabel,
-  shellMode: _shellMode = 'default',
   isCollapsed,
-  shellChromeVariant,
   onToggleCollapse,
   showPrimaryItems,
   sidebarWidth,
@@ -87,7 +83,6 @@ export default function AppSidebar({
       backLabel={backLabel}
       sectionLabel={sectionLabel}
       isCollapsed={isCollapsed}
-      shellChromeVariant={shellChromeVariant}
       onToggleCollapse={onToggleCollapse}
       showPrimaryItems={showPrimaryItems}
       sidebarWidth={sidebarWidth}

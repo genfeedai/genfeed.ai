@@ -62,6 +62,8 @@ describe('workspace shell protected-route parity', () => {
     const registeredPatterns = new Set(
       PROTECTED_ROUTE_INVENTORY.map((route) => route.canonicalUrl),
     );
+    expect(registeredPatterns.size).toBe(PROTECTED_ROUTE_INVENTORY.length);
+
     const discoveredPatterns = new Set(
       collectPageFiles(appDirectory)
         .map((pageFile) => toCanonicalPattern(appDirectory, pageFile))
