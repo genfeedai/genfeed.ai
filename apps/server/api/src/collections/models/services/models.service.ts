@@ -8,7 +8,7 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { withLiveModelCreditPricing } from '@genfeedai/helpers';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, Model as PrismaModel } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -67,12 +67,8 @@ export class ModelsService extends BaseService<
     return this.isModelRecord(document.config) ? document.config : {};
   }
 
-  private normalizeModelDocument(document: unknown): ModelDocument {
-    if (!this.isModelRecord(document)) {
-      return document as ModelDocument;
-    }
-
-    const { config: _config, ...model } = document as ModelDocument;
+  private normalizeModelDocument(document: PrismaModel): ModelDocument {
+    const { config: _config, ...model } = document;
     // Virtual cost / costPerUnit / minCost: when providerCostUsd is present,
     // project live credits via applyMargin (admin marginMultiplier). DB still
     // stores providerCostUsd + optional baked fallbacks; UI/API always see
