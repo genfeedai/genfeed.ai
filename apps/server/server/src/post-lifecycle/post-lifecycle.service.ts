@@ -68,8 +68,10 @@ export function canTransitionPostLifecycle(
   return from === to || POST_LIFECYCLE_TRANSITIONS[from].has(to);
 }
 
+// Unchecked variant: callers set scalar FKs such as reviewVersionPinId, which the
+// checked input type hides behind nested relation writes updateMany cannot express.
 export type PostLifecycleMutation = Omit<
-  Prisma.PostUpdateManyMutationInput,
+  Prisma.PostUncheckedUpdateManyInput,
   'organizationId' | 'status' | 'targetExecutionState'
 >;
 
@@ -287,10 +289,7 @@ export class PostLifecycleService {
     });
 
     const persisted = await transaction.post.findFirst({
-      where: {
-        id: input.postId,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.postId }),
     });
     if (!persisted) {
       throw new PostLifecycleTargetNotFoundException(input.postId);
@@ -338,10 +337,7 @@ export class PostLifecycleService {
     }
 
     return transaction.post.findFirst({
-      where: {
-        id: input.postId,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.postId }),
     });
   }
 

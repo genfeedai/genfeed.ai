@@ -387,6 +387,7 @@ export class PostGroupsService {
             ? 'schedule'
             : 'draft',
       );
+      // tenant-scope-ignore: addressed by the primary key of a row getGroupOrThrow already proved tenant-owned in this transaction; a singular update cannot take the non-unique scopedWhere filter
       const updated = (await tx.postGroup.update({
         data: {
           ...(input.attachments !== undefined && {
@@ -597,6 +598,7 @@ export class PostGroupsService {
           tx,
         );
       } else {
+        // tenant-scope-ignore: addressed by the primary key of a row getTargetOrThrow already proved tenant-owned in this transaction; a singular update cannot take the non-unique scopedWhere filter
         await tx.post.update({
           data: {
             ...targetMutation,
