@@ -1,12 +1,17 @@
+import type { IPost } from '@genfeedai/interfaces';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { mockOpenConfirmDelete } = vi.hoisted(() => ({
+  mockOpenConfirmDelete: vi.fn(),
+}));
 
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => ({
     useConfirmDeleteModal: vi.fn(() => ({
-      openConfirmDelete: vi.fn(),
+      openConfirmDelete: mockOpenConfirmDelete,
     })),
   }),
 );
@@ -17,21 +22,40 @@ vi.mock('@genfeedai/services/content/posts.service', () => ({
   },
 }));
 
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: {
+    debug: vi.fn(),
+    error: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: vi.fn(() => ({ href: (path: string) => `/acme${path}` })),
+}));
+
+const POST = {
+  description: 'Parent description',
+  id: 'post-1',
+  label: 'Parent',
+} as unknown as IPost;
+
 describe('usePostDetailActions', () => {
-  const mockGetPostsService = vi.fn().mockResolvedValue({
-    delete: vi.fn().mockResolvedValue(undefined),
-    patch: vi.fn().mockResolvedValue({}),
-  });
+  const mockServiceDelete = vi.fn();
+  const mockServiceEnhance = vi.fn();
+  const mockGetPostsService = vi.fn();
   const mockNotificationsService = {
     error: vi.fn(),
     success: vi.fn(),
   };
   const mockRouter = { push: vi.fn(), replace: vi.fn() };
-  const mockFetchPost = vi.fn().mockResolvedValue(undefined);
-  const mockUpdateActivePost = vi.fn().mockResolvedValue({});
+  const mockFetchPost = vi.fn();
+  const mockUpdateActivePost = vi.fn();
   const mockHandleUpdateChild = vi.fn();
   const mockUpdateDescriptionRefs = vi.fn();
   const mockSetPost = vi.fn();
+  const mockSetDescriptionDraft = vi.fn();
   const mockSetIsSavingDescription = vi.fn();
   const mockSetIsSavingSchedule = vi.fn();
   const mockSetEnhancingPostId = vi.fn();
@@ -49,11 +73,11 @@ describe('usePostDetailActions', () => {
     isScheduleDirty: false,
     labelDraft: 'Draft label',
     notificationsService: mockNotificationsService as never,
-    post: null,
+    post: POST,
     router: mockRouter as never,
     scheduleDraft: '',
     setChildDescriptions: mockSetChildDescriptions,
-    setDescriptionDraft: vi.fn(),
+    setDescriptionDraft: mockSetDescriptionDraft,
     setEnhancingAction: mockSetEnhancingAction,
     setEnhancingPostId: mockSetEnhancingPostId,
     setIsSavingDescription: mockSetIsSavingDescription,
@@ -65,32 +89,346 @@ describe('usePostDetailActions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetchPost.mockResolvedValue(undefined);
+    mockUpdateActivePost.mockResolvedValue(POST);
+    mockServiceDelete.mockResolvedValue(undefined);
+    mockServiceEnhance.mockResolvedValue({
+      description: 'Enhanced text',
+      id: 'post-1',
+    });
+    mockGetPostsService.mockResolvedValue({
+      delete: mockServiceDelete,
+      enhance: mockServiceEnhance,
+    });
   });
 
-  it('returns required handler functions', () => {
-    const { result } = renderHook(() => usePostDetailActions(baseProps));
-    expect(result.current).toHaveProperty('handleContentSave');
-    expect(result.current).toHaveProperty('handleScheduleSave');
-    expect(result.current).toHaveProperty('handleDeletePost');
-    expect(result.current).toHaveProperty('handleQuickAction');
-    expect(result.current).toHaveProperty('handlePerTweetEnhance');
+  describe('handleContentSave', () => {
+    it('skips saving when content is clean', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handleContentSave();
+      });
+
+      expect(mockUpdateActivePost).not.toHaveBeenCalled();
+    });
+
+    it('saves dirty description and trimmed label', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({
+          ...baseProps,
+          isContentDirty: true,
+          isDescriptionDirty: true,
+          isLabelDirty: true,
+          labelDraft: '  Padded label  ',
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleContentSave();
+      });
+
+      expect(mockUpdateActivePost).toHaveBeenCalledWith(
+        { description: 'Draft description', label: 'Padded label' },
+        'Post updated',
+      );
+      expect(mockSetIsSavingDescription).toHaveBeenNthCalledWith(1, true);
+      expect(mockSetIsSavingDescription).toHaveBeenLastCalledWith(false);
+    });
+
+    it('saves only the dirty field', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({
+          ...baseProps,
+          isContentDirty: true,
+          isDescriptionDirty: true,
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleContentSave();
+      });
+
+      expect(mockUpdateActivePost).toHaveBeenCalledWith(
+        { description: 'Draft description' },
+        'Post updated',
+      );
+    });
   });
 
-  it('all returned fields are functions', () => {
-    const { result } = renderHook(() => usePostDetailActions(baseProps));
-    expect(typeof result.current.handleContentSave).toBe('function');
-    expect(typeof result.current.handleScheduleSave).toBe('function');
-    expect(typeof result.current.handleDeletePost).toBe('function');
-    expect(typeof result.current.handleQuickAction).toBe('function');
-    expect(typeof result.current.handlePerTweetEnhance).toBe('function');
+  describe('handleScheduleSave', () => {
+    it('skips when schedule is clean or post missing', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handleScheduleSave();
+      });
+
+      expect(mockUpdateActivePost).not.toHaveBeenCalled();
+    });
+
+    it('schedules the post when a date is set', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({
+          ...baseProps,
+          isScheduleDirty: true,
+          scheduleDraft: '2025-06-01T10:00',
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleScheduleSave();
+      });
+
+      expect(mockUpdateActivePost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scheduledDate: '2025-06-01T10:00',
+          status: expect.any(String),
+        }),
+        'Schedule updated',
+        true,
+      );
+      expect(mockFetchPost).toHaveBeenCalledWith(true);
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Schedule date updated',
+      );
+    });
+
+    it('clears the schedule when the draft is empty', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, isScheduleDirty: true }),
+      );
+
+      await act(async () => {
+        await result.current.handleScheduleSave();
+      });
+
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Schedule date cleared',
+      );
+    });
+
+    it('notifies when scheduling fails', async () => {
+      mockUpdateActivePost.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() =>
+        usePostDetailActions({
+          ...baseProps,
+          isScheduleDirty: true,
+          scheduleDraft: '2025-06-01T10:00',
+        }),
+      );
+
+      await act(async () => {
+        await result.current.handleScheduleSave();
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to update schedule',
+      );
+      expect(mockSetIsSavingSchedule).toHaveBeenLastCalledWith(false);
+    });
   });
 
-  it('handleDeletePost does not throw', () => {
-    const { result } = renderHook(() => usePostDetailActions(baseProps));
-    expect(() => {
+  describe('handleDeletePost', () => {
+    it('does nothing without a post', () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, post: null }),
+      );
+
       act(() => {
         result.current.handleDeletePost();
       });
-    }).not.toThrow();
+
+      expect(mockOpenConfirmDelete).not.toHaveBeenCalled();
+    });
+
+    it('deletes the post after confirmation and navigates away', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      act(() => {
+        result.current.handleDeletePost();
+      });
+
+      const confirm = mockOpenConfirmDelete.mock.calls[0][0] as {
+        entity: { id: string; label: string };
+        entityName: string;
+        onConfirm: () => Promise<void>;
+      };
+      expect(confirm.entity).toEqual({ id: 'post-1', label: 'Parent' });
+      expect(confirm.entityName).toBe('post');
+
+      await act(async () => {
+        await confirm.onConfirm();
+      });
+
+      expect(mockServiceDelete).toHaveBeenCalledWith('post-1');
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Post deleted successfully',
+      );
+      expect(mockRouter.push).toHaveBeenCalledWith('/acme/publish');
+    });
+
+    it('notifies when the delete fails', async () => {
+      mockServiceDelete.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      act(() => {
+        result.current.handleDeletePost();
+      });
+
+      const confirm = mockOpenConfirmDelete.mock.calls[0][0] as {
+        onConfirm: () => Promise<void>;
+      };
+      await act(async () => {
+        await confirm.onConfirm();
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to delete post',
+      );
+    });
+  });
+
+  describe('handleQuickAction', () => {
+    it('does nothing without a post', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, post: null }),
+      );
+
+      await act(async () => {
+        await result.current.handleQuickAction('post-1', 'prompt', 'boost');
+      });
+
+      expect(mockServiceEnhance).not.toHaveBeenCalled();
+    });
+
+    it('enhances the parent post and updates drafts', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handleQuickAction(
+          'post-1',
+          'make it pop',
+          'boost',
+          'viral',
+        );
+      });
+
+      expect(mockSetEnhancingPostId).toHaveBeenNthCalledWith(1, 'post-1');
+      expect(mockSetEnhancingAction).toHaveBeenNthCalledWith(1, 'boost');
+      expect(mockServiceEnhance).toHaveBeenCalledWith(
+        'post-1',
+        'make it pop',
+        'viral',
+      );
+      expect(mockSetDescriptionDraft).toHaveBeenCalledWith('Enhanced text');
+      expect(mockUpdateDescriptionRefs).toHaveBeenCalledWith(
+        'post-1',
+        'Enhanced text',
+      );
+      expect(mockSetPost).toHaveBeenCalled();
+      expect(mockNotificationsService.success).toHaveBeenCalledWith(
+        'Tweet enhanced',
+      );
+      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+      expect(mockSetEnhancingAction).toHaveBeenLastCalledWith(null);
+    });
+
+    it('enhances a child post through handleUpdateChild', async () => {
+      mockServiceEnhance.mockResolvedValue({
+        description: 'Child enhanced',
+        id: 'child-1',
+      });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handleQuickAction('child-1', 'prompt', 'boost');
+      });
+
+      expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {
+        description: 'Child enhanced',
+      });
+      expect(mockSetChildDescriptions).toHaveBeenCalledWith(
+        'child-1',
+        'Child enhanced',
+      );
+      expect(mockSetPost).not.toHaveBeenCalled();
+    });
+
+    it('notifies when the quick action fails', async () => {
+      mockServiceEnhance.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handleQuickAction('post-1', 'prompt', 'boost');
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to enhance tweet',
+      );
+    });
+  });
+
+  describe('handlePerTweetEnhance', () => {
+    it('does nothing without a post', async () => {
+      const { result } = renderHook(() =>
+        usePostDetailActions({ ...baseProps, post: null }),
+      );
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance('post-1', 'prompt');
+      });
+
+      expect(mockServiceEnhance).not.toHaveBeenCalled();
+    });
+
+    it('enhances the parent post', async () => {
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance(
+          'post-1',
+          'prompt',
+          'casual',
+        );
+      });
+
+      expect(mockServiceEnhance).toHaveBeenCalledWith(
+        'post-1',
+        'prompt',
+        'casual',
+      );
+      expect(mockSetDescriptionDraft).toHaveBeenCalledWith('Enhanced text');
+      expect(mockSetEnhancingPostId).toHaveBeenLastCalledWith(null);
+    });
+
+    it('enhances a child post', async () => {
+      mockServiceEnhance.mockResolvedValue({
+        description: 'Child enhanced',
+        id: 'child-1',
+      });
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance('child-1', 'prompt');
+      });
+
+      expect(mockHandleUpdateChild).toHaveBeenCalledWith('child-1', {
+        description: 'Child enhanced',
+      });
+    });
+
+    it('notifies when enhancement fails', async () => {
+      mockServiceEnhance.mockRejectedValue(new Error('boom'));
+      const { result } = renderHook(() => usePostDetailActions(baseProps));
+
+      await act(async () => {
+        await result.current.handlePerTweetEnhance('post-1', 'prompt');
+      });
+
+      expect(mockNotificationsService.error).toHaveBeenCalledWith(
+        'Failed to enhance tweet',
+      );
+    });
   });
 });

@@ -9,6 +9,8 @@ const mockPatch = vi.fn();
 const mockGetService = vi.fn();
 const mockCopyToClipboard = vi.fn();
 const mockOpenUpload = vi.fn();
+const mockOpenConfirm = vi.fn();
+const mockOpenModal = vi.fn();
 const mockNotifyError = vi.fn();
 const mockLoggerError = vi.fn();
 const mockFindPublicArticles = vi.fn();
@@ -56,7 +58,9 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => {
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
   () => {
-    const confirmModal = { openConfirm: vi.fn() };
+    const confirmModal = {
+      openConfirm: (...args: unknown[]) => mockOpenConfirm(...args),
+    };
     // Delegate rather than capture: the factory is hoisted above the `mock*`
     // declarations, so the reference has to be resolved at call time.
     const uploadModal = {
@@ -71,6 +75,10 @@ vi.mock(
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
+}));
+
+vi.mock('@helpers/ui/modal/modal.helper', () => ({
+  openModal: (...args: unknown[]) => mockOpenModal(...args),
 }));
 
 vi.mock('@genfeedai/services/external/public.service', () => ({
@@ -401,5 +409,188 @@ describe('useBrandDetail', () => {
       description: 'New description',
     });
     expect(result.current.brand?.description).toBe('New description');
+  });
+
+  it('confirms and deletes a branding reference', async () => {
+    const mockAssetDelete = vi.fn().mockResolvedValue(undefined);
+    mockGetService.mockResolvedValue({
+      delete: mockAssetDelete,
+      findOneBySlug: mockFindOne,
+      patch: mockPatch,
+    });
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    act(() => {
+      result.current.handleRequestDeleteReference('asset-1');
+    });
+
+    const confirm = mockOpenConfirm.mock.calls[0][0] as {
+      label: string;
+      onConfirm: () => Promise<void>;
+    };
+    expect(confirm.label).toBe('Delete Branding Reference');
+
+    await act(async () => {
+      await confirm.onConfirm();
+    });
+
+    expect(mockAssetDelete).toHaveBeenCalledWith('asset-1');
+    expect(result.current.deletingRefId).toBeNull();
+  });
+
+  it('notifies when deleting a branding reference fails', async () => {
+    const mockAssetDelete = vi.fn().mockRejectedValue(new Error('boom'));
+    mockGetService.mockResolvedValue({
+      delete: mockAssetDelete,
+      findOneBySlug: mockFindOne,
+      patch: mockPatch,
+    });
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    act(() => {
+      result.current.handleRequestDeleteReference('asset-1');
+    });
+
+    const confirm = mockOpenConfirm.mock.calls[0][0] as {
+      onConfirm: () => Promise<void>;
+    };
+    await act(async () => {
+      await confirm.onConfirm();
+    });
+
+    expect(mockNotifyError).toHaveBeenCalledWith(
+      'DELETE /assets/asset-1 failed',
+    );
+  });
+
+  it('opens the generate modal for banner and logo', async () => {
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    act(() => {
+      result.current.handleGenerateBanner();
+    });
+    expect(result.current.generateModalType).toBe('banner');
+    expect(mockOpenModal).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.handleGenerateLogo();
+    });
+    expect(result.current.generateModalType).toBe('logo');
+    expect(mockOpenModal).toHaveBeenCalledTimes(2);
+  });
+
+  it('selects a link and clears it on confirm', async () => {
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    const link = { id: 'link-1', url: 'https://example.com' } as never;
+
+    act(() => {
+      result.current.selectLink(link);
+    });
+    expect(result.current.selectedLink).toEqual(link);
+
+    mockFindOne.mockClear();
+    act(() => {
+      result.current.handleLinkConfirm();
+    });
+
+    expect(result.current.selectedLink).toBeNull();
+    await waitFor(() => {
+      expect(mockFindOne).toHaveBeenCalled();
+    });
+  });
+
+  it('maps connected credentials into social connections', async () => {
+    mockFindOne.mockResolvedValue({
+      credentials: [
+        {
+          externalHandle: 'acme',
+          externalId: 'ext-1',
+          externalName: 'Acme Co',
+          id: 'cred-1',
+          isConnected: true,
+          label: 'Acme IG',
+          platform: 'instagram',
+        },
+        {
+          id: 'cred-2',
+          isConnected: false,
+          platform: 'tiktok',
+        },
+      ],
+      id: 'brand-1',
+      links: [],
+      scope: AssetScope.BRAND,
+    } as unknown as IBrand);
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    expect(result.current.connectedPlatformsCount).toBe(1);
+    expect(result.current.socialConnections).toHaveLength(1);
+    expect(result.current.socialConnections[0]).toEqual(
+      expect.objectContaining({
+        credentialId: 'cred-1',
+        handle: 'acme',
+        platform: 'instagram',
+      }),
+    );
+  });
+
+  it('keeps other media when one public feed fails', async () => {
+    mockFindPublicVideos.mockRejectedValue(new Error('videos down'));
+    mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);
+    mockFindPublicArticles.mockRejectedValue(new Error('articles down'));
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.images).toEqual([{ id: 'image-1' }]);
+    });
+
+    expect(result.current.videos).toEqual([]);
+    expect(result.current.articles).toEqual([]);
+  });
+
+  it('registers an asset-status websocket subscription', async () => {
+    renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(mockSubscribe).toHaveBeenCalledWith(
+        'asset-status',
+        expect.any(Function),
+      );
+    });
+
+    const handler = mockSubscribe.mock.calls[0][1] as (data: {
+      assetId: string;
+      status: string;
+    }) => void;
+
+    // No pending asset — handler returns early without side effects
+    expect(() => {
+      handler({ assetId: 'asset-1', status: 'completed' });
+    }).not.toThrow();
   });
 });

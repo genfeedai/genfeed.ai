@@ -1,7 +1,7 @@
-import { GenfeedModule } from '@notifications/services/genfeed/genfeed.module';
+import { GenFeedModule } from '@notifications/services/genfeed/genfeed.module';
 
-describe('GenfeedModule', () => {
+describe('GenFeedModule', () => {
   it('should be defined', () => {
-    expect(GenfeedModule).toBeDefined();
+    expect(GenFeedModule).toBeDefined();
   });
 });

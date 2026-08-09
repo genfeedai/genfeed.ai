@@ -4,11 +4,13 @@ import { ConfigService } from '@notifications/config/config.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
 import type { Mock, Mocked } from 'vitest';
 
-// Mock discord.js
+// Mock discord.js — constructor mocks must be `function`s so `new` works (Vitest 4)
 vi.mock('discord.js', () => {
-  const mockWebhookClient = vi.fn().mockImplementation(() => ({
-    destroy: vi.fn(),
-  }));
+  const mockWebhookClient = vi.fn(function MockWebhookClient() {
+    return {
+      destroy: vi.fn(),
+    };
+  });
 
   const mockClient = {
     channels: {
@@ -21,7 +23,9 @@ vi.mock('discord.js', () => {
     user: { id: 'bot-user-123', tag: 'TestBot#1234' },
   };
 
-  const mockClientConstructor = vi.fn().mockImplementation(() => mockClient);
+  const mockClientConstructor = vi.fn(function MockClient() {
+    return mockClient;
+  });
 
   return {
     ChannelType: { GuildNews: 5, GuildText: 0 },
@@ -84,10 +88,12 @@ describe('DiscordBotService', () => {
       warn: vi.fn(),
     } as unknown as Mocked<LoggerService>;
 
-    // Reset Client mock
+    // Reset Client mock — `function`-style so `new Client()` works
     mockClient = createMockDiscordClient();
 
-    (Client as Mock).mockImplementation(() => mockClient);
+    (Client as Mock).mockImplementation(function MockClient() {
+      return mockClient;
+    });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -100,7 +106,9 @@ describe('DiscordBotService', () => {
     service = module.get<DiscordBotService>(DiscordBotService);
 
     vi.clearAllMocks();
-    (Client as Mock).mockImplementation(() => mockClient);
+    (Client as Mock).mockImplementation(function MockClient() {
+      return mockClient;
+    });
   });
 
   describe('initialization', () => {
