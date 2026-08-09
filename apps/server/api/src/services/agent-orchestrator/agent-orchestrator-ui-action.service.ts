@@ -365,7 +365,7 @@ export class AgentOrchestratorUiActionService {
         isDeleted: false,
         organizationId: params.context.organizationId,
         userId: { in: [params.context.userId] },
-      } as never);
+      });
       const currentVersion = (
         currentThread as { contextVersion?: unknown } | null
       )?.contextVersion;
