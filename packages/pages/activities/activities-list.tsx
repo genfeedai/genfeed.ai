@@ -3,6 +3,7 @@
 import {
   ActivityKey,
   ButtonVariant,
+  formatActivityMessage,
   IngredientCategory,
 } from '@genfeedai/enums';
 import type { IActivity, IIngredient } from '@genfeedai/interfaces';
@@ -33,7 +34,10 @@ import ActivityLinkCell from './components/ActivityLinkCell';
 import ActivityStatusCell from './components/ActivityStatusCell';
 import ActivityThumbnailCell from './components/ActivityThumbnailCell';
 
-export default function ActivitiesList({ scope }: ActivitiesListProps) {
+export default function ActivitiesList({
+  activityMessageFormatter = formatActivityMessage,
+  scope,
+}: ActivitiesListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get('page') || '1', 10);
@@ -137,7 +141,8 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
       {
         header: 'Description',
         key: 'label',
-        render: (a: IActivity) => getActivityDescription(a),
+        render: (a: IActivity) =>
+          getActivityDescription(a, activityMessageFormatter),
       },
       {
         header: 'Status',
@@ -215,7 +220,12 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
         },
       },
     ],
-    [getPreviewUrl, handleViewIngredient, statusVariants],
+    [
+      activityMessageFormatter,
+      getPreviewUrl,
+      handleViewIngredient,
+      statusVariants,
+    ],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(

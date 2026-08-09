@@ -862,15 +862,6 @@ describe('MenuShared', () => {
     expect(labels.length).toBeLessThanOrEqual(1);
   });
 
-  it('uses a transparent shell background for the transparent variant', () => {
-    render(<MenuShared config={config} shellChromeVariant="transparent" />);
-
-    const sidebarShell = screen.getByTestId('sidebar-shell');
-
-    expect(sidebarShell).toHaveClass('bg-transparent');
-    expect(sidebarShell).not.toHaveClass('bg-background');
-  });
-
   it.each([
     { group: 'Settings', href: '/settings/models/all', label: 'Models' },
     { group: 'Insights', href: '/insights/overview', label: 'Overview' },

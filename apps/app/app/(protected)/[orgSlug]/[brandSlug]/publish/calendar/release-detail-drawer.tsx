@@ -1,6 +1,11 @@
 'use client';
 
-import { formatPlatformLabel, TargetExecutionState } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  formatPlatformLabel,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { IChannelTarget, IReleaseGroup } from '@genfeedai/interfaces';
 import {
   fromDateTimeLocalInput,
@@ -17,6 +22,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReleaseAnalyticsTable from './release-analytics-table';
 import {
@@ -109,6 +115,7 @@ export default function ReleaseDetailDrawer({
   onRescheduleTarget,
   onRetryTarget,
   pendingAction,
+  reconnectHref,
   release,
 }: ReleaseDetailDrawerProps): React.JSX.Element {
   const [releaseDate, setReleaseDate] = useState('');
@@ -278,6 +285,16 @@ export default function ReleaseDetailDrawer({
                             ),
                           )}
                         </ol>
+                        <Button
+                          asChild
+                          className="mt-3"
+                          size={ButtonSize.SM}
+                          variant={ButtonVariant.SECONDARY}
+                        >
+                          <Link href={reconnectHref}>
+                            Reconnect {targetLabel(target)}
+                          </Link>
+                        </Button>
                       </div>
                     ) : null}
 

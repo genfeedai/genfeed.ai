@@ -1,4 +1,5 @@
 import { PublicRSSController } from '@api/endpoints/public/controllers/rss/rss.controller';
+import { NewsletterImportFeedService } from '@api/endpoints/public/services/newsletter-import-feed.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -6,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 describe('PublicRSSController', () => {
   let controller: PublicRSSController;
   let rssService: vi.Mocked<RssService>;
+  let newsletterImportFeedService: vi.Mocked<NewsletterImportFeedService>;
 
   const mockRssFeed = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -29,6 +31,12 @@ describe('PublicRSSController', () => {
             generateUserFeed: vi.fn(),
           },
         },
+        {
+          provide: NewsletterImportFeedService,
+          useValue: {
+            generateBrandFeed: vi.fn(),
+          },
+        },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -37,6 +45,7 @@ describe('PublicRSSController', () => {
 
     controller = module.get<PublicRSSController>(PublicRSSController);
     rssService = module.get(RssService);
+    newsletterImportFeedService = module.get(NewsletterImportFeedService);
   });
 
   afterEach(() => {
@@ -62,6 +71,21 @@ describe('PublicRSSController', () => {
       rssService.generateGlobalFeed.mockRejectedValue(error);
 
       await expect(controller.getGlobalFeed()).rejects.toThrow(error);
+    });
+  });
+
+  describe('getBrandNewsletterFeed', () => {
+    it('returns the brand newsletter import feed', async () => {
+      newsletterImportFeedService.generateBrandFeed.mockResolvedValue(
+        mockRssFeed,
+      );
+
+      const result = await controller.getBrandNewsletterFeed('brand-1');
+
+      expect(
+        newsletterImportFeedService.generateBrandFeed,
+      ).toHaveBeenCalledWith('brand-1');
+      expect(result).toBe(mockRssFeed);
     });
   });
 });

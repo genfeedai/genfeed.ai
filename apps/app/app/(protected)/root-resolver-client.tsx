@@ -1,7 +1,6 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { getBrandOrganizationSlug } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import {
@@ -16,9 +15,9 @@ import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import OperationalHomeContent from './home/content';
+import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 import { resolveOperationalHomeScope } from './home/operational-home.helpers';
 
 const WORKSPACE_RESOLUTION_TIMEOUT_MS = 8_000;
@@ -29,11 +28,11 @@ export default function ProtectedRootResolver() {
   const { currentUser, isLoading: isCurrentUserLoading } = useCurrentUser();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const { replace } = useRouter();
+  const searchParams = useSearchParams();
   const hasStartedRef = useRef(false);
   const [statusMessage, setStatusMessage] = useState(
     'Checking workspace state...',
   );
-  const [isHomeReady, setIsHomeReady] = useState(false);
   const [needsWorkspaceAction, setNeedsWorkspaceAction] = useState(false);
 
   useEffect(() => {
@@ -43,7 +42,6 @@ export default function ProtectedRootResolver() {
       isAccessStateLoading ||
       isCurrentUserLoading ||
       !currentUser ||
-      isHomeReady ||
       needsWorkspaceAction
     ) {
       return;
@@ -60,7 +58,6 @@ export default function ProtectedRootResolver() {
     currentUser,
     isAccessStateLoading,
     isCurrentUserLoading,
-    isHomeReady,
     isReady,
     needsWorkspaceAction,
   ]);
@@ -84,9 +81,12 @@ export default function ProtectedRootResolver() {
 
     if (!hasCompletedOnboarding) {
       setStatusMessage('Opening onboarding...');
-      const agentOrgSlug =
-        getBrandOrganizationSlug(selectedBrand) ||
-        getBrandOrganizationSlug(brands[0]);
+      const agentOrgSlug = resolveOperationalHomeScope({
+        accessOrganizationId: accessState?.organizationId,
+        brands,
+        organizationId,
+        selectedBrand,
+      }).orgSlug;
       if (hasAgentFirstOnboarding()) {
         if (!agentOrgSlug) {
           setNeedsWorkspaceAction(true);
@@ -110,19 +110,25 @@ export default function ProtectedRootResolver() {
       selectedBrand,
     });
 
-    if (scope.organizationId) {
-      setStatusMessage('Opening operational home...');
-      setIsHomeReady(true);
+    if (scope.organizationId && scope.orgSlug) {
+      setStatusMessage('Opening your conversation...');
+      const nextSearchParams = new URLSearchParams(searchParams.toString());
+      // The permanent shell no longer accepts thread identity in query state.
+      // Root bootstrap preserves task/checkout handoff params while dropping
+      // stale shell-only state that cannot be authorized at the root.
+      nextSearchParams.delete('overlay');
+      nextSearchParams.delete('overlayRef');
+      nextSearchParams.delete('thread');
+      replace(
+        appendSearchParamsToHref(
+          createOrganizationAppRoute(scope.orgSlug, APP_ROUTES.AGENT.ROOT),
+          nextSearchParams,
+        ),
+      );
       return;
     }
 
-    if (hasAgentFirstOnboarding()) {
-      setNeedsWorkspaceAction(true);
-      return;
-    }
-
-    setStatusMessage('Opening onboarding...');
-    replace(APP_ROUTES.ONBOARDING.ROOT);
+    setNeedsWorkspaceAction(true);
   }, [
     accessState,
     brands,
@@ -132,21 +138,19 @@ export default function ProtectedRootResolver() {
     isReady,
     organizationId,
     replace,
+    searchParams,
     selectedBrand,
   ]);
 
-  if (isHomeReady) {
-    return <OperationalHomeContent />;
-  }
-
   if (needsWorkspaceAction) {
-    // This state is only reachable under agent-first onboarding, and only when
-    // no organization scope resolved. The classic wizard cannot bootstrap those
-    // users, so the CTA points at the agent onboarding route and is suppressed
-    // entirely until a scope exists — leaving retry as the only honest action.
-    const workspaceActionOrgSlug =
-      getBrandOrganizationSlug(selectedBrand) ||
-      getBrandOrganizationSlug(brands[0]);
+    // A root bootstrap without a routable slug must never widen into whichever
+    // unrelated organization happens to own the first loaded brand.
+    const workspaceActionOrgSlug = resolveOperationalHomeScope({
+      accessOrganizationId: accessState?.organizationId,
+      brands,
+      organizationId,
+      selectedBrand,
+    }).orgSlug;
 
     return (
       <main className="mx-auto flex min-h-[60vh] w-full max-w-3xl items-center px-4 py-10 sm:px-6">

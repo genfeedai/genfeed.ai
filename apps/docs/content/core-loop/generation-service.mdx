@@ -30,8 +30,8 @@ The generation story in the current repo spans a small set of stable entrypoints
   - dispatches generation tools to the internal media APIs
 - [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
   - discovers models from verified Replicate owners into an inactive review queue
-- [`packages/agent/src/constants/agent-models.constant.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/constants/agent-models.constant.ts)
-  - defines the curated OpenRouter text-model catalog
+- [`packages/agent/src/hooks/use-agent-registry-models.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/hooks/use-agent-registry-models.ts)
+  - filters reviewed text-model records for the shared agent model selector
 
 ## Stable Generation Surface
 
@@ -39,7 +39,7 @@ For v1, the important point is not every experimental flow. It is the stable pat
 
 1. API/controller accepts a generation or batch request.
 2. `BatchGenerationService` or another generation-facing service delegates into content generation.
-3. Model/provider selection is resolved from reviewed model records or the curated OpenRouter catalog.
+3. Model/provider selection is resolved from reviewed model records in the shared registry.
 4. Provider adapters normalize generation results into one Genfeed-facing shape.
 
 ## Stable `generate_*` Tool Surface

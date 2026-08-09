@@ -52,6 +52,19 @@ vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
+    brands: [
+      {
+        id: 'brand-1',
+        organization: { id: 'org-1', slug: 'acme-org' },
+        slug: 'acme-creator',
+      },
+      {
+        id: 'brand-2',
+        organization: { id: 'org-1', slug: 'acme-org' },
+        slug: 'second-brand',
+      },
+    ],
+    organizationId: 'org-1',
     selectedBrand: {
       id: 'brand-1',
       organization: { slug: 'acme-org' },
@@ -65,6 +78,8 @@ vi.mock('@genfeedai/agent', () => ({
     getThreadsEffect = getThreadsEffect;
   },
   runAgentApiEffect,
+  isRenderableThreadId: (id: string) =>
+    Boolean(id && id !== 'undefined' && id !== 'null'),
   AgentFullPage: ({
     children,
     threadId,
@@ -163,6 +178,101 @@ describe('AgentWorkspaceLayoutClient', () => {
       await Promise.resolve();
     });
 
+    expect(routerReplace).not.toHaveBeenCalled();
+    expect(getThreadsEffect).not.toHaveBeenCalled();
+  });
+
+  it('restores the most recent active thread authorized for the route organization', async () => {
+    navigationState.pathname = '/agent';
+    storeState.activeThreadId = null;
+    runAgentApiEffect.mockResolvedValue([
+      {
+        brandId: 'deleted-brand',
+        id: 'stale-brand-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-09T12:00:00.000Z',
+      },
+      {
+        brandId: 'brand-2',
+        id: 'other-org-thread',
+        organizationId: 'org-2',
+        status: 'active',
+        updatedAt: '2026-08-08T12:00:00.000Z',
+      },
+      {
+        brandId: 'brand-1',
+        id: 'latest-authorized-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-07T12:00:00.000Z',
+      },
+      {
+        brandId: null,
+        id: 'older-authorized-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-06T12:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/acme-creator/agent/latest-authorized-thread',
+      );
+    });
+    expect(getThreadsEffect).toHaveBeenCalledWith(
+      { status: 'active' },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('falls back by replacement to a new org conversation when none is authorized', async () => {
+    navigationState.pathname = '/agent';
+    storeState.activeThreadId = null;
+    runAgentApiEffect.mockResolvedValue([
+      {
+        brandId: 'brand-2',
+        id: 'other-org-thread',
+        organizationId: 'org-2',
+        status: 'active',
+        updatedAt: '2026-08-08T12:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith('/acme-org/~/agent/new');
+    });
+  });
+
+  it('preserves explicit thread routes without running returning-user bootstrap', async () => {
+    navigationState.pathname = '/agent/explicit-thread';
+    navigationState.params.id = 'explicit-thread';
+    storeState.activeThreadId = null;
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(getThreadsEffect).not.toHaveBeenCalled();
     expect(routerReplace).not.toHaveBeenCalled();
   });
 

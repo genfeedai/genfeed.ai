@@ -1,17 +1,10 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import { getReviewItemBadgeStatus } from './review-item.helpers';
-
-type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
+import type { ReviewPanelItem } from './review-panel.types';
 
 interface ReviewDetailPanelHeaderProps {
   item: ReviewPanelItem;

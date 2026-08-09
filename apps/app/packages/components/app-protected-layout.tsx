@@ -119,7 +119,6 @@ function AppLayoutWithDynamicMenu({
   children,
   initialBootstrap,
 }: AppLayoutWithDynamicMenuProps) {
-  const shellChromeVariant = 'default' as const;
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
 
   const {
@@ -189,7 +188,6 @@ function AppLayoutWithDynamicMenu({
           : 'desktop',
       durationMs: Math.max(0, Math.round(performance.now())),
       routeClass: workspaceShellRoute?.telemetryClass ?? 'management',
-      shellMode: 'conversation',
     });
   }, [isWorkspaceShellMounted, workspaceShellRoute?.telemetryClass]);
 
@@ -292,7 +290,6 @@ function AppLayoutWithDynamicMenu({
 
     return (
       <AppProtectedLayoutSidebar
-        shellChromeVariant={shellChromeVariant}
         taskContextSearchParams={taskContextSearchParams}
         currentApp={currentApp}
         isAdminRoute={isAdminRoute}
@@ -350,7 +347,6 @@ function AppLayoutWithDynamicMenu({
     secondaryMenuItems,
     settingsMenuItems,
     settingsScope,
-    shellChromeVariant,
     studioMenuItems,
     taskContextSearchParams,
     automateMenuItems,
@@ -361,7 +357,6 @@ function AppLayoutWithDynamicMenu({
     : isAdminRoute
       ? AdminAppProtectedTopbar
       : AppProtectedTopbar;
-  const topbarChromeVariant = 'default';
   const navigationMenuItems = isAdminRoute
     ? adminMenuItems
     : isSettingsRoute
@@ -494,8 +489,6 @@ function AppLayoutWithDynamicMenu({
         currentApp={currentApp}
         menuComponent={menuComponent}
         topbarComponent={topbarComponent}
-        shellChromeVariant={shellChromeVariant}
-        topbarChromeVariant={topbarChromeVariant}
         menuItems={navigationMenuItems}
         orgSlug={orgSlug}
         isWorkspaceShell={isWorkspaceShellMounted}
