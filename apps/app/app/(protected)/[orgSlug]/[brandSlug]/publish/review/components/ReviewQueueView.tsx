@@ -37,6 +37,7 @@ interface ReviewQueueViewProps {
   activeBatchId: string | null;
   batchList: IBatchSummary[];
   batchesError: Error | null;
+  canDiscardBatch: boolean;
   filterCounts: ReviewFilterCounts;
   hasInvalidBatchPayload: boolean;
   isActioning: boolean;
@@ -49,6 +50,7 @@ interface ReviewQueueViewProps {
   onBatchChange: (value: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
+  onDiscardBatch: () => void;
   onClosePostDetail: () => void;
   onFilterChange: (filters: ReviewStatusFilter[]) => void;
   onRefresh: () => void | Promise<void>;
@@ -71,6 +73,7 @@ export default function ReviewQueueView({
   activeBatchId,
   batchList,
   batchesError,
+  canDiscardBatch,
   filterCounts,
   hasInvalidBatchPayload,
   isActioning,
@@ -83,6 +86,7 @@ export default function ReviewQueueView({
   onBatchChange,
   onBulkApprove,
   onBulkReject,
+  onDiscardBatch,
   onClosePostDetail,
   onFilterChange,
   onRefresh,
@@ -212,11 +216,13 @@ export default function ReviewQueueView({
           />
           <ReviewGrid
             activeItem={activeItem}
+            canDiscardBatch={canDiscardBatch}
             isActioning={isActioning}
             items={visibleItems}
             selectedIds={selectedIds}
             onBulkApprove={onBulkApprove}
             onBulkReject={onBulkReject}
+            onDiscardBatch={onDiscardBatch}
             onSelectItem={onSelectItem}
             onToggleSelect={onToggleSelect}
           />

@@ -7,6 +7,12 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
+import type {
+  ServerConfig,
+  ServerLogger,
+  ServerNotifications,
+  ServerPrisma,
+} from '@server/server.dependencies';
 import { LifecycleEmailDeliveryService } from '@server/services/lifecycle-emails/lifecycle-email-delivery.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -62,16 +68,23 @@ describe('LifecycleEmailDeliveryService', () => {
     };
 
     service = new LifecycleEmailDeliveryService(
-      prisma,
-      notificationsService,
+      // These mocks declare only the members the tests exercise. Casting at the
+      // constructor boundary keeps the spec stable when a dependency interface
+      // grows — otherwise every added Prisma model re-fingerprints this error.
+      prisma as unknown as ServerPrisma,
+      notificationsService as unknown as ServerNotifications,
       {
         get: vi.fn((key: string) => {
           if (key === 'GENFEEDAI_API_URL') return 'https://api.genfeed.ai';
           if (key === 'GENFEEDAI_APP_URL') return 'https://app.genfeed.ai';
           return undefined;
         }),
-      },
-      { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+      } as unknown as ServerConfig,
+      {
+        error: vi.fn(),
+        log: vi.fn(),
+        warn: vi.fn(),
+      } as unknown as ServerLogger,
     );
   });
 

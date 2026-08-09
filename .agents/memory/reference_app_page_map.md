@@ -212,6 +212,10 @@ Agent:
 - `/:orgSlug/:brandSlug/agent/onboarding`
 - `/:orgSlug/:brandSlug/agent/onboarding/:threadId`
 
+The Agent is the single front door for one-off writing, including newsletter
+generation. Newsletter drafts open in the focused editor; Publish owns their
+approval, scheduling, and go-live lifecycle, not a separate creation module.
+
 Messages:
 
 - `/:orgSlug/~/messages`
@@ -274,11 +278,15 @@ Publish:
 - `/:orgSlug/:brandSlug/publish`
 - `/:orgSlug/:brandSlug/publish/:id`
 - `/:orgSlug/:brandSlug/publish/calendar`
-- `/:orgSlug/:brandSlug/publish/newsletters`
 - `/:orgSlug/:brandSlug/publish/published`
 - `/:orgSlug/:brandSlug/publish/remix`
 - `/:orgSlug/:brandSlug/publish/review`
 - `/:orgSlug/:brandSlug/publish/scheduled`
+
+Legacy `/:orgSlug/:brandSlug/publish/newsletters` links permanently redirect to
+`/:orgSlug/:brandSlug/agent/new`. The older `?id=<newsletterId>` shape resolves
+directly to `/:orgSlug/:brandSlug/edit/newsletter/<newsletterId>` so saved
+artifact links remain usable.
 
 Analytics:
 

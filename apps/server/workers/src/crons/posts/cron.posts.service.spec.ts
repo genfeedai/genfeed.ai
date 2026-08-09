@@ -4,6 +4,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { SystemWorkflowProvenanceService } from '@api/collections/workflows/services/system-workflow-provenance.service';
+import { BeehiivProviderError } from '@api/services/integrations/beehiiv/errors/beehiiv-provider.error';
+import { WORKFLOW_APPROVED_SCHEDULE_SETTING } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { PublisherFactoryService } from '@api/services/integrations/publishers/publisher-factory.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/webhook-client.module';
@@ -715,7 +717,7 @@ describe('CronPostsService', () => {
       id: 'post-1',
       ingredients: [],
       organization: 'org-1',
-      platform: CredentialPlatform.TWITTER,
+      platform: CredentialPlatform.BEEHIIV,
       reviewVersionPinId: 'pin-1',
       scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
       status: PostStatus.SCHEDULED,
@@ -727,22 +729,22 @@ describe('CronPostsService', () => {
     } as never);
     credentialsService.findOne.mockResolvedValue({
       id: 'cred-1',
-      platform: CredentialPlatform.TWITTER,
+      platform: CredentialPlatform.BEEHIIV,
     });
     quotaService.checkQuota.mockResolvedValue({
       allowed: true,
       currentCount: 0,
       dailyLimit: 10,
     });
+    const publish = vi.fn().mockResolvedValue({
+      externalId: 'beehiiv-post-1',
+      platform: CredentialPlatform.BEEHIIV,
+      status: PostStatus.PUBLIC,
+      success: true,
+      url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
+    });
     publisherFactory.getPublisher.mockReturnValue({
-      publish: vi.fn().mockResolvedValue({
-        externalId: 'tweet-1',
-        externalShortcode: 'tweet-short',
-        platform: CredentialPlatform.TWITTER,
-        status: PostStatus.PUBLIC,
-        success: true,
-        url: 'https://x.com/example/status/tweet-1',
-      }),
+      publish,
       supportsThreads: false,
     });
 
@@ -758,11 +760,18 @@ describe('CronPostsService', () => {
       publishEventWebhookService.emitLegacyPostPublished,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
-        externalProviderId: 'tweet-1',
-        externalShortcode: 'tweet-short',
-        platform: CredentialPlatform.TWITTER,
+        externalProviderId: 'beehiiv-post-1',
+        platform: CredentialPlatform.BEEHIIV,
         post,
-        url: 'https://x.com/example/status/tweet-1',
+        url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
+      }),
+    );
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.objectContaining({
+          [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
+            post.scheduledDate.toISOString(),
+        }),
       }),
     );
     expect(publishApprovalsService.completeExecution).toHaveBeenCalledWith({
@@ -773,6 +782,79 @@ describe('CronPostsService', () => {
       organizationId: 'org-1',
       versionPinId: 'pin-1',
     });
+  });
+
+  it('omits the legacy eligibility timestamp for publish-now provider execution', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.BEEHIIV,
+      reviewVersionPinId: 'pin-1',
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      targetSettings: { providerStatus: 'draft' },
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.BEEHIIV,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    const publish = vi.fn().mockResolvedValue({
+      externalId: 'beehiiv-post-1',
+      platform: CredentialPlatform.BEEHIIV,
+      status: PostStatus.DRAFT,
+      success: true,
+      url: 'https://app.beehiiv.com/posts/beehiiv-post-1/preview',
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish,
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'publish_now',
+    });
+
+    expect(publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settings: expect.not.objectContaining({
+          [WORKFLOW_APPROVED_SCHEDULE_SETTING]: expect.any(String),
+        }),
+      }),
+    );
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'beehiiv-post-1',
+        status: PostStatus.DRAFT,
+      }),
+      undefined,
+      expect.any(Object),
+    );
+    expect(
+      publishEventWebhookService.emitLegacyPostPublished,
+    ).not.toHaveBeenCalled();
+    expect(activitiesService.create).not.toHaveBeenCalled();
   });
 
   it('delegates recurring-post scheduling after a successful publish', async () => {
@@ -1082,6 +1164,73 @@ describe('CronPostsService', () => {
         expectedWorkflowExecutionId: 'execution-1',
         priorExecutionStates: [TargetExecutionState.PUBLISHING],
       },
+    );
+  });
+
+  it('records Beehiiv authorization rejection without a transient retry', async () => {
+    schedulerPublishStateService.transitionPost.mockResolvedValue(true);
+    const post = {
+      brandId: 'brand-1',
+      children: [],
+      credentialId: 'cred-1',
+      groupId: 'group-1',
+      id: 'post-1',
+      ingredients: [],
+      organizationId: 'org-1',
+      platform: CredentialPlatform.BEEHIIV,
+      reviewVersionPinId: 'pin-1',
+      retryCount: 0,
+      scheduledDate: new Date('2026-07-07T09:55:00.000Z'),
+      status: PostStatus.SCHEDULED,
+      userId: 'user-1',
+    };
+    postsService.findAll.mockResolvedValueOnce({
+      docs: [post],
+      total: 1,
+    } as never);
+    credentialsService.findOne.mockResolvedValue({
+      id: 'cred-1',
+      platform: CredentialPlatform.BEEHIIV,
+    });
+    quotaService.checkQuota.mockResolvedValue({
+      allowed: true,
+      currentCount: 0,
+      dailyLimit: 10,
+    });
+    publisherFactory.getPublisher.mockReturnValue({
+      publish: vi
+        .fn()
+        .mockRejectedValue(
+          new BeehiivProviderError(
+            'authorization_failed',
+            'Beehiiv rejected the connected credential.',
+            { isRetryable: false, statusCode: 401 },
+          ),
+        ),
+      supportsThreads: false,
+    });
+
+    await service.processQueuedPost({
+      ...APPROVAL_JOB_IDENTITY,
+      enqueuedAt: '2026-07-07T09:55:00.000Z',
+      organizationId: 'org-1',
+      postId: 'post-1',
+      source: 'scheduled_sweep',
+    });
+
+    expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
+      2,
+      post,
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: 'authorization_failed',
+          isRetryable: false,
+        }),
+        executionState: TargetExecutionState.FAILED,
+        status: PostStatus.FAILED,
+      }),
+      'Beehiiv rejected the connected credential.',
+      expect.any(Object),
     );
   });
 
