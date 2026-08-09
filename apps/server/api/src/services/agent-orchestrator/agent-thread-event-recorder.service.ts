@@ -61,6 +61,7 @@ export class AgentThreadEventRecorderService {
     threadId: string;
     context: AgentChatContext;
     content: string;
+    idempotencyKey?: string;
     metadata: Record<string, unknown>;
     runId?: string;
   }): Promise<void> {
@@ -70,7 +71,7 @@ export class AgentThreadEventRecorderService {
 
     await runEffectPromise(
       this.appendThreadEventEffect({
-        commandId: `assistant-finalized:${params.threadId}:${params.runId ?? Date.now()}`,
+        commandId: `assistant-finalized:${params.threadId}:${params.idempotencyKey ?? params.runId ?? Date.now()}`,
         metadata: {
           ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',
@@ -278,6 +279,7 @@ export class AgentThreadEventRecorderService {
     context: AgentChatContext;
     threadId: string;
     detail: string;
+    idempotencyKey?: string;
     runId?: string;
   }): Promise<void> {
     if (!this.agentThreadEngineService) {
@@ -286,7 +288,7 @@ export class AgentThreadEventRecorderService {
 
     await runEffectPromise(
       this.appendThreadEventEffect({
-        commandId: `run-completed:${params.threadId}:${params.runId ?? Date.now()}`,
+        commandId: `run-completed:${params.threadId}:${params.idempotencyKey ?? params.runId ?? Date.now()}`,
         metadata: {
           ...this.scopeMetadata(params.context),
           origin: 'agent-orchestrator',

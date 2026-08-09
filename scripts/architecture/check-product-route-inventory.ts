@@ -82,6 +82,8 @@ export const ORGANIZATION_CATCH_ALL_EXPANSIONS = Object.freeze([
   '/:orgSlug/~/studio/edit/:id',
   '/:orgSlug/~/publish',
   '/:orgSlug/~/publish/overview',
+  '/:orgSlug/~/publish/pending',
+  '/:orgSlug/~/publish/processing',
   '/:orgSlug/~/publish/published',
   '/:orgSlug/~/publish/scheduled',
 ] as const);

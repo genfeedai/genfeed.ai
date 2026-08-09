@@ -117,4 +117,35 @@ describe('loadMessages', () => {
       'View activity',
     );
   });
+
+  it('serves the post editor copy the publish editor resolves by id', () => {
+    const english = loadMessages(DEFAULT_LOCALE).common as Record<
+      string,
+      unknown
+    >;
+
+    expect(resolveMessageId(english, 'postEditor.content')).toBe('Content');
+    expect(resolveMessageId(english, 'postEditor.format.standard')).toBe(
+      'Standard post',
+    );
+    expect(resolveMessageId(english, 'postEditor.format.longForm')).toBe(
+      'Long post',
+    );
+    expect(resolveMessageId(english, 'postEditor.format.thread')).toBe(
+      'Thread',
+    );
+    expect(resolveMessageId(english, 'postEditor.status.draft')).toBe('Draft');
+    expect(resolveMessageId(english, 'postEditor.status.scheduled')).toBe(
+      'Scheduled',
+    );
+    expect(resolveMessageId(english, 'postEditor.thread.title')).toBe(
+      'Thread replies',
+    );
+    expect(resolveMessageId(english, 'postEditor.thread.help')).toBe(
+      'Replies publish in this order through the existing schedule.',
+    );
+    expect(resolveMessageId(english, 'postEditor.thread.postIndex')).toBe(
+      'Post {index}',
+    );
+  });
 });

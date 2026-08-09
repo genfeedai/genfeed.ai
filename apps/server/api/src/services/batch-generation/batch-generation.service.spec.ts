@@ -11,7 +11,10 @@ import { BatchGenerationSummaryService } from '@api/services/batch-generation/ba
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BatchItemStatus, BatchStatus, ContentFormat } from '@genfeedai/enums';
-import { AgentArtifactReferenceService } from '@genfeedai/server';
+import {
+  AgentArtifactReferenceService,
+  PostLifecycleService,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -31,6 +34,7 @@ describe('BatchGenerationService approval version pins', () => {
   let memberDelegate: {
     findMany: ReturnType<typeof vi.fn>;
   };
+  let postLifecycleService: { transition: ReturnType<typeof vi.fn> };
   let service: BatchGenerationService;
   let prisma: {
     $transaction: ReturnType<typeof vi.fn>;
@@ -41,6 +45,7 @@ describe('BatchGenerationService approval version pins', () => {
   };
   let publishApprovalsService: {
     createForCurrentPost: ReturnType<typeof vi.fn>;
+    invalidatePost: ReturnType<typeof vi.fn>;
     toPublicInterface: ReturnType<typeof vi.fn>;
   };
 
@@ -90,7 +95,14 @@ describe('BatchGenerationService approval version pins', () => {
         artifactVersionPinId: 'pin-1',
         id: 'approval-1',
       }),
+      invalidatePost: vi.fn().mockResolvedValue(undefined),
       toPublicInterface: vi.fn((value) => value),
+    };
+    postLifecycleService = {
+      transition: vi.fn().mockResolvedValue({
+        kind: 'transitioned',
+        target: { id: 'post-1' },
+      }),
     };
     prisma = {
       $transaction: vi.fn((callback) =>
@@ -107,6 +119,7 @@ describe('BatchGenerationService approval version pins', () => {
         BatchGenerationCreationService,
         BatchGenerationProcessingService,
         BatchGenerationReviewService,
+        { provide: PostLifecycleService, useValue: postLifecycleService },
         BatchGenerationService,
         BatchGenerationSummaryService,
         {
@@ -170,18 +183,23 @@ describe('BatchGenerationService approval version pins', () => {
         post: postDelegate,
       }),
     });
-    expect(postDelegate.updateMany).toHaveBeenCalledWith({
-      data: {
-        reviewDecision: 'APPROVED',
-        reviewVersionPinId: 'pin-1',
-        reviewedAt: expect.any(Date),
-      },
-      where: {
-        id: 'post-1',
-        isDeleted: false,
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'canonical-user-1',
+        mutation: expect.objectContaining({
+          reviewDecision: 'APPROVED',
+          reviewVersionPinId: 'pin-1',
+          reviewedAt: expect.any(Date),
+        }),
+        nextState: 'scheduled',
         organizationId: 'org-1',
-      },
-    });
+        postId: 'post-1',
+      }),
+      expect.objectContaining({
+        batch: batchDelegate,
+        post: postDelegate,
+      }),
+    );
 
     const persistedItems =
       batchDelegate.updateMany.mock.calls[0]?.[0].data.items;
@@ -203,7 +221,9 @@ describe('BatchGenerationService approval version pins', () => {
     );
     expect(
       publishApprovalsService.createForCurrentPost.mock.invocationCallOrder[0],
-    ).toBeLessThan(postDelegate.updateMany.mock.invocationCallOrder[0] ?? 0);
+    ).toBeLessThan(
+      postLifecycleService.transition.mock.invocationCallOrder[0] ?? 0,
+    );
   });
 
   it('attributes request-changes decisions to the canonical reviewer', async () => {
@@ -212,6 +232,7 @@ describe('BatchGenerationService approval version pins', () => {
         {
           id: 'item-1',
           format: ContentFormat.IMAGE,
+          postId: 'post-1',
           status: BatchItemStatus.COMPLETED,
         },
       ]),
@@ -246,6 +267,15 @@ describe('BatchGenerationService approval version pins', () => {
         organizationId: 'org-1',
       },
     });
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'canonical-user-1',
+        nextState: 'draft',
+        organizationId: 'org-1',
+        postId: 'post-1',
+        reason: 'Use a clearer opening line.',
+      }),
+    );
   });
 
   it('attributes reject decisions to the canonical reviewer', async () => {
@@ -254,6 +284,7 @@ describe('BatchGenerationService approval version pins', () => {
         {
           id: 'item-1',
           format: ContentFormat.IMAGE,
+          postId: 'post-1',
           status: BatchItemStatus.COMPLETED,
         },
       ]),
@@ -288,6 +319,16 @@ describe('BatchGenerationService approval version pins', () => {
         organizationId: 'org-1',
       },
     });
+    expect(postLifecycleService.transition).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'canonical-user-1',
+        mutation: expect.objectContaining({ isDeleted: true }),
+        nextState: 'cancelled',
+        organizationId: 'org-1',
+        postId: 'post-1',
+        reason: 'This misses the brief.',
+      }),
+    );
   });
 
   it('fails before approval mutations when pin creation fails', async () => {

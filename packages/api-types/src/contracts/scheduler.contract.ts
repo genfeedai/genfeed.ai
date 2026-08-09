@@ -302,54 +302,152 @@ export function isTerminalTargetExecutionState(
  * done. Folding skipped into cancelled keeps every terminal combination landing
  * on a real terminal status instead of falling through to `SCHEDULED`.
  */
+export type ReleaseStatusDerivationDiagnostic = {
+  code: 'empty-target-set' | 'invalid-target-state';
+  invalidTargetIndexes: number[];
+  targetCount: number;
+  validTargetCount: number;
+};
+
+export type ReleaseStatusProjection = {
+  diagnostics: ReleaseStatusDerivationDiagnostic[];
+  status: ReleaseStatus;
+};
+
+type TargetStateCounts = Record<TargetExecutionState, number>;
+
+type ReleaseStatusAggregationRule = {
+  matches: (counts: TargetStateCounts, total: number) => boolean;
+  status: ReleaseStatus;
+};
+
+const TARGET_EXECUTION_STATES = new Set<string>(
+  Object.values(TargetExecutionState),
+);
+
+function isTargetExecutionState(value: unknown): value is TargetExecutionState {
+  return typeof value === 'string' && TARGET_EXECUTION_STATES.has(value);
+}
+
+/**
+ * Ordered, exhaustive aggregation table for every valid non-empty target set.
+ * The first matching row wins. Published work remains visible as partial unless
+ * another target is actively publishing, while queued work remains scheduled.
+ */
+const RELEASE_STATUS_AGGREGATION_TABLE: readonly ReleaseStatusAggregationRule[] =
+  [
+    {
+      matches: (counts) => counts[TargetExecutionState.PUBLISHING] > 0,
+      status: ReleaseStatus.PUBLISHING,
+    },
+    {
+      matches: (counts, total) => counts[TargetExecutionState.DRAFT] === total,
+      status: ReleaseStatus.DRAFT,
+    },
+    {
+      matches: (counts, total) =>
+        counts[TargetExecutionState.PUBLISHED] === total,
+      status: ReleaseStatus.PUBLISHED,
+    },
+    {
+      matches: (counts, total) =>
+        counts[TargetExecutionState.CANCELLED] +
+          counts[TargetExecutionState.SKIPPED] ===
+        total,
+      status: ReleaseStatus.CANCELLED,
+    },
+    {
+      matches: (counts, total) => counts[TargetExecutionState.PAUSED] === total,
+      status: ReleaseStatus.PAUSED,
+    },
+    {
+      matches: (counts) => counts[TargetExecutionState.PUBLISHED] > 0,
+      status: ReleaseStatus.PARTIALLY_PUBLISHED,
+    },
+    {
+      matches: (counts, total) =>
+        counts[TargetExecutionState.FAILED] +
+          counts[TargetExecutionState.CANCELLED] +
+          counts[TargetExecutionState.SKIPPED] ===
+        total,
+      status: ReleaseStatus.FAILED,
+    },
+    {
+      matches: () => true,
+      status: ReleaseStatus.SCHEDULED,
+    },
+  ];
+
+/**
+ * Canonical release projection, including fail-closed diagnostics for callers
+ * that need to log malformed persisted data. A malformed non-empty set reports
+ * `FAILED`; an empty set remains `DRAFT`. Neither path can claim publication.
+ */
+export function deriveReleaseStatusProjectionFromTargets(
+  targetStates: readonly unknown[],
+): ReleaseStatusProjection {
+  if (targetStates.length === 0) {
+    return {
+      diagnostics: [
+        {
+          code: 'empty-target-set',
+          invalidTargetIndexes: [],
+          targetCount: 0,
+          validTargetCount: 0,
+        },
+      ],
+      status: ReleaseStatus.DRAFT,
+    };
+  }
+
+  const counts: TargetStateCounts = {
+    [TargetExecutionState.CANCELLED]: 0,
+    [TargetExecutionState.DRAFT]: 0,
+    [TargetExecutionState.FAILED]: 0,
+    [TargetExecutionState.PAUSED]: 0,
+    [TargetExecutionState.PUBLISHED]: 0,
+    [TargetExecutionState.PUBLISHING]: 0,
+    [TargetExecutionState.SCHEDULED]: 0,
+    [TargetExecutionState.SKIPPED]: 0,
+  };
+  const invalidTargetIndexes: number[] = [];
+
+  for (const [index, state] of targetStates.entries()) {
+    if (!isTargetExecutionState(state)) {
+      invalidTargetIndexes.push(index);
+      continue;
+    }
+    counts[state] += 1;
+  }
+
+  const validTargetCount = targetStates.length - invalidTargetIndexes.length;
+  if (invalidTargetIndexes.length > 0) {
+    return {
+      diagnostics: [
+        {
+          code: 'invalid-target-state',
+          invalidTargetIndexes,
+          targetCount: targetStates.length,
+          validTargetCount,
+        },
+      ],
+      status: ReleaseStatus.FAILED,
+    };
+  }
+
+  const rule = RELEASE_STATUS_AGGREGATION_TABLE.find(({ matches }) =>
+    matches(counts, validTargetCount),
+  );
+  return {
+    diagnostics: [],
+    status: rule?.status ?? ReleaseStatus.FAILED,
+  };
+}
+
 export function deriveReleaseStatusFromTargets(
   targetStates: readonly TargetExecutionState[],
 ): ReleaseStatus {
-  if (targetStates.length === 0) {
-    return ReleaseStatus.DRAFT;
-  }
-
-  if (targetStates.some((state) => state === TargetExecutionState.PUBLISHING)) {
-    return ReleaseStatus.PUBLISHING;
-  }
-
-  const published = targetStates.filter(
-    (state) => state === TargetExecutionState.PUBLISHED,
-  ).length;
-  const cancelled = targetStates.filter(
-    (state) => state === TargetExecutionState.CANCELLED,
-  ).length;
-  const failed = targetStates.filter(
-    (state) => state === TargetExecutionState.FAILED,
-  ).length;
-  const skipped = targetStates.filter(
-    (state) => state === TargetExecutionState.SKIPPED,
-  ).length;
-  const paused = targetStates.filter(
-    (state) => state === TargetExecutionState.PAUSED,
-  ).length;
-
-  // A skipped target is a terminal non-publish with no error, so it rolls up
-  // the same way a cancelled target does.
-  const cancelledOrSkipped = cancelled + skipped;
-
-  if (published === targetStates.length) {
-    return ReleaseStatus.PUBLISHED;
-  }
-  if (cancelledOrSkipped === targetStates.length) {
-    return ReleaseStatus.CANCELLED;
-  }
-  if (paused === targetStates.length) {
-    return ReleaseStatus.PAUSED;
-  }
-  if (published > 0) {
-    return ReleaseStatus.PARTIALLY_PUBLISHED;
-  }
-  if (failed + cancelledOrSkipped === targetStates.length) {
-    return ReleaseStatus.FAILED;
-  }
-
-  return ReleaseStatus.SCHEDULED;
+  return deriveReleaseStatusProjectionFromTargets(targetStates).status;
 }
 
 // ============================================================================

@@ -9,6 +9,7 @@ import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentUiAction,
+  AgentUiActionHandler,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -39,10 +40,7 @@ type AgentChatTimelineProps = {
     credits: number;
   }) => void;
   onSelectIngredient: (ingredient: { id: string; title?: string }) => void;
-  onUiAction: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => Promise<void>;
+  onUiAction: AgentUiActionHandler;
   isReadOnly?: boolean;
   /**
    * When true, pure "Thinking" placeholders are suppressed — composer status

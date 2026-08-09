@@ -2,7 +2,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { PublishApprovalsService } from '@api/collections/publish-approvals/services/publish-approvals.service';
 import type { CacheService } from '@api/services/cache/services/cache.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PostFormat, PostStatus } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 // Real, schema-derived getModelMeta/PRISMA_MODEL_METADATA.Post plus real enum
@@ -185,8 +185,13 @@ describe('PostsService batchSchedule', () => {
 
     const rootWrite = post.create.mock.calls[0]?.[0].data;
     const childWrite = post.create.mock.calls[1]?.[0].data;
+    expect(rootWrite).toMatchObject({ format: PostFormat.THREAD, order: 0 });
     expect(rootWrite).not.toHaveProperty('parentId');
-    expect(childWrite).toMatchObject({ order: 1, parentId: 'root-post' });
+    expect(childWrite).toMatchObject({
+      format: PostFormat.THREAD,
+      order: 1,
+      parentId: 'root-post',
+    });
   });
 
   it('allows an untargeted draft before an account is selected', async () => {

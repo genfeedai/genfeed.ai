@@ -21,6 +21,7 @@ import type { IIngredient, IPost, IPreset } from '@genfeedai/interfaces';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import {
   getPublisherPostHref,
+  getPublisherPostsStatusPath,
   normalizePostsPlatform,
 } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
@@ -77,6 +78,8 @@ export interface UsePostsListParams {
   publicationState?: PostsPublicationState | null;
   scope: ContentProps['scope'];
   status?: PostStatus;
+  onRewriteWithAgent?: (post: IPost) => void;
+  onSuggestScheduleWithAgent?: (post: IPost) => void;
 }
 
 export function usePostsList({
@@ -87,6 +90,8 @@ export function usePostsList({
   publicationState: publicationStateProp,
   scope,
   status: statusProp,
+  onRewriteWithAgent,
+  onSuggestScheduleWithAgent,
 }: UsePostsListParams) {
   const hydratedPostPresets = initialPostPresets ?? [];
   const hydratedPosts = initialPosts ?? [];
@@ -560,7 +565,9 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRewriteWithAgent,
         onRetry: handleRetryPost,
+        onSuggestScheduleWithAgent,
         onViewIngredient: handleViewIngredient,
         scope,
       }),
@@ -570,7 +577,9 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      onRewriteWithAgent,
       handleRetryPost,
+      onSuggestScheduleWithAgent,
       handleViewIngredient,
     ],
   );
@@ -593,7 +602,9 @@ export function usePostsList({
         onEdit: handleEditPost,
         onOpenPlatformUrl: handleOpenPlatformUrl,
         onRemix: handleRemixPost,
+        onRewriteWithAgent,
         onRetry: handleRetryPost,
+        onSuggestScheduleWithAgent,
         onViewIngredient: handleViewIngredient,
         scope,
       }),
@@ -603,7 +614,9 @@ export function usePostsList({
       handleEditPost,
       handleOpenPlatformUrl,
       handleRemixPost,
+      onRewriteWithAgent,
       handleRetryPost,
+      onSuggestScheduleWithAgent,
       handleViewIngredient,
       scope,
     ],
@@ -798,11 +811,11 @@ export function usePostsList({
       params.delete('status');
       const queryString = params.toString();
       const basePath =
-        nextView === 'failed'
-          ? APP_ROUTES.PUBLISH.FAILED
-          : nextView === 'posted'
-            ? APP_ROUTES.PUBLISH.PUBLISHED
-            : APP_ROUTES.PUBLISH.SCHEDULED;
+        nextView === 'posted'
+          ? APP_ROUTES.PUBLISH.PUBLISHED
+          : nextView === 'not-posted'
+            ? APP_ROUTES.PUBLISH.SCHEDULED
+            : getPublisherPostsStatusPath(nextView);
 
       router.replace(
         href(queryString ? `${basePath}?${queryString}` : basePath),

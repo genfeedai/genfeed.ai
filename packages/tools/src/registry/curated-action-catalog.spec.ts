@@ -140,6 +140,7 @@ describe('curated action catalog', () => {
       'create_brand',
       'get_campaign_analytics',
       'prepare_voice_clone',
+      'rename_brand',
       'schedule_post',
     ]) {
       expect(getToolByName(name)?.surfaces, name).toMatchObject({
@@ -147,6 +148,18 @@ describe('curated action catalog', () => {
         mcp: false,
       });
     }
+  });
+
+  it('describes brand identity mutations as confirmation-card actions', () => {
+    for (const name of ['create_brand', 'rename_brand']) {
+      const tool = getToolByName(name);
+      expect(tool?.creditCost, name).toBe(0);
+      expect(tool?.uiActionType, name).toBe('brand_identity_confirmation_card');
+    }
+
+    expect(getToolByName('rename_brand')?.parameters.required).toEqual([
+      'label',
+    ]);
   });
 
   it('keeps per-account ad performance reporting on the MCP surface only', () => {

@@ -5,6 +5,7 @@ export type ToolUiActionType =
   | 'campaign_control_card'
   | 'oauth_connect_card'
   | 'brand_create_card'
+  | 'brand_identity_confirmation_card'
   | 'campaign_create_card'
   | 'engagement_opportunity_card'
   | 'generation_action_card'

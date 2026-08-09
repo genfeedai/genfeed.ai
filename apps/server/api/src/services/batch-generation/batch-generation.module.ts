@@ -2,6 +2,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
+import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
@@ -40,6 +41,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => CreditsModule),
     forwardRef(() => HarnessProfilesModule),
     forwardRef(() => LoggerModule),
+    PostLifecycleModule,
     forwardRef(() => PostsModule),
     PublishApprovalsModule,
   ],

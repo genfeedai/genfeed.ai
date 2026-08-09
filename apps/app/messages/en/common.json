@@ -3,6 +3,7 @@
     "cancel": "Cancel",
     "delete": "Delete",
     "retry": "Retry",
+    "rewriteWithAgent": "Rewrite with agent",
     "save": "Save"
   },
   "activity": {
@@ -54,6 +55,23 @@
     "schedule": {
       "empty": "Nothing is scheduled for the next 7 days.",
       "open": "Open calendar"
+    }
+  },
+  "postEditor": {
+    "content": "Content",
+    "format": {
+      "longForm": "Long post",
+      "standard": "Standard post",
+      "thread": "Thread"
+    },
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled"
+    },
+    "thread": {
+      "help": "Replies publish in this order through the existing schedule.",
+      "postIndex": "Post {index}",
+      "title": "Thread replies"
     }
   }
 }

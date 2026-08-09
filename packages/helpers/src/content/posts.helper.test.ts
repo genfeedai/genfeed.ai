@@ -36,6 +36,12 @@ describe('PostsHelper', () => {
     expect(PostsHelper.normalizePublisherPostsStatus(PostStatus.FAILED)).toBe(
       PostStatus.FAILED,
     );
+    expect(PostsHelper.normalizePublisherPostsStatus(PostStatus.PENDING)).toBe(
+      PostStatus.PENDING,
+    );
+    expect(
+      PostsHelper.normalizePublisherPostsStatus(PostStatus.PROCESSING),
+    ).toBe(PostStatus.PROCESSING);
     expect(PostsHelper.normalizePublisherPostsStatus('invalid')).toBe('draft');
     expect(PostsHelper.normalizePublisherPostsStatus(undefined)).toBe('draft');
   });
@@ -58,6 +64,12 @@ describe('PostsHelper', () => {
     expect(
       PostsHelper.getPublisherPostsHref({ status: PostStatus.FAILED }),
     ).toBe('/publish/failed');
+    expect(
+      PostsHelper.getPublisherPostsHref({ status: PostStatus.PENDING }),
+    ).toBe('/publish/pending');
+    expect(
+      PostsHelper.getPublisherPostsHref({ status: PostStatus.PROCESSING }),
+    ).toBe('/publish/processing');
     expect(PostsHelper.getPublisherPostHref('post-1')).toBe(
       '/publish/posts/post-1',
     );
@@ -81,6 +93,12 @@ describe('PostsHelper', () => {
     expect(
       PostsHelper.getPublisherPostsStatusFromPathname('/publish/failed'),
     ).toBe(PostStatus.FAILED);
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish/pending'),
+    ).toBe(PostStatus.PENDING);
+    expect(
+      PostsHelper.getPublisherPostsStatusFromPathname('/publish/processing'),
+    ).toBe(PostStatus.PROCESSING);
   });
 
   it('should get post platform tabs', () => {

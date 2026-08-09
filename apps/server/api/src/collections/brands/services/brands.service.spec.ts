@@ -361,6 +361,83 @@ describe('BrandsService', () => {
     });
   });
 
+  describe('updateIdentityForOrganization', () => {
+    it('updates exactly one active brand within the organization scope', async () => {
+      const updated = {
+        description: 'Updated description',
+        id: 'brand-1',
+        isDeleted: false,
+        label: 'Updated Brand',
+        organizationId: 'org-1',
+        slug: 'updated-brand',
+      };
+      delegate.updateMany.mockResolvedValue({ count: 1 });
+      delegate.findFirst.mockResolvedValue(updated);
+
+      await expect(
+        service.updateIdentityForOrganization('brand-1', 'org-1', {
+          description: 'Updated description',
+          label: 'Updated Brand',
+          slug: 'updated-brand',
+        }),
+      ).resolves.toEqual(updated);
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        data: {
+          description: 'Updated description',
+          label: 'Updated Brand',
+          slug: 'updated-brand',
+        },
+        where: {
+          id: 'brand-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+        },
+      });
+    });
+
+    it('fails closed when the scoped atomic update matches no active brand', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.updateIdentityForOrganization('foreign-brand', 'org-1', {
+          description: 'Updated description',
+          label: 'Updated Brand',
+          slug: 'updated-brand',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(delegate.findFirst).not.toHaveBeenCalled();
+    });
+  });
+
+  it('finds a create retry by active organization, user, and confirmation provenance', async () => {
+    const recovered = {
+      id: 'brand-recovered',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+    delegate.findFirst.mockResolvedValue(recovered);
+
+    await expect(
+      service.findCreateByIdentityConfirmationSource(
+        'org-1',
+        'user-1',
+        'brand-identity-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      ),
+    ).resolves.toEqual(recovered);
+    expect(delegate.findFirst).toHaveBeenCalledWith({
+      where: {
+        agentConfig: {
+          equals: 'brand-identity-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+          path: ['brandIdentityConfirmation', 'createSourceActionId'],
+        },
+        isDeleted: false,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      },
+    });
+  });
+
   it('selects a brand using its canonical id', async () => {
     const currentBrandId = 'hkh2jbovtpcsrzw3oyxr11oj';
     const organizationId = 'b13yktd0f1e38me3f55swu0n';

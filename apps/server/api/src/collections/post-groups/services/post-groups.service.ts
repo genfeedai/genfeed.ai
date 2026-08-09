@@ -31,7 +31,12 @@ import type {
   PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import { PostPublishQueueService, scopedWhere } from '@genfeedai/server';
+import {
+  type PostLifecycleMutation,
+  PostLifecycleService,
+  PostPublishQueueService,
+  scopedWhere,
+} from '@genfeedai/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -75,6 +80,7 @@ export class PostGroupsService {
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly postPublishQueueService: PostPublishQueueService,
+    private readonly postLifecycleService: PostLifecycleService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly persistenceService: PostGroupPersistenceService,
     private readonly contractService: PostGroupContractService,
@@ -265,41 +271,49 @@ export class PostGroupsService {
         target.scheduledDate?.getTime() === scheduledDate.getTime() &&
         this.contractService.matchesScheduleProvenance(target, provenance);
       if (!isExactReplay) {
-        const updated = await tx.post.updateMany({
-          data: {
-            ...(provenance?.agentContextSource && {
-              agentContextSource: provenance.agentContextSource,
-            }),
-            ...(provenance?.agentContextVersion !== undefined && {
-              agentContextVersion: provenance.agentContextVersion,
-            }),
-            ...(provenance?.agentRunId && {
-              agentRunId: provenance.agentRunId,
-            }),
-            ...(provenance?.agentStrategyId && {
-              agentStrategyId: provenance.agentStrategyId,
-            }),
-            ...(provenance?.agentThreadId && {
-              agentThreadId: provenance.agentThreadId,
-            }),
-            scheduledDate,
-            status: PostStatus.SCHEDULED,
-            targetExecutionState: TargetExecutionState.SCHEDULED,
-            targetReadiness: this.contractService.toReadinessJson(
-              readiness ?? validation.readiness,
-            ),
-            targetValidationIssues:
-              this.contractService.validationIssues(validation),
-            targetValidationState: validation.validationState,
-          },
-          where: scopedWhere(organizationId, {
+        const transition = await this.postLifecycleService.transition(
+          {
+            actorId: userId,
             groupId: group.id,
-            id: target.id,
-            targetExecutionState: target.targetExecutionState,
-            updatedAt: target.updatedAt,
-          }),
-        });
-        if (updated.count !== 1) {
+            guard: {
+              expectedUpdatedAt: target.updatedAt,
+              priorExecutionStates: [
+                target.targetExecutionState as TargetExecutionState,
+              ],
+            },
+            legacyStatus: PostStatus.SCHEDULED,
+            mutation: {
+              ...(provenance?.agentContextSource && {
+                agentContextSource: provenance.agentContextSource,
+              }),
+              ...(provenance?.agentContextVersion !== undefined && {
+                agentContextVersion: provenance.agentContextVersion,
+              }),
+              ...(provenance?.agentRunId && {
+                agentRunId: provenance.agentRunId,
+              }),
+              ...(provenance?.agentStrategyId && {
+                agentStrategyId: provenance.agentStrategyId,
+              }),
+              ...(provenance?.agentThreadId && {
+                agentThreadId: provenance.agentThreadId,
+              }),
+              scheduledDate,
+              targetReadiness: this.contractService.toReadinessJson(
+                readiness ?? validation.readiness,
+              ),
+              targetValidationIssues:
+                this.contractService.validationIssues(validation),
+              targetValidationState: validation.validationState,
+            },
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId,
+            postId: target.id,
+            reason: 'Channel target scheduled',
+          },
+          tx,
+        );
+        if (transition.kind === 'stale') {
           throw new ConflictException(
             'Channel target changed while scheduling. Refresh and retry.',
           );
@@ -321,11 +335,10 @@ export class PostGroupsService {
         transaction: tx,
       });
 
-      return this.persistenceService.recalculateAndHydrate(
+      return this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,
         group.id,
-        userId,
       );
     });
   }
@@ -345,14 +358,23 @@ export class PostGroupsService {
         organizationId,
         groupId,
       );
-      const nextStatus = input.status ?? existing.status;
+      const currentTargets = await this.persistenceService.getTargets(
+        tx,
+        organizationId,
+        existing.id,
+      );
+      const currentStatus = this.contractService.deriveReleaseStatus(
+        existing.id,
+        currentTargets.map((target) => target.targetExecutionState),
+      );
+      const nextStatus = input.status ?? currentStatus;
       const changesPublishState =
         nextStatus === ReleaseStatus.PUBLISHED ||
         nextStatus === ReleaseStatus.PUBLISHING ||
         nextStatus === ReleaseStatus.PARTIALLY_PUBLISHED;
       const changesScheduleIntent =
         !changesPublishState &&
-        (existing.status !== ReleaseStatus.DRAFT ||
+        (currentStatus !== ReleaseStatus.DRAFT ||
           nextStatus !== ReleaseStatus.DRAFT ||
           input.recurrence !== undefined ||
           input.scheduledDate !== undefined ||
@@ -365,16 +387,6 @@ export class PostGroupsService {
             ? 'schedule'
             : 'draft',
       );
-      const transition =
-        nextStatus !== existing.status
-          ? this.contractService.appendTransition(
-              existing.statusTransitions,
-              existing.status,
-              nextStatus,
-              userId,
-            )
-          : undefined;
-
       const updated = (await tx.postGroup.update({
         data: {
           ...(input.attachments !== undefined && {
@@ -395,15 +407,13 @@ export class PostGroupsService {
           ...(input.scheduledDate !== undefined && {
             scheduledAt: this.contractService.toDate(input.scheduledDate),
           }),
-          ...(input.status !== undefined && { status: input.status }),
           ...(input.timezone !== undefined && { timezone: input.timezone }),
           ...(input.title !== undefined && { title: input.title }),
-          ...(transition !== undefined && { statusTransitions: transition }),
         },
-        where: { id: existing.id },
+        where: scopedWhere(organizationId, { id: existing.id }),
       })) as SchedulerPostGroup;
 
-      const targetUpdate: Record<string, unknown> = {};
+      const targetUpdate: PostLifecycleMutation = {};
       if (input.baseContent !== undefined) {
         targetUpdate.description = input.baseContent;
       }
@@ -416,13 +426,26 @@ export class PostGroupsService {
         targetUpdate.timezone = input.timezone;
       }
       if (input.status !== undefined) {
-        targetUpdate.status = this.contractService.toPostStatus(input.status);
-        targetUpdate.targetExecutionState = this.contractService.toTargetState(
-          input.status,
-        );
-      }
-
-      if (Object.keys(targetUpdate).length > 0) {
+        const nextState = this.contractService.toTargetState(input.status);
+        for (const target of currentTargets) {
+          if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
+            continue;
+          }
+          await this.postLifecycleService.transition(
+            {
+              actorId: userId,
+              groupId: existing.id,
+              legacyStatus: this.contractService.toPostStatus(input.status),
+              mutation: targetUpdate,
+              nextState,
+              organizationId,
+              postId: target.id,
+              reason: 'Release lifecycle updated',
+            },
+            tx,
+          );
+        }
+      } else if (Object.keys(targetUpdate).length > 0) {
         await tx.post.updateMany({
           data: targetUpdate,
           where: scopedWhere(organizationId, {
@@ -510,76 +533,89 @@ export class PostGroupsService {
           userId,
         });
 
-      await tx.post.update({
-        data: {
-          ...(input.error !== undefined && {
-            targetError: input.error
-              ? this.contractService.toJson(input.error)
-              : Prisma.JsonNull,
-          }),
-          ...(input.executionState !== undefined && {
-            status: input.executionState,
-            targetExecutionState: input.executionState,
-          }),
-          ...(isManualRetry && {
-            lastAttemptAt: null,
-            retryCount: 0,
-            targetError: Prisma.JsonNull,
-          }),
-          ...(input.externalProviderId !== undefined && {
-            externalId: input.externalProviderId,
-          }),
-          ...(input.externalShortcode !== undefined && {
-            externalShortcode: input.externalShortcode,
-          }),
-          ...(input.idempotencyKey !== undefined && {
-            targetIdempotencyKey: input.idempotencyKey,
-          }),
-          ...(input.lastAttemptAt !== undefined && {
-            lastAttemptAt: this.contractService.toDate(input.lastAttemptAt),
-          }),
-          ...(input.order !== undefined && { order: input.order }),
-          ...(input.publishedAt !== undefined && {
-            publishedAt: this.contractService.toDate(input.publishedAt),
-          }),
-          ...(input.readiness !== undefined && {
-            targetReadiness: input.readiness
-              ? this.contractService.toJson(input.readiness)
-              : Prisma.JsonNull,
-          }),
-          ...(input.retryCount !== undefined && {
-            retryCount: input.retryCount,
-          }),
-          ...(input.scheduledDate !== undefined && {
-            scheduledDate: this.contractService.toDate(input.scheduledDate),
-          }),
-          ...(input.settings !== undefined && {
-            targetSettings: this.contractService.toJson(input.settings),
-          }),
-          ...(input.timezone !== undefined && { timezone: input.timezone }),
-          ...(input.url !== undefined && { url: input.url }),
-          ...(input.validationIssues !== undefined && {
-            targetValidationIssues: input.validationIssues,
-          }),
-          ...(input.validationState !== undefined && {
-            targetValidationState: input.validationState,
-          }),
-          ...(validation && {
-            targetValidationIssues:
-              this.contractService.validationIssues(validation),
-            targetValidationState: validation.validationState,
-          }),
-        },
-        where: { id: existing.id },
-      });
+      const targetMutation: PostLifecycleMutation = {
+        ...(isManualRetry && {
+          lastAttemptAt: null,
+          retryCount: 0,
+        }),
+        ...(input.externalProviderId !== undefined && {
+          externalId: input.externalProviderId,
+        }),
+        ...(input.externalShortcode !== undefined && {
+          externalShortcode: input.externalShortcode,
+        }),
+        ...(input.idempotencyKey !== undefined && {
+          targetIdempotencyKey: input.idempotencyKey,
+        }),
+        ...(input.lastAttemptAt !== undefined && {
+          lastAttemptAt: this.contractService.toDate(input.lastAttemptAt),
+        }),
+        ...(input.order !== undefined && { order: input.order }),
+        ...(input.publishedAt !== undefined && {
+          publishedAt: this.contractService.toDate(input.publishedAt),
+        }),
+        ...(input.readiness !== undefined && {
+          targetReadiness: input.readiness
+            ? this.contractService.toJson(input.readiness)
+            : Prisma.JsonNull,
+        }),
+        ...(input.retryCount !== undefined && {
+          retryCount: input.retryCount,
+        }),
+        ...(input.scheduledDate !== undefined && {
+          scheduledDate: this.contractService.toDate(input.scheduledDate),
+        }),
+        ...(input.settings !== undefined && {
+          targetSettings: this.contractService.toJson(input.settings),
+        }),
+        ...(input.timezone !== undefined && { timezone: input.timezone }),
+        ...(input.url !== undefined && { url: input.url }),
+        ...(input.validationIssues !== undefined && {
+          targetValidationIssues: input.validationIssues,
+        }),
+        ...(input.validationState !== undefined && {
+          targetValidationState: input.validationState,
+        }),
+        ...(validation && {
+          targetValidationIssues:
+            this.contractService.validationIssues(validation),
+          targetValidationState: validation.validationState,
+        }),
+      };
+      if (input.executionState !== undefined) {
+        await this.postLifecycleService.transition(
+          {
+            actorId: userId,
+            error: isManualRetry ? null : input.error,
+            groupId: group.id,
+            mutation: targetMutation,
+            nextState: input.executionState,
+            organizationId,
+            postId: existing.id,
+            reason: isManualRetry ? 'Manual retry requested' : undefined,
+          },
+          tx,
+        );
+      } else {
+        await tx.post.updateMany({
+          data: {
+            ...targetMutation,
+            ...(input.error !== undefined && {
+              targetError: input.error
+                ? this.contractService.toJson(input.error)
+                : Prisma.JsonNull,
+            }),
+          },
+          where: scopedWhere(organizationId, { id: existing.id }),
+        });
+      }
 
       return {
         manualRetryApproval,
-        release: await this.persistenceService.recalculateAndHydrate(
+        release: await this.persistenceService.hydrateWithDerivedStatus(
           tx,
           organizationId,
           group.id,
-          userId,
         ),
       };
     });
@@ -797,23 +833,30 @@ export class PostGroupsService {
         }
       }
 
-      await tx.post.updateMany({
-        data: {
-          scheduledDate: new Date(),
-          status: TargetExecutionState.SCHEDULED,
-          targetExecutionState: TargetExecutionState.SCHEDULED,
-        },
-        where: scopedWhere(organizationId, {
-          groupId: group.id,
-          targetExecutionState: { in: Array.from(GROUP_ACTION_STATES) },
-        }),
-      });
+      const scheduledDate = new Date();
+      for (const target of targets) {
+        if (!GROUP_ACTION_STATES.has(target.targetExecutionState)) {
+          continue;
+        }
+        await this.postLifecycleService.transition(
+          {
+            actorId: userId,
+            groupId: group.id,
+            legacyStatus: PostStatus.SCHEDULED,
+            mutation: { scheduledDate },
+            nextState: TargetExecutionState.SCHEDULED,
+            organizationId,
+            postId: target.id,
+            reason: 'Immediate publish queued',
+          },
+          tx,
+        );
+      }
 
-      return this.persistenceService.recalculateAndHydrate(
+      return this.persistenceService.hydrateWithDerivedStatus(
         tx,
         organizationId,
         group.id,
-        userId,
       );
     });
 
@@ -899,19 +942,12 @@ export class PostGroupsService {
         ),
       );
     } catch (error: unknown) {
-      await this.prisma.$transaction([
-        this.prisma.post.updateMany({
-          data: {
-            status: TargetExecutionState.PAUSED,
-            targetExecutionState: TargetExecutionState.PAUSED,
-          },
-          where: scopedWhere(release.organizationId, { groupId: release.id }),
-        }),
-        this.prisma.postGroup.update({
-          data: { status: ReleaseStatus.PAUSED },
-          where: { id: release.id },
-        }),
-      ]);
+      await this.transitionGroupTargets(
+        release.organizationId,
+        userId,
+        release.id,
+        TargetExecutionState.PAUSED,
+      );
       throw error;
     }
   }
@@ -931,22 +967,36 @@ export class PostGroupsService {
         organizationId,
         groupId,
       );
-      await tx.post.updateMany({
-        data: {
-          status: nextState,
-          targetExecutionState: nextState,
-        },
-        where: scopedWhere(organizationId, {
-          groupId: group.id,
-          targetExecutionState: { in: [...fromStates] },
-        }),
-      });
-
-      return this.persistenceService.recalculateAndHydrate(
+      const targets = await this.persistenceService.getTargets(
         tx,
         organizationId,
         group.id,
-        userId,
+      );
+      for (const target of targets) {
+        if (
+          !fromStates.includes(
+            target.targetExecutionState as TargetExecutionState,
+          )
+        ) {
+          continue;
+        }
+        await this.postLifecycleService.transition(
+          {
+            actorId: userId,
+            groupId: group.id,
+            nextState,
+            organizationId,
+            postId: target.id,
+            reason: `Release targets moved to ${nextState}`,
+          },
+          tx,
+        );
+      }
+
+      return this.persistenceService.hydrateWithDerivedStatus(
+        tx,
+        organizationId,
+        group.id,
       );
     });
     if (nextState === TargetExecutionState.CANCELLED) {
