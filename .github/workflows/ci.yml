@@ -1046,6 +1046,9 @@ jobs:
     name: Report master CI failure
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: master-ci-failure-tracker
+      cancel-in-progress: false
     needs: [tests-gate]
     if: >-
       !cancelled()
@@ -1108,7 +1111,7 @@ jobs:
   # `!cancelled()` is load-bearing HERE TOO, and for a less obvious reason than
   # on the failure arm: skip propagation is transitive. `tests-gate` runs under
   # `always()` and reports `success`, but its own needs include lanes that are
-  # routinely skipped (extensions, the app/api full shards, changed coverage) —
+  # routinely skipped (extensions, the app/api full shards) —
   # and a dependent whose `if:` carries no status function inherits the implicit
   # `success()` over that graph, so this job was skipped on EVERY green master
   # push from #2580 until 2026-08-09. #2625 stayed open through five green
@@ -1119,6 +1122,9 @@ jobs:
     name: Resolve master CI failure
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: master-ci-failure-tracker
+      cancel-in-progress: false
     needs: [tests-gate]
     if: >-
       !cancelled()
