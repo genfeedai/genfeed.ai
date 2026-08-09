@@ -42,6 +42,7 @@ import {
   IngredientCategory,
   PostStatus,
   ReleaseStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -2688,7 +2689,7 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
         organizationId: 'c7a123456789012345678901',
-        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
       },
       [],
     );
@@ -2875,7 +2876,7 @@ describe('AgentToolExecutorService', () => {
 
     postsService.findOne.mockResolvedValue({
       id: 'post-1',
-      status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
     });
 
     const result = await service.executeTool(
