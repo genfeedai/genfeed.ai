@@ -13,6 +13,7 @@ import {
   useRegisterWorkspaceSurfacePresentationAdapter,
   type WorkspaceSurfacePresentationAdapter,
 } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
+import { dispatchOpenContextTab } from '@/lib/workspace/agent-composer-events';
 
 import ReviewDetailPanel from './ReviewDetailPanel';
 import { getReviewItemTitle } from './review-item.helpers';
@@ -64,7 +65,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
     }
 
     setInspectorOpen(true);
-    window.dispatchEvent(new CustomEvent('workspace:open-context-tab'));
+    dispatchOpenContextTab();
   }, [activeItem?.id, setInspectorOpen]);
 
   // Explicit "Open in Context" row action — must open even when the same row
@@ -76,7 +77,7 @@ export default function ReviewWorkspaceSurfaceAdapter({
 
     const handleForceOpen = (): void => {
       setInspectorOpen(true);
-      window.dispatchEvent(new CustomEvent('workspace:open-context-tab'));
+      dispatchOpenContextTab();
     };
 
     window.addEventListener(
