@@ -5,6 +5,7 @@ vi.mock('@api/collections/templates/services/templates.service', () => ({
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { AccountPublishingContextService } from '@api/collections/credentials/services/account-publishing-context.service';
 import { TweetTone } from '@api/collections/posts/dto/generate-tweets.dto';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -15,8 +16,8 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   CredentialPlatform,
-  PostStatus,
   SystemPromptKey,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AccountPublishingContext } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -38,6 +39,10 @@ describe('PostGenerationService', () => {
     user: userId,
   };
 
+  // PostsService is fully mocked here, so this only ever stands in for a
+  // service return value — the suite reads `id` and `description` and nothing
+  // else. Narrowed to the fields under test rather than fabricating the whole
+  // ~80-field PostDocument shape, matching how other API specs mock it.
   const mockPost = {
     id: postId,
     brandId,
@@ -46,7 +51,7 @@ describe('PostGenerationService', () => {
     organizationId,
     platform: CredentialPlatform.TWITTER,
     userId,
-  };
+  } as unknown as PostDocument;
 
   const mockPublishingContext = {
     account: {
@@ -331,7 +336,9 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(mockActivitiesService.patch).toHaveBeenCalled();
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(mockPost.id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
       );
     });
 
@@ -353,11 +360,15 @@ Tweet 3: Tech innovation is changing the world.`,
       // Both placeholder posts are driven out of PROCESSING into FAILED.
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(mockPost.id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
       );
       expect(mockPostsService.patch).toHaveBeenCalledWith(
         String(secondPost.id),
-        expect.objectContaining({ status: PostStatus.FAILED }),
+        expect.objectContaining({
+          targetExecutionState: TargetExecutionState.FAILED,
+        }),
       );
     });
   });

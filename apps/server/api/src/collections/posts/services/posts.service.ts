@@ -25,10 +25,21 @@ import { pickDefinedFields } from '@api/shared/utils/object/pick-defined-fields.
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
+import { getSupportedPostVisibilities } from '@api-types/contracts/channel-capabilities.contract';
+import {
+  mapLegacyPostStatusToTargetExecutionState,
+  mapLegacyPostStatusToVisibility,
+  projectLegacyPostStatus,
+  resolvePostVisibility,
+} from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
+  PostFormat,
   PostStatus,
+  PostVisibility,
   parsePlatform,
+  TargetExecutionState,
+  type TargetValidationState,
 } from '@genfeedai/enums';
 import type {
   AgentContentMentionItem,
@@ -48,6 +59,7 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'category',
   'credentialId',
   'description',
+  'format',
   'ingredients',
   'isRepeat',
   'isShareToFeedSelected',
@@ -63,6 +75,7 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'scheduledDate',
   'tags',
   'timezone',
+  'visibility',
 ]);
 
 type ContentMentionPostRecord = {
@@ -98,6 +111,10 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  targetExecutionState?: TargetExecutionState;
+  targetSettings?: Record<string, unknown>;
+  targetValidationIssues?: string[];
+  targetValidationState?: TargetValidationState;
   userId?: string;
 };
 
@@ -129,6 +146,7 @@ const POST_SCALAR_FIELDS = [
   'entityModel',
   'externalId',
   'externalShortcode',
+  'format',
   'generationId',
   'groupId',
   'hookVersion',
@@ -173,10 +191,9 @@ const POST_SCALAR_FIELDS = [
   'sourceActionId',
   'sourceWorkflowId',
   'sourceWorkflowName',
-  'status',
+  'targetExecutionState',
   'targetAttachments',
   'targetError',
-  'targetExecutionState',
   'targetIdempotencyKey',
   'targetReadiness',
   'targetSettings',
@@ -187,6 +204,7 @@ const POST_SCALAR_FIELDS = [
   'url',
   'userId',
   'variantId',
+  'visibility',
   'workflowExecutionId',
 ] as const;
 
@@ -239,7 +257,16 @@ export class PostsService extends BaseService<
       }),
     };
 
-    this.assertPublishTarget(dto.status, dto.credentialId, dto.platform);
+    const executionState =
+      dto.targetExecutionState ??
+      mapLegacyPostStatusToTargetExecutionState(dto.status ?? PostStatus.DRAFT);
+    const visibility =
+      dto.visibility ??
+      mapLegacyPostStatusToVisibility(dto.status ?? PostStatus.DRAFT);
+    prismaWriteData.targetExecutionState = executionState;
+    prismaWriteData.visibility = visibility;
+    this.assertPublishTarget(executionState, dto.credentialId, dto.platform);
+    this.assertVisibilitySupported(visibility, dto.platform);
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
     if (dto.scheduledDate && dto.timezone) {
@@ -375,7 +402,21 @@ export class PostsService extends BaseService<
   ): Promise<PostDocument> {
     const normalizedStatus =
       typeof dto.status === 'string' ? dto.status.toLowerCase() : undefined;
-    const isPublishingPost = normalizedStatus === PostStatus.PUBLIC;
+    const requestedExecutionState =
+      dto.targetExecutionState ??
+      (normalizedStatus
+        ? mapLegacyPostStatusToTargetExecutionState(normalizedStatus)
+        : undefined);
+    const requestedVisibility =
+      dto.visibility ??
+      (normalizedStatus &&
+      [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED].includes(
+        normalizedStatus as PostStatus,
+      )
+        ? mapLegacyPostStatusToVisibility(normalizedStatus)
+        : undefined);
+    const isPublishingPost =
+      requestedExecutionState === TargetExecutionState.PUBLISHED;
     const changesApprovalScope = Object.keys(dto).some((key) =>
       PUBLISH_APPROVAL_MATERIAL_FIELDS.has(key),
     );
@@ -413,17 +454,26 @@ export class PostsService extends BaseService<
 
     let currentPost: PostDocument | null = null;
 
-    if (normalizedStatus === PostStatus.SCHEDULED || isPublishingPost) {
+    if (
+      requestedExecutionState === TargetExecutionState.SCHEDULED ||
+      isPublishingPost ||
+      requestedVisibility !== undefined
+    ) {
       currentPost = await this.findOne({ id: id });
       if (currentPost) {
         const targetCredentialId = dto.credentialId ?? currentPost.credentialId;
         const targetPlatform = resolvedPlatform ?? currentPost.platform;
         this.assertPublishTarget(
-          normalizedStatus,
+          requestedExecutionState,
           targetCredentialId,
           targetPlatform,
         );
       }
+    }
+
+    if (requestedVisibility !== undefined && currentPost) {
+      const targetPlatform = resolvedPlatform ?? currentPost.platform;
+      this.assertVisibilitySupported(requestedVisibility, targetPlatform);
     }
 
     const { ingredients, tags } = dto;
@@ -439,6 +489,12 @@ export class PostsService extends BaseService<
         tags: { set: tags.map((id) => ({ id })) },
       }),
     };
+    if (requestedExecutionState) {
+      prismaWriteData.targetExecutionState = requestedExecutionState;
+    }
+    if (requestedVisibility) {
+      prismaWriteData.visibility = requestedVisibility;
+    }
 
     // Convert scheduledDate from user timezone to UTC if timezone is provided
     if (dto.scheduledDate && dto.timezone) {
@@ -455,14 +511,14 @@ export class PostsService extends BaseService<
     }
 
     // If parent post is being scheduled, automatically schedule all children
-    if (normalizedStatus === PostStatus.SCHEDULED) {
+    if (requestedExecutionState === TargetExecutionState.SCHEDULED) {
       if (currentPost && !currentPost.parentId) {
         // Find all children and update them to SCHEDULED
         const updateResult = await this.prisma.post.updateMany({
           data: {
             credentialId: dto.credentialId ?? currentPost.credentialId,
             platform: resolvedPlatform ?? currentPost.platform,
-            status: PostStatus.SCHEDULED,
+            targetExecutionState: TargetExecutionState.SCHEDULED,
             ...(prismaWriteData.scheduledDate
               ? { scheduledDate: prismaWriteData.scheduledDate as Date }
               : {}),
@@ -471,14 +527,16 @@ export class PostsService extends BaseService<
             isDeleted: false,
             organizationId: currentPost.organizationId,
             parentId: id,
-            status: { not: PostStatus.PUBLIC },
+            targetExecutionState: {
+              not: TargetExecutionState.PUBLISHED,
+            },
           },
         });
 
         this.logger.log(`Auto-scheduled children for parent post ${id}`, {
           childrenUpdated: updateResult.count,
           parentId: id,
-          status: PostStatus.SCHEDULED,
+          executionState: TargetExecutionState.SCHEDULED,
         });
       }
     }
@@ -500,8 +558,8 @@ export class PostsService extends BaseService<
     if (
       isPublishingPost &&
       updatedPost &&
-      String(updatedPost.status).toLowerCase() === PostStatus.PUBLIC &&
-      String(currentPost?.status ?? '').toLowerCase() !== PostStatus.PUBLIC
+      updatedPost.targetExecutionState === TargetExecutionState.PUBLISHED &&
+      currentPost?.targetExecutionState !== TargetExecutionState.PUBLISHED
     ) {
       await this.completePublishFirstPostMission(updatedPost);
     }
@@ -510,14 +568,14 @@ export class PostsService extends BaseService<
   }
 
   private assertPublishTarget(
-    status: string | undefined,
+    status: TargetExecutionState | undefined,
     credentialId: string | null | undefined,
     platform: string | null | undefined,
   ): void {
     const normalizedStatus = status?.toLowerCase();
     if (
-      normalizedStatus !== PostStatus.SCHEDULED &&
-      normalizedStatus !== PostStatus.PUBLIC
+      normalizedStatus !== TargetExecutionState.SCHEDULED &&
+      normalizedStatus !== TargetExecutionState.PUBLISHED
     ) {
       return;
     }
@@ -527,6 +585,43 @@ export class PostsService extends BaseService<
         'A credential and platform are required before scheduling or publishing a post.',
       );
     }
+  }
+
+  private assertVisibilitySupported(
+    visibility: PostVisibility,
+    platform: string | null | undefined,
+  ): void {
+    if (!platform && visibility === PostVisibility.PUBLIC) {
+      return;
+    }
+    if (
+      !platform ||
+      !getSupportedPostVisibilities(platform).includes(visibility)
+    ) {
+      throw new BadRequestException(
+        `${platform ?? 'The selected platform'} does not support ${visibility} visibility.`,
+      );
+    }
+  }
+
+  protected override normalizeDocument(document: unknown): PostDocument {
+    const post = document as PostDocument;
+    const persistedState = post.targetExecutionState as TargetExecutionState;
+    const targetExecutionState = Object.values(TargetExecutionState).includes(
+      persistedState,
+    )
+      ? persistedState
+      : mapLegacyPostStatusToTargetExecutionState(post.status);
+    const visibility = resolvePostVisibility(post.visibility, post.status);
+    return {
+      ...post,
+      status:
+        post.visibility === null || post.visibility === undefined
+          ? post.status
+          : projectLegacyPostStatus(targetExecutionState, visibility),
+      targetExecutionState,
+      visibility,
+    };
   }
 
   /**
@@ -656,14 +751,16 @@ export class PostsService extends BaseService<
       return;
     }
 
-    // Save original status before changing to PROCESSING
-    const originalStatus = post.status;
+    const originalVisibility = resolvePostVisibility(
+      post.visibility,
+      post.status,
+    );
     const postId: string = String(
       (post.id as string | undefined) ?? (post as unknown as { id: string }).id,
     );
 
     await this.patch(postId, {
-      status: PostStatus.PROCESSING,
+      targetExecutionState: TargetExecutionState.PUBLISHING,
     });
 
     try {
@@ -684,7 +781,7 @@ export class PostsService extends BaseService<
           ? getUserRoomName(authProviderUserId)
           : undefined,
         scheduledDate: post.scheduledDate ?? undefined,
-        status: originalStatus,
+        visibility: originalVisibility,
         tags:
           (post.tags as unknown as ({ name?: string } | string)[])?.map(
             (tag) =>
@@ -703,7 +800,7 @@ export class PostsService extends BaseService<
       );
 
       await this.patch(postId, {
-        status: PostStatus.FAILED,
+        targetExecutionState: TargetExecutionState.FAILED,
       });
 
       throw error;
@@ -746,6 +843,7 @@ export class PostsService extends BaseService<
       threadPosts[0];
     const rootPostDto = {
       ...rootPostWithoutParent,
+      format: PostFormat.THREAD,
       order: 0,
       parentId: undefined,
     };
@@ -759,6 +857,7 @@ export class PostsService extends BaseService<
 
       const postDto = {
         ...postWithoutParent,
+        format: PostFormat.THREAD,
         order: i,
         parentId: rootPostId,
       };
@@ -881,6 +980,10 @@ export class PostsService extends BaseService<
 
     const rootPostId = rootPost.id.toString();
 
+    if (rootPost.format !== PostFormat.THREAD) {
+      await this.patch(rootPostId, { format: PostFormat.THREAD }, []);
+    }
+
     const childrenCount = await this.prisma.post.count({
       where: scopedWhere(parentPost.organizationId, { parentId: rootPostId }),
     });
@@ -889,6 +992,7 @@ export class PostsService extends BaseService<
 
     const replyDto = {
       ...dtoWithoutParent,
+      format: PostFormat.THREAD,
       order: childrenCount + 1,
       parentId: rootPostId,
     };
@@ -959,10 +1063,14 @@ export class PostsService extends BaseService<
       organizationId: dto.organizationId,
       originalPostId,
       platform: parsePlatform(originalPost.platform) ?? undefined,
-      status: PostStatus.DRAFT,
+      targetExecutionState: TargetExecutionState.DRAFT,
       tags: tagIds,
       timezone: originalPost.timezone || 'UTC',
       userId: dto.userId,
+      visibility: resolvePostVisibility(
+        originalPost.visibility,
+        originalPost.status,
+      ),
     } satisfies PostCreateInput;
 
     return this.create(remixDto, populate);

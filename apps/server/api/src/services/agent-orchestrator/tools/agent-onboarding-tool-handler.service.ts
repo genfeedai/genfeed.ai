@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -16,9 +17,9 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
-  PostStatus,
   RouterPriority,
   Status,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import {
@@ -29,7 +30,13 @@ import {
   resolveMissionCtaHref,
 } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { Effect } from 'effect';
 
 /**
@@ -54,6 +61,16 @@ interface AgentBrandsServiceLike {
     params: Record<string, unknown>,
     context?: string,
   ) => Promise<Record<string, unknown> | null>;
+  findCreateByIdentityConfirmationSource: (
+    organizationId: string,
+    userId: string,
+    sourceActionId: string,
+  ) => Promise<Record<string, unknown> | null>;
+  updateIdentityForOrganization: (
+    id: string,
+    organizationId: string,
+    identity: { description: string; label: string; slug: string },
+  ) => Promise<Record<string, unknown>>;
 }
 
 interface ContentGeneratorTextServiceLike {
@@ -114,53 +131,118 @@ export class AgentOnboardingToolHandler {
     return map[ratio] || map['1:1'];
   }
 
-  /** Used by media generation for first-image / first-video journey rewards. */
   async createBrand(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const fallbackName = 'My Brand';
-    const name = String(params.name || params.brandName || fallbackName).trim();
-    const normalizedHandle = this.normalizeHandle(
-      String(params.handle || ''),
-      name,
+    const label = this.readBrandLabel(
+      params.label ?? params.name ?? params.brandName,
+      fallbackName,
     );
+    const slug = this.normalizeBrandSlug(params.slug ?? params.handle, label);
     const description =
-      (params.description as string) ||
-      (params.niche as string) ||
-      `Brand profile for ${name}`;
-    const voice = (params.voice as string) || 'conversational';
+      ctx.confirmationOrigin === 'thread-ui-action'
+        ? this.readOptionalBrandDescription(
+            params.description,
+            `Brand profile for ${label}`,
+          )
+        : this.buildProposedDescription(params, label);
+    const proposal = { description, label, slug };
+
+    if (ctx.confirmationOrigin !== 'thread-ui-action') {
+      return this.buildBrandIdentityProposal('create', proposal, ctx);
+    }
+    const sourceActionId = this.readConfirmedBrandIdentitySourceActionId(
+      params.sourceActionId,
+    );
+
+    if (ctx.validatedScope?.brandId) {
+      const boundBrand = await this.brandsService.findOne({
+        id: ctx.validatedScope.brandId,
+        organizationId: ctx.organizationId,
+      });
+      if (
+        this.isMatchingCreateRecovery(boundBrand, proposal, sourceActionId, ctx)
+      ) {
+        return this.buildRecoveredCreateResult(boundBrand, proposal);
+      }
+      return {
+        creditsUsed: 0,
+        error:
+          'The thread is already bound to a different brand identity confirmation.',
+        success: false,
+      };
+    }
+
+    const recoveredBySource =
+      await this.brandsService.findCreateByIdentityConfirmationSource(
+        ctx.organizationId,
+        ctx.userId,
+        sourceActionId,
+      );
+    if (recoveredBySource) {
+      if (
+        this.isMatchingCreateRecovery(
+          recoveredBySource,
+          proposal,
+          sourceActionId,
+          ctx,
+        )
+      ) {
+        return this.buildRecoveredCreateResult(recoveredBySource, proposal);
+      }
+      return {
+        creditsUsed: 0,
+        error:
+          'This brand identity confirmation is already associated with a different brand identity.',
+        success: false,
+      };
+    }
 
     const existing = await this.brandsService.findOne({
       organizationId: ctx.organizationId,
-      slug: normalizedHandle,
+      slug,
     });
 
     if (existing) {
+      if (
+        this.isMatchingCreateRecovery(existing, proposal, sourceActionId, ctx)
+      ) {
+        return this.buildRecoveredCreateResult(existing, proposal);
+      }
+
       return {
         creditsUsed: 0,
-        data: {
-          created: false,
-          id: String(existing.id),
-          message: 'Brand already exists for this organization.',
-        },
-        success: true,
+        error: 'A brand with this slug already exists in the organization.',
+        success: false,
       };
     }
 
     const brand = await this.brandsService.create({
+      agentConfig: {
+        brandIdentityConfirmation: {
+          createSourceActionId: sourceActionId,
+          requestedSlug: slug,
+          source: 'agent-thread-ui-action',
+        },
+      },
       backgroundColor: '#000000',
-      description: `${description} Voice: ${voice}.`,
+      description,
       fontFamily: 'montserrat_black',
       isSelected: false,
-      label: name,
+      label,
       organizationId: ctx.organizationId,
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
-      slug: normalizedHandle,
+      slug,
       text: (params.niche as string) || undefined,
       userId: ctx.userId,
     } as never);
+    const createdSlug =
+      typeof brand.slug === 'string' && brand.slug.trim()
+        ? brand.slug.trim()
+        : slug;
 
     const onboardingStatus = await this.checkOnboardingStatus(ctx);
 
@@ -168,13 +250,270 @@ export class AgentOnboardingToolHandler {
       creditsUsed: 0,
       data: {
         created: true,
-        handle: normalizedHandle,
+        brandId: String(brand.id),
         id: String(brand.id),
-        name,
+        label,
+        slug: createdSlug,
       },
       nextActions: onboardingStatus.nextActions,
       success: true,
     };
+  }
+
+  private isMatchingCreateRecovery(
+    brand: Record<string, unknown> | null,
+    proposal: { description: string; label: string; slug: string },
+    sourceActionId: string,
+    ctx: ToolExecutionContext,
+  ): brand is Record<string, unknown> {
+    if (!brand) {
+      return false;
+    }
+    const agentConfig = this.readRecord(brand.agentConfig);
+    const provenance = this.readRecord(agentConfig.brandIdentityConfirmation);
+    return (
+      provenance.createSourceActionId === sourceActionId &&
+      provenance.requestedSlug === proposal.slug &&
+      brand.organizationId === ctx.organizationId &&
+      brand.userId === ctx.userId &&
+      brand.label === proposal.label &&
+      brand.description === proposal.description
+    );
+  }
+
+  private buildRecoveredCreateResult(
+    brand: Record<string, unknown>,
+    proposal: { description: string; label: string; slug: string },
+  ): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      data: {
+        brandId: String(brand.id),
+        created: false,
+        id: String(brand.id),
+        label: proposal.label,
+        recovered: true,
+        slug: this.readString(brand.slug) || proposal.slug,
+      },
+      success: true,
+    };
+  }
+
+  async renameBrand(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const brandId = ctx.validatedScope?.brandId;
+    if (!brandId) {
+      throw new BadRequestException(
+        'An active thread brand is required to rename a brand.',
+      );
+    }
+    const sourceActionId =
+      ctx.confirmationOrigin === 'thread-ui-action'
+        ? this.readConfirmedBrandIdentitySourceActionId(params.sourceActionId)
+        : undefined;
+
+    const currentBrand = await this.brandsService.findOne({
+      id: brandId,
+      organizationId: ctx.organizationId,
+    });
+    if (!currentBrand) {
+      throw new ForbiddenException(
+        'The active thread brand is not available in this organization.',
+      );
+    }
+
+    const currentLabel = this.readBrandLabel(currentBrand.label, 'Brand');
+    const currentSlug = this.normalizeBrandSlug(
+      currentBrand.slug,
+      currentLabel,
+    );
+    const label = this.readBrandLabel(params.label, currentLabel);
+    const slug = this.normalizeBrandSlug(params.slug, label);
+    const description = this.readOptionalBrandDescription(
+      params.description,
+      currentBrand.description,
+    );
+    const proposal = { description, label, slug };
+
+    if (ctx.confirmationOrigin !== 'thread-ui-action') {
+      return this.buildBrandIdentityProposal('rename', proposal, ctx, {
+        label: currentLabel,
+        slug: currentSlug,
+      });
+    }
+    if (!sourceActionId) {
+      throw new BadRequestException(
+        'Confirmed brand identity changes require source action evidence.',
+      );
+    }
+
+    const updated = await this.brandsService.updateIdentityForOrganization(
+      brandId,
+      ctx.organizationId,
+      proposal,
+    );
+
+    return {
+      creditsUsed: 0,
+      data: {
+        brandId,
+        description,
+        id: String(updated.id ?? brandId),
+        label,
+        renamed: true,
+        slug,
+      },
+      success: true,
+    };
+  }
+
+  private buildBrandIdentityProposal(
+    operation: 'create' | 'rename',
+    proposal: { description: string; label: string; slug: string },
+    ctx: ToolExecutionContext,
+    currentIdentity?: { label: string; slug: string },
+  ): AgentToolResult {
+    const sourceActionId = `brand-identity-${randomUUID()}`;
+    const action =
+      operation === 'create' ? 'confirm_create_brand' : 'confirm_rename_brand';
+    const label = operation === 'create' ? 'Confirm create' : 'Confirm rename';
+
+    return {
+      creditsUsed: 0,
+      data: {
+        operation,
+        proposal,
+        sourceActionId,
+      },
+      nextActions: [
+        {
+          ctas: [
+            {
+              action,
+              label,
+              payload: {
+                ...proposal,
+                sourceActionId,
+              },
+            },
+          ],
+          data: {
+            ...(currentIdentity ? { currentIdentity } : {}),
+            operation,
+            proposal,
+            proposalScope: {
+              brandId: ctx.validatedScope?.brandId ?? null,
+              contextVersion: ctx.validatedScope?.contextVersion ?? null,
+            },
+            sourceActionId,
+          },
+          description:
+            operation === 'create'
+              ? 'Review the proposed identity before creating the brand.'
+              : 'Review the proposed identity before renaming the active brand.',
+          id: sourceActionId,
+          requiresConfirmation: true,
+          riskLevel: 'medium',
+          title:
+            operation === 'create'
+              ? 'Confirm brand creation'
+              : 'Confirm brand rename',
+          type: 'brand_identity_confirmation_card',
+        },
+      ],
+      requiresConfirmation: true,
+      riskLevel: 'medium',
+      success: true,
+    };
+  }
+
+  private buildProposedDescription(
+    params: Record<string, unknown>,
+    label: string,
+  ): string {
+    const base = this.readOptionalBrandDescription(
+      params.description,
+      params.niche,
+    );
+    const description = base || `Brand profile for ${label}`;
+    const voice =
+      typeof params.voice === 'string' && params.voice.trim()
+        ? params.voice.trim()
+        : 'conversational';
+
+    return `${description.replace(/[.\s]+$/, '')}. Voice: ${voice.replace(/[.\s]+$/, '')}.`;
+  }
+
+  private readBrandLabel(value: unknown, fallback: string): string {
+    const label = typeof value === 'string' ? value.trim() : '';
+    const resolved = label || fallback.trim();
+    if (!resolved || resolved.length > 120) {
+      throw new BadRequestException(
+        'Brand label must contain between 1 and 120 characters.',
+      );
+    }
+    return resolved;
+  }
+
+  private readRecord(value: unknown): Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  }
+
+  private readString(value: unknown): string {
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private readConfirmedBrandIdentitySourceActionId(value: unknown): string {
+    const sourceActionId = this.readString(value);
+    if (
+      !/^brand-identity-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        sourceActionId,
+      )
+    ) {
+      throw new BadRequestException(
+        'Confirmed brand identity changes require valid source action evidence.',
+      );
+    }
+    return sourceActionId;
+  }
+
+  private readOptionalBrandDescription(
+    value: unknown,
+    fallback: unknown,
+  ): string {
+    const description =
+      typeof value === 'string'
+        ? value.trim()
+        : typeof fallback === 'string'
+          ? fallback.trim()
+          : '';
+    if (description.length > 2_000) {
+      throw new BadRequestException(
+        'Brand description must not exceed 2000 characters.',
+      );
+    }
+    return description;
+  }
+
+  private normalizeBrandSlug(value: unknown, label: string): string {
+    const raw =
+      typeof value === 'string' && value.trim() ? value.trim() : label;
+    const slug = raw
+      .toLowerCase()
+      .replace(/^@/, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '');
+    if (slug.length < 2 || slug.length > 120) {
+      throw new BadRequestException(
+        'Brand slug must contain between 2 and 120 URL-safe characters.',
+      );
+    }
+    return slug;
   }
 
   async checkOnboardingStatus(
@@ -206,7 +545,7 @@ export class AgentOnboardingToolHandler {
         this.postsService.findOne(
           {
             organizationId,
-            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           },
           [],
         ),
@@ -888,20 +1227,6 @@ export class AgentOnboardingToolHandler {
       success: true,
     };
   }
-  private normalizeHandle(handle: string, name: string): string {
-    const raw = handle || name;
-    const normalized = raw
-      .toLowerCase()
-      .replace(/^@/, '')
-      .replace(/[^a-z0-9_]/g, '');
-
-    if (normalized.length > 0) {
-      return normalized;
-    }
-
-    return `brand_${Date.now()}`;
-  }
-
   private async generateOnboardingImage(
     prompt: string,
     ctx: ToolExecutionContext,

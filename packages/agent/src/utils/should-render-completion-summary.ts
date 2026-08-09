@@ -30,6 +30,7 @@ export const PRODUCT_RESULT_CARD_TYPES = new Set<AgentUiAction['type']>([
   'workflow_execute_card',
   'workflow_trigger_card',
   'brand_create_card',
+  'brand_identity_confirmation_card',
   'brand_interview_offer_card',
   'brand_interview_complete_card',
   'ads_search_results_card',

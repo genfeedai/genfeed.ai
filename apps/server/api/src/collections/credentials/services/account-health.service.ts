@@ -1,6 +1,7 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { postExecutionStateReadFilter } from '@api-types/contracts/scheduler.contract';
+import { CredentialPlatform, TargetExecutionState } from '@genfeedai/enums';
 import type {
   AccountHealthOverride,
   AccountHealthRiskLevel,
@@ -166,6 +167,7 @@ export class AccountHealthService {
     );
     const signals = await this.buildSignals(
       credential,
+      params.organizationId,
       params.request?.signals,
     );
     const summary = this.createSummary(credential, thresholds, signals);
@@ -318,24 +320,25 @@ export class AccountHealthService {
 
   private async buildSignals(
     credential: Credential,
+    // Credential.organizationId is nullable in the schema; the caller always
+    // resolves the credential inside a known organization, so scope on that.
+    organizationId: string,
     overrides: Partial<AccountHealthSignals> | undefined,
   ): Promise<AccountHealthSignals> {
     const since = new Date(Date.now() - 30 * MS_PER_DAY);
     const [publishedPosts, recentFailures] = await Promise.all([
       this.prisma.post.count({
-        where: {
+        where: scopedWhere(organizationId, {
           credentialId: credential.id,
-          isDeleted: false,
-          status: PostStatus.PUBLIC,
-        },
+          ...postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+        }),
       }),
       this.prisma.post.count({
-        where: {
+        where: scopedWhere(organizationId, {
           createdAt: { gte: since },
           credentialId: credential.id,
-          isDeleted: false,
-          status: PostStatus.FAILED,
-        },
+          ...postExecutionStateReadFilter(TargetExecutionState.FAILED),
+        }),
       }),
     ]);
 

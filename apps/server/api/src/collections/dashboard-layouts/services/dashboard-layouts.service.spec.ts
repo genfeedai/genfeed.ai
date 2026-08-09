@@ -4,6 +4,7 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/dashboard';
+import type { PersistedDashboardLayoutDocument } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +13,7 @@ vi.mock('@genfeedai/agent/dashboard', () => ({
   sanitizeLayoutForPersistence: vi.fn(),
 }));
 
-const sanitizedDocument = {
+const sanitizedDocument: PersistedDashboardLayoutDocument = {
   blocks: [],
   version: 'genfeed.dashboard.openui.v1',
 };
@@ -290,6 +291,40 @@ describe('DashboardLayoutsService', () => {
       ).rejects.toThrow(ValidationException);
 
       expect(mockPrisma.dashboardLayout.upsert).not.toHaveBeenCalled();
+    });
+
+    it('does not replace the last valid layout when a later write is rejected', async () => {
+      mockPrisma.brand.findFirst.mockResolvedValue({
+        organizationId: 'org-1',
+      });
+      mockPrisma.dashboardLayout.upsert.mockResolvedValueOnce(
+        mockDashboardLayout,
+      );
+
+      await service.upsertForPage('org-1', {
+        brandId: 'brand-1',
+        document: { blocks: [] },
+      });
+
+      vi.mocked(sanitizeLayoutForPersistence).mockReturnValueOnce({
+        document: sanitizedDocument,
+        issues: [
+          {
+            code: 'document_too_large',
+            message: 'dashboard document is too large',
+            path: 'document',
+          },
+        ],
+      });
+
+      await expect(
+        service.upsertForPage('org-1', {
+          brandId: 'brand-1',
+          document: { blocks: ['oversized'] },
+        }),
+      ).rejects.toThrow(ValidationException);
+
+      expect(mockPrisma.dashboardLayout.upsert).toHaveBeenCalledTimes(1);
     });
   });
 

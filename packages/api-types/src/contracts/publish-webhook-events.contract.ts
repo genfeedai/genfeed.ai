@@ -1,5 +1,6 @@
 import { ReleaseStatus, TargetExecutionState } from '@genfeedai/enums';
 import { z } from 'zod';
+import { deriveReleaseStatusFromTargets } from './scheduler.contract';
 import {
   classifyWebhookError,
   createWebhookEventId,
@@ -130,12 +131,6 @@ export function createSamplePublishWebhookPayload(
   const targetStatus = isFailureEvent
     ? TargetExecutionState.FAILED
     : TargetExecutionState.PUBLISHED;
-  const releaseStatus =
-    event === 'release.partially_published'
-      ? ReleaseStatus.PARTIALLY_PUBLISHED
-      : isFailureEvent
-        ? ReleaseStatus.FAILED
-        : ReleaseStatus.PUBLISHED;
   const publishedTarget = {
     credential: { id: 'credential_sample' },
     error: null,
@@ -180,6 +175,9 @@ export function createSamplePublishWebhookPayload(
           },
         ]
       : [target];
+  const releaseStatus = deriveReleaseStatusFromTargets(
+    targets.map((item) => item.status),
+  );
 
   return publishWebhookPayloadSchema.parse({
     event,

@@ -12,6 +12,7 @@ vi.mock('@api/shared/utils/html-to-text/html-to-text.util', () => ({
 
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { MastodonService } from '@api/services/integrations/mastodon/services/mastodon.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -52,12 +53,19 @@ describe('MastodonPublisherService', () => {
     platform: CredentialPlatform.MASTODON,
   } as unknown as CredentialDocument;
 
+  const mockOrganization = {
+    id: orgId,
+    isDeleted: false,
+    name: 'Test Organization',
+  } as unknown as OrganizationDocument;
+
   const makeContext = (
     overrides: Partial<PublishContext> = {},
   ): PublishContext => ({
     settings: {},
     brandId,
     credential: mockCredential,
+    organization: mockOrganization,
     organizationId: orgId,
     post: {
       id: postId,

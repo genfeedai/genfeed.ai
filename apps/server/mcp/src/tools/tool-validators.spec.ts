@@ -1,7 +1,18 @@
-import { Platform, PostStatus } from '@genfeedai/enums';
+import {
+  Platform,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
-import { isPlatform, toPlatform, toPostStatus } from './tool-validators';
+import {
+  isPlatform,
+  toPlatform,
+  toPostStatus,
+  toPostVisibility,
+  toTargetExecutionState,
+} from './tool-validators';
 
 describe('tool-validators', () => {
   it('accepts every canonical Platform value', () => {
@@ -15,6 +26,17 @@ describe('tool-validators', () => {
     for (const status of Object.values(PostStatus)) {
       expect(toPostStatus(status)).toBe(status);
     }
+  });
+
+  it('validates lifecycle and visibility independently', () => {
+    for (const state of Object.values(TargetExecutionState)) {
+      expect(toTargetExecutionState(state)).toBe(state);
+    }
+    for (const visibility of Object.values(PostVisibility)) {
+      expect(toPostVisibility(visibility)).toBe(visibility);
+    }
+    expect(toTargetExecutionState(PostVisibility.PRIVATE)).toBeUndefined();
+    expect(toPostVisibility(TargetExecutionState.PUBLISHED)).toBeUndefined();
   });
 
   it('rejects values outside the canonical enums', () => {

@@ -42,6 +42,7 @@ import {
   IngredientCategory,
   PostStatus,
   ReleaseStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -152,7 +153,12 @@ describe('AgentToolExecutorService', () => {
     };
     const brandsService = {
       create: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+      findCreateByIdentityConfirmationSource: vi.fn().mockResolvedValue(null),
       findOne: vi.fn(),
+      patch: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+      updateIdentityForOrganization: vi
+        .fn()
+        .mockResolvedValue({ id: 'brand-1' }),
       generateBrandVoice: vi.fn().mockResolvedValue({
         audience: ['founders', 'marketers'],
         doNotSoundLike: ['corporate jargon', 'broetry'],
@@ -804,6 +810,7 @@ describe('AgentToolExecutorService', () => {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
       assertResourceBrand: vi.fn(),
     };
+    const postRepurposeService = { repurpose: vi.fn() };
     const publishHandler = new AgentPublishToolHandler(
       postGroupsService as never,
       postsService as never,
@@ -811,6 +818,8 @@ describe('AgentToolExecutorService', () => {
       ingredientsService as never,
       credentialsService as never,
       agentScopeContextService as never,
+      postRepurposeService as never,
+      creditsUtilsService as never,
     );
     const instagramInspirationHandler =
       new AgentInstagramInspirationToolHandler(
@@ -986,6 +995,7 @@ describe('AgentToolExecutorService', () => {
       organizationsService,
       postAnalyticsService,
       postGroupsService,
+      postRepurposeService,
       postsService,
       recurringWorkflowId,
       service,
@@ -1272,6 +1282,183 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(postsService.patch).not.toHaveBeenCalled();
+  });
+
+  it('repurposes a post deterministically at no credit cost', async () => {
+    const { creditsUtilsService, postRepurposeService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockResolvedValue({
+      adjustments: [
+        {
+          code: 'channel_repurpose.caption_truncated',
+          message: 'Caption shortened to fit the X (Twitter) limit of 280.',
+        },
+      ],
+      draft: { id: 'repurposed-draft-1' },
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'deterministic',
+        platform: 'twitter',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        data: expect.objectContaining({
+          id: 'repurposed-draft-1',
+          mode: 'deterministic',
+          platform: 'twitter',
+          status: 'draft',
+        }),
+        isBillingDelegated: true,
+        success: true,
+      }),
+    );
+    expect(postRepurposeService.repurpose).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: 'deterministic',
+        organizationId: 'c7a123456789012345678901',
+        platform: 'twitter',
+        postId: 'source-post-1',
+        userId: 'c7a123456789012345678902',
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+  });
+
+  it('bills the agent-mode repurpose rewrite and returns the review reference', async () => {
+    const { creditsUtilsService, postRepurposeService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockResolvedValue({
+      adjustments: [],
+      draft: { id: 'repurposed-draft-2' },
+      reviewBatchId: 'batch-1',
+      reviewItemId: 'item-1',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'agent',
+        platform: 'linkedin',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 1,
+        data: expect.objectContaining({
+          id: 'repurposed-draft-2',
+          mode: 'agent',
+          reviewBatchId: 'batch-1',
+          reviewItemId: 'item-1',
+        }),
+        isBillingDelegated: true,
+        success: true,
+      }),
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).toHaveBeenCalledWith(
+      'c7a123456789012345678901',
+      'c7a123456789012345678902',
+      1,
+      expect.stringContaining('source-post-1'),
+      expect.anything(),
+    );
+  });
+
+  it('returns the actionable validation detail when repurposing rejects', async () => {
+    const { postRepurposeService, postsService, service } = createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockRejectedValue(
+      new BadRequestException({
+        detail: 'X (Twitter) does not support carousel media.',
+        title: 'Post cannot be repurposed to this channel',
+      }),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'deterministic',
+        platform: 'twitter',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        error: 'X (Twitter) does not support carousel media.',
+        success: false,
+      }),
+    );
+  });
+
+  it('withholds internal repurpose failures from model-visible output', async () => {
+    const { loggerService, postRepurposeService, postsService, service } =
+      createService();
+    postsService.findOne.mockResolvedValue({
+      brandId: 'c7a123456789012345678931',
+      id: 'source-post-1',
+    });
+    postRepurposeService.repurpose.mockRejectedValue(
+      new Error('Prisma connection detail with internal host'),
+    );
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      {
+        mode: 'agent',
+        platform: 'twitter',
+        postId: 'source-post-1',
+      },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).not.toContain('Prisma');
+    expect(loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('Prisma connection detail'),
+      'AgentPublishToolHandler',
+    );
+  });
+
+  it('requires postId, platform, and mode before repurposing', async () => {
+    const { postRepurposeService, service } = createService();
+
+    const result = await service.executeTool(
+      AgentToolName.REPURPOSE_POST,
+      { platform: 'twitter', postId: 'source-post-1' },
+      scopedContext('c7a123456789012345678931'),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('mode');
+    expect(postRepurposeService.repurpose).not.toHaveBeenCalled();
   });
 
   it('logs unexpected canonical scheduling failures without exposing internal details', async () => {
@@ -2623,12 +2810,13 @@ describe('AgentToolExecutorService', () => {
     );
   });
 
-  it('should create a brand with onboarding defaults', async () => {
+  it('proposes brand creation without mutating, including when confirmed is spoofed', async () => {
     const { brandsService, service } = createService();
 
     const result = await service.executeTool(
       AgentToolName.CREATE_BRAND,
       {
+        confirmed: true,
         description: 'Creator focused fitness content',
         handle: '@fitcreator',
         name: 'Fit Creator',
@@ -2640,14 +2828,61 @@ describe('AgentToolExecutorService', () => {
     );
 
     expect(result.success).toBe(true);
-    expect(brandsService.findOne).toHaveBeenCalledWith({
-      organizationId: 'c7a123456789012345678901',
-      slug: 'fitcreator',
+    expect(result.requiresConfirmation).toBe(true);
+    expect(result.nextActions?.[0]).toMatchObject({
+      ctas: [
+        expect.objectContaining({
+          action: 'confirm_create_brand',
+          label: 'Confirm create',
+        }),
+      ],
+      data: expect.objectContaining({
+        operation: 'create',
+        proposal: expect.objectContaining({
+          label: 'Fit Creator',
+          slug: 'fitcreator',
+        }),
+      }),
+      type: 'brand_identity_confirmation_card',
     });
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+    expect(brandsService.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a confirmed brand with canonical execution identity', async () => {
+    const { brandsService, service } = createService();
+    brandsService.findOne.mockResolvedValue(null);
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_BRAND,
+      {
+        description: 'Creator focused fitness content',
+        label: 'Fit Creator',
+        organizationId: 'foreign-org',
+        slug: 'fit-creator',
+        sourceActionId: 'brand-identity-66666666-6666-4666-8666-666666666666',
+        userId: 'foreign-user',
+      },
+      {
+        confirmationOrigin: 'thread-ui-action',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
     expect(brandsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
+        agentConfig: {
+          brandIdentityConfirmation: {
+            createSourceActionId:
+              'brand-identity-66666666-6666-4666-8666-666666666666',
+            requestedSlug: 'fit-creator',
+            source: 'agent-thread-ui-action',
+          },
+        },
         organizationId: 'c7a123456789012345678901',
-        slug: 'fitcreator',
+        slug: 'fit-creator',
         userId: 'c7a123456789012345678902',
       }),
     );
@@ -2656,6 +2891,228 @@ describe('AgentToolExecutorService', () => {
         handle: expect.anything(),
         organization: expect.anything(),
       }),
+    );
+  });
+
+  it('rejects a trusted confirmation origin without persisted source evidence', async () => {
+    const { brandsService, service } = createService();
+
+    const createResult = await service.executeTool(
+      AgentToolName.CREATE_BRAND,
+      { label: 'Missing Evidence' },
+      {
+        confirmationOrigin: 'thread-ui-action',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+    const renameResult = await service.executeTool(
+      AgentToolName.RENAME_BRAND,
+      { label: 'Missing Evidence' },
+      {
+        ...scopedContext('brand-1'),
+        confirmationOrigin: 'thread-ui-action',
+      },
+    );
+
+    expect(createResult).toMatchObject({
+      error:
+        'Confirmed brand identity changes require valid source action evidence.',
+      success: false,
+    });
+    expect(renameResult).toMatchObject({
+      error:
+        'Confirmed brand identity changes require valid source action evidence.',
+      success: false,
+    });
+    expect(brandsService.findOne).not.toHaveBeenCalled();
+    expect(brandsService.create).not.toHaveBeenCalled();
+    expect(brandsService.updateIdentityForOrganization).not.toHaveBeenCalled();
+  });
+
+  it('recovers a confirmed create retry only from an exact scoped identity match', async () => {
+    const { brandsService, service } = createService();
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {
+        brandIdentityConfirmation: {
+          createSourceActionId:
+            'brand-identity-77777777-7777-4777-8777-777777777777',
+          requestedSlug: 'recovered-brand',
+        },
+      },
+      description: 'Confirmed description',
+      id: 'brand-recovered',
+      label: 'Recovered Brand',
+      organizationId: 'c7a123456789012345678901',
+      slug: 'recovered-brand',
+      userId: 'c7a123456789012345678902',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.CREATE_BRAND,
+      {
+        description: 'Confirmed description',
+        label: 'Recovered Brand',
+        slug: 'recovered-brand',
+        sourceActionId: 'brand-identity-77777777-7777-4777-8777-777777777777',
+      },
+      {
+        ...scopedContext('brand-recovered'),
+        confirmationOrigin: 'thread-ui-action',
+      },
+    );
+
+    expect(result).toMatchObject({
+      data: {
+        brandId: 'brand-recovered',
+        created: false,
+        recovered: true,
+      },
+      success: true,
+    });
+    expect(brandsService.create).not.toHaveBeenCalled();
+  });
+
+  it('recovers a suffixed create after a post-create failure without duplicating the brand', async () => {
+    const { brandsService, internalApi, service } = createService();
+    const sourceActionId =
+      'brand-identity-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const createdBrand = {
+      agentConfig: {
+        brandIdentityConfirmation: {
+          createSourceActionId: sourceActionId,
+          requestedSlug: 'collision-brand',
+        },
+      },
+      description: 'Confirmed description',
+      id: 'brand-collision',
+      label: 'Collision Brand',
+      organizationId: 'c7a123456789012345678901',
+      slug: 'collision-brand-2',
+      userId: 'c7a123456789012345678902',
+    };
+    let created = false;
+    brandsService.findCreateByIdentityConfirmationSource.mockImplementation(
+      async () => (created ? createdBrand : null),
+    );
+    brandsService.findOne.mockResolvedValue(null);
+    brandsService.create.mockImplementation(async () => {
+      created = true;
+      return createdBrand;
+    });
+    vi.spyOn(internalApi, 'callInternalFindOne')
+      .mockRejectedValueOnce(new Error('post-create dependency failed'))
+      .mockResolvedValue(null);
+    const parameters = {
+      description: 'Confirmed description',
+      label: 'Collision Brand',
+      slug: 'collision-brand',
+      sourceActionId,
+    };
+    const context = {
+      confirmationOrigin: 'thread-ui-action' as const,
+      organizationId: 'c7a123456789012345678901',
+      userId: 'c7a123456789012345678902',
+    };
+
+    const first = await service.executeTool(
+      AgentToolName.CREATE_BRAND,
+      parameters,
+      context,
+    );
+    const retry = await service.executeTool(
+      AgentToolName.CREATE_BRAND,
+      parameters,
+      context,
+    );
+
+    expect(first).toMatchObject({
+      error: 'post-create dependency failed',
+      success: false,
+    });
+    expect(retry).toMatchObject({
+      data: {
+        brandId: 'brand-collision',
+        created: false,
+        recovered: true,
+        slug: 'collision-brand-2',
+      },
+      success: true,
+    });
+    expect(brandsService.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects rename when the active thread brand is outside the organization', async () => {
+    const { brandsService, service } = createService();
+    brandsService.findOne.mockResolvedValue(null);
+
+    const result = await service.executeTool(
+      AgentToolName.RENAME_BRAND,
+      {
+        label: 'Renamed Brand',
+        slug: 'renamed-brand',
+        sourceActionId: 'brand-identity-88888888-8888-4888-8888-888888888888',
+      },
+      {
+        ...scopedContext('foreign-brand'),
+        confirmationOrigin: 'thread-ui-action',
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'foreign-brand',
+      organizationId: 'c7a123456789012345678901',
+    });
+    expect(brandsService.updateIdentityForOrganization).not.toHaveBeenCalled();
+  });
+
+  it('renames the confirmed active brand within the validated organization scope', async () => {
+    const { brandsService, service } = createService();
+    brandsService.findOne.mockResolvedValue({
+      description: 'Existing description',
+      id: 'brand-1',
+      label: 'Old Brand',
+      slug: 'old-brand',
+    });
+    brandsService.updateIdentityForOrganization.mockResolvedValue({
+      id: 'brand-1',
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.RENAME_BRAND,
+      {
+        label: 'Renamed Brand',
+        slug: 'renamed-brand',
+        sourceActionId: 'brand-identity-99999999-9999-4999-8999-999999999999',
+      },
+      {
+        ...scopedContext('brand-1'),
+        confirmationOrigin: 'thread-ui-action',
+      },
+    );
+
+    expect(result).toMatchObject({
+      data: {
+        brandId: 'brand-1',
+        label: 'Renamed Brand',
+        renamed: true,
+        slug: 'renamed-brand',
+      },
+      success: true,
+    });
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      organizationId: 'c7a123456789012345678901',
+    });
+    expect(brandsService.updateIdentityForOrganization).toHaveBeenCalledWith(
+      'brand-1',
+      'c7a123456789012345678901',
+      {
+        description: 'Existing description',
+        label: 'Renamed Brand',
+        slug: 'renamed-brand',
+      },
     );
   });
 
@@ -2688,7 +3145,7 @@ describe('AgentToolExecutorService', () => {
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
         organizationId: 'c7a123456789012345678901',
-        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
       },
       [],
     );
@@ -2875,7 +3332,7 @@ describe('AgentToolExecutorService', () => {
 
     postsService.findOne.mockResolvedValue({
       id: 'post-1',
-      status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
     });
 
     const result = await service.executeTool(

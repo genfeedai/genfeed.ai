@@ -1,4 +1,9 @@
-import { PostStatus } from '@genfeedai/enums';
+import {
+  PostFormat,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { PublicPostSerializer } from '@serializers/server/content/post.serializer';
 import { describe, expect, it } from 'vitest';
 
@@ -11,15 +16,18 @@ describe('PublicPostSerializer', () => {
       credential: { id: 'credential_1', isConnected: true },
       credentialId: 'credential_1',
       description: 'Public post body',
+      format: PostFormat.LONG_FORM,
       id: 'post_1',
       label: 'Public post',
       organizationId: 'org_1',
       platform: 'instagram',
       promptUsed: 'private generation prompt',
       status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
       updatedAt: new Date('2026-08-05T01:00:00.000Z'),
       user: { email: 'private@example.com', id: 'user_1' },
       userId: 'user_1',
+      visibility: PostVisibility.PUBLIC,
     }) as {
       data: {
         attributes: Record<string, unknown>;
@@ -30,9 +38,12 @@ describe('PublicPostSerializer', () => {
 
     expect(document.data.attributes).toMatchObject({
       description: 'Public post body',
+      format: PostFormat.LONG_FORM,
       label: 'Public post',
       platform: 'instagram',
       status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PUBLIC,
     });
     expect(document.data.attributes).not.toHaveProperty('agentRunId');
     expect(document.data.attributes).not.toHaveProperty('brandId');

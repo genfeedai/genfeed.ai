@@ -1,6 +1,6 @@
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { PostStatus } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentUiAction } from '@genfeedai/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -117,7 +117,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     expect(postsService.findOne).toHaveBeenCalledWith(
       {
         organizationId: CONTEXT.organizationId,
-        status: PostStatus.PUBLIC,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
       },
       [],
     );

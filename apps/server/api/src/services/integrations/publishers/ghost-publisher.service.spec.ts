@@ -3,6 +3,7 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import { GhostPublisherService } from '@api/services/integrations/publishers/ghost-publisher.service';
 import type { PublishContext } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -33,6 +34,12 @@ describe('GhostPublisherService', () => {
     platform: CredentialPlatform.GHOST,
   };
 
+  const mockOrganization = {
+    id: orgId,
+    isDeleted: false,
+    name: 'Test Organization',
+  } as unknown as OrganizationDocument;
+
   const makeContext = (
     overrides: Partial<PublishContext> = {},
   ): PublishContext => ({
@@ -40,6 +47,7 @@ describe('GhostPublisherService', () => {
     brandId,
     credential: mockCredential as never,
     isDraft: false,
+    organization: mockOrganization,
     organizationId: orgId,
     post: {
       id: 'test-object-id',

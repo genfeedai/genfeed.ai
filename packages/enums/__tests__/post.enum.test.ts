@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   PostCategory,
   PostEntityModel,
+  PostFormat,
   PostFrequency,
   PostStatus,
+  PostVisibility,
 } from '../src/post.enum';
 
 describe('post.enum', () => {
@@ -24,6 +26,16 @@ describe('post.enum', () => {
     });
   });
 
+  describe('PostVisibility', () => {
+    it('keeps audience visibility independent from lifecycle', () => {
+      expect(Object.values(PostVisibility)).toEqual([
+        'public',
+        'private',
+        'unlisted',
+      ]);
+    });
+  });
+
   describe('PostFrequency', () => {
     it('should have 5 members', () => {
       expect(Object.values(PostFrequency)).toHaveLength(5);
@@ -35,6 +47,14 @@ describe('post.enum', () => {
       expect(PostFrequency.MONTHLY).toBe('monthly');
       expect(PostFrequency.YEARLY).toBe('yearly');
       expect(PostFrequency.NEVER).toBe('never');
+    });
+  });
+
+  describe('PostFormat', () => {
+    it('distinguishes standard, long-form, and thread editing shapes', () => {
+      expect(PostFormat.STANDARD).toBe('standard');
+      expect(PostFormat.LONG_FORM).toBe('long-form');
+      expect(PostFormat.THREAD).toBe('thread');
     });
   });
 

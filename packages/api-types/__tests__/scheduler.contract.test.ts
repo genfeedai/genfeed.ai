@@ -2,18 +2,25 @@ import {
   channelTargetInputSchema,
   createReleaseGroupSchema,
   deriveReleaseStatusFromTargets,
+  deriveReleaseStatusProjectionFromTargets,
   isTerminalReleaseStatus,
   isTerminalTargetExecutionState,
   LEGACY_POST_SCHEDULE_FIELD_MAP,
   mapLegacyPostStatusToReleaseStatus,
   mapLegacyPostStatusToTargetExecutionState,
+  mapLegacyPostStatusToVisibility,
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+  projectLegacyPostStatus,
   recurrenceInputSchema,
+  resolvePostVisibility,
   updateChannelTargetSchema,
   updateRecurrenceSeriesSchema,
 } from '@api-types/contracts/scheduler.contract';
 import {
   PostFrequency,
   PostStatus,
+  PostVisibility,
   ReleaseAttachmentKind,
   ReleaseStatus,
   TargetExecutionState,
@@ -87,6 +94,12 @@ describe('createReleaseGroupSchema', () => {
 });
 
 describe('channelTargetInputSchema', () => {
+  test('defaults audience visibility independently from lifecycle', () => {
+    expect(channelTargetInputSchema.parse(validTarget).visibility).toBe(
+      PostVisibility.PUBLIC,
+    );
+  });
+
   test('preserves IANA timezone strings (never coerced to an offset)', () => {
     const result = channelTargetInputSchema.parse(validTarget);
     expect(result.timezone).toBe('Europe/Amsterdam');
@@ -226,6 +239,15 @@ describe('deriveReleaseStatusFromTargets', () => {
     ).toBe(ReleaseStatus.PUBLISHED);
   });
 
+  test('all draft -> draft', () => {
+    expect(
+      deriveReleaseStatusFromTargets([
+        TargetExecutionState.DRAFT,
+        TargetExecutionState.DRAFT,
+      ]),
+    ).toBe(ReleaseStatus.DRAFT);
+  });
+
   test('some published, some failed -> partially-published', () => {
     expect(
       deriveReleaseStatusFromTargets([
@@ -327,6 +349,134 @@ describe('deriveReleaseStatusFromTargets', () => {
       ]),
     ).toBe(ReleaseStatus.SCHEDULED);
   });
+
+  test('every ordered pair follows the exhaustive aggregation matrix', () => {
+    const states = [
+      TargetExecutionState.DRAFT,
+      TargetExecutionState.SCHEDULED,
+      TargetExecutionState.PAUSED,
+      TargetExecutionState.CANCELLED,
+      TargetExecutionState.PUBLISHING,
+      TargetExecutionState.PUBLISHED,
+      TargetExecutionState.FAILED,
+      TargetExecutionState.SKIPPED,
+    ];
+    const matrix: ReleaseStatus[][] = [
+      [
+        ReleaseStatus.DRAFT,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PAUSED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.CANCELLED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.CANCELLED,
+      ],
+      Array.from({ length: states.length }, () => ReleaseStatus.PUBLISHING),
+      [
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.FAILED,
+      ],
+      [
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.SCHEDULED,
+        ReleaseStatus.CANCELLED,
+        ReleaseStatus.PUBLISHING,
+        ReleaseStatus.PARTIALLY_PUBLISHED,
+        ReleaseStatus.FAILED,
+        ReleaseStatus.CANCELLED,
+      ],
+    ];
+
+    for (const [leftIndex, left] of states.entries()) {
+      for (const [rightIndex, right] of states.entries()) {
+        expect(
+          deriveReleaseStatusFromTargets([left, right]),
+          `${left} + ${right}`,
+        ).toBe(matrix[leftIndex]?.[rightIndex]);
+      }
+    }
+  });
+
+  test('fails closed with structured diagnostics for malformed target sets', () => {
+    expect(
+      deriveReleaseStatusProjectionFromTargets([
+        TargetExecutionState.PUBLISHED,
+        'not-a-target-state',
+      ]),
+    ).toEqual({
+      diagnostics: [
+        {
+          code: 'invalid-target-state',
+          invalidTargetIndexes: [1],
+          targetCount: 2,
+          validTargetCount: 1,
+        },
+      ],
+      status: ReleaseStatus.FAILED,
+    });
+  });
+
+  test('reports an empty target set without claiming publication', () => {
+    expect(deriveReleaseStatusProjectionFromTargets([])).toEqual({
+      diagnostics: [
+        {
+          code: 'empty-target-set',
+          invalidTargetIndexes: [],
+          targetCount: 0,
+          validTargetCount: 0,
+        },
+      ],
+      status: ReleaseStatus.DRAFT,
+    });
+  });
 });
 
 describe('terminal-state predicates', () => {
@@ -379,6 +529,64 @@ describe('legacy Post schedule migration', () => {
       const state = mapLegacyPostStatusToTargetExecutionState(status);
       expect(Object.values(TargetExecutionState).includes(state)).toBe(true);
     }
+  });
+
+  test.each([
+    [PostStatus.PUBLIC, PostVisibility.PUBLIC],
+    [PostStatus.PRIVATE, PostVisibility.PRIVATE],
+    [PostStatus.UNLISTED, PostVisibility.UNLISTED],
+    [PostStatus.SCHEDULED, PostVisibility.PUBLIC],
+  ])('maps legacy %s into visibility %s', (status, visibility) => {
+    expect(mapLegacyPostStatusToVisibility(status)).toBe(visibility);
+  });
+
+  test('preserves an explicit visibility and falls back for legacy rows', () => {
+    expect(
+      resolvePostVisibility(PostVisibility.PRIVATE, PostStatus.PUBLIC),
+    ).toBe(PostVisibility.PRIVATE);
+    expect(resolvePostVisibility(null, PostStatus.UNLISTED)).toBe(
+      PostVisibility.UNLISTED,
+    );
+  });
+
+  test('projects compatibility status without coupling canonical writes', () => {
+    expect(
+      projectLegacyPostStatus(
+        TargetExecutionState.PUBLISHED,
+        PostVisibility.PRIVATE,
+      ),
+    ).toBe(PostStatus.PRIVATE);
+    expect(
+      projectLegacyPostStatus(
+        TargetExecutionState.PUBLISHING,
+        PostVisibility.PUBLIC,
+      ),
+    ).toBe(PostStatus.PROCESSING);
+  });
+
+  test('limits lifecycle compatibility reads to unclassified rows', () => {
+    expect(
+      postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+    ).toEqual({
+      OR: [
+        { targetExecutionState: { in: [TargetExecutionState.PUBLISHED] } },
+        {
+          status: {
+            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
+          },
+          visibility: null,
+        },
+      ],
+    });
+  });
+
+  test('limits visibility compatibility reads to unclassified rows', () => {
+    expect(postVisibilityReadFilter(PostVisibility.PRIVATE)).toEqual({
+      OR: [
+        { visibility: PostVisibility.PRIVATE },
+        { status: { in: [PostStatus.PRIVATE] }, visibility: null },
+      ],
+    });
   });
 
   test('unknown status falls back to draft', () => {

@@ -8,6 +8,8 @@ import {
   CredentialPlatform,
   PostCategory,
   PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { PostsQueryDto } from '../dto/posts-query.dto';
 
@@ -76,9 +78,17 @@ describe('PostsController.buildFindAllQuery', () => {
     const result = controller.buildFindAllQuery(makeUser(), query);
 
     expect(result.where).toMatchObject({
-      status: {
-        in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-      },
+      AND: [
+        {
+          OR: expect.arrayContaining([
+            {
+              targetExecutionState: {
+                in: [TargetExecutionState.PUBLISHED],
+              },
+            },
+          ]),
+        },
+      ],
     });
   });
 
@@ -87,9 +97,19 @@ describe('PostsController.buildFindAllQuery', () => {
     const result = controller.buildFindAllQuery(makeUser(), query);
 
     expect(result.where).toMatchObject({
-      status: {
-        notIn: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-      },
+      AND: [
+        {
+          NOT: {
+            OR: expect.arrayContaining([
+              {
+                targetExecutionState: {
+                  in: [TargetExecutionState.PUBLISHED],
+                },
+              },
+            ]),
+          },
+        },
+      ],
     });
   });
 
@@ -100,7 +120,17 @@ describe('PostsController.buildFindAllQuery', () => {
     } as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);
 
-    expect(result.where).toMatchObject({ status: PostStatus.FAILED });
+    expect(result.where).toMatchObject({
+      AND: [
+        {
+          OR: expect.arrayContaining([
+            {
+              targetExecutionState: { in: [TargetExecutionState.FAILED] },
+            },
+          ]),
+        },
+      ],
+    });
   });
 });
 
@@ -175,7 +205,8 @@ describe('PostsController.create account-health warmup gate', () => {
         publishIntent: 'warmup_hold',
         reviewFeedback:
           'twitter publishing is held because account warmup is warming.',
-        status: PostStatus.PENDING,
+        targetExecutionState: TargetExecutionState.PAUSED,
+        visibility: PostVisibility.PUBLIC,
       }),
     );
     expect(postsService.handleYoutubePost).not.toHaveBeenCalled();

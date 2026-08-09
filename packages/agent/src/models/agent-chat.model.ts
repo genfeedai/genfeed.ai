@@ -1,6 +1,10 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
-import type { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
+import type {
+  AgentExecutionStatus,
+  AgentThreadStatus,
+  PostVisibility,
+} from '@genfeedai/enums';
 import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
@@ -102,6 +106,8 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
+export type { AgentUiActionHandler } from '@genfeedai/interfaces';
+
 export interface AgentIngredientItem {
   id: string;
   url: string;
@@ -145,6 +151,7 @@ export interface AgentUiAction {
     | 'credits_balance_card'
     | 'studio_handoff_card'
     | 'brand_create_card'
+    | 'brand_identity_confirmation_card'
     | 'workflow_execute_card'
     | 'trending_topics_card'
     | 'content_calendar_card'
@@ -179,6 +186,8 @@ export interface AgentUiAction {
   packs?: Array<{ label: string; price: string; credits: number }>;
   metrics?: Record<string, unknown>;
   status?: string;
+  /** Audience visibility a publish card should preselect. */
+  visibility?: PostVisibility;
   items?: Array<{
     id: string;
     title: string;

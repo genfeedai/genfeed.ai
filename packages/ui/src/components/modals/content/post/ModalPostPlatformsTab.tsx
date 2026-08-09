@@ -6,7 +6,7 @@ import {
   ButtonVariant,
   CredentialPlatform,
   PostCategory,
-  PostStatus,
+  PostVisibility,
 } from '@genfeedai/enums';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
@@ -298,13 +298,17 @@ export function buildComposerPreviewTargets(
         overrides.placement = isVideo ? 'reel' : 'feed';
       }
 
+      // YouTube's privacyStatus is an audience choice, so it follows the
+      // target's visibility rather than its lifecycle state.
       if (
         config.platform === CredentialPlatform.YOUTUBE &&
-        [PostStatus.PRIVATE, PostStatus.PUBLIC, PostStatus.UNLISTED].includes(
-          config.status as PostStatus,
-        )
+        [
+          PostVisibility.PRIVATE,
+          PostVisibility.PUBLIC,
+          PostVisibility.UNLISTED,
+        ].includes(config.visibility)
       ) {
-        overrides.privacyStatus = config.status;
+        overrides.privacyStatus = config.visibility;
       }
 
       return {

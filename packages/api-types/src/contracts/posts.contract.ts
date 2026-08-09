@@ -5,7 +5,14 @@
  * Types are derived from OpenAPI spec, with Zod schemas for runtime validation.
  */
 
-import { PostCategory, PostFrequency, PostStatus } from '@genfeedai/enums';
+import {
+  PostCategory,
+  PostFormat,
+  PostFrequency,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { z } from 'zod';
 import type { components } from '../generated/api.js';
 import {
@@ -26,13 +33,17 @@ import {
  * Request payload for creating a new post
  * Derived from OpenAPI CreatePostDto schema
  */
-export type CreatePostRequest = components['schemas']['CreatePostDto'];
+export type CreatePostRequest = components['schemas']['CreatePostDto'] & {
+  format?: PostFormat;
+};
 
 /**
  * Request payload for updating an existing post
  * Derived from OpenAPI UpdatePostDto schema
  */
-export type UpdatePostRequest = components['schemas']['UpdatePostDto'];
+export type UpdatePostRequest = components['schemas']['UpdatePostDto'] & {
+  format?: PostFormat;
+};
 
 // ============================================================================
 // Zod Schemas for Runtime Validation
@@ -48,6 +59,7 @@ export const createPostSchema = z.object({
   description: z.string().min(1),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
+  format: z.nativeEnum(PostFormat).optional(),
   groupId: optionalStringSchema,
   ingredients: entityIdArraySchema({ max: 35 }),
   isAnalyticsEnabled: z.boolean().optional(),
@@ -72,9 +84,11 @@ export const createPostSchema = z.object({
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
   source: optionalStringSchema,
-  status: z.nativeEnum(PostStatus),
+  status: z.nativeEnum(PostStatus).optional(),
+  targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 }) satisfies z.ZodType<CreatePostRequest>;
 
 /**
@@ -87,6 +101,7 @@ export const updatePostSchema = z.object({
   description: z.string().min(1).optional(),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
+  format: z.nativeEnum(PostFormat).optional(),
   groupId: optionalStringSchema,
   ingredients: entityIdArraySchema({ max: 35 }).optional(),
   isAnalyticsEnabled: z.boolean().optional(),
@@ -111,8 +126,10 @@ export const updatePostSchema = z.object({
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
   status: z.nativeEnum(PostStatus).optional(),
+  targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 }) satisfies z.ZodType<UpdatePostRequest>;
 
 // ============================================================================

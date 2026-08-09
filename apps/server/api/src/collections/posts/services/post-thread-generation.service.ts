@@ -20,10 +20,10 @@ import {
   ActivityKey,
   ActivitySource,
   ModelCategory,
-  PostStatus,
   PromptTemplateKey,
   Status,
   SystemPromptKey,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type { AccountPublishingConstraints } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -160,7 +160,7 @@ export class PostThreadGenerationService {
           {
             description: tweetText,
             label: extractPostGenerationLabel(tweetText),
-            status: PostStatus.DRAFT,
+            targetExecutionState: TargetExecutionState.DRAFT,
           },
           [
             { path: 'ingredients', select: ['id', 'cdnUrl'] },
@@ -223,7 +223,9 @@ export class PostThreadGenerationService {
   private async markChildFailed(postId: string, error: unknown): Promise<void> {
     try {
       // PostsService.patch owns collection/list/single cache-tag invalidation.
-      await this.postsService.patch(postId, { status: PostStatus.FAILED });
+      await this.postsService.patch(postId, {
+        targetExecutionState: TargetExecutionState.FAILED,
+      });
       await this.websocketService.emit(WebSocketPaths.post(postId), {
         error: (error as Error)?.message || 'Generation failed',
         status: Status.FAILED,

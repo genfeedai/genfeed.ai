@@ -5,10 +5,19 @@ import {
   type RefreshFunction,
 } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CredentialPlatform,
+  ModalEnum,
+  PostFormat,
+} from '@genfeedai/enums';
+import { openModal } from '@helpers/ui/modal/modal.helper';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
+import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
 
 import { usePathname, useRouter } from 'next/navigation';
@@ -97,7 +106,7 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PublishLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
-  const { selectedBrand } = useBrand();
+  const { credentials, selectedBrand } = useBrand();
   const openAgentComposer = useOpenAgentComposer();
 
   const [state, dispatch] = useReducer(
@@ -133,6 +142,22 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
   const handleNewPost = useCallback(() => {
     openAgentComposer(buildNewPostAgentPrompt(selectedBrand?.label));
   }, [openAgentComposer, selectedBrand?.label]);
+
+  const xCredentials = useMemo(
+    () =>
+      credentials.filter(
+        (credential) => credential.platform === CredentialPlatform.TWITTER,
+      ),
+    [credentials],
+  );
+
+  const handleNewLongPost = useCallback(() => {
+    openModal(ModalEnum.POST_LONG_FORM);
+  }, []);
+
+  const handleNewThread = useCallback(() => {
+    openModal(ModalEnum.THREAD_CREATE);
+  }, []);
 
   const setExportNode = useCallback(
     (node: ReactNode) => dispatch({ type: 'SET_EXPORT_NODE', payload: node }),
@@ -204,14 +229,47 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
             {viewToggleNode}
             {exportNode}
             {scheduleActionsNode}
-            <Button
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-              withWrapper={false}
-              icon={<Plus className="size-4" />}
-              label="New post"
-              onClick={handleNewPost}
-            />
+            <Dropdown
+              minWidth="190px"
+              trigger={
+                <Button
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.DEFAULT}
+                  withWrapper={false}
+                  icon={<Plus className="size-4" />}
+                  label="New content"
+                />
+              }
+            >
+              <div className="flex flex-col gap-1 p-1">
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="Post with Agent"
+                  onClick={handleNewPost}
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="X long post"
+                  onClick={handleNewLongPost}
+                  isDisabled={xCredentials.length === 0}
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label="X thread"
+                  onClick={handleNewThread}
+                  isDisabled={xCredentials.length === 0}
+                />
+              </div>
+            </Dropdown>
             <ButtonRefresh
               onClick={handleRefresh}
               isRefreshing={isRefreshing}
@@ -221,6 +279,16 @@ function PublishLayoutContentContent({ children }: { children: ReactNode }) {
       >
         {children}
       </Container>
+      <LazyModalPost
+        credentials={xCredentials}
+        modalId={ModalEnum.POST_LONG_FORM}
+        postFormat={PostFormat.LONG_FORM}
+        onConfirm={handleRefresh}
+      />
+      <LazyModalCreateThread
+        credentials={xCredentials}
+        onConfirm={handleRefresh}
+      />
     </PostsLayoutContext.Provider>
   );
 }

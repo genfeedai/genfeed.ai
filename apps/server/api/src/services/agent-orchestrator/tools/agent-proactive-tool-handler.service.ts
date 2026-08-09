@@ -2,7 +2,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { AgentToolInternalApiService } from '@api/services/agent-orchestrator/tools/agent-tool-internal-api.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import { PostStatus } from '@genfeedai/enums';
+import { TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -95,7 +95,7 @@ export class AgentProactiveToolHandler {
           createdAt: { gte: startDate, lte: endDate },
           isDeleted: false,
           organizationId: ctx.organizationId,
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         },
         orderBy: { createdAt: -1 },
       },
@@ -154,7 +154,7 @@ export class AgentProactiveToolHandler {
         where: {
           OR: [
             { scheduledDate: { gte: now, lte: endDate } },
-            { status: PostStatus.DRAFT },
+            { targetExecutionState: TargetExecutionState.DRAFT },
           ],
           isDeleted: false,
           organizationId: ctx.organizationId,
@@ -167,7 +167,9 @@ export class AgentProactiveToolHandler {
     const postDocs = (posts.docs ?? []) as unknown as Record<string, unknown>[];
     const scheduled = postDocs.filter((p) => p.scheduledDate);
     const drafts = postDocs.filter(
-      (p) => p.status === PostStatus.DRAFT && !p.scheduledDate,
+      (p) =>
+        p.targetExecutionState === TargetExecutionState.DRAFT &&
+        !p.scheduledDate,
     );
 
     // Find gap days (days with no scheduled content)

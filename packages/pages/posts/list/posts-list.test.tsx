@@ -139,6 +139,9 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   usePostRemixModal: () => ({
     openPostRemixModal: vi.fn(),
   }),
+  usePostRepurposeModal: () => ({
+    openPostRepurposeModal: vi.fn(),
+  }),
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -270,6 +273,17 @@ describe('PostsList', () => {
     await waitFor(() => {
       expect(setFiltersNodeMock).toHaveBeenCalled();
     });
+  });
+
+  it.each([
+    [PostStatus.PENDING, 'Pending'],
+    [PostStatus.PROCESSING, 'Publishing'],
+  ] as const)('labels the %s publisher view as %s', (status, heading) => {
+    render(
+      <PostsList scope={PageScope.PUBLISHER} platform="all" status={status} />,
+    );
+
+    expect(screen.getByRole('heading', { name: heading })).toBeVisible();
   });
 
   it('opens the post detail overlay from the table row path', async () => {

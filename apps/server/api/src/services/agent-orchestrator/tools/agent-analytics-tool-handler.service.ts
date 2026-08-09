@@ -7,7 +7,7 @@ import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
-import { PostStatus } from '@genfeedai/enums';
+import { PostVisibility, TargetExecutionState } from '@genfeedai/enums';
 import type { AgentToolResult, AgentUiAction } from '@genfeedai/interfaces';
 import { AgentScopeContextService } from '@genfeedai/server';
 import { Injectable, Optional } from '@nestjs/common';
@@ -86,9 +86,7 @@ export class AgentAnalyticsToolHandler {
           ingredients: ingredientId,
           isDeleted: false,
           organizationId: organizationId,
-          status: {
-            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-          },
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         },
         orderBy: {
           createdAt: -1,
@@ -118,9 +116,7 @@ export class AgentAnalyticsToolHandler {
           entityArticleId: articleId,
           isDeleted: false,
           organizationId: organizationId,
-          status: {
-            in: [PostStatus.PUBLIC, PostStatus.PRIVATE, PostStatus.UNLISTED],
-          },
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         },
         orderBy: {
           createdAt: -1,
@@ -363,6 +359,7 @@ export class AgentAnalyticsToolHandler {
           await this.publishHandler.buildPublishCardResult(
             {
               contentId,
+              visibility: PostVisibility.PUBLIC,
             },
             ctx,
           );

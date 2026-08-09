@@ -9,6 +9,7 @@ import {
 import {
   ArticleStatus,
   formatPlatformLabel,
+  PostRepurposeMode,
   parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -28,7 +29,9 @@ import type {
   ReleaseCalendarFilterOption,
   ReleaseCalendarFilters as ReleaseFilters,
 } from '@props/publisher/release-calendar.props';
+import { usePostRepurposeModal } from '@providers/global-modals/global-modals.provider';
 import { ArticlesService } from '@services/content/articles.service';
+import { PostsService } from '@services/content/posts.service';
 import type { ReleaseGroupListQuery } from '@services/content/release-groups.service';
 import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { logger } from '@services/core/logger.service';
@@ -118,6 +121,12 @@ export default function ContentCalendarPage(): React.JSX.Element {
   const getReleaseGroupsService = useAuthedService((token: string) =>
     ReleaseGroupsService.getInstance(token),
   );
+
+  const getPostsService = useAuthedService((token: string) =>
+    PostsService.getInstance(token),
+  );
+
+  const { openPostRepurposeModal } = usePostRepurposeModal();
 
   const [articles, setArticles] = useState<IArticle[]>([]);
   const [releases, setReleases] = useState<IReleaseGroup[]>([]);
@@ -435,6 +444,74 @@ export default function ContentCalendarPage(): React.JSX.Element {
    * The API turns that transition into a fresh publish attempt — there is no
    * separate retry endpoint to call.
    */
+  /**
+   * "Add channel → adapt content" (#2588): repurpose the release's first
+   * channel target into a draft target for another platform. Deterministic
+   * mode keeps the drawer open on the refreshed release; agent mode navigates
+   * to the review queue where the rewritten draft lands.
+   */
+  const handleAddChannel = useCallback(() => {
+    const sourceTarget = selectedRelease?.targets?.[0];
+    if (!selectedRelease || !sourceTarget) {
+      return;
+    }
+
+    openPostRepurposeModal(
+      {
+        id: sourceTarget.id,
+        label: selectedRelease.title,
+        platform: sourceTarget.platform,
+      },
+      async (platform, mode) => {
+        try {
+          const postsService = await getPostsService();
+          const draft = await postsService.repurpose(sourceTarget.id, {
+            mode,
+            platform,
+          });
+
+          if (mode === PostRepurposeMode.AGENT) {
+            notificationsService.success(
+              'Rewritten draft sent to the review queue',
+            );
+            push(
+              href(
+                draft.reviewBatchId
+                  ? `/publish/review?batch=${draft.reviewBatchId}&filter=ready`
+                  : '/publish/review',
+              ),
+            );
+            return;
+          }
+
+          notificationsService.success(
+            `Draft target added for ${formatPlatformLabel(platform) ?? platform}`,
+          );
+          const releaseGroupsService = await getReleaseGroupsService();
+          const updated = await releaseGroupsService.getOne(selectedRelease.id);
+          setReleases((current) =>
+            current.map((release) =>
+              release.id === updated.id ? updated : release,
+            ),
+          );
+        } catch (error) {
+          const message = mutationErrorMessage(error);
+          logger.error('Failed to repurpose release target', error);
+          notificationsService.error(message);
+          throw error;
+        }
+      },
+    );
+  }, [
+    selectedRelease,
+    openPostRepurposeModal,
+    getPostsService,
+    getReleaseGroupsService,
+    notificationsService,
+    push,
+    href,
+  ]);
+
   const handleRetryTarget = useCallback(
     (targetId: string) => {
       if (!selectedReleaseId) {
@@ -479,6 +556,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
     <>
       <ReleaseDetailDrawer
         error={drawerError}
+        onAddChannel={handleAddChannel}
         onClose={() => setSelectedReleaseId(null)}
         onRescheduleRelease={handleRescheduleRelease}
         onRescheduleTarget={handleRescheduleTarget}

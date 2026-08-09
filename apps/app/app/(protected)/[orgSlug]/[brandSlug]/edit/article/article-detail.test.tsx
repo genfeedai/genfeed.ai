@@ -100,6 +100,18 @@ describe('ArticleDetail', () => {
     expect(container.firstChild).toBeInTheDocument();
   });
 
+  it('shows the existing article empty state when the id cannot be loaded', () => {
+    useArticleDetailMock.mockReturnValue({
+      ...defaultArticleDetailState(),
+      article: null,
+      error: 'Failed to load article',
+    });
+
+    render(<ArticleDetail articleId="wrong-id" />);
+
+    expect(screen.getByText('Failed to load article')).toBeVisible();
+  });
+
   it('inserts agent suggestions containing replacement patterns verbatim', () => {
     const html = applyDraftSuggestionToHtml('<p>Original price</p>', {
       selectedText: 'Original price',
