@@ -318,6 +318,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         {} as never,
         {} as never,
+        createLifecycleService() as never,
       );
       const transition = vi.spyOn(service, 'transition');
 
@@ -343,6 +344,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         {} as never,
         {} as never,
+        createLifecycleService() as never,
       );
       const transition = vi
         .spyOn(service, 'transition')
@@ -430,6 +432,7 @@ describe('SchedulerPublishStateService', () => {
         {
           warn: vi.fn(),
         } as never,
+        createLifecycleService() as never,
       );
 
       await expect(service.transition(transitionInput)).rejects.toThrow(
@@ -444,6 +447,7 @@ describe('SchedulerPublishStateService', () => {
         {
           warn: vi.fn(),
         } as never,
+        createLifecycleService() as never,
       );
 
       await expect(service.transition(transitionInput)).rejects.toThrow(
@@ -460,6 +464,7 @@ describe('SchedulerPublishStateService', () => {
         {
           warn: vi.fn(),
         } as never,
+        createLifecycleService() as never,
       );
 
       await expect(service.transition(transitionInput)).rejects.toThrow(
@@ -477,6 +482,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         prisma as never,
         logger as never,
+        createLifecycleService() as never,
       );
 
       await expect(
@@ -501,6 +507,7 @@ describe('SchedulerPublishStateService', () => {
       const service = new SchedulerPublishStateService(
         prisma as never,
         logger as never,
+        createLifecycleService() as never,
       );
 
       await expect(
@@ -553,6 +560,7 @@ describe('SchedulerPublishStateService', () => {
       {
         warn: vi.fn(),
       } as never,
+      createLifecycleService() as never,
     );
 
     await service.transition({
@@ -561,7 +569,11 @@ describe('SchedulerPublishStateService', () => {
       postId: 'target-1',
       reason: 'Provider rejected the upload',
       update: {
-        error: { code: 'RATE_LIMIT', message: 'Too many requests' },
+        error: {
+          code: 'RATE_LIMIT',
+          isRetryable: true,
+          message: 'Too many requests',
+        },
         executionState: TargetExecutionState.FAILED,
       },
     });
@@ -569,7 +581,11 @@ describe('SchedulerPublishStateService', () => {
     expect(post.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          targetError: { code: 'RATE_LIMIT', message: 'Too many requests' },
+          targetError: {
+            code: 'RATE_LIMIT',
+            isRetryable: true,
+            message: 'Too many requests',
+          },
         }),
       }),
     );
@@ -614,6 +630,7 @@ describe('SchedulerPublishStateService', () => {
       {
         warn: vi.fn(),
       } as never,
+      createLifecycleService() as never,
     );
 
     await service.transition({
