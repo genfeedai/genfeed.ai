@@ -9,7 +9,9 @@ describe('posts contract', () => {
   it('accepts an explicit X long-form format', () => {
     expect(
       createPostSchema.safeParse({
-        credentialId: 'credential-1',
+        // entityIdSchema only accepts uuid/cuid/cuid2/ulid, so this fixture
+        // must be a real cuid rather than a readable placeholder.
+        credentialId: 'cmptu23g70001zixnzwbzwp2e',
         description: 'A long X post body',
         format: PostFormat.LONG_FORM,
         ingredients: [],
