@@ -158,6 +158,7 @@ export interface AgentUiAction extends AgentUiActionBase {
   }[];
   scheduledAt?: string;
   platforms?: string[];
+  visibility?: PostVisibility;
   creditEstimate?: number;
   originalPost?: {
     author: string;
@@ -235,3 +236,5 @@ export interface AgentUiAction extends AgentUiActionBase {
   textContent?: string;
   textActions?: string[];
 }
+
+import type { PostVisibility } from '@genfeedai/enums';

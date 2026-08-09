@@ -5,9 +5,10 @@ import { TwitterPipelineService } from '@api/services/twitter-pipeline/twitter-p
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
-  PostStatus,
+  PostVisibility,
   SocialSourcePlatform,
   SourcePostActionType,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import type {
   ITwitterPublishResult,
@@ -307,8 +308,9 @@ export class SourcePostsService {
             : null,
         source: 'source-post',
         sourceActionId: sourcePost.id,
-        status: PostStatus.DRAFT,
+        targetExecutionState: TargetExecutionState.DRAFT,
         userId: context.userId,
+        visibility: PostVisibility.PUBLIC,
       },
     });
 

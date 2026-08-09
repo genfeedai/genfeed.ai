@@ -10,6 +10,8 @@ import {
   PostFormat,
   PostFrequency,
   PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { z } from 'zod';
 import type { components } from '../generated/api.js';
@@ -82,9 +84,11 @@ export const createPostSchema = z.object({
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
   source: optionalStringSchema,
-  status: z.nativeEnum(PostStatus),
+  status: z.nativeEnum(PostStatus).optional(),
+  targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 }) satisfies z.ZodType<CreatePostRequest>;
 
 /**
@@ -122,8 +126,10 @@ export const updatePostSchema = z.object({
   repeatInterval: z.number().int().positive().optional(),
   scheduledDate: dateStringSchema.optional(),
   status: z.nativeEnum(PostStatus).optional(),
+  targetExecutionState: z.nativeEnum(TargetExecutionState).optional(),
   tags: entityIdArraySchema().optional(),
   timezone: timezoneSchema.optional(),
+  visibility: z.nativeEnum(PostVisibility).optional(),
 }) satisfies z.ZodType<UpdatePostRequest>;
 
 // ============================================================================

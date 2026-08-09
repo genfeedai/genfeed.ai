@@ -10,7 +10,12 @@ import type {
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { readChannelSettingString } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -134,7 +139,9 @@ export class MastodonPublisherService extends BasePublisherService {
         text,
         mediaIds,
         undefined, // Not a reply
-        readChannelSettingString(context.settings, 'visibility') ?? 'public',
+        context.visibility ??
+          readChannelSettingString(context.settings, 'visibility') ??
+          PostVisibility.PUBLIC,
       );
 
       if (!status?.id) {
@@ -204,7 +211,9 @@ export class MastodonPublisherService extends BasePublisherService {
 
     // Replies inherit the parent status's audience.
     const visibility =
-      readChannelSettingString(context.settings, 'visibility') ?? 'public';
+      context.visibility ??
+      readChannelSettingString(context.settings, 'visibility') ??
+      PostVisibility.PUBLIC;
 
     let replyToId = parentExternalId;
 
@@ -259,7 +268,7 @@ export class MastodonPublisherService extends BasePublisherService {
           await this.postsService.patch(childId, {
             externalId: status.id,
             publicationDate: new Date(),
-            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           });
 
           this.logger.log(`${url} published thread child`, {
@@ -278,7 +287,7 @@ export class MastodonPublisherService extends BasePublisherService {
           });
 
           await this.postsService.patch(childId, {
-            status: PostStatus.FAILED,
+            targetExecutionState: TargetExecutionState.FAILED,
           });
         }
       } catch (error: unknown) {
@@ -289,7 +298,7 @@ export class MastodonPublisherService extends BasePublisherService {
         });
 
         await this.postsService.patch(childId, {
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         });
       }
     }

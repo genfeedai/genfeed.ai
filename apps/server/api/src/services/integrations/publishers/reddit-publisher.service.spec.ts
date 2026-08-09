@@ -14,7 +14,12 @@ import type {
 import { RedditPublisherService } from '@api/services/integrations/publishers/reddit-publisher.service';
 import { RedditService } from '@api/services/integrations/reddit/services/reddit.service';
 import type { ChannelTargetSettings } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  PostStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -308,7 +313,7 @@ describe('RedditPublisherService', () => {
         expect(result.success).toBe(true);
         expect(result.externalId).toBe(mockPostIdResult);
         expect(result.platform).toBe(CredentialPlatform.REDDIT);
-        expect(result.status).toBe(PostStatus.PUBLIC);
+        expect(result.executionState).toBe(TargetExecutionState.PUBLISHED);
         expect(result.url).toBe(
           `https://www.reddit.com/r/${mockSubreddit}/comments/${mockPostIdResult}`,
         );
@@ -653,7 +658,7 @@ describe('RedditPublisherService', () => {
       expect(postsService.patch).toHaveBeenCalledWith(
         singleChild[0].id.toString(),
         expect.objectContaining({
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         }),
       );
     });
@@ -700,7 +705,7 @@ describe('RedditPublisherService', () => {
         expect.objectContaining({
           externalId: 'comment-123',
           publicationDate: expect.any(Date),
-          status: PostStatus.PUBLIC,
+          targetExecutionState: TargetExecutionState.PUBLISHED,
         }),
       );
     });

@@ -17,7 +17,7 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
-  PostStatus,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -232,7 +232,7 @@ export class ThreadsPublisherService extends BasePublisherService {
           await this.postsService.patch(child.id.toString(), {
             externalId: result.threadId,
             publicationDate: new Date(),
-            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           });
 
           // Next reply will be to this thread (creating a chain)
@@ -250,7 +250,7 @@ export class ThreadsPublisherService extends BasePublisherService {
           });
 
           await this.postsService.patch(child.id.toString(), {
-            status: PostStatus.FAILED,
+            targetExecutionState: TargetExecutionState.FAILED,
           });
         }
       } catch (error: unknown) {
@@ -261,7 +261,7 @@ export class ThreadsPublisherService extends BasePublisherService {
         });
 
         await this.postsService.patch(child.id.toString(), {
-          status: PostStatus.FAILED,
+          targetExecutionState: TargetExecutionState.FAILED,
         });
       }
     }

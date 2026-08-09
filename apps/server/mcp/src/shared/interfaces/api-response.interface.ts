@@ -108,11 +108,14 @@ export interface MusicAttributes {
 export interface PostAttributes {
   contentId?: string;
   createdAt?: string;
+  executionState?: string;
   platform?: string;
   publishedAt?: string;
   publishedUrl?: string;
   scheduledAt?: string;
   status?: string;
+  targetExecutionState?: string;
+  visibility?: string;
 }
 
 /**

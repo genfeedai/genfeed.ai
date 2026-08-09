@@ -29,8 +29,9 @@ interface CalendarItemShape {
   status: string;
 }
 
-const { notifyErrorMock } = vi.hoisted(() => ({
+const { notifyErrorMock, openPostRepurposeModalMock } = vi.hoisted(() => ({
   notifyErrorMock: vi.fn(),
+  openPostRepurposeModalMock: vi.fn(),
 }));
 
 const findArticlesMock = vi.fn();
@@ -43,6 +44,10 @@ const useAuthedServiceMock = vi.fn();
 
 const getArticlesServiceMock = vi.fn(async () => ({
   findAll: findArticlesMock,
+}));
+const repurposeMock = vi.fn();
+const getPostsServiceMock = vi.fn(async () => ({
+  repurpose: repurposeMock,
 }));
 const getReleaseGroupsServiceMock = vi.fn(async () => ({
   findAll: findReleasesMock,
@@ -58,6 +63,14 @@ const calendarRenderProps: Array<{
   onEventDrop: (change: CalendarEventDrop<CalendarItemShape>) => void;
 }> = [];
 let useAuthedServiceCallCount = 0;
+
+// The calendar page resolves the repurpose modal from the global-modals
+// provider, which this suite renders outside of.
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  usePostRepurposeModal: () => ({
+    openPostRepurposeModal: openPostRepurposeModalMock,
+  }),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
@@ -281,13 +294,21 @@ describe('ContentCalendarPage', () => {
     vi.clearAllMocks();
     calendarRenderProps.length = 0;
     useAuthedServiceCallCount = 0;
-    // The page calls `useAuthedService` twice per render, articles first.
+    // The page resolves three services per render, in declaration order:
+    // articles, release groups, then posts (for the repurpose flow).
+    const servicesInCallOrder = [
+      getArticlesServiceMock,
+      getReleaseGroupsServiceMock,
+      getPostsServiceMock,
+    ];
     useAuthedServiceMock.mockImplementation(() => {
+      const service =
+        servicesInCallOrder[
+          useAuthedServiceCallCount % servicesInCallOrder.length
+        ];
       useAuthedServiceCallCount += 1;
 
-      return useAuthedServiceCallCount % 2 === 1
-        ? getArticlesServiceMock
-        : getReleaseGroupsServiceMock;
+      return service;
     });
     findArticlesMock.mockResolvedValue([]);
     findReleasesMock.mockResolvedValue([release()]);

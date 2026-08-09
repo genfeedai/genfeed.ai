@@ -11,6 +11,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
   PostStatus,
+  PostVisibility,
   ReleaseAttachmentKind,
   ReleaseStatus,
   ReleaseTargetSource,
@@ -551,7 +552,7 @@ describe('PostGroupPersistenceService', () => {
     );
   });
 
-  it('projects the parent legacy status onto attachment posts, not the target state', async () => {
+  it('copies independent lifecycle and visibility onto attachment posts', async () => {
     await service.createAttachmentPosts(prisma as never, {
       brandId: 'brand-1',
       group: makeGroup(),
@@ -572,6 +573,7 @@ describe('PostGroupPersistenceService', () => {
       parent: makeTarget({
         status: PostStatus.PUBLIC,
         targetExecutionState: TargetExecutionState.PUBLISHED,
+        visibility: PostVisibility.PRIVATE,
       }),
       target: {
         credentialId: 'credential-1',
@@ -583,10 +585,13 @@ describe('PostGroupPersistenceService', () => {
     expect(prisma.post.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          status: PostStatus.PUBLIC,
           targetExecutionState: TargetExecutionState.PUBLISHED,
+          visibility: PostVisibility.PRIVATE,
         }),
       }),
+    );
+    expect(prisma.post.create.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'status',
     );
   });
 
@@ -719,6 +724,7 @@ function makeTarget(
     timezone: 'UTC',
     updatedAt: new Date('2026-07-19T10:00:00.000Z'),
     url: null,
+    visibility: PostVisibility.PUBLIC,
     workflowExecutionId: null,
     ...overrides,
   };

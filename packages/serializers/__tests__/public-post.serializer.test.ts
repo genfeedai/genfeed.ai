@@ -1,4 +1,9 @@
-import { PostFormat, PostStatus } from '@genfeedai/enums';
+import {
+  PostFormat,
+  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { PublicPostSerializer } from '@serializers/server/content/post.serializer';
 import { describe, expect, it } from 'vitest';
 
@@ -18,9 +23,11 @@ describe('PublicPostSerializer', () => {
       platform: 'instagram',
       promptUsed: 'private generation prompt',
       status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
       updatedAt: new Date('2026-08-05T01:00:00.000Z'),
       user: { email: 'private@example.com', id: 'user_1' },
       userId: 'user_1',
+      visibility: PostVisibility.PUBLIC,
     }) as {
       data: {
         attributes: Record<string, unknown>;
@@ -35,6 +42,8 @@ describe('PublicPostSerializer', () => {
       label: 'Public post',
       platform: 'instagram',
       status: PostStatus.PUBLIC,
+      targetExecutionState: TargetExecutionState.PUBLISHED,
+      visibility: PostVisibility.PUBLIC,
     });
     expect(document.data.attributes).not.toHaveProperty('agentRunId');
     expect(document.data.attributes).not.toHaveProperty('brandId');

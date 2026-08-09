@@ -20,9 +20,14 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
+  postExecutionStateReadFilter,
+  postVisibilityReadFilter,
+} from '@api-types/contracts/scheduler.contract';
+import {
   CredentialPlatform,
   ModelCategory,
-  PostStatus,
+  PostVisibility,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 import { Prisma } from '@genfeedai/prisma';
 import { scopedWhere } from '@genfeedai/server';
@@ -515,7 +520,10 @@ export class ContextsService {
         where: scopedWhere(organizationId, {
           brandId: dto.brandId.toString(),
           platform: credentialPlatform,
-          status: PostStatus.PUBLIC,
+          AND: [
+            postExecutionStateReadFilter(TargetExecutionState.PUBLISHED),
+            postVisibilityReadFilter(PostVisibility.PUBLIC),
+          ],
           ...(dto.dateRange
             ? {
                 publicationDate: {

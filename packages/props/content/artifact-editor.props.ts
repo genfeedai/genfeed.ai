@@ -1,4 +1,8 @@
-import type { PostFormat, PostStatus } from '@genfeedai/enums';
+import type {
+  PostFormat,
+  PostVisibility,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import type { Newsletter } from '@genfeedai/models/content/newsletter.model';
 import type { NewslettersService } from '@genfeedai/services/content/newsletters.service';
 import type { ReactNode } from 'react';
@@ -65,9 +69,10 @@ export interface PostEditorFormState {
   format: PostFormat;
   label: string;
   scheduledDate: string;
-  status: PostStatus;
+  targetExecutionState: TargetExecutionState;
   threadSegments: Array<{
     description: string;
     id?: string;
   }>;
+  visibility: PostVisibility;
 }

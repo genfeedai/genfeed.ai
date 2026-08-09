@@ -10,7 +10,11 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
 import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PostCategory,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -22,7 +26,7 @@ type CommentPublishResult = {
 type ThreadChildStatusUpdate = {
   externalId?: string;
   publicationDate?: Date;
-  status: PostStatus;
+  targetExecutionState: TargetExecutionState;
 };
 
 type PublishTextChildrenAsCommentsParams = {
@@ -243,7 +247,7 @@ export abstract class BasePublisherService implements IPublisher {
       errorCode,
       externalId: null,
       platform,
-      status: PostStatus.FAILED,
+      executionState: TargetExecutionState.FAILED,
       success: false,
       url: '',
     };
@@ -262,7 +266,7 @@ export abstract class BasePublisherService implements IPublisher {
       externalId,
       externalShortcode,
       platform,
-      status: PostStatus.PUBLIC,
+      executionState: TargetExecutionState.PUBLISHED,
       success: true,
       url,
     };
@@ -338,7 +342,7 @@ export abstract class BasePublisherService implements IPublisher {
           await updateChild(childId, {
             externalId: commentResult.commentId,
             publicationDate: new Date(),
-            status: PostStatus.PUBLIC,
+            targetExecutionState: TargetExecutionState.PUBLISHED,
           });
 
           this.logger.log(`${logPrefix} posted comment`, {
@@ -352,7 +356,9 @@ export abstract class BasePublisherService implements IPublisher {
             order: child.order,
           });
 
-          await updateChild(childId, { status: PostStatus.FAILED });
+          await updateChild(childId, {
+            targetExecutionState: TargetExecutionState.FAILED,
+          });
         }
       } catch (error: unknown) {
         this.logger.error(`${logPrefix} error posting comment`, {
@@ -361,7 +367,9 @@ export abstract class BasePublisherService implements IPublisher {
           order: child.order,
         });
 
-        await updateChild(childId, { status: PostStatus.FAILED });
+        await updateChild(childId, {
+          targetExecutionState: TargetExecutionState.FAILED,
+        });
       }
     }
 

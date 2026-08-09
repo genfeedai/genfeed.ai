@@ -155,6 +155,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/developers',
     '/dfy',
     '/done-for-you',
+    '/download',
     '/faq',
     '/features',
     '/fleet',

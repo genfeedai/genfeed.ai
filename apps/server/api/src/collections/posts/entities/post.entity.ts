@@ -4,7 +4,9 @@ import {
   PostCategory,
   PostFormat,
   PostStatus,
+  PostVisibility,
   type ReviewDecision,
+  TargetExecutionState,
 } from '@genfeedai/enums';
 
 export interface PostAnalyticsSummary {
@@ -48,6 +50,8 @@ export class PostEntity extends BaseEntity {
   declare readonly category: PostCategory;
   declare readonly format: PostFormat;
   declare readonly status: PostStatus;
+  declare readonly targetExecutionState: TargetExecutionState;
+  declare readonly visibility?: PostVisibility | null;
   declare readonly tags?: string[];
   declare readonly scheduledDate: Date;
   declare readonly publicationDate: Date;
@@ -61,7 +65,6 @@ export class PostEntity extends BaseEntity {
   // `resolveChannelTargetSettings` before acting on any key.
   declare readonly targetSettings?: unknown;
   declare readonly targetValidationState?: string;
-  declare readonly targetExecutionState?: string;
   declare readonly nextScheduledDate: Date;
   declare readonly isRepeat: boolean;
   declare readonly repeatFrequency: string;
