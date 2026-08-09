@@ -3,6 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
   ThreadChild,
@@ -38,7 +39,7 @@ export class YouTubePublisherService extends BasePublisherService {
   override validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     // YouTube only supports single video
     if (mediaInfo.isImagePost) {
       return {
@@ -62,7 +63,11 @@ export class YouTubePublisherService extends BasePublisherService {
       };
     }
 
-    return { valid: true };
+    // The catalog caption limit applies to the video description that
+    // `uploadVideo` sends (the title comes from `post.label` and has no
+    // catalog entry). This override skips super.validatePost, so the
+    // length backstop must run explicitly.
+    return this.validateCaptionLength(context);
   }
 
   /**
@@ -79,7 +84,11 @@ export class YouTubePublisherService extends BasePublisherService {
     // Validate
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {

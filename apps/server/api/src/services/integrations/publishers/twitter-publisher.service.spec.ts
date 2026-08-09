@@ -257,6 +257,38 @@ describe('TwitterPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const emptyMediaInfo: MediaInfo = {
+      hasIngredients: false,
+      ingredientIds: [],
+      isCarousel: false,
+      isImagePost: false,
+      mediaUrls: [],
+    };
+
+    it('should pass a caption exactly at the 280-character X limit', () => {
+      const context = createPublishContext({
+        ...mockTextPost,
+        description: 'a'.repeat(280),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, emptyMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockTextPost,
+        description: 'a'.repeat(281),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, emptyMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('X (Twitter)');
+      expect(result.error).toContain('281');
+      expect(result.error).toContain('280');
+    });
+  });
+
   describe('publish', () => {
     describe('text-only posts', () => {
       it('should publish a text-only tweet successfully', async () => {

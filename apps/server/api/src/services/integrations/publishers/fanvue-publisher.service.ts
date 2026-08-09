@@ -37,7 +37,11 @@ export class FanvuePublisherService extends BasePublisherService {
 
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {
