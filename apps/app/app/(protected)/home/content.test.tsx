@@ -66,9 +66,8 @@ const mocks = vi.hoisted(() => ({
   },
   overviewRefresh: vi.fn(async () => undefined),
   overviewIsError: false,
-  translate: vi.fn(
-    (id: string, params: Record<string, string>) =>
-      `catalog:${id}:${params.subject}`,
+  translate: vi.fn((id: string, params?: Record<string, string>) =>
+    params ? `catalog:${id}:${params.subject}` : `catalog:${id}`,
   ),
   // `null` keeps the upcoming-schedule fetch pending so synchronous tests see
   // a stable loading panel with no post-test state updates.
@@ -242,7 +241,7 @@ describe('OperationalHomeContent', () => {
 
     // An empty scheduler window settles into the explicit zero state.
     expect(
-      await screen.findByText('Nothing is scheduled for the next 7 days.'),
+      await screen.findByText('catalog:home.schedule.empty'),
     ).toBeInTheDocument();
   });
 
@@ -327,11 +326,11 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     for (const name of [
-      'Open queue',
-      'Open publishing',
-      'Open calendar',
-      'Manage accounts',
-      'View activity',
+      'catalog:home.approvals.open',
+      'catalog:home.publishing.open',
+      'catalog:home.schedule.open',
+      'catalog:home.credentials.manage',
+      'catalog:home.activity.open',
     ]) {
       expect(screen.getByRole('link', { name })).toHaveAttribute(
         'href',
@@ -354,7 +353,9 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry status' }));
-    for (const button of screen.getAllByRole('button', { name: 'Retry' })) {
+    for (const button of screen.getAllByRole('button', {
+      name: 'catalog:actions.retry',
+    })) {
       fireEvent.click(button);
     }
     fireEvent.click(
@@ -440,7 +441,9 @@ describe('OperationalHomeContent', () => {
     expect(
       screen.getByText(/Credential health is temporarily unavailable/),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'catalog:actions.retry' }),
+    );
     expect(mocks.brandRefresh).toHaveBeenCalledOnce();
     expect(
       screen.queryByText('No publishing credentials are connected yet.'),

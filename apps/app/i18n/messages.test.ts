@@ -86,4 +86,35 @@ describe('loadMessages', () => {
       );
     }
   });
+
+  it('serves the operational home copy the surfaces resolve by id', () => {
+    const english = loadMessages(DEFAULT_LOCALE).common as Record<
+      string,
+      unknown
+    >;
+
+    expect(resolveMessageId(english, 'actions.retry')).toBe('Retry');
+    expect(resolveMessageId(english, 'home.approvals.open')).toBe('Open queue');
+    expect(resolveMessageId(english, 'home.approvals.empty')).toBe(
+      'Nothing is waiting for review.',
+    );
+    expect(resolveMessageId(english, 'home.publishing.open')).toBe(
+      'Open publishing',
+    );
+    expect(resolveMessageId(english, 'home.publishing.empty')).toBe(
+      'No publishing runs yet. Drafts created through MCP will appear here.',
+    );
+    expect(resolveMessageId(english, 'home.schedule.open')).toBe(
+      'Open calendar',
+    );
+    expect(resolveMessageId(english, 'home.schedule.empty')).toBe(
+      'Nothing is scheduled for the next 7 days.',
+    );
+    expect(resolveMessageId(english, 'home.credentials.manage')).toBe(
+      'Manage accounts',
+    );
+    expect(resolveMessageId(english, 'home.activity.open')).toBe(
+      'View activity',
+    );
+  });
 });
