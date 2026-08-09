@@ -128,7 +128,7 @@ export default function ReviewQueueView({
     }
 
     // First-level topbar: two matching dropdowns (status + batch) beside
-    // New release / refresh — no chip rail.
+    // New content / refresh — no chip rail.
     setFiltersNode(
       <div className="flex min-w-0 items-center gap-2">
         <ReviewStatusFilters

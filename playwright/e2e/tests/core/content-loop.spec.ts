@@ -116,7 +116,7 @@ test.describe('Core Content Loop', () => {
     await postsPage.gotoPostDetail(String(failedPost.id));
 
     await expect(authenticatedPage).toHaveURL(
-      /\/publish\/post-core-loop-failed/,
+      /\/publish\/posts\/post-core-loop-failed/,
     );
     await expect(
       authenticatedPage.getByText('Publication Failed'),
@@ -139,8 +139,10 @@ test.describe('Core Content Loop', () => {
       postId: String(contentLoopPost.id),
     });
     await postsPage.gotoReview();
+    // The review queue is batch-scoped: the batch picker is the surface's
+    // stable landmark (the old "Batch <id>" heading was retired in #2572).
     await expect(
-      authenticatedPage.getByRole('heading', { name: /^Batch / }),
+      authenticatedPage.getByRole('button', { name: 'Select review batch' }),
     ).toBeVisible();
 
     await mockCalendarPosts(authenticatedPage, [contentLoopPost]);

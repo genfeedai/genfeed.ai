@@ -45,7 +45,7 @@ test.describe('Posts — Publishing', () => {
 
     // Should be on post detail page
     const url = authenticatedPage.url();
-    expect(url).toContain('/publish/pub-draft-001');
+    expect(url).toContain('/publish/posts/pub-draft-001');
 
     // Post detail page should show breadcrumb
     await postsPage.assertPostDetailVisible().catch(() => {});
@@ -55,7 +55,7 @@ test.describe('Posts — Publishing', () => {
     const _sidebarVisible = await sidebar.isVisible().catch(() => false);
 
     // Detail page should be loaded
-    await expect(authenticatedPage).toHaveURL(/publish\/pub-draft-001/);
+    await expect(authenticatedPage).toHaveURL(/publish\/posts\/pub-draft-001/);
   });
 
   test('should show platform selection for publishing', async ({
@@ -77,7 +77,9 @@ test.describe('Posts — Publishing', () => {
     await postsPage.gotoPostDetail('pub-platform-001');
 
     // Post detail should display platform information
-    await expect(authenticatedPage).toHaveURL(/publish\/pub-platform-001/);
+    await expect(authenticatedPage).toHaveURL(
+      /publish\/posts\/pub-platform-001/,
+    );
 
     // Page should show the platform badge or platform
     // info in the detail view
@@ -115,7 +117,7 @@ test.describe('Posts — Publishing', () => {
     await postsPage.gotoPostDetail('pub-sched-001');
 
     // Should be on the post detail page
-    await expect(authenticatedPage).toHaveURL(/publish\/pub-sched-001/);
+    await expect(authenticatedPage).toHaveURL(/publish\/posts\/pub-sched-001/);
 
     // The sidebar should have schedule controls
     const schedulePicker = postsPage.scheduleDatePicker;
@@ -206,7 +208,9 @@ test.describe('Posts — Publishing', () => {
     await mockPostDetail(authenticatedPage, post);
     await postsPage.gotoPostDetail('detail-full-001');
 
-    await expect(authenticatedPage).toHaveURL(/publish\/detail-full-001/);
+    await expect(authenticatedPage).toHaveURL(
+      /publish\/posts\/detail-full-001/,
+    );
 
     // Breadcrumb should show navigation back to posts
     const breadcrumb = postsPage.breadcrumb;

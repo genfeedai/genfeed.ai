@@ -100,11 +100,11 @@ test.describe('Posts — deep interactions', () => {
   });
 
   test('opens a post detail route', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(`${BASE}/mock-id`, {
+    await authenticatedPage.goto(`${BASE}/posts/mock-id`, {
       waitUntil: 'domcontentloaded',
     });
     await settle(authenticatedPage);
-    await expect(authenticatedPage).toHaveURL(/publish\/mock-id/);
+    await expect(authenticatedPage).toHaveURL(/publish\/posts\/mock-id/);
 
     // Exercise any detail tabs / action buttons that render.
     await tryClick(authenticatedPage, '[role="tab"]');
