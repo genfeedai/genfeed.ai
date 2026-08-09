@@ -126,18 +126,19 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
     if (curated?.costTier) {
       entry.costTier = curated.costTier;
     }
-    if ('costPerUnit' in (curated ?? {}) && curated?.costPerUnit != null) {
+    if (curated && 'costPerUnit' in curated && curated.costPerUnit != null) {
       entry.costPerUnit = curated.costPerUnit;
     }
-    if ('minCost' in (curated ?? {}) && curated?.minCost != null) {
+    if (curated && 'minCost' in curated && curated.minCost != null) {
       entry.minCost = curated.minCost;
     }
-    if ('pricingType' in (curated ?? {}) && curated?.pricingType) {
+    if (curated && 'pricingType' in curated && curated.pricingType) {
       entry.pricingType = curated.pricingType;
     }
     if (
-      'providerCostUsd' in (curated ?? {}) &&
-      curated?.providerCostUsd != null
+      curated &&
+      'providerCostUsd' in curated &&
+      curated.providerCostUsd != null
     ) {
       entry.providerCostUsd = curated.providerCostUsd;
     }
