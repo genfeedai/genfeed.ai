@@ -95,19 +95,6 @@ describe('RedditPublisherService', () => {
     userId: mockUserId,
   } as unknown as PostEntity;
 
-  // Mock post with video
-  const mockVideoPost = {
-    id: mockPostId,
-    brandId: mockBrandId,
-    category: PostCategory.VIDEO,
-    description: '<p>Test video post</p>',
-    ingredients: [mockIngredientId],
-    isDeleted: false,
-    organizationId: mockOrganizationId,
-    status: PostStatus.DRAFT,
-    userId: mockUserId,
-  } as unknown as PostEntity;
-
   // Create publish context helper
   const createPublishContext = (
     post: PostEntity,
@@ -329,7 +316,13 @@ describe('RedditPublisherService', () => {
       });
 
       it('should handle post without label', async () => {
-        const postWithoutLabel = { ...mockTextPost, label: undefined };
+        const postWithoutLabel = {
+          ...mockTextPost,
+          // Simulates a legacy row persisted before `label` became a
+          // required PostEntity field; the service still falls back to
+          // "Untitled" for these at runtime.
+          label: undefined as unknown as string,
+        };
         const context = createPublishContext(postWithoutLabel);
 
         redditService.submitPost.mockResolvedValue('post-123');
