@@ -2,6 +2,7 @@ import {
   act,
   fireEvent,
   render,
+  renderHook,
   screen,
   waitFor,
 } from '@testing-library/react';
@@ -9,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ReviewQueueContent from './review-queue-content';
+import { useReviewQueueContent } from './useReviewQueueContent';
 
 const mocks = vi.hoisted(() => ({
   getBatchesService: vi.fn(),
@@ -16,6 +18,9 @@ const mocks = vi.hoisted(() => ({
   notificationError: vi.fn(),
   notificationSuccess: vi.fn(),
   notificationWarning: vi.fn(),
+  notificationsService: {
+    info: vi.fn(),
+  },
   openConfirm: vi.fn(),
   replace: vi.fn(),
   setFiltersNode: vi.fn(),
@@ -51,6 +56,7 @@ vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
       error: mocks.notificationError,
+      info: mocks.notificationsService.info,
       success: mocks.notificationSuccess,
       warning: mocks.notificationWarning,
     }),
@@ -533,6 +539,89 @@ describe('ReviewQueueContent', () => {
       '/publish/review?batch=batch-1&filter=all&item=item-2',
       { scroll: false },
     );
+  });
+
+  it('explains automatic ready-filter broadening once across rerenders and refetches', async () => {
+    const { refetch } = mockReviewQueries({
+      activeBatch: {
+        id: 'batch-1',
+        items: [
+          {
+            createdAt: '2026-01-01T00:00:00.000Z',
+            format: 'post',
+            id: 'item-1',
+            status: 'PENDING',
+          },
+        ],
+        status: 'COMPLETED',
+        totalCount: 1,
+      },
+    });
+
+    const { result, rerender } = renderHook(() => useReviewQueueContent());
+
+    await waitFor(() => {
+      expect(result.current.activeFilters).toEqual([]);
+    });
+    expect(mocks.notificationsService.info).toHaveBeenCalledOnce();
+    expect(mocks.notificationsService.info).toHaveBeenCalledWith(
+      'No items are ready, so all statuses are shown.',
+    );
+
+    rerender();
+    await act(async () => {
+      await result.current.refreshQueue();
+    });
+
+    expect(refetch).toHaveBeenCalled();
+    expect(mocks.notificationsService.info).toHaveBeenCalledOnce();
+  });
+
+  it('does not notify when the operator manually shows all statuses', () => {
+    mockReviewQueries();
+
+    const { result } = renderHook(() => useReviewQueueContent());
+
+    act(() => {
+      result.current.handleFilterChange([]);
+    });
+
+    expect(result.current.activeFilters).toEqual([]);
+    expect(mocks.notificationsService.info).not.toHaveBeenCalled();
+  });
+
+  it('explains a later distinct ready-to-all automatic broaden edge', async () => {
+    mockReviewQueries({
+      activeBatch: {
+        id: 'batch-1',
+        items: [
+          {
+            createdAt: '2026-01-01T00:00:00.000Z',
+            format: 'post',
+            id: 'item-1',
+            status: 'PENDING',
+          },
+        ],
+        status: 'COMPLETED',
+        totalCount: 1,
+      },
+    });
+
+    const { result } = renderHook(() => useReviewQueueContent());
+
+    await waitFor(() => {
+      expect(result.current.activeFilters).toEqual([]);
+    });
+    expect(mocks.notificationsService.info).toHaveBeenCalledOnce();
+
+    act(() => {
+      result.current.handleFilterChange(['ready']);
+    });
+
+    await waitFor(() => {
+      expect(mocks.notificationsService.info).toHaveBeenCalledTimes(2);
+    });
+    expect(result.current.activeFilters).toEqual([]);
   });
 
   it('handles bulk approve, bulk reject, request changes, and reject actions', async () => {

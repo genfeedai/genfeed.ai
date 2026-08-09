@@ -61,8 +61,6 @@ export interface MenuSharedProps extends BaseMenuProps, SidebarSizingProps {
   renderTopSlot?: () => ReactNode;
   /** Whether the sidebar is collapsed (Todoist-style) */
   isCollapsed?: boolean;
-  /** Visual treatment for shared shell chrome */
-  shellChromeVariant?: 'default' | 'transparent';
   /** Callback to toggle collapse state */
   onToggleCollapse?: () => void;
   /** When false, primary actions are not rendered above the sidebar body */

@@ -12,7 +12,7 @@ Genfeed Core stores reviewed model records behind one generation-facing surface.
 | ------------------ | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | Model records      | `packages/services/ai/models.service.ts`                                     | Returns reviewed model records already known to the app                             |
 | Replicate watcher  | `apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`  | Creates inactive review drafts for models from verified Replicate owners            |
-| OpenRouter catalog | `packages/agent/src/constants/agent-models.constant.ts`                      | Defines the curated text-model choices exposed to the agent                         |
+| Agent model filter | `packages/agent/src/hooks/use-agent-registry-models.ts`                      | Filters reviewed registry records for the shared agent model selector                |
 | BYOK access        | `apps/server/api/src/services/byok/*`                                        | Resolves organization provider keys before hosted/server fallback at execution time |
 | Generation tools   | `packages/tools/src/registry/source/index.ts`                                | Exposes stable agent-facing tools such as `generate_image` and `generate_video`      |
 
@@ -20,7 +20,7 @@ Genfeed Core stores reviewed model records behind one generation-facing surface.
 
 The weekly watcher reads Replicate's catalog, restricts results to verified owners, de-duplicates them by model key, and creates inactive records for operator review. It never activates a discovered model automatically.
 
-OpenRouter choices are curated in code rather than mirroring the full upstream catalog. This keeps the user-facing text-model set deliberate and prevents unbounded provider dumps from filling the model table.
+Agent text-model choices come from reviewed model records. The agent hook limits those records to active text models with agent capabilities, OpenRouter-backed rows, or supported legacy entries before passing them to the shared selector.
 
 fal.ai remains a supported execution integration where a media path explicitly selects it, but Genfeed does not ingest the fal.ai catalog into the model table.
 

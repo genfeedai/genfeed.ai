@@ -2,7 +2,6 @@ import type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
   WorkspaceShellAdapterSeam,
-  WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellBreadcrumbMetadata,
   WorkspaceShellDeployment,
   WorkspaceShellOverlayRegistration,
@@ -18,10 +17,8 @@ export type {
   ResolvedWorkspaceShellRoute,
   WorkspaceShellAccessPolicy,
   WorkspaceShellAdapterSeam,
-  WorkspaceShellAuxiliaryRegistration,
   WorkspaceShellAvailability,
   WorkspaceShellBreadcrumbMetadata,
-  WorkspaceShellChromeRegistration,
   WorkspaceShellDeployment,
   WorkspaceShellLaunchTarget,
   WorkspaceShellOverlayRegistration,
@@ -1039,7 +1036,7 @@ export const PROTECTED_ROUTE_INVENTORY = Object.freeze([
   ...ADMIN_ROUTE_REGISTRATIONS,
 ]);
 
-export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
+export const WORKSPACE_SHELL_OVERLAY_REGISTRY = Object.freeze([
   Object.freeze({
     accessPolicy: 'organization-member',
     adapter: Object.freeze({ key: 'library-picker', status: 'ready' }),
@@ -1132,7 +1129,7 @@ export const WORKSPACE_SHELL_AUXILIARY_REGISTRY = Object.freeze([
     scope: 'organization',
     telemetryClass: 'workflow_picker',
   }),
-] as const satisfies readonly WorkspaceShellAuxiliaryRegistration[]);
+] as const satisfies readonly WorkspaceShellOverlayRegistration[]);
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -1282,11 +1279,11 @@ export function resolveWorkspaceShellRoute(
 export function getWorkspaceShellOverlayRegistration(
   key: string,
 ): WorkspaceShellOverlayRegistration | null {
-  const registration = WORKSPACE_SHELL_AUXILIARY_REGISTRY.find(
-    (candidate) => candidate.kind === 'overlay' && candidate.key === key,
+  return (
+    WORKSPACE_SHELL_OVERLAY_REGISTRY.find(
+      (registration) => registration.key === key,
+    ) ?? null
   );
-
-  return registration?.kind === 'overlay' ? registration : null;
 }
 
 function interpolateCanonicalPattern(

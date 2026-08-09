@@ -68,10 +68,11 @@ interface AgentThreadListRowProps {
 /**
  * Finalist 1 row chrome: dense title+preview+time, square active border,
  * activity disc only when running/waiting/failed (Claude-style pulse).
- * Archived rows use a clearer dim (opacity alone + muted title).
+ * Archived rows use semantic surface and foreground tokens so the title stays
+ * above WCAG AA without opacity stacking dimming every descendant.
  */
 function agentThreadListRowClassName(options: {
-  isMuted?: boolean;
+  isArchived?: boolean;
   isSelected?: boolean;
 }): string {
   return cn(
@@ -80,9 +81,9 @@ function agentThreadListRowClassName(options: {
     'rounded border border-transparent',
     options.isSelected
       ? 'border-border bg-foreground/[0.06]'
-      : 'hover:bg-foreground/[0.045]',
-    // Stronger than 0.55 — archived list was hard to tell from Recent.
-    options.isMuted && 'opacity-40',
+      : options.isArchived
+        ? 'bg-muted/50 hover:bg-muted'
+        : 'hover:bg-foreground/[0.045]',
   );
 }
 
@@ -147,6 +148,10 @@ export function AgentThreadListRow({
   onUnarchive,
 }: AgentThreadListRowProps): ReactElement {
   const isActiveConversation = conv.id === activeThreadId;
+  // Archived view lists only archived threads, so a stale/missing API status
+  // must still render with archived chrome.
+  const isArchived =
+    isArchivedView || conv.status === AgentThreadStatus.ARCHIVED;
   // Treat local streaming/busy as running so the disc stays live on the open thread.
   const statusMetaBase = getThreadStatusMeta(conv, {
     activeRunStatus: activeRunStatus ?? undefined,
@@ -194,12 +199,11 @@ export function AgentThreadListRow({
   return (
     <div
       key={conv.id}
+      data-archived={isArchived ? 'true' : undefined}
       className={cn(
         'flex min-h-0 items-stretch',
         agentThreadListRowClassName({
-          // Archived view lists only archived threads — always mute there too
-          // so a missing/stale status still reads as archived.
-          isMuted: isArchivedView || conv.status === AgentThreadStatus.ARCHIVED,
+          isArchived,
           isSelected: isActiveConversation,
         }),
       )}
@@ -252,7 +256,14 @@ export function AgentThreadListRow({
                   aria-label="Pinned conversation"
                 />
               ) : null}
-              <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground/90">
+              <span
+                className={cn(
+                  'min-w-0 flex-1 truncate text-[13px] font-medium',
+                  // Default studio tokens: >=7.56:1 dark and >=4.92:1 light
+                  // across archived, hover, and selected row surfaces.
+                  isArchived ? 'text-foreground/65' : 'text-foreground/90',
+                )}
+              >
                 {conv.title || 'Untitled'}
               </span>
               {relativeTime ? (

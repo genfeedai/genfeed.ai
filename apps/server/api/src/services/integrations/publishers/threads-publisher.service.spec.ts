@@ -174,6 +174,52 @@ describe('ThreadsPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const textMediaInfo = {
+      hasIngredients: false,
+      ingredientIds: [],
+      isCarousel: false,
+      isImagePost: false,
+      mediaUrls: [],
+    } as never;
+
+    const makeTextContext = (description: string) =>
+      ({
+        brandId: 'brand-1',
+        credential: {},
+        organizationId: 'org-1',
+        post: {
+          category: PostCategory.TEXT,
+          description,
+          ingredients: [],
+        },
+        postId: 'post-1',
+        settings: {},
+      }) as never;
+
+    it('should pass a caption exactly at the 500-character Threads limit', () => {
+      const result = service.validatePost(
+        makeTextContext('a'.repeat(500)),
+        textMediaInfo,
+      );
+
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const result = service.validatePost(
+        makeTextContext('a'.repeat(501)),
+        textMediaInfo,
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('Threads');
+      expect(result.error).toContain('501');
+      expect(result.error).toContain('500');
+    });
+  });
+
   describe('publish', () => {
     it('should publish single video posts', async () => {
       const mockThreadsService = service['threadsService'];
