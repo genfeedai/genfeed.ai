@@ -17,6 +17,84 @@ function isSafeHref(href?: string): boolean {
   );
 }
 
+const ORDERED_LIST_ITEM = /^(\s*)(\d+)\.\s+(.*)$/;
+const UNORDERED_LIST_ITEM = /^(\s*)([-*+])\s+(.*)$/;
+
+/**
+ * Models often emit:
+ *   1. **Title**
+ *    body without proper indent
+ *
+ *   2. **Next**
+ * which CommonMark treats as separate `<ol start=1>` blocks (every item shows
+ * as "1.") and as loose paragraphs with huge gaps. Indent continuation lines
+ * under the open list item so one ordered list stays continuous.
+ */
+export function normalizeAssistantListMarkdown(content: string): string {
+  if (!content.trim()) {
+    return content;
+  }
+
+  const lines = content.split('\n');
+  const out: string[] = [];
+  let continuationIndent: number | null = null;
+
+  for (const line of lines) {
+    const ordered = line.match(ORDERED_LIST_ITEM);
+    const unordered = line.match(UNORDERED_LIST_ITEM);
+
+    if (ordered || unordered) {
+      const match = ordered ?? unordered;
+      if (!match) {
+        out.push(line);
+        continue;
+      }
+      const baseIndent = match[1].length;
+      // GFM: content of a list item continues at indent >= marker column + 1.
+      // `1. ` is 3 chars at indent 0 → continuation at ≥ 3 spaces.
+      const marker = ordered ? `${ordered[2]}. ` : `${unordered?.[2]} `;
+      continuationIndent = baseIndent + marker.length;
+      out.push(line);
+      continue;
+    }
+
+    if (continuationIndent === null) {
+      out.push(line);
+      continue;
+    }
+
+    // Blank lines stay — they make loose items but keep the list open so the
+    // next `2.` continues the same <ol> instead of restarting at 1.
+    if (line.trim() === '') {
+      out.push('');
+      continue;
+    }
+
+    // Fence / heading / horizontal rule ends the list context.
+    if (
+      /^```/.test(line.trim()) ||
+      /^#{1,6}\s/.test(line.trim()) ||
+      /^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())
+    ) {
+      continuationIndent = null;
+      out.push(line);
+      continue;
+    }
+
+    const leading = line.match(/^(\s*)/)?.[1].length ?? 0;
+    if (leading >= continuationIndent) {
+      out.push(line);
+      continue;
+    }
+
+    // Unindented body under a list item — pull into the item.
+    out.push(`${' '.repeat(continuationIndent)}${line.trimStart()}`);
+  }
+
+  // Collapse 3+ blank lines to a single paragraph break.
+  return out.join('\n').replace(/\n{3,}/g, '\n\n');
+}
+
 /**
  * Soft-structure capability-style answers like:
  *   Batch content generation: Create 5–50 posts…
@@ -24,12 +102,13 @@ function isSafeHref(href?: string): boolean {
  * real list/heading markup. Leaves real markdown alone.
  */
 export function enhanceAssistantMarkdown(content: string): string {
-  const trimmed = content.trim();
+  const normalized = normalizeAssistantListMarkdown(content);
+  const trimmed = normalized.trim();
   if (!trimmed) {
     return content;
   }
 
-  // Already structured — do not rewrite.
+  // Already structured — do not rewrite labels (lists already normalized).
   if (
     /^\s*[-*+]\s/m.test(trimmed) ||
     /^\s*\d+\.\s/m.test(trimmed) ||
@@ -37,10 +116,10 @@ export function enhanceAssistantMarkdown(content: string): string {
     /```/.test(trimmed) ||
     /^\s*\|.+\|/m.test(trimmed)
   ) {
-    return content;
+    return normalized;
   }
 
-  const lines = content.split('\n');
+  const lines = normalized.split('\n');
   let labelLineCount = 0;
   for (const line of lines) {
     if (isCapabilityLabelLine(line)) {
@@ -50,7 +129,7 @@ export function enhanceAssistantMarkdown(content: string): string {
 
   // Only rewrite when there is a real list of labeled capabilities.
   if (labelLineCount < 2) {
-    return content;
+    return normalized;
   }
 
   const rewritten = lines.map((line) => {
@@ -114,22 +193,24 @@ export function SafeMarkdown({
             );
           },
           p: ({ children }): ReactElement => (
-            <p className="my-2.5 first:mt-0 last:mb-0 leading-7 text-foreground/92">
+            <p className="my-1.5 first:mt-0 last:mb-0 leading-6 text-foreground/92">
               {children}
             </p>
           ),
           ul: ({ children }): ReactElement => (
-            <ul className="my-3 list-disc space-y-2 pl-5 marker:text-foreground/35">
+            <ul className="my-2 list-disc space-y-1 pl-5 marker:text-foreground/35">
               {children}
             </ul>
           ),
           ol: ({ children }): ReactElement => (
-            <ol className="my-3 list-decimal space-y-2 pl-5 marker:text-foreground/45">
+            <ol className="my-2 list-decimal space-y-1.5 pl-5 marker:text-foreground/45">
               {children}
             </ol>
           ),
           li: ({ children }): ReactElement => (
-            <li className="leading-7 text-foreground/90 pl-0.5">{children}</li>
+            <li className="leading-6 text-foreground/90 pl-0.5 [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0">
+              {children}
+            </li>
           ),
           strong: ({ children }): ReactElement => (
             <strong className="font-semibold text-foreground">
@@ -137,17 +218,17 @@ export function SafeMarkdown({
             </strong>
           ),
           h1: ({ children }): ReactElement => (
-            <h3 className="mb-2 mt-5 text-base font-semibold tracking-tight text-foreground first:mt-0">
+            <h3 className="mb-1.5 mt-4 text-base font-semibold tracking-tight text-foreground first:mt-0">
               {children}
             </h3>
           ),
           h2: ({ children }): ReactElement => (
-            <h3 className="mb-2 mt-5 text-base font-semibold tracking-tight text-foreground first:mt-0">
+            <h3 className="mb-1.5 mt-4 text-base font-semibold tracking-tight text-foreground first:mt-0">
               {children}
             </h3>
           ),
           h3: ({ children }): ReactElement => (
-            <h4 className="mb-1.5 mt-4 text-sm font-semibold tracking-tight text-foreground first:mt-0">
+            <h4 className="mb-1 mt-3 text-sm font-semibold tracking-tight text-foreground first:mt-0">
               {children}
             </h4>
           ),
@@ -177,10 +258,11 @@ export function SafeMarkdown({
             );
           },
           pre: ({ children }): ReactElement => (
-            <pre className="my-3 max-w-full overflow-x-auto rounded-lg">
+            <pre className="my-2 max-w-full overflow-x-auto rounded-lg">
               {children}
             </pre>
           ),
+          br: (): ReactElement => <br className="leading-none" />,
         }}
       >
         {renderedContent}

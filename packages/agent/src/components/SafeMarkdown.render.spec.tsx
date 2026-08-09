@@ -83,4 +83,26 @@ describe('SafeMarkdown rendering', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
     expect(screen.getByText('Generation:')).toBeInTheDocument();
   });
+
+  it('keeps multi-paragraph ordered items in one list with sequential numbers', () => {
+    const content = [
+      '1. **One-second impact**',
+      ' Most visuals lose before the caption gets a chance.',
+      '',
+      ' The fix is brutal.',
+      '',
+      '2. **Visuals as the hook**',
+      ' A good image is not decoration.',
+    ].join('\n');
+
+    const { container } = render(
+      <SafeMarkdown content={content} enhanceStructure />,
+    );
+
+    // One ordered list — not two separate lists each restarting at 1.
+    expect(container.querySelectorAll('ol')).toHaveLength(1);
+    expect(container.querySelectorAll('li')).toHaveLength(2);
+    expect(screen.getByText(/One-second impact/)).toBeInTheDocument();
+    expect(screen.getByText(/Visuals as the hook/)).toBeInTheDocument();
+  });
 });
