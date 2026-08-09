@@ -424,14 +424,14 @@ const waitForCanonicalAppReady = async (
     new Promise((resolve, reject) => {
       const deadline = Date.now() + ${String(timeoutMs)};
       const check = () => {
-        const shellReady = document.body?.classList.contains('gf-desktop-shell');
+        const appReady = document.readyState === 'complete' && Boolean(document.body);
         const bridgeReady = typeof window.genfeedDesktop?.auth?.login === 'function';
-        if (shellReady && bridgeReady) {
+        if (appReady && bridgeReady) {
           resolve(true);
           return;
         }
         if (Date.now() >= deadline) {
-          reject(new Error('Timed out waiting for the canonical shell and desktop bridge.'));
+          reject(new Error('Timed out waiting for the hosted app and desktop bridge.'));
           return;
         }
         setTimeout(check, 100);
