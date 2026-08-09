@@ -160,4 +160,261 @@ describe('AgentRunProcessor', () => {
     );
     expect(capturedContext).toEqual(job.data.actionContext);
   });
+
+  describe('strategy and campaign paths', () => {
+    let campaignExecutionService: {
+      checkQuota: ReturnType<typeof vi.fn>;
+      updateCreditsUsed: ReturnType<typeof vi.fn>;
+    };
+    let strategiesService: {
+      incrementFailures: ReturnType<typeof vi.fn>;
+      pauseStrategy: ReturnType<typeof vi.fn>;
+      recordRun: ReturnType<typeof vi.fn>;
+      requireManualReactivation: ReturnType<typeof vi.fn>;
+      resetFailures: ReturnType<typeof vi.fn>;
+    };
+    let strategyProcessor: AgentRunProcessor;
+
+    const baseData = {
+      objective: 'Generate weekly content.',
+      organizationId: 'org-1',
+      runId: 'run-1',
+      userId: 'user-1',
+    };
+
+    beforeEach(() => {
+      campaignExecutionService = {
+        checkQuota: vi.fn().mockResolvedValue(undefined),
+        updateCreditsUsed: vi.fn().mockResolvedValue(undefined),
+      };
+      strategiesService = {
+        incrementFailures: vi.fn().mockResolvedValue(1),
+        pauseStrategy: vi.fn().mockResolvedValue(undefined),
+        recordRun: vi.fn().mockResolvedValue(undefined),
+        requireManualReactivation: vi.fn().mockResolvedValue(undefined),
+        resetFailures: vi.fn().mockResolvedValue(undefined),
+      };
+
+      strategyProcessor = new AgentRunProcessor(
+        logger as never,
+        agentRunsService as never,
+        agentOrchestratorService as never,
+        strategiesService as never,
+        agentStrategyAutopilotService as never,
+        agentStreamPublisherService as never,
+        campaignExecutionService as never,
+        undefined,
+      );
+
+      agentRunsService.start.mockResolvedValue({ label: 'Run', metadata: {} });
+      agentRunsService.complete.mockResolvedValue(null);
+    });
+
+    it('throws when the run record is missing', async () => {
+      agentRunsService.start.mockResolvedValue(null);
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+
+      await expect(strategyProcessor.process(job)).rejects.toThrow(
+        'Agent run run-1 not found',
+      );
+      expect(agentRunsService.fail).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'Agent run run-1 not found',
+      );
+      expect(
+        agentStreamPublisherService.publishRunComplete,
+      ).toHaveBeenCalledWith(expect.objectContaining({ status: 'failed' }));
+    });
+
+    it('executes strategies through the autopilot path and records run metrics', async () => {
+      const job = {
+        data: { ...baseData, strategyId: 'strategy-1' },
+      } as Job<AgentRunJobData>;
+      agentStrategyAutopilotService.executeQueuedRun.mockResolvedValue({
+        contentGenerated: 4,
+        creditsUsed: 12,
+        summary: 'Autopilot produced 4 drafts.',
+      });
+      agentRunsService.complete.mockResolvedValue({
+        completedAt: new Date('2026-08-09T01:00:00Z'),
+        startedAt: new Date('2026-08-09T00:00:00Z'),
+        toolCalls: [{ status: 'completed' }, { status: 'failed' }],
+      });
+
+      await strategyProcessor.process(job);
+
+      expect(
+        agentStrategyAutopilotService.executeQueuedRun,
+      ).toHaveBeenCalledWith({
+        defaultModel: undefined,
+        organizationId: 'org-1',
+        runId: 'run-1',
+        strategyId: 'strategy-1',
+        userId: 'user-1',
+      });
+      expect(agentOrchestratorService.chat).not.toHaveBeenCalled();
+      expect(agentRunsService.complete).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'Autopilot produced 4 drafts.',
+      );
+      expect(strategiesService.recordRun).toHaveBeenCalledWith(
+        'strategy-1',
+        expect.objectContaining({
+          contentGenerated: 4,
+          creditsUsed: 12,
+          threadId: 'run-1',
+        }),
+      );
+      expect(strategiesService.resetFailures).toHaveBeenCalledWith(
+        'strategy-1',
+      );
+    });
+
+    it('updates campaign credits and checks quota for campaign runs', async () => {
+      const job = {
+        data: { ...baseData, campaignId: 'campaign-1' },
+      } as Job<AgentRunJobData>;
+      agentOrchestratorService.chat.mockResolvedValue({
+        content: 'Campaign content generated.',
+      });
+      agentRunsService.complete.mockResolvedValue({ creditsUsed: 7 });
+
+      await strategyProcessor.process(job);
+
+      expect(campaignExecutionService.updateCreditsUsed).toHaveBeenCalledWith(
+        'campaign-1',
+        7,
+      );
+      expect(campaignExecutionService.checkQuota).toHaveBeenCalledWith(
+        'campaign-1',
+      );
+    });
+
+    it('skips the credits update when no credits were used', async () => {
+      const job = {
+        data: { ...baseData, campaignId: 'campaign-1' },
+      } as Job<AgentRunJobData>;
+      agentOrchestratorService.chat.mockResolvedValue('not-an-object');
+      agentRunsService.complete.mockResolvedValue({ creditsUsed: 0 });
+
+      await strategyProcessor.process(job);
+
+      expect(campaignExecutionService.updateCreditsUsed).not.toHaveBeenCalled();
+      expect(campaignExecutionService.checkQuota).toHaveBeenCalledWith(
+        'campaign-1',
+      );
+    });
+
+    it('fails the run and increments strategy failures on error', async () => {
+      const job = {
+        data: { ...baseData, strategyId: 'strategy-1' },
+      } as Job<AgentRunJobData>;
+      agentStrategyAutopilotService.executeQueuedRun.mockRejectedValue(
+        new Error('autopilot failed'),
+      );
+      strategiesService.incrementFailures.mockResolvedValue(2);
+
+      await expect(strategyProcessor.process(job)).rejects.toThrow(
+        'autopilot failed',
+      );
+
+      expect(agentRunsService.fail).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'autopilot failed',
+      );
+      expect(strategiesService.pauseStrategy).not.toHaveBeenCalled();
+      expect(
+        strategiesService.requireManualReactivation,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('auto-pauses the strategy after three consecutive failures', async () => {
+      const job = {
+        data: { ...baseData, strategyId: 'strategy-1' },
+      } as Job<AgentRunJobData>;
+      agentStrategyAutopilotService.executeQueuedRun.mockRejectedValue(
+        new Error('autopilot failed'),
+      );
+      strategiesService.incrementFailures.mockResolvedValue(3);
+
+      await expect(strategyProcessor.process(job)).rejects.toThrow(
+        'autopilot failed',
+      );
+
+      expect(strategiesService.pauseStrategy).toHaveBeenCalledWith(
+        'strategy-1',
+      );
+      expect(
+        strategiesService.requireManualReactivation,
+      ).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('requires manual reactivation after five consecutive failures', async () => {
+      const job = {
+        data: { ...baseData, strategyId: 'strategy-1' },
+      } as Job<AgentRunJobData>;
+      agentStrategyAutopilotService.executeQueuedRun.mockRejectedValue(
+        'string failure',
+      );
+      strategiesService.incrementFailures.mockResolvedValue(5);
+
+      await expect(strategyProcessor.process(job)).rejects.toBe(
+        'string failure',
+      );
+
+      expect(agentRunsService.fail).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'string failure',
+      );
+      expect(strategiesService.requireManualReactivation).toHaveBeenCalledWith(
+        'strategy-1',
+      );
+      expect(strategiesService.pauseStrategy).not.toHaveBeenCalled();
+    });
+
+    it('derives the summary from a top-level summary string', async () => {
+      const job = { data: { ...baseData } } as Job<AgentRunJobData>;
+      agentOrchestratorService.chat.mockResolvedValue({
+        summary: '  Summary wins.  ',
+        threadId: 'not-an-object-id',
+      });
+
+      await strategyProcessor.process(job);
+
+      expect(agentRunsService.complete).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        'Summary wins.',
+      );
+      // threadId is not a 24-char hex id, so no patch happens
+      expect(agentRunsService.patch).not.toHaveBeenCalled();
+    });
+
+    it('completes without a summary when the result is not an object', async () => {
+      const job = {
+        data: { ...baseData, objective: undefined },
+      } as unknown as Job<AgentRunJobData>;
+      agentOrchestratorService.chat.mockResolvedValue(undefined);
+
+      await strategyProcessor.process(job);
+
+      expect(agentOrchestratorService.chat).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content:
+            'Execute proactive content generation based on strategy configuration.',
+        }),
+        expect.objectContaining({ organizationId: 'org-1', runId: 'run-1' }),
+      );
+      expect(agentRunsService.complete).toHaveBeenCalledWith(
+        'run-1',
+        'org-1',
+        undefined,
+      );
+    });
+  });
 });
