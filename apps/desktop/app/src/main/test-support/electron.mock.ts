@@ -62,6 +62,7 @@ export const electronMockState = {
     contextMenu: null as ElectronMenuItem[] | null,
     destroyed: false,
     iconPath: '',
+    isTemplateImage: false,
     tooltip: '',
   },
 };
@@ -90,12 +91,26 @@ export const resetElectronMockState = (): void => {
   electronMockState.tray.contextMenu = null;
   electronMockState.tray.destroyed = false;
   electronMockState.tray.iconPath = '';
+  electronMockState.tray.isTemplateImage = false;
   electronMockState.tray.tooltip = '';
 };
 
+type FakeNativeImage = {
+  path: string;
+  setTemplateImage: (value: boolean) => void;
+};
+
+const createFakeNativeImage = (iconPath: string): FakeNativeImage => ({
+  path: iconPath,
+  setTemplateImage: (value: boolean) => {
+    electronMockState.tray.isTemplateImage = value;
+  },
+});
+
 class FakeTray {
-  constructor(iconPath: string) {
-    electronMockState.tray.iconPath = iconPath;
+  constructor(icon: string | FakeNativeImage) {
+    electronMockState.tray.iconPath =
+      typeof icon === 'string' ? icon : icon.path;
   }
 
   destroy(): void {
@@ -146,6 +161,9 @@ mock.module('electron', () => ({
     setApplicationMenu: (menu: { template: ElectronMenuItem[] }) => {
       electronMockState.menu.applicationMenu = menu.template;
     },
+  },
+  nativeImage: {
+    createFromPath: createFakeNativeImage,
   },
   safeStorage: electronMockState.safeStorage,
   protocol: {
