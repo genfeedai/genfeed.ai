@@ -406,6 +406,7 @@
         "jose": "^6.2.8",
         "jsonapi-serializer": "3.6.9",
         "jsonwebtoken": "9.0.3",
+        "marked": "16.4.2",
         "multer": "2.2.0",
         "openai": "7.4.0",
         "rss": "1.2.2",

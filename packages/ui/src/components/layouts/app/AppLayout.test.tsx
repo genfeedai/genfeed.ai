@@ -1,4 +1,3 @@
-import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import Container from '@ui/layout/container/Container';
 import AppLayout from '@ui/layouts/app/AppLayout';
@@ -46,10 +45,7 @@ describe('AppLayout', () => {
       'min-h-screen',
       'bg-background',
     );
-    expect(contentShell).toHaveClass(
-      'md:pl-[var(--desktop-sidebar-width)]',
-      'lg:pb-[var(--desktop-agent-height)]',
-    );
+    expect(contentShell).toHaveClass('md:pl-[var(--desktop-sidebar-width)]');
     expect(mainContent).not.toHaveClass('overflow-y-auto');
     expect(screen.getByText('Content')).toBeInTheDocument();
   });
@@ -75,14 +71,13 @@ describe('AppLayout', () => {
 
   it('uses document scrolling instead of trapping vertical overflow in the center shell', () => {
     render(
-      <AppLayout agentPanel={<div>Agent panel</div>}>
+      <AppLayout>
         <div>Content</div>
       </AppLayout>,
     );
 
     const layoutRoot = screen.getByTestId('app-content-shell').parentElement;
     const contentShell = screen.getByTestId('app-content-shell');
-    const agentRail = screen.getByTestId('agent-panel-rail');
 
     expect(layoutRoot).toHaveClass(
       'min-h-screen',
@@ -96,7 +91,6 @@ describe('AppLayout', () => {
       'flex',
       'flex-col',
     );
-    expect(agentRail).toHaveClass('fixed', 'bottom-0', 'left-0', 'right-0');
   });
 
   it('locks the conversation shell to the viewport so banners cannot double-scroll', () => {
@@ -153,23 +147,6 @@ describe('AppLayout', () => {
     expect(
       screen.getByTestId('app-content-shell').parentElement,
     ).toHaveAttribute('data-workspace-shell', 'true');
-  });
-
-  it('keeps the desktop rail transparent when the shell variant is transparent', () => {
-    render(
-      <AppLayout
-        menuComponent={<MenuComponent />}
-        shellChromeVariant="transparent"
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    const rail = screen.getByTestId('desktop-sidebar-rail');
-
-    expect(rail).toHaveClass('bg-transparent');
-    expect(rail).not.toHaveClass('border-r');
-    expect(rail).not.toHaveClass('bg-background-secondary');
   });
 
   it('collapses the desktop sidebar to only the Genfeed logo toggle', async () => {
@@ -308,106 +285,6 @@ describe('AppLayout', () => {
     });
   });
 
-  it('renders agent dock and fixed-height shell when agent panel is provided', () => {
-    render(
-      <AppLayout agentPanel={<div>Agent panel</div>} isAgentCollapsed={false}>
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    const rail = screen.getByTestId('agent-panel-rail');
-    const shell = screen.getByTestId('agent-panel-shell');
-
-    expect(rail).toHaveStyle({ minHeight: '380px', height: '380px' });
-    expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
-    expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
-    expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0', 'right-0');
-    expect(screen.getByTestId('agent-panel-resize-handle')).toBeInTheDocument();
-  });
-
-  it('does not render the bottom agent rail while collapsed', () => {
-    render(
-      <AppLayout agentPanel={<div>Agent panel</div>} isAgentCollapsed>
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
-    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-agent-height': '0px',
-    });
-  });
-
-  it('keeps the collapsed agent rail hidden in transparent shell mode', () => {
-    render(
-      <AppLayout
-        agentPanel={<div>Agent panel</div>}
-        isAgentCollapsed
-        shellChromeVariant="transparent"
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.queryByTestId('agent-panel-rail')).not.toBeInTheDocument();
-  });
-
-  it('shows the agent dock border in transparent shell mode when expanded', () => {
-    render(
-      <AppLayout
-        agentPanel={<div>Agent panel</div>}
-        shellChromeVariant="transparent"
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    const rail = screen.getByTestId('agent-panel-rail');
-
-    expect(rail).toHaveClass('bg-transparent', 'shadow-none');
-  });
-
-  it('passes agent toggle to topbar when agent rail is mounted', () => {
-    let capturedProps: TopbarProps | undefined;
-    const TopbarMock = (props: TopbarProps) => {
-      capturedProps = props;
-      return <div data-testid="topbar-mock" />;
-    };
-
-    const toggle = vi.fn();
-
-    render(
-      <AppLayout
-        topbarComponent={TopbarMock}
-        agentPanel={<div>Agent panel</div>}
-        isAgentCollapsed
-        onAgentToggle={toggle}
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.getByTestId('topbar-mock')).toBeInTheDocument();
-    expect(capturedProps?.onAgentToggle).toBe(toggle);
-  });
-
-  it('does not pass the terminal toggle to topbar without an agent rail', () => {
-    let capturedProps: TopbarProps | undefined;
-    const TopbarMock = (props: TopbarProps) => {
-      capturedProps = props;
-      return <div data-testid="topbar-mock" />;
-    };
-
-    render(
-      <AppLayout topbarComponent={TopbarMock} onAgentToggle={vi.fn()}>
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.getByTestId('topbar-mock')).toBeInTheDocument();
-    expect(capturedProps?.onAgentToggle).toBeUndefined();
-  });
-
   it('keeps default topbar chrome styling', () => {
     const TopbarMock = () => <div data-testid="topbar-mock" />;
 
@@ -445,90 +322,5 @@ describe('AppLayout', () => {
       screen.queryByText('Create keys for headless clients and MCP servers.'),
     ).not.toBeInTheDocument();
     expect(screen.getByText('Page controls')).toBeInTheDocument();
-  });
-
-  it('does not offset the topbar for the collapsed bottom dock', () => {
-    const TopbarMock = () => <div data-testid="topbar-mock" />;
-
-    render(
-      <AppLayout
-        topbarComponent={TopbarMock}
-        agentPanel={<div>Agent panel</div>}
-        isAgentCollapsed
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass(
-      'lg:right-[var(--desktop-agent-width)]',
-    );
-    expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-agent-height': '0px',
-    });
-  });
-
-  it('removes visible topbar chrome styling for transparent shell variant', () => {
-    const TopbarMock = () => <div data-testid="topbar-mock" />;
-
-    render(
-      <AppLayout topbarComponent={TopbarMock} shellChromeVariant="transparent">
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    const topbarShell = screen.getByTestId('app-topbar-shell');
-
-    expect(topbarShell).toHaveClass(
-      'h-12',
-      'fixed',
-      'top-0',
-      'left-0',
-      'right-0',
-      'z-50',
-    );
-    expect(topbarShell).not.toHaveClass(
-      'border-b',
-      'border-border',
-      'bg-background',
-    );
-  });
-
-  it('renders topbar chrome when transparent shell is overridden to default', () => {
-    const TopbarMock = () => <div data-testid="topbar-mock" />;
-
-    render(
-      <AppLayout
-        topbarComponent={TopbarMock}
-        shellChromeVariant="transparent"
-        topbarChromeVariant="default"
-      >
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
-      'bg-background',
-      'border-b',
-      'border-border',
-    );
-  });
-
-  it('keeps topbar borderless when transparent override is explicit', () => {
-    const TopbarMock = () => <div data-testid="topbar-mock" />;
-
-    render(
-      <AppLayout topbarComponent={TopbarMock} topbarChromeVariant="transparent">
-        <div>Content</div>
-      </AppLayout>,
-    );
-
-    const topbarShell = screen.getByTestId('app-topbar-shell');
-
-    expect(topbarShell).not.toHaveClass(
-      'border-b',
-      'border-border',
-      'bg-background',
-    );
   });
 });

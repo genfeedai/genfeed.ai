@@ -852,7 +852,7 @@ async function redirectSignedInUserToDefaultRoute(
   }
 
   const resolved = await resolveCanonicalProtectedPath(
-    '/workspace',
+    '/agent',
     token,
     cacheKey,
     req,
@@ -1007,7 +1007,7 @@ async function routeBetterAuthRequest(
 
   if (pathname === '/') {
     let resolved = await resolveCanonicalProtectedPath(
-      '/workspace',
+      '/agent',
       token,
       sessionCookie,
       req,
@@ -1018,7 +1018,7 @@ async function routeBetterAuthRequest(
       const fallbackToken = await getBetterAuthBearerToken(req);
       resolved = fallbackToken
         ? await resolveCanonicalProtectedPath(
-            '/workspace',
+            '/agent',
             fallbackToken,
             sessionCookie,
             req,
@@ -1031,7 +1031,7 @@ async function routeBetterAuthRequest(
       return NextResponse.next();
     }
 
-    const response = redirectDroppingSearch(req, resolved.path);
+    const response = redirectPreservingSearch(req, resolved.path);
     if (resolved.cookieValue) {
       setSlugCookie(response, resolved.cookieValue);
     }

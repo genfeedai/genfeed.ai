@@ -454,12 +454,12 @@ export default function BrandSettingsPublishingPage() {
     <div className="space-y-4">
       <Card
         label="Publishing defaults"
-        description="Recurring cadence and auto-publish rules for this brand."
+        description="Recurring content generation cadence and auto-publish rules for this brand."
         bodyClassName="gap-3 p-4"
       >
         <div className="space-y-3">
           <SettingsToggleRow
-            description="Run this brand on a repeating cadence in the timezone below."
+            description="Generate recurring content for this brand on the cadence and timezone below."
             isChecked={isScheduleEnabled}
             isDisabled={isSaving}
             label="Recurring schedule"

@@ -218,6 +218,40 @@ describe('FacebookPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const imageMediaInfo: MediaInfo = {
+      hasIngredients: true,
+      ingredientIds: [mockIngredientId],
+      isCarousel: false,
+      isImagePost: true,
+      mediaUrls: [
+        `https://api.test.com/ingredients/images/${mockIngredientId}`,
+      ],
+    };
+
+    it('should pass a caption exactly at the 63206-character Facebook limit', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(63_206),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockImagePost,
+        description: 'a'.repeat(63_207),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, imageMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('Facebook');
+      expect(result.error).toContain('63207');
+      expect(result.error).toContain('63206');
+    });
+  });
+
   describe('publish', () => {
     beforeEach(() => {
       credentialsService.findOne.mockResolvedValue(mockCredential);

@@ -1,23 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { IBatchItem } from '@genfeedai/interfaces';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { Check, Sparkles, X } from 'lucide-react';
 
+import type { ReviewPanelItem } from './review-panel.types';
 import {
   isApproved,
   isChangesRequested,
   isReadyToReview,
 } from './review-state';
-
-type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
 
 interface ReviewDecisionPanelProps {
   feedback: string;

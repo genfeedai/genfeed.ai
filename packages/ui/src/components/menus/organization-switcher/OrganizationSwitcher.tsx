@@ -1,6 +1,6 @@
 'use client';
 
-import { createOrganizationAppRoute } from '@genfeedai/constants';
+import { APP_ROUTES, createOrganizationAppRoute } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
@@ -154,22 +154,21 @@ export default function OrganizationSwitcher({
       if (isSwitching || orgId === activeOrgId) {
         return;
       }
+      const target = orgs.find((organization) => organization.id === orgId);
+      if (!target?.slug) {
+        dispatch({ type: 'SWITCH_FAILED' });
+        return;
+      }
       dispatch({ type: 'SWITCH_START' });
       try {
         const svc = await getOrgsService();
         await svc.switchOrganization(orgId);
-        // Navigate to the target org's landing route so the URL reflects the
-        // now-active org. The previous flow reloaded the *current* URL, which
-        // still carried the old org slug, so the app rebooted on the same org
-        // and nothing appeared to switch (#1227). A full navigation (matching
-        // the create-organization flow) re-syncs session-scoped workspace data
-        // across the org boundary; org-landing then routes to the default brand.
-        const target = orgs.find((o) => o.id === orgId);
-        if (target?.slug) {
-          window.location.assign(`/${target.slug}`);
-        } else {
-          window.location.reload();
-        }
+        // A hard navigation re-syncs all session-scoped data, and the explicit
+        // new route guarantees no transcript, draft, or approval crosses the
+        // organization boundary.
+        window.location.assign(
+          createOrganizationAppRoute(target.slug, APP_ROUTES.AGENT.NEW),
+        );
       } catch {
         dispatch({ type: 'SWITCH_FAILED' });
       }
