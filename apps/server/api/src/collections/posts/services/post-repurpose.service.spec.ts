@@ -194,7 +194,7 @@ describe('PostRepurposeService', () => {
         ingredients: Array.from({ length: 5 }, (_, index) => ({
           category: IngredientCategory.IMAGE,
           id: `ingredient_${index}`,
-          status: IngredientStatus.COMPLETED,
+          status: IngredientStatus.GENERATED,
         })),
       });
 
@@ -217,12 +217,12 @@ describe('PostRepurposeService', () => {
           {
             category: IngredientCategory.IMAGE,
             id: 'ingredient_1',
-            status: IngredientStatus.COMPLETED,
+            status: IngredientStatus.GENERATED,
           },
           {
             category: IngredientCategory.MUSIC,
             id: 'ingredient_2',
-            status: IngredientStatus.COMPLETED,
+            status: IngredientStatus.GENERATED,
           },
         ],
       });
