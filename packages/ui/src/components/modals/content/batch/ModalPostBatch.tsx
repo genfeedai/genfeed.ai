@@ -32,6 +32,7 @@ export default function ModalPostBatch(props: ModalPostProps) {
     setGlobalScheduledDate,
     getMinDateTime,
     settings,
+    activeIngredients,
     enabledCount,
     hasYoutube,
     hasAvailableCredentials,
@@ -118,6 +119,7 @@ export default function ModalPostBatch(props: ModalPostProps) {
                       setGlobalScheduledDate={setGlobalScheduledDate}
                       settings={settings}
                       ingredient={ingredient}
+                      ingredients={activeIngredients}
                       isLoading={isSubmitting}
                       togglePlatform={togglePlatform}
                       updatePlatformConfig={updatePlatformConfig}
