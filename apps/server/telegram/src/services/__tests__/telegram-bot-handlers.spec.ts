@@ -159,6 +159,24 @@ function flush(ms = 10): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * `fetchAndAddIntegration` / `fetchAndUpdateIntegration` are `protected` — they
+ * are the internals the Redis integration events delegate to. These two tests
+ * drive them directly to reach the "payload cannot be normalized" branch, which
+ * a well-formed Redis event cannot produce. Going through a structural view
+ * (rather than a test subclass) keeps the DI-constructed instance under test.
+ */
+type IntegrationFetchInternals = {
+  fetchAndAddIntegration(integrationId: string): Promise<void>;
+  fetchAndUpdateIntegration(integrationId: string): Promise<void>;
+};
+
+function integrationInternals(
+  instance: TelegramBotManager,
+): IntegrationFetchInternals {
+  return instance as unknown as IntegrationFetchInternals;
+}
+
 describe('TelegramBotManager handlers', () => {
   let service: TelegramBotManager;
   let httpMock: HttpServiceMock;
@@ -1546,7 +1564,7 @@ describe('TelegramBotManager handlers', () => {
     it('warns when a created integration payload cannot be normalized', async () => {
       httpMock.get.mockReturnValue(of({ data: null }));
 
-      await service.fetchAndAddIntegration('int-1');
+      await integrationInternals(service).fetchAndAddIntegration('int-1');
 
       expect(logger.warn).toHaveBeenCalledWith(
         'Unable to normalize Telegram integration payload: int-1',
@@ -1557,7 +1575,7 @@ describe('TelegramBotManager handlers', () => {
     it('warns when an updated integration payload cannot be normalized', async () => {
       httpMock.get.mockReturnValue(of({ data: null }));
 
-      await service.fetchAndUpdateIntegration('int-1');
+      await integrationInternals(service).fetchAndUpdateIntegration('int-1');
 
       expect(logger.warn).toHaveBeenCalledWith(
         'Unable to normalize Telegram integration payload: int-1',

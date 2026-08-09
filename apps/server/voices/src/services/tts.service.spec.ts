@@ -265,5 +265,27 @@ describe('TTSService', () => {
         expect.any(Object),
       );
     });
+
+    // The fire-and-forget `.catch()` in `generate()` is the last line of
+    // defence: `processTTSJob` swallows its own failures, so the only way to
+    // reach it is a rejection from the pre-`try` "processing" status write.
+    it('should log and swallow a rejection from the background job', async () => {
+      jobService.createJob = vi.fn().mockResolvedValue(mockJob);
+      jobService.updateJob = vi
+        .fn()
+        .mockRejectedValue(new Error('job store unavailable'));
+
+      const result = await service.generate(mockRequest);
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(result).toEqual(mockJob);
+      expect(loggerService.error).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          jobId: mockJob.jobId,
+          message: 'TTS generation failed',
+        }),
+      );
+    });
   });
 });

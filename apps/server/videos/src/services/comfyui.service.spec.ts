@@ -204,5 +204,51 @@ describe('ComfyUIService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('keeps polling while history has no entry yet', async () => {
+      mockAxiosPost.mockResolvedValueOnce({
+        data: { prompt_id: 'prompt-late' },
+      });
+
+      // First poll: prompt not in history yet -> `continue`.
+      mockAxiosGet.mockResolvedValueOnce({ data: {} });
+      // Second poll: completed.
+      mockAxiosGet.mockResolvedValueOnce({
+        data: {
+          'prompt-late': {
+            outputs: { '0': { images: [{ filename: 'late.png' }] } },
+            status: { completed: true },
+          },
+        },
+      });
+
+      const result = await service.queueAndWait({ workflow: 'test' }, 30000, 1);
+
+      expect(result).toBe('late.png');
+      expect(mockAxiosGet).toHaveBeenCalledTimes(2);
+    });
+
+    it('warns and returns null when the workflow times out', async () => {
+      mockAxiosPost.mockResolvedValueOnce({
+        data: { prompt_id: 'prompt-slow' },
+      });
+
+      mockAxiosGet.mockResolvedValue({
+        data: {
+          'prompt-slow': {
+            outputs: {},
+            status: { completed: false, status_str: 'running' },
+          },
+        },
+      });
+
+      const result = await service.queueAndWait({ workflow: 'test' }, 1, 5);
+
+      expect(result).toBeNull();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ message: 'Workflow timed out' }),
+      );
+    });
   });
 });

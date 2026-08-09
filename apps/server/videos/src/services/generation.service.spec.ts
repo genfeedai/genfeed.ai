@@ -255,5 +255,27 @@ describe('GenerationService', () => {
         expect(loggerService.error).toHaveBeenCalled();
       });
     });
+
+    // `processVideoJob` handles its own failures, so the fire-and-forget
+    // `.catch()` in `generateVideo` is only reachable via a rejection from the
+    // pre-`try` "processing" status write.
+    it('should log and swallow a rejection from the background job', async () => {
+      jobService.updateJob.mockRejectedValue(
+        new Error('job store unavailable'),
+      );
+
+      const result = await service.generateVideo(baseRequest);
+
+      expect(result).toEqual(mockJob);
+      await vi.waitFor(() => {
+        expect(loggerService.error).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            jobId: 'job-abc-123',
+            message: 'Video generation failed unexpectedly',
+          }),
+        );
+      });
+    });
   });
 });
