@@ -116,6 +116,13 @@ export const PLATFORM_CRON_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform temporary file cleanup.',
   },
   {
+    file: 'apps/server/workers/src/monitoring/queue-metrics.service.ts',
+    id: 'queue-operational-metrics',
+    methodName: 'publishQueueMetrics',
+    reason:
+      'Platform operational telemetry for aggregate BullMQ health. Fixed-cardinality infrastructure monitoring; never tenant-configurable.',
+  },
+  {
     file: 'apps/server/workers/src/crons/credentials/cron.credentials.service.ts',
     id: 'credentials-refresh',
     methodName: 'refreshExpiringTokens',

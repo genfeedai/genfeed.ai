@@ -21,6 +21,7 @@ const CANCELLABLE_PULL_REQUEST_WORKFLOWS = [
   'pr-full-suite.yml',
   'selfhosted-install-smoke.yml',
   'server-image-pr.yml',
+  'tofu-validate.yml',
 ];
 
 function readWorkflow(fileName) {
