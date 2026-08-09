@@ -124,9 +124,9 @@ describe('createBezierEasing', () => {
 
 describe('getPresetBezier', () => {
   it('returns a copy of a known preset', () => {
-    const bezier = getPresetBezier('easeInOut');
-    expect(bezier).toEqual(PRESET_BEZIERS.easeInOut);
-    expect(bezier).not.toBe(PRESET_BEZIERS.easeInOut);
+    const bezier = getPresetBezier('easeInOutCubic');
+    expect(bezier).toEqual(PRESET_BEZIERS.easeInOutCubic);
+    expect(bezier).not.toBe(PRESET_BEZIERS.easeInOutCubic);
   });
 
   it('falls back to the default custom bezier', () => {

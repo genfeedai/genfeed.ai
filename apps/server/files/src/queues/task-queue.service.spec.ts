@@ -192,8 +192,8 @@ describe('TaskQueueService', () => {
     it('should clean completed and failed jobs', async () => {
       await service.clean(3600000);
 
-      expect(mockQueue.clean).toHaveBeenCalledWith(3600000, 'completed');
-      expect(mockQueue.clean).toHaveBeenCalledWith(7200000, 'failed');
+      expect(mockQueue.clean).toHaveBeenCalledWith(3600000, 0, 'completed');
+      expect(mockQueue.clean).toHaveBeenCalledWith(7200000, 0, 'failed');
     });
   });
 });

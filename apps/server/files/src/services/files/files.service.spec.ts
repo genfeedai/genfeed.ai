@@ -4,6 +4,7 @@ import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FilesService } from '@files/services/files/files.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as sharp from 'sharp';
 import type { Mock, Mocked } from 'vitest';
@@ -38,6 +39,10 @@ describe('FilesService', () => {
             log: vi.fn(),
             warn: vi.fn(),
           },
+        },
+        {
+          provide: HttpService,
+          useValue: { get: vi.fn(), post: vi.fn() },
         },
       ],
     }).compile();

@@ -1,3 +1,5 @@
+import * as nodeFs from 'node:fs';
+import * as nodePath from 'node:path';
 import { Readable } from 'node:stream';
 import { ConfigService } from '@files/config/config.service';
 import { FilesController } from '@files/controllers/files.controller';
@@ -27,24 +29,28 @@ import type { Response } from 'express';
 import { of, throwError } from 'rxjs';
 
 // Mock fs module
-vi.mock('fs', () => ({
+const fsMock = vi.hoisted(() => ({
   existsSync: vi.fn().mockReturnValue(true),
   mkdirSync: vi.fn(),
   readFileSync: vi.fn().mockReturnValue(Buffer.from('test-content')),
   unlinkSync: vi.fn(),
   writeFileSync: vi.fn(),
 }));
+vi.mock('fs', () => fsMock);
+vi.mock('node:fs', () => fsMock);
 
 // Mock path.resolve to return predictable paths
-vi.mock('path', async () => ({
+const pathMockFactory = vi.hoisted(() => async () => ({
   ...(await vi.importActual('path')),
-  basename: vi.fn((filepath) => filepath.split('/').pop()),
-  extname: vi.fn((filename) => {
+  basename: vi.fn((filepath: string) => filepath.split('/').pop()),
+  extname: vi.fn((filename: string) => {
     const ext = filename.split('.').pop();
     return ext ? `.${ext}` : '';
   }),
-  resolve: vi.fn((...args) => args.join('/')),
+  resolve: vi.fn((...args: string[]) => args.join('/')),
 }));
+vi.mock('path', pathMockFactory);
+vi.mock('node:path', pathMockFactory);
 
 describe('FilesController', () => {
   type PublicController<T> = Pick<T, keyof T>;
@@ -87,7 +93,6 @@ describe('FilesController', () => {
     addPortraitConversionJob: vi.fn().mockResolvedValue(mockJob),
     addEditorCompositionJob: vi.fn().mockResolvedValue(mockJob),
     addResizeJob: vi.fn().mockResolvedValue(mockJob),
-    addResizeVideoJob: vi.fn().mockResolvedValue(mockJob),
     addReverseJob: vi.fn().mockResolvedValue(mockJob),
     addTextOverlayJob: vi.fn().mockResolvedValue(mockJob),
     addClipTrimJob: vi.fn().mockResolvedValue(mockJob),
@@ -223,14 +228,17 @@ describe('FilesController', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    const fs = require('node:fs');
+    const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
     fs.existsSync.mockReturnValue(true);
     fs.readFileSync.mockReturnValue(Buffer.from('test-content'));
     fs.writeFileSync.mockImplementation(() => undefined);
     fs.mkdirSync.mockImplementation(() => undefined);
     fs.unlinkSync.mockImplementation(() => undefined);
 
-    const path = require('node:path');
+    const path = nodePath as unknown as Record<
+      string,
+      ReturnType<typeof vi.fn>
+    >;
     path.resolve.mockImplementation((...args: string[]) => args.join('/'));
     path.basename.mockImplementation((filepath: string) =>
       filepath.split('/').pop(),
@@ -248,7 +256,6 @@ describe('FilesController', () => {
     mockVideoQueueService.addMirrorJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addPortraitConversionJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addResizeJob.mockResolvedValue(mockJob);
-    mockVideoQueueService.addResizeVideoJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addReverseJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addTextOverlayJob.mockResolvedValue(mockJob);
     mockVideoQueueService.addClipTrimJob.mockResolvedValue(mockJob);
@@ -470,7 +477,7 @@ describe('FilesController', () => {
       const body = { ...baseBody, type: JOB_TYPES.RESIZE_VIDEO };
       const result = await controller.processVideo(body);
 
-      expect(videoQueueService.addResizeVideoJob).toHaveBeenCalled();
+      expect(videoQueueService.addResizeJob).toHaveBeenCalled();
       expect(result.jobId).toBe('job_123');
       expect(result.type).toBe(JOB_TYPES.RESIZE_VIDEO);
     });
@@ -650,7 +657,7 @@ describe('FilesController', () => {
       const body = { ...baseBody, type: JOB_TYPES.RESIZE_VIDEO };
       await controller.processVideo(body);
 
-      expect(videoQueueService.addResizeVideoJob).toHaveBeenCalledWith(
+      expect(videoQueueService.addResizeJob).toHaveBeenCalledWith(
         expect.objectContaining({
           priority: expect.any(Number),
         }),
@@ -661,7 +668,7 @@ describe('FilesController', () => {
       const body = { ...baseBody, type: JOB_TYPES.RESIZE_VIDEO };
       await controller.processVideo(body);
 
-      expect(videoQueueService.addResizeVideoJob).toHaveBeenCalledWith(
+      expect(videoQueueService.addResizeJob).toHaveBeenCalledWith(
         expect.objectContaining({
           id: expect.stringContaining('video-'),
         }),
@@ -669,7 +676,7 @@ describe('FilesController', () => {
     });
 
     it('should handle queue service errors', async () => {
-      mockVideoQueueService.addResizeVideoJob.mockRejectedValueOnce(
+      mockVideoQueueService.addResizeJob.mockRejectedValueOnce(
         new Error('Queue unavailable'),
       );
 
@@ -1407,7 +1414,7 @@ describe('FilesController', () => {
   // ==========================================================================
   describe('getTempFile', () => {
     it('should return temp file', async () => {
-      const fs = require('node:fs');
+      const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
       fs.existsSync.mockReturnValue(true);
       fs.readFileSync.mockReturnValue(Buffer.from('test-content'));
 
@@ -1419,11 +1426,14 @@ describe('FilesController', () => {
     });
 
     it('should throw error for path traversal attempt', async () => {
-      const path = require('node:path');
+      const path = nodePath as unknown as Record<
+        string,
+        ReturnType<typeof vi.fn>
+      >;
       path.resolve.mockImplementation((...args: string[]) => args.join('/'));
 
       // Mock to simulate path traversal detection
-      const fs = require('node:fs');
+      const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
       fs.existsSync.mockReturnValue(false);
 
       await expect(
@@ -1432,7 +1442,7 @@ describe('FilesController', () => {
     });
 
     it('should throw 404 if file not found', async () => {
-      const fs = require('node:fs');
+      const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
       fs.existsSync.mockReturnValue(false);
 
       await expect(controller.getTempFile('nonexistent.mp4')).rejects.toThrow(
@@ -1441,7 +1451,7 @@ describe('FilesController', () => {
     });
 
     it('should detect correct content type for image files', async () => {
-      const fs = require('node:fs');
+      const fs = nodeFs as unknown as Record<string, ReturnType<typeof vi.fn>>;
       fs.existsSync.mockReturnValue(true);
       fs.readFileSync.mockReturnValue(Buffer.from('test-content'));
 

@@ -1,3 +1,4 @@
+import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
 import { FilesCaptionsService } from '@files/services/files/captions/files-captions.service';
 import { FilesService } from '@files/services/files/files.service';
 import { FilesKenBurnsEffectService } from '@files/services/files/ken-burns/files-ken-burns-effect.service';
@@ -15,6 +16,7 @@ describe('FilesKenBurnsEffectService', () => {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn() },
         },
+        { provide: FFmpegService, useValue: {} },
         { provide: FilesService, useValue: {} },
         { provide: FilesCaptionsService, useValue: {} },
       ],

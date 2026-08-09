@@ -146,15 +146,13 @@ describe('useVoiceCommands with a supported browser', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     MockSpeechRecognition.instances = [];
-    (
-      window as Window & { SpeechRecognition?: unknown }
-    ).SpeechRecognition = MockSpeechRecognition;
+    (window as Window & { SpeechRecognition?: unknown }).SpeechRecognition =
+      MockSpeechRecognition;
   });
 
   afterEach(() => {
-    (
-      window as Window & { SpeechRecognition?: unknown }
-    ).SpeechRecognition = undefined;
+    (window as Window & { SpeechRecognition?: unknown }).SpeechRecognition =
+      undefined;
   });
 
   function latestRecognition(): MockSpeechRecognition {
@@ -167,7 +165,11 @@ describe('useVoiceCommands with a supported browser', () => {
 
   it('detects support and configures the recognition instance', async () => {
     const { result } = renderHook(() =>
-      useVoiceCommands({ continuous: true, interimResults: true, language: 'fr-FR' }),
+      useVoiceCommands({
+        continuous: true,
+        interimResults: true,
+        language: 'fr-FR',
+      }),
     );
 
     await act(async () => {

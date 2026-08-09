@@ -1,6 +1,7 @@
 import { ConfigService } from '@files/config/config.service';
 import { FilesCaptionsService } from '@files/services/files/captions/files-captions.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 
 describe('FilesCaptionsService', () => {
@@ -14,6 +15,10 @@ describe('FilesCaptionsService', () => {
         {
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn() },
+        },
+        {
+          provide: HttpService,
+          useValue: { get: vi.fn(), post: vi.fn() },
         },
       ],
     }).compile();
