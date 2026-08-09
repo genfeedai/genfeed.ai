@@ -29,6 +29,10 @@ export {
 export type { PricingConfig } from './pricing';
 // Pricing
 export { getPricingConfig } from './pricing';
+export {
+  canReceiveProviderWebhooks,
+  isProviderWebhookReachable,
+} from './provider-webhooks';
 export * from './schemas';
 export type { ConfigServiceOptions } from './services/base-config.service';
 // Services
