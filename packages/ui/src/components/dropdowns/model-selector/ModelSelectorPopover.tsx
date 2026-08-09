@@ -33,7 +33,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { Check, Sparkles } from 'lucide-react';
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 type GroupedFamilies = Array<{
   brandSlug: string;
@@ -80,7 +80,20 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSourceGroup, setActiveSourceGroup] = useState('all');
-  const [expandedFamilyKeys, setExpandedFamilyKeys] = useState<string[]>([]);
+  // Multi-select families start collapsed; single-select families start open.
+  // This records user toggles away from the mode-specific default.
+  const [toggledFamilyKeys, setToggledFamilyKeys] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!isDisabled) {
+      return;
+    }
+
+    setIsOpen(false);
+    setSearchTerm('');
+    setActiveSourceGroup('all');
+    setActiveBrand(null);
+  }, [isDisabled]);
 
   const isAutoSelected = values.includes(AUTO_MODEL_OPTION_VALUE);
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -412,7 +425,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
   );
 
   const handleFamilyToggle = useCallback((familyKey: string) => {
-    setExpandedFamilyKeys((currentKeys) =>
+    setToggledFamilyKeys((currentKeys) =>
       currentKeys.includes(familyKey)
         ? currentKeys.filter((key) => key !== familyKey)
         : [...currentKeys, familyKey],
@@ -463,11 +476,12 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
         // Focus search (not the brand-rail icon). Rail tooltips are hover-only
         // too, but autofocus on "All providers" still felt wrong.
         onOpenAutoFocus={(event) => {
-          const content = event.currentTarget;
-          if (!(content instanceof HTMLElement)) {
+          const popoverContent = event.currentTarget;
+          if (!(popoverContent instanceof HTMLElement)) {
             return;
           }
-          const searchInput = content.querySelector('input');
+
+          const searchInput = popoverContent.querySelector('input');
           if (searchInput instanceof HTMLElement) {
             event.preventDefault();
             searchInput.focus();
@@ -616,9 +630,14 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                                 : false;
 
                               const isExpanded =
-                                isSingleSelect ||
                                 familySearchMatch ||
-                                expandedFamilyKeys.includes(family.familyKey);
+                                (isSingleSelect
+                                  ? !toggledFamilyKeys.includes(
+                                      family.familyKey,
+                                    )
+                                  : toggledFamilyKeys.includes(
+                                      family.familyKey,
+                                    ));
 
                               return (
                                 <div key={family.familyKey}>

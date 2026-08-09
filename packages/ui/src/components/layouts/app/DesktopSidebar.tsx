@@ -2,7 +2,6 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
 import { Button } from '@ui/primitives/button';
 import type {
   KeyboardEvent as ReactKeyboardEvent,
@@ -27,7 +26,6 @@ type DesktopSidebarProps = {
   isResizing?: boolean;
   onResizeKeyDown?: (event: ReactKeyboardEvent<HTMLButtonElement>) => void;
   onResizeStart?: (event: ReactPointerEvent<HTMLButtonElement>) => void;
-  shellChromeVariant?: AppLayoutProps['shellChromeVariant'];
   /** Expanded width for aria-valuenow; visual width uses CSS var when expanded. */
   width?: number;
 };
@@ -44,7 +42,6 @@ export default function DesktopSidebar({
   isResizing = false,
   onResizeKeyDown,
   onResizeStart,
-  shellChromeVariant = 'default',
   width = SIDEBAR_DEFAULT_WIDTH,
 }: DesktopSidebarProps) {
   const canResize = Boolean(onResizeStart) && !isCollapsed;
@@ -58,13 +55,8 @@ export default function DesktopSidebar({
       aria-label={ariaLabel}
       data-testid="desktop-sidebar-rail"
       className={cn(
-        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
-        shellChromeVariant === 'transparent'
-          ? 'bg-transparent'
-          : 'bg-background',
-        !isCollapsed &&
-          shellChromeVariant !== 'transparent' &&
-          'border-r border-border',
+        'fixed bottom-0 left-0 z-30 hidden flex-col overflow-hidden bg-background md:flex',
+        !isCollapsed && 'border-r border-border',
       )}
       style={{
         minWidth: widthStyle,

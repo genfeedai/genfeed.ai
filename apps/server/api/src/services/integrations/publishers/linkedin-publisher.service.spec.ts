@@ -203,6 +203,38 @@ describe('LinkedInPublisherService', () => {
     });
   });
 
+  describe('validatePost caption length', () => {
+    const emptyMediaInfo: MediaInfo = {
+      hasIngredients: false,
+      ingredientIds: [],
+      isCarousel: false,
+      isImagePost: false,
+      mediaUrls: [],
+    };
+
+    it('should pass a caption exactly at the 3000-character LinkedIn limit', () => {
+      const context = createPublishContext({
+        ...mockTextPost,
+        description: 'a'.repeat(3000),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, emptyMediaInfo);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const context = createPublishContext({
+        ...mockTextPost,
+        description: 'a'.repeat(3001),
+      } as unknown as PostEntity);
+      const result = service.validatePost(context, emptyMediaInfo);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('LinkedIn');
+      expect(result.error).toContain('3001');
+      expect(result.error).toContain('3000');
+    });
+  });
+
   describe('publish', () => {
     describe('text-only posts', () => {
       it('should publish a text-only post successfully', async () => {

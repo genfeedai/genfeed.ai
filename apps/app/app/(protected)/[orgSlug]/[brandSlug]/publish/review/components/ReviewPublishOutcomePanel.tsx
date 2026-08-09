@@ -1,6 +1,5 @@
 'use client';
 
-import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   DefinitionDetail,
   DefinitionList,
@@ -9,12 +8,7 @@ import {
 import { DATE_FORMATS } from '@helpers/formatting/date/date.helper';
 import { formatDateInTimezone } from '@helpers/formatting/timezone/timezone.helper';
 
-type ReviewPanelItem = IBatchItem & {
-  gateOverallScore?: number;
-  gateReasons?: string[];
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-};
+import type { ReviewPanelItem } from './review-panel.types';
 
 interface ReviewPublishOutcomePanelProps {
   browserTimezone: string;

@@ -59,6 +59,7 @@ import {
   buildBullMQConnection,
   parseRedisConnectionForWorkload,
   RedisWorkload,
+  resolveBullMQWorkerConnectionProfile,
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
@@ -84,7 +85,8 @@ import { ConfigService } from '@workers/config/config.service';
           configService,
           RedisWorkload.QUEUE,
         );
-        return { connection: buildBullMQConnection(config) };
+        const profile = resolveBullMQWorkerConnectionProfile(configService);
+        return { connection: buildBullMQConnection(config, profile) };
       },
     }),
     BullModule.registerQueue(

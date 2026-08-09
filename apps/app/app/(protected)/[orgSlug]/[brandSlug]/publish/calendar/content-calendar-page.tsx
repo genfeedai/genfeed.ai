@@ -20,6 +20,7 @@ import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-c
 import type {
   CalendarEventBadge,
   CalendarEventDrop,
+  CalendarEventIndicator,
   CalendarItem,
 } from '@props/components/calendar.props';
 import type {
@@ -56,6 +57,7 @@ import ReleaseDetailDrawer, {
 } from './release-detail-drawer';
 import {
   isReleaseReschedulable,
+  releasePlatformIndicators,
   releaseStatusBadge,
 } from './release-status.helpers';
 
@@ -337,6 +339,14 @@ export default function ContentCalendarPage(): React.JSX.Element {
     [],
   );
 
+  const getEventIndicators = useCallback(
+    (item: ContentCalendarItem): CalendarEventIndicator[] =>
+      item.itemType === 'release'
+        ? releasePlatformIndicators(item.release)
+        : [],
+    [],
+  );
+
   const isItemDraggable = useCallback(
     (item: ContentCalendarItem): boolean =>
       item.itemType === 'release' && isReleaseReschedulable(item.release),
@@ -456,6 +466,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
         onRescheduleTarget={handleRescheduleTarget}
         onRetryTarget={handleRetryTarget}
         pendingAction={pendingAction}
+        reconnectHref={href(APP_ROUTES.SETTINGS.SOCIAL)}
         release={selectedRelease}
       />
       {selectedRelease ? (
@@ -484,6 +495,7 @@ export default function ContentCalendarPage(): React.JSX.Element {
       onDatesChange={handleDatesChange}
       getEventColor={getEventColor}
       getEventBadge={getEventBadge}
+      getEventIndicators={getEventIndicators}
       isItemDraggable={isItemDraggable}
       onEventDrop={handleEventDrop}
       filterControls={filterControls}

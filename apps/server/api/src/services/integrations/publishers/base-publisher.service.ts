@@ -3,11 +3,13 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import type {
   IPublisher,
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
   ThreadChild,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import { getChannelCapability } from '@api-types/contracts/channel-capabilities.contract';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -141,7 +143,7 @@ export abstract class BasePublisherService implements IPublisher {
   validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     const { post } = context;
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
@@ -187,7 +189,45 @@ export abstract class BasePublisherService implements IPublisher {
       };
     }
 
-    return { valid: true };
+    return this.validateCaptionLength(context);
+  }
+
+  /**
+   * Validate the outgoing caption length against the channel capability
+   * catalog. The catalog is the single source of truth for per-platform
+   * limits; platforms without an entry have no known limit and skip the
+   * check. Counts the sanitized text actually sent to the provider, in code
+   * points, matching `validateChannelTargetSettings` in the contract.
+   */
+  protected validateCaptionLength(
+    context: PublishContext,
+  ): PostValidationResult {
+    const capability = getChannelCapability(this.platform);
+    if (!capability) {
+      return { valid: true };
+    }
+
+    const caption = this.sanitizeDescription(context.post.description);
+    const captionLength = Array.from(caption).length;
+    const { maxLength } = capability.caption;
+
+    if (captionLength <= maxLength) {
+      return { valid: true };
+    }
+
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.logger.warn(`${url} caption exceeds platform limit`, {
+      captionLength,
+      maxLength,
+      platform: this.platform,
+      postId: context.postId,
+    });
+
+    return {
+      error: `${capability.label} caption is ${captionLength} characters; the limit is ${maxLength} characters.`,
+      errorCode: 'caption_too_long',
+      valid: false,
+    };
   }
 
   /**
@@ -196,9 +236,11 @@ export abstract class BasePublisherService implements IPublisher {
   protected createFailedResult(
     platform: CredentialPlatform | string,
     error?: string,
+    errorCode?: string,
   ): PublishResult {
     return {
       error,
+      errorCode,
       externalId: null,
       platform,
       status: PostStatus.FAILED,
