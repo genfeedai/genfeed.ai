@@ -242,14 +242,14 @@ describe('proxy', () => {
     },
   );
 
-  it('redirects a signed-in user on /login without callbackUrl to default workspace routing', async () => {
+  it('redirects a signed-in user on /login without callbackUrl to conversation bootstrap', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(makeSignedInRequest('/login'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/agent',
     );
   });
 
@@ -364,14 +364,30 @@ describe('proxy', () => {
     );
   });
 
-  it('redirects signed-in root to the active workspace overview', async () => {
+  it('redirects signed-in root to the active organization conversation bootstrap', async () => {
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(makeSignedInRequest('/'), {} as never);
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/agent',
+    );
+  });
+
+  it('preserves root task context for the conversation bootstrap', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      makeSignedInRequest('/', {
+        search: '?taskSource=workspace&taskId=task-42',
+      }),
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/agent?taskSource=workspace&taskId=task-42',
     );
   });
 
@@ -650,7 +666,7 @@ describe('proxy', () => {
     });
   });
 
-  it('redirects completed users with a seeded brand to its workspace overview', async () => {
+  it('redirects completed users with a seeded brand to conversation bootstrap', async () => {
     fetchMock.mockImplementation(async (input: string | URL) => {
       const url = String(input);
 
@@ -691,7 +707,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/default/workspace/overview',
+      'http://localhost:3000/acme/default/agent',
     );
   });
 
@@ -731,7 +747,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/agent',
     );
   });
 
@@ -786,7 +802,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/agent',
     );
   });
 
@@ -862,7 +878,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/agent',
     );
   });
 
@@ -1439,7 +1455,7 @@ describe('proxy', () => {
       if (hasSession) {
         expect(response.status).toBe(307);
         expect(response.headers.get('location')).toBe(
-          'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+          'http://localhost:3000/acme/moonrise-studio/agent',
         );
       } else {
         expect(response.status).toBe(200);
@@ -1471,7 +1487,7 @@ describe('proxy', () => {
       expect(response.status).toBe(307);
       expect(response.headers.get('location')).toBe(
         hasSession
-          ? 'http://localhost:3000/acme/moonrise-studio/workspace/overview'
+          ? 'http://localhost:3000/acme/moonrise-studio/agent'
           : 'http://localhost:3000/login',
       );
     });
@@ -1557,7 +1573,7 @@ describe('proxy', () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+      'http://localhost:3000/acme/moonrise-studio/agent',
     );
     expect(
       fetchMock.mock.calls.some(([input]) =>
