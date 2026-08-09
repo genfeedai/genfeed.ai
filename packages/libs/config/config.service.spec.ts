@@ -156,4 +156,73 @@ describe('ConfigService', () => {
       expect(configService.isProduction).toBe(false);
     });
   });
+
+  describe('service URLs', () => {
+    it('returns the configured API URL', () => {
+      expect(configService.apiUrl).toBe('http://localhost:3010');
+    });
+
+    it('falls back to the production API host when unset', () => {
+      delete env.GENFEEDAI_API_URL;
+
+      expect(new ConfigService().apiUrl).toBe('https://api.genfeed.ai');
+    });
+  });
+
+  describe('tokenEncryptionKey', () => {
+    it('returns the configured key', () => {
+      expect(configService.tokenEncryptionKey).toBe(
+        'test-token-encryption-key-1234567890',
+      );
+    });
+
+    it('throws when the key is not configured', () => {
+      delete env.TOKEN_ENCRYPTION_KEY;
+
+      const service = new ConfigService();
+
+      expect(() => service.tokenEncryptionKey).toThrow(
+        /TOKEN_ENCRYPTION_KEY is required/,
+      );
+    });
+  });
+
+  describe('local dev flags', () => {
+    it('treats every flag as enabled outside development', () => {
+      expect(configService.isDevOptionalInitEnabled).toBe(true);
+      expect(configService.isDevSchedulersEnabled).toBe(true);
+      expect(configService.isDevTelegramPollingEnabled).toBe(true);
+    });
+
+    it('requires explicit opt-in during development', () => {
+      env.NODE_ENV = 'development';
+      delete env.GF_DEV_ENABLE_OPTIONAL_INIT;
+      delete env.GF_DEV_ENABLE_SCHEDULERS;
+      delete env.GF_DEV_ENABLE_TELEGRAM_POLLING;
+
+      const service = new ConfigService();
+
+      expect(service.isDevelopment).toBe(true);
+      expect(service.isDevOptionalInitEnabled).toBe(false);
+      expect(service.isDevSchedulersEnabled).toBe(false);
+      expect(service.isDevTelegramPollingEnabled).toBe(false);
+    });
+
+    it('enables flags that are explicitly turned on in development', () => {
+      env.NODE_ENV = 'development';
+      env.GF_DEV_ENABLE_OPTIONAL_INIT = 'true';
+      env.GF_DEV_ENABLE_SCHEDULERS = 'true';
+      env.GF_DEV_ENABLE_TELEGRAM_POLLING = 'true';
+
+      const service = new ConfigService();
+
+      expect(service.isDevOptionalInitEnabled).toBe(true);
+      expect(service.isDevSchedulersEnabled).toBe(true);
+      expect(service.isDevTelegramPollingEnabled).toBe(true);
+
+      delete env.GF_DEV_ENABLE_OPTIONAL_INIT;
+      delete env.GF_DEV_ENABLE_SCHEDULERS;
+      delete env.GF_DEV_ENABLE_TELEGRAM_POLLING;
+    });
+  });
 });

@@ -27,6 +27,13 @@ export default defineConfig({
         ),
       },
       {
+        find: /^@testing-library\/user-event$/,
+        replacement: path.resolve(
+          appRoot,
+          './node_modules/@testing-library/user-event',
+        ),
+      },
+      {
         find: /^@testing-library\/jest-dom\/vitest$/,
         replacement: path.resolve(
           appRoot,

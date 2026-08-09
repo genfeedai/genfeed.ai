@@ -8,7 +8,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // of what these tests cover.
 // ────────────────────────────────────────────────────────────
 
-const searchParams = new URLSearchParams();
+const {
+  mergeProgress,
+  mockNotifyError,
+  mockNotifyInfo,
+  mockNotifySuccess,
+  mockNotifyWarning,
+  mockSetGeneratedAssetId,
+  mockVideosPost,
+  mockVideosPostMerge,
+  searchParams,
+} = vi.hoisted(() => ({
+  mergeProgress: { options: null } as {
+    options: {
+      ingredientId?: string;
+      onComplete?: () => void;
+      onError?: (error: string) => void;
+    } | null;
+  },
+  mockNotifyError: vi.fn(),
+  mockNotifyInfo: vi.fn(),
+  mockNotifySuccess: vi.fn(),
+  mockNotifyWarning: vi.fn(),
+  mockSetGeneratedAssetId: vi.fn(),
+  mockVideosPost: vi.fn(),
+  mockVideosPostMerge: vi.fn(),
+  searchParams: new URLSearchParams(),
+}));
+
 vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParams,
 }));
@@ -17,7 +44,6 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1' }),
 }));
 
-const mockSetGeneratedAssetId = vi.fn();
 vi.mock('@contexts/ui/asset-selection.context', () => ({
   useAssetSelection: () => ({ setGeneratedAssetId: mockSetGeneratedAssetId }),
 }));
@@ -39,9 +65,6 @@ interface MergeProgressOptions {
   onError?: (error: string) => void;
 }
 
-const mergeProgress: { options: MergeProgressOptions | null } = {
-  options: null,
-};
 vi.mock('@hooks/storyboard/use-merge-progress/use-merge-progress', () => ({
   useMergeProgress: (options: MergeProgressOptions) => {
     mergeProgress.options = options;
@@ -75,8 +98,6 @@ vi.mock('@pages/studio/generate/hooks/useStoryboardGeneration', () => ({
   }),
 }));
 
-const mockVideosPost = vi.fn();
-const mockVideosPostMerge = vi.fn();
 vi.mock('@services/ingredients/videos.service', () => ({
   VideosService: {
     getInstance: () => ({
@@ -94,10 +115,6 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-const mockNotifyError = vi.fn();
-const mockNotifyInfo = vi.fn();
-const mockNotifySuccess = vi.fn();
-const mockNotifyWarning = vi.fn();
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({

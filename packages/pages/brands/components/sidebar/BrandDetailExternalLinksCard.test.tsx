@@ -9,8 +9,9 @@ describe('BrandDetailExternalLinksCard', () => {
     );
     expect(screen.getByText('External Links')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /add link/i }),
+      screen.getByRole('button', { name: /add website link/i }),
     ).toBeInTheDocument();
+    expect(screen.getByText('No website links yet.')).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {
@@ -21,7 +22,7 @@ describe('BrandDetailExternalLinksCard', () => {
         onOpenLinkModal={onOpenLinkModal}
       />,
     );
-    fireEvent.click(screen.getByRole('button', { name: /add link/i }));
+    fireEvent.click(screen.getByRole('button', { name: /add website link/i }));
     expect(onOpenLinkModal).toHaveBeenCalledWith();
   });
 
@@ -31,6 +32,7 @@ describe('BrandDetailExternalLinksCard', () => {
     );
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('card');
+    expect(rootElement).toHaveClass('rounded-card');
+    expect(rootElement).toHaveClass('bg-card');
   });
 });

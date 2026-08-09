@@ -1,3 +1,4 @@
+import { LinkCategory } from '@genfeedai/enums';
 import BrandDetailAgentProfileCard from '@pages/brands/components/sidebar/BrandDetailAgentProfileCard';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -5,11 +6,19 @@ import '@testing-library/jest-dom/vitest';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const refreshBrandsMock = vi.fn().mockResolvedValue(undefined);
-const updateAgentConfigMock = vi.fn().mockResolvedValue(undefined);
-const generateBrandVoiceMock = vi.fn();
-const successMock = vi.fn();
-const errorMock = vi.fn();
+const {
+  errorMock,
+  generateBrandVoiceMock,
+  refreshBrandsMock,
+  successMock,
+  updateAgentConfigMock,
+} = vi.hoisted(() => ({
+  errorMock: vi.fn(),
+  generateBrandVoiceMock: vi.fn(),
+  refreshBrandsMock: vi.fn().mockResolvedValue(undefined),
+  successMock: vi.fn(),
+  updateAgentConfigMock: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -69,7 +78,7 @@ describe('BrandDetailAgentProfileCard', () => {
     label: 'Acme',
     links: [
       {
-        category: 'website',
+        category: LinkCategory.WEBSITE,
         id: 'link-1',
         label: 'Website',
         url: 'https://acme.example',

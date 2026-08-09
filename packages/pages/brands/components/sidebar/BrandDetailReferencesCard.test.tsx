@@ -46,6 +46,7 @@ describe('BrandDetailReferencesCard', () => {
     );
     const rootElement = container.firstChild as HTMLElement;
     expect(rootElement).toBeInTheDocument();
-    expect(rootElement).toHaveClass('card');
+    expect(rootElement).toHaveClass('rounded-card');
+    expect(rootElement).toHaveClass('bg-card');
   });
 });

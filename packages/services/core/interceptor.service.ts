@@ -130,11 +130,11 @@ export abstract class HTTPBaseService {
   static clearInstance(...args: unknown[]): void {
     const [firstArg, secondArg] = args;
     const hasConstructor = typeof firstArg === 'function';
-    const serviceConstructor = (
-      hasConstructor ? firstArg : HTTPBaseService
-    ) as abstract new (
-      ...ctorArgs: unknown[]
-    ) => HTTPBaseService;
+    const serviceConstructor =
+      // biome-ignore lint/complexity/noThisInStatic: `this` is the subclass constructor the caller invoked clearInstance on
+      (hasConstructor ? firstArg : this) as abstract new (
+        ...ctorArgs: unknown[]
+      ) => HTTPBaseService;
     const token = hasConstructor
       ? (secondArg as string | undefined)
       : (firstArg as string | undefined);

@@ -53,4 +53,57 @@ describe('CallerUtil', () => {
       expect(typeof result).toBe('string');
     });
   });
+
+  describe('getCallerName stack-format fallbacks', () => {
+    const originalPrepareStackTrace = Error.prepareStackTrace;
+
+    afterEach(() => {
+      Error.prepareStackTrace = originalPrepareStackTrace;
+    });
+
+    const withStack = (stack: string | undefined): string => {
+      Error.prepareStackTrace = () => stack;
+      return CallerUtil.getCallerName();
+    };
+
+    it('returns unknown when no stack is available', () => {
+      expect(withStack(undefined)).toBe('unknown');
+    });
+
+    it('returns unknown when the caller line is blank', () => {
+      expect(withStack('Error\n    at getCallerName (util)\n   ')).toBe(
+        'unknown',
+      );
+    });
+
+    it('parses ClassName.methodName frames', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at UsersController.findMe (controller)',
+        ),
+      ).toBe('findMe');
+    });
+
+    it('falls back to a dotted method name without a class', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at .handler (webpack://bundle)',
+        ),
+      ).toBe('handler');
+    });
+
+    it('falls back to a bare function name before parentheses', () => {
+      expect(
+        withStack(
+          'Error\n    at getCallerName (util)\n    at topLevelFn (native)',
+        ),
+      ).toBe('topLevelFn');
+    });
+
+    it('returns unknown when no pattern matches', () => {
+      expect(
+        withStack('Error\n    at getCallerName (util)\n    at <anonymous>'),
+      ).toBe('unknown');
+    });
+  });
 });

@@ -42,7 +42,14 @@ export function axiosResponse<T>(data: T): { data: T } {
   return { data };
 }
 
-/** Build a JSON:API single-resource document. */
+/**
+ * Build a JSON:API single-resource document.
+ *
+ * NOTE: when the consuming service runs the document through
+ * `extractResource`/`extractCollection`, include at least one non-`id`
+ * attribute — the relationship normalizer collapses id-only objects into
+ * bare id strings.
+ */
 export function resourceDocument(
   attributes: Record<string, unknown>,
   options: { id?: string; type?: string } = {},
