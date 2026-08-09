@@ -32,6 +32,7 @@ import {
   CredentialPlatform,
   ModelCategory,
   PostCategory,
+  PostFormat,
   PostStatus,
   PromptTemplateKey,
   Status,
@@ -234,6 +235,8 @@ export class PostGenerationService {
         category: PostCategory.TEXT,
         credentialId: dto.credentialId,
         description: 'Generating...',
+        format:
+          dto.format === 'thread' ? PostFormat.THREAD : PostFormat.STANDARD,
         groupId,
         ingredients: [],
         label: '',

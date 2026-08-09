@@ -32,7 +32,10 @@ import type { Request } from 'express';
 interface ExecuteToolBody {
   parameters?: Record<string, unknown>;
   context?: Partial<
-    Omit<ToolExecutionContext, 'userId' | 'organizationId' | 'authToken'>
+    Omit<
+      ToolExecutionContext,
+      'userId' | 'organizationId' | 'authToken' | 'confirmationOrigin'
+    >
   >;
 }
 
@@ -88,9 +91,13 @@ export class AgentToolsController {
       const organizationId = this.resolveOrganizationId(user);
       const userId = await this.resolveDatabaseUserId(user);
       const authToken = authorization?.replace('Bearer ', '');
+      const clientContext = {
+        ...(body.context ?? {}),
+      } as Partial<ToolExecutionContext>;
+      delete clientContext.confirmationOrigin;
 
       const context: ToolExecutionContext = {
-        ...(body.context ?? {}),
+        ...clientContext,
         apiKeyContext: getPublicMetadata(user),
         authToken,
         organizationId,

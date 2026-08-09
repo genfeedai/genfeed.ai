@@ -3,7 +3,11 @@ import type {
   UpdatePostRequest,
 } from '@genfeedai/api-types';
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { Platform, PostRepurposeMode } from '@genfeedai/enums';
+import {
+  type Platform,
+  PostFormat,
+  type PostRepurposeMode,
+} from '@genfeedai/enums';
 import type {
   AccountPublishingContext,
   ScoreSeoRequest,
@@ -212,10 +216,15 @@ export class PostsService extends BaseService<
       return [];
     }
 
-    const root = await this.post(rootInput);
+    const root = await this.post({ ...rootInput, format: PostFormat.THREAD });
     const replies: Post[] = [];
     for (const replyInput of replyInputs) {
-      replies.push(await this.post(`${root.id}/replies`, replyInput));
+      replies.push(
+        await this.post(`${root.id}/replies`, {
+          ...replyInput,
+          format: PostFormat.THREAD,
+        }),
+      );
     }
 
     return [root, ...replies];

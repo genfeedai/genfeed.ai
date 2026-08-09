@@ -1,77 +1,84 @@
 'use client';
 
+import ArticleEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/article/[id]/content';
+import NewsletterEditorContent from '@app/(protected)/[orgSlug]/[brandSlug]/edit/newsletter/[id]/content';
 import {
   APP_ROUTES,
+  ARTIFACT_EDITOR_KIND_PARAM,
   ARTIFACT_EDITOR_RETURN_PARAM,
-  createArtifactEditorRoute,
+  type ArtifactEditorType,
+  resolveArtifactEditorBackHref,
 } from '@genfeedai/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { ReactElement } from 'react';
-import { useEffect, useState } from 'react';
+import ArtifactEditorShell from '../../../edit/artifact-editor-shell';
 import PostEditorContent from './post-editor-content';
 
-/**
- * Content kinds the Publish desk can host. Social posts edit in-place;
- * long-form kinds deep-link into their dedicated editors until those share
- * this route.
- */
-export type PublishContentKind = 'post' | 'article' | 'newsletter';
+export type PublishContentKind = ArtifactEditorType;
 
 interface PublishContentEditorPageProps {
   contentId: string;
-  /**
-   * Optional kind hint from the caller (list row metadata). When omitted we
-   * assume a social post — the dominant Publish entity today.
-   */
-  contentKind?: PublishContentKind;
+}
+
+export function resolvePublishContentKind(
+  value: string | null,
+): PublishContentKind | null {
+  if (value === null || value === 'post') {
+    return 'post';
+  }
+
+  if (value === 'article' || value === 'newsletter') {
+    return value;
+  }
+
+  return null;
 }
 
 /**
  * Type-aware content editor under `/publish/posts/:id`.
  *
- * Social posts render the post editor here. Articles and newsletters redirect
- * to their existing `/edit/{type}/:id` surfaces so we do not fork those UIs
- * before the unified content model lands.
+ * The editor-route helper carries long-form kind metadata in the URL. Each
+ * branch renders the existing editor surface directly, keeping one canonical
+ * operator URL without forking any editor implementation.
  */
 export default function PublishContentEditorPage({
   contentId,
-  contentKind = 'post',
 }: PublishContentEditorPageProps): ReactElement {
   const { href } = useOrgUrl();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [resolvedKind] = useState<PublishContentKind>(contentKind);
+  const contentKind = resolvePublishContentKind(
+    searchParams.get(ARTIFACT_EDITOR_KIND_PARAM),
+  );
 
-  useEffect(() => {
-    if (resolvedKind === 'post') {
-      return;
-    }
-
-    const returnTo =
-      searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM) ??
-      href(APP_ROUTES.PUBLISH.POSTS);
-    // Long-form still lives under /edit/* until those editors move here.
-    const editorPath = createArtifactEditorRoute(
-      resolvedKind === 'article' ? 'article' : 'newsletter',
-      contentId,
-    );
-    const target = href(editorPath);
-    const separator = target.includes('?') ? '&' : '?';
-    router.replace(
-      `${target}${separator}${ARTIFACT_EDITOR_RETURN_PARAM}=${encodeURIComponent(returnTo)}`,
-    );
-  }, [contentId, href, resolvedKind, router, searchParams]);
-
-  if (resolvedKind !== 'post') {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center p-8 text-sm text-muted-foreground">
-        Opening {resolvedKind} editor…
-      </div>
-    );
+  if (contentKind === 'article') {
+    return <ArticleEditorContent artifactId={contentId} />;
   }
 
-  // Social post editor — same form as the old /edit/post surface, now owned
-  // by Publish. Back defaults to the Posts library.
-  return <PostEditorContent artifactId={contentId} />;
+  if (contentKind === 'newsletter') {
+    return <NewsletterEditorContent artifactId={contentId} />;
+  }
+
+  if (contentKind === 'post') {
+    return <PostEditorContent artifactId={contentId} />;
+  }
+
+  const backHref = resolveArtifactEditorBackHref(
+    searchParams.get(ARTIFACT_EDITOR_RETURN_PARAM),
+    href(APP_ROUTES.PUBLISH.POSTS),
+  );
+
+  return (
+    <ArtifactEditorShell
+      artifactLabel="Content"
+      backHref={backHref}
+      backLabel="Back to posts"
+      title="Content not found"
+    >
+      <div className="rounded-lg border border-dashed border-border p-6 text-muted-foreground text-sm">
+        This content type is unavailable. Return to Posts and open the item
+        again.
+      </div>
+    </ArtifactEditorShell>
+  );
 }

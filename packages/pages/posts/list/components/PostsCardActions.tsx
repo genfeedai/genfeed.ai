@@ -12,7 +12,9 @@ export type BuildPostsCardActionsParams = {
   onDelete: (post: IPost) => void;
   onRemix: (post: IPost) => void;
   onRepurpose: (post: IPost) => void;
+  onRewriteWithAgent?: (post: IPost) => void;
   onRetry: (post: IPost) => void;
+  onSuggestScheduleWithAgent?: (post: IPost) => void;
   onViewIngredient: (post: IPost) => void;
   onOpenPlatformUrl: (post: IPost) => void;
 };
@@ -29,7 +31,9 @@ export function buildPostsCardActions({
   onDelete,
   onRemix,
   onRepurpose,
+  onRewriteWithAgent,
   onRetry,
+  onSuggestScheduleWithAgent,
   onViewIngredient,
   onOpenPlatformUrl,
 }: BuildPostsCardActionsParams): PostsCardActions {
@@ -48,6 +52,28 @@ export function buildPostsCardActions({
   const secondaryCardActions: PostCardAction[] =
     scope !== PageScope.SUPERADMIN
       ? [
+          ...(onRewriteWithAgent
+            ? [
+                {
+                  icon: postCardIcons.rewriteWithAgent,
+                  isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
+                  key: 'rewrite-with-agent',
+                  label: 'Rewrite caption with agent',
+                  onClick: onRewriteWithAgent,
+                } satisfies PostCardAction,
+              ]
+            : []),
+          ...(onSuggestScheduleWithAgent
+            ? [
+                {
+                  icon: postCardIcons.suggestScheduleWithAgent,
+                  isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
+                  key: 'suggest-schedule-with-agent',
+                  label: 'Suggest schedule with agent',
+                  onClick: onSuggestScheduleWithAgent,
+                } satisfies PostCardAction,
+              ]
+            : []),
           {
             icon: postCardIcons.retry,
             isVisible: (post: IPost) => post.status === PostStatus.FAILED,

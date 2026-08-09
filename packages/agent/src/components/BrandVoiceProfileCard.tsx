@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck, Megaphone, Sparkles } from 'lucide-react';
@@ -6,10 +9,7 @@ import { type ReactElement, useCallback, useMemo, useState } from 'react';
 
 interface BrandVoiceProfileCardProps {
   action: AgentUiAction;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }
 
 function readStringList(value: unknown, fallback?: string[]): string[] {

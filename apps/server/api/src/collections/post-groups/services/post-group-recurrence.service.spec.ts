@@ -1,5 +1,10 @@
 import { PostGroupRecurrenceService } from '@api/collections/post-groups/services/post-group-recurrence.service';
-import { PostFrequency, ReleaseStatus } from '@genfeedai/enums';
+import { deriveReleaseStatusProjectionFromTargets } from '@api-types/contracts/scheduler.contract';
+import {
+  PostFrequency,
+  ReleaseStatus,
+  TargetExecutionState,
+} from '@genfeedai/enums';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const organizationId = 'org-1';
@@ -42,9 +47,16 @@ describe('PostGroupRecurrenceService', () => {
       findMany: vi.fn(),
       updateMany: vi.fn(),
     },
+    post: {
+      findMany: vi.fn(),
+    },
   };
   const contractService = {
     asRecord: vi.fn((value: unknown) => value as Record<string, unknown>),
+    deriveReleaseStatus: vi.fn(
+      (_releaseId: string, states: readonly unknown[]) =>
+        deriveReleaseStatusProjectionFromTargets(states).status,
+    ),
     toJson: vi.fn((value: unknown) => value),
   };
   const postGroupsService = {
@@ -60,6 +72,16 @@ describe('PostGroupRecurrenceService', () => {
     vi.clearAllMocks();
     prisma.postGroup.findFirst.mockResolvedValue(root);
     prisma.postGroup.findMany.mockResolvedValue([root, future]);
+    prisma.post.findMany.mockResolvedValue([
+      {
+        groupId: root.id,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      },
+      {
+        groupId: future.id,
+        targetExecutionState: TargetExecutionState.SCHEDULED,
+      },
+    ]);
     prisma.postGroup.updateMany.mockResolvedValue({ count: 1 });
     postGroupsService.getOne.mockResolvedValue({ id: future.id });
     postGroupsService.pause.mockResolvedValue({ id: future.id });
@@ -123,9 +145,15 @@ describe('PostGroupRecurrenceService', () => {
   });
 
   it('resumes paused future releases without changing published history', async () => {
-    prisma.postGroup.findMany.mockResolvedValue([
-      root,
-      { ...future, status: ReleaseStatus.PAUSED },
+    prisma.post.findMany.mockResolvedValue([
+      {
+        groupId: root.id,
+        targetExecutionState: TargetExecutionState.PUBLISHED,
+      },
+      {
+        groupId: future.id,
+        targetExecutionState: TargetExecutionState.PAUSED,
+      },
     ]);
 
     await service.resumeFuture(organizationId, userId, root.id);

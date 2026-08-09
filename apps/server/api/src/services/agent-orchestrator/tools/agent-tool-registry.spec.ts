@@ -10,6 +10,7 @@ describe('agent-tool-registry', () => {
     const names = definitions.map((tool) => tool.name);
 
     expect(names).toContain(AgentToolName.CREATE_BRAND);
+    expect(names).toContain(AgentToolName.RENAME_BRAND);
     expect(names).toContain(AgentToolName.CHECK_ONBOARDING_STATUS);
     expect(names).toContain(AgentToolName.COMPLETE_ONBOARDING);
     expect(names).toContain(AgentToolName.RESOLVE_HANDLE);
@@ -100,6 +101,7 @@ describe('agent-tool-registry', () => {
 
   it('should set onboarding tool costs to zero', () => {
     expect(AGENT_CREDIT_COSTS[AgentToolName.CREATE_BRAND]).toBe(0);
+    expect(AGENT_CREDIT_COSTS[AgentToolName.RENAME_BRAND]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.CHECK_ONBOARDING_STATUS]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.COMPLETE_ONBOARDING]).toBe(0);
     expect(AGENT_CREDIT_COSTS[AgentToolName.GET_CURRENT_BRAND]).toBe(0);

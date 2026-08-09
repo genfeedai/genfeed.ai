@@ -61,6 +61,7 @@ describe('AgentOrchestratorService', () => {
   let llmDispatcher: vi.Mocked<LlmDispatcherService>;
   let agentMessagesService: vi.Mocked<AgentMessagesService>;
   let agentThreadsService: vi.Mocked<AgentThreadsService>;
+  let agentScopeContextService: vi.Mocked<AgentScopeContextService>;
   let organizationsService: vi.Mocked<OrganizationsService>;
   let organizationSettingsService: vi.Mocked<OrganizationSettingsService>;
   let settingsService: vi.Mocked<SettingsService>;
@@ -155,6 +156,7 @@ describe('AgentOrchestratorService', () => {
       create: vi.fn().mockResolvedValue({ id: 'msg-1' }),
       getMessagesByRoom: vi.fn().mockResolvedValue([]),
       getRecentMessages: vi.fn().mockResolvedValue([]),
+      patchAll: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
     };
     const agentMemoriesServiceMock = {
       getFeedbackMemoriesForGeneration: vi.fn().mockResolvedValue([]),
@@ -169,6 +171,8 @@ describe('AgentOrchestratorService', () => {
       addMessage: vi.fn().mockResolvedValue({}),
       create: vi.fn().mockResolvedValue({ id: CONVERSATION_ID }),
       findOne: vi.fn().mockResolvedValue({
+        brandId: null,
+        contextVersion: 1,
         id: CONVERSATION_ID,
         messages: [],
         planModeEnabled: false,
@@ -177,8 +181,20 @@ describe('AgentOrchestratorService', () => {
     };
     const agentScopeContextServiceMock = {
       assertConsequentialBoundary: vi.fn().mockResolvedValue(undefined),
+      mutateBrandScope: vi
+        .fn()
+        .mockImplementation(
+          async (params: {
+            brandId?: string;
+            expectedContextVersion: number;
+          }) => ({
+            brandId: params.brandId ?? null,
+            contextVersion: params.expectedContextVersion + 1,
+          }),
+        ),
       prepareForTurn: vi.fn(
         async (params: {
+          expectedContextVersion?: number;
           organizationId: string;
           policyBrandId?: string;
           requestedBrandId?: string | null;
@@ -190,7 +206,7 @@ describe('AgentOrchestratorService', () => {
             ? {
                 existingScope: {
                   brandId: brandId ?? undefined,
-                  contextVersion: 1,
+                  contextVersion: params.expectedContextVersion ?? 1,
                   isLegacyFallback: false,
                   isVersionExplicit: true,
                   organizationId: params.organizationId,
@@ -879,6 +895,7 @@ describe('AgentOrchestratorService', () => {
     configService = module.get(ConfigService);
     agentMessagesService = module.get(AgentMessagesService);
     agentThreadsService = module.get(AgentThreadsService);
+    agentScopeContextService = module.get(AgentScopeContextService);
     agentMemoriesService = module.get(AgentMemoriesService);
     llmDispatcher = module.get(LlmDispatcherService);
     creditsUtilsService = module.get(CreditsUtilsService);
@@ -3196,6 +3213,646 @@ describe('AgentOrchestratorService', () => {
         }),
       ]),
     });
+  });
+
+  it('dispatches confirmed brand creation and binds the thread to the new scope', async () => {
+    agentMessagesService.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'proposal-message-1',
+        metadata: {
+          agentScope: { contextVersion: 1 },
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_create_brand',
+                  payload: {
+                    sourceActionId:
+                      'brand-identity-11111111-1111-4111-8111-111111111111',
+                  },
+                },
+              ],
+              data: {
+                operation: 'create',
+                proposalScope: { brandId: null, contextVersion: 1 },
+                sourceActionId:
+                  'brand-identity-11111111-1111-4111-8111-111111111111',
+              },
+              id: 'brand-identity-11111111-1111-4111-8111-111111111111',
+              type: 'brand_identity_confirmation_card',
+            },
+          ],
+        },
+        role: 'assistant',
+      },
+    ] as never);
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: {
+        brandId: 'brand-created-1',
+        id: 'brand-created-1',
+        label: 'Created Brand',
+        slug: 'created-brand',
+      },
+      success: true,
+    });
+
+    const request = {
+      action: 'confirm_create_brand',
+      expectedContextVersion: 1,
+      payload: {
+        description: 'Confirmed description',
+        label: 'Created Brand',
+        slug: 'created-brand',
+        sourceActionId: 'brand-identity-11111111-1111-4111-8111-111111111111',
+      },
+      threadId: CONVERSATION_ID,
+    };
+    const response = await service.handleThreadUiAction(request, {
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
+      AgentToolName.CREATE_BRAND,
+      expect.objectContaining({
+        label: 'Created Brand',
+        sourceActionId: 'brand-identity-11111111-1111-4111-8111-111111111111',
+      }),
+      expect.objectContaining({
+        confirmationOrigin: 'thread-ui-action',
+        organizationId: ORG_ID,
+        threadId: CONVERSATION_ID,
+        userId: USER_ID,
+      }),
+    );
+    expect(agentScopeContextService.mutateBrandScope).toHaveBeenCalledWith({
+      brandId: 'brand-created-1',
+      expectedContextVersion: 1,
+      organizationId: ORG_ID,
+      threadId: CONVERSATION_ID,
+      userId: USER_ID,
+    });
+    expect(response).toMatchObject({
+      brandId: 'brand-created-1',
+      contextVersion: 2,
+    });
+    expect(response.message.content).toBe(
+      'Created Brand created and selected for this conversation.',
+    );
+    expect(agentMessagesService.patchAll).toHaveBeenCalledWith(
+      {
+        id: 'proposal-message-1',
+        organizationId: ORG_ID,
+        threadId: CONVERSATION_ID,
+      },
+      {
+        metadata: expect.objectContaining({
+          consumedBrandIdentityActions: expect.objectContaining({
+            'brand-identity-11111111-1111-4111-8111-111111111111':
+              expect.objectContaining({ operation: 'create' }),
+          }),
+        }),
+      },
+    );
+
+    const replay = await service.handleThreadUiAction(request, {
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    expect(replay).toEqual(response);
+    expect(toolExecutorService.executeTool).toHaveBeenCalledTimes(1);
+    expect(agentScopeContextService.mutateBrandScope).toHaveBeenCalledTimes(1);
+  });
+
+  it('finds a persisted brand proposal beyond the newest message page', async () => {
+    const sourceActionId =
+      'brand-identity-bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    const newestPage = Array.from({ length: 100 }, (_, index) => ({
+      id: `newer-message-${index}`,
+      metadata: {},
+      role: 'user',
+    }));
+    const proposal = {
+      id: 'proposal-message-paginated',
+      metadata: {
+        agentScope: { contextVersion: 1 },
+        uiActions: [
+          {
+            ctas: [
+              {
+                action: 'confirm_create_brand',
+                payload: { sourceActionId },
+              },
+            ],
+            data: {
+              operation: 'create',
+              proposalScope: { brandId: null, contextVersion: 1 },
+              sourceActionId,
+            },
+            id: sourceActionId,
+            type: 'brand_identity_confirmation_card',
+          },
+        ],
+      },
+      role: 'assistant',
+    };
+    agentMessagesService.getMessagesByRoom.mockImplementation(
+      async (_threadId, _organizationId, options) => {
+        if (options?.page === 1) {
+          return newestPage as never;
+        }
+        return options?.page === 2 ? ([proposal] as never) : [];
+      },
+    );
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: {
+        brandId: 'brand-paginated',
+        id: 'brand-paginated',
+        label: 'Paginated Brand',
+      },
+      success: true,
+    });
+
+    await service.handleThreadUiAction(
+      {
+        action: 'confirm_create_brand',
+        payload: { label: 'Paginated Brand', sourceActionId },
+        threadId: CONVERSATION_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(agentMessagesService.getMessagesByRoom).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      ORG_ID,
+      { limit: 100, page: 2 },
+    );
+    expect(toolExecutorService.executeTool).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses a durable completion turn after addMessage succeeds but finalization fails', async () => {
+    const sourceActionId =
+      'brand-identity-cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const proposal = {
+      id: 'proposal-message-finalization-retry',
+      metadata: {
+        agentScope: { contextVersion: 1 },
+        uiActions: [
+          {
+            ctas: [
+              {
+                action: 'confirm_create_brand',
+                payload: { sourceActionId },
+              },
+            ],
+            data: {
+              operation: 'create',
+              proposalScope: { brandId: null, contextVersion: 1 },
+              sourceActionId,
+            },
+            id: sourceActionId,
+            type: 'brand_identity_confirmation_card',
+          },
+        ],
+      },
+      role: 'assistant',
+    };
+    let completionMessage: Record<string, unknown> | null = null;
+    const delayedRetryPage = Array.from({ length: 100 }, (_, index) => ({
+      id: `delayed-retry-message-${index}`,
+      metadata: {},
+      role: 'user',
+    }));
+    agentMessagesService.getMessagesByRoom.mockImplementation(
+      async (_threadId, _organizationId, options) => {
+        if (!completionMessage) {
+          return [proposal] as never;
+        }
+        return options?.page === 1
+          ? (delayedRetryPage as never)
+          : ([completionMessage, proposal] as never);
+      },
+    );
+    agentMessagesService.addMessage.mockImplementation(async (message) => {
+      completionMessage = {
+        content: message.content,
+        id: 'completion-message-finalization-retry',
+        metadata: message.metadata,
+        role: 'assistant',
+      };
+      return { id: 'completion-message-finalization-retry' } as never;
+    });
+    threadEventRecorder.recordAssistantFinalized
+      .mockRejectedValueOnce(new Error('event finalization failed'))
+      .mockResolvedValue(undefined);
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: {
+        brandId: 'brand-finalized-once',
+        id: 'brand-finalized-once',
+        label: 'Finalized Once',
+      },
+      success: true,
+    });
+    const request = {
+      action: 'confirm_create_brand',
+      payload: { label: 'Finalized Once', sourceActionId },
+      threadId: CONVERSATION_ID,
+    };
+
+    await expect(
+      service.handleThreadUiAction(request, {
+        organizationId: ORG_ID,
+        userId: USER_ID,
+      }),
+    ).rejects.toThrow('event finalization failed');
+    agentThreadsService.findOne.mockResolvedValue({
+      brandId: 'brand-finalized-once',
+      contextVersion: 2,
+      id: CONVERSATION_ID,
+      messages: [],
+      planModeEnabled: false,
+    } as never);
+
+    const retry = await service.handleThreadUiAction(request, {
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+
+    expect(retry.message.content).toBe(
+      'Finalized Once created and selected for this conversation.',
+    );
+    expect(agentMessagesService.addMessage).toHaveBeenCalledTimes(1);
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          brandIdentityConfirmationResult: {
+            operation: 'create',
+            sourceActionId,
+          },
+        }),
+      }),
+    );
+    expect(toolExecutorService.executeTool).toHaveBeenCalledTimes(1);
+    expect(agentScopeContextService.mutateBrandScope).toHaveBeenCalledTimes(1);
+    expect(agentMessagesService.patchAll).toHaveBeenCalledTimes(1);
+    expect(threadEventRecorder.recordAssistantFinalized).toHaveBeenCalledTimes(
+      2,
+    );
+    expect(
+      threadEventRecorder.recordAssistantFinalized,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({ idempotencyKey: sourceActionId }),
+    );
+    expect(threadEventRecorder.recordRunCompleted).toHaveBeenCalledTimes(1);
+    expect(threadEventRecorder.recordRunCompleted).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: sourceActionId }),
+    );
+    expect(agentMessagesService.getMessagesByRoom).toHaveBeenCalledWith(
+      CONVERSATION_ID,
+      ORG_ID,
+      { limit: 100, page: 2 },
+    );
+  });
+
+  it('dispatches confirmed rename against the validated active thread brand', async () => {
+    agentThreadsService.findOne.mockResolvedValue({
+      brandId: 'brand-active-1',
+      contextVersion: 1,
+      id: CONVERSATION_ID,
+      messages: [],
+      planModeEnabled: false,
+    } as never);
+    agentMessagesService.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'proposal-message-2',
+        metadata: {
+          agentScope: { brandId: 'brand-active-1', contextVersion: 1 },
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_rename_brand',
+                  payload: {
+                    sourceActionId:
+                      'brand-identity-22222222-2222-4222-8222-222222222222',
+                  },
+                },
+              ],
+              data: {
+                operation: 'rename',
+                proposalScope: {
+                  brandId: 'brand-active-1',
+                  contextVersion: 1,
+                },
+                sourceActionId:
+                  'brand-identity-22222222-2222-4222-8222-222222222222',
+              },
+              id: 'brand-identity-22222222-2222-4222-8222-222222222222',
+              type: 'brand_identity_confirmation_card',
+            },
+          ],
+        },
+        role: 'assistant',
+      },
+    ] as never);
+    toolExecutorService.executeTool.mockResolvedValue({
+      creditsUsed: 0,
+      data: {
+        brandId: 'brand-active-1',
+        label: 'Renamed Brand',
+        renamed: true,
+        slug: 'renamed-brand',
+      },
+      success: true,
+    });
+
+    const response = await service.handleThreadUiAction(
+      {
+        action: 'confirm_rename_brand',
+        brandId: 'brand-active-1',
+        expectedContextVersion: 1,
+        payload: {
+          brandId: 'spoofed-brand',
+          label: 'Renamed Brand',
+          slug: 'renamed-brand',
+          sourceActionId: 'brand-identity-22222222-2222-4222-8222-222222222222',
+        },
+        threadId: CONVERSATION_ID,
+      },
+      { organizationId: ORG_ID, userId: USER_ID },
+    );
+
+    expect(toolExecutorService.executeTool).toHaveBeenCalledWith(
+      AgentToolName.RENAME_BRAND,
+      expect.objectContaining({
+        brandId: 'spoofed-brand',
+        label: 'Renamed Brand',
+      }),
+      expect.objectContaining({
+        brandId: 'brand-active-1',
+        confirmationOrigin: 'thread-ui-action',
+        validatedScope: expect.objectContaining({
+          brandId: 'brand-active-1',
+        }),
+      }),
+    );
+    expect(agentScopeContextService.mutateBrandScope).not.toHaveBeenCalled();
+    expect(response).toMatchObject({
+      brandId: 'brand-active-1',
+      contextVersion: 1,
+    });
+    expect(response.message.content).toBe('Renamed Brand renamed.');
+  });
+
+  it('rejects malformed brand confirmation source ids before proposal lookup', async () => {
+    await expect(
+      service.handleThreadUiAction(
+        {
+          action: 'confirm_create_brand',
+          payload: {
+            label: 'Forged Brand',
+            sourceActionId: '../untrusted-cache-key',
+          },
+          threadId: CONVERSATION_ID,
+        },
+        { organizationId: ORG_ID, userId: USER_ID },
+      ),
+    ).rejects.toThrow(
+      'Brand identity confirmation requires a valid source action.',
+    );
+    expect(agentMessagesService.getMessagesByRoom).not.toHaveBeenCalled();
+    expect(toolExecutorService.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('rejects a forged brand confirmation that mismatches the persisted proposal operation', async () => {
+    agentMessagesService.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'proposal-message-forged',
+        metadata: {
+          agentScope: { contextVersion: 1 },
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_create_brand',
+                  payload: {
+                    sourceActionId:
+                      'brand-identity-33333333-3333-4333-8333-333333333333',
+                  },
+                },
+              ],
+              data: {
+                operation: 'create',
+                proposalScope: { brandId: null, contextVersion: 1 },
+                sourceActionId:
+                  'brand-identity-33333333-3333-4333-8333-333333333333',
+              },
+              id: 'brand-identity-33333333-3333-4333-8333-333333333333',
+              type: 'brand_identity_confirmation_card',
+            },
+          ],
+        },
+        role: 'assistant',
+      },
+    ] as never);
+
+    await expect(
+      service.handleThreadUiAction(
+        {
+          action: 'confirm_rename_brand',
+          payload: {
+            label: 'Forged Rename',
+            sourceActionId:
+              'brand-identity-33333333-3333-4333-8333-333333333333',
+          },
+          threadId: CONVERSATION_ID,
+        },
+        { organizationId: ORG_ID, userId: USER_ID },
+      ),
+    ).rejects.toThrow(
+      'Brand identity proposal does not match this confirmation.',
+    );
+    expect(toolExecutorService.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale rename card after the authoritative thread brand changes', async () => {
+    agentThreadsService.findOne.mockResolvedValue({
+      brandId: 'brand-new-scope',
+      contextVersion: 2,
+      id: CONVERSATION_ID,
+      messages: [],
+      planModeEnabled: false,
+    } as never);
+    agentMessagesService.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'proposal-message-stale',
+        metadata: {
+          agentScope: { brandId: 'brand-old-scope', contextVersion: 1 },
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_rename_brand',
+                  payload: {
+                    sourceActionId:
+                      'brand-identity-44444444-4444-4444-8444-444444444444',
+                  },
+                },
+              ],
+              data: {
+                operation: 'rename',
+                proposalScope: {
+                  brandId: 'brand-old-scope',
+                  contextVersion: 1,
+                },
+                sourceActionId:
+                  'brand-identity-44444444-4444-4444-8444-444444444444',
+              },
+              id: 'brand-identity-44444444-4444-4444-8444-444444444444',
+              type: 'brand_identity_confirmation_card',
+            },
+          ],
+        },
+        role: 'assistant',
+      },
+    ] as never);
+
+    await expect(
+      service.handleThreadUiAction(
+        {
+          action: 'confirm_rename_brand',
+          payload: {
+            label: 'Must Not Apply',
+            sourceActionId:
+              'brand-identity-44444444-4444-4444-8444-444444444444',
+          },
+          threadId: CONVERSATION_ID,
+        },
+        { organizationId: ORG_ID, userId: USER_ID },
+      ),
+    ).rejects.toThrow(
+      'Brand identity proposal is stale for the current thread scope.',
+    );
+    expect(toolExecutorService.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('rejects a consumed proposal after the idempotency result is unavailable', async () => {
+    const sourceActionId =
+      'brand-identity-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    agentMessagesService.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'proposal-message-consumed',
+        metadata: {
+          agentScope: { contextVersion: 1 },
+          consumedBrandIdentityActions: {
+            [sourceActionId]: {
+              contextVersion: 2,
+              operation: 'create',
+            },
+          },
+          uiActions: [],
+        },
+        role: 'assistant',
+      },
+    ] as never);
+
+    await expect(
+      service.handleThreadUiAction(
+        {
+          action: 'confirm_create_brand',
+          payload: { label: 'Already Created', sourceActionId },
+          threadId: CONVERSATION_ID,
+        },
+        { organizationId: ORG_ID, userId: USER_ID },
+      ),
+    ).rejects.toThrow(
+      'This brand identity confirmation has already been consumed.',
+    );
+    expect(toolExecutorService.executeTool).not.toHaveBeenCalled();
+  });
+
+  it('serializes concurrent confirmation attempts for the same proposal', async () => {
+    agentMessagesService.getMessagesByRoom.mockResolvedValue([
+      {
+        id: 'proposal-message-concurrent',
+        metadata: {
+          agentScope: { contextVersion: 1 },
+          uiActions: [
+            {
+              ctas: [
+                {
+                  action: 'confirm_create_brand',
+                  payload: {
+                    sourceActionId:
+                      'brand-identity-55555555-5555-4555-8555-555555555555',
+                  },
+                },
+              ],
+              data: {
+                operation: 'create',
+                proposalScope: { brandId: null, contextVersion: 1 },
+                sourceActionId:
+                  'brand-identity-55555555-5555-4555-8555-555555555555',
+              },
+              id: 'brand-identity-55555555-5555-4555-8555-555555555555',
+              type: 'brand_identity_confirmation_card',
+            },
+          ],
+        },
+        role: 'assistant',
+      },
+    ] as never);
+    let releaseTool: ((result: Record<string, unknown>) => void) | undefined;
+    let markStarted: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => {
+      markStarted = resolve;
+    });
+    toolExecutorService.executeTool.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          releaseTool = resolve;
+          markStarted?.();
+        }) as never,
+    );
+    const request = {
+      action: 'confirm_create_brand',
+      payload: {
+        label: 'Concurrent Brand',
+        sourceActionId: 'brand-identity-55555555-5555-4555-8555-555555555555',
+      },
+      threadId: CONVERSATION_ID,
+    };
+
+    const first = service.handleThreadUiAction(request, {
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    await started;
+    const second = service.handleThreadUiAction(request, {
+      organizationId: ORG_ID,
+      userId: USER_ID,
+    });
+    releaseTool?.({
+      creditsUsed: 0,
+      data: {
+        brandId: 'brand-concurrent',
+        id: 'brand-concurrent',
+        label: 'Concurrent Brand',
+      },
+      success: true,
+    });
+
+    const outcomes = await Promise.allSettled([first, second]);
+    expect(
+      outcomes.filter((outcome) => outcome.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      outcomes.filter((outcome) => outcome.status === 'rejected'),
+    ).toHaveLength(1);
+    expect(toolExecutorService.executeTool).toHaveBeenCalledTimes(1);
   });
 
   it('returns a publish confirmation card through the chat loop for selected content', async () => {

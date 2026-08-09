@@ -1,4 +1,8 @@
-import type { CredentialPlatform, PostCategory } from '@genfeedai/enums';
+import type {
+  CredentialPlatform,
+  PostCategory,
+  PostFormat,
+} from '@genfeedai/enums';
 import type { IPostAnalyticsSummary } from '../analytics/analytics.interface';
 import type {
   IBaseEntity,
@@ -17,6 +21,7 @@ import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 export interface IPost extends IBaseEntity {
   ingredients: IIngredient[];
   category: PostCategory;
+  format?: PostFormat;
   credential?: ICredential;
   user: IUser;
   organization: IOrganization;

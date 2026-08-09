@@ -14,6 +14,7 @@ import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnap
 import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
 import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
 import { BrandCreateCard } from '@genfeedai/agent/components/BrandCreateCard';
+import { BrandIdentityConfirmationCard } from '@genfeedai/agent/components/BrandIdentityConfirmationCard';
 import { BrandInterviewCompleteCard } from '@genfeedai/agent/components/BrandInterviewCompleteCard';
 import { BrandInterviewOfferCard } from '@genfeedai/agent/components/BrandInterviewOfferCard';
 import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
@@ -41,9 +42,11 @@ import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
 import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
 import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
 import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ReactElement } from 'react';
 
 export function UiActionRenderer({
@@ -78,10 +81,7 @@ export function UiActionRenderer({
   }) => void;
   onSelectIngredient?: (ingredient: { id: string; title?: string }) => void;
   onRetry?: () => void | Promise<void>;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }): ReactElement | null {
   // Drop mutating handlers when archived — pointer-events-none alone is not
   // enough for keyboard / programmatic activation of nested controls.
@@ -202,6 +202,19 @@ export function UiActionRenderer({
       break;
     case 'brand_create_card':
       card = <BrandCreateCard action={action} onCreate={liveOnBrandCreate} />;
+      break;
+    case 'brand_identity_confirmation_card':
+      card = (
+        <BrandIdentityConfirmationCard
+          action={action}
+          onUiAction={
+            liveOnUiAction
+              ? async (actionName, payload) =>
+                  (await liveOnUiAction(actionName, payload)) === true
+              : undefined
+          }
+        />
+      );
       break;
     case 'workflow_execute_card':
       card = liveApiService ? (

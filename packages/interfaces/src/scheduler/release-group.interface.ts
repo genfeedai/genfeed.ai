@@ -118,6 +118,7 @@ export interface IReleaseGroup extends IBaseEntity {
   organization?: IOrganization;
   brandId?: string | null;
   brand?: IBrand;
+  /** Derived from the complete set of active top-level channel targets. */
   status: ReleaseStatus;
   /** Release-level desired publish time (ISO 8601); targets may override. */
   scheduledAt?: string | null;
@@ -138,6 +139,6 @@ export interface IReleaseGroup extends IBaseEntity {
   analyticsComparison: IReleaseAnalyticsComparison;
   /** Release-scoped attachments (global signature, shared first comment). */
   attachments?: IReleaseAttachment[];
-  /** Audit trail of release-level status changes. */
+  /** Legacy release-level audit entries; current status remains target-derived. */
   statusTransitions?: IScheduleStatusTransition[];
 }

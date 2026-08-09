@@ -4,13 +4,37 @@ import OperationalHomeContent from '@app/(protected)/home/content';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { DashboardOpenUIRenderer } from '@genfeedai/agent/components';
 import { hydrateLayout } from '@genfeedai/agent/dashboard';
-import { ButtonSize, ButtonVariant, PageScope } from '@genfeedai/enums';
-import type { DashboardPresetData } from '@genfeedai/interfaces';
-import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IDashboardLayout } from '@genfeedai/interfaces';
 import { useDashboardLayout } from '@hooks/data/content/use-dashboard-layout/use-dashboard-layout';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
+import { useWorkspaceDashboardData } from './use-workspace-dashboard-data';
+
+function PersistedWorkspaceLayout({ layout }: { layout: IDashboardLayout }) {
+  const { bundle, isLoading } = useWorkspaceDashboardData(layout.brandId);
+  const hydration = useMemo(() => {
+    try {
+      return {
+        blocks: hydrateLayout(layout.document, bundle),
+        isValid: true,
+      };
+    } catch {
+      return { blocks: [], isValid: false };
+    }
+  }, [bundle, layout.document]);
+
+  if (isLoading) {
+    return <LazyLoadingFallback variant="grid" />;
+  }
+
+  if (!hydration.isValid) {
+    return <OperationalHomeContent />;
+  }
+
+  return <DashboardOpenUIRenderer blocks={hydration.blocks} />;
+}
 
 export default function WorkspaceOverviewContent() {
   const { brandId, isReady } = useBrand();
@@ -20,23 +44,6 @@ export default function WorkspaceOverviewContent() {
     isLoading: isLayoutLoading,
     resetLayout,
   } = useDashboardLayout({ brandId });
-
-  const hasLayout = !!layout;
-
-  const { analytics } = useAnalytics({
-    scope: PageScope.BRAND,
-    autoLoad: isReady && hasLayout,
-  });
-
-  const bundle = useMemo<DashboardPresetData>(
-    () => ({ analytics }),
-    [analytics],
-  );
-
-  const blocks = useMemo(
-    () => (layout ? hydrateLayout(layout.document, bundle) : []),
-    [layout, bundle],
-  );
 
   if (!isReady || isLayoutLoading) {
     return <LazyLoadingFallback variant="grid" />;
@@ -61,7 +68,7 @@ export default function WorkspaceOverviewContent() {
           Reset to default
         </Button>
       </div>
-      <DashboardOpenUIRenderer blocks={blocks} />
+      <PersistedWorkspaceLayout layout={layout} />
     </div>
   );
 }

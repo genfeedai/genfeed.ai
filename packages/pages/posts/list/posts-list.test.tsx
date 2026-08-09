@@ -222,6 +222,17 @@ describe('PostsList', () => {
     });
   });
 
+  it.each([
+    [PostStatus.PENDING, 'Pending'],
+    [PostStatus.PROCESSING, 'Publishing'],
+  ] as const)('labels the %s publisher view as %s', (status, heading) => {
+    render(
+      <PostsList scope={PageScope.PUBLISHER} platform="all" status={status} />,
+    );
+
+    expect(screen.getByRole('heading', { name: heading })).toBeVisible();
+  });
+
   it('opens the post detail overlay from the table row path', async () => {
     resourceData = [postFixture];
 
