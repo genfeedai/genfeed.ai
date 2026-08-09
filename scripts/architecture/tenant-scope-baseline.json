@@ -579,18 +579,18 @@
     {
       "delegate": "post",
       "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "9f0aea8536264a17c0a4",
+      "fingerprint": "d1382942558add5cae10",
       "method": "count",
       "model": "Post",
-      "reason": "missing-organization-id"
+      "reason": "unresolved-where"
     },
     {
       "delegate": "post",
       "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "ea563334d86bacd3f0d9",
+      "fingerprint": "d53b2f17dd85ea21516c",
       "method": "count",
       "model": "Post",
-      "reason": "missing-organization-id"
+      "reason": "unresolved-where"
     },
     {
       "delegate": "creditBalance",
@@ -1657,25 +1657,9 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
-      "fingerprint": "b53469b501cce3045f05",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
-      "fingerprint": "b568c2a1f52d02134afb",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "post",
       "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "4632f63fee33a5b8f8b8",
+      "fingerprint": "30a85345dff481156ce5",
       "method": "update",
       "model": "Post",
       "reason": "missing-is-deleted"
@@ -1683,7 +1667,7 @@
     {
       "delegate": "post",
       "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "f72d74fd96cc32fb5dcd",
+      "fingerprint": "f1ec526f652e16fcf747",
       "method": "update",
       "model": "Post",
       "reason": "missing-organization-id"
@@ -1691,7 +1675,7 @@
     {
       "delegate": "postGroup",
       "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "1dba90019f5aa6e3280e",
+      "fingerprint": "086c97eb25feb18e960d",
       "method": "update",
       "model": "PostGroup",
       "reason": "missing-is-deleted"
@@ -1699,23 +1683,7 @@
     {
       "delegate": "postGroup",
       "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "33203e14613e7db90134",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "0c8d9dcd7291e00aa4bb",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "a4b1675aa731c0d4fc40",
+      "fingerprint": "1ec5406c56fd58c3df05",
       "method": "update",
       "model": "PostGroup",
       "reason": "missing-organization-id"
@@ -3851,10 +3819,10 @@
     {
       "delegate": "post",
       "file": "apps/server/server/src/services/lifecycle-emails/lifecycle-email-delivery.service.ts",
-      "fingerprint": "4a79e61cd47f42e2ec2e",
+      "fingerprint": "c77cce8d923bb70f4e3a",
       "method": "findFirst",
       "model": "Post",
-      "reason": "missing-organization-id"
+      "reason": "unresolved-where"
     },
     {
       "delegate": "subscription",

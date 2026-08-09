@@ -519,6 +519,9 @@ export class CronPostsService {
         return this.createFailedResult(platform, 'Unsupported platform');
       }
 
+      // Settings are re-resolved against the catalog here rather than trusted
+      // as stored: the release was validated when it was scheduled, and the
+      // catalog may have changed since.
       const settings = resolveChannelTargetSettings(
         platform,
         post.targetSettings,
@@ -552,23 +555,18 @@ export class CronPostsService {
         return this.createFailedResult(platform, validationError);
       }
 
-      // Build publish context. Settings are re-resolved against the catalog
-      // here rather than trusted as stored: the release was validated when it
-      // was scheduled, and the catalog may have changed since.
-      const resolvedSettings = resolveChannelTargetSettings(
-        platform,
-        post.targetSettings,
-      );
-      const settings =
+      // Beehiiv carries the approved release time through to the publisher so
+      // the newsletter goes out on schedule instead of immediately.
+      const publishSettings =
         platform === CredentialPlatform.BEEHIIV &&
         source !== 'publish_now' &&
         post.scheduledDate instanceof Date
           ? {
-              ...resolvedSettings,
+              ...settings,
               [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
                 post.scheduledDate.toISOString(),
             }
-          : resolvedSettings;
+          : settings;
       const context: PublishContext = {
         brandId: postBrandId ?? '',
         credential,
@@ -576,7 +574,7 @@ export class CronPostsService {
         organizationId: postOrganizationId ?? '',
         post,
         postId: post.id.toString(),
-        settings,
+        settings: publishSettings,
         visibility,
       };
 

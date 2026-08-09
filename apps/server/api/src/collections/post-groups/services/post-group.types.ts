@@ -13,6 +13,7 @@ import type {
 } from '@genfeedai/enums';
 import type {
   IPublishApproval,
+  IReleaseGroup,
   PostGroupCreateProvenance,
 } from '@genfeedai/interfaces';
 import type { Prisma } from '@genfeedai/prisma';

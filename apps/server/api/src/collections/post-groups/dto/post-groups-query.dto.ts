@@ -52,8 +52,8 @@ function toFilterArray({ value }: { value: unknown }): unknown {
 @ValidatorConstraint({ async: false, name: 'releaseWindow' })
 export class ReleaseWindowConstraint implements ValidatorConstraintInterface {
   validate(endDate: unknown, args: ValidationArguments): boolean {
-    const query = args.object as PostGroupsQueryDto;
-    const hasStart = typeof query.startDate === 'string';
+    const { startDate } = args.object as PostGroupsQueryDto;
+    const hasStart = typeof startDate === 'string';
     const hasEnd = typeof endDate === 'string';
     if (!hasStart && !hasEnd) {
       return true;
@@ -62,7 +62,7 @@ export class ReleaseWindowConstraint implements ValidatorConstraintInterface {
       return false;
     }
 
-    const startTime = Date.parse(query.startDate);
+    const startTime = Date.parse(startDate);
     const endTime = Date.parse(endDate);
     if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) {
       return true;
