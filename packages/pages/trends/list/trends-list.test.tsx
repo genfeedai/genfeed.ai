@@ -231,8 +231,8 @@ describe('TrendsList', () => {
       screen.getByRole('link', { name: /Follow creators/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Refresh feed' }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('button', { name: 'Refresh' }).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByText('No viral videos yet')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Refresh videos' }),

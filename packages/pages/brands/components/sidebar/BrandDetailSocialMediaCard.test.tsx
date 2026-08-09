@@ -113,8 +113,23 @@ vi.mock('@services/core/notifications.service', () => ({
 
 vi.mock('@ui/card/Card', () => ({
   __esModule: true,
-  default: ({ children }: { children: ReactNode }) => (
-    <div data-testid="social-card">{children}</div>
+  default: ({
+    children,
+    description,
+    headerAction,
+    label,
+  }: {
+    children: ReactNode;
+    description?: ReactNode;
+    headerAction?: ReactNode;
+    label?: ReactNode;
+  }) => (
+    <div data-testid="social-card">
+      {label ? <h3>{label}</h3> : null}
+      {description ? <p>{description}</p> : null}
+      {headerAction}
+      {children}
+    </div>
   ),
 }));
 
@@ -149,10 +164,14 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(screen.getByTestId('social-card')).toBeInTheDocument();
-    expect(screen.getByText('Social Media')).toBeInTheDocument();
+    expect(screen.getByText('Connected accounts')).toBeInTheDocument();
     expect(
-      screen.getByText(/connect your social media accounts/i),
+      screen.getByText(/connect accounts to display them here/i),
     ).toBeInTheDocument();
+    expect(
+      screen.getByText('No social accounts connected yet.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
   });
 
   it('groups connect platforms by category in the dialog', () => {
@@ -173,8 +192,8 @@ describe('BrandDetailSocialMediaCard', () => {
       screen.getByRole('button', { name: /twitter/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /youtube/i }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('button', { name: /youtube/i }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('renders full integration cards on the page variant without a modal gate', () => {
