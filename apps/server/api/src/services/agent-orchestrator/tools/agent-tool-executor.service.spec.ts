@@ -3998,6 +3998,99 @@ describe('AgentToolExecutorService', () => {
     ]);
   });
 
+  it('falls back to the review inbox when list_review_queue gets a placeholder batchId', async () => {
+    const { batchGenerationService, service } = createService();
+    batchGenerationService.getBatch = vi.fn();
+    batchGenerationService.getReviewInboxSummary = vi.fn().mockResolvedValue({
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 1,
+      readyCount: 2,
+      recentItems: [
+        {
+          batchId: 'c9c2d469368c4314a3cfff32',
+          createdAt: '2026-08-09T20:00:00.000Z',
+          format: 'image',
+          id: 'c9c2d469368c4314a3cfff40',
+          platform: 'instagram',
+          reviewDecision: 'unset',
+          status: 'completed',
+          summary: 'Ready for review',
+        },
+      ],
+      rejectedCount: 0,
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_REVIEW_QUEUE,
+      {
+        batchId: 'pending',
+        limit: 10,
+      },
+      {
+        brandId: 'c7a1234567890123456789aa',
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(batchGenerationService.getBatch).not.toHaveBeenCalled();
+    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledWith(
+      'c7a123456789012345678901',
+      'c7a1234567890123456789aa',
+      10,
+    );
+    expect(result.data).toMatchObject({
+      pendingCount: 1,
+      readyCount: 2,
+      scope: 'brand',
+    });
+    expect(result.nextActions?.[0]).toMatchObject({
+      primaryCta: {
+        href: '/publish/review?filter=ready',
+        label: 'Open review queue',
+      },
+      title: 'Review queue loaded',
+      type: 'completion_summary_card',
+    });
+    expect(result.nextActions?.[0]?.summaryText).toContain(
+      'ignored an invalid batch id',
+    );
+  });
+
+  it('loads the review inbox when list_review_queue is called without a batchId', async () => {
+    const { batchGenerationService, service } = createService();
+    batchGenerationService.getReviewInboxSummary = vi.fn().mockResolvedValue({
+      approvedCount: 0,
+      changesRequestedCount: 0,
+      pendingCount: 0,
+      readyCount: 0,
+      recentItems: [],
+      rejectedCount: 0,
+    });
+
+    const result = await service.executeTool(
+      AgentToolName.LIST_REVIEW_QUEUE,
+      {},
+      {
+        organizationId: 'c7a123456789012345678901',
+        userId: 'c7a123456789012345678902',
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(batchGenerationService.getReviewInboxSummary).toHaveBeenCalledWith(
+      'c7a123456789012345678901',
+      undefined,
+      20,
+    );
+    expect(result.nextActions?.[0]?.summaryText).toContain(
+      'No items are waiting',
+    );
+  });
+
   it('never treats a model tool call as publish approval', async () => {
     const { batchGenerationService, service } = createService();
 
