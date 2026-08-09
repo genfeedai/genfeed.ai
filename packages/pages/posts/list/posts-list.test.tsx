@@ -115,7 +115,8 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 // The query result must keep a stable identity across renders — a fresh object
 // per render feeds identity-keyed effects in usePostsList and re-renders forever.
 vi.mock('@tanstack/react-query', () => ({
-  useQuery: () => queryResult(),
+  useQuery: (options: { queryKey?: readonly unknown[] }) =>
+    queryResult(options),
   useQueryClient: () => ({
     setQueryData: vi.fn(),
   }),
@@ -289,6 +290,12 @@ describe('PostsList', () => {
     );
   });
 
+  it('defaults the publisher list to the not-posted view when no status is given', () => {
+    render(<PostsList scope={PageScope.PUBLISHER} platform="all" />);
+
+    expect(screen.getByRole('heading', { name: 'Not posted' })).toBeVisible();
+  });
+
   it('opens the dedicated post editor and carries the list back with it', () => {
     resourceData = [postFixture];
 
@@ -300,14 +307,16 @@ describe('PostsList', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
+    // The publisher list defaults to the card grid, so the edit affordance is
+    // the card's primary action rather than a table row action.
+    fireEvent.click(screen.getByRole('button', { name: /edit grid card/i }));
 
     expect(pushMock).toHaveBeenCalledWith(
       '/genfeed-ai/paperclip/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
     );
   });
 
-  it('opens superadmin edits in the post owner scope', () => {
+  it('gives the superadmin table a read-only action set', () => {
     resourceData = [
       {
         ...postFixture,
@@ -324,10 +333,10 @@ describe('PostsList', () => {
       />,
     );
 
+    // Superadmin browses platform-wide content; editing happens in the owning
+    // brand's publisher scope, so no edit action is offered here.
     fireEvent.click(screen.getByRole('button', { name: /edit table row/i }));
 
-    expect(pushMock).toHaveBeenCalledWith(
-      '/owner-org/owner-brand/publish/posts/post-1?returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish',
-    );
+    expect(pushMock).not.toHaveBeenCalled();
   });
 });

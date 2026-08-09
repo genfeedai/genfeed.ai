@@ -1177,6 +1177,8 @@ describe('ClientService (MCP) domain clients', () => {
       });
 
       await service.getAdsAdInsights({
+        adAccountId: 'account-1',
+        credentialId: 'credential-1',
         entityId: 'ad-1',
         loginCustomerId: 'manager-1',
         platform: 'google',
@@ -1188,8 +1190,8 @@ describe('ClientService (MCP) domain clients', () => {
         '/ads/google/ads/ad-1/insights',
         {
           params: {
-            adAccountId: undefined,
-            credentialId: undefined,
+            adAccountId: 'account-1',
+            credentialId: 'credential-1',
             datePreset: undefined,
             loginCustomerId: 'manager-1',
             since: '2026-08-01',

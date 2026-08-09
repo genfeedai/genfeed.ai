@@ -14,9 +14,12 @@ const deleteActionOnClick = vi.fn();
 const openPostDetailMock = vi.fn();
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'paperclip', orgSlug: 'genfeed-ai' }),
+  usePathname: () => '/genfeed-ai/paperclip/publish',
   useRouter: () => ({
     push: pushMock,
   }),
+  useSearchParams: () => new URLSearchParams(''),
 }));
 
 vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
