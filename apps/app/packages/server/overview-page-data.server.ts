@@ -3,6 +3,7 @@ import 'server-only';
 import {
   getServerAuthToken,
   hasUsableServerAuthToken,
+  isDesktopServerRequest,
   shouldSkipCloudBootstrap,
 } from '@app-server/protected-bootstrap.server';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
@@ -29,7 +30,7 @@ export const loadOverviewPageData = cache(
   async (): Promise<OverviewPageData> => {
     const token = await getServerAuthToken();
 
-    if (shouldSkipCloudBootstrap(token)) {
+    if (shouldSkipCloudBootstrap(token, await isDesktopServerRequest())) {
       return {
         activeRuns: [],
         analytics: {},

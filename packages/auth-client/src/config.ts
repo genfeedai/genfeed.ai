@@ -12,6 +12,7 @@ const DEFAULT_API_ENDPOINT = 'https://api.genfeed.ai/v1';
 interface GenfeedRuntimeConfig {
   apiEndpoint?: string;
   betterAuthEnabled?: boolean;
+  clientSurface?: 'desktop' | 'web';
 }
 
 declare global {

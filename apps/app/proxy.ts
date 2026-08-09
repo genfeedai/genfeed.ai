@@ -10,6 +10,7 @@ import {
   createBrandAppRoute,
   LEGACY_APP_ROUTES,
 } from '@genfeedai/constants';
+import { DESKTOP_HTTP_HEADERS } from '@genfeedai/desktop-contracts';
 import { type NextRequest, NextResponse } from 'next/server';
 
 type BootstrapBrandSummary = {
@@ -45,6 +46,90 @@ const SEEDED_WORKSPACE_PATH = createBrandAppRoute(
 );
 const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 let hasWarnedAboutHostedModeMisconfiguration = false;
+const DEFAULT_MINIMUM_DESKTOP_VERSION = '0.1.0';
+
+type ParsedVersion = {
+  core: readonly [number, number, number];
+  isPrerelease: boolean;
+};
+
+function parseVersion(value: string): ParsedVersion | null {
+  const match =
+    /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/.exec(
+      value,
+    );
+  if (!match) {
+    return null;
+  }
+
+  const core = match.slice(1, 4).map(Number) as [number, number, number];
+  if (core.some((part) => !Number.isSafeInteger(part))) {
+    return null;
+  }
+
+  return { core, isPrerelease: Boolean(match[4]) };
+}
+
+function isVersionAtLeast(current: string, minimum: string): boolean {
+  const parsedCurrent = parseVersion(current);
+  const parsedMinimum = parseVersion(minimum);
+  if (!parsedCurrent || !parsedMinimum) {
+    return false;
+  }
+
+  for (let index = 0; index < parsedCurrent.core.length; index += 1) {
+    const currentPart = parsedCurrent.core[index] ?? 0;
+    const minimumPart = parsedMinimum.core[index] ?? 0;
+    if (currentPart !== minimumPart) {
+      return currentPart > minimumPart;
+    }
+  }
+
+  return !parsedCurrent.isPrerelease || parsedMinimum.isPrerelease;
+}
+
+function getMinimumDesktopVersion(): string {
+  const configured = process.env.GENFEED_DESKTOP_MINIMUM_VERSION?.trim();
+  return configured && parseVersion(configured)
+    ? configured
+    : DEFAULT_MINIMUM_DESKTOP_VERSION;
+}
+
+function getDesktopVersion(req: NextRequest): string | null {
+  return req.headers.get(DESKTOP_HTTP_HEADERS.version);
+}
+
+function isDesktopSurfaceRequest(req: NextRequest): boolean {
+  return isDesktopClient() || getDesktopVersion(req) !== null;
+}
+
+function enforceMinimumDesktopVersion(req: NextRequest): NextResponse | null {
+  const desktopVersion = getDesktopVersion(req);
+  if (desktopVersion === null) {
+    return null;
+  }
+
+  const minimumVersion = getMinimumDesktopVersion();
+  if (isVersionAtLeast(desktopVersion.trim(), minimumVersion)) {
+    return null;
+  }
+
+  return NextResponse.json(
+    {
+      code: 'DESKTOP_UPDATE_REQUIRED',
+      currentVersion: desktopVersion.trim() || null,
+      minimumVersion,
+      message: 'Update Genfeed Desktop to continue.',
+    },
+    {
+      headers: {
+        'Cache-Control': 'no-store',
+        [DESKTOP_HTTP_HEADERS.minimumVersion]: minimumVersion,
+      },
+      status: 426,
+    },
+  );
+}
 
 const BRAND_SCOPED_PREFIXES = [
   APP_ROUTE_PREFIXES.ANALYTICS.slice(1),
@@ -821,6 +906,7 @@ async function redirectSignedInUserToDefaultRoute(
   req: NextRequest,
   token: string,
   cacheKey?: string | null,
+  isDesktopSurface = false,
 ): Promise<NextResponse | null> {
   // Prefer an explicit post-auth destination (session restore / API bounce
   // back through /login?callbackUrl=…). Do this before onboarding defaulting
@@ -831,7 +917,7 @@ async function redirectSignedInUserToDefaultRoute(
   }
 
   if (await shouldRedirectSignedInUserToOnboarding(token)) {
-    if (hasAgentFirstOnboarding()) {
+    if (!isDesktopSurface && hasAgentFirstOnboarding()) {
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,
         cacheKey,
@@ -921,7 +1007,12 @@ async function routeBetterAuthRequest(
       const token =
         options.preferredBearerToken ?? (await getBetterAuthBearerToken(req));
       let response = token
-        ? await redirectSignedInUserToDefaultRoute(req, token, sessionCookie)
+        ? await redirectSignedInUserToDefaultRoute(
+            req,
+            token,
+            sessionCookie,
+            options.isDesktopSurface,
+          )
         : null;
 
       if (!response && options.preferredBearerToken) {
@@ -931,6 +1022,7 @@ async function routeBetterAuthRequest(
               req,
               fallbackToken,
               sessionCookie,
+              options.isDesktopSurface,
             )
           : null;
       }
@@ -1082,6 +1174,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  const minimumVersionResponse = enforceMinimumDesktopVersion(req);
+  if (minimumVersionResponse) {
+    return minimumVersionResponse;
+  }
+
   if (
     !hasWarnedAboutHostedModeMisconfiguration &&
     req.nextUrl.hostname === 'app.genfeed.ai' &&
@@ -1116,9 +1213,9 @@ export async function proxy(req: NextRequest) {
     return redirectPreservingSearch(req, canonicalLegacyPath);
   }
 
-  if (isDesktopClient()) {
+  if (isDesktopSurfaceRequest(req)) {
     const desktopToken =
-      req.headers.get('x-genfeed-desktop-token')?.trim() || null;
+      req.headers.get(DESKTOP_HTTP_HEADERS.token)?.trim() || null;
 
     return routeBetterAuthRequest(req, {
       isDesktopSurface: true,
