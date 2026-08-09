@@ -3,6 +3,7 @@ import {
   APP_ROUTE_PREFIXES,
   APP_ROUTE_TEMPLATES,
   APP_ROUTES,
+  ARTIFACT_EDITOR_KIND_PARAM,
   createArtifactEditorRoute,
   createBrandAppRoute,
   createOrganizationAppRoute,
@@ -36,7 +37,7 @@ describe('routes.constant', () => {
     }
   });
 
-  it('exposes dedicated artifact editor routes separate from the project editor', () => {
+  it('keeps legacy long-form aliases separate from the project editor', () => {
     expect(APP_ROUTES.EDIT.ROOT).toBe('/edit');
     expect(APP_ROUTES.EDIT.ARTICLE).toBe('/edit/article');
     expect(APP_ROUTES.EDIT.NEWSLETTER).toBe('/edit/newsletter');
@@ -50,12 +51,13 @@ describe('routes.constant', () => {
     expect('NEWSLETTERS' in APP_ROUTES.PUBLISH).toBe(false);
   });
 
-  it('builds deep-linkable artifact editor paths', () => {
+  it('builds canonical type-aware Publish editor paths', () => {
+    expect(ARTIFACT_EDITOR_KIND_PARAM).toBe('kind');
     expect(createArtifactEditorRoute('article', 'article-1')).toBe(
-      '/edit/article/article-1',
+      '/publish/posts/article-1?kind=article',
     );
     expect(createArtifactEditorRoute('newsletter', 'newsletter-1')).toBe(
-      '/edit/newsletter/newsletter-1',
+      '/publish/posts/newsletter-1?kind=newsletter',
     );
     expect(createArtifactEditorRoute('post', 'post-1')).toBe(
       '/publish/posts/post-1',
@@ -87,11 +89,11 @@ describe('routes.constant', () => {
 
     expect(
       withArtifactEditorReturn(
-        '/genfeed-ai/paperclip/publish/posts/post-1?mode=focus',
+        '/genfeed-ai/paperclip/publish/posts/article-1?kind=article',
         '/genfeed-ai/paperclip/publish/posts',
       ),
     ).toBe(
-      '/genfeed-ai/paperclip/publish/posts/post-1?mode=focus&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts',
+      '/genfeed-ai/paperclip/publish/posts/article-1?kind=article&returnTo=%2Fgenfeed-ai%2Fpaperclip%2Fpublish%2Fposts',
     );
   });
 

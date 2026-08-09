@@ -51,11 +51,12 @@ const featureFlagSubscriptions = new Set<AnalyticsFeatureFlagSubscription>();
 
 /**
  * True only when the app is a cloud-connected, non-desktop build with a
- * PostHog key present. Resolved fresh so tests can flip env/mode between cases;
- * in production the inputs are fixed for the lifetime of the session.
+ * valid PostHog project token. Resolved fresh so tests can flip env/mode
+ * between cases; in production the inputs are fixed for the lifetime of the
+ * session.
  */
 export function isAnalyticsEnabled(): boolean {
-  return Boolean(POSTHOG_KEY) && isSaaS();
+  return /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY ?? '') && isSaaS();
 }
 
 /**

@@ -11,6 +11,7 @@ import type {
   AgentInputRequest,
   AgentProposedPlan,
   AgentUiAction,
+  AgentUiActionHandler,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -60,10 +61,7 @@ export type AgentChatContainerThreadViewProps = {
   }) => void;
   onSend: (prompt: string) => void;
   onSubmitInputRequest: (answer: string) => void | Promise<void>;
-  onUiAction: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => Promise<void>;
+  onUiAction: AgentUiActionHandler;
   padBottomForComposer: boolean;
   /** Extra clearance when follow-up chips sit above the fixed composer. */
   padBottomForFollowUpChips?: boolean;

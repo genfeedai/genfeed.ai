@@ -17,7 +17,7 @@ const UI_ACTION_MAP: Partial<
   check_onboarding_status: 'onboarding_checklist_card',
   complete_campaign: 'campaign_control_card',
   connect_social_account: 'oauth_connect_card',
-  create_brand: 'brand_create_card',
+  create_brand: 'brand_identity_confirmation_card',
   create_campaign: 'campaign_create_card',
   discover_engagements: 'engagement_opportunity_card',
   generate_as_identity: 'generation_action_card',
@@ -40,6 +40,7 @@ const UI_ACTION_MAP: Partial<
   prepare_workflow_trigger: 'workflow_trigger_card',
   present_payment_options: 'payment_cta_card',
   reframe_image: 'image_transform_card',
+  rename_brand: 'brand_identity_confirmation_card',
   schedule_post: 'schedule_post_card',
   select_ingredient: 'ingredient_picker_card',
   start_campaign: 'campaign_control_card',
@@ -49,7 +50,11 @@ const UI_ACTION_MAP: Partial<
 
 function inferCategory(name: string): ToolCategory {
   if (name.includes('campaign')) return 'campaign';
-  if (name.includes('onboarding') || name === 'create_brand')
+  if (
+    name.includes('onboarding') ||
+    name === 'create_brand' ||
+    name === 'rename_brand'
+  )
     return 'onboarding';
   if (
     name.startsWith('prepare_') ||

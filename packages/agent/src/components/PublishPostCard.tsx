@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant, PostVisibility } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -38,10 +41,7 @@ const VISIBILITY_OPTIONS: { label: string; value: PostVisibility }[] = [
 
 interface PublishPostCardProps {
   action: AgentUiAction;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
 }
 
 function toDatetimeLocalValue(value: string | undefined): string {

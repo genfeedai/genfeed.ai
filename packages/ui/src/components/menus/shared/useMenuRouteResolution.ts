@@ -1,13 +1,20 @@
 import { createBrandAppRoute } from '@genfeedai/constants';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { usePathname } from 'next/navigation';
+import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.helper';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
 type MenuHrefConfig = Pick<MenuItemConfig, 'href' | 'hrefScope'>;
 
 export function useMenuRouteResolution() {
   const rawPathname = usePathname();
+  const rawSearchParams = useSearchParams();
+  const searchParamsString = rawSearchParams?.toString() ?? '';
+  const searchParams = useMemo(
+    () => new URLSearchParams(searchParamsString),
+    [searchParamsString],
+  );
   const {
     activeHref,
     href: brandHref,
@@ -122,28 +129,38 @@ export function useMenuRouteResolution() {
   );
 
   const isActive = useCallback(
-    (href: string) => {
+    (href: string, matchSearchParams?: MenuItemConfig['matchSearchParams']) => {
       if (!href || !pathname) {
         return false;
       }
 
-      if (href.startsWith('/elements/') && pathname.startsWith('/elements/')) {
-        return true;
+      const hrefPathname = href.split('?')[0] ?? href;
+
+      if (
+        hrefPathname.startsWith('/elements/') &&
+        pathname.startsWith('/elements/')
+      ) {
+        return matchesMenuSearchParams(searchParams, matchSearchParams);
       }
 
       if (
-        href.startsWith('/ingredients/') &&
+        hrefPathname.startsWith('/ingredients/') &&
         pathname.startsWith('/ingredients/')
       ) {
-        return true;
+        return matchesMenuSearchParams(searchParams, matchSearchParams);
       }
 
       // Segment-boundary prefix match: `/workspace` must not light on
       // `/workspaceX`, and is paired with `isExactMatch` on module Overview
       // roots so `/workspace/activity` does not keep Overview active.
-      return pathname === href || pathname.startsWith(`${href}/`);
+      const pathMatches =
+        pathname === hrefPathname || pathname.startsWith(`${hrefPathname}/`);
+
+      return (
+        pathMatches && matchesMenuSearchParams(searchParams, matchSearchParams)
+      );
     },
-    [pathname],
+    [pathname, searchParams],
   );
 
   return {

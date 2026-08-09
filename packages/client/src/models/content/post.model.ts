@@ -2,6 +2,7 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type {
   CredentialPlatform,
   PostCategory,
+  PostFormat,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
@@ -36,6 +37,7 @@ export class Post extends BaseEntity implements IPost {
   public declare label: string;
   public declare description?: string;
   public declare category: PostCategory;
+  public declare format?: PostFormat;
   public declare status: PostStatus;
   public declare targetExecutionState: TargetExecutionState;
   public declare visibility: PostVisibility;

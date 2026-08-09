@@ -2,6 +2,7 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import {
   CredentialPlatform,
   PostCategory,
+  PostFormat,
   PostStatus,
   PostVisibility,
   type ReviewDecision,
@@ -47,6 +48,7 @@ export class PostEntity extends BaseEntity {
   declare readonly label: string;
   declare readonly description: string;
   declare readonly category: PostCategory;
+  declare readonly format: PostFormat;
   declare readonly status: PostStatus;
   declare readonly targetExecutionState: TargetExecutionState;
   declare readonly visibility?: PostVisibility | null;

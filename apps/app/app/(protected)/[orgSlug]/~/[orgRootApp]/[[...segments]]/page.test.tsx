@@ -210,6 +210,32 @@ describe('OrgRootAppPage', () => {
     });
   });
 
+  it.each([
+    ['pending', PostStatus.PENDING],
+    ['processing', PostStatus.PROCESSING],
+  ] as const)(
+    'renders org posts with %s status for /publish/%s',
+    async (segment, status) => {
+      const searchParams = Promise.resolve({ page: '2' });
+      const element = await OrgRootAppPage({
+        params: Promise.resolve({
+          orgRootApp: 'publish',
+          orgSlug: 'acme',
+          segments: [segment],
+        }),
+        searchParams,
+      });
+
+      render(element);
+
+      expect(renderPostsListPageMock).toHaveBeenCalledWith({
+        scope: PageScope.ORGANIZATION,
+        searchParams,
+        statusOverride: status,
+      });
+    },
+  );
+
   it.each(['write', 'compose'])(
     'returns not found for retired org %s route',
     async (orgRootApp) => {

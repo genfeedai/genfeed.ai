@@ -173,7 +173,7 @@ describe('useArticleDetail', () => {
 
     await waitFor(() => {
       expect(pushMock).toHaveBeenCalledWith(
-        '/genfeed-ai/paperclip/edit/article/article-created-1',
+        '/genfeed-ai/paperclip/publish/posts/article-created-1?kind=article',
       );
     });
   });

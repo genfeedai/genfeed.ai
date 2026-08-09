@@ -30,6 +30,17 @@ export enum PostFrequency {
 }
 
 /**
+ * Editorial shape of a social post. Thread segments remain canonical Post
+ * records linked through `parentId`; this field records the intended editing
+ * and publishing experience without duplicating their bodies into JSON.
+ */
+export enum PostFormat {
+  STANDARD = 'standard',
+  LONG_FORM = 'long-form',
+  THREAD = 'thread',
+}
+
+/**
  * Post category. Values match Prisma `PostCategory`.
  * @see packages/prisma/prisma/schema.prisma `enum PostCategory`
  */

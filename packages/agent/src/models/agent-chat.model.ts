@@ -102,6 +102,8 @@ export interface AgentUiActionCta {
   payload?: Record<string, unknown>;
 }
 
+export type { AgentUiActionHandler } from '@genfeedai/interfaces';
+
 export interface AgentIngredientItem {
   id: string;
   url: string;
@@ -145,6 +147,7 @@ export interface AgentUiAction {
     | 'credits_balance_card'
     | 'studio_handoff_card'
     | 'brand_create_card'
+    | 'brand_identity_confirmation_card'
     | 'workflow_execute_card'
     | 'trending_topics_card'
     | 'content_calendar_card'

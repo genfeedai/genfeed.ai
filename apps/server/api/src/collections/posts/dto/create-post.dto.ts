@@ -1,6 +1,7 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   PostCategory,
+  PostFormat,
   PostFrequency,
   PostStatus,
   PostVisibility,
@@ -61,6 +62,18 @@ export class CreatePostDto {
   })
   @IsString()
   readonly description!: string;
+
+  @ApiProperty({
+    default: PostFormat.STANDARD,
+    description:
+      'Editorial shape of the post. Thread segment bodies are linked Post records.',
+    enum: PostFormat,
+    enumName: 'PostFormat',
+    required: false,
+  })
+  @IsOptional()
+  @IsEnum(PostFormat)
+  readonly format?: PostFormat;
 
   @ApiProperty({
     description:

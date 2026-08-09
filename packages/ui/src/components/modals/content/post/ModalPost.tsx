@@ -5,6 +5,7 @@ import {
 import {
   ModalEnum,
   Platform,
+  PostFormat,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -20,6 +21,7 @@ import Modal from '@ui/modals/modal/Modal';
 import {
   DEFAULT_CHAR_LIMIT,
   PLATFORM_CHAR_LIMITS,
+  X_LONG_FORM_CHAR_LIMIT,
 } from '@ui-constants/platform-char-limit.constant';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
@@ -31,9 +33,11 @@ const EMPTY_ARRAY: never[] = [];
 export default function ModalPost({
   post,
   ingredient,
+  modalId = ModalEnum.POST,
   credential,
   credentials = EMPTY_ARRAY,
   parentPost,
+  postFormat = PostFormat.STANDARD,
   onConfirm,
   onClose,
   onCreated,
@@ -65,8 +69,9 @@ export default function ModalPost({
   const _defaultValuesKey = `${credential?.id}-${ingredient?.id}-${parentPost?.id}`;
   const defaultValues = useMemo(
     () => ({
-      credentialId: credential?.id || '',
+      credentialId: credential?.id || credentials[0]?.id || '',
       description: '',
+      format: postFormat,
       ingredients: ingredient ? [ingredient.id] : [],
       label: '',
       parentId: parentPost?.id || '',
@@ -74,7 +79,7 @@ export default function ModalPost({
       targetExecutionState: TargetExecutionState.DRAFT,
       visibility: PostVisibility.PUBLIC,
     }),
-    [credential?.id, ingredient, parentPost?.id],
+    [credential?.id, credentials, ingredient, parentPost?.id, postFormat],
   );
   const defaultValuesRef = useRef(defaultValues);
   defaultValuesRef.current = defaultValues;
@@ -97,6 +102,13 @@ export default function ModalPost({
 
       const isScheduling =
         formData.targetExecutionState === TargetExecutionState.SCHEDULED;
+      if (isScheduling && !formData.scheduledDate) {
+        notificationsService.error(
+          'Choose a scheduled date before scheduling this post',
+        );
+        throw new Error('Scheduled date required for scheduled posts');
+      }
+
       if (isScheduling && targetPlatform !== Platform.TWITTER) {
         if (!formData.ingredients || formData.ingredients.length === 0) {
           notificationsService.error(
@@ -113,8 +125,11 @@ export default function ModalPost({
         const result = await postsService.patch(entity.id, {
           credentialId: formData.credentialId,
           description: formData.description.trim(),
+          format: formData.format,
           label: formData.label?.trim() || '',
-          scheduledDate: formData.scheduledDate,
+          ...(formData.scheduledDate
+            ? { scheduledDate: formData.scheduledDate }
+            : {}),
           targetExecutionState: formData.targetExecutionState,
           visibility: formData.visibility,
         });
@@ -127,10 +142,13 @@ export default function ModalPost({
         const result = await postsService.post({
           credentialId: formData.credentialId,
           description: formData.description.trim(),
+          format: formData.format,
           ingredients: formData.ingredients || [],
           label: formData.label?.trim() || '',
           parentId: formData.parentId,
-          scheduledDate: formData.scheduledDate,
+          ...(formData.scheduledDate
+            ? { scheduledDate: formData.scheduledDate }
+            : {}),
           targetExecutionState: formData.targetExecutionState,
           visibility: formData.visibility,
         });
@@ -153,7 +171,7 @@ export default function ModalPost({
   const shouldAutoOpen = Boolean(post || ingredient || credential);
   const openKey = post?.id || ingredient?.id || credential?.id || 'new';
 
-  useModalAutoOpen(ModalEnum.POST, {
+  useModalAutoOpen(modalId, {
     isOpen: shouldAutoOpen,
     openKey,
   });
@@ -165,7 +183,7 @@ export default function ModalPost({
     customSubmitHandler,
     defaultValues,
     entity: null, // Don't auto-populate, we handle it manually
-    modalId: ModalEnum.POST,
+    modalId,
     onClose,
     onConfirm: stableOnConfirm,
     schema: postModalSchema,
@@ -177,6 +195,7 @@ export default function ModalPost({
     if (post) {
       form.setValue('label', post.label || '');
       form.setValue('description', post.description || '');
+      form.setValue('format', post.format || PostFormat.STANDARD);
       form.setValue(
         'scheduledDate',
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',
@@ -218,9 +237,13 @@ export default function ModalPost({
     post?.platform ||
     post?.credential?.platform;
 
-  const charLimit = selectedPlatform
-    ? PLATFORM_CHAR_LIMITS[selectedPlatform] || DEFAULT_CHAR_LIMIT
-    : DEFAULT_CHAR_LIMIT;
+  const charLimit =
+    selectedPlatform === Platform.TWITTER &&
+    form.watch('format') === PostFormat.LONG_FORM
+      ? X_LONG_FORM_CHAR_LIMIT
+      : selectedPlatform
+        ? PLATFORM_CHAR_LIMITS[selectedPlatform] || DEFAULT_CHAR_LIMIT
+        : DEFAULT_CHAR_LIMIT;
 
   const currentLength = form.watch('description')?.length || 0;
   const isOverLimit = currentLength > charLimit;
@@ -259,8 +282,14 @@ export default function ModalPost({
       };
     }
     return {
-      description: 'Create a new post to schedule for publishing',
-      title: 'Create Post',
+      description:
+        postFormat === PostFormat.LONG_FORM
+          ? 'Create a long X post, then refine or schedule it from the Posts library'
+          : 'Create a new post to schedule for publishing',
+      title:
+        postFormat === PostFormat.LONG_FORM
+          ? 'Create X Long Post'
+          : 'Create Post',
     };
   };
 
@@ -269,7 +298,7 @@ export default function ModalPost({
 
   return (
     <Modal
-      id={ModalEnum.POST}
+      id={modalId}
       modalBoxClassName="max-w-2xl"
       onClose={handleModalClosed}
     >

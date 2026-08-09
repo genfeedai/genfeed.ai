@@ -20,6 +20,7 @@ const WEBSITE_SECTIONS: FooterSection[] = [
       { href: '/integrations', label: 'Integrations' },
       { href: '/features', label: 'Features' },
       { href: '/mobile', label: 'Mobile App' },
+      { href: '/download', label: 'Desktop App' },
       { href: '/brand-os', label: 'Brand OS' },
     ],
     title: 'Platform',

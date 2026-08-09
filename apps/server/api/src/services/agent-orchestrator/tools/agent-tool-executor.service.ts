@@ -71,6 +71,8 @@ export interface ToolExecutionContext {
   streamBatchToUser?: boolean;
   /** Server-validated immutable organization + mutable brand/version scope. */
   validatedScope?: ValidatedAgentScope;
+  /** Server-only proof that this execution came from a confirmed thread UI action. */
+  confirmationOrigin?: 'thread-ui-action';
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
@@ -392,6 +394,9 @@ export class AgentToolExecutorService {
 
       case AgentToolName.CREATE_BRAND:
         return this.onboardingHandler.createBrand(params, ctx);
+
+      case AgentToolName.RENAME_BRAND:
+        return this.onboardingHandler.renameBrand(params, ctx);
 
       case AgentToolName.CHECK_ONBOARDING_STATUS:
         return this.onboardingHandler.checkOnboardingStatus(ctx);

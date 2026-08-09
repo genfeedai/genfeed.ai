@@ -2,7 +2,8 @@
 
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { WorkspaceShellBreadcrumbMetadata } from '@genfeedai/interfaces/ui/workspace-shell.interface';
-import { usePathname } from 'next/navigation';
+import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.helper';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { createContext, use, useCallback, useMemo, useState } from 'react';
 
@@ -70,6 +71,7 @@ function stripOrgPrefix(path: string): string {
       'discover',
       'issues',
       'overview',
+      'publish',
       'ingredients',
       'videos',
       'edit',
@@ -139,6 +141,12 @@ export function SidebarNavigationProvider({
   items,
 }: SidebarNavigationProviderProps) {
   const pathname = usePathname();
+  const rawSearchParams = useSearchParams();
+  const searchParamsString = rawSearchParams?.toString() ?? '';
+  const searchParams = useMemo(
+    () => new URLSearchParams(searchParamsString),
+    [searchParamsString],
+  );
 
   const groups = useMemo<GroupedMenu[]>(() => {
     const result: GroupedMenu[] = [];
@@ -164,6 +172,7 @@ export function SidebarNavigationProvider({
       | {
           derivedGroupId: string;
           derivedPageLabel: string;
+          querySpecificity: number;
           specificity: number;
         }
       | undefined;
@@ -182,14 +191,26 @@ export function SidebarNavigationProvider({
           const matches = item.isExactMatch
             ? normalizedPathname === candidatePathname
             : isPathActive(candidatePath, pathname);
+          const queryMatches = matchesMenuSearchParams(
+            searchParams,
+            item.matchSearchParams,
+          );
+          const querySpecificity = item.matchSearchParams
+            ? Object.keys(item.matchSearchParams).length
+            : 0;
 
           if (
             matches &&
-            (!bestMatch || candidatePathname.length > bestMatch.specificity)
+            queryMatches &&
+            (!bestMatch ||
+              candidatePathname.length > bestMatch.specificity ||
+              (candidatePathname.length === bestMatch.specificity &&
+                querySpecificity > bestMatch.querySpecificity))
           ) {
             bestMatch = {
               derivedGroupId: g.group,
               derivedPageLabel: item.label,
+              querySpecificity,
               specificity: candidatePathname.length,
             };
           }
@@ -205,7 +226,7 @@ export function SidebarNavigationProvider({
       derivedGroupId: groups[0]?.group ?? '',
       derivedPageLabel: '',
     };
-  }, [groups, pathname]);
+  }, [groups, pathname, searchParams]);
 
   const autoNestedGroupId = useMemo(() => {
     const activeGroup = groups.find((g) => g.group === derivedGroupId);

@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 const cardPropsSpies = vi.hoisted(() => ({
   aiTextAction: vi.fn(),
   brandCreate: vi.fn(),
+  brandIdentityConfirmation: vi.fn(),
   brandInterviewOffer: vi.fn(),
   brandVoiceProfile: vi.fn(),
   clipWorkflowRun: vi.fn(),
@@ -57,6 +58,13 @@ vi.mock('@genfeedai/agent/components/BrandCreateCard', () => ({
   BrandCreateCard: (props: Record<string, unknown>) => {
     cardPropsSpies.brandCreate(props);
     return <div data-testid="brand-create-card" />;
+  },
+}));
+
+vi.mock('@genfeedai/agent/components/BrandIdentityConfirmationCard', () => ({
+  BrandIdentityConfirmationCard: (props: Record<string, unknown>) => {
+    cardPropsSpies.brandIdentityConfirmation(props);
+    return <div data-testid="brand-identity-confirmation-card" />;
   },
 }));
 
@@ -383,4 +391,84 @@ describe('UiActionRenderer', () => {
       expect(spy).not.toHaveBeenCalled();
     },
   );
+
+  it('adapts a successful onUiAction outcome for brand identity confirmation cards', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(true);
+    const action = {
+      id: 'brand-confirmation-1',
+      type: 'brand_identity_confirmation_card',
+    } as AgentUiAction;
+
+    render(<UiActionRenderer action={action} onUiAction={onUiAction} />);
+
+    expect(
+      screen.getByTestId('brand-identity-confirmation-card'),
+    ).toBeInTheDocument();
+    const confirmationHandler =
+      cardPropsSpies.brandIdentityConfirmation.mock.calls.at(-1)?.[0]
+        .onUiAction as
+        | ((
+            actionName: string,
+            payload?: Record<string, unknown>,
+          ) => Promise<boolean>)
+        | undefined;
+
+    if (!confirmationHandler) {
+      throw new Error('Brand confirmation handler was not forwarded.');
+    }
+
+    await expect(
+      confirmationHandler('confirm_create_brand', { label: 'Genfeed' }),
+    ).resolves.toBe(true);
+    expect(onUiAction).toHaveBeenCalledWith('confirm_create_brand', {
+      label: 'Genfeed',
+    });
+  });
+
+  it('adapts a void legacy outcome to failure for brand confirmation cards', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(undefined);
+    const action = {
+      id: 'brand-confirmation-void',
+      type: 'brand_identity_confirmation_card',
+    } as AgentUiAction;
+
+    render(<UiActionRenderer action={action} onUiAction={onUiAction} />);
+
+    const confirmationHandler =
+      cardPropsSpies.brandIdentityConfirmation.mock.calls.at(-1)?.[0]
+        .onUiAction as
+        | ((
+            actionName: string,
+            payload?: Record<string, unknown>,
+          ) => Promise<boolean>)
+        | undefined;
+
+    if (!confirmationHandler) {
+      throw new Error('Brand confirmation handler was not forwarded.');
+    }
+
+    await expect(confirmationHandler('confirm_create_brand')).resolves.toBe(
+      false,
+    );
+  });
+
+  it('makes archived brand identity confirmations inert and drops their handler', () => {
+    const onUiAction = vi.fn();
+    const action = {
+      id: 'brand-confirmation-archived',
+      type: 'brand_identity_confirmation_card',
+    } as AgentUiAction;
+
+    render(
+      <UiActionRenderer action={action} isReadOnly onUiAction={onUiAction} />,
+    );
+
+    expect(screen.getByTestId('ui-action-archived-readonly')).toHaveAttribute(
+      'inert',
+    );
+    expect(
+      cardPropsSpies.brandIdentityConfirmation.mock.calls.at(-1)?.[0]
+        .onUiAction,
+    ).toBeUndefined();
+  });
 });

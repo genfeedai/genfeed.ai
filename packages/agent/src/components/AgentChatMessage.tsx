@@ -3,7 +3,10 @@ import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGenerat
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import { UiActionRenderer } from '@genfeedai/agent/components/UiActionRenderer';
 import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
-import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentChatMessage as AgentChatMessageType,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import {
   hasProductResultCard,
@@ -36,10 +39,7 @@ interface AgentChatMessageProps {
     credits: number;
   }) => void;
   onSelectIngredient?: (ingredient: { id: string; title?: string }) => void;
-  onUiAction?: (
-    action: string,
-    payload?: Record<string, unknown>,
-  ) => void | Promise<void>;
+  onUiAction?: AgentUiActionHandler;
   isBusy?: boolean;
   /** Archived thread — strip mutating card actions and retry/regenerate. */
   isReadOnly?: boolean;

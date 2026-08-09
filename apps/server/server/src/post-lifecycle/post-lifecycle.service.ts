@@ -68,8 +68,10 @@ export function canTransitionPostLifecycle(
   return from === to || POST_LIFECYCLE_TRANSITIONS[from].has(to);
 }
 
+// Unchecked so callers can assign FK scalars (e.g. `reviewVersionPinId`)
+// directly instead of nested relation writes.
 export type PostLifecycleMutation = Omit<
-  Prisma.PostUpdateManyMutationInput,
+  Prisma.PostUncheckedUpdateManyInput,
   'organizationId' | 'status' | 'targetExecutionState' | 'visibility'
 >;
 
@@ -289,10 +291,7 @@ export class PostLifecycleService {
     });
 
     const persisted = await transaction.post.findFirst({
-      where: {
-        id: input.postId,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.postId }),
     });
     if (!persisted) {
       throw new PostLifecycleTargetNotFoundException(input.postId);
@@ -340,10 +339,7 @@ export class PostLifecycleService {
     }
 
     return transaction.post.findFirst({
-      where: {
-        id: input.postId,
-        organizationId: input.organizationId,
-      },
+      where: scopedWhere(input.organizationId, { id: input.postId }),
     });
   }
 
