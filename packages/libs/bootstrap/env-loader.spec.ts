@@ -19,33 +19,22 @@ vi.mock('dotenv', () => ({
 }));
 
 describe('bootstrap', () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-  const originalServiceName = process.env.SERVICE_NAME;
   const originalMaxListeners = EventEmitter.defaultMaxListeners;
   const originalProcessMaxListeners = process.getMaxListeners();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.SERVICE_NAME;
+    vi.stubEnv('SERVICE_NAME', undefined);
   });
 
   afterEach(() => {
-    if (originalNodeEnv === undefined) {
-      delete process.env.NODE_ENV;
-    } else {
-      process.env.NODE_ENV = originalNodeEnv;
-    }
-    if (originalServiceName === undefined) {
-      delete process.env.SERVICE_NAME;
-    } else {
-      process.env.SERVICE_NAME = originalServiceName;
-    }
+    vi.unstubAllEnvs();
     EventEmitter.defaultMaxListeners = originalMaxListeners;
     process.setMaxListeners(originalProcessMaxListeners);
   });
 
   it('loads production env files when NODE_ENV is production', () => {
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     vi.mocked(fs.existsSync).mockReturnValue(true);
 
     bootstrap({ app: 'api' });
@@ -57,7 +46,7 @@ describe('bootstrap', () => {
   });
 
   it('loads staging env files when NODE_ENV is staging', () => {
-    process.env.NODE_ENV = 'staging';
+    vi.stubEnv('NODE_ENV', 'staging');
     vi.mocked(fs.existsSync).mockReturnValue(true);
 
     bootstrap({ app: 'files' });
@@ -69,7 +58,7 @@ describe('bootstrap', () => {
   });
 
   it('loads test env files when NODE_ENV is test', () => {
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     vi.mocked(fs.existsSync).mockReturnValue(true);
 
     bootstrap({ app: 'workers' });
@@ -81,7 +70,7 @@ describe('bootstrap', () => {
   });
 
   it('loads local development env files in priority order otherwise', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
     vi.mocked(fs.existsSync).mockReturnValue(true);
 
     bootstrap({ app: 'mcp' });
@@ -95,7 +84,7 @@ describe('bootstrap', () => {
   });
 
   it('skips env files that do not exist', () => {
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('NODE_ENV', 'development');
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     bootstrap({ app: 'api' });
@@ -104,7 +93,7 @@ describe('bootstrap', () => {
   });
 
   it('defaults SERVICE_NAME to the app name', () => {
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     bootstrap({ app: 'notifications' });
@@ -113,8 +102,8 @@ describe('bootstrap', () => {
   });
 
   it('keeps an explicitly configured SERVICE_NAME', () => {
-    process.env.NODE_ENV = 'test';
-    process.env.SERVICE_NAME = 'custom-label';
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('SERVICE_NAME', 'custom-label');
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     bootstrap({ app: 'api' });
@@ -123,7 +112,7 @@ describe('bootstrap', () => {
   });
 
   it('raises the max listener limits', () => {
-    process.env.NODE_ENV = 'test';
+    vi.stubEnv('NODE_ENV', 'test');
     vi.mocked(fs.existsSync).mockReturnValue(false);
 
     bootstrap({ app: 'api', maxListeners: 77 });
