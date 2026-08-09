@@ -20,6 +20,23 @@ export interface PublishResult {
   platform: CredentialPlatform | string;
   url: string;
   error?: string;
+  /**
+   * Stable machine code set by pre-publish validation failures (never by
+   * provider errors). Its presence tells the publish worker the failure is
+   * deterministic — retrying cannot succeed — and it becomes
+   * `IChannelTargetError.code` instead of a message-pattern classification.
+   */
+  errorCode?: string;
+}
+
+/**
+ * Result of validating a post against platform constraints before publishing
+ */
+export interface PostValidationResult {
+  valid: boolean;
+  error?: string;
+  /** Stable machine code for the validation failure (e.g. `caption_too_long`). */
+  errorCode?: string;
 }
 
 /**
@@ -137,5 +154,5 @@ export interface IPublisher {
   validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string };
+  ): PostValidationResult;
 }

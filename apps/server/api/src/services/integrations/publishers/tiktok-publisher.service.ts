@@ -2,6 +2,7 @@ import { type CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -64,7 +65,7 @@ export class TikTokPublisherService extends BasePublisherService {
   override validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     // First do base validation
     const baseValidation = super.validatePost(context, mediaInfo);
     if (!baseValidation.valid) {
@@ -96,7 +97,11 @@ export class TikTokPublisherService extends BasePublisherService {
     // Validate
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {

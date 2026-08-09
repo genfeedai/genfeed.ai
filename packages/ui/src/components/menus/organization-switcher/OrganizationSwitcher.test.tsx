@@ -317,7 +317,7 @@ describe('OrganizationSwitcher', () => {
     );
   });
 
-  it('persists the switch and navigates to the target org slug', async () => {
+  it('persists the switch and starts a clean target-org conversation', async () => {
     mockParams = { orgSlug: 'alpha' };
     mockGetMyOrganizations.mockResolvedValue(TWO_ORGS);
 
@@ -332,7 +332,7 @@ describe('OrganizationSwitcher', () => {
     await waitFor(() => {
       expect(mockSwitchOrganization).toHaveBeenCalledWith('org_bravo');
     });
-    expect(window.location.assign).toHaveBeenCalledWith('/bravo');
+    expect(window.location.assign).toHaveBeenCalledWith('/bravo/~/agent/new');
     // Never reloads the current (old) org URL.
     expect(window.location.reload).not.toHaveBeenCalled();
   });

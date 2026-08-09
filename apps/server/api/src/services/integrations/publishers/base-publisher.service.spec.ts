@@ -31,7 +31,7 @@ type TestThreadChildUpdate = {
 // ─── Concrete subclass for testing abstract base ──────────────────────────────
 
 class TestPublisher extends BasePublisherService {
-  readonly platform = CredentialPlatform.TWITTER;
+  readonly platform: CredentialPlatform = CredentialPlatform.TWITTER;
   readonly supportsTextOnly: boolean = true;
   readonly supportsImages: boolean = true;
   readonly supportsVideos: boolean = true;
@@ -58,8 +58,9 @@ class TestPublisher extends BasePublisherService {
   public testCreateFailedResult(
     platform: CredentialPlatform,
     error?: string,
+    errorCode?: string,
   ): PublishResult {
-    return this.createFailedResult(platform, error);
+    return this.createFailedResult(platform, error, errorCode);
   }
 
   public testCreateSuccessResult(
@@ -282,6 +283,47 @@ describe('BasePublisherService', () => {
     });
   });
 
+  // ─── caption length via the channel capability catalog ─────────────────────
+
+  describe('validateCaptionLength() via validatePost()', () => {
+    // TestPublisher is TWITTER; the catalog caption limit for X is 280.
+    it('should pass a caption exactly at the catalog limit', () => {
+      const post = makePost({ description: 'a'.repeat(280) });
+      const media = publisher.testExtractMediaInfo(post);
+      expect(publisher.validatePost(makeContext(post), media).valid).toBe(true);
+    });
+
+    it('should fail an over-limit caption with a structured caption_too_long error', () => {
+      const post = makePost({ description: 'a'.repeat(281) });
+      const media = publisher.testExtractMediaInfo(post);
+      const result = publisher.validatePost(makeContext(post), media);
+      expect(result.valid).toBe(false);
+      expect(result.errorCode).toBe('caption_too_long');
+      expect(result.error).toContain('X (Twitter)');
+      expect(result.error).toContain('281');
+      expect(result.error).toContain('280');
+    });
+
+    it('should count the sanitized text, not the raw HTML markup', () => {
+      // Raw HTML is over 280 characters; the visible text is well under.
+      const post = makePost({
+        description: `<p>${'<strong>ab</strong> '.repeat(20)}</p>`,
+      });
+      const media = publisher.testExtractMediaInfo(post);
+      expect(publisher.validatePost(makeContext(post), media).valid).toBe(true);
+    });
+
+    it('should skip the check for a platform without a catalog entry', () => {
+      class NoCatalogPublisher extends TestPublisher {
+        readonly platform: CredentialPlatform = CredentialPlatform.FANVUE;
+      }
+      const noCatalog = new NoCatalogPublisher(mockConfig, mockLogger);
+      const post = makePost({ description: 'a'.repeat(10_000) });
+      const media = noCatalog.testExtractMediaInfo(post);
+      expect(noCatalog.validatePost(makeContext(post), media).valid).toBe(true);
+    });
+  });
+
   // ─── createFailedResult() ──────────────────────────────────────────────────
 
   describe('createFailedResult()', () => {
@@ -308,6 +350,15 @@ describe('BasePublisherService', () => {
         CredentialPlatform.TWITTER,
       );
       expect(result.url).toBe('');
+    });
+
+    it('should carry the errorCode when provided', () => {
+      const result = publisher.testCreateFailedResult(
+        CredentialPlatform.TWITTER,
+        'caption too long',
+        'caption_too_long',
+      );
+      expect(result.errorCode).toBe('caption_too_long');
     });
   });
 

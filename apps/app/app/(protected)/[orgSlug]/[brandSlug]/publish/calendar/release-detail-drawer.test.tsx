@@ -75,6 +75,7 @@ function renderDrawer(
     <ReleaseDetailDrawer
       error={null}
       pendingAction={pending}
+      reconnectHref="/acme-org/acme-creator/settings/social"
       release={release(overrides)}
       {...handlers}
     />,
@@ -189,10 +190,12 @@ describe('ReleaseDetailDrawer', () => {
     ).toBeEnabled();
   });
 
-  it('blocks a target the publishing-readiness gate would reject anyway', () => {
+  it('sends a failed, readiness-blocked target to reconnect instead of retrying', () => {
     renderDrawer({
+      status: ReleaseStatus.FAILED,
       targets: [
         target({
+          executionState: TargetExecutionState.FAILED,
           readiness: {
             canSchedule: false,
             diagnostics: [
@@ -222,6 +225,12 @@ describe('ReleaseDetailDrawer', () => {
     expect(
       screen.getByRole('button', { name: 'Reschedule Instagram target' }),
     ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Retry Instagram target' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('link', { name: 'Reconnect Instagram' }),
+    ).toHaveAttribute('href', '/acme-org/acme-creator/settings/social');
   });
 
   it('lists the validation issues that produced an invalid target', () => {
@@ -259,6 +268,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
+        reconnectHref="/acme-org/acme-creator/settings/social"
         release={release()}
       />,
     );
@@ -283,6 +293,7 @@ describe('ReleaseDetailDrawer', () => {
         onRescheduleTarget={vi.fn()}
         onRetryTarget={vi.fn()}
         pendingAction={null}
+        reconnectHref="/acme-org/acme-creator/settings/social"
         release={null}
       />,
     );

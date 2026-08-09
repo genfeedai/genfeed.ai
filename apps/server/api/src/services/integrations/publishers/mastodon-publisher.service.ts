@@ -5,6 +5,7 @@ import { MastodonService } from '@api/services/integrations/mastodon/services/ma
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
@@ -46,8 +47,8 @@ export class MastodonPublisherService extends BasePublisherService {
   override validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
-    // Run base validation first
+  ): PostValidationResult {
+    // Run base validation first (includes catalog-driven caption length)
     const baseValidation = super.validatePost(context, mediaInfo);
     if (!baseValidation.valid) {
       return baseValidation;
@@ -57,15 +58,6 @@ export class MastodonPublisherService extends BasePublisherService {
     if (mediaInfo.ingredientIds.length > 4) {
       return {
         error: 'Mastodon supports a maximum of 4 media attachments',
-        valid: false,
-      };
-    }
-
-    // Mastodon character limit is 500 (default, can vary by instance)
-    const text = this.sanitizeDescription(context.post.description);
-    if (text.length > 500) {
-      return {
-        error: 'Mastodon posts are limited to 500 characters',
         valid: false,
       };
     }
@@ -87,7 +79,11 @@ export class MastodonPublisherService extends BasePublisherService {
     // Validate
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {

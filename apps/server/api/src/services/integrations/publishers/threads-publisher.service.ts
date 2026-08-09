@@ -3,6 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { BasePublisherService } from '@api/services/integrations/publishers/base-publisher.service';
 import type {
   MediaInfo,
+  PostValidationResult,
   PublishContext,
   PublishResult,
   ThreadChild,
@@ -55,7 +56,11 @@ export class ThreadsPublisherService extends BasePublisherService {
     // Validate
     const validation = this.validatePost(context, mediaInfo);
     if (!validation.valid) {
-      return this.createFailedResult(this.platform, validation.error);
+      return this.createFailedResult(
+        this.platform,
+        validation.error,
+        validation.errorCode,
+      );
     }
 
     try {
@@ -151,7 +156,7 @@ export class ThreadsPublisherService extends BasePublisherService {
   validatePost(
     context: PublishContext,
     mediaInfo: MediaInfo,
-  ): { valid: boolean; error?: string } {
+  ): PostValidationResult {
     // First run base validation
     const baseValidation = super.validatePost(context, mediaInfo);
     if (!baseValidation.valid) {
