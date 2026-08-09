@@ -36,5 +36,25 @@
     "loadFailed": "Failed to load. Please try again.",
     "notFound": "Not found",
     "updateFailed": "Failed to update. Please try again."
+  },
+  "home": {
+    "activity": {
+      "open": "View activity"
+    },
+    "approvals": {
+      "empty": "Nothing is waiting for review.",
+      "open": "Open queue"
+    },
+    "credentials": {
+      "manage": "Manage accounts"
+    },
+    "publishing": {
+      "empty": "No publishing runs yet. Drafts created through MCP will appear here.",
+      "open": "Open publishing"
+    },
+    "schedule": {
+      "empty": "Nothing is scheduled for the next 7 days.",
+      "open": "Open calendar"
+    }
   }
 }
