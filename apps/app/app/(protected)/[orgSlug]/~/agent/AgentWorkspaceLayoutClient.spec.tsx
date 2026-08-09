@@ -28,6 +28,12 @@ const navigationState = {
 
 const storeState = {
   activeThreadId: 'thread-existing' as string | null,
+  threads: [] as Array<{
+    brandId?: string | null;
+    id: string;
+    organizationId?: string;
+    status?: string;
+  }>,
 };
 
 vi.mock('@genfeedai/auth-client/react', () => ({
@@ -138,6 +144,7 @@ describe('AgentWorkspaceLayoutClient', () => {
     navigationState.pathname = '/agent/new';
     navigationState.searchParams = new URLSearchParams();
     storeState.activeThreadId = 'thread-existing';
+    storeState.threads = [];
     routerReplace.mockReset();
     sendMessage.mockReset();
     sendMessage.mockResolvedValue(undefined);
@@ -180,6 +187,56 @@ describe('AgentWorkspaceLayoutClient', () => {
 
     expect(routerReplace).not.toHaveBeenCalled();
     expect(getThreadsEffect).not.toHaveBeenCalled();
+  });
+
+  it('redirects a deep-linked thread to the brand that owns it', async () => {
+    navigationState.pathname = '/agent/thread-on-other-brand';
+    storeState.activeThreadId = 'thread-on-other-brand';
+    storeState.threads = [
+      {
+        brandId: 'brand-2',
+        id: 'thread-on-other-brand',
+        organizationId: 'org-1',
+        status: 'archived',
+      },
+    ];
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/second-brand/agent/thread-on-other-brand',
+      );
+    });
+  });
+
+  it('does not redirect when the open thread already matches the route brand', async () => {
+    navigationState.pathname = '/agent/thread-same-brand';
+    storeState.activeThreadId = 'thread-same-brand';
+    storeState.threads = [
+      {
+        brandId: 'brand-1',
+        id: 'thread-same-brand',
+        organizationId: 'org-1',
+        status: 'active',
+      },
+    ];
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(routerReplace).not.toHaveBeenCalled();
   });
 
   it('restores the most recent active thread authorized for the route organization', async () => {

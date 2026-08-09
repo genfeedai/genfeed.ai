@@ -3,12 +3,23 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 const GENERIC_DONE_COPY = new Set([
   'generated content for this request.',
   'generated content for this request',
+  'completed this request successfully.',
+  'completed this request successfully',
   'done',
   'completed',
   'complete',
   'finished',
   'success',
 ]);
+
+/** Tool-inventory bullets from the generic tool-only Done card — not product signal. */
+function isToolInventoryBullet(bullet: string): boolean {
+  const trimmed = bullet.trim();
+  return (
+    /^\d+\s+tool action(s)?\s+completed$/i.test(trimmed) ||
+    /^tool:\s+/i.test(trimmed)
+  );
+}
 
 /**
  * Product result cards that already own the turn. A generic Done summary
@@ -61,7 +72,7 @@ function isGenericDoneCopy(value: string | undefined): boolean {
   return GENERIC_DONE_COPY.has(value.trim().toLowerCase());
 }
 
-/** True when Done carries media, bullets, or non-generic outcome copy. */
+/** True when Done carries media, real product bullets, or non-generic copy. */
 export function completionSummaryHasOutcomeSignal(
   action: AgentUiAction,
 ): boolean {
@@ -71,9 +82,15 @@ export function completionSummaryHasOutcomeSignal(
   if ((action.secondaryCtas?.length ?? 0) > 0) {
     return true;
   }
-  if ((action.outcomeBullets?.length ?? 0) > 0) {
+
+  const bullets = action.outcomeBullets ?? [];
+  const hasProductBullets = bullets.some(
+    (bullet) => !isToolInventoryBullet(bullet),
+  );
+  if (hasProductBullets) {
     return true;
   }
+
   if (
     !isGenericDoneCopy(action.summaryText) ||
     !isGenericDoneCopy(action.description)
@@ -90,26 +107,21 @@ export function hasProductResultCard(
 }
 
 /**
- * Hide the sticky "Done" card when it adds no signal beyond a sibling product
- * result card. Keeps T3/Codex density: one result surface per turn.
+ * Hide the sticky "Done" card when it adds no product signal — sibling product
+ * cards own the turn, and tool-inventory-only Done on clarify turns is chrome
+ * noise (T3/Codex density).
  */
 export function shouldRenderCompletionSummary(
   action: AgentUiAction,
-  siblingActions: readonly AgentUiAction[],
+  // Kept for call-site stability; product-card suppression is now covered by
+  // the outcome-signal gate (generic Done never renders on its own).
+  _siblingActions: readonly AgentUiAction[],
 ): boolean {
   if (action.type !== 'completion_summary_card') {
     return false;
   }
 
-  // Real media / bullets / non-generic copy always stay — Done is the story.
-  if (completionSummaryHasOutcomeSignal(action)) {
-    return true;
-  }
-
-  // Any product result card already owns the turn — drop generic Done.
-  if (hasProductResultCard(siblingActions)) {
-    return false;
-  }
-
-  return true;
+  // Real media / product bullets / non-generic copy stay — Done is the story.
+  // Generic / tool-inventory-only Done is chrome noise on clarify turns.
+  return completionSummaryHasOutcomeSignal(action);
 }

@@ -289,6 +289,54 @@ describe('AgentCompletionCardBuilderService', () => {
     ).toEqual([existingAction]);
   });
 
+  it('does not mint Done for context-only tools (clarify turns)', () => {
+    expect(
+      service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          { status: 'completed', toolName: AgentToolName.GET_CURRENT_BRAND },
+        ],
+        uiActions: [],
+      }).uiActions,
+    ).toEqual([]);
+
+    expect(
+      service.buildAssistantUiActions({
+        reviewRequired: false,
+        toolCalls: [
+          { status: 'completed', toolName: AgentToolName.GET_CURRENT_BRAND },
+          { status: 'completed', toolName: AgentToolName.LIST_BRANDS },
+          {
+            status: 'completed',
+            toolName: AgentToolName.GET_CONNECTION_STATUS,
+          },
+        ],
+        uiActions: [],
+      }).uiActions,
+    ).toEqual([]);
+  });
+
+  it('still mints Done when a productive tool runs alongside context tools', () => {
+    const result = service.buildAssistantUiActions({
+      reviewRequired: false,
+      toolCalls: [
+        { status: 'completed', toolName: AgentToolName.GET_CURRENT_BRAND },
+        { status: 'completed', toolName: AgentToolName.CREATE_POST },
+      ],
+      uiActions: [],
+    });
+
+    expect(result.uiActions[0]).toMatchObject({
+      id: `completion-summary-tools-${AgentToolName.CREATE_POST}`,
+      summaryText: 'Completed this request successfully.',
+      type: 'completion_summary_card',
+    });
+    expect(result.uiActions[0]?.outcomeBullets).toEqual([
+      '1 tool action completed',
+      'Tool: Create Post',
+    ]);
+  });
+
   it('suppresses suggestions during review without suppressing the completion card', () => {
     const result = service.buildAssistantUiActions({
       reviewRequired: true,

@@ -324,6 +324,41 @@ describe('useAgentThreadList', () => {
     expect(result.current.isArchivedView).toBe(true);
   });
 
+  it('auto-switches to archived view when the open thread is archived', async () => {
+    useAgentChatStore.setState({
+      activeThreadId: 'archived-open',
+      threads: [
+        makeThread('archived-open', {
+          brandId: 'brand-1',
+          status: AgentThreadStatus.ARCHIVED,
+        }),
+      ],
+    });
+
+    const apiService = makeApiService({
+      getThreadsEffect: vi.fn(() =>
+        Effect.succeed([
+          makeThread('archived-open', {
+            brandId: 'brand-1',
+            status: AgentThreadStatus.ARCHIVED,
+          }),
+        ]),
+      ),
+    });
+
+    const { result } = renderThreadList(apiService, { brandId: 'brand-1' });
+
+    await waitFor(() =>
+      expect(result.current.viewStatus).toBe(AgentThreadStatus.ARCHIVED),
+    );
+    expect(result.current.isArchivedView).toBe(true);
+    await waitFor(() =>
+      expect(result.current.threads.some((t) => t.id === 'archived-open')).toBe(
+        true,
+      ),
+    );
+  });
+
   it('surfaces load failures with a retry state', async () => {
     const apiService = makeApiService({
       getThreadsEffect: vi.fn(() => Effect.fail(new Error('network down'))),

@@ -36,6 +36,44 @@ interface BuildCompletionSummaryCardParams {
   uiActions: AgentUiAction[];
 }
 
+/**
+ * Read/context tools that support clarify turns. Completing only these must
+ * not emit a sticky "Done · Completed successfully" card — the assistant
+ * prose is the answer.
+ */
+const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
+  AgentToolName.GET_CURRENT_BRAND,
+  AgentToolName.LIST_BRANDS,
+  AgentToolName.GET_CREDITS_BALANCE,
+  AgentToolName.GET_CONNECTION_STATUS,
+  AgentToolName.LIST_POSTS,
+  AgentToolName.LIST_WORKFLOWS,
+  AgentToolName.LIST_WORKFLOW_RUNS,
+  AgentToolName.LIST_AGENT_RUNS,
+  AgentToolName.LIST_SYSTEM_WORKFLOW_CATALOG,
+  AgentToolName.LIST_GENFEED_TOOLS,
+  AgentToolName.LIST_REVIEW_QUEUE,
+  AgentToolName.GET_APPROVAL_SUMMARY,
+  AgentToolName.CHECK_ONBOARDING_STATUS,
+  AgentToolName.GET_BRAND_COMPLETENESS,
+  AgentToolName.GET_DASHBOARD_LAYOUT,
+  AgentToolName.GET_CONTENT_CALENDAR,
+  AgentToolName.CHECK_GOAL_PROGRESS,
+  AgentToolName.INSPECT_WORKFLOW,
+  AgentToolName.GET_WORKFLOW_RUN,
+  AgentToolName.GET_WORKFLOW_INPUTS,
+  AgentToolName.LIST_ADS_RESEARCH,
+  AgentToolName.GET_AD_RESEARCH_DETAIL,
+  AgentToolName.LIST_INSTAGRAM_INSPIRATION,
+  AgentToolName.GET_INSTAGRAM_INSPIRATION_DETAIL,
+  AgentToolName.GET_TOP_INGREDIENTS,
+  AgentToolName.RESOLVE_HANDLE,
+  AgentToolName.GET_ANALYTICS,
+  AgentToolName.ANALYZE_PERFORMANCE,
+  AgentToolName.GET_CAMPAIGN_ANALYTICS,
+  AgentToolName.GET_TRENDS,
+]);
+
 @Injectable()
 export class AgentCompletionCardBuilderService {
   buildAssistantUiActions(
@@ -325,14 +363,6 @@ export class AgentCompletionCardBuilderService {
       };
     }
 
-    const hasCompletedTool = params.toolCalls.some(
-      (toolCall) => toolCall.status === 'completed',
-    );
-
-    if (!hasCompletedTool) {
-      return null;
-    }
-
     if (params.uiActions.length > 0) {
       return null;
     }
@@ -342,15 +372,24 @@ export class AgentCompletionCardBuilderService {
       .map((toolCall) => toolCall.toolName)
       .filter((toolName): toolName is string => typeof toolName === 'string');
 
+    // Productive tools only — pure context/read tools must not mint Done.
+    const productiveToolNames = completedToolNames.filter(
+      (toolName) => !CONTEXT_ONLY_COMPLETION_TOOLS.has(toolName),
+    );
+
+    if (productiveToolNames.length === 0) {
+      return null;
+    }
+
     const outcomeBullets = [
-      `${completedToolNames.length} tool action${completedToolNames.length === 1 ? '' : 's'} completed`,
-      ...completedToolNames
+      `${productiveToolNames.length} tool action${productiveToolNames.length === 1 ? '' : 's'} completed`,
+      ...productiveToolNames
         .slice(0, 3)
         .map((toolName) => `Tool: ${this.formatCompletionToolName(toolName)}`),
     ];
 
     return {
-      id: `completion-summary-tools-${completedToolNames[0] ?? 'generic'}`,
+      id: `completion-summary-tools-${productiveToolNames[0] ?? 'generic'}`,
       outcomeBullets,
       secondaryCtas: this.buildCompletionSecondaryCtas(params.suggestedActions),
       status: 'completed',

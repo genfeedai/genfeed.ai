@@ -70,6 +70,14 @@ export function useAgentThreadList({
   const previousBrandIdRef = useRef(brandId);
   const menuButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const activeThreadStatus = useAgentChatStore((s) => {
+    if (!s.activeThreadId) {
+      return null;
+    }
+    return (
+      s.threads.find((thread) => thread.id === s.activeThreadId)?.status ?? null
+    );
+  });
 
   const getThreadHref = useCallback(
     (threadId: string) => `${APP_ROUTES.AGENT.ROOT}/${threadId}`,
@@ -128,9 +136,19 @@ export function useAgentThreadList({
       );
       const apiIds = new Set(renderableData.map((item) => item.id));
 
+      // Always keep the open thread visible even when the list filter (status
+      // or brand timing) would drop it — e.g. archived deep link before the
+      // view flips, or a brand-scoped upsert that landed before the API page.
       const activeThread =
         currentActiveId && !apiIds.has(currentActiveId)
-          ? renderableCurrent.find((t) => t.id === currentActiveId)
+          ? (renderableCurrent.find((t) => t.id === currentActiveId) ??
+            current.find(
+              (t) =>
+                t.id === currentActiveId &&
+                hasRenderableThreadId(t) &&
+                matchesBrandScope(t),
+            ) ??
+            null)
           : null;
 
       const RECENT_THRESHOLD_MS = 15_000;
@@ -299,6 +317,22 @@ export function useAgentThreadList({
     prevActiveIdRef.current = activeThreadId;
   }, [activeThreadId, isActive, threads, loadThreads, viewStatus]);
 
+  // Deep-linking into an archived thread must not leave the sidebar on Active
+  // ("No threads"). Only auto-enter archived view — never force Active so
+  // operators can still browse the archive while a live thread is open.
+  useEffect(() => {
+    if (!isActive || !activeThreadId || !activeThreadStatus) {
+      return;
+    }
+
+    if (
+      activeThreadStatus === AgentThreadStatus.ARCHIVED &&
+      viewStatus !== AgentThreadStatus.ARCHIVED
+    ) {
+      setViewStatus(AgentThreadStatus.ARCHIVED);
+    }
+  }, [activeThreadId, activeThreadStatus, isActive, viewStatus]);
+
   const handleSelect = useCallback(
     async (thread: AgentThread) => {
       clearThreadAttention(thread.id);
@@ -393,7 +427,11 @@ export function useAgentThreadList({
             ),
           );
           if (onNavigate) {
+            // Leave the archived row behind so Active list reloads cleanly;
+            // do not keep this thread selected under /agent/new.
+            setActiveThread(null);
             clearMessages();
+            resetActiveConversationState();
             onNavigate(getNewThreadHref());
           }
         } else {
@@ -411,6 +449,8 @@ export function useAgentThreadList({
       clearMessages,
       getNewThreadHref,
       onNavigate,
+      resetActiveConversationState,
+      setActiveThread,
       setThreads,
     ],
   );

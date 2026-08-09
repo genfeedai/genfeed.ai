@@ -422,6 +422,7 @@ export function useAgentFullPage({
             createdAt: now,
             contextVersion: thread.contextVersion,
             id: threadId,
+            organizationId: thread.organizationId,
             planModeEnabled: thread.planModeEnabled,
             source: thread.source,
             status: thread.status,
