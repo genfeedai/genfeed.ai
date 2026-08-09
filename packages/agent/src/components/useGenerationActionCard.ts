@@ -1,4 +1,7 @@
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type {
   AgentApiService,
   GenerationModel,
@@ -11,7 +14,6 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
-import type { AgentUiActionHandler } from '@genfeedai/interfaces';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   AUTO_MODEL_OPTION_VALUE,

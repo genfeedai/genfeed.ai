@@ -2,6 +2,7 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type {
   CredentialPlatform,
   PostCategory,
+  PostFormat,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
@@ -36,6 +37,7 @@ export class Post extends BaseEntity implements IPost {
   public declare label: string;
   public declare description?: string;
   public declare category: PostCategory;
+  public declare format?: PostFormat;
   public declare status: PostStatus;
   public declare targetExecutionState: TargetExecutionState;
   public declare visibility: PostVisibility;
@@ -50,6 +52,9 @@ export class Post extends BaseEntity implements IPost {
   public declare publishedAt?: string;
   public declare retryCount?: number;
   public declare targetError?: IChannelTargetError | null;
+  public declare originalPostId?: string | null;
+  public declare reviewBatchId?: string | null;
+  public declare reviewItemId?: string | null;
   public declare parent?: string;
   public declare children?: IPost[];
   public declare order?: number;

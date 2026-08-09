@@ -50,6 +50,7 @@ interface ReviewQueueViewProps {
   onBatchChange: (value: string) => void;
   onBulkApprove: () => void;
   onBulkReject: () => void;
+  onBulkRewriteWithAgent: () => void;
   onDiscardBatch: () => void;
   onClosePostDetail: () => void;
   onFilterChange: (filters: ReviewStatusFilter[]) => void;
@@ -86,6 +87,7 @@ export default function ReviewQueueView({
   onBatchChange,
   onBulkApprove,
   onBulkReject,
+  onBulkRewriteWithAgent,
   onDiscardBatch,
   onClosePostDetail,
   onFilterChange,
@@ -222,6 +224,7 @@ export default function ReviewQueueView({
             selectedIds={selectedIds}
             onBulkApprove={onBulkApprove}
             onBulkReject={onBulkReject}
+            onBulkRewriteWithAgent={onBulkRewriteWithAgent}
             onDiscardBatch={onDiscardBatch}
             onSelectItem={onSelectItem}
             onToggleSelect={onToggleSelect}

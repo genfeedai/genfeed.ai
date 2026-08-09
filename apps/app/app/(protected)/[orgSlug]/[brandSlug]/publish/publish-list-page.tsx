@@ -5,15 +5,13 @@ import {
 } from '@app-server/query-hydration.server';
 import { loadReleasePostsPageData } from '@app-server/release-posts-page-data.server';
 import { PageScope, PostStatus, TargetExecutionState } from '@genfeedai/enums';
-import {
-  normalizePostsPlatform,
-  type PublisherPostsStatus,
-} from '@helpers/content/posts.helper';
-import PostsList from '@pages/posts/list/posts-list';
+import { normalizePostsPlatform } from '@helpers/content/posts.helper';
 import {
   buildPostsListQueryKey,
   getDefaultPostsSort,
   type PostsPublicationState,
+  parsePostsPublicationState,
+  parsePostsStatus,
 } from '@pages/posts/list/posts-list-query';
 import ReleasePostsList from '@pages/posts/list/release-posts-list';
 import {
@@ -21,11 +19,13 @@ import {
   normalizeReleasePostContentTypes,
   normalizeReleasePostsSort,
 } from '@pages/posts/list/release-posts-list-query';
+import PublishPostsList from './publish-posts-list';
 
 export type PostsListSearchParams = Promise<{
   contentType?: string | string[];
   page?: string;
   platform?: string;
+  publicationState?: string;
   search?: string;
   sort?: string;
   status?: string;
@@ -41,20 +41,34 @@ export async function renderPostsListPage({
   searchParams: PostsListSearchParams;
   scope?: PageScope;
   publicationStateOverride?: PostsPublicationState;
-  statusOverride?: PublisherPostsStatus;
+  statusOverride?: PostStatus;
   /** True for the canonical `/publish/posts` library (no lifecycle filter). */
   showAllPublicationStates?: boolean;
 }) {
-  const { contentType, page, platform, search, sort } = await searchParams;
+  const {
+    contentType,
+    page,
+    platform,
+    publicationState: publicationStateParam,
+    search,
+    sort,
+    status,
+  } = await searchParams;
   // Pipeline shortcuts (Drafts / Published / Failed) pass a focused override.
   // The Posts library shows every lifecycle state and filters in the table.
-  const normalizedStatus = statusOverride;
-  const publicationState = showAllPublicationStates
+  const queryStatus = parsePostsStatus(status);
+  const normalizedStatus = statusOverride ?? queryStatus;
+  const requestedPublicationState = parsePostsPublicationState(
+    publicationStateParam,
+  );
+  const publicationState = normalizedStatus
     ? undefined
     : (publicationStateOverride ??
-      (scope === PageScope.PUBLISHER && !normalizedStatus
-        ? 'not-posted'
-        : undefined));
+      (showAllPublicationStates
+        ? requestedPublicationState
+        : scope === PageScope.PUBLISHER
+          ? 'not-posted'
+          : undefined));
   const parsedPage = Math.floor(Number.parseInt(page ?? '1', 10));
   const currentPage = Number.isFinite(parsedPage) ? Math.max(1, parsedPage) : 1;
   const normalizedPlatform = normalizePostsPlatform(platform);
@@ -63,7 +77,7 @@ export async function renderPostsListPage({
 
   if (scope !== PageScope.SUPERADMIN) {
     const canonicalPublicationState = showAllPublicationStates
-      ? undefined
+      ? requestedPublicationState
       : (publicationStateOverride ??
         (normalizedStatus === PostStatus.PUBLIC
           ? 'posted'
@@ -164,12 +178,12 @@ export async function renderPostsListPage({
 
   return (
     <ServerQueryHydrationBoundary>
-      <PostsList
+      <PublishPostsList
         initialPostPresets={initialData.postPresets}
         initialPosts={initialData.posts}
         initialPagination={initialData.pagination}
         platform={normalizedPlatform}
-        publicationState={showAllPublicationStates ? null : publicationState}
+        publicationState={publicationState ?? null}
         scope={scope}
         status={normalizedStatus}
       />

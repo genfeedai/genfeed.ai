@@ -3,6 +3,11 @@ import type {
   UpdatePostRequest,
 } from '@genfeedai/api-types';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import {
+  type Platform,
+  PostFormat,
+  type PostRepurposeMode,
+} from '@genfeedai/enums';
 import type {
   AccountPublishingContext,
   ScoreSeoRequest,
@@ -204,7 +209,8 @@ export class PostsService extends BaseService<
       ingredients: string[];
       label: string;
       scheduledDate?: string;
-      status: CreatePostRequest['status'];
+      targetExecutionState?: CreatePostRequest['targetExecutionState'];
+      visibility?: CreatePostRequest['visibility'];
     }>;
   }): Promise<Post[]> {
     const [rootInput, ...replyInputs] = data.posts;
@@ -212,13 +218,38 @@ export class PostsService extends BaseService<
       return [];
     }
 
-    const root = await this.post(rootInput);
+    const root = await this.post({ ...rootInput, format: PostFormat.THREAD });
     const replies: Post[] = [];
     for (const replyInput of replyInputs) {
-      replies.push(await this.post(`${root.id}/replies`, replyInput));
+      replies.push(
+        await this.post(`${root.id}/replies`, {
+          ...replyInput,
+          format: PostFormat.THREAD,
+        }),
+      );
     }
 
     return [root, ...replies];
+  }
+
+  /**
+   * Repurpose a post into a draft for another channel (#2588).
+   * Deterministic mode returns the adapted draft immediately; agent mode
+   * returns the draft carrying its review batch reference.
+   */
+  public async repurpose(
+    id: string,
+    input: {
+      platform: Platform;
+      mode: PostRepurposeMode;
+      credentialId?: string;
+    },
+  ): Promise<Post> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/repurpose`,
+      input,
+    );
+    return this.mapOne(response.data);
   }
 
   /**

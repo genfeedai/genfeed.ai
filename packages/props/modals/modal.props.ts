@@ -11,6 +11,7 @@ import type {
   IngredientFormat,
   ModalEnum,
   Platform,
+  PostFormat,
   TagCategory,
 } from '@genfeedai/enums';
 import type {
@@ -227,9 +228,11 @@ export interface ModalPostProps extends ModalVisibilityProps {
   post?: IPost | null;
   ingredient?: IIngredient | null;
   ingredients?: IIngredient[]; // For carousel support
+  modalId?: ModalEnum;
   credential?: ICredential | null;
   credentials?: ICredential[];
   parentPost?: IPost | null;
+  postFormat?: PostFormat;
   onConfirm?: () => void;
   onClose?: () => void;
   onCreated?: (postId: string) => void; // For draft creation workflow

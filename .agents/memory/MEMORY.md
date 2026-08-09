@@ -69,6 +69,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [mcp-instagram-meta-inspiration-remix](spec-mcp-instagram-meta-inspiration-remix.md) · [decisions](decisions-mcp-instagram-meta-inspiration-remix.md)
 - [local-development-host](spec-local-development-host.md) · [decisions](decisions-local-development-host.md)
 - [adaptive-pr-validation](spec-adaptive-pr-validation.md) · [decisions](decisions-adaptive-pr-validation.md) — #1850
+- [pipeline-posts-filters](spec-pipeline-posts-filters.md) · [decisions](decisions-pipeline-posts-filters.md) — #2612
 
 ## Project state
 

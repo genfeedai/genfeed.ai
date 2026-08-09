@@ -1,6 +1,7 @@
 import type {
   CredentialPlatform,
   PostCategory,
+  PostFormat,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/enums';
@@ -22,6 +23,7 @@ import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 export interface IPost extends IBaseEntity {
   ingredients: IIngredient[];
   category: PostCategory;
+  format?: PostFormat;
   credential?: ICredential;
   user: IUser;
   organization: IOrganization;
@@ -43,6 +45,9 @@ export interface IPost extends IBaseEntity {
   publishedAt?: string;
   retryCount?: number;
   targetError?: IChannelTargetError | null;
+  originalPostId?: string | null;
+  reviewBatchId?: string | null;
+  reviewItemId?: string | null;
   reviewVersionPinId?: string | null;
   publishApprovalId?: string | null;
   publishApproval?: IPublishApproval | null;

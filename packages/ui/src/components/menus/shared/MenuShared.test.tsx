@@ -11,6 +11,7 @@ const {
   mockBrandState,
   mockLogoUrl,
   mockPathname,
+  mockSearchParams,
 } = vi.hoisted(() => ({
   mockBrandState: {
     selectedBrand: null as { label?: string } | null,
@@ -19,6 +20,7 @@ const {
   mockExitNestedGroup: vi.fn(),
   mockLogoUrl: { value: '' },
   mockPathname: { value: '/settings/personal' },
+  mockSearchParams: { value: '' },
   mockPush: vi.fn(),
 }));
 const originalLocation = window.location;
@@ -137,6 +139,7 @@ vi.mock('next/navigation', async () => {
     }),
     usePathname: () => mockPathname.value,
     useRouter: () => ({ push: mockPush }),
+    useSearchParams: () => new URLSearchParams(mockSearchParams.value),
   };
 });
 
@@ -205,6 +208,7 @@ describe('MenuShared', () => {
     mockBrandState.selectedBrand = null;
     mockLogoUrl.value = '';
     mockPathname.value = '/settings/personal';
+    mockSearchParams.value = '';
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
     const storage = new Map<string, string>();
     Object.defineProperty(globalThis, 'localStorage', {
@@ -592,6 +596,58 @@ describe('MenuShared', () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  describe('query-specific active state', () => {
+    const publishConfig: MenuConfig = {
+      items: [
+        { href: '/publish/posts', label: 'Posts' },
+        {
+          href: '/publish/posts?status=draft',
+          label: 'Review',
+          matchSearchParams: { status: 'draft' },
+        },
+        {
+          href: '/publish/posts?publicationState=not-posted',
+          label: 'Drafts',
+          matchSearchParams: {
+            publicationState: 'not-posted',
+            status: null,
+          },
+        },
+        {
+          href: '/publish/posts?publicationState=posted',
+          label: 'Published',
+          matchSearchParams: { publicationState: 'posted', status: null },
+        },
+      ],
+      logoHref: '/publish/posts',
+    };
+
+    const activeLabels = () =>
+      screen
+        .getAllByTestId('menu-item')
+        .filter((node) => node.getAttribute('data-active') === 'true')
+        .map((node) => node.textContent);
+
+    it('activates the matching Pipeline filter without also activating Posts', () => {
+      mockPathname.value = '/acme/moonrise/publish/posts';
+      mockSearchParams.value =
+        'publicationState=posted&platform=linkedin&taskId=task-1';
+
+      render(<MenuShared config={publishConfig} sectionLabel="Publish" />);
+
+      expect(activeLabels()).toEqual(['Published']);
+    });
+
+    it('keeps Posts active for filters that do not map to Pipeline', () => {
+      mockPathname.value = '/acme/moonrise/publish/posts';
+      mockSearchParams.value = 'type=article&platform=linkedin';
+
+      render(<MenuShared config={publishConfig} sectionLabel="Publish" />);
+
+      expect(activeLabels()).toEqual(['Posts']);
+    });
   });
 
   describe('workspace overview complete-path active state', () => {

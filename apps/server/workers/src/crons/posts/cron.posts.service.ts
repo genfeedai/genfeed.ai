@@ -522,7 +522,7 @@ export class CronPostsService {
       // Settings are re-resolved against the catalog here rather than trusted
       // as stored: the release was validated when it was scheduled, and the
       // catalog may have changed since.
-      const settings = resolveChannelTargetSettings(
+      const resolvedSettings = resolveChannelTargetSettings(
         platform,
         post.targetSettings,
       );
@@ -532,7 +532,7 @@ export class CronPostsService {
         credentialId: postCredentialId ?? undefined,
         platform,
         publishMode: 'publish_now',
-        settings,
+        settings: resolvedSettings,
         visibility,
       });
       if (!targetValidation.valid) {
@@ -555,18 +555,19 @@ export class CronPostsService {
         return this.createFailedResult(platform, validationError);
       }
 
-      // Beehiiv carries the approved release time through to the publisher so
-      // the newsletter goes out on schedule instead of immediately.
-      const publishSettings =
+      // Beehiiv schedules at the provider, so the approved schedule instant is
+      // handed over as ephemeral scheduler metadata on top of the validated
+      // settings — never as a stored, user-controlled channel setting.
+      const settings =
         platform === CredentialPlatform.BEEHIIV &&
         source !== 'publish_now' &&
         post.scheduledDate instanceof Date
           ? {
-              ...settings,
+              ...resolvedSettings,
               [WORKFLOW_APPROVED_SCHEDULE_SETTING]:
                 post.scheduledDate.toISOString(),
             }
-          : settings;
+          : resolvedSettings;
       const context: PublishContext = {
         brandId: postBrandId ?? '',
         credential,
@@ -574,7 +575,7 @@ export class CronPostsService {
         organizationId: postOrganizationId ?? '',
         post,
         postId: post.id.toString(),
-        settings: publishSettings,
+        settings,
         visibility,
       };
 
@@ -663,7 +664,9 @@ export class CronPostsService {
           return result;
         }
 
-        // Immediate success - update post with external ID and status
+        // Immediate success - carry the external id onto the published target.
+        // A provider draft stays lifecycle-published but keeps its publish
+        // instants unset, so nothing downstream announces it as live.
         const isProviderDraft = result.isProviderDraft === true;
         const publishedAt = new Date();
         const persisted = await this.persistPublishState(

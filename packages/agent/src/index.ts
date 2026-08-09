@@ -125,6 +125,7 @@ export type {
   AgentToolCall,
   AgentToolCallSummary,
   AgentUiAction,
+  AgentUiActionHandler,
   AgentWorkEvent,
   AgentWorkEventPayload,
   CreateThreadPayload,

@@ -154,6 +154,7 @@ describe('content schemas', () => {
           credentialId: 'c',
           creativeVersion: 'creative-v2',
           description: 'D',
+          format: 'long-form',
           hookVersion: 'hook-v1',
           personaId: 'persona-1',
           publishIntent: 'experiment',
@@ -168,6 +169,27 @@ describe('content schemas', () => {
         postModalSchema.safeParse({
           credentialId: '',
           description: 'D',
+        }).success,
+      ).toBe(false);
+    });
+
+    it('requires a date before scheduling a post', () => {
+      expect(
+        postModalSchema.safeParse({
+          credentialId: 'c',
+          description: 'D',
+          targetExecutionState: 'scheduled',
+        }).success,
+      ).toBe(false);
+    });
+
+    it('enforces the X long-post limit', () => {
+      expect(
+        postModalSchema.safeParse({
+          credentialId: 'c',
+          description: 'x'.repeat(25_001),
+          format: 'long-form',
+          status: 'draft',
         }).success,
       ).toBe(false);
     });
@@ -218,6 +240,16 @@ describe('content schemas', () => {
       ).toBe(true);
     });
 
+    it('accepts a text-only draft before scheduling', () => {
+      expect(
+        threadModalSchema.safeParse({
+          credentialId: 'c',
+          posts: [{ description: 'Root' }, { description: 'Reply' }],
+          status: 'draft',
+        }).success,
+      ).toBe(true);
+    });
+
     it('rejects empty posts', () => {
       expect(
         threadModalSchema.safeParse({
@@ -225,6 +257,16 @@ describe('content schemas', () => {
           ingredient: 'i',
           posts: [],
           scheduledDate: '2024-01-01',
+        }).success,
+      ).toBe(false);
+    });
+
+    it('requires a date before scheduling a thread', () => {
+      expect(
+        threadModalSchema.safeParse({
+          credentialId: 'c',
+          posts: [{ description: 'Root' }, { description: 'Reply' }],
+          targetExecutionState: 'scheduled',
         }).success,
       ).toBe(false);
     });

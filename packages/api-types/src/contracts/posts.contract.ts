@@ -7,6 +7,7 @@
 
 import {
   PostCategory,
+  PostFormat,
   PostFrequency,
   PostStatus,
   PostVisibility,
@@ -32,13 +33,17 @@ import {
  * Request payload for creating a new post
  * Derived from OpenAPI CreatePostDto schema
  */
-export type CreatePostRequest = components['schemas']['CreatePostDto'];
+export type CreatePostRequest = components['schemas']['CreatePostDto'] & {
+  format?: PostFormat;
+};
 
 /**
  * Request payload for updating an existing post
  * Derived from OpenAPI UpdatePostDto schema
  */
-export type UpdatePostRequest = components['schemas']['UpdatePostDto'];
+export type UpdatePostRequest = components['schemas']['UpdatePostDto'] & {
+  format?: PostFormat;
+};
 
 // ============================================================================
 // Zod Schemas for Runtime Validation
@@ -54,6 +59,7 @@ export const createPostSchema = z.object({
   description: z.string().min(1),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
+  format: z.nativeEnum(PostFormat).optional(),
   groupId: optionalStringSchema,
   ingredients: entityIdArraySchema({ max: 35 }),
   isAnalyticsEnabled: z.boolean().optional(),
@@ -95,6 +101,7 @@ export const updatePostSchema = z.object({
   description: z.string().min(1).optional(),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,
+  format: z.nativeEnum(PostFormat).optional(),
   groupId: optionalStringSchema,
   ingredients: entityIdArraySchema({ max: 35 }).optional(),
   isAnalyticsEnabled: z.boolean().optional(),

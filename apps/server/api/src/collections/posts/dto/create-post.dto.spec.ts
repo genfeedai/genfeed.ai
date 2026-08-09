@@ -1,5 +1,6 @@
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import {
+  PostFormat,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
@@ -55,6 +56,36 @@ describe('CreatePostDto', () => {
       const errors = await validate(dto);
 
       expect(errors).toHaveLength(0);
+    });
+
+    it('accepts first-class long-form and thread formats', async () => {
+      for (const format of [PostFormat.LONG_FORM, PostFormat.THREAD]) {
+        const dto = Object.assign(new CreatePostDto(), {
+          credentialId: validEntityId,
+          description: 'X content',
+          format,
+          ingredients: [],
+          label: 'Post',
+          status: PostStatus.DRAFT,
+        });
+
+        expect(await validate(dto)).toHaveLength(0);
+      }
+    });
+
+    it('rejects unsupported post formats', async () => {
+      const dto = Object.assign(new CreatePostDto(), {
+        credentialId: validEntityId,
+        description: 'X content',
+        format: 'carousel',
+        ingredients: [],
+        label: 'Post',
+        status: PostStatus.DRAFT,
+      });
+
+      const errors = await validate(dto);
+
+      expect(errors.some((error) => error.property === 'format')).toBe(true);
     });
 
     it('rejects Mongo-era relation aliases', async () => {

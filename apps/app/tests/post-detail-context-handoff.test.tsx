@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   hookData: null as UsePostDetailReturn | null,
   openPostRemixModal: vi.fn(),
+  openPostRepurposeModal: vi.fn(),
   push: vi.fn(),
 }));
 
@@ -26,6 +27,9 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
   usePostRemixModal: () => ({
     openPostRemixModal: mocks.openPostRemixModal,
+  }),
+  usePostRepurposeModal: () => ({
+    openPostRepurposeModal: mocks.openPostRepurposeModal,
   }),
 }));
 

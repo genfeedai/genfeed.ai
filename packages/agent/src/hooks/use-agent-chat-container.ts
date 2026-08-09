@@ -495,7 +495,7 @@ export function useAgentChatContainer({
 
   const handleUiAction = useCallback(
     async (action: string, payload?: Record<string, unknown>) => {
-      await handleAgentUiAction(action, payload, {
+      return await handleAgentUiAction(action, payload, {
         activeThreadId,
         activeUiAction,
         addMessage,

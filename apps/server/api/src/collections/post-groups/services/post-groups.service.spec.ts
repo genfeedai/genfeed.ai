@@ -497,7 +497,6 @@ describe('PostGroupsService', () => {
           agentThreadId: 'thread-1',
           groupId: 'group-1',
           source: 'agent',
-          status: TargetExecutionState.SCHEDULED,
           sourceActionId: 'publish-card-1',
           targetExecutionState: TargetExecutionState.SCHEDULED,
           targetValidationState: TargetValidationState.VALID,

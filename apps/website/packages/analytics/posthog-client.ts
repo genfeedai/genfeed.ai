@@ -52,9 +52,9 @@ let client: PostHog | null = null;
 let hasInitStarted = false;
 const pendingEvents: PendingEvent[] = [];
 
-/** True only when a PostHog key was baked into this build. */
+/** True only when a valid PostHog project token was baked into this build. */
 export function isWebsiteAnalyticsEnabled(): boolean {
-  return Boolean(POSTHOG_KEY);
+  return /^phc_[A-Za-z0-9]+$/.test(POSTHOG_KEY ?? '');
 }
 
 /**

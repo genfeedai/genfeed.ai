@@ -1,4 +1,5 @@
 import {
+  PostFormat,
   PostStatus,
   PostVisibility,
   TargetExecutionState,
@@ -15,6 +16,7 @@ describe('PublicPostSerializer', () => {
       credential: { id: 'credential_1', isConnected: true },
       credentialId: 'credential_1',
       description: 'Public post body',
+      format: PostFormat.LONG_FORM,
       id: 'post_1',
       label: 'Public post',
       organizationId: 'org_1',
@@ -36,6 +38,7 @@ describe('PublicPostSerializer', () => {
 
     expect(document.data.attributes).toMatchObject({
       description: 'Public post body',
+      format: PostFormat.LONG_FORM,
       label: 'Public post',
       platform: 'instagram',
       status: PostStatus.PUBLIC,

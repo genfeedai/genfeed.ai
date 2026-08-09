@@ -71,6 +71,8 @@ export interface ToolExecutionContext {
   streamBatchToUser?: boolean;
   /** Server-validated immutable organization + mutable brand/version scope. */
   validatedScope?: ValidatedAgentScope;
+  /** Server-only proof that this execution came from a confirmed thread UI action. */
+  confirmationOrigin?: 'thread-ui-action';
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<AgentToolName>([
@@ -267,6 +269,9 @@ export class AgentToolExecutorService {
       case AgentToolName.SCHEDULE_POST:
         return this.publishHandler.schedulePost(params, ctx);
 
+      case AgentToolName.REPURPOSE_POST:
+        return this.publishHandler.repurposePost(params, ctx);
+
       case AgentToolName.INSTALL_OFFICIAL_WORKFLOW:
         return this.workflowHandler.installOfficialWorkflow(params, ctx);
 
@@ -392,6 +397,9 @@ export class AgentToolExecutorService {
 
       case AgentToolName.CREATE_BRAND:
         return this.onboardingHandler.createBrand(params, ctx);
+
+      case AgentToolName.RENAME_BRAND:
+        return this.onboardingHandler.renameBrand(params, ctx);
 
       case AgentToolName.CHECK_ONBOARDING_STATUS:
         return this.onboardingHandler.checkOnboardingStatus(ctx);

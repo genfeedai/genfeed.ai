@@ -785,7 +785,7 @@ describe('CronPostsService', () => {
     });
   });
 
-  it('forwards the provider shortcode to the publish webhook', async () => {
+  it('carries the provider shortcode into the publish webhook', async () => {
     schedulerPublishStateService.transitionPost.mockResolvedValue(true);
     const post = {
       brand: 'brand-1',
@@ -914,13 +914,19 @@ describe('CronPostsService', () => {
     expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,
       post,
-      expect.not.objectContaining({
-        publicationDate: expect.anything(),
-        publishedAt: expect.anything(),
+      expect.objectContaining({
+        executionState: TargetExecutionState.PUBLISHED,
+        externalId: 'beehiiv-post-1',
       }),
       undefined,
       expect.any(Object),
     );
+    // A provider draft is lifecycle-published but never publicly live, so the
+    // publish instants stay unset instead of being carried on a status field.
+    const draftUpdate =
+      schedulerPublishStateService.transitionPost.mock.calls[1]?.[1];
+    expect(draftUpdate).not.toHaveProperty('publishedAt');
+    expect(draftUpdate).not.toHaveProperty('publicationDate');
     expect(
       publishEventWebhookService.emitLegacyPostPublished,
     ).not.toHaveBeenCalled();
@@ -1201,9 +1207,9 @@ describe('CronPostsService', () => {
       publish: vi.fn().mockResolvedValue({
         error: validationError,
         errorCode: 'caption_too_long',
+        executionState: TargetExecutionState.FAILED,
         externalId: null,
         platform: CredentialPlatform.TWITTER,
-        status: PostStatus.FAILED,
         success: false,
         url: '',
       }),
@@ -1219,7 +1225,10 @@ describe('CronPostsService', () => {
     });
 
     expect(result).toEqual(
-      expect.objectContaining({ status: PostStatus.FAILED, success: false }),
+      expect.objectContaining({
+        executionState: TargetExecutionState.FAILED,
+        success: false,
+      }),
     );
     expect(schedulerPublishStateService.transitionPost).toHaveBeenNthCalledWith(
       2,
@@ -1230,7 +1239,6 @@ describe('CronPostsService', () => {
           isRetryable: false,
         }),
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
         workflowExecutionId: 'execution-1',
       }),
       validationError,
@@ -1301,7 +1309,6 @@ describe('CronPostsService', () => {
           isRetryable: false,
         }),
         executionState: TargetExecutionState.FAILED,
-        status: PostStatus.FAILED,
       }),
       'Beehiiv rejected the connected credential.',
       expect.any(Object),

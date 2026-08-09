@@ -34,10 +34,12 @@ import {
 } from '@api-types/contracts/scheduler.contract';
 import {
   CredentialPlatform,
+  PostFormat,
   PostStatus,
   PostVisibility,
   parsePlatform,
   TargetExecutionState,
+  type TargetValidationState,
 } from '@genfeedai/enums';
 import type {
   AgentContentMentionItem,
@@ -57,6 +59,7 @@ const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
   'category',
   'credentialId',
   'description',
+  'format',
   'ingredients',
   'isRepeat',
   'isShareToFeedSelected',
@@ -108,6 +111,10 @@ export type PostCreateInput = Omit<CreatePostDto, 'credentialId'> & {
   sourceActionId?: string;
   sourceWorkflowId?: string;
   sourceWorkflowName?: string;
+  targetExecutionState?: TargetExecutionState;
+  targetSettings?: Record<string, unknown>;
+  targetValidationIssues?: string[];
+  targetValidationState?: TargetValidationState;
   userId?: string;
 };
 
@@ -139,6 +146,7 @@ const POST_SCALAR_FIELDS = [
   'entityModel',
   'externalId',
   'externalShortcode',
+  'format',
   'generationId',
   'groupId',
   'hookVersion',
@@ -835,6 +843,7 @@ export class PostsService extends BaseService<
       threadPosts[0];
     const rootPostDto = {
       ...rootPostWithoutParent,
+      format: PostFormat.THREAD,
       order: 0,
       parentId: undefined,
     };
@@ -848,6 +857,7 @@ export class PostsService extends BaseService<
 
       const postDto = {
         ...postWithoutParent,
+        format: PostFormat.THREAD,
         order: i,
         parentId: rootPostId,
       };
@@ -970,6 +980,10 @@ export class PostsService extends BaseService<
 
     const rootPostId = rootPost.id.toString();
 
+    if (rootPost.format !== PostFormat.THREAD) {
+      await this.patch(rootPostId, { format: PostFormat.THREAD }, []);
+    }
+
     const childrenCount = await this.prisma.post.count({
       where: scopedWhere(parentPost.organizationId, { parentId: rootPostId }),
     });
@@ -978,6 +992,7 @@ export class PostsService extends BaseService<
 
     const replyDto = {
       ...dtoWithoutParent,
+      format: PostFormat.THREAD,
       order: childrenCount + 1,
       parentId: rootPostId,
     };

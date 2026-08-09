@@ -14,6 +14,7 @@ import {
   LazyModalPost,
   LazyModalPostBatch,
   LazyModalPostRemix,
+  LazyModalPostRepurpose,
   LazyModalPrompt,
   LazyModalUpload,
   LazyPostMetadataOverlay,
@@ -37,6 +38,7 @@ export default function GlobalModalsRenderer({
   closeIngredientOverlay,
   closePostMetadataOverlay,
   closePostRemixModal,
+  closePostRepurposeModal,
   closePromptModal,
   closeUpload,
   credentials,
@@ -57,6 +59,8 @@ export default function GlobalModalsRenderer({
   postMetadataOverlayData,
   postRemixData,
   postRemixTrigger,
+  postRepurposeData,
+  postRepurposeTrigger,
   promptConfig,
   publishIngredient,
   publishIngredients,
@@ -268,6 +272,20 @@ export default function GlobalModalsRenderer({
             closePostRemixModal();
           }}
           onClose={closePostRemixModal}
+        />
+      )}
+
+      {postRepurposeData && (
+        <LazyModalPostRepurpose
+          key={postRepurposeTrigger}
+          isOpen={Boolean(postRepurposeData)}
+          openKey={postRepurposeTrigger}
+          source={postRepurposeData.source}
+          onSubmit={async (platform, mode) => {
+            await postRepurposeData.onSubmit(platform, mode);
+            closePostRepurposeModal();
+          }}
+          onClose={closePostRepurposeModal}
         />
       )}
     </>

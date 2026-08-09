@@ -9,11 +9,14 @@ import {
 import type { IPost } from '@genfeedai/interfaces';
 import type { TableAction } from '@props/ui/display/table.props';
 import {
+  CalendarClock,
   Copy,
   ExternalLink,
   Eye,
   Pencil,
   RefreshCw,
+  Repeat2,
+  Sparkles,
   Trash2,
 } from 'lucide-react';
 
@@ -24,7 +27,10 @@ export type BuildPostsTableActionsParams = {
   onViewIngredient: (post: IPost) => void;
   onOpenPlatformUrl: (post: IPost) => void;
   onRemix: (post: IPost) => void;
+  onRepurpose: (post: IPost) => void;
+  onRewriteWithAgent?: (post: IPost) => void;
   onRetry: (post: IPost) => void;
+  onSuggestScheduleWithAgent?: (post: IPost) => void;
 };
 
 export function buildPostsTableActions({
@@ -34,7 +40,10 @@ export function buildPostsTableActions({
   onViewIngredient,
   onOpenPlatformUrl,
   onRemix,
+  onRepurpose,
+  onRewriteWithAgent,
   onRetry,
+  onSuggestScheduleWithAgent,
 }: BuildPostsTableActionsParams): TableAction<IPost>[] {
   if (scope === PageScope.SUPERADMIN) {
     return [
@@ -49,6 +58,30 @@ export function buildPostsTableActions({
   }
 
   return [
+    ...(onRewriteWithAgent
+      ? [
+          {
+            icon: () => <Sparkles />,
+            isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
+            onClick: onRewriteWithAgent,
+            size: ButtonSize.SM,
+            tooltip: 'Rewrite caption with agent',
+            variant: ButtonVariant.SECONDARY,
+          } satisfies TableAction<IPost>,
+        ]
+      : []),
+    ...(onSuggestScheduleWithAgent
+      ? [
+          {
+            icon: () => <CalendarClock />,
+            isVisible: (post: IPost) => post.status !== PostStatus.PUBLIC,
+            onClick: onSuggestScheduleWithAgent,
+            size: ButtonSize.SM,
+            tooltip: 'Suggest schedule with agent',
+            variant: ButtonVariant.SECONDARY,
+          } satisfies TableAction<IPost>,
+        ]
+      : []),
     {
       icon: () => <RefreshCw />,
       isVisible: (post: IPost) => post.status === PostStatus.FAILED,
@@ -102,6 +135,16 @@ export function buildPostsTableActions({
       onClick: onRemix,
       size: ButtonSize.SM,
       tooltip: 'Create Remix',
+      variant: ButtonVariant.DEFAULT,
+    },
+    {
+      icon: () => <Repeat2 />,
+      // Threads replies inherit their parent's channel; repurposing them
+      // standalone would strand a fragment, so only root posts offer it.
+      isVisible: (post: IPost) => !post.parent,
+      onClick: onRepurpose,
+      size: ButtonSize.SM,
+      tooltip: 'Repurpose to another channel',
       variant: ButtonVariant.DEFAULT,
     },
     {

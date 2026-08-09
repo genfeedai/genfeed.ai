@@ -5,6 +5,7 @@ import {
   type IngredientCategory,
   ModalEnum,
   type Platform,
+  type PostRepurposeMode,
 } from '@genfeedai/enums';
 import { getPublisherPostHref } from '@genfeedai/helpers/content/posts.helper';
 import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
@@ -25,6 +26,7 @@ import type {
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
+import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useRouter } from 'next/navigation';
@@ -153,6 +155,12 @@ export function useGlobalModalsState() {
   } | null>(null);
   const [postRemixTrigger, setPostRemixTrigger] = useState(0);
 
+  const [postRepurposeData, setPostRepurposeData] = useState<{
+    source: PostRepurposeSource;
+    onSubmit: (platform: Platform, mode: PostRepurposeMode) => Promise<void>;
+  } | null>(null);
+  const [postRepurposeTrigger, setPostRepurposeTrigger] = useState(0);
+
   const publishIngredient = publishIngredients[0] ?? null;
   const hasOpenGlobalModal =
     publishIngredients.length > 0 ||
@@ -167,7 +175,8 @@ export function useGlobalModalsState() {
     brandOverlayData != null ||
     postMetadataOverlayData?.post != null ||
     generateIllustrationConfig != null ||
-    postRemixData != null;
+    postRemixData != null ||
+    postRepurposeData != null;
 
   const openPostBatchModal = useCallback(
     (ingredient: IIngredient | IIngredient[]) => {
@@ -376,6 +385,22 @@ export function useGlobalModalsState() {
     closeModal(ModalEnum.POST_REMIX);
   }, []);
 
+  const openPostRepurposeModal = useCallback(
+    (
+      source: PostRepurposeSource,
+      onSubmit: (platform: Platform, mode: PostRepurposeMode) => Promise<void>,
+    ) => {
+      setPostRepurposeData({ onSubmit, source });
+      setPostRepurposeTrigger((prev) => prev + 1);
+    },
+    [],
+  );
+
+  const closePostRepurposeModal = useCallback(() => {
+    setPostRepurposeData(null);
+    closeModal(ModalEnum.POST_REPURPOSE);
+  }, []);
+
   const handleBrandOverlayConfirm = useCallback(
     async (_isRefreshing?: boolean, createdBrandId?: string) => {
       if (createdBrandId) {
@@ -416,6 +441,7 @@ export function useGlobalModalsState() {
     closeMetadataModal,
     closePostMetadataOverlay,
     closePostRemixModal,
+    closePostRepurposeModal,
     closePromptModal,
     closeUpload,
     handlePostClose: closePublishModal,
@@ -430,6 +456,7 @@ export function useGlobalModalsState() {
     openPostBatchModal,
     openPostMetadataOverlay,
     openPostRemixModal,
+    openPostRepurposeModal,
     openPromptModal,
     openUpload,
     publishIngredient,
@@ -456,6 +483,8 @@ export function useGlobalModalsState() {
     postMetadataOverlayData,
     postRemixData,
     postRemixTrigger,
+    postRepurposeData,
+    postRepurposeTrigger,
     promptConfig,
     publishIngredients,
     settings,

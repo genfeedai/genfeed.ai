@@ -577,22 +577,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "d1382942558add5cae10",
-      "method": "count",
-      "model": "Post",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/credentials/services/account-health.service.ts",
-      "fingerprint": "d53b2f17dd85ea21516c",
-      "method": "count",
-      "model": "Post",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "creditBalance",
       "file": "apps/server/api/src/collections/credits/services/credit-balance.service.ts",
       "fingerprint": "91c23c48d96d89f12d49",
@@ -1654,38 +1638,6 @@
       "fingerprint": "cb15b7a003dd8d4ee7d0",
       "method": "update",
       "model": "OutreachCampaign",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "30a85345dff481156ce5",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "post",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "f1ec526f652e16fcf747",
-      "method": "update",
-      "model": "Post",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "086c97eb25feb18e960d",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "1ec5406c56fd58c3df05",
-      "method": "update",
-      "model": "PostGroup",
       "reason": "missing-organization-id"
     },
     {
