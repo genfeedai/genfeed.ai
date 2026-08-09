@@ -42,6 +42,16 @@ describe('PUBLISH_MENU_ITEMS', () => {
     ]);
     expect(pipeline[0]?.hasDividerAbove).toBeFalsy();
     expect(pipeline[0]?.isCollapsible).toBe(true);
+    expect(pipeline.map((item) => item.href)).toEqual([
+      '/publish/posts?status=draft',
+      '/publish/posts?publicationState=not-posted',
+      '/publish/posts?publicationState=posted',
+    ]);
+    expect(pipeline.map((item) => item.matchSearchParams)).toEqual([
+      { status: 'draft' },
+      { publicationState: 'not-posted', status: null },
+      { publicationState: 'posted', status: null },
+    ]);
   });
 
   it('has no duplicate hrefs', () => {

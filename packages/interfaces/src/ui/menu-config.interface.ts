@@ -22,6 +22,8 @@ export interface MenuItemConfig {
   solid?: ComponentType<{ className?: string }>;
   group?: string;
   matchPaths?: string[];
+  /** Query parameters that participate in active navigation identity. Null requires the key to be absent. */
+  matchSearchParams?: Readonly<Record<string, string | null>>;
   /** When true, this item is active only on an exact route match, not on descendant routes. Use for root items (e.g. an Overview at /settings) that share a path prefix with sibling sub-pages. */
   isExactMatch?: boolean;
   /** Skip nested sidebar for this group — navigate directly on icon click */
