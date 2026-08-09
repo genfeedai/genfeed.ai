@@ -13,6 +13,7 @@ import {
   formatEnumLabel,
   PageScope,
   type PostCategory,
+  PostStatus,
   type TargetExecutionState,
   TargetExecutionState as TargetState,
 } from '@genfeedai/enums';
@@ -126,6 +127,14 @@ function viewCopy(view?: PublisherPostsView): {
   };
 }
 
+// Copy lives here rather than inline: this package ships without the app's
+// i18n provider, so hoisting keeps it in one place for a later extraction.
+const POSTS_LOAD_ERROR = 'Posts could not be loaded. Refresh to try again.';
+
+function channelCountLabel(count: number): string {
+  return `${count} channel${count === 1 ? '' : 's'}`;
+}
+
 export default function ReleasePostsList({
   contentTypes,
   executionStates,
@@ -209,7 +218,9 @@ export default function ReleasePostsList({
     staleTime: Number.POSITIVE_INFINITY,
   });
   const publisherView: PublisherPostsView | undefined =
-    executionStates?.includes(TargetState.FAILED) ? 'failed' : publicationState;
+    executionStates?.includes(TargetState.FAILED)
+      ? PostStatus.FAILED
+      : publicationState;
   const copy = viewCopy(publisherView);
   const returnUrl = searchParamsString
     ? `${pathname}?${searchParamsString}`
@@ -353,7 +364,7 @@ export default function ReleasePostsList({
           className="mb-4 border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           role="alert"
         >
-          Posts could not be loaded. Refresh to try again.
+          {POSTS_LOAD_ERROR}
         </p>
       ) : null}
 
@@ -430,8 +441,7 @@ export default function ReleasePostsList({
 
                 <div className="mt-4 flex items-center justify-between text-xs text-foreground/45">
                   <span>
-                    {(release.targets ?? []).length} channel
-                    {(release.targets ?? []).length === 1 ? '' : 's'}
+                    {channelCountLabel((release.targets ?? []).length)}
                   </span>
                   <span>
                     {scheduledAt
