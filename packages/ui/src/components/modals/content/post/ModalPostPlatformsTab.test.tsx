@@ -8,7 +8,7 @@ import {
   PostStatus,
 } from '@genfeedai/enums';
 import type { IIngredient, IPostPlatformConfig } from '@genfeedai/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import ModalPostPlatformsTab, {
   buildComposerPreviewTargets,
 } from '@ui/modals/content/post/ModalPostPlatformsTab';
@@ -97,14 +97,15 @@ describe('ModalPostPlatformsTab', () => {
     expect(
       screen.getByRole('article', { name: 'Instagram platform preview' }),
     ).toBeVisible();
-    expect(screen.getByText('Instagram launch copy')).toBeVisible();
+    const preview = screen.getByLabelText('Platform preview');
+    expect(within(preview).getByText('Instagram launch copy')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', { name: 'X (Twitter)' }));
 
     expect(
       screen.getByRole('article', { name: 'X (Twitter) platform preview' }),
     ).toBeVisible();
-    expect(screen.getByText('X-specific launch copy')).toBeVisible();
+    expect(within(preview).getByText('X-specific launch copy')).toBeVisible();
   });
 
   it('hides and restores the selected-channel preview', () => {
