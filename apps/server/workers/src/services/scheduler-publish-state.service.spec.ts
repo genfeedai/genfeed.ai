@@ -1,4 +1,5 @@
 import {
+  PostStatus,
   PostVisibility,
   ReleaseStatus,
   TargetExecutionState,

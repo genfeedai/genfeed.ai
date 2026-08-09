@@ -310,7 +310,7 @@ export class PublishApprovalsService {
             reviewVersionPinId: versionPin.id,
             reviewedAt: now,
           },
-          where: { id: post.id },
+          where: scopedWhere(post.organizationId, { id: post.id }),
         });
         return created;
       };
