@@ -12,6 +12,7 @@ locals {
     { name = "GENFEEDAI_MCP_PUBLIC_URL", value = "https://mcp.genfeed.ai/mcp" },
     { name = "REDIS_URL", value = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379" },
     { name = "REDIS_TLS", value = "true" },
+    { name = "AWS_REGION", value = var.region },
     { name = "NODE_ENV", value = "production" },
     { name = "VERSION", value = "1.0.0" },
   ]

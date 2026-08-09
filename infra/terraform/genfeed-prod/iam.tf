@@ -65,6 +65,19 @@ data "aws_iam_policy_document" "task" {
       "arn:aws:s3:::cdn.genfeed.ai/*",
     ]
   }
+
+  statement {
+    sid       = "PublishQueueMetrics"
+    effect    = "Allow"
+    actions   = ["cloudwatch:PutMetricData"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "cloudwatch:namespace"
+      values   = ["Genfeed/Queues"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "task" {
