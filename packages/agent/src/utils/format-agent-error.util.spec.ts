@@ -41,9 +41,29 @@ describe('formatAgentError', () => {
     expect(formatAgentError('Request failed with status code 503').title).toBe(
       'Provider temporarily unavailable',
     );
+    // 502 is treated as connection/gateway interruption (local proxy + provider).
     expect(formatAgentError('bad gateway from provider').title).toBe(
-      'Provider temporarily unavailable',
+      'Connection interrupted',
     );
+  });
+
+  it('classifies local API / proxy connection failures', () => {
+    expect(formatAgentError('connect ECONNREFUSED 127.0.0.1:4635').title).toBe(
+      'Connection interrupted',
+    );
+    expect(formatAgentError('Failed to fetch').title).toBe(
+      'Connection interrupted',
+    );
+    expect(formatAgentError('socket hang up').title).toBe(
+      'Connection interrupted',
+    );
+  });
+
+  it('classifies stream recovery timeouts', () => {
+    expect(
+      formatAgentError('Agent run did not finish before the recovery timeout.')
+        .title,
+    ).toBe('Run timed out');
   });
 
   it('does not treat arbitrary 5xx-looking numbers as provider outages', () => {

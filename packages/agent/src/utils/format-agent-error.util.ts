@@ -47,10 +47,23 @@ const CONFIG_PATTERNS: Array<{
     recovery: 'Wait a moment, then retry the message.',
   },
   {
-    match: /timeout|ETIMEDOUT|ECONNRESET|network/i,
+    // Must run before the broader "timeout" connection pattern below.
+    match:
+      /did not finish before the recovery timeout|stream recovery timeout|stream timed out/i,
+    title: 'Run timed out',
+    summary:
+      'The agent run took too long to confirm completion over the live stream.',
+    recovery:
+      'Refresh the conversation — the run may already have finished. Then retry if needed.',
+  },
+  {
+    match:
+      /ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|socket hang up|failed to fetch|load failed|networkerror|network error|\bnetwork\b|bad gateway|gateway timeout|status code 502\b|\bHTTP\s*502\b|status code 504\b|\bHTTP\s*504\b|\btimeout\b/i,
     title: 'Connection interrupted',
-    summary: 'The request to the model provider did not complete.',
-    recovery: 'Check your connection and retry.',
+    summary:
+      'Could not reach the agent API (connection dropped or the local API was restarting).',
+    recovery:
+      'Confirm the API is up (https://api.genfeed.localhost/v1/health), then retry the message.',
   },
   {
     match: /401|unauthorized|invalid.*api.?key|invalid token/i,
