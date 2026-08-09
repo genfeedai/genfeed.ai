@@ -15,6 +15,30 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+// Mirrors the shipped `common.json` copy for the ids this editor resolves, so
+// the assertions below keep checking real strings. The catalog itself is
+// guarded by apps/app/i18n/messages.test.ts.
+const POST_EDITOR_COPY: Record<string, string> = {
+  'postEditor.content': 'Content',
+  'postEditor.format.longForm': 'Long post',
+  'postEditor.format.standard': 'Standard post',
+  'postEditor.format.thread': 'Thread',
+  'postEditor.status.draft': 'Draft',
+  'postEditor.status.scheduled': 'Scheduled',
+  'postEditor.thread.help':
+    'Replies publish in this order through the existing schedule.',
+  'postEditor.thread.postIndex': 'Post {index}',
+  'postEditor.thread.title': 'Thread replies',
+};
+
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string, values?: Record<string, unknown>) =>
+    Object.entries(values ?? {}).reduce(
+      (text, [name, value]) => text.replace(`{${name}}`, String(value)),
+      POST_EDITOR_COPY[key] ?? key,
+    ),
+}));
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     delete: mocks.delete,
@@ -182,7 +206,9 @@ describe('PostEditorContent', () => {
     const { container } = render(<PostEditorContent artifactId="post-1" />);
 
     expect(await screen.findByText('Thread replies')).toBeVisible();
-    fireEvent.change(screen.getByLabelText('Content'), {
+    // The segment label carries a live character counter alongside the word
+    // "Content", so match the prefix rather than the whole accessible name.
+    fireEvent.change(screen.getByLabelText(/^Content/), {
       target: { value: 'Revised reply' },
     });
 

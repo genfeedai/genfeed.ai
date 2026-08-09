@@ -1657,38 +1657,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
-      "fingerprint": "b53469b501cce3045f05",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-group-persistence.service.ts",
-      "fingerprint": "b568c2a1f52d02134afb",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-organization-id"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "33203e14613e7db90134",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-is-deleted"
-    },
-    {
-      "delegate": "postGroup",
-      "file": "apps/server/api/src/collections/post-groups/services/post-groups.service.ts",
-      "fingerprint": "a4b1675aa731c0d4fc40",
-      "method": "update",
-      "model": "PostGroup",
-      "reason": "missing-organization-id"
-    },
-    {
       "delegate": "post",
       "file": "apps/server/api/src/collections/posts/services/posts.service.ts",
       "fingerprint": "9af0abbeb72bcb93c766",

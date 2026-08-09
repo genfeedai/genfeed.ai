@@ -410,7 +410,7 @@ export class PostGroupsService {
           ...(input.timezone !== undefined && { timezone: input.timezone }),
           ...(input.title !== undefined && { title: input.title }),
         },
-        where: { id: existing.id },
+        where: scopedWhere(organizationId, { id: existing.id }),
       })) as SchedulerPostGroup;
 
       const targetUpdate: PostLifecycleMutation = {};

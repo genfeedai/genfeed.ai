@@ -25,6 +25,7 @@ import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { X_LONG_FORM_CHAR_LIMIT } from '@ui-constants/platform-char-limit.constant';
 import { Plus, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
 import { type UseFormReturn, useFieldArray } from 'react-hook-form';
 
@@ -41,6 +42,7 @@ type PostEditorProps = {
  * so a draft can be refined without the list context around it.
  */
 export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
+  const translate = useTranslations('common');
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
   const isYouTube = post.platform === Platform.YOUTUBE;
   const isX = post.platform === Platform.TWITTER;
@@ -89,9 +91,15 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
             helpText="Long posts use one body; threads publish each segment as a linked reply."
           >
             <SelectField name="format" control={form.control}>
-              <option value={PostFormat.STANDARD}>Standard post</option>
-              <option value={PostFormat.LONG_FORM}>Long post</option>
-              <option value={PostFormat.THREAD}>Thread</option>
+              <option value={PostFormat.STANDARD}>
+                {translate('postEditor.format.standard')}
+              </option>
+              <option value={PostFormat.LONG_FORM}>
+                {translate('postEditor.format.longForm')}
+              </option>
+              <option value={PostFormat.THREAD}>
+                {translate('postEditor.format.thread')}
+              </option>
             </SelectField>
           </FormControl>
         )}
@@ -122,9 +130,11 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-medium">Thread replies</h3>
+                <h3 className="text-sm font-medium">
+                  {translate('postEditor.thread.title')}
+                </h3>
                 <p className="text-xs text-foreground/60">
-                  Replies publish in this order through the existing schedule.
+                  {translate('postEditor.thread.help')}
                 </p>
               </div>
               <Button
@@ -156,7 +166,9 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="font-medium text-sm">
-                      Post {index + 2}
+                      {translate('postEditor.thread.postIndex', {
+                        index: index + 2,
+                      })}
                     </span>
                     <Button
                       type="button"
@@ -172,7 +184,7 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
                   <FormControl
                     label={
                       <div className="flex w-full items-center justify-between gap-2">
-                        <span>Content</span>
+                        <span>{translate('postEditor.content')}</span>
                         <span className="text-xs text-foreground/60">
                           {currentLength} / 280
                         </span>
@@ -218,8 +230,12 @@ export default function PostEditor({ form, post, onSubmit }: PostEditorProps) {
             helpText="Choose Scheduled after selecting a date to use the existing publishing queue."
           >
             <SelectField name="status" control={form.control}>
-              <option value={PostStatus.DRAFT}>Draft</option>
-              <option value={PostStatus.SCHEDULED}>Scheduled</option>
+              <option value={PostStatus.DRAFT}>
+                {translate('postEditor.status.draft')}
+              </option>
+              <option value={PostStatus.SCHEDULED}>
+                {translate('postEditor.status.scheduled')}
+              </option>
             </SelectField>
           </FormControl>
         )}
